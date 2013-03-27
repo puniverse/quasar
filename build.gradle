@@ -1,0 +1,36 @@
+apply plugin: 'java'
+
+sourceCompatibility = '1.6'
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+// NetBeans will automatically add "run" and "debug" tasks relying on the
+// "mainClass" property. You may however define the property prior executing
+// tasks by passing a "-PmainClass=<QUALIFIED_CLASS_NAME>" argument.
+//
+// Note however, that you may define your own "run" and "debug" task if you
+// prefer. In this case NetBeans will not add these tasks but you may rely on
+// your own implementation.
+if (!hasProperty('mainClass')) {
+    ext.mainClass = ''
+}
+
+repositories {
+    flatDir {
+        dirs 'baselib'
+    }
+    repositories {
+        mavenCentral()
+    }
+}
+
+dependencies {
+    compile ":jsr166e","com.yammer.metrics:metrics-core:2.0.2","org.ow2.asm:asm:4.1","org.ow2.asm:asm-analysis:4.1","org.ow2.asm:asm-util:4.1","ant:ant:1.7.0"
+    runtime ":padlock:2.2",":commons-codec:1.3", "com.google.guava:guava:11.0.1","net.sf.trove4j:trove4j:3.0.2"
+    testCompile group: 'junit', name: 'junit', version: '4.10'
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.5-20130302103424+0000'
+}
+
+defaultTasks 'build'
