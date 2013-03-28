@@ -45,16 +45,16 @@ public class FinallyTest implements SuspendableRunnable {
     @Override
     public void run() throws SuspendExecution {
         results.add("A");
-        LightweightThread.yield();
+        LightweightThread.suspend();
         try {
             results.add("C");
-            LightweightThread.yield();
+            LightweightThread.suspend();
             results.add("E");
         } finally {
             results.add("F");
         }
         results.add("G");
-        LightweightThread.yield();
+        LightweightThread.suspend();
         results.add("I");
     }
 

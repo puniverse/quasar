@@ -28,6 +28,7 @@
  */
 package co.paralleluniverse.concurrent.lwthreads.instrument;
 
+import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.SUSPEND_EXECUTION_CLASS;
 import co.paralleluniverse.concurrent.lwthreads.instrument.MethodDatabase.ClassEntry;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
@@ -43,8 +44,8 @@ import org.objectweb.asm.Type;
  */
 public class CheckInstrumentationVisitor extends ClassVisitor {
 
-    static final String EXCEPTION_NAME = Type.getInternalName(Classes.getSuspendExecutionClass());
-    static final String EXCEPTION_DESC = Type.getDescriptor(Classes.getSuspendExecutionClass());
+    static final String EXCEPTION_NAME = Type.getInternalName(SUSPEND_EXECUTION_CLASS);
+    static final String EXCEPTION_DESC = Type.getDescriptor(SUSPEND_EXECUTION_CLASS);
 
     private String className;
     private ClassEntry classEntry;

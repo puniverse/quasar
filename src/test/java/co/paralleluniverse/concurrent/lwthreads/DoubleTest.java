@@ -30,7 +30,7 @@ public class DoubleTest implements SuspendableRunnable {
     @Override
     public void run() throws SuspendExecution {
         double temp = Math.cos(0);
-        LightweightThread.yield();
+        LightweightThread.suspend();
         this.result = temp;
     }
 

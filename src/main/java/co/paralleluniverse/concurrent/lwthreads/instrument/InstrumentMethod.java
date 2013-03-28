@@ -29,6 +29,10 @@
 package co.paralleluniverse.concurrent.lwthreads.instrument;
 
 import static co.paralleluniverse.concurrent.lwthreads.instrument.BlockingMethod.isBlockingCall;
+import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.STACK_CLASS;
+import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.SUSPEND_EXECUTION_CLASS;
+import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.YIELD_NAME;
+import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.isYieldMethod;
 import java.util.List;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -53,8 +57,8 @@ import org.objectweb.asm.tree.analysis.Value;
  * 
  * @author Matthias Mann
  */
-public class InstrumentMethod {
-    private static final String STACK_NAME = Type.getInternalName(Classes.getStackClass());
+public class InstrumentMethod {    
+    private static final String STACK_NAME = Type.getInternalName(STACK_CLASS);
     
     private final MethodDatabase db;
     private final String className;
@@ -143,8 +147,7 @@ public class InstrumentMethod {
         for(Object o : mn.tryCatchBlocks) {
             TryCatchBlockNode tcb = (TryCatchBlockNode)o;
             if(CheckInstrumentationVisitor.EXCEPTION_NAME.equals(tcb.type)) {
-                throw new UnableToInstrumentException("catch for " +
-                        Classes.getSuspendExecutionClass().getSimpleName(), className, mn.name, mn.desc);
+                throw new UnableToInstrumentException("catch for " + SUSPEND_EXECUTION_CLASS.getSimpleName(), className, mn.name, mn.desc);
             }
             tcb.accept(mv);
         }
@@ -180,10 +183,10 @@ public class InstrumentMethod {
             FrameInfo fi = codeBlocks[i];
             
             MethodInsnNode min = (MethodInsnNode)(mn.instructions.get(fi.endInstruction));
-            if(InstrumentClass.COROUTINE_NAME.equals(min.owner) && "yield".equals(min.name)) {
+            if(isYieldMethod(min.owner, min.name)) {
                 // special case - call to yield() - resume AFTER the call
                 if(min.getOpcode() != Opcodes.INVOKESTATIC) {
-                    throw new UnableToInstrumentException("invalid call to yield()", className, mn.name, mn.desc);
+                    throw new UnableToInstrumentException("invalid call to " + YIELD_NAME, className, mn.name, mn.desc);
                 }
                 emitStoreState(mv, i, fi);
                 mv.visitFieldInsn(Opcodes.GETSTATIC, STACK_NAME,

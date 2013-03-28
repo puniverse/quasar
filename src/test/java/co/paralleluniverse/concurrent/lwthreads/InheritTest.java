@@ -37,8 +37,8 @@ public class InheritTest {
     }
     
     public static class A {
-        public static void yield() throws SuspendExecution {
-            LightweightThread.yield();
+        public static void suspend() throws SuspendExecution {
+            LightweightThread.suspend();
         }
     }
     
@@ -50,7 +50,7 @@ public class InheritTest {
         
         public void otherMethod() throws SuspendExecution {
             result.add("o1");
-            LightweightThread.yield();
+            LightweightThread.suspend();
             result.add("o2");
         }
         
@@ -64,7 +64,7 @@ public class InheritTest {
                     otherMethod();
                     result.add("Ohh!");
                 }
-                yield();
+                suspend();
             }
         }
     }

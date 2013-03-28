@@ -45,10 +45,10 @@ public class ThrowTest implements SuspendableRunnable {
     @Override
     public void run() throws SuspendExecution {
         results.add("A");
-        LightweightThread.yield();
+        LightweightThread.suspend();
         try {
             results.add("C");
-            LightweightThread.yield();
+            LightweightThread.suspend();
             if("".length() == 0) {
                 throw new IllegalStateException("bla");
             }

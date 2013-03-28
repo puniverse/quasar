@@ -47,7 +47,7 @@ public class UninitializedTest implements SuspendableRunnable {
     }
 
     private Object getProtery(String string) throws SuspendExecution {
-        LightweightThread.yield();
+        LightweightThread.suspend();
         return string;
     }
 

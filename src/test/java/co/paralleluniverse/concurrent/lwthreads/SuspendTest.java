@@ -59,6 +59,6 @@ public class SuspendTest implements SuspendableRunnable {
 
     private static void print(String fmt, Object... args) throws SuspendExecution {
         System.out.printf(fmt, args);
-        LightweightThread.yield();
+        LightweightThread.suspend();
     }
 }

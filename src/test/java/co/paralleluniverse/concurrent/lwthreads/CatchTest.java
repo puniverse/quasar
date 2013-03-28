@@ -46,7 +46,7 @@ public class CatchTest implements SuspendableRunnable {
     int cnt = 0;
     private void throwOnSecondCall() throws SuspendExecution {
         results.add("cnt=" + cnt);
-        LightweightThread.yield();
+        LightweightThread.suspend();
         if(++cnt >= 2) {
             throw new IllegalStateException("called second time");
         }
@@ -56,12 +56,12 @@ public class CatchTest implements SuspendableRunnable {
     @Override
     public void run() throws SuspendExecution {
         results.add("A");
-        LightweightThread.yield();
+        LightweightThread.suspend();
         try {
             results.add("C");
-            LightweightThread.yield();
+            LightweightThread.suspend();
             throwOnSecondCall();
-            LightweightThread.yield();
+            LightweightThread.suspend();
             throwOnSecondCall();
             results.add("never reached");
         } catch(Throwable ex) {

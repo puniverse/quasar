@@ -28,6 +28,7 @@
  */
 package co.paralleluniverse.concurrent.lwthreads.instrument;
 
+import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.isYieldMethod;
 import co.paralleluniverse.concurrent.lwthreads.instrument.MethodDatabase.ClassEntry;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +47,6 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
  */
 public class InstrumentClass extends ClassVisitor {
 
-    static final String COROUTINE_NAME = Type.getInternalName(Classes.getCoroutineClass());
     static final String ALREADY_INSTRUMENTED_NAME = Type.getDescriptor(AlreadyInstrumented.class);
     
     private final MethodDatabase db;
@@ -89,7 +89,7 @@ public class InstrumentClass extends ClassVisitor {
         boolean suspendable = CheckInstrumentationVisitor.checkExceptions(exceptions);
         classEntry.set(name, desc, suspendable);
         
-        if(suspendable && checkAccess(access) && !(className.equals(COROUTINE_NAME) && name.equals("yield"))) {
+        if(suspendable && checkAccess(access) && !isYieldMethod(className, name)) {
             if(db.isDebug()) {
                 db.log(LogLevel.INFO, "Instrumenting method %s#%s", className, name);
             }

@@ -36,7 +36,7 @@ public class NullTest implements SuspendableRunnable {
     private Object getProperty() throws SuspendExecution {
         Object x = null;
         
-        Object y = getProtery("a");
+        Object y = getProperty("a");
         if(y != null) {
             x = y;
         }
@@ -44,8 +44,8 @@ public class NullTest implements SuspendableRunnable {
         return x;
     }
 
-    private Object getProtery(String string) throws SuspendExecution {
-        LightweightThread.yield();
+    private Object getProperty(String string) throws SuspendExecution {
+        LightweightThread.suspend();
         return string;
     }
 

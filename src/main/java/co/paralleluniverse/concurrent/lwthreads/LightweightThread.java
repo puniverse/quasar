@@ -78,7 +78,7 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
      * @throws SuspendExecution This exception is used for control transfer - don't catch it !
      * @throws IllegalStateException If not called from a LightweightThread
      */
-    public static void yield() throws SuspendExecution, IllegalStateException {
+    public static void suspend() throws SuspendExecution, IllegalStateException {
         throw new Error("Calling function not instrumented");
     }
 
