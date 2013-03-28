@@ -17,32 +17,15 @@ import java.io.Serializable;
 public class LightweightThread extends ParkableForkJoinTask<Void> implements Serializable {
     public static final int DEFAULT_STACK_SIZE = 16;
     private static final long serialVersionUID = 2783452871536981L;
-
-    public enum State {
-        NEW,
-        RUNNING,
-        SUSPENDED,
-        FINISHED
-    };
     private final SuspendableRunnable target;
     private final Stack stack;
-    private State state;
+    private boolean running;
     LightweightThreadLocal.LWThreadLocalMap lwthreadLocals;
-
-    /**
-     * Suspend the currently running LightweightThread.
-     *
-     * @throws SuspendExecution This exception is used for control transfer - don't catch it !
-     * @throws IllegalStateException If not called from a LightweightThread
-     */
-    public static void yield() throws SuspendExecution, IllegalStateException {
-        throw new Error("Calling function not instrumented");
-    }
 
     /**
      * Creates a new LightweightThread from the given SuspendableRunnable.
      *
-     * @param proto the SuspendableRunnable for the LightweightThread.
+     * @param target the SuspendableRunnable for the LightweightThread.
      */
     public LightweightThread(SuspendableRunnable target) {
         this(target, DEFAULT_STACK_SIZE);
@@ -67,7 +50,6 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
     public LightweightThread(SuspendableRunnable target, int stackSize) {
         this.target = target;
         this.stack = new Stack(this, stackSize);
-        this.state = State.NEW;
 
         if (target != null) {
             if (!isInstrumented(target.getClass()))
@@ -90,25 +72,35 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
         }
     }
 
+    /**
+     * Suspend the currently running LightweightThread.
+     *
+     * @throws SuspendExecution This exception is used for control transfer - don't catch it !
+     * @throws IllegalStateException If not called from a LightweightThread
+     */
+    public static void yield() throws SuspendExecution, IllegalStateException {
+        throw new Error("Calling function not instrumented");
+    }
+
     @Override
     protected final boolean exec1() {
-        if (state != State.NEW && state != State.SUSPENDED)
+        if (isDone() | running)
             throw new IllegalStateException("Not new or suspended");
 
-        State result = State.FINISHED;
         try {
-            state = State.RUNNING;
+            running = true;
+            boolean finished = true;
             try {
                 run();
             } catch (SuspendExecution ex) {
                 assert ex == SuspendExecution.instance;
-                result = State.SUSPENDED;
+                finished = false;
                 //stack.dump();
                 stack.resumeStack();
             }
-            return result == State.FINISHED;
+            return finished;
         } finally {
-            state = result;
+            running = false;
         }
     }
 
@@ -143,7 +135,7 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-        if (state == State.RUNNING)
+        if (running)
             throw new IllegalStateException("trying to serialize a running LightweightThread");
         out.defaultWriteObject();
     }
