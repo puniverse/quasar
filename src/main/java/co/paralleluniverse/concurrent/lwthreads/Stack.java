@@ -10,13 +10,11 @@ import java.util.Arrays;
  * ANY CHANGE IN THIS CLASS NEEDS TO BE SYNCHRONIZED WITH {@link de.matthiasmann.continuations.instrument.InstrumentMethod}
  * 
  * @author Matthias Mann
- * @author pron
+ * @author Ron Pressler
  */
 public final class Stack implements Serializable {
 
     private static final long serialVersionUID = 12786283751253L;
-    
-    private static final ThreadLocal<Stack> tls = new ThreadLocal<Stack>();
     
     /** sadly this need to be here */
     public static SuspendExecution exception_instance_not_for_user_code = SuspendExecution.instance;
@@ -42,11 +40,7 @@ public final class Stack implements Serializable {
     }
     
     public static Stack getStack() {
-        return tls.get();
-    }
-    
-    static void setStack(Stack s) {
-        tls.set(s);
+        return LightweightThread.currentLightweightThread().getStack();
     }
     
     /**

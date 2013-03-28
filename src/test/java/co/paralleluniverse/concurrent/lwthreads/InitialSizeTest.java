@@ -33,10 +33,10 @@ public class InitialSizeTest implements SuspendableRunnable {
     private void testWithSize(int stackSize) {
         LightweightThread c = new LightweightThread(this, stackSize);
         assertEquals(getStackSize(c), stackSize);
-        c.exec1();
-        assertEquals(LightweightThread.State.SUSPENDED, c.getState());
-        c.exec1();
-        assertEquals(LightweightThread.State.FINISHED, c.getState());
+        boolean res = c.exec();
+        assertEquals(res, false);
+        res = c.exec();
+        assertEquals(res, true);
         assertTrue(getStackSize(c) > 10);
     }
 

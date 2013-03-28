@@ -25,7 +25,7 @@ public class InheritTest {
             }
         });
         for(int i=0 ; i<3 ; i++) {
-            c.exec1();
+            c.exec();
         }
         
         assertEquals(5, dut.result.size());

@@ -51,10 +51,8 @@ public class InterfaceTest {
                 i.doStuff();
             }
         });
-        while (co.getState() != LightweightThread.State.FINISHED) {
+        while (!co.exec())
             System.out.println("State=" + co.getState());
-            co.exec1();
-        }
         System.out.println("State=" + co.getState());
     }
 }

@@ -19,12 +19,11 @@ public class UninitializedTest implements SuspendableRunnable {
     
     @Test
     public void testUninitialized() {
-        int count = 0;
         LightweightThread co = new LightweightThread(this);
-        while(co.getState() != LightweightThread.State.FINISHED) {
-            ++count;
-            co.exec1();
-        }
+        int count = 1;
+        while(!co.exec())
+            count++;
+
         assertEquals(2, count);
         assertEquals("a", result);
     }

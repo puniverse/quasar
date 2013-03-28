@@ -21,7 +21,7 @@ public class ArrayTest implements SuspendableRunnable {
     @Test
     public void testArray() {
         LightweightThread co = new LightweightThread(this);
-        co.exec1();
+        co.exec();
         assertEquals(42, l1.i);
     }
     

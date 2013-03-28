@@ -64,13 +64,13 @@ public class FinallyTest implements SuspendableRunnable {
         
         try {
             LightweightThread co = new LightweightThread(this);
-            co.exec1();
+            co.exec();
             results.add("B");
-            co.exec1();
+            co.exec();
             results.add("D");
-            co.exec1();
+            co.exec();
             results.add("H");
-            co.exec1();
+            co.exec();
         } finally {
             System.out.println(results);
         }

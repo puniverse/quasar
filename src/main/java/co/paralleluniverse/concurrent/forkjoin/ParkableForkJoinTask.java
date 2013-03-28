@@ -164,7 +164,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         throw YIELD;
     }
 
-    int getState() {
+    protected int getState() {
         return state;
     }
 

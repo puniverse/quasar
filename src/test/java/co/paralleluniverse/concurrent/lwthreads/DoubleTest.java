@@ -20,11 +20,11 @@ public class DoubleTest implements SuspendableRunnable {
     @Test
     public void testDouble() {
         LightweightThread co = new LightweightThread(this);
-        co.exec1();
+        co.exec();
         assertEquals(0, result, 1e-8);
-        co.exec1();
+        boolean res = co.exec();
         assertEquals(1, result, 1e-8);
-        assertEquals(LightweightThread.State.FINISHED, co.getState());
+        assertEquals(res, true);
     }
 
     @Override

@@ -76,17 +76,17 @@ public class CatchTest implements SuspendableRunnable {
         
         try {
             LightweightThread co = new LightweightThread(this);
-            co.exec1();
+            co.exec();
             results.add("B");
-            co.exec1();
+            co.exec();
             results.add("D");
-            co.exec1();
+            co.exec();
             results.add("E");
-            co.exec1();
+            co.exec();
             results.add("F");
-            co.exec1();
+            co.exec();
             results.add("G");
-            co.exec1();
+            co.exec();
             results.add("I");
         } finally {
             System.out.println(results);

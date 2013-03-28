@@ -32,34 +32,32 @@ import org.junit.Test;
 
 /**
  * Basic test
- * 
+ *
  * @author Matthias Mann
  */
 public class SuspendTest implements SuspendableRunnable {
-
     @Test
     public void testSuspend() {
         SuspendTest test = new SuspendTest();
         LightweightThread co = new LightweightThread(test);
-        
-        while(co.getState() != LightweightThread.State.FINISHED) {
-            System.out.println("State="+co.getState());
-            co.exec1();
-        }
-        System.out.println("State="+co.getState());
+
+        while (!co.exec())
+            System.out.println("State=" + co.getState());
+
+        System.out.println("State=" + co.getState());
     }
-    
+
     @Override
     public void run() throws SuspendExecution {
-        int i0=0, i1=1;
-        for(int j=0 ; j<10 ; j++) {
+        int i0 = 0, i1 = 1;
+        for (int j = 0; j < 10; j++) {
             i1 = i1 + i0;
             i0 = i1 - i0;
             print("bla %d %d\n", i0, i1);
         }
     }
 
-    private static void print(String fmt, Object ... args) throws SuspendExecution {
+    private static void print(String fmt, Object... args) throws SuspendExecution {
         System.out.printf(fmt, args);
         LightweightThread.yield();
     }

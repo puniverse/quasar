@@ -38,7 +38,7 @@ public class Merge2Test implements SuspendableRunnable {
     public void testMerge2() {
         try {
             LightweightThread c = new LightweightThread(new Merge2Test());
-            c.exec1();
+            c.exec();
             assertTrue("Should not reach here", false);
         } catch (NullPointerException ex) {
             // NPE expected

@@ -32,6 +32,6 @@ public class MergeTest implements SuspendableRunnable {
     @Test
     public void testMerge() {
         LightweightThread c = new LightweightThread(new MergeTest());
-        c.exec1();
+        c.exec();
     }
 }

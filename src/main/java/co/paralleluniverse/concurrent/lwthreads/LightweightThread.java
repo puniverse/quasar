@@ -1,5 +1,6 @@
 package co.paralleluniverse.concurrent.lwthreads;
 
+import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
 import java.io.IOException;
 import java.io.Serializable;
@@ -71,7 +72,7 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
         if (target != null) {
             if (!isInstrumented(target.getClass()))
                 throw new IllegalArgumentException("Target class " + target.getClass() + " has not been instrumented.");
-        } else if(!isInstrumented(this.getClass())) {
+        } else if (!isInstrumented(this.getClass())) {
             throw new IllegalArgumentException("LightweightThread class " + this.getClass() + " has not been instrumented.");
         }
     }
@@ -82,46 +83,21 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
      * @return the active LightweightThread on this thread or NULL if no LightweightThread is running.
      */
     public static LightweightThread currentLightweightThread() {
-        Stack s = Stack.getStack();
-        if (s != null)
-            return s.co;
-        return null;
-    }
-
-    /**
-     * Returns the SuspendableRunnable that is used for this LightweightThread
-     *
-     * @return The SuspendableRunnable that is used for this LightweightThread
-     */
-    public SuspendableRunnable getTarget() {
-        return target;
-    }
-
-    /**
-     * <p>Returns the current state of this LightweightThread. May be called by the LightweightThread
-     * itself but should not be called by another thread.</p>
-     *
-     * <p>The LightweightThread starts in the state NEW then changes to RUNNING. From
-     * RUNNING it may change to FINISHED or SUSPENDED. SUSPENDED can only change
-     * to RUNNING by calling run() again.</p>
-     *
-     * @return The current state of this LightweightThread
-     * @see #run()
-     */
-    public State getState() {
-        return state;
+        try {
+            return (LightweightThread) ParkableForkJoinTask.getCurrent();
+        } catch (ClassCastException e) {
+            return null;
+        }
     }
 
     @Override
     protected final boolean exec1() {
-        if (state != State.NEW && state != State.SUSPENDED) {
+        if (state != State.NEW && state != State.SUSPENDED)
             throw new IllegalStateException("Not new or suspended");
-        }
+
         State result = State.FINISHED;
-        Stack oldStack = Stack.getStack();
         try {
             state = State.RUNNING;
-            Stack.setStack(stack);
             try {
                 run();
             } catch (SuspendExecution ex) {
@@ -130,9 +106,8 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
                 //stack.dump();
                 stack.resumeStack();
             }
-            return state == State.FINISHED;
+            return result == State.FINISHED;
         } finally {
-            Stack.setStack(oldStack);
             state = result;
         }
     }
@@ -140,6 +115,22 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
     protected void run() throws SuspendExecution {
         if (target != null)
             target.run();
+    }
+
+    @VisibleForTesting
+    @Override
+    protected final int getState() {
+        return super.getState();
+    }
+
+    @VisibleForTesting
+    @Override
+    protected final boolean exec() {
+        return super.exec();
+    }
+
+    final Stack getStack() {
+        return stack;
     }
 
     @Override
