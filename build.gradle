@@ -1,7 +1,21 @@
 apply plugin: 'java'
 
-sourceCompatibility = '1.6'
+sourceCompatibility = '1.7'
+targetCompatibility = '1.7'
+
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+group               = "co.paralleluniverse"
+version             = "0.1-SNAPSHOT"
+status              = "integration"
+description         = "A fork-join backed, lightweight threads Java library."
+ext.url             = "http://puniverse.github.com/quasar"
+ext.vendor          = "Parallel Universe Software Co."
+ext.licenseName     = "The GNU Lesser General Public License, version 3"
+ext.licenseUrl      = "http://www.gnu.org/licenses/lgpl-3.0.txt"
+ext.scmUrl          = "https://github.com/puniverse/quasar"
+ext.scmConnection   = "https://github.com/puniverse/quasar.git"
+ext.distDir         = "$buildDir/dist"
 
 // NetBeans will automatically add "run" and "debug" tasks relying on the
 // "mainClass" property. You may however define the property prior executing
@@ -24,9 +38,48 @@ repositories {
 }
 
 dependencies {
-    compile ":jsr166e","com.yammer.metrics:metrics-core:2.0.2","org.ow2.asm:asm:4.1","org.ow2.asm:asm-analysis:4.1","org.ow2.asm:asm-util:4.1","ant:ant:1.7.0"
-    runtime ":padlock:2.2",":commons-codec:1.3", "com.google.guava:guava:11.0.1","net.sf.trove4j:trove4j:3.0.2"
-    testCompile group: 'junit', name: 'junit', version: '4.10'
+    compile ":jsr166e"
+    compile "com.yammer.metrics:metrics-core:2.0.2" 
+    compile "org.ow2.asm:asm:4.1" 
+    compile "org.ow2.asm:asm-analysis:4.1"
+    compile "org.ow2.asm:asm-util:4.1"
+    compile "ant:ant:1.7.0"
+    compile "com.google.guava:guava:11.0.1"
+    compile "net.sf.trove4j:trove4j:3.0.2"
+    testCompile 'junit:junit:4.10'
+}
+
+task instrumentClasses(dependsOn: 'compileTestJava') << {
+    ant {
+        logging.level = LogLevel.INFO
+        taskdef(name:'continuations', classname:'co.paralleluniverse.concurrent.lwthreads.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
+        continuations(verbose:'true', check:'true', debug:'true') {
+            fileset(dir: sourceSets.test.output.classesDir)
+        }
+    }
+}
+
+    
+testClasses.dependsOn instrumentClasses
+
+jar {
+    manifest { 
+        attributes(
+            "Built-By"                  :   System.getProperty("user.name"),
+            "Implementation-Title"      :   name,
+            "Implementation-Version"    :   version,
+            "Implementation-Vendor"     :   vendor,
+            "Premain-Class"             :   "co.paralleluniverse.concurrent.lwthreads.instrument.JavaAgent",
+            "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',') 
+        )
+    }
+}
+
+tasks.withType(Test) { 
+    useJUnit()
+    doLast() {
+        println "file://" + testReportDir + "/index.html"    
+    }    
 }
 
 task wrapper(type: Wrapper) {
