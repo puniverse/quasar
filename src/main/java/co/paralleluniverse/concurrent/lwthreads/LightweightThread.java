@@ -6,10 +6,10 @@ import java.io.IOException;
 import java.io.Serializable;
 
 /**
- * <p>A LightweightThread.</p>
- *
- * <p>A LightweightThread can be serialized if it's not running and all involved
- * classes and data types are also {@link Serializable}.</p>
+ * A LightweightThread.
+ * <p/>
+ * A LightweightThread can be serialized if it's not running and all involved
+ * classes and data types are also {@link Serializable}.
  *
  * @author Ron Pressler
  * @author Matthias Mann
@@ -104,6 +104,11 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
         }
     }
 
+    @Override
+    protected void throwPark(boolean yield) {
+        // we don't need to throw a Park exception
+    }
+    
     protected void run() throws SuspendExecution {
         if (target != null)
             target.run();

@@ -89,7 +89,11 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         throw Exceptions.rethrow(t);
     }
 
-    void park(Object blocker) {
+    protected void throwPark(boolean yield) {
+        throw yield ? YIELD : PARK;
+    }
+
+    protected void park(Object blocker) {
         int newState;
         for (;;) {
             final int _state = getState();
@@ -118,11 +122,11 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             beforePark(false);
             this.state = PARKED;
             onParked(false);
-            throw PARK;
+            throwPark(false);
         }
     }
 
-    void unpark() {
+    protected void unpark() {
         int newState;
         for (;;) {
             final int _state = getState();
@@ -153,15 +157,15 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             fork();
     }
 
-    boolean tryUnpark() {
+    protected boolean tryUnpark() {
         return compareAndSetState(PARKED, RUNNING);
     }
 
-    void yield() {
+    protected void yield() {
         beforePark(true);
         fork();
         onParked(true);
-        throw YIELD;
+        throwPark(true);
     }
 
     protected int getState() {
