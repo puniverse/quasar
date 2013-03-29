@@ -61,7 +61,7 @@ import org.objectweb.asm.tree.analysis.Value;
  *
  * @author Matthias Mann
  */
-public class InstrumentMethod {
+class InstrumentMethod {
     private static final String STACK_NAME = Type.getInternalName(STACK_CLASS);
     private final MethodDatabase db;
     private final String className;
