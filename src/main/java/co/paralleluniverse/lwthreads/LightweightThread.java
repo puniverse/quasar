@@ -4,6 +4,7 @@ import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Arrays;
 
 /**
  * A LightweightThread.
@@ -12,16 +13,16 @@ import java.io.Serializable;
  * classes and data types are also {@link Serializable}.
  *
  * @author Ron Pressler
- * @author Matthias Mann
  */
 public class LightweightThread extends ParkableForkJoinTask<Void> implements Serializable {
+    private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.lwthreads.verifyInstrumentation", "false"));
     public static final int DEFAULT_STACK_SIZE = 16;
     private static final long serialVersionUID = 2783452871536981L;
-    private final SuspendableRunnable target;
     private final Stack stack;
     private volatile boolean running;
-    private PostParkActions postParkActions;
     LightweightThreadLocal.LWThreadLocalMap lwthreadLocals;
+    private final SuspendableRunnable target;
+    private PostParkActions postParkActions;
 
     /**
      * Creates a new LightweightThread from the given SuspendableRunnable.
@@ -76,14 +77,14 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
     /**
      * Suspend the currently running LightweightThread.
      *
-     * @throws SuspendExecution This exception is used for control transfer - don't catch it !
+     * @throws SuspendExecution This exception is used for control transfer and must never be caught.
      * @throws IllegalStateException If not called from a LightweightThread
      */
     public static void park(Object blocker, PostParkActions postParkActions) throws SuspendExecution {
-        final LightweightThread current = currentLightweightThread();
+        final LightweightThread current = verifySuspend();
         current.postParkActions = postParkActions;
         boolean res = current.park1(blocker);
-        if(postParkActions != null && !res)
+        if (postParkActions != null && !res)
             throw new IllegalStateException("LightweightThread has been unparked");
     }
 
@@ -96,7 +97,7 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
     }
 
     public static void yield() throws SuspendExecution {
-        currentLightweightThread().yield1();
+        verifySuspend().yield1();
     }
 
     @Override
@@ -191,30 +192,42 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
     public static interface PostParkActions {
         void run(LightweightThread current);
     }
-    
+
+    private static LightweightThread verifySuspend() {
+        final LightweightThread current = currentLightweightThread();
+        if (current == null)
+            throw new IllegalStateException("Not called from withing a LightweightThread");
+        if (verifyInstrumentation)
+            verifyInstrumentation();
+        return current;
+    }
+
+    private static void verifyInstrumentation() {
+        if (!verifyInstrumentation)
+            throw new AssertionError();
+        StackTraceElement[] stes = Thread.currentThread().getStackTrace();
+        try {
+            for (StackTraceElement ste : stes) {
+                if (ste.getClassName().equals(LightweightThread.class.getName()) && ste.getMethodName().equals("run"))
+                    return;
+                if (!isInstrumented(Class.forName(ste.getClassName())))
+                    throw new IllegalStateException("Method " + ste.getClassName() + "." + ste.getMethodName() + " on the call-stack has not been instrumented. (trace: " + Arrays.toString(stes) + ")");
+            }
+            throw new Error();
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException("Not run through LightweightThread.exec(). (trace: " + Arrays.toString(stes) + ")");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static boolean isInstrumented(Class clazz) {
+        return clazz.isAnnotationPresent(Instrumented.class);
+    }
+
     // for tests only!
     @VisibleForTesting
     void resetState() {
         tryUnpark();
         assert getState() == RUNNING;
-    }
-    
-    private static final Class alreadyInstrumentedAnnotation;
-
-    static {
-        Class clz = null;
-        try {
-            clz = Class.forName("co.paralleluniverse.lwthreads.instrument.AlreadyInstrumented");
-        } catch (ClassNotFoundException ex) {
-            throw new AssertionError(ex);
-        }
-        alreadyInstrumentedAnnotation = clz;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static boolean isInstrumented(Class clazz) {
-        if (alreadyInstrumentedAnnotation != null)
-            return clazz.isAnnotationPresent(alreadyInstrumentedAnnotation);
-        return true; // can't check
     }
 }

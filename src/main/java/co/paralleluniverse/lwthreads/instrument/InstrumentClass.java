@@ -28,6 +28,7 @@
  */
 package co.paralleluniverse.lwthreads.instrument;
 
+import co.paralleluniverse.lwthreads.Instrumented;
 import static co.paralleluniverse.lwthreads.instrument.Classes.isYieldMethod;
 import co.paralleluniverse.lwthreads.instrument.MethodDatabase.ClassEntry;
 import java.util.ArrayList;
@@ -47,7 +48,7 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
  */
 public class InstrumentClass extends ClassVisitor {
 
-    static final String ALREADY_INSTRUMENTED_NAME = Type.getDescriptor(AlreadyInstrumented.class);
+    static final String ALREADY_INSTRUMENTED_NAME = Type.getDescriptor(Instrumented.class);
     
     private final MethodDatabase db;
     private final boolean forceInstrumentation;
