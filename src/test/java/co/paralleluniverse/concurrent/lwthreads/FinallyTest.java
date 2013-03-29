@@ -28,6 +28,7 @@
  */
 package co.paralleluniverse.concurrent.lwthreads;
 
+import static co.paralleluniverse.concurrent.lwthreads.TestsHelper.exec;
 import java.util.ArrayList;
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -45,16 +46,16 @@ public class FinallyTest implements SuspendableRunnable {
     @Override
     public void run() throws SuspendExecution {
         results.add("A");
-        LightweightThread.suspend();
+        LightweightThread.park();
         try {
             results.add("C");
-            LightweightThread.suspend();
+            LightweightThread.park();
             results.add("E");
         } finally {
             results.add("F");
         }
         results.add("G");
-        LightweightThread.suspend();
+        LightweightThread.park();
         results.add("I");
     }
 
@@ -64,13 +65,13 @@ public class FinallyTest implements SuspendableRunnable {
         
         try {
             LightweightThread co = new LightweightThread(this);
-            co.exec();
+            exec(co);
             results.add("B");
-            co.exec();
+            exec(co);
             results.add("D");
-            co.exec();
+            exec(co);
             results.add("H");
-            co.exec();
+            exec(co);
         } finally {
             System.out.println(results);
         }

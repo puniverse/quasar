@@ -31,7 +31,6 @@ package co.paralleluniverse.concurrent.lwthreads.instrument;
 import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.EXCEPTION_NAME;
 import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.STACK_CLASS;
 import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.SUSPEND_EXECUTION_CLASS;
-import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.YIELD_NAME;
 import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.isBlockingCall;
 import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.isYieldMethod;
 import java.util.List;
@@ -186,7 +185,7 @@ class InstrumentMethod {
             if (isYieldMethod(min.owner, min.name)) {
                 // special case - call to yield() - resume AFTER the call
                 if (min.getOpcode() != Opcodes.INVOKESTATIC) {
-                    throw new UnableToInstrumentException("invalid call to " + YIELD_NAME, className, mn.name, mn.desc);
+                    throw new UnableToInstrumentException("invalid call to suspending method.", className, mn.name, mn.desc);
                 }
                 emitStoreState(mv, i, fi);
                 

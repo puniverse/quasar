@@ -45,7 +45,7 @@ public class NullTest implements SuspendableRunnable {
     }
 
     private Object getProperty(String string) throws SuspendExecution {
-        LightweightThread.suspend();
+        LightweightThread.park();
         return string;
     }
 

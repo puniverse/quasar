@@ -28,6 +28,7 @@
  */
 package co.paralleluniverse.concurrent.lwthreads;
 
+import static co.paralleluniverse.concurrent.lwthreads.TestsHelper.exec;
 import java.util.ArrayList;
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -45,10 +46,10 @@ public class ThrowTest implements SuspendableRunnable {
     @Override
     public void run() throws SuspendExecution {
         results.add("A");
-        LightweightThread.suspend();
+        LightweightThread.park();
         try {
             results.add("C");
-            LightweightThread.suspend();
+            LightweightThread.park();
             if("".length() == 0) {
                 throw new IllegalStateException("bla");
             }
@@ -65,11 +66,11 @@ public class ThrowTest implements SuspendableRunnable {
         
         LightweightThread co = new LightweightThread(this);
         try {
-            co.exec();
+            exec(co);
             results.add("B");
-            co.exec();
+            exec(co);
             results.add("D");
-            co.exec();
+            exec(co);
             assertTrue(false);
         } catch (IllegalStateException es) {
             assertEquals("bla", es.getMessage());

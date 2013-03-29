@@ -47,7 +47,7 @@ public class InitialSizeTest implements SuspendableRunnable {
     
     private int factorial(Integer a) throws SuspendExecution {
         if(a == 0) {
-            LightweightThread.suspend();
+            LightweightThread.park();
             return 1;
         }
         return a * factorial(a - 1);

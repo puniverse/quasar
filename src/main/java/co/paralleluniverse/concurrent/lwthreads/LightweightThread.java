@@ -19,7 +19,8 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
     private static final long serialVersionUID = 2783452871536981L;
     private final SuspendableRunnable target;
     private final Stack stack;
-    private boolean running;
+    private volatile boolean running;
+    private PostParkActions postParkActions;
     LightweightThreadLocal.LWThreadLocalMap lwthreadLocals;
 
     /**
@@ -78,8 +79,46 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
      * @throws SuspendExecution This exception is used for control transfer - don't catch it !
      * @throws IllegalStateException If not called from a LightweightThread
      */
-    public static void suspend() throws SuspendExecution, IllegalStateException {
-        throw SuspendExecution.instance;
+    public static void park(Object blocker, PostParkActions postParkActions) throws SuspendExecution {
+        final LightweightThread current = currentLightweightThread();
+        current.postParkActions = postParkActions;
+        boolean res = current.park1(blocker);
+        if(postParkActions != null && !res)
+            throw new IllegalStateException("LightweightThread has been unparked");
+    }
+
+    public static void park(Object blocker) throws SuspendExecution {
+        park(blocker, null);
+    }
+
+    public static void park() throws SuspendExecution {
+        park(null, null);
+    }
+
+    public static void yield() throws SuspendExecution {
+        currentLightweightThread().yield1();
+    }
+
+    @Override
+    protected boolean park1(Object blocker) throws SuspendExecution {
+        try {
+            return super.park1(blocker);
+        } catch (SuspendExecution p) {
+            throw p;
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    @Override
+    protected void yield1() throws SuspendExecution {
+        try {
+            super.yield1();
+        } catch (SuspendExecution p) {
+            throw p;
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
     }
 
     @Override
@@ -98,6 +137,10 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
                 //stack.dump();
                 stack.resumeStack();
             }
+            if (postParkActions != null) {
+                postParkActions.run(this);
+                postParkActions = null;
+            }
             return finished;
         } finally {
             running = false;
@@ -105,10 +148,10 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
     }
 
     @Override
-    protected void throwPark(boolean yield) {
-        // we don't need to throw a Park exception
+    protected void throwPark(boolean yield) throws SuspendExecution {
+        throw SuspendExecution.instance;
     }
-    
+
     protected void run() throws SuspendExecution {
         if (target != null)
             target.run();
@@ -144,6 +187,18 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
             throw new IllegalStateException("trying to serialize a running LightweightThread");
         out.defaultWriteObject();
     }
+
+    public static interface PostParkActions {
+        void run(LightweightThread current);
+    }
+    
+    // for tests only!
+    @VisibleForTesting
+    void resetState() {
+        tryUnpark();
+        assert getState() == RUNNING;
+    }
+    
     private static final Class alreadyInstrumentedAnnotation;
 
     static {

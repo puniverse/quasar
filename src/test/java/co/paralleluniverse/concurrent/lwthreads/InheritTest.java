@@ -5,6 +5,7 @@
 
 package co.paralleluniverse.concurrent.lwthreads;
 
+import static co.paralleluniverse.concurrent.lwthreads.TestsHelper.exec;
 import java.util.ArrayList;
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -25,7 +26,7 @@ public class InheritTest {
             }
         });
         for(int i=0 ; i<3 ; i++) {
-            c.exec();
+            exec(c);
         }
         
         assertEquals(5, dut.result.size());
@@ -38,7 +39,7 @@ public class InheritTest {
     
     public static class A {
         public static void suspend() throws SuspendExecution {
-            LightweightThread.suspend();
+            LightweightThread.park();
         }
     }
     
@@ -50,7 +51,7 @@ public class InheritTest {
         
         public void otherMethod() throws SuspendExecution {
             result.add("o1");
-            LightweightThread.suspend();
+            LightweightThread.park();
             result.add("o2");
         }
         

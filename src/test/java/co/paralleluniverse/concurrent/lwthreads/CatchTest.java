@@ -28,6 +28,7 @@
  */
 package co.paralleluniverse.concurrent.lwthreads;
 
+import static co.paralleluniverse.concurrent.lwthreads.TestsHelper.exec;
 import java.util.ArrayList;
 import java.util.Iterator;
 import static org.junit.Assert.*;
@@ -46,7 +47,7 @@ public class CatchTest implements SuspendableRunnable {
     int cnt = 0;
     private void throwOnSecondCall() throws SuspendExecution {
         results.add("cnt=" + cnt);
-        LightweightThread.suspend();
+        LightweightThread.park();
         if(++cnt >= 2) {
             throw new IllegalStateException("called second time");
         }
@@ -56,12 +57,12 @@ public class CatchTest implements SuspendableRunnable {
     @Override
     public void run() throws SuspendExecution {
         results.add("A");
-        LightweightThread.suspend();
+        LightweightThread.park();
         try {
             results.add("C");
-            LightweightThread.suspend();
+            LightweightThread.park();
             throwOnSecondCall();
-            LightweightThread.suspend();
+            LightweightThread.park();
             throwOnSecondCall();
             results.add("never reached");
         } catch(Throwable ex) {
@@ -76,17 +77,17 @@ public class CatchTest implements SuspendableRunnable {
         
         try {
             LightweightThread co = new LightweightThread(this);
-            co.exec();
+            exec(co);
             results.add("B");
-            co.exec();
+            exec(co);
             results.add("D");
-            co.exec();
+            exec(co);
             results.add("E");
-            co.exec();
+            exec(co);
             results.add("F");
-            co.exec();
+            exec(co);
             results.add("G");
-            co.exec();
+            exec(co);
             results.add("I");
         } finally {
             System.out.println(results);

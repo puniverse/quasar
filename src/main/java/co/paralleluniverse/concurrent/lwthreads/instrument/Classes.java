@@ -16,7 +16,7 @@ final class Classes {
     static final Class<?> SUSPEND_EXECUTION_CLASS = co.paralleluniverse.concurrent.lwthreads.SuspendExecution.class;
     static final Class<?> COROUTINE_CLASS = co.paralleluniverse.concurrent.lwthreads.LightweightThread.class;
     static final Class<?> STACK_CLASS = co.paralleluniverse.concurrent.lwthreads.Stack.class;
-    static final String YIELD_NAME = "suspend";
+    private static final String YIELD_NAME = "park";
     //static final String EXCEPTION_INSTANCE_NAME = "exception_instance_not_for_user_code";
     private static final BlockingMethod BLOCKING_METHODS[] = {
         new BlockingMethod("java/lang/Thread", "sleep", "(J)V", "(JI)V"),
@@ -30,7 +30,7 @@ final class Classes {
     static final String COROUTINE_NAME = Type.getInternalName(COROUTINE_CLASS);
 
     static boolean isYieldMethod(String className, String methodName) {
-        return COROUTINE_NAME.equals(className) && YIELD_NAME.equals(methodName);
+        return COROUTINE_NAME.equals(className) && ("park".equals(methodName) || "yield".equals(methodName));
     }
 
     public static int isBlockingCall(MethodInsnNode ins) {

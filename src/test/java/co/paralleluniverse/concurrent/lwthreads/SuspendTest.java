@@ -28,6 +28,7 @@
  */
 package co.paralleluniverse.concurrent.lwthreads;
 
+import static co.paralleluniverse.concurrent.lwthreads.TestsHelper.exec;
 import org.junit.Test;
 
 /**
@@ -41,7 +42,7 @@ public class SuspendTest implements SuspendableRunnable {
         SuspendTest test = new SuspendTest();
         LightweightThread co = new LightweightThread(test);
 
-        while (!co.exec())
+        while (!exec(co))
             System.out.println("State=" + co.getState());
 
         System.out.println("State=" + co.getState());
@@ -59,6 +60,6 @@ public class SuspendTest implements SuspendableRunnable {
 
     private static void print(String fmt, Object... args) throws SuspendExecution {
         System.out.printf(fmt, args);
-        LightweightThread.suspend();
+        LightweightThread.park();
     }
 }

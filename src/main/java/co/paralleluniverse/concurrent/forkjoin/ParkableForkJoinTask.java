@@ -19,11 +19,10 @@ import sun.misc.Unsafe;
 public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
     public static final Park PARK = new Park();
-    public static final Park YIELD = new Park();
-    private static final int RUNNING = 0;
-    private static final int LEASED = 1;
-    private static final int PARKED = -1;
-    private static final int PARKING = -2;
+    protected static final int RUNNING = 0;
+    protected static final int LEASED = 1;
+    protected static final int PARKED = -1;
+    protected static final int PARKING = -2;
     //
     static final ThreadLocal<ParkableForkJoinTask<?>> current = new ThreadLocal<ParkableForkJoinTask<?>>();
     private volatile int state;
@@ -33,7 +32,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         state = RUNNING;
     }
 
-    public static ParkableForkJoinTask<?> getCurrent() {
+    protected static ParkableForkJoinTask<?> getCurrent() {
         return current.get();
     }
 
@@ -89,11 +88,11 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         throw Exceptions.rethrow(t);
     }
 
-    protected void throwPark(boolean yield) {
-        throw yield ? YIELD : PARK;
+    protected void throwPark(boolean yield) throws Exception {
+        throw PARK;
     }
 
-    protected void park(Object blocker) {
+    protected boolean park1(Object blocker) throws Exception {
         int newState;
         for (;;) {
             final int _state = getState();
@@ -123,10 +122,12 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             this.state = PARKED;
             onParked(false);
             throwPark(false);
-        }
+            return true;
+        } else
+            return false;
     }
-
-    protected void unpark() {
+    
+    public void unpark() {
         int newState;
         for (;;) {
             final int _state = getState();
@@ -161,13 +162,13 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         return compareAndSetState(PARKED, RUNNING);
     }
 
-    protected void yield() {
+    protected void yield1() throws Exception {
         beforePark(true);
         fork();
         onParked(true);
         throwPark(true);
     }
-
+    
     protected int getState() {
         return state;
     }
