@@ -36,7 +36,7 @@ import org.objectweb.asm.ClassWriter;
  *
  * @author Matthias Mann
  */
-public class DBClassWriter extends ClassWriter {
+class DBClassWriter extends ClassWriter {
     
     private final MethodDatabase db;
 

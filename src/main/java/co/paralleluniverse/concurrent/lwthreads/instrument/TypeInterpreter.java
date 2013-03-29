@@ -42,7 +42,7 @@ import org.objectweb.asm.tree.analysis.BasicValue;
  * 
  * @author Matthias Mann
  */
-public class TypeInterpreter extends BasicInterpreter {
+class TypeInterpreter extends BasicInterpreter {
 
     private final MethodDatabase db;
 

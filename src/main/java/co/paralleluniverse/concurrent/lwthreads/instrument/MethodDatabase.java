@@ -35,38 +35,38 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Opcodes;
 
 /**
  * <p>Collects information about classes and their suspendable methods.</p>
  * <p>Provides access to configuration parameters and to logging</p>
- * 
+ *
  * @author Matthias Mann
  */
 public class MethodDatabase implements Log {
-    
     private final ClassLoader cl;
     private final HashMap<String, ClassEntry> classes;
     private final HashMap<String, String> superClasses;
     private final ArrayList<File> workList;
-    
     private Log log;
     private boolean verbose;
     private boolean debug;
     private boolean allowMonitors;
     private boolean allowBlocking;
     private int logLevelMask;
-    
+
     public MethodDatabase(ClassLoader classloader) {
-        if(classloader == null) {
+        if (classloader == null) {
             throw new NullPointerException("classloader");
         }
-        
+
         this.cl = classloader;
-        
+
         classes = new HashMap<String, ClassEntry>();
         superClasses = new HashMap<String, String>();
         workList = new ArrayList<File>();
-        
+
         setLogLevelMask();
     }
 
@@ -114,38 +114,38 @@ public class MethodDatabase implements Log {
 
     private void setLogLevelMask() {
         logLevelMask = (1 << LogLevel.WARNING.ordinal());
-        if(verbose || debug) {
+        if (verbose || debug) {
             logLevelMask |= (1 << LogLevel.INFO.ordinal());
         }
-        if(debug) {
+        if (debug) {
             logLevelMask |= (1 << LogLevel.DEBUG.ordinal());
         }
     }
-    
+
     @Override
-    public void log(LogLevel level, String msg, Object ... args) {
-        if(log != null && (logLevelMask & (1 << level.ordinal())) != 0) {
+    public void log(LogLevel level, String msg, Object... args) {
+        if (log != null && (logLevelMask & (1 << level.ordinal())) != 0) {
             log.log(level, msg, args);
         }
     }
-    
+
     @Override
     public void error(String msg, Exception ex) {
-        if(log != null) {
+        if (log != null) {
             log.error(msg, ex);
         }
     }
-    
+
     public void checkClass(File f) {
         try {
             FileInputStream fis = new FileInputStream(f);
             CheckInstrumentationVisitor civ = checkFileAndClose(fis, f.getPath());
-            
-            if(civ != null) {
+
+            if (civ != null) {
                 recordSuspendableMethods(civ.getName(), civ.getClassEntry());
 
-                if(civ.needsInstrumentation()) {
-                    if(civ.isAlreadyInstrumented()) {
+                if (civ.needsInstrumentation()) {
+                    if (civ.isAlreadyInstrumented()) {
                         log(LogLevel.INFO, "Found instrumented class: %s", f.getPath());
                     } else {
                         log(LogLevel.INFO, "Found class: %s", f.getPath());
@@ -159,27 +159,27 @@ public class MethodDatabase implements Log {
             error(f.getPath(), ex);
         }
     }
-    
+
     public boolean isMethodSuspendable(String className, String methodName, String methodDesc, boolean searchSuperClass) {
-        if(methodName.charAt(0) == '<') {
+        if (methodName.charAt(0) == '<') {
             return false;   // special methods are never suspendable
         }
-        
-        if(isJavaCore(className)) {
+
+        if (isJavaCore(className)) {
             return false;
         }
 
         String curClassName = className;
         do {
             ClassEntry entry = getClassEntry(curClassName);
-            if(entry == null) {
+            if (entry == null) {
                 entry = CLASS_NOT_FOUND;
-                
-                if(cl != null) {
+
+                if (cl != null) {
                     log(LogLevel.INFO, "Trying to read class: %s", curClassName);
 
                     CheckInstrumentationVisitor civ = checkClass(curClassName);
-                    if(civ == null) {
+                    if (civ == null) {
                         log(LogLevel.WARNING, "Class not found assuming suspendable: %s", curClassName);
                     } else {
                         entry = civ.getClassEntry();
@@ -187,22 +187,22 @@ public class MethodDatabase implements Log {
                 } else {
                     log(LogLevel.WARNING, "Can't check class - assuming suspendable: %s", curClassName);
                 }
-                
+
                 recordSuspendableMethods(curClassName, entry);
             }
-            
-            if(entry == CLASS_NOT_FOUND) {
+
+            if (entry == CLASS_NOT_FOUND) {
                 return true;
             }
 
             Boolean suspendable = entry.check(methodName, methodDesc);
-            if(suspendable != null) {
+            if (suspendable != null) {
                 return suspendable;
             }
-            
+
             curClassName = entry.superName;
-        } while(searchSuperClass && curClassName != null);
-        
+        } while (searchSuperClass && curClassName != null);
+
         log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s", className, methodName, methodDesc);
         return true;
     }
@@ -213,48 +213,48 @@ public class MethodDatabase implements Log {
 
     void recordSuspendableMethods(String className, ClassEntry entry) {
         ClassEntry oldEntry;
-        synchronized(this) {
+        synchronized (this) {
             oldEntry = classes.put(className, entry);
         }
-        if(oldEntry != null) {
-            if(!oldEntry.equals(entry)) {
+        if (oldEntry != null) {
+            if (!oldEntry.equals(entry)) {
                 log(LogLevel.WARNING, "Duplicate class entries with different data for class: %s", className);
             }
         }
     }
-    
+
     public String getCommonSuperClass(String classA, String classB) {
         ArrayList<String> listA = getSuperClasses(classA);
         ArrayList<String> listB = getSuperClasses(classB);
-        if(listA == null || listB == null) {
+        if (listA == null || listB == null) {
             return null;
         }
         int idx = 0;
         int num = Math.min(listA.size(), listB.size());
-        for(; idx<num ; idx++) {
+        for (; idx < num; idx++) {
             String superClassA = listA.get(idx);
             String superClassB = listB.get(idx);
-            if(!superClassA.equals(superClassB)) {
+            if (!superClassA.equals(superClassB)) {
                 break;
             }
         }
-        if(idx > 0) {
-            return listA.get(idx-1);
+        if (idx > 0) {
+            return listA.get(idx - 1);
         }
         return null;
     }
 
     public boolean isException(String className) {
-        for(;;) {
-            if("java/lang/Throwable".equals(className)) {
+        for (;;) {
+            if ("java/lang/Throwable".equals(className)) {
                 return true;
             }
-            if("java/lang/Object".equals(className)) {
+            if ("java/lang/Object".equals(className)) {
                 return false;
             }
 
             String superClass = getDirectSuperClass(className);
-            if(superClass == null) {
+            if (superClass == null) {
                 log(LogLevel.WARNING, "Can't determine super class of %s", className);
                 return false;
             }
@@ -270,26 +270,27 @@ public class MethodDatabase implements Log {
      * <p>Overwrite this function if Coroutines is used in a transformation chain.</p>
      * <p>This method must create a new CheckInstrumentationVisitor and visit the
      * specified class with it.</p>
+     *
      * @param className the class the needs to be analysed
      * @return a new CheckInstrumentationVisitor that has visited the specified
      * class or null if the class was not found
      */
     protected CheckInstrumentationVisitor checkClass(String className) {
         InputStream is = cl.getResourceAsStream(className + ".class");
-        if(is != null) {
+        if (is != null) {
             return checkFileAndClose(is, className);
         }
         return null;
     }
-    
+
     private CheckInstrumentationVisitor checkFileAndClose(InputStream is, String name) {
         try {
             try {
                 ClassReader r = new ClassReader(is);
 
                 CheckInstrumentationVisitor civ = new CheckInstrumentationVisitor();
-                r.accept(civ, ClassReader.SKIP_DEBUG|ClassReader.SKIP_FRAMES|ClassReader.SKIP_CODE);
-                
+                r.accept(civ, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES | ClassReader.SKIP_CODE);
+
                 return civ;
             } finally {
                 is.close();
@@ -304,17 +305,17 @@ public class MethodDatabase implements Log {
 
     private String extractSuperClass(String className) {
         InputStream is = cl.getResourceAsStream(className + ".class");
-        if(is != null) {
+        if (is != null) {
             try {
                 try {
                     ClassReader r = new ClassReader(is);
                     ExtractSuperClass esc = new ExtractSuperClass();
-                    r.accept(esc, ClassReader.SKIP_CODE|ClassReader.SKIP_DEBUG|ClassReader.SKIP_FRAMES);
+                    r.accept(esc, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
                     return esc.superClass;
                 } finally {
                     is.close();
                 }
-            } catch(IOException ex) {
+            } catch (IOException ex) {
                 error(className, ex);
             }
         }
@@ -323,14 +324,14 @@ public class MethodDatabase implements Log {
 
     private ArrayList<String> getSuperClasses(String className) {
         ArrayList<String> result = new ArrayList<String>();
-        for(;;) {
+        for (;;) {
             result.add(0, className);
-            if("java/lang/Object".equals(className)) {
+            if ("java/lang/Object".equals(className)) {
                 return result;
             }
 
             String superClass = getDirectSuperClass(className);
-            if(superClass == null) {
+            if (superClass == null) {
                 log(LogLevel.WARNING, "Can't determine super class of %s", className);
                 return null;
             }
@@ -340,23 +341,23 @@ public class MethodDatabase implements Log {
 
     protected String getDirectSuperClass(String className) {
         ClassEntry entry = getClassEntry(className);
-        if(entry != null && entry != CLASS_NOT_FOUND) {
+        if (entry != null && entry != CLASS_NOT_FOUND) {
             return entry.superName;
         }
-        
+
         String superClass;
-        synchronized(this) {
+        synchronized (this) {
             superClass = superClasses.get(className);
         }
-        if(superClass == null) {
+        if (superClass == null) {
             superClass = extractSuperClass(className);
-            if(superClass != null) {
+            if (superClass != null) {
                 String oldSuperClass;
                 synchronized (this) {
                     oldSuperClass = superClasses.put(className, superClass);
                 }
-                if(oldSuperClass != null) {
-                    if(!oldSuperClass.equals(superClass)) {
+                if (oldSuperClass != null) {
+                    if (!oldSuperClass.equals(superClass)) {
                         log(LogLevel.WARNING, "Duplicate super class entry with different value: %s vs %s", oldSuperClass, superClass);
                     }
                 }
@@ -364,12 +365,11 @@ public class MethodDatabase implements Log {
         }
         return superClass;
     }
-    
+
     public static boolean isJavaCore(String className) {
-        return className.startsWith("java/") || className.startsWith("javax/") ||
-                className.startsWith("sun/") || className.startsWith("com/sun/");
+        return className.startsWith("java/") || className.startsWith("javax/")
+                || className.startsWith("sun/") || className.startsWith("com/sun/");
     }
-    
     private static final ClassEntry CLASS_NOT_FOUND = new ClassEntry("<class not found>");
 
     static final class ClassEntry {
@@ -380,12 +380,12 @@ public class MethodDatabase implements Log {
             this.superName = superName;
             this.methods = new HashMap<String, Boolean>();
         }
-        
+
         public void set(String name, String desc, boolean suspendable) {
             String nameAndDesc = key(name, desc);
             methods.put(nameAndDesc, suspendable);
         }
-        
+
         public Boolean check(String name, String desc) {
             return methods.get(key(name, desc));
         }
@@ -397,15 +397,28 @@ public class MethodDatabase implements Log {
 
         @Override
         public boolean equals(Object obj) {
-            if(!(obj instanceof ClassEntry)) {
+            if (!(obj instanceof ClassEntry)) {
                 return false;
             }
-            final ClassEntry other = (ClassEntry)obj;
+            final ClassEntry other = (ClassEntry) obj;
             return superName.equals(other.superName) && methods.equals(other.methods);
         }
-        
+
         private static String key(String methodName, String methodDesc) {
             return methodName.concat(methodDesc);
+        }
+    }
+
+    public static class ExtractSuperClass extends ClassVisitor {
+        String superClass;
+
+        public ExtractSuperClass() {
+            super(Opcodes.ASM4);
+        }
+
+        @Override
+        public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+            this.superClass = superName;
         }
     }
 }

@@ -39,7 +39,7 @@ import org.objectweb.asm.tree.analysis.BasicValue;
  *
  * @author Matthias Mann
  */
-public class NewValue extends BasicValue {
+class NewValue extends BasicValue {
     
     public final boolean isDupped;
     public final AbstractInsnNode insn;
