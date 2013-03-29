@@ -17,7 +17,7 @@ final class Classes {
     static final Class<?> COROUTINE_CLASS = co.paralleluniverse.concurrent.lwthreads.LightweightThread.class;
     static final Class<?> STACK_CLASS = co.paralleluniverse.concurrent.lwthreads.Stack.class;
     static final String YIELD_NAME = "suspend";
-    static final String EXCEPTION_INSTANCE_NAME = "exception_instance_not_for_user_code";
+    //static final String EXCEPTION_INSTANCE_NAME = "exception_instance_not_for_user_code";
     private static final BlockingMethod BLOCKING_METHODS[] = {
         new BlockingMethod("java/lang/Thread", "sleep", "(J)V", "(JI)V"),
         new BlockingMethod("java/lang/Thread", "join", "()V", "(J)V", "(JI)V"),

@@ -17,7 +17,7 @@ public final class Stack implements Serializable {
     private static final long serialVersionUID = 12786283751253L;
     
     /** sadly this need to be here */
-    public static SuspendExecution exception_instance_not_for_user_code = SuspendExecution.instance;
+    //public static SuspendExecution exception_instance_not_for_user_code = SuspendExecution.instance;
     
     final LightweightThread co;
     

@@ -100,7 +100,7 @@ public class InstrumentClass extends ClassVisitor {
             
             MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
             methods.add(mn);
-            return mn;
+            return mn; // this causes the mn to be initialized
         }
         return super.visitMethod(access, name, desc, signature, exceptions);
     }

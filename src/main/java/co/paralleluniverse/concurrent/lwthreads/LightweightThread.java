@@ -79,7 +79,7 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
      * @throws IllegalStateException If not called from a LightweightThread
      */
     public static void suspend() throws SuspendExecution, IllegalStateException {
-        throw new Error("Calling function not instrumented");
+        throw SuspendExecution.instance;
     }
 
     @Override

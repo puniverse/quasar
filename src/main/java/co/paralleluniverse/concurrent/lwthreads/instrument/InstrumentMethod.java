@@ -28,8 +28,6 @@
  */
 package co.paralleluniverse.concurrent.lwthreads.instrument;
 
-import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.EXCEPTION_DESC;
-import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.EXCEPTION_INSTANCE_NAME;
 import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.EXCEPTION_NAME;
 import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.STACK_CLASS;
 import static co.paralleluniverse.concurrent.lwthreads.instrument.Classes.SUSPEND_EXECUTION_CLASS;
@@ -60,6 +58,7 @@ import org.objectweb.asm.tree.analysis.Value;
  * Instrument a method to allow suspension
  *
  * @author Matthias Mann
+ * @author pron
  */
 class InstrumentMethod {
     private static final String STACK_NAME = Type.getInternalName(STACK_CLASS);
@@ -190,8 +189,10 @@ class InstrumentMethod {
                     throw new UnableToInstrumentException("invalid call to " + YIELD_NAME, className, mn.name, mn.desc);
                 }
                 emitStoreState(mv, i, fi);
-                mv.visitFieldInsn(Opcodes.GETSTATIC, STACK_NAME, EXCEPTION_INSTANCE_NAME, EXCEPTION_DESC);
-                mv.visitInsn(Opcodes.ATHROW);
+                
+                //mv.visitFieldInsn(Opcodes.GETSTATIC, STACK_NAME, EXCEPTION_INSTANCE_NAME, EXCEPTION_DESC);
+                //mv.visitInsn(Opcodes.ATHROW);
+                
                 min.accept(mv); // only the call
                 mv.visitLabel(lMethodCalls[i - 1]);
                 emitRestoreState(mv, i, fi);
