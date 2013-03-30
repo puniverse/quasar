@@ -38,11 +38,12 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     @Override
     protected boolean exec() {
+        final ParkableForkJoinTask<?> previousCurrent = current.get();
         current.set(this);
         try {
             return doExec();
         } finally {
-            current.set(null);
+            current.set(previousCurrent);
         }
     }
 

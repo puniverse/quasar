@@ -83,9 +83,7 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
     public static void park(Object blocker, PostParkActions postParkActions) throws SuspendExecution {
         final LightweightThread current = verifySuspend();
         current.postParkActions = postParkActions;
-        boolean res = current.park1(blocker);
-        if (postParkActions != null && !res)
-            throw new IllegalStateException("LightweightThread has been unparked");
+        current.park1(blocker);
     }
 
     public static void park(Object blocker) throws SuspendExecution {
