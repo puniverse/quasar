@@ -52,7 +52,7 @@ dependencies {
 task instrumentClasses(dependsOn: 'compileTestJava') << {
     ant {
         logging.level = LogLevel.INFO
-        taskdef(name:'continuations', classname:'co.paralleluniverse.concurrent.lwthreads.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
+        taskdef(name:'continuations', classname:'co.paralleluniverse.lwthreads.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
         continuations(verbose:'true', check:'true', debug:'true') {
             fileset(dir: sourceSets.test.output.classesDir)
         }
