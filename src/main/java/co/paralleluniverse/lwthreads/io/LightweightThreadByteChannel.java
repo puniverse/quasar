@@ -36,24 +36,20 @@ public class LightweightThreadByteChannel /*implements ByteChannel*/ {
     //@Override
     public int read(final ByteBuffer dst) throws IOException, SuspendExecution {
         return new LightweightThreadAsyncIO<Integer>() {
-
             @Override
-            void callIO(LightweightThread current, CompletionHandler<Integer, LightweightThread> completionHandler) {
+            protected void requestAsync(LightweightThread current, CompletionHandler<Integer, LightweightThread> completionHandler) {
                 abc.read(dst, current, completionHandler);
             }
-            
         }.run();
     }
 
     //@Override
     public int write(final ByteBuffer src) throws IOException, SuspendExecution {
         return new LightweightThreadAsyncIO<Integer>() {
-
             @Override
-            void callIO(LightweightThread current, CompletionHandler<Integer, LightweightThread> completionHandler) {
+            protected void requestAsync(LightweightThread current, CompletionHandler<Integer, LightweightThread> completionHandler) {
                 abc.write(src, current, completionHandler);
             }
-            
         }.run();
     }
 }
