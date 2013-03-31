@@ -58,10 +58,11 @@ public class SingleConsumerArrayQueue<E> implements SingleConsumerQueue<E, Integ
     }
 
     @Override
+    @SuppressWarnings("empty-statement")
     public Integer peek() {
         if(head == tail)
             return null;
-        get(head); // volatile read
+        while(get(head) == null); // volatile read
         return Integer.valueOf(head);
     }
 
@@ -70,9 +71,10 @@ public class SingleConsumerArrayQueue<E> implements SingleConsumerQueue<E, Integ
         return Integer.valueOf(succ(index.intValue()));
     }
 
+    @SuppressWarnings("empty-statement")
     public int succ(int index) {
         int n = next(index);
-        get(n); // volatile read
+        while(get(n) == null); // volatile read
         return n;
     }
 
