@@ -4,52 +4,17 @@
  */
 package co.paralleluniverse.lwthreads.io;
 
-import co.paralleluniverse.lwthreads.LightweightThread;
 import co.paralleluniverse.lwthreads.SuspendExecution;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousByteChannel;
-import java.nio.channels.ByteChannel;
-import java.nio.channels.CompletionHandler;
+import java.nio.channels.Channel;
 
 /**
  *
  * @author pron
  */
-public class LightweightThreadByteChannel /*implements ByteChannel*/ {
-    private final AsynchronousByteChannel abc;
+public interface LightweightThreadByteChannel extends Channel /*ByteChannel*/ {
 
-    public LightweightThreadByteChannel(AsynchronousByteChannel abc) {
-        this.abc = abc;
-    }
-
-    //@Override
-    public boolean isOpen() {
-        return abc.isOpen();
-    }
-
-    //@Override
-    public void close() throws IOException {
-        abc.close();
-    }
-
-    //@Override
-    public int read(final ByteBuffer dst) throws IOException, SuspendExecution {
-        return new LightweightThreadAsyncIO<Integer>() {
-            @Override
-            protected void requestAsync(LightweightThread current, CompletionHandler<Integer, LightweightThread> completionHandler) {
-                abc.read(dst, current, completionHandler);
-            }
-        }.run();
-    }
-
-    //@Override
-    public int write(final ByteBuffer src) throws IOException, SuspendExecution {
-        return new LightweightThreadAsyncIO<Integer>() {
-            @Override
-            protected void requestAsync(LightweightThread current, CompletionHandler<Integer, LightweightThread> completionHandler) {
-                abc.write(src, current, completionHandler);
-            }
-        }.run();
-    }
+    int read(final ByteBuffer dst) throws IOException, SuspendExecution;
+    int write(final ByteBuffer src) throws IOException, SuspendExecution;
 }
