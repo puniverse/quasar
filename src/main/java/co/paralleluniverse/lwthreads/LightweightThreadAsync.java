@@ -13,9 +13,11 @@ package co.paralleluniverse.lwthreads;
  */
 public abstract class LightweightThreadAsync<V, Callback, E extends Throwable> {
 
+    @SuppressWarnings("empty-statement")
     public V run() throws E, SuspendExecution {
         final LightweightThreadCallback handler = new LightweightThreadCallback();
-        LightweightThread.park(this, handler);
+        while(!LightweightThread.park(this, handler)) // make sure we actually park and run PostParkActions
+            ;
         while (!handler.isCompleted())
             LightweightThread.park(this);
         return handler.getResult();

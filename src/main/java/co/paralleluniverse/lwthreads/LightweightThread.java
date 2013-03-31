@@ -80,10 +80,10 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
      * @throws SuspendExecution This exception is used for control transfer and must never be caught.
      * @throws IllegalStateException If not called from a LightweightThread
      */
-    public static void park(Object blocker, PostParkActions postParkActions) throws SuspendExecution {
+    public static boolean park(Object blocker, PostParkActions postParkActions) throws SuspendExecution {
         final LightweightThread current = verifySuspend();
         current.postParkActions = postParkActions;
-        current.park1(blocker);
+        return current.park1(blocker);
     }
 
     public static void park(Object blocker) throws SuspendExecution {
