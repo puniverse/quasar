@@ -14,30 +14,39 @@ import sun.misc.Unsafe;
  *
  * @author pron
  */
-public abstract class SingleConsumerLinkedQueue<E> {
+public abstract class SingleConsumerLinkedQueue<E> implements SingleConsumerQueue<E, SingleConsumerLinkedQueue.Node<E>> {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
-    transient volatile Node<E> head;
+    volatile Node<E> head;
     Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
-    transient volatile Node<E> tail;
+    volatile Node<E> tail;
 
     /**
      * Called by producers
      *
      * @param element
      */
-    public void enqueue(E element) {
+    @Override
+    public void enq(E element) {
         enq(new Node(element));
     }
 
+    @Override
+    public E value(Node<E> node) {
+        return node.value;
+    }
+    
     abstract void enq(final Node<E> node);
 
-    abstract void deq(final Node<E> node);
+    @Override
+    public abstract void deq(final Node<E> node);
 
     abstract boolean isHead(Node<E> node);
 
+    @Override
     public abstract Node<E> peek();
 
     @SuppressWarnings("empty-statement")
+    @Override
     public Node<E> succ(final Node<E> node) {
         record("succ", "queue: %s node: %s", this, node);
         if (tail == node) {
@@ -51,6 +60,7 @@ public abstract class SingleConsumerLinkedQueue<E> {
     }
 
     @SuppressWarnings("empty-statement")
+    @Override
     public void del(Node<E> node) {
         if (isHead(node)) {
             deq(node);
@@ -71,6 +81,7 @@ public abstract class SingleConsumerLinkedQueue<E> {
         node.prev = null;
     }
 
+    @Override
     public int size() {
         int n = 0;
         for (Node p = tail; p != null; p = p.prev) {
@@ -114,10 +125,6 @@ public abstract class SingleConsumerLinkedQueue<E> {
 
         Node(E value) {
             this.value = value;
-        }
-
-        public E value() {
-            return value;
         }
     }
     ////////////////////////////////////////////////////////////////////////
