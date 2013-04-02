@@ -156,7 +156,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             }
         }
         if (newState == RUNNING)
-            fork();
+            submit();
     }
 
     protected boolean tryUnpark() {
@@ -165,9 +165,13 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     protected void yield1() throws Exception {
         beforePark(true);
-        fork();
+        submit();
         onParked(true);
         throwPark(true);
+    }
+    
+    protected void submit() {
+        fork();
     }
     
     protected int getState() {

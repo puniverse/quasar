@@ -195,12 +195,16 @@ class InstrumentMethod {
                 min.accept(mv); // only the call
                 mv.visitLabel(lMethodCalls[i - 1]);
                 emitRestoreState(mv, i, fi);
+                emitPostRestore(mv);
+                
                 dumpCodeBlock(mv, i, 1);    // skip the call
             } else {
                 // normal case - call to a suspendable method - resume before the call
                 emitStoreState(mv, i, fi);
                 mv.visitLabel(lMethodCalls[i - 1]);
                 emitRestoreState(mv, i, fi);
+                emitPostRestore(mv);
+                
                 dumpCodeBlock(mv, i, 0);
             }
         }
@@ -450,6 +454,11 @@ class InstrumentMethod {
         }
     }
 
+    private void emitPostRestore(MethodVisitor mv) {
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "postRestore", "()V");
+    }
+    
     private void emitStoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx) throws InternalError, IndexOutOfBoundsException {
         String desc;
 

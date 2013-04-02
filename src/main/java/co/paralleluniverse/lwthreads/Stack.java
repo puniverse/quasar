@@ -127,6 +127,10 @@ public final class Stack implements Serializable {
         return dataObject[curMethodSP + idx];
     }
 
+    public final void postRestore() {
+        lwThread.postRestore();
+    }
+    
     /**
      * called when resuming a stack
      */

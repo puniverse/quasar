@@ -1,10 +1,15 @@
 package co.paralleluniverse.lwthreads;
 
+import co.paralleluniverse.common.util.NamingThreadFactory;
 import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import jsr166e.ForkJoinPool;
 
 /**
  * A LightweightThread.
@@ -18,8 +23,13 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.lwthreads.verifyInstrumentation", "false"));
     public static final int DEFAULT_STACK_SIZE = 16;
     private static final long serialVersionUID = 2783452871536981L;
+    private static final ScheduledExecutorService timeoutService = Executors.newSingleThreadScheduledExecutor(new NamingThreadFactory("lightweight-thread-timeout"));
+    //
+    private final ForkJoinPool fjPool;
     private final Stack stack;
     private volatile boolean running;
+    private volatile boolean interrupted;
+    private long timeout;
     LightweightThreadLocal.LWThreadLocalMap lwthreadLocals;
     private final SuspendableRunnable target;
     private PostParkActions postParkActions;
@@ -29,16 +39,16 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
      *
      * @param target the SuspendableRunnable for the LightweightThread.
      */
-    public LightweightThread(SuspendableRunnable target) {
-        this(target, DEFAULT_STACK_SIZE);
+    public LightweightThread(ForkJoinPool fjPool, SuspendableRunnable target) {
+        this(fjPool, target, DEFAULT_STACK_SIZE);
     }
 
-    public LightweightThread() {
-        this(null, DEFAULT_STACK_SIZE);
+    public LightweightThread(ForkJoinPool fjPool) {
+        this(fjPool, null, DEFAULT_STACK_SIZE);
     }
 
-    public LightweightThread(int stackSize) {
-        this(null, stackSize);
+    public LightweightThread(ForkJoinPool fjPool, int stackSize) {
+        this(fjPool, null, stackSize);
     }
 
     /**
@@ -49,7 +59,8 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
      * @throws NullPointerException when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
-    public LightweightThread(SuspendableRunnable target, int stackSize) {
+    public LightweightThread(ForkJoinPool fjPool, SuspendableRunnable target, int stackSize) {
+        this.fjPool = fjPool;
         this.target = target;
         this.stack = new Stack(this, stackSize);
 
@@ -80,22 +91,62 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
      * @throws SuspendExecution This exception is used for control transfer and must never be caught.
      * @throws IllegalStateException If not called from a LightweightThread
      */
-    public static boolean park(Object blocker, PostParkActions postParkActions) throws SuspendExecution {
+    public static boolean park(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
         final LightweightThread current = verifySuspend();
         current.postParkActions = postParkActions;
+        if (timeout > 0) {
+            current.timeout = System.nanoTime() + unit.toNanos(timeout);
+            timeoutService.schedule(new Runnable() {
+
+                @Override
+                public void run() {
+                    current.unpark();
+                }
+            }, timeout, unit);
+        } else
+            current.timeout = -1;
         return current.park1(blocker);
     }
 
+    public static boolean park(Object blocker, PostParkActions postParkActions) throws SuspendExecution {
+        return park(blocker, postParkActions, -1, null);
+    }
+
+    public static boolean park(PostParkActions postParkActions) throws SuspendExecution {
+        return park(null, postParkActions, -1, null);
+    }
+
+    public static void park(Object blocker, long timeout, TimeUnit unit) throws SuspendExecution {
+        park(blocker, null, timeout, unit);
+    }
+
+    public static void park(long timeout, TimeUnit unit) throws SuspendExecution {
+        park(null, null, timeout, unit);
+    }
+
     public static void park(Object blocker) throws SuspendExecution {
-        park(blocker, null);
+        park(blocker, null, -1, null);
     }
 
     public static void park() throws SuspendExecution {
-        park(null, null);
+        park(null, null, -1, null);
     }
 
     public static void yield() throws SuspendExecution {
         verifySuspend().yield1();
+    }
+
+    public static boolean interrupted() {
+        final LightweightThread current = verifySuspend();
+        final boolean interrupted = current.isInterrupted();
+        if (interrupted)
+            current.interrupted = false;
+        return interrupted;
+    }
+
+    protected boolean park1(Object blocker, long timeout, TimeUnit unit) throws SuspendExecution {
+        this.timeout = System.nanoTime() + unit.toNanos(timeout);
+        return park1(blocker);
     }
 
     @Override
@@ -120,6 +171,20 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
         }
     }
 
+    protected void postRestore() {
+        if (interrupted)
+            throw new LwtInterruptedException();
+        if (timeout > 0 && System.nanoTime() > timeout)
+            throw new TimeoutException();
+    }
+
+    @Override
+    protected void submit() {
+        if (getPool() == fjPool)
+            fork();
+        fjPool.submit(this);
+    }
+
     @Override
     protected final boolean exec1() {
         if (isDone() | running)
@@ -127,6 +192,8 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
 
         try {
             running = true;
+            if (isInterrupted())
+                throw new LwtInterruptedException();
             boolean finished = true;
             try {
                 run();
@@ -156,6 +223,16 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
             target.run();
     }
 
+    public void interrupt() {
+        interrupted = true;
+        unpark();
+    }
+
+    public boolean isInterrupted() {
+        return interrupted;
+    }
+
+    //////////////////////////////////////////////////
     @VisibleForTesting
     @Override
     protected final int getState() {
