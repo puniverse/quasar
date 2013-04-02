@@ -76,7 +76,7 @@ public class CatchTest implements SuspendableRunnable {
         results.clear();
         
         try {
-            LightweightThread co = new LightweightThread(this);
+            LightweightThread co = new LightweightThread(null, this);
             exec(co);
             results.add("B");
             exec(co);

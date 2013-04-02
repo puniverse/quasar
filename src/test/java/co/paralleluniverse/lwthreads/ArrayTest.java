@@ -20,7 +20,7 @@ public class ArrayTest implements SuspendableRunnable {
     
     @Test
     public void testArray() {
-        LightweightThread co = new LightweightThread(this);
+        LightweightThread co = new LightweightThread(null, this);
         co.exec();
         assertEquals(42, l1.i);
     }

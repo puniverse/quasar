@@ -19,7 +19,7 @@ public class InheritTest {
     @Test
     public void testInherit() {
         final C dut = new C();
-        LightweightThread c = new LightweightThread(new SuspendableRunnable() {
+        LightweightThread c = new LightweightThread(null, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
                 dut.myMethod();

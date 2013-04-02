@@ -64,7 +64,7 @@ public class ThrowTest implements SuspendableRunnable {
     public void testThrow() {
         results.clear();
         
-        LightweightThread co = new LightweightThread(this);
+        LightweightThread co = new LightweightThread(null, this);
         try {
             exec(co);
             results.add("B");

@@ -11,6 +11,10 @@ import org.junit.Test;
  * @author Elias Naur
  */
 public class InterfaceTest {
+    interface SomeInterface {
+        void doStuff() throws SuspendExecution;
+    }
+
     public class C2 implements SomeInterface {
         @Override
         public void doStuff() throws SuspendExecution {
@@ -41,7 +45,7 @@ public class InterfaceTest {
     @Test
     public void testSuspend() {
 //		final I i = new C();
-        LightweightThread co = new LightweightThread(new SuspendableRunnable() {
+        LightweightThread co = new LightweightThread(null, new SuspendableRunnable() {
             @Override
             public final void run() throws SuspendExecution {
                 // next line causes an error because of incomplete merge in TypeInterpreter
