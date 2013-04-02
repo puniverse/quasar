@@ -28,7 +28,6 @@
  */
 package co.paralleluniverse.lwthreads;
 
-import co.paralleluniverse.lwthreads.SuspendExecution;
 import co.paralleluniverse.lwthreads.instrument.InstrumentClass;
 import co.paralleluniverse.lwthreads.instrument.Log;
 import co.paralleluniverse.lwthreads.instrument.LogLevel;

@@ -5,8 +5,6 @@
 
 package co.paralleluniverse.lwthreads;
 
-import co.paralleluniverse.lwthreads.SuspendExecution;
-
 /**
  * A dummy interface used for the InterfaceTest
  * 

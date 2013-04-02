@@ -4,10 +4,6 @@
  */
 package co.paralleluniverse.lwthreads;
 
-import co.paralleluniverse.lwthreads.SuspendExecution;
-import co.paralleluniverse.lwthreads.Stack;
-import co.paralleluniverse.lwthreads.LightweightThread;
-import co.paralleluniverse.lwthreads.SuspendableRunnable;
 import java.lang.reflect.Field;
 import static org.junit.Assert.*;
 import org.junit.Test;

@@ -4,8 +4,6 @@
  */
 package co.paralleluniverse.lwthreads;
 
-import co.paralleluniverse.lwthreads.LightweightThread;
-
 /**
  *
  * @author pron

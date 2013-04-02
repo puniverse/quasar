@@ -28,9 +28,6 @@
  */
 package co.paralleluniverse.lwthreads;
 
-import co.paralleluniverse.lwthreads.SuspendExecution;
-import co.paralleluniverse.lwthreads.LightweightThread;
-import co.paralleluniverse.lwthreads.SuspendableRunnable;
 import static co.paralleluniverse.lwthreads.TestsHelper.exec;
 import org.junit.Test;
 
