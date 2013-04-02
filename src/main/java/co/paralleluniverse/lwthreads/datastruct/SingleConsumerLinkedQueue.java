@@ -46,8 +46,9 @@ public abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E
     @SuppressWarnings("empty-statement")
     @Override
     public Node<E> succ(final Node<E> node) {
-        assert node != null;
         record("succ", "queue: %s node: %s", this, node);
+        if(node == null)
+            return pk();
         if (tail == node) {
             record("succ", "return null");
             return null; // an enq following this will test the lock again

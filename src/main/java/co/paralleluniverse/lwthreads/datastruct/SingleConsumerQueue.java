@@ -110,12 +110,12 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
 
         @Override
         public boolean hasNext() {
-            return (n == null ? pk() : succ(n)) != null;
+            return succ(n) != null;
         }
 
         @Override
         public E next() {
-            n = (n == null ? pk() : succ(n));
+            n = succ(n);
             return value(n);
         }
 

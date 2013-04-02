@@ -71,12 +71,16 @@ public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer>
 
     @Override
     public Integer succ(Integer index) {
-        final int s = succ(index.intValue());
+        final int s = succ(index != null ? index.intValue() : -1);
         return s >= 0 ? Integer.valueOf(s) : null;
     }
 
     @SuppressWarnings("empty-statement")
     public int succ(int index) {
+        if(index < 0) {
+            final Integer pk = pk();
+            return pk != null ? pk : -1;
+        }
         int n = index;
         for (;;) {
             n = next(n);
@@ -149,12 +153,12 @@ public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer>
 
         @Override
         public boolean hasNext() {
-            return (n < 0 ? pk() : succ(n)) >= 0;
+            return succ(n) >= 0;
         }
 
         @Override
         public E next() {
-            n = (n < 0 ? pk() : succ(n));
+            n = succ(n);
             return value(n);
         }
 
