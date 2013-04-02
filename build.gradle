@@ -60,7 +60,6 @@ task instrumentClasses(dependsOn: 'compileTestJava') << {
         }
     }
 }
-
     
 testClasses.dependsOn instrumentClasses
 
