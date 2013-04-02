@@ -5,20 +5,22 @@
 package co.paralleluniverse.lwthreads.datastruct;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import java.util.Iterator;
 import sun.misc.Unsafe;
 
 /**
  *
  * @author pron
  */
-public class SingleConsumerArrayQueue<E> implements SingleConsumerQueue<E, Integer> {
-    private final E[] array;
+public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer> {
+    private final Object[] array;
     private volatile int head; // next element to be read
     Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
     private volatile int tail; // next element to be written
+    private static final Object TOMBSTONE = new Object();
 
     public SingleConsumerArrayQueue(int size) {
-        this.array = (E[]) new Object[size];
+        this.array = new Object[size];
     }
 
     @Override
@@ -27,22 +29,23 @@ public class SingleConsumerArrayQueue<E> implements SingleConsumerQueue<E, Integ
     }
 
     public E value(int index) {
-        return array[index];
+        return (E)array[index];
     }
 
     @Override
-    public void enq(E element) {
+    public void enq(E item) {
+        if (item == null)
+            throw new IllegalArgumentException("null values not allowed");
         if (next(tail) == head)
             throw new RuntimeException("Queue capacity exceeeded");
 
-        int t, nt;
+        int t;
         for (;;) {
             t = tail;
-            nt = next(t);
-            if (compareAndSetTail(t, nt))
+            if (compareAndSetTail(t, next(t)))
                 break;
         }
-        lazySet(t, element);
+        set(t, item);
     }
 
     @Override
@@ -59,117 +62,146 @@ public class SingleConsumerArrayQueue<E> implements SingleConsumerQueue<E, Integ
 
     @Override
     @SuppressWarnings("empty-statement")
-    public Integer peek() {
-        if(head == tail)
+    public Integer pk() {
+        if (head == tail)
             return null;
-        while(get(head) == null); // volatile read
+        while (get(head) == null); // volatile read
         return Integer.valueOf(head);
     }
 
     @Override
     public Integer succ(Integer index) {
-        return Integer.valueOf(succ(index.intValue()));
+        final int s = succ(index.intValue());
+        return s >= 0 ? Integer.valueOf(s) : null;
     }
 
     @SuppressWarnings("empty-statement")
     public int succ(int index) {
-        int n = next(index);
-        while(get(n) == null); // volatile read
-        return n;
+        int n = index;
+        for (;;) {
+            n = next(n);
+            if (n == tail)
+                return -1;
+            while (get(n) == null); // volatile read
+            if (array[n] != TOMBSTONE)
+                return n;
+        }
     }
 
     @Override
-    public void del(Integer index) {
-        del(index.intValue());
+    public Integer del(Integer index) {
+        return del(index.intValue());
     }
-    
-    public void del(int index) {
-        if(index == head) {
+
+    public int del(int index) {
+        if (index == head) {
             deq(index);
-            return;
+            return -1;
         }
-        
+
         lazySet(index, null);
         int t = tail;
-        if(index == t) {
+        if (index == t) {
             if (compareAndSetTail(t, prev(t)))
-                return;
+                return prev(index);
         }
-        
+
         final int h = head;
         int i = index;
-        while(i != h) {
+        while (i != h) {
             int pi = prev(i);
             lazySet(i, array[pi]);
             i = pi;
         }
         head = next(h);
+        return index;
     }
 
     @Override
     public int size() {
-        if(tail > head)
+        if (tail >= head)
             return tail - head;
         else
-            return head + (array.length - tail);
+            return tail + (array.length - head);
     }
 
     private int next(int i) {
         return (i + 1) % array.length;
         //return (++i == array.length) ? 0 : i;
     }
+
     private int prev(int i) {
         return (--i == -1) ? (array.length - 1) : i;
     }
+
+    @Override
+    public Iterator<E> iterator() {
+        return new QueueIterator();
+    }
+
+    @Override
+    public void resetIterator(Iterator<E> iter) {
+        ((QueueIterator) iter).n = -1;
+    }
+
+    private class QueueIterator implements Iterator<E> {
+        private int n = -1;
+
+        @Override
+        public boolean hasNext() {
+            return (n < 0 ? pk() : succ(n)) >= 0;
+        }
+
+        @Override
+        public E next() {
+            n = (n < 0 ? pk() : succ(n));
+            return value(n);
+        }
+
+        @Override
+        public void remove() {
+            n = del(n);
+        }
+    }
     ////////////////////////////////////////////////////////////////////////
-    protected static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    private static final Unsafe unsafe = UtilUnsafe.getUnsafe();
     private static final long tailOffset;
-    private static final long arrayOffset;
     private static final int base;
     private static final int shift;
 
     static {
         try {
             tailOffset = unsafe.objectFieldOffset(SingleConsumerArrayQueue.class.getDeclaredField("tail"));
-            arrayOffset = unsafe.objectFieldOffset(SingleConsumerArrayQueue.class.getDeclaredField("array"));
             base = unsafe.arrayBaseOffset(Object[].class);
             int scale = unsafe.arrayIndexScale(Object[].class);
             if ((scale & (scale - 1)) != 0)
                 throw new Error("data type scale not a power of two");
             shift = 31 - Integer.numberOfLeadingZeros(scale);
-
         } catch (Exception ex) {
             throw new Error(ex);
         }
     }
 
+    private static long byteOffset(int i) {
+        return ((long) i << shift) + base;
+    }
+
     /**
      * CAS tail field. Used only by enq.
      */
-    boolean compareAndSetTail(int expect, int update) {
+    private boolean compareAndSetTail(int expect, int update) {
         return unsafe.compareAndSwapInt(this, tailOffset, expect, update);
     }
 
-    private void set(int i, E value) {
+    private void set(int i, Object value) {
         unsafe.putObjectVolatile(array, byteOffset(i), value);
     }
 
-    private void lazySet(int i, E value) {
+    private void lazySet(int i, Object value) {
         unsafe.putOrderedObject(array, byteOffset(i), value);
     }
 
-    private E get(int i) {
-        return (E) unsafe.getObjectVolatile(array, byteOffset(i));
-    }
-
-    private long checkedByteOffset(int i) {
-        if (i < 0 || i >= array.length)
-            throw new IndexOutOfBoundsException("index " + i);
-
-        return byteOffset(i);
-    }
-
-    private static long byteOffset(int i) {
-        return ((long) i << shift) + base;
+    private Object get(int i) {
+        return unsafe.getObjectVolatile(array, byteOffset(i));
     }
 }

@@ -35,6 +35,9 @@ public class SingleConsumerLinkedQueue1<E> extends SingleConsumerLinkedQueue<E> 
     @Override
     public void deq(final Node<E> node) {
         record("deq", "queue: %s node: %s", this, node);
+
+        clearValue(node);
+
         Node<E> h = node.next;
         if (h == null) {
             head = null; // Based on John M. Mellor-Crummey, "Concurrent Queues: Practical Fetch-and-ø Algorithms", 1987
@@ -46,13 +49,16 @@ public class SingleConsumerLinkedQueue1<E> extends SingleConsumerLinkedQueue<E> 
             while ((h = node.next) == null);
         }
         head = h;
+        h.prev = null;
+        
         record("deq", "set head to %s", h);
-        node.next = null;
-        node.prev = null;
+
+        // clearNext(node); - we don't clear next so that iterator would work
+        clearPrev(node);
     }
 
     @Override
-    public Node<E> peek() {
+    public Node<E> pk() {
         if (tail == null) {
             record("peek", "return null");
             return null;
@@ -66,7 +72,7 @@ public class SingleConsumerLinkedQueue1<E> extends SingleConsumerLinkedQueue<E> 
             }
         }
     }
-    
+
     @Override
     boolean isHead(Node<E> node) {
         return node.prev == null;

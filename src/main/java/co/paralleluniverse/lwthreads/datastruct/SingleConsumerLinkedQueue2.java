@@ -9,20 +9,19 @@ package co.paralleluniverse.lwthreads.datastruct;
  * @author pron
  */
 public class SingleConsumerLinkedQueue2<E> extends SingleConsumerLinkedQueue<E> {
+    public SingleConsumerLinkedQueue2() {
+        tail = head = new Node(null);
+    }
+
     @Override
     void enq(final Node<E> node) {
         record("enq", "queue: %s node: %s", this, node);
         for (;;) {
             Node t = tail;
-            if (t == null) { // initialize with dummy node
-                if (compareAndSetHead(new Node(null)))
-                    tail = head;
-            } else {
-                node.prev = t;
-                if (compareAndSetTail(t, node)) {
-                    t.next = node;
-                    return;
-                }
+            node.prev = t;
+            if (compareAndSetTail(t, node)) {
+                t.next = node;
+                return;
             }
         }
     }
@@ -31,13 +30,14 @@ public class SingleConsumerLinkedQueue2<E> extends SingleConsumerLinkedQueue<E> 
     @Override
     public void deq(final Node<E> node) {
         record("deq", "queue: %s node: %s", this, node);
+        clearValue(node);
+
         head = node;
-        node.value = null;
         node.prev = null;
     }
 
     @Override
-    public Node<E> peek() {
+    public Node<E> pk() {
         return succ(head);
     }
 
@@ -52,7 +52,6 @@ public class SingleConsumerLinkedQueue2<E> extends SingleConsumerLinkedQueue<E> 
 //                return t;
 //        throw new AssertionError();
 //    }
-
     @Override
     boolean isHead(Node<E> node) {
         return node.prev == head;

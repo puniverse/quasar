@@ -7,6 +7,7 @@ package co.paralleluniverse.lwthreads.datastruct;
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
+import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import sun.misc.Unsafe;
 
@@ -14,20 +15,17 @@ import sun.misc.Unsafe;
  *
  * @author pron
  */
-public abstract class SingleConsumerLinkedQueue<E> implements SingleConsumerQueue<E, SingleConsumerLinkedQueue.Node<E>> {
+public abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleConsumerLinkedQueue.Node<E>> {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
     volatile Node<E> head;
     Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
     volatile Node<E> tail;
 
-    /**
-     * Called by producers
-     *
-     * @param element
-     */
     @Override
-    public void enq(E element) {
-        enq(new Node(element));
+    public void enq(E item) {
+        if(item == null)
+            throw new IllegalArgumentException("null values not allowed");
+        enq(new Node(item));
     }
 
     @Override
@@ -43,11 +41,12 @@ public abstract class SingleConsumerLinkedQueue<E> implements SingleConsumerQueu
     abstract boolean isHead(Node<E> node);
 
     @Override
-    public abstract Node<E> peek();
+    public abstract Node<E> pk();
 
     @SuppressWarnings("empty-statement")
     @Override
     public Node<E> succ(final Node<E> node) {
+        assert node != null;
         record("succ", "queue: %s node: %s", this, node);
         if (tail == node) {
             record("succ", "return null");
@@ -61,24 +60,27 @@ public abstract class SingleConsumerLinkedQueue<E> implements SingleConsumerQueu
 
     @SuppressWarnings("empty-statement")
     @Override
-    public void del(Node<E> node) {
+    public Node<E> del(Node<E> node) {
         if (isHead(node)) {
             deq(node);
-            return;
+            return null;
         }
 
-        node.value = null;
-        node.prev.next = null;
+        clearValue(node);
+        
+        final Node<E> prev = node.prev;
+        prev.next = null;
         final Node<E> t = tail;
         if (t != node || !compareAndSetTail(t, node.prev)) {
             // neither head nor tail
-            node.prev.next = node.next;
+            prev.next = node.next;
             while (node.next == null); // wait for next
-            node.next.prev = node.prev;
+            node.next.prev = prev;
         }
 
-        node.next = null;
-        node.prev = null;
+        clearNext(node);
+        clearPrev(node);
+        return prev;
     }
 
     @Override
@@ -126,18 +128,27 @@ public abstract class SingleConsumerLinkedQueue<E> implements SingleConsumerQueu
         Node(E value) {
             this.value = value;
         }
+
+        @Override
+        public String toString() {
+            return "Node{" + "value: " + value + ", next: " + next + ", prev: " + Objects.systemToString(prev) + '}';
+        }
     }
     ////////////////////////////////////////////////////////////////////////
-    protected static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    private static final Unsafe unsafe = UtilUnsafe.getUnsafe();
     private static final long headOffset;
     private static final long tailOffset;
     private static final long nextOffset;
+    private static final long prevOffset;
+    private static final long valueOffset;
 
     static {
         try {
             headOffset = unsafe.objectFieldOffset(SingleConsumerLinkedQueue.class.getDeclaredField("head"));
             tailOffset = unsafe.objectFieldOffset(SingleConsumerLinkedQueue.class.getDeclaredField("tail"));
             nextOffset = unsafe.objectFieldOffset(Node.class.getDeclaredField("next"));
+            prevOffset = unsafe.objectFieldOffset(Node.class.getDeclaredField("prev"));
+            valueOffset = unsafe.objectFieldOffset(Node.class.getDeclaredField("value"));
 
         } catch (Exception ex) {
             throw new Error(ex);
@@ -165,8 +176,16 @@ public abstract class SingleConsumerLinkedQueue<E> implements SingleConsumerQueu
         return unsafe.compareAndSwapObject(node, nextOffset, expect, update);
     }
 
-    private static void clearNext(Node<?> node) {
+    static void clearNext(Node<?> node) {
         unsafe.putOrderedObject(node, nextOffset, null);
+    }
+
+    static void clearPrev(Node<?> node) {
+        unsafe.putOrderedObject(node, prevOffset, null);
+    }
+
+    static void clearValue(Node<?> node) {
+        unsafe.putOrderedObject(node, valueOffset, null);
     }
 
     ////////////////////////////
