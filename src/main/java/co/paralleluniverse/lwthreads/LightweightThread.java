@@ -4,6 +4,8 @@ import co.paralleluniverse.common.util.NamingThreadFactory;
 import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
@@ -19,7 +21,7 @@ import jsr166e.ForkJoinPool;
  * A LightweightThread can be serialized if it's not running and all involved
  * classes and data types are also {@link Serializable}.
  * <p/>
- * A new LightweightThread occupies about 320 bytes of memory.
+ * A new LightweightThread occupies under 400 bytes of memory (when using the default stack size, and compressed OOPs are turned on, as they are by default).
  *
  * @author Ron Pressler
  */
@@ -209,7 +211,7 @@ public class LightweightThread implements Serializable {
         else if (defaultUncaughtExceptionHandler != null)
             defaultUncaughtExceptionHandler.uncaughtException(this, t);
         else
-            t.printStackTrace();
+            printStackTrace(t, System.err);
         // swallow exception
     }
 
@@ -283,11 +285,32 @@ public class LightweightThread implements Serializable {
         LightweightThread.defaultUncaughtExceptionHandler = defaultUncaughtExceptionHandler;
     }
 
+    public void dumpStack() {
+        printStackTrace(new Exception("Stack trace"), System.err);
+    }
+
+    private void printStackTrace(Throwable t, OutputStream out) {
+        t.printStackTrace(new PrintStream(out) {
+            boolean seenExec;
+
+            @Override
+            public void println(String x) {
+                if (seenExec)
+                    return;
+                if (x.startsWith("\tat " + LightweightThread.class.getName() + ".exec1")) {
+                    seenExec = true;
+                    return;
+                }
+                super.println(x);
+            }
+        });
+    }
+
     @Override
     public String toString() {
         return "LightweightThread@" + Integer.toHexString(System.identityHashCode(this)) + "[state: " + state + " pool=" + fjPool + ", task=" + fjTask + ']';
     }
-    
+
     ////////
     static class LightweightThreadForkJoinTask extends ParkableForkJoinTask<Void> {
         private final LightweightThread lwt;
@@ -419,10 +442,11 @@ public class LightweightThread implements Serializable {
         StackTraceElement[] stes = Thread.currentThread().getStackTrace();
         try {
             for (StackTraceElement ste : stes) {
-                if (ste.getClassName().equals(LightweightThread.class.getName()) && ste.getMethodName().equals("run"))
+                if (!ste.getClassName().equals(LightweightThread.class.getName())) {
+                    if (!isInstrumented(Class.forName(ste.getClassName())))
+                        throw new IllegalStateException("Method " + ste.getClassName() + "." + ste.getMethodName() + " on the call-stack has not been instrumented. (trace: " + Arrays.toString(stes) + ")");
+                } else if (ste.getMethodName().equals("run"))
                     return;
-                if (!isInstrumented(Class.forName(ste.getClassName())))
-                    throw new IllegalStateException("Method " + ste.getClassName() + "." + ste.getMethodName() + " on the call-stack has not been instrumented. (trace: " + Arrays.toString(stes) + ")");
             }
             throw new Error();
         } catch (ClassNotFoundException e) {
@@ -435,7 +459,7 @@ public class LightweightThread implements Serializable {
         return clazz.isAnnotationPresent(Instrumented.class);
     }
 
-    // for tests only!
+// for tests only!
     @VisibleForTesting
     final boolean exec() {
         return fjTask.exec();
