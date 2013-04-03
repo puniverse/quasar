@@ -41,8 +41,9 @@ public class LightweightThread implements Serializable {
     private final Stack stack;
     private volatile State state;
     private volatile boolean interrupted;
-    LightweightThreadLocal.LWThreadLocalMap lwthreadLocals;
     private final SuspendableRunnable target;
+    LightweightThreadLocal.LWThreadLocalMap lwthreadLocals;
+    private long sleepStart;
     private PostParkActions postParkActions;
     private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
 
@@ -266,6 +267,30 @@ public class LightweightThread implements Serializable {
             fjTask.get(timeout, unit);
         } catch (ExecutionException ex) {
             throw new AssertionError(ex);
+        }
+    }
+
+    public final void sleep(long millis) throws SuspendExecution {
+        // this class's methods aren't instrumented, so we can't rely on the stack. This method will be called again when unparked
+        try {
+            for (;;) {
+                postRestore();
+                final long now = System.nanoTime();
+                if (sleepStart == 0)
+                    this.sleepStart = now;
+                final long deadline = sleepStart + TimeUnit.MILLISECONDS.toNanos(millis);
+                final long left = deadline - now;
+                if (left <= 0) {
+                    this.sleepStart = 0;
+                    return;
+                }
+                park1(null, null, left, TimeUnit.NANOSECONDS); // must be the last statement because we're not instrumented so we don't return here when awakened
+            }
+        } catch (SuspendExecution s) {
+            throw s;
+        } catch(Throwable t) {
+            this.sleepStart = 0;
+            throw t;
         }
     }
 
