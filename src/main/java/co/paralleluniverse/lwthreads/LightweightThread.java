@@ -29,7 +29,6 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
     private final Stack stack;
     private volatile boolean running;
     private volatile boolean interrupted;
-    private long timeout;
     LightweightThreadLocal.LWThreadLocalMap lwthreadLocals;
     private final SuspendableRunnable target;
     private PostParkActions postParkActions;
@@ -92,20 +91,7 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
      * @throws IllegalStateException If not called from a LightweightThread
      */
     public static boolean park(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
-        final LightweightThread current = verifySuspend();
-        current.postParkActions = postParkActions;
-        if (timeout > 0) {
-            current.timeout = System.nanoTime() + unit.toNanos(timeout);
-            timeoutService.schedule(new Runnable() {
-
-                @Override
-                public void run() {
-                    current.unpark();
-                }
-            }, timeout, unit);
-        } else
-            current.timeout = -1;
-        return current.park1(blocker);
+        return verifySuspend().park1(blocker, postParkActions, timeout, unit);
     }
 
     public static boolean park(Object blocker, PostParkActions postParkActions) throws SuspendExecution {
@@ -144,8 +130,16 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
         return interrupted;
     }
 
-    protected boolean park1(Object blocker, long timeout, TimeUnit unit) throws SuspendExecution {
-        this.timeout = System.nanoTime() + unit.toNanos(timeout);
+    protected boolean park1(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
+        this.postParkActions = postParkActions;
+        if (timeout > 0 & unit != null) {
+            timeoutService.schedule(new Runnable() {
+                @Override
+                public void run() {
+                    unpark();
+                }
+            }, timeout, unit);
+        }
         return park1(blocker);
     }
 
@@ -174,8 +168,6 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
     protected void postRestore() {
         if (interrupted)
             throw new LwtInterruptedException();
-        if (timeout > 0 && System.nanoTime() > timeout)
-            throw new TimeoutException();
     }
 
     @Override
