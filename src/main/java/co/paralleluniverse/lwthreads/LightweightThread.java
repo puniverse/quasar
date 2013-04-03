@@ -283,6 +283,11 @@ public class LightweightThread implements Serializable {
         LightweightThread.defaultUncaughtExceptionHandler = defaultUncaughtExceptionHandler;
     }
 
+    @Override
+    public String toString() {
+        return "LightweightThread@" + Integer.toHexString(System.identityHashCode(this)) + "[state: " + state + " pool=" + fjPool + ", task=" + fjTask + ']';
+    }
+    
     ////////
     static class LightweightThreadForkJoinTask extends ParkableForkJoinTask<Void> {
         private final LightweightThread lwt;
