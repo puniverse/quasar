@@ -279,7 +279,7 @@ public class LightweightThread implements Serializable {
         }
     }
 
-    private final void sleep1(long millis) throws SuspendExecution {
+    private void sleep1(long millis) throws SuspendExecution {
         // this class's methods aren't instrumented, so we can't rely on the stack. This method will be called again when unparked
         try {
             for (;;) {
