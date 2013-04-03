@@ -49,6 +49,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     boolean doExec() {
         try {
+            this.blocker = null;
             onExec();
             boolean res = exec1();
             onCompletion(res);
@@ -76,6 +77,11 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         record("doExec", "done normally %s", this, Boolean.valueOf(res));
     }
 
+    protected void onException(Throwable t) {
+        record("doExec", "exception in %s - %s, %s", this, t, t.getStackTrace());
+        throw Exceptions.rethrow(t);
+    }
+
     protected void parking(boolean yield) {
         doPark(yield);
     }
@@ -86,13 +92,9 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     }
 
     protected void doPark(boolean yield) {
-        this.state = PARKED;
+        if (!yield)
+            this.state = PARKED;
         onParked(yield);
-    }
-    
-    protected void onException(Throwable t) {
-        record("doExec", "exception in %s - %s, %s", this, t, t.getStackTrace());
-        throw Exceptions.rethrow(t);
     }
 
     protected void throwPark(boolean yield) throws Exception {
