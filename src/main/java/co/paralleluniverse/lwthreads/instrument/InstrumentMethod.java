@@ -182,31 +182,27 @@ class InstrumentMethod {
             FrameInfo fi = codeBlocks[i];
 
             MethodInsnNode min = (MethodInsnNode) (mn.instructions.get(fi.endInstruction));
-            if (isYieldMethod(min.owner, min.name)) {
+            if (isYieldMethod(min.owner, min.name)) { // special case - call to yield
                 if (min.getOpcode() != Opcodes.INVOKESTATIC)
                     throw new UnableToInstrumentException("invalid call to suspending method.", className, mn.name, mn.desc);
-                
-                // special case - call to yield() - resume AFTER the call
                 
                 emitStoreState(mv, i, fi);
                 
                 //mv.visitFieldInsn(Opcodes.GETSTATIC, STACK_NAME, EXCEPTION_INSTANCE_NAME, EXCEPTION_DESC);
                 //mv.visitInsn(Opcodes.ATHROW);
 
-                emitRestoreOperandStack(mv, fi);
-                min.accept(mv); // only the call
-                mv.visitLabel(lMethodCalls[i - 1]);
+                emitRestoreOperandStack(mv, fi); // we restore the operand stack for the sake of yield calls that take arguments
+                min.accept(mv); // call the yield method
+                mv.visitLabel(lMethodCalls[i - 1]); // resume AFTER the call
                 emitPostRestore(mv);
                 
                 emitRestoreState(mv, i, fi);
-                
                 dumpCodeBlock(mv, i, 1);    // skip the call
             } else {
                 // normal case - call to a suspendable method - resume before the call
                 emitStoreState(mv, i, fi);
                 mv.visitLabel(lMethodCalls[i - 1]);
                 emitRestoreState(mv, i, fi);
-                
                 dumpCodeBlock(mv, i, 0);
             }
         }
