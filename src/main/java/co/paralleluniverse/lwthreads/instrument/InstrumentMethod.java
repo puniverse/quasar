@@ -183,19 +183,22 @@ class InstrumentMethod {
 
             MethodInsnNode min = (MethodInsnNode) (mn.instructions.get(fi.endInstruction));
             if (isYieldMethod(min.owner, min.name)) {
-                // special case - call to yield() - resume AFTER the call
-                if (min.getOpcode() != Opcodes.INVOKESTATIC) {
+                if (min.getOpcode() != Opcodes.INVOKESTATIC)
                     throw new UnableToInstrumentException("invalid call to suspending method.", className, mn.name, mn.desc);
-                }
+                
+                // special case - call to yield() - resume AFTER the call
+                
                 emitStoreState(mv, i, fi);
                 
                 //mv.visitFieldInsn(Opcodes.GETSTATIC, STACK_NAME, EXCEPTION_INSTANCE_NAME, EXCEPTION_DESC);
                 //mv.visitInsn(Opcodes.ATHROW);
-                
+
+                emitRestoreOperandStack(mv, fi);
                 min.accept(mv); // only the call
                 mv.visitLabel(lMethodCalls[i - 1]);
-                emitRestoreState(mv, i, fi);
                 emitPostRestore(mv);
+                
+                emitRestoreState(mv, i, fi);
                 
                 dumpCodeBlock(mv, i, 1);    // skip the call
             } else {
@@ -203,7 +206,6 @@ class InstrumentMethod {
                 emitStoreState(mv, i, fi);
                 mv.visitLabel(lMethodCalls[i - 1]);
                 emitRestoreState(mv, i, fi);
-                emitPostRestore(mv);
                 
                 dumpCodeBlock(mv, i, 0);
             }
@@ -395,6 +397,7 @@ class InstrumentMethod {
         emitConst(mv, fi.numSlots);
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "pushMethodAndReserveSpace", "(II)V");
 
+        // store operand stack
         for (int i = f.getStackSize(); i-- > 0;) {
             BasicValue v = (BasicValue) f.getStack(i);
             if (!isOmitted(v)) {
@@ -409,6 +412,7 @@ class InstrumentMethod {
             }
         }
 
+        // store local vars
         for (int i = firstLocal; i < f.getLocals(); i++) {
             BasicValue v = (BasicValue) f.getLocal(i);
             if (!isNullType(v)) {
@@ -423,6 +427,7 @@ class InstrumentMethod {
     private void emitRestoreState(MethodVisitor mv, int idx, FrameInfo fi) {
         Frame f = frames[fi.endInstruction];
 
+        // restore local vars
         for (int i = firstLocal; i < f.getLocals(); i++) {
             BasicValue v = (BasicValue) f.getLocal(i);
             if (!isNullType(v)) {
@@ -436,6 +441,7 @@ class InstrumentMethod {
             }
         }
 
+        // restore operand stack
         for (int i = 0; i < f.getStackSize(); i++) {
             BasicValue v = (BasicValue) f.getStack(i);
             if (!isOmitted(v)) {
@@ -454,6 +460,23 @@ class InstrumentMethod {
         }
     }
 
+    private void emitRestoreOperandStack(MethodVisitor mv, FrameInfo fi) {
+        Frame f = frames[fi.endInstruction];
+        
+        for (int i = 0; i < f.getStackSize(); i++) {
+            BasicValue v = (BasicValue) f.getStack(i);
+            if (!isOmitted(v)) {
+                if (!isNullType(v)) {
+                    int slotIdx = fi.stackSlotIndices[i];
+                    assert slotIdx >= 0 && slotIdx < fi.numSlots;
+                    emitRestoreValue(mv, v, lvarStack, slotIdx);
+                } else {
+                    mv.visitInsn(Opcodes.ACONST_NULL);
+                }
+            }
+        }
+    }
+    
     private void emitPostRestore(MethodVisitor mv) {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "postRestore", "()V");
