@@ -138,6 +138,10 @@ public class LightweightThread implements Serializable {
         verifySuspend().yield1();
     }
 
+    public static void sleep(long millis) throws SuspendExecution {
+        verifySuspend().sleep1(millis);
+    }
+
     public static boolean interrupted() {
         final LightweightThread current = verifySuspend();
         final boolean interrupted = current.isInterrupted();
@@ -200,10 +204,15 @@ public class LightweightThread implements Serializable {
             target.run();
     }
 
-    public final void start() {
+    /**
+     * 
+     * @return {@code this}
+     */
+    public final LightweightThread start() {
         if (state != State.NEW)
             throw new IllegalStateException("LightweightThread has already been started");
         fjTask.submit();
+        return this;
     }
 
     private void onException(Throwable t) {
@@ -270,7 +279,7 @@ public class LightweightThread implements Serializable {
         }
     }
 
-    public final void sleep(long millis) throws SuspendExecution {
+    private final void sleep1(long millis) throws SuspendExecution {
         // this class's methods aren't instrumented, so we can't rely on the stack. This method will be called again when unparked
         try {
             for (;;) {
@@ -310,11 +319,12 @@ public class LightweightThread implements Serializable {
         LightweightThread.defaultUncaughtExceptionHandler = defaultUncaughtExceptionHandler;
     }
 
-    public void dumpStack() {
+    public static void dumpStack() {
+        verifyCurrent();
         printStackTrace(new Exception("Stack trace"), System.err);
     }
 
-    private void printStackTrace(Throwable t, OutputStream out) {
+    public static void printStackTrace(Throwable t, OutputStream out) {
         t.printStackTrace(new PrintStream(out) {
             boolean seenExec;
 
@@ -453,11 +463,16 @@ public class LightweightThread implements Serializable {
     }
 
     private static LightweightThread verifySuspend() {
+        final LightweightThread current = verifyCurrent();
+        if (verifyInstrumentation)
+            verifyInstrumentation();
+        return current;
+    }
+    
+    private static LightweightThread verifyCurrent() {
         final LightweightThread current = currentLightweightThread();
         if (current == null)
             throw new IllegalStateException("Not called from withing a LightweightThread");
-        if (verifyInstrumentation)
-            verifyInstrumentation();
         return current;
     }
 
