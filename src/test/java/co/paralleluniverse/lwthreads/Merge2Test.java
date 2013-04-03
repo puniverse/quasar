@@ -4,7 +4,9 @@
  */
 package co.paralleluniverse.lwthreads;
 
+import co.paralleluniverse.common.util.Exceptions;
 import static org.junit.Assert.*;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -12,7 +14,17 @@ import org.junit.Test;
  * @author mam
  */
 public class Merge2Test implements SuspendableRunnable {
+    @BeforeClass
+    public static void setupClass() {
+        LightweightThread.setDefaultUncaughtExceptionHandler(new LightweightThread.UncaughtExceptionHandler() {
 
+            @Override
+            public void uncaughtException(LightweightThread lwt, Throwable e) {
+                Exceptions.rethrow(e);
+            }
+        });
+    }
+    
     public interface Interface {
         public void method();
     }

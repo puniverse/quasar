@@ -6,9 +6,11 @@ import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import jsr166e.ForkJoinPool;
 
 /**
@@ -16,22 +18,31 @@ import jsr166e.ForkJoinPool;
  * <p/>
  * A LightweightThread can be serialized if it's not running and all involved
  * classes and data types are also {@link Serializable}.
+ * <p/>
+ * A new LightweightThread occupies about 320 bytes of memory.
  *
  * @author Ron Pressler
  */
-public class LightweightThread extends ParkableForkJoinTask<Void> implements Serializable {
+public class LightweightThread implements Serializable {
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.lwthreads.verifyInstrumentation", "false"));
     public static final int DEFAULT_STACK_SIZE = 16;
     private static final long serialVersionUID = 2783452871536981L;
+
+    public static enum State {
+        NEW, RUNNING, WAITING, TERMINATED
+    };
     private static final ScheduledExecutorService timeoutService = Executors.newSingleThreadScheduledExecutor(new NamingThreadFactory("lightweight-thread-timeout"));
+    private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler;
     //
     private final ForkJoinPool fjPool;
+    private final LightweightThreadForkJoinTask fjTask;
     private final Stack stack;
-    private volatile boolean running;
+    private volatile State state;
     private volatile boolean interrupted;
     LightweightThreadLocal.LWThreadLocalMap lwthreadLocals;
     private final SuspendableRunnable target;
     private PostParkActions postParkActions;
+    private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
 
     /**
      * Creates a new LightweightThread from the given SuspendableRunnable.
@@ -61,7 +72,9 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
     public LightweightThread(ForkJoinPool fjPool, SuspendableRunnable target, int stackSize) {
         this.fjPool = fjPool;
         this.target = target;
+        this.fjTask = new LightweightThreadForkJoinTask(this);
         this.stack = new Stack(this, stackSize);
+        this.state = State.NEW;
 
         if (target != null) {
             if (!isInstrumented(target.getClass()))
@@ -78,7 +91,7 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
      */
     public static LightweightThread currentLightweightThread() {
         try {
-            return (LightweightThread) ParkableForkJoinTask.getCurrent();
+            return LightweightThreadForkJoinTask.getCurrent().getLightweightThread();
         } catch (ClassCastException e) {
             return null;
         }
@@ -130,39 +143,21 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
         return interrupted;
     }
 
-    protected boolean park1(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
+    private boolean park1(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
         this.postParkActions = postParkActions;
         if (timeout > 0 & unit != null) {
             timeoutService.schedule(new Runnable() {
                 @Override
                 public void run() {
-                    unpark();
+                    fjTask.unpark();
                 }
             }, timeout, unit);
         }
-        return park1(blocker);
+        return fjTask.park1(blocker);
     }
 
-    @Override
-    protected boolean park1(Object blocker) throws SuspendExecution {
-        try {
-            return super.park1(blocker);
-        } catch (SuspendExecution p) {
-            throw p;
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
-    }
-
-    @Override
-    protected void yield1() throws SuspendExecution {
-        try {
-            super.yield1();
-        } catch (SuspendExecution p) {
-            throw p;
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
+    private void yield1() throws SuspendExecution {
+        fjTask.yield1();
     }
 
     protected void postRestore() {
@@ -170,44 +165,31 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
             throw new LwtInterruptedException();
     }
 
-    @Override
-    protected void submit() {
-        if (getPool() == fjPool)
-            fork();
-        fjPool.submit(this);
-    }
-
-    @Override
-    protected final boolean exec1() {
-        if (isDone() | running)
+    private boolean exec1() {
+        if (!isAlive() | state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
 
+        state = State.RUNNING;
         try {
-            running = true;
-            if (isInterrupted())
-                throw new LwtInterruptedException();
-            boolean finished = true;
-            try {
-                run();
-            } catch (SuspendExecution ex) {
-                assert ex == SuspendExecution.instance;
-                finished = false;
-                //stack.dump();
-                stack.resumeStack();
-            }
+            run();
+            state = State.TERMINATED;
+            return true;
+        } catch (SuspendExecution ex) {
+            assert ex == SuspendExecution.instance;
+            //stack.dump();
+            stack.resumeStack();
+            state = State.WAITING;
+            fjTask.doPark(false); // now we can complete parking
+
             if (postParkActions != null) {
                 postParkActions.run(this);
                 postParkActions = null;
             }
-            return finished;
-        } finally {
-            running = false;
+            return false;
+        } catch (Throwable t) {
+            state = State.TERMINATED;
+            throw t;
         }
-    }
-
-    @Override
-    protected void throwPark(boolean yield) throws SuspendExecution {
-        throw SuspendExecution.instance;
     }
 
     protected void run() throws SuspendExecution {
@@ -215,43 +197,200 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
             target.run();
     }
 
-    public void interrupt() {
+    public final void start() {
+        if (state != State.NEW)
+            throw new IllegalStateException("LightweightThread has already been started");
+        fjTask.submit();
+    }
+
+    private void onException(Throwable t) {
+        if (uncaughtExceptionHandler != null)
+            uncaughtExceptionHandler.uncaughtException(this, t);
+        else if (defaultUncaughtExceptionHandler != null)
+            defaultUncaughtExceptionHandler.uncaughtException(this, t);
+        else
+            t.printStackTrace();
+        // swallow exception
+    }
+
+    public final void interrupt() {
         interrupted = true;
         unpark();
     }
 
-    public boolean isInterrupted() {
+    public final boolean isInterrupted() {
         return interrupted;
     }
 
+    public final boolean isAlive() {
+        return !fjTask.isDone();
+    }
+
+    public final Object getBlocker() {
+        return fjTask.getBlocker();
+    }
+
+    public final State getState() {
+        return state;
+    }
+
+    /**
+     * Executes LWT on this thread, after waiting until the given blocker is indeed the LWT's blocker, and that the LWT is not being run concurrently.
+     *
+     * @param blocker
+     * @return
+     */
+    public final boolean exec(Object blocker) {
+        for (;;) {
+            if (fjTask.getBlocker() == blocker && fjTask.tryUnpark())
+                return fjTask.exec();
+        }
+    }
+
+    public final void unpark() {
+        fjTask.unpark();
+    }
+
+    public final void join() throws InterruptedException {
+        try {
+            fjTask.get();
+        } catch (ExecutionException ex) {
+            throw new AssertionError(ex);
+        }
+    }
+
+    public final void join(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
+        try {
+            fjTask.get(timeout, unit);
+        } catch (ExecutionException ex) {
+            throw new AssertionError(ex);
+        }
+    }
+
+    public void setUncaughtExceptionHandler(UncaughtExceptionHandler uncaughtExceptionHandler) {
+        this.uncaughtExceptionHandler = uncaughtExceptionHandler;
+    }
+
+    public UncaughtExceptionHandler getUncaughtExceptionHandler() {
+        return uncaughtExceptionHandler;
+    }
+
+    public static UncaughtExceptionHandler getDefaultUncaughtExceptionHandler() {
+        return defaultUncaughtExceptionHandler;
+    }
+
+    public static void setDefaultUncaughtExceptionHandler(UncaughtExceptionHandler defaultUncaughtExceptionHandler) {
+        LightweightThread.defaultUncaughtExceptionHandler = defaultUncaughtExceptionHandler;
+    }
+
+    ////////
+    static class LightweightThreadForkJoinTask extends ParkableForkJoinTask<Void> {
+        private final LightweightThread lwt;
+
+        public LightweightThreadForkJoinTask(LightweightThread lwThread) {
+            this.lwt = lwThread;
+        }
+
+        protected static LightweightThreadForkJoinTask getCurrent() {
+            return (LightweightThreadForkJoinTask) ParkableForkJoinTask.getCurrent();
+        }
+
+        LightweightThread getLightweightThread() {
+            return lwt;
+        }
+
+        @Override
+        protected void submit() {
+            if (getPool() == lwt.fjPool)
+                fork();
+            else
+                lwt.fjPool.submit(this);
+        }
+
+        @Override
+        protected boolean exec1() {
+            return lwt.exec1();
+        }
+
+        @Override
+        protected boolean park1(Object blocker) throws SuspendExecution {
+            try {
+                return super.park1(blocker);
+            } catch (SuspendExecution p) {
+                throw p;
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        }
+
+        @Override
+        protected void yield1() throws SuspendExecution {
+            try {
+                super.yield1();
+            } catch (SuspendExecution p) {
+                throw p;
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        }
+
+        @Override
+        protected void parking(boolean yield) {
+            // do nothing. doPark will be called explicitely after the stack has been restored
+        }
+
+        @Override
+        protected void doPark(boolean yield) {
+            super.doPark(yield);
+        }
+
+        @Override
+        protected void throwPark(boolean yield) throws SuspendExecution {
+            throw SuspendExecution.instance;
+        }
+
+        @Override
+        @SuppressWarnings("CallToThrowablePrintStackTrace")
+        protected void onException(Throwable t) {
+            lwt.onException(t);
+        }
+
+        @Override
+        public Void getRawResult() {
+            return null;
+        }
+
+        @Override
+        protected void setRawResult(Void v) {
+        }
+
+        @Override
+        protected final int getState() {
+            return super.getState();
+        }
+
+        @Override
+        protected boolean exec() {
+            return super.exec();
+        }
+
+        @Override
+        protected boolean tryUnpark() {
+            return super.tryUnpark();
+        }
+    }
+
+    public interface UncaughtExceptionHandler {
+        void uncaughtException(LightweightThread lwt, Throwable e);
+    }
+
     //////////////////////////////////////////////////
-    @VisibleForTesting
-    @Override
-    protected final int getState() {
-        return super.getState();
-    }
-
-    @VisibleForTesting
-    @Override
-    protected final boolean exec() {
-        return super.exec();
-    }
-
     final Stack getStack() {
         return stack;
     }
 
-    @Override
-    public final Void getRawResult() {
-        return null;
-    }
-
-    @Override
-    protected final void setRawResult(Void v) {
-    }
-
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-        if (running)
+        if (state == State.RUNNING)
             throw new IllegalStateException("trying to serialize a running LightweightThread");
         out.defaultWriteObject();
     }
@@ -293,8 +432,13 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
 
     // for tests only!
     @VisibleForTesting
+    final boolean exec() {
+        return fjTask.exec();
+    }
+
+    @VisibleForTesting
     void resetState() {
-        tryUnpark();
-        assert getState() == RUNNING;
+        fjTask.tryUnpark();
+        assert fjTask.getState() == ParkableForkJoinTask.RUNNABLE;
     }
 }

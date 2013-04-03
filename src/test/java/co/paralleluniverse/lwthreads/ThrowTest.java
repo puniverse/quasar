@@ -28,9 +28,11 @@
  */
 package co.paralleluniverse.lwthreads;
 
+import co.paralleluniverse.common.util.Exceptions;
 import static co.paralleluniverse.lwthreads.TestsHelper.exec;
 import java.util.ArrayList;
 import static org.junit.Assert.*;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 
@@ -43,6 +45,16 @@ public class ThrowTest implements SuspendableRunnable {
 
     private ArrayList<String> results = new ArrayList<String>();
     
+    @BeforeClass
+    public static void setupClass() {
+        LightweightThread.setDefaultUncaughtExceptionHandler(new LightweightThread.UncaughtExceptionHandler() {
+
+            @Override
+            public void uncaughtException(LightweightThread lwt, Throwable e) {
+                Exceptions.rethrow(e);
+            }
+        });
+    }
     @Override
     public void run() throws SuspendExecution {
         results.add("A");

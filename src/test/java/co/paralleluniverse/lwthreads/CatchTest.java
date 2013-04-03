@@ -30,30 +30,29 @@ package co.paralleluniverse.lwthreads;
 
 import static co.paralleluniverse.lwthreads.TestsHelper.exec;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import static org.junit.Assert.*;
 import org.junit.Test;
 
-
 /**
  * Check that a generic catch all does not affect the suspendtion of a method
- * 
+ *
  * @author Matthias Mann
  */
 public class CatchTest implements SuspendableRunnable {
-
     private ArrayList<String> results = new ArrayList<String>();
-    
     int cnt = 0;
+
     private void throwOnSecondCall() throws SuspendExecution {
         results.add("cnt=" + cnt);
         LightweightThread.park();
-        if(++cnt >= 2) {
+        if (++cnt >= 2) {
             throw new IllegalStateException("called second time");
         }
         results.add("not thrown");
     }
-    
+
     @Override
     public void run() throws SuspendExecution {
         results.add("A");
@@ -65,7 +64,7 @@ public class CatchTest implements SuspendableRunnable {
             LightweightThread.park();
             throwOnSecondCall();
             results.add("never reached");
-        } catch(Throwable ex) {
+        } catch (Throwable ex) {
             results.add(ex.getMessage());
         }
         results.add("H");
@@ -74,7 +73,7 @@ public class CatchTest implements SuspendableRunnable {
     @Test
     public void testCatch() {
         results.clear();
-        
+
         try {
             LightweightThread co = new LightweightThread(null, this);
             exec(co);
@@ -92,8 +91,22 @@ public class CatchTest implements SuspendableRunnable {
         } finally {
             System.out.println(results);
         }
-        
+
         assertEquals(13, results.size());
+        assertEquals(Arrays.asList(
+                "A",
+                "B",
+                "C",
+                "D",
+                "cnt=0",
+                "E",
+                "not thrown",
+                "F",
+                "cnt=1",
+                "G",
+                "called second time",
+                "H",
+                "I"), results);
         Iterator<String> iter = results.iterator();
         assertEquals("A", iter.next());
         assertEquals("B", iter.next());

@@ -19,17 +19,17 @@ import sun.misc.Unsafe;
 public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
     public static final Park PARK = new Park();
-    protected static final int RUNNING = 0;
-    protected static final int LEASED = 1;
-    protected static final int PARKED = -1;
-    protected static final int PARKING = -2;
+    public static final int RUNNABLE = 0;
+    public static final int LEASED = 1;
+    public static final int PARKED = -1;
+    public static final int PARKING = -2;
     //
     static final ThreadLocal<ParkableForkJoinTask<?>> current = new ThreadLocal<ParkableForkJoinTask<?>>();
     private volatile int state;
     private /*volatile*/ Object blocker;
 
     public ParkableForkJoinTask() {
-        state = RUNNING;
+        state = RUNNABLE;
     }
 
     protected static ParkableForkJoinTask<?> getCurrent() {
@@ -76,7 +76,8 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         record("doExec", "done normally %s", this, Boolean.valueOf(res));
     }
 
-    protected void beforePark(boolean yield) {
+    protected void parking(boolean yield) {
+        doPark(yield);
     }
 
     protected void onParked(boolean yield) {
@@ -84,6 +85,11 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             record("doExec", "parked " + (yield ? "(yield)" : "(park)") + " %s", this);
     }
 
+    protected void doPark(boolean yield) {
+        this.state = PARKED;
+        onParked(yield);
+    }
+    
     protected void onException(Throwable t) {
         record("doExec", "exception in %s - %s, %s", this, t, t.getStackTrace());
         throw Exceptions.rethrow(t);
@@ -99,9 +105,9 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             final int _state = getState();
             switch (_state) {
                 case LEASED:
-                    newState = RUNNING;
+                    newState = RUNNABLE;
                     break;
-                case RUNNING:
+                case RUNNABLE:
                     newState = PARKING;
                     break;
                 case PARKING:
@@ -119,25 +125,23 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         }
         if (newState == PARKING) {
             this.blocker = blocker;
-            beforePark(false);
-            this.state = PARKED;
-            onParked(false);
+            parking(false);
             throwPark(false);
             return true;
         } else
             return false;
     }
-    
+
     public void unpark() {
         int newState;
         for (;;) {
             final int _state = getState();
             switch (_state) {
-                case RUNNING:
+                case RUNNABLE:
                     newState = LEASED;
                     break;
                 case PARKED:
-                    newState = RUNNING;
+                    newState = RUNNABLE;
                     break;
                 case PARKING:
                     continue; // spin and wait
@@ -155,25 +159,25 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
                 break;
             }
         }
-        if (newState == RUNNING)
+        if (newState == RUNNABLE)
             submit();
     }
 
     protected boolean tryUnpark() {
-        return compareAndSetState(PARKED, RUNNING);
+        return compareAndSetState(PARKED, RUNNABLE);
     }
 
     protected void yield1() throws Exception {
-        beforePark(true);
+        parking(true);
         submit();
         onParked(true);
         throwPark(true);
     }
-    
+
     protected void submit() {
         fork();
     }
-    
+
     protected int getState() {
         return state;
     }
