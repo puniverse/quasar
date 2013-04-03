@@ -20,8 +20,8 @@ import jsr166e.ConcurrentHashMapV8;
  * @author pron
  */
 public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean {
-    private static final int DEFAULT_SIZE = Integer.getInteger("co.paralleluniverse.spacebase.monitoring.flightRecorderSize", 20000);
-    private static final int DEFAULT_LEVEL = Integer.getInteger("co.paralleluniverse.spacebase.monitoring.flightRecorderLevel", 5);
+    private static final int DEFAULT_SIZE = Integer.getInteger("co.paralleluniverse.monitoring.flightRecorderSize", 20000);
+    private static final int DEFAULT_LEVEL = Integer.getInteger("co.paralleluniverse.monitoring.flightRecorderLevel", 5);
     private final ConcurrentMap<Thread, ThreadRecorder> recorders = new ConcurrentHashMapV8<Thread, ThreadRecorder>();
     //private final ThreadLocal<ThreadRecorder> threadRecorder = new ThreadLocal<ThreadRecorder>();
     private final long startWallTime;
