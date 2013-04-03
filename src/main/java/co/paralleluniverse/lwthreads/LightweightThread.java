@@ -95,27 +95,27 @@ public class LightweightThread extends ParkableForkJoinTask<Void> implements Ser
     }
 
     public static boolean park(Object blocker, PostParkActions postParkActions) throws SuspendExecution {
-        return park(blocker, postParkActions, -1, null);
+        return park(blocker, postParkActions, 0, null);
     }
 
     public static boolean park(PostParkActions postParkActions) throws SuspendExecution {
-        return park(null, postParkActions, -1, null);
+        return park(null, postParkActions, 0, null);
     }
 
     public static void park(Object blocker, long timeout, TimeUnit unit) throws SuspendExecution {
         park(blocker, null, timeout, unit);
     }
 
+    public static void park(Object blocker) throws SuspendExecution {
+        park(blocker, null, 0, null);
+    }
+
     public static void park(long timeout, TimeUnit unit) throws SuspendExecution {
         park(null, null, timeout, unit);
     }
 
-    public static void park(Object blocker) throws SuspendExecution {
-        park(blocker, null, -1, null);
-    }
-
     public static void park() throws SuspendExecution {
-        park(null, null, -1, null);
+        park(null, null, 0, null);
     }
 
     public static void yield() throws SuspendExecution {
