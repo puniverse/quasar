@@ -39,6 +39,8 @@ public class LightweightThread implements Serializable {
     private final ForkJoinPool fjPool;
     private final LightweightThreadForkJoinTask fjTask;
     private final Stack stack;
+    private final LightweightThread parent;
+    private final String name;
     private volatile State state;
     private volatile boolean interrupted;
     private final SuspendableRunnable target;
@@ -53,17 +55,61 @@ public class LightweightThread implements Serializable {
      * @param target the SuspendableRunnable for the LightweightThread.
      */
     public LightweightThread(ForkJoinPool fjPool, SuspendableRunnable target) {
-        this(fjPool, target, DEFAULT_STACK_SIZE);
+        this(null, fjPool, target, DEFAULT_STACK_SIZE);
+    }
+
+    public LightweightThread(String name, ForkJoinPool fjPool, SuspendableRunnable target) {
+        this(name, fjPool, target, DEFAULT_STACK_SIZE);
+    }
+
+    public LightweightThread(SuspendableRunnable target) {
+        this(null, verifyParent().fjPool, target, DEFAULT_STACK_SIZE);
+    }
+
+    public LightweightThread(String name, SuspendableRunnable target) {
+        this(name, verifyParent().fjPool, target, DEFAULT_STACK_SIZE);
     }
 
     public LightweightThread(ForkJoinPool fjPool) {
-        this(fjPool, null, DEFAULT_STACK_SIZE);
+        this(null, fjPool, null, DEFAULT_STACK_SIZE);
+    }
+
+    public LightweightThread(String name, ForkJoinPool fjPool) {
+        this(name, fjPool, null, DEFAULT_STACK_SIZE);
+    }
+
+    public LightweightThread() {
+        this(null, verifyParent().fjPool, null, DEFAULT_STACK_SIZE);
+    }
+
+    public LightweightThread(String name) {
+        this(name, verifyParent().fjPool, null, DEFAULT_STACK_SIZE);
+    }
+
+    public LightweightThread(int stackSize) {
+        this(null, verifyParent().fjPool, null, stackSize);
+    }
+
+    public LightweightThread(String name, int stackSize) {
+        this(name, verifyParent().fjPool, null, stackSize);
     }
 
     public LightweightThread(ForkJoinPool fjPool, int stackSize) {
-        this(fjPool, null, stackSize);
+        this(null, fjPool, null, stackSize);
     }
 
+    public LightweightThread(String name, ForkJoinPool fjPool, int stackSize) {
+        this(name, fjPool, null, stackSize);
+    }
+
+    public LightweightThread(SuspendableRunnable target, int stackSize) {
+        this(null, verifyParent().fjPool, target, stackSize);
+    }
+    
+    public LightweightThread(String name, SuspendableRunnable target, int stackSize) {
+        this(name, verifyParent().fjPool, target, stackSize);
+    }
+    
     /**
      * Creates a new LightweightThread from the given SuspendableRunnable.
      *
@@ -72,8 +118,10 @@ public class LightweightThread implements Serializable {
      * @throws NullPointerException when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
-    public LightweightThread(ForkJoinPool fjPool, SuspendableRunnable target, int stackSize) {
+    public LightweightThread(String name, ForkJoinPool fjPool, SuspendableRunnable target, int stackSize) {
+        this.name = name;
         this.fjPool = fjPool;
+        this.parent = currentLightweightThread();
         this.target = target;
         this.fjTask = new LightweightThreadForkJoinTask(this);
         this.stack = new Stack(this, stackSize);
@@ -87,6 +135,12 @@ public class LightweightThread implements Serializable {
         }
     }
 
+    private static LightweightThread verifyParent() {
+        final LightweightThread parent = currentLightweightThread();
+        if(parent == null)
+            throw new IllegalStateException("This constructor may only be used from within a LightweightThread");
+        return parent;
+    } 
     /**
      * Returns the active LightweightThread on this thread or NULL if no LightweightThread is running.
      *
@@ -246,6 +300,14 @@ public class LightweightThread implements Serializable {
         return state;
     }
 
+    public LightweightThread getParent() {
+        return parent;
+    }
+
+    public String getName() {
+        return name;
+    }
+
     /**
      * Executes LWT on this thread, after waiting until the given blocker is indeed the LWT's blocker, and that the LWT is not being run concurrently.
      *
@@ -343,7 +405,7 @@ public class LightweightThread implements Serializable {
 
     @Override
     public String toString() {
-        return "LightweightThread@" + Integer.toHexString(System.identityHashCode(this)) + "[state: " + state + " pool=" + fjPool + ", task=" + fjTask + ']';
+        return "LightweightThread@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this))) + "[state: " + state + " pool=" + fjPool + ", task=" + fjTask + ']';
     }
 
     ////////
