@@ -5,8 +5,10 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.lwthreads.LightweightThread;
+import co.paralleluniverse.lwthreads.LwtInterruptedException;
 import co.paralleluniverse.lwthreads.SuspendExecution;
 import co.paralleluniverse.lwthreads.TimeoutException;
+import co.paralleluniverse.lwthreads.datastruct.QueueCapacityExceededException;
 import co.paralleluniverse.lwthreads.datastruct.SingleConsumerArrayQueue;
 import co.paralleluniverse.lwthreads.datastruct.SingleConsumerLinkedQueue1;
 import co.paralleluniverse.lwthreads.datastruct.SingleConsumerQueue;
@@ -20,10 +22,10 @@ class Mailbox<Message, Node> {
     public static <Message, Node> Mailbox<Message, Node> createMailbox(LightweightThread owner, SingleConsumerQueue<Message, Node> queue) {
         return new Mailbox<Message, Node>(owner, queue);
     }
+
     public static <Message> Mailbox<Message, ?> createMailbox(LightweightThread owner, int mailboxSize) {
         return new Mailbox(owner, mailboxSize > 0 ? new SingleConsumerArrayQueue<Message>(mailboxSize) : new SingleConsumerLinkedQueue1<Message>());
     }
-    
     private final LightweightThread owner;
     private final SingleConsumerQueue<Message, Node> queue;
 
@@ -46,6 +48,7 @@ class Mailbox<Message, Node> {
      * @param timeout
      * @param unit
      * @throws TimeoutException
+     * @throws LwtInterruptedException
      */
     public void receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit, Message currentMessage) throws SuspendExecution {
         final long start = timeout > 0 ? System.nanoTime() : 0;
@@ -56,16 +59,22 @@ class Mailbox<Message, Node> {
         for (;;) {
             n = queue.succ(n);
             if (n != null) {
-                final Message m = queue.value(n);
+                final Object m = queue.value(n);
                 if (m == currentMessage) {
                     queue.del(n);
                     continue;
                 }
 
-                if (proc.process(m)) {
+                try {
+                    if (proc.process((Message) m)) {
+                        if (queue.value(n) == m) // another call to receive from within the processor may have deleted n
+                            queue.del(n);
+                        break;
+                    }
+                } catch (Exception e) {
                     if (queue.value(n) == m) // another call to receive from within the processor may have deleted n
                         queue.del(n);
-                    return;
+                    throw e;
                 }
             }
 
@@ -94,13 +103,25 @@ class Mailbox<Message, Node> {
     }
 
     public void send(Message message) {
-        queue.enq(message);
-        owner.unpark();
-    }
-    
-    public void sendSync(Message message) {
-        queue.enq(message);
-        if(!owner.exec(this))
+        if (owner.isAlive()) {
+            enq(message);
             owner.unpark();
+        }
+    }
+
+    public void sendSync(Message message) {
+        if (owner.isAlive()) {
+            enq(message);
+            if (!owner.exec(this))
+                owner.unpark();
+        }
+    }
+
+    private void enq(Message message) {
+        try {
+            queue.enq(message);
+        } catch (QueueCapacityExceededException e) {
+            owner.interrupt();
+        }
     }
 }

@@ -41,7 +41,7 @@ public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer>
         if (item == null)
             throw new IllegalArgumentException("null values not allowed");
         if (next(tail) == head)
-            throw new RuntimeException("Queue capacity exceeeded");
+            throw new QueueCapacityExceededException();
 
         int t;
         for (;;) {

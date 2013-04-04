@@ -53,6 +53,33 @@ public class LightweightThread implements Serializable {
      * Creates a new LightweightThread from the given SuspendableRunnable.
      *
      * @param target the SuspendableRunnable for the LightweightThread.
+     * @param stackSize the initial stack size for the data stack
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
+    public LightweightThread(String name, ForkJoinPool fjPool, SuspendableRunnable target, int stackSize) {
+        this.name = name;
+        this.fjPool = fjPool;
+        this.parent = currentLightweightThread();
+        this.target = target;
+        this.fjTask = new LightweightThreadForkJoinTask(this);
+        this.stack = new Stack(this, stackSize);
+        this.state = State.NEW;
+
+        if (target != null) {
+            if (!isInstrumented(target.getClass()))
+                throw new IllegalArgumentException("Target class " + target.getClass() + " has not been instrumented.");
+        } else if (!isInstrumented(this.getClass())) {
+            throw new IllegalArgumentException("LightweightThread class " + this.getClass() + " has not been instrumented.");
+        }
+    }
+
+    //<editor-fold defaultstate="collapsed" desc="Constructors">
+    /////////// Constructors ///////////////////////////////////
+    /**
+     * Creates a new LightweightThread from the given SuspendableRunnable.
+     *
+     * @param target the SuspendableRunnable for the LightweightThread.
      */
     public LightweightThread(ForkJoinPool fjPool, SuspendableRunnable target) {
         this(null, fjPool, target, DEFAULT_STACK_SIZE);
@@ -105,42 +132,19 @@ public class LightweightThread implements Serializable {
     public LightweightThread(SuspendableRunnable target, int stackSize) {
         this(null, verifyParent().fjPool, target, stackSize);
     }
-    
+
     public LightweightThread(String name, SuspendableRunnable target, int stackSize) {
         this(name, verifyParent().fjPool, target, stackSize);
-    }
-    
-    /**
-     * Creates a new LightweightThread from the given SuspendableRunnable.
-     *
-     * @param target the SuspendableRunnable for the LightweightThread.
-     * @param stackSize the initial stack size for the data stack
-     * @throws NullPointerException when proto is null
-     * @throws IllegalArgumentException when stackSize is &lt;= 0
-     */
-    public LightweightThread(String name, ForkJoinPool fjPool, SuspendableRunnable target, int stackSize) {
-        this.name = name;
-        this.fjPool = fjPool;
-        this.parent = currentLightweightThread();
-        this.target = target;
-        this.fjTask = new LightweightThreadForkJoinTask(this);
-        this.stack = new Stack(this, stackSize);
-        this.state = State.NEW;
-
-        if (target != null) {
-            if (!isInstrumented(target.getClass()))
-                throw new IllegalArgumentException("Target class " + target.getClass() + " has not been instrumented.");
-        } else if (!isInstrumented(this.getClass())) {
-            throw new IllegalArgumentException("LightweightThread class " + this.getClass() + " has not been instrumented.");
-        }
     }
 
     private static LightweightThread verifyParent() {
         final LightweightThread parent = currentLightweightThread();
-        if(parent == null)
+        if (parent == null)
             throw new IllegalStateException("This constructor may only be used from within a LightweightThread");
         return parent;
-    } 
+    }
+    //</editor-fold>
+
     /**
      * Returns the active LightweightThread on this thread or NULL if no LightweightThread is running.
      *
@@ -259,7 +263,7 @@ public class LightweightThread implements Serializable {
     }
 
     /**
-     * 
+     *
      * @return {@code this}
      */
     public final LightweightThread start() {
@@ -269,7 +273,10 @@ public class LightweightThread implements Serializable {
         return this;
     }
 
-    private void onException(Throwable t) {
+    protected void onCompletion() {
+    }
+
+    protected void onException(Throwable t) {
         if (uncaughtExceptionHandler != null)
             uncaughtExceptionHandler.uncaughtException(this, t);
         else if (defaultUncaughtExceptionHandler != null)
@@ -315,7 +322,7 @@ public class LightweightThread implements Serializable {
      * @return
      */
     public final boolean exec(Object blocker) {
-        for (int i=0; i<30; i++) {
+        for (int i = 0; i < 30; i++) {
             if (fjTask.getBlocker() == blocker && fjTask.tryUnpark()) {
                 fjTask.exec();
                 return true;
@@ -362,7 +369,7 @@ public class LightweightThread implements Serializable {
             }
         } catch (SuspendExecution s) {
             throw s;
-        } catch(Throwable t) {
+        } catch (Throwable t) {
             this.sleepStart = 0;
             throw t;
         }
@@ -389,6 +396,7 @@ public class LightweightThread implements Serializable {
         printStackTrace(new Exception("Stack trace"), System.err);
     }
 
+    @SuppressWarnings("CallToThrowablePrintStackTrace")
     public static void printStackTrace(Throwable t, OutputStream out) {
         t.printStackTrace(new PrintStream(out) {
             boolean seenExec;
@@ -478,9 +486,14 @@ public class LightweightThread implements Serializable {
         }
 
         @Override
-        @SuppressWarnings("CallToThrowablePrintStackTrace")
         protected void onException(Throwable t) {
             lwt.onException(t);
+        }
+
+        @Override
+        protected void onCompletion(boolean res) {
+            if (res)
+                lwt.onCompletion();
         }
 
         @Override
@@ -533,7 +546,7 @@ public class LightweightThread implements Serializable {
             verifyInstrumentation();
         return current;
     }
-    
+
     private static LightweightThread verifyCurrent() {
         final LightweightThread current = currentLightweightThread();
         if (current == null)

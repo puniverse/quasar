@@ -135,6 +135,8 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     }
 
     public void unpark() {
+        if(isDone())
+            return;
         int newState;
         for (;;) {
             final int _state = getState();
