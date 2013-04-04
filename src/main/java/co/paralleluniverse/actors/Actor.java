@@ -169,14 +169,15 @@ public abstract class Actor<Message> extends LightweightThread {
         }
     }
 
-    public void register(String name) {
+    public Actor register(String name) {
         if (name == null)
             throw new IllegalArgumentException("name is null");
         registeredActors.put(name, this);
+        return this;
     }
 
-    public void register() {
-        register(getName());
+    public Actor register() {
+        return register(getName());
     }
 
     public static void unregister(String name) {
@@ -187,15 +188,18 @@ public abstract class Actor<Message> extends LightweightThread {
         return registeredActors.get(name);
     }
     
-    public void link(Actor other) {
+    public Actor link(Actor other) {
         lifecycleListeners.add(other.lifecycleListener);
         other.lifecycleListeners.add(lifecycleListener);
+        return this;
     }
 
-    public void unlink(Actor other) {
+    public Actor unlink(Actor other) {
         lifecycleListeners.remove(other.lifecycleListener);
         other.lifecycleListeners.remove(lifecycleListener);
+        return this;
     }
+    
     private final LifecycleListener lifecycleListener = new LifecycleListener() {
         @Override
         public void dead(Actor actor, Object reason) {
