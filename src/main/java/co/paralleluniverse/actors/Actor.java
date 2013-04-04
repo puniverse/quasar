@@ -22,11 +22,13 @@ public abstract class Actor<Message> extends LightweightThread {
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
+    @SuppressWarnings("LeakingThisInConstructor")
     private Actor(String name, ForkJoinPool fjPool, int stackSize, int mailboxSize) {
         super(name, fjPool, stackSize);
         this.mailbox = Mailbox.createMailbox(this, mailboxSize);
     }
 
+    @SuppressWarnings("LeakingThisInConstructor")
     private Actor(String name, ForkJoinPool fjPool, int mailboxSize) {
         super(name, fjPool);
         this.mailbox = Mailbox.createMailbox(this, mailboxSize);
@@ -40,11 +42,13 @@ public abstract class Actor<Message> extends LightweightThread {
         this(null, fjPool, mailboxSize);
     }
 
+    @SuppressWarnings("LeakingThisInConstructor")
     private Actor(String name, int stackSize, int mailboxSize) {
         super(name, stackSize);
         this.mailbox = Mailbox.createMailbox(this, mailboxSize);
     }
 
+    @SuppressWarnings("LeakingThisInConstructor")
     private Actor(String name, int mailboxSize) {
         super(name);
         this.mailbox = Mailbox.createMailbox(this, mailboxSize);
