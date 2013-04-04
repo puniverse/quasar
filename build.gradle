@@ -83,6 +83,11 @@ tasks.withType(Test) {
     }    
 }
 
+task run(type: JavaExec, dependsOn:[testClasses]) {
+    main = mainClass
+    classpath = sourceSets.test.runtimeClasspath
+}
+
 task wrapper(type: Wrapper) {
     gradleVersion = '1.5-20130302103424+0000'
 }
