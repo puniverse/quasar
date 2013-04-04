@@ -152,7 +152,10 @@ public class LightweightThread implements Serializable {
      */
     public static LightweightThread currentLightweightThread() {
         try {
-            return LightweightThreadForkJoinTask.getCurrent().getLightweightThread();
+            final LightweightThreadForkJoinTask currentFJTask = LightweightThreadForkJoinTask.getCurrent();
+            if(currentFJTask == null)
+                return null;
+            return currentFJTask.getLightweightThread();
         } catch (ClassCastException e) {
             return null;
         }
