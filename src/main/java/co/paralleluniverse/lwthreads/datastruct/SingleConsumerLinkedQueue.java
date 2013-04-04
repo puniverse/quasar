@@ -18,7 +18,7 @@ import sun.misc.Unsafe;
 public abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleConsumerLinkedQueue.Node<E>> {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
     volatile Node<E> head;
-    Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
+    volatile Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
     volatile Node<E> tail;
 
     @Override

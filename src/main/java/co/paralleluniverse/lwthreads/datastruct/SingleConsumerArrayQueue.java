@@ -15,7 +15,7 @@ import sun.misc.Unsafe;
 public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer> {
     private final Object[] array;
     private volatile int head; // next element to be read
-    Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
+    private volatile Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
     private volatile int tail; // next element to be written
 
     public SingleConsumerArrayQueue(int size) {
