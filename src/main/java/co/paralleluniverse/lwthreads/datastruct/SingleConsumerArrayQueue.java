@@ -26,14 +26,14 @@ public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer>
     public boolean allowRetainPointers() {
         return false;
     }
-    
+
     @Override
     public E value(Integer index) {
         return value(index.intValue());
     }
 
     public E value(int index) {
-        return (E)array[index];
+        return (E) array[index];
     }
 
     @Override
@@ -81,17 +81,16 @@ public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer>
 
     @SuppressWarnings("empty-statement")
     public int succ(int index) {
-        if(index < 0) {
+        if (index < 0) {
             final Integer pk = pk();
             return pk != null ? pk : -1;
         }
         int n = index;
-        for (;;) {
-            n = next(n);
-            if (n == tail)
-                return -1;
-            while (get(n) == null); // volatile read
-        }
+        n = next(n);
+        if (n == tail)
+            return -1;
+        while (get(n) == null); // volatile read
+        return n;
     }
 
     @Override

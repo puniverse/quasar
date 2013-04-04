@@ -29,6 +29,7 @@ public class SingleConsumerQueueTest {
 //    public SingleConsumerQueueTest() {
 //        queue = new SingleConsumerArrayQueue<String>(10);
 //    }
+    
     public SingleConsumerQueueTest(int queueType) {
         switch (queueType) {
             case 1:
