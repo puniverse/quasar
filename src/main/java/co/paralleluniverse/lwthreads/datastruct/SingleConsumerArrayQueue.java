@@ -17,7 +17,6 @@ public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer>
     private volatile int head; // next element to be read
     Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
     private volatile int tail; // next element to be written
-    private static final Object TOMBSTONE = new Object();
 
     public SingleConsumerArrayQueue(int size) {
         this.array = new Object[size];
@@ -92,8 +91,6 @@ public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer>
             if (n == tail)
                 return -1;
             while (get(n) == null); // volatile read
-            if (array[n] != TOMBSTONE)
-                return n;
         }
     }
 
