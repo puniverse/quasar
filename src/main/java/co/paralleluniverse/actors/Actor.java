@@ -6,7 +6,9 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.lwthreads.LightweightThread;
 import co.paralleluniverse.lwthreads.SuspendExecution;
+import co.paralleluniverse.lwthreads.datastruct.QueueCapacityExceededException;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import jsr166e.ConcurrentHashMapV8;
@@ -17,8 +19,10 @@ import jsr166e.ForkJoinPool;
  * @author pron
  */
 public abstract class Actor<Message> extends LightweightThread {
+    private static final Map<String, Actor> registeredActors = new ConcurrentHashMapV8<String, Actor>();
     private final Mailbox<Object, ?> mailbox;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
+    private volatile RuntimeException thrownIn;
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
@@ -67,6 +71,7 @@ public abstract class Actor<Message> extends LightweightThread {
     /////////// Mailbox methods ///////////////////////////////////
     protected Message receive() throws SuspendExecution {
         for (;;) {
+            checkThrownIn();
             Object m = mailbox.receive();
             if (m instanceof LifecycleMessage)
                 handleLifecycleMessage((LifecycleMessage) m);
@@ -89,38 +94,46 @@ public abstract class Actor<Message> extends LightweightThread {
     }
 
     protected void receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit, Message currentMessage) throws SuspendExecution {
+        checkThrownIn();
         mailbox.receive(wrapProcessor(proc), timeout, unit, currentMessage);
     }
 
     protected void receive(MessageProcessor<Message> proc, Message currentMessage) throws SuspendExecution {
-        mailbox.receive(wrapProcessor(proc), currentMessage);
+        receive(proc, 0, null, currentMessage);
     }
 
     protected void receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit) throws SuspendExecution {
-        mailbox.receive(wrapProcessor(proc), timeout, unit);
+        receive(proc, timeout, unit, null);
     }
 
     protected void receive(MessageProcessor<Message> proc) throws SuspendExecution {
-        mailbox.receive(wrapProcessor(proc));
+        receive(proc, 0, null, null);
     }
 
     public void send(Message message) {
-        mailbox.send(message);
+        try {
+            mailbox.send(message);
+        } catch (QueueCapacityExceededException e) {
+            throwIn(e);
+        }
     }
 
     public void sendSync(Message message) {
-        mailbox.sendSync(message);
+        try {
+            mailbox.sendSync(message);
+        } catch (QueueCapacityExceededException e) {
+            throwIn(e);
+        }
     }
     //</editor-fold>
 
     @Override
     public Actor start() {
-        return (Actor)super.start();
+        return (Actor) super.start();
     }
 
     //<editor-fold desc="Lifecycle">
     /////////// Lifecycle ///////////////////////////////////
-    
     @Override
     protected abstract void run() throws SuspendExecution;
 
@@ -139,6 +152,41 @@ public abstract class Actor<Message> extends LightweightThread {
         notifyDeath(t);
     }
 
+    @Override
+    protected void postRestore() {
+        super.postRestore();
+        checkThrownIn();
+    }
+
+    public void throwIn(RuntimeException e) {
+        this.thrownIn = e; // last exception thrown in wins
+    }
+
+    private void checkThrownIn() {
+        if (thrownIn != null) {
+            thrownIn.setStackTrace(new Throwable().getStackTrace());
+            throw thrownIn;
+        }
+    }
+
+    public void register(String name) {
+        if (name == null)
+            throw new IllegalArgumentException("name is null");
+        registeredActors.put(name, this);
+    }
+
+    public void register() {
+        register(getName());
+    }
+
+    public static void unregister(String name) {
+        registeredActors.remove(name);
+    }
+
+    public static Actor getActor(String name) {
+        return registeredActors.get(name);
+    }
+    
     public void link(Actor other) {
         lifecycleListeners.add(other.lifecycleListener);
         other.lifecycleListeners.add(lifecycleListener);

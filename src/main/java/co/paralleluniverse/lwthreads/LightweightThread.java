@@ -153,7 +153,7 @@ public class LightweightThread implements Serializable {
     public static LightweightThread currentLightweightThread() {
         try {
             final LightweightThreadForkJoinTask currentFJTask = LightweightThreadForkJoinTask.getCurrent();
-            if(currentFJTask == null)
+            if (currentFJTask == null)
                 return null;
             return currentFJTask.getLightweightThread();
         } catch (ClassCastException e) {
@@ -406,11 +406,13 @@ public class LightweightThread implements Serializable {
 
             @Override
             public void println(String x) {
-                if (seenExec)
-                    return;
-                if (x.startsWith("\tat " + LightweightThread.class.getName() + ".exec1")) {
-                    seenExec = true;
-                    return;
+                if (x.startsWith("\tat "))  {
+                    if (seenExec)
+                        return;
+                    if (x.startsWith("\tat " + LightweightThread.class.getName() + ".exec1")) {
+                        seenExec = true;
+                        return;
+                    }
                 }
                 super.println(x);
             }

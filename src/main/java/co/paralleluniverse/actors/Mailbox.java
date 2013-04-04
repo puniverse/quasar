@@ -8,7 +8,6 @@ import co.paralleluniverse.lwthreads.LightweightThread;
 import co.paralleluniverse.lwthreads.LwtInterruptedException;
 import co.paralleluniverse.lwthreads.SuspendExecution;
 import co.paralleluniverse.lwthreads.TimeoutException;
-import co.paralleluniverse.lwthreads.datastruct.QueueCapacityExceededException;
 import co.paralleluniverse.lwthreads.datastruct.SingleConsumerArrayQueue;
 import co.paralleluniverse.lwthreads.datastruct.SingleConsumerLinkedQueue1;
 import co.paralleluniverse.lwthreads.datastruct.SingleConsumerQueue;
@@ -104,24 +103,16 @@ class Mailbox<Message, Node> {
 
     public void send(Message message) {
         if (owner.isAlive()) {
-            enq(message);
+            queue.enq(message);
             owner.unpark();
         }
     }
 
     public void sendSync(Message message) {
         if (owner.isAlive()) {
-            enq(message);
+            queue.enq(message);
             if (!owner.exec(this))
                 owner.unpark();
-        }
-    }
-
-    private void enq(Message message) {
-        try {
-            queue.enq(message);
-        } catch (QueueCapacityExceededException e) {
-            owner.interrupt();
         }
     }
 }
