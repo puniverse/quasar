@@ -27,6 +27,8 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
 
     public abstract Node del(Node node);
 
+    public abstract boolean allowRetainPointers();
+    
     @Override
     public abstract int size();
 

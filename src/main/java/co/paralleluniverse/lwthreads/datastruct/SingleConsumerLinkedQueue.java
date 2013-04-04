@@ -22,6 +22,11 @@ public abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E
     volatile Node<E> tail;
 
     @Override
+    public boolean allowRetainPointers() {
+        return true;
+    }
+
+    @Override
     public void enq(E item) {
         if(item == null)
             throw new IllegalArgumentException("null values not allowed");

@@ -24,6 +24,11 @@ public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer>
     }
 
     @Override
+    public boolean allowRetainPointers() {
+        return false;
+    }
+    
+    @Override
     public E value(Integer index) {
         return value(index.intValue());
     }
