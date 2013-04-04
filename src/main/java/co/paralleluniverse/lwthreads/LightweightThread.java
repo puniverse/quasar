@@ -315,10 +315,13 @@ public class LightweightThread implements Serializable {
      * @return
      */
     public final boolean exec(Object blocker) {
-        for (;;) {
-            if (fjTask.getBlocker() == blocker && fjTask.tryUnpark())
-                return fjTask.exec();
+        for (int i=0; i<30; i++) {
+            if (fjTask.getBlocker() == blocker && fjTask.tryUnpark()) {
+                fjTask.exec();
+                return true;
+            }
         }
+        return false;
     }
 
     public final void unpark() {
