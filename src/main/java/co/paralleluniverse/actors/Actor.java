@@ -113,8 +113,14 @@ public abstract class Actor<Message> extends LightweightThread {
     }
     //</editor-fold>
 
+    @Override
+    public Actor start() {
+        return (Actor)super.start();
+    }
+
     //<editor-fold desc="Lifecycle">
     /////////// Lifecycle ///////////////////////////////////
+    
     @Override
     protected abstract void run() throws SuspendExecution;
 

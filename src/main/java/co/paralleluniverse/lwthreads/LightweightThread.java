@@ -269,7 +269,7 @@ public class LightweightThread implements Serializable {
      *
      * @return {@code this}
      */
-    public final LightweightThread start() {
+    public LightweightThread start() {
         if (state != State.NEW)
             throw new IllegalStateException("LightweightThread has already been started");
         fjTask.submit();

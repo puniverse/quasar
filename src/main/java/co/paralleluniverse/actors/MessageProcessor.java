@@ -9,5 +9,5 @@ package co.paralleluniverse.actors;
  * @author pron
  */
 public interface MessageProcessor<Message> {
-    boolean process(Message message);
+    boolean process(Message m);
 }
