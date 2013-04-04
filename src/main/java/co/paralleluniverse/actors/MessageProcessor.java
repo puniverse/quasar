@@ -8,6 +8,6 @@ package co.paralleluniverse.actors;
  *
  * @author pron
  */
-public interface MessagePredicate<Message> {
-    boolean matches(Message message);
+public interface MessageProcessor<Message> {
+    boolean process(Message message);
 }
