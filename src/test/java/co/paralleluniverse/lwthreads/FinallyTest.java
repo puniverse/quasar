@@ -64,7 +64,7 @@ public class FinallyTest implements SuspendableRunnable {
         results.clear();
         
         try {
-            LightweightThread co = new LightweightThread(null, this);
+            LightweightThread co = new LightweightThread(null, null, this);
             exec(co);
             results.add("B");
             exec(co);

@@ -19,7 +19,7 @@ public class NullTest implements SuspendableRunnable {
     
     @Test
     public void testNull() {
-        LightweightThread co = new LightweightThread(null, this);
+        LightweightThread co = new LightweightThread(null, null, this);
         int count = 1;
         while(!co.exec())
             count++;

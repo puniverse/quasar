@@ -19,7 +19,7 @@ public class UninitializedTest implements SuspendableRunnable {
     
     @Test
     public void testUninitialized() {
-        LightweightThread co = new LightweightThread(null, this);
+        LightweightThread co = new LightweightThread(null, null, this);
         int count = 1;
         while(!co.exec())
             count++;
