@@ -4,6 +4,9 @@
  */
 package co.paralleluniverse.lwthreads.datastruct;
 
+import co.paralleluniverse.common.monitoring.FlightRecorder;
+import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
+import co.paralleluniverse.common.util.Debug;
 import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Iterator;
@@ -15,6 +18,8 @@ import java.util.Queue;
  * @author pron
  */
 public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E> implements Iterable<E>, Queue<E> {
+    public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
+
     public abstract void enq(E element);
 
     public abstract E value(Node node);
@@ -28,7 +33,7 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
     public abstract Node del(Node node);
 
     public abstract boolean allowRetainPointers();
-    
+
     @Override
     public abstract int size();
 
@@ -67,7 +72,7 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
     @Override
     public E remove() {
         final E val = poll();
-        if(val == null)
+        if (val == null)
             throw new NoSuchElementException();
         return val;
     }
@@ -85,7 +90,7 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
     @Override
     public E element() {
         final E val = peek();
-        if(val == null)
+        if (val == null)
             throw new NoSuchElementException();
         return val;
     }
@@ -137,5 +142,40 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
             sb.delete(sb.length() - 2, sb.length());
         sb.append(']');
         return sb.toString();
+    }
+
+    ////////////////////////////
+    boolean isRecording() {
+        return RECORDER != null;
+    }
+
+    static void record(String method, String format) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("SingleConsumerQueue", method, format, null));
+    }
+
+    static void record(String method, String format, Object arg1) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("SingleConsumerQueue", method, format, new Object[]{arg1}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("SingleConsumerQueue", method, format, new Object[]{arg1, arg2}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2, Object arg3) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("SingleConsumerQueue", method, format, new Object[]{arg1, arg2, arg3}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("SingleConsumerQueue", method, format, new Object[]{arg1, arg2, arg3, arg4}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("SingleConsumerQueue", method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
     }
 }

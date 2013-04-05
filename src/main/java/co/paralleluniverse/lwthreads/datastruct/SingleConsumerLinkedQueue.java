@@ -4,9 +4,6 @@
  */
 package co.paralleluniverse.lwthreads.datastruct;
 
-import co.paralleluniverse.common.monitoring.FlightRecorder;
-import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
-import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import sun.misc.Unsafe;
 
@@ -16,7 +13,6 @@ import sun.misc.Unsafe;
  */
 abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleConsumerLinkedQueue.Node<E>> {
     private static final boolean DUMMY_NODE_ALGORITHM = false;
-    public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
     volatile Node head;
     volatile Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
     volatile Node tail;
@@ -241,39 +237,4 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
     }
 
     abstract void clearValue(Node node);
-
-    ////////////////////////////
-    protected boolean isRecording() {
-        return RECORDER != null;
-    }
-
-    static void record(String method, String format) {
-        if (RECORDER != null)
-            RECORDER.record(1, new FlightRecorderMessage("SingleConsumerLinkedQueue", method, format, null));
-    }
-
-    static void record(String method, String format, Object arg1) {
-        if (RECORDER != null)
-            RECORDER.record(1, new FlightRecorderMessage("SingleConsumerLinkedQueue", method, format, new Object[]{arg1}));
-    }
-
-    static void record(String method, String format, Object arg1, Object arg2) {
-        if (RECORDER != null)
-            RECORDER.record(1, new FlightRecorderMessage("SingleConsumerLinkedQueue", method, format, new Object[]{arg1, arg2}));
-    }
-
-    static void record(String method, String format, Object arg1, Object arg2, Object arg3) {
-        if (RECORDER != null)
-            RECORDER.record(1, new FlightRecorderMessage("SingleConsumerLinkedQueue", method, format, new Object[]{arg1, arg2, arg3}));
-    }
-
-    static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
-        if (RECORDER != null)
-            RECORDER.record(1, new FlightRecorderMessage("SingleConsumerLinkedQueue", method, format, new Object[]{arg1, arg2, arg3, arg4}));
-    }
-
-    static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
-        if (RECORDER != null)
-            RECORDER.record(1, new FlightRecorderMessage("SingleConsumerLinkedQueue", method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
-    }
 }
