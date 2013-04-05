@@ -27,11 +27,11 @@ public class ActorTest {
 
     @Test
     public void testReceive() {
-        Actor<Message> manager = new Actor(fjPool, mailboxSize) {
+        Actor<Message, Void> manager = new Actor(fjPool, mailboxSize) {
             int counter;
 
             @Override
-            protected void run() throws SuspendExecution {
+            protected Void run() throws SuspendExecution {
                 for (;;) {
                     receive(new MessageProcessor<Message>() {
                         @Override
