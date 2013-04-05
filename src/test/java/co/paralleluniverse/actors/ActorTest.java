@@ -31,7 +31,7 @@ public class ActorTest {
             int counter;
 
             @Override
-            protected Void run() throws SuspendExecution {
+            protected Void run() throws SuspendExecution, InterruptedException {
                 for (;;) {
                     receive(new MessageProcessor<Message>() {
                         @Override

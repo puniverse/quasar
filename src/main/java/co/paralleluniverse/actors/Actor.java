@@ -141,7 +141,7 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
     //<editor-fold desc="Lifecycle">
     /////////// Lifecycle ///////////////////////////////////
     @Override
-    protected abstract V run() throws SuspendExecution;
+    protected abstract V run() throws InterruptedException, SuspendExecution;
 
     protected void handleLifecycleMessage(LifecycleMessage m) {
         if (m instanceof ExitMessage)

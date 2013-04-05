@@ -23,7 +23,7 @@ public class RingBenchmark {
 
         Actor<Message, Integer> manager = new Actor<Message, Integer>(fjPool, mailboxSize) {
             @Override
-            protected Integer run() throws SuspendExecution {
+            protected Integer run() throws InterruptedException, SuspendExecution {
                 Actor a = this;
                 for (int i = 0; i < N; i++)
                     a = createRelayActor(a);
@@ -59,7 +59,7 @@ public class RingBenchmark {
         // final MessageProcessor<Message> relayMessage = relayMessage(prev);
         return new Actor<Message, Void>(fjPool, mailboxSize) {
             @Override
-            protected Void run() throws SuspendExecution {
+            protected Void run() throws InterruptedException, SuspendExecution {
                 for (;;)
                     receive(relayMessage(prev));
             }
