@@ -24,14 +24,10 @@ public class FloatChannel extends Channel<Float> {
         return new FloatChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayFloatQueue(mailboxSize) : new SingleConsumerLinkedFloatQueue());
     }
 
-    private FloatChannel(Thread owner, SingleConsumerQueue<Float, ?> queue) {
+    private FloatChannel(Object owner, SingleConsumerQueue<Float, ?> queue) {
         super(owner, queue);
     }
-
-    private FloatChannel(LightweightThread owner, SingleConsumerQueue<Float, ?> queue) {
-        super(owner, queue);
-    }
-
+    
     public float receiveFloat() throws SuspendExecution, InterruptedException {
         return ((SingleConsumerFloatQueue<Object>)queue).floatValue(receiveNode());
     }

@@ -24,11 +24,7 @@ public class DoubleChannel extends Channel<Double> {
         return new DoubleChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayDoubleQueue(mailboxSize) : new SingleConsumerLinkedDoubleQueue());
     }
 
-    private DoubleChannel(Thread owner, SingleConsumerQueue<Double, ?> queue) {
-        super(owner, queue);
-    }
-
-    private DoubleChannel(LightweightThread owner, SingleConsumerQueue<Double, ?> queue) {
+    private DoubleChannel(Object owner, SingleConsumerQueue<Double, ?> queue) {
         super(owner, queue);
     }
 

@@ -23,15 +23,9 @@ public abstract class Channel<Message> implements SendChannel<Message> {
     private final Condition queueNotEmpty = lock.newCondition();
     final SingleConsumerQueue<Message, Object> queue;
 
-    Channel(Thread owner, SingleConsumerQueue<Message, ?> queue) {
-        this((Object) owner, queue);
-    }
-
-    Channel(LightweightThread owner, SingleConsumerQueue<Message, ?> queue) {
-        this((Object) owner, queue);
-    }
-
-    private Channel(Object owner, SingleConsumerQueue<Message, ?> queue) {
+    Channel(Object owner, SingleConsumerQueue<Message, ?> queue) {
+        if(!(owner instanceof LightweightThread || owner instanceof Thread))
+            throw new IllegalArgumentException("owner must be a Thread or a LightweightThread but is " + owner.getClass().getName());
         this.queue = (SingleConsumerQueue<Message, Object>) queue;
         this.owner = owner;
         this.lwt = owner instanceof LightweightThread;

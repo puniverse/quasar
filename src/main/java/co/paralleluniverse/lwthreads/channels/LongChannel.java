@@ -24,11 +24,7 @@ public class LongChannel extends Channel<Long> {
         return new LongChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayLongQueue(mailboxSize) : new SingleConsumerLinkedLongQueue());
     }
 
-    private LongChannel(Thread owner, SingleConsumerQueue<Long, ?> queue) {
-        super(owner, queue);
-    }
-
-    private LongChannel(LightweightThread owner, SingleConsumerQueue<Long, ?> queue) {
+    private LongChannel(Object owner, SingleConsumerQueue<Long, ?> queue) {
         super(owner, queue);
     }
 

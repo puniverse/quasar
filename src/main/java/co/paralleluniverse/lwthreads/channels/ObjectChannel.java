@@ -26,14 +26,10 @@ public class ObjectChannel<Message> extends Channel<Message> {
         return new ObjectChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedObjectQueue<Message>());
     }
 
-    private ObjectChannel(Thread owner, SingleConsumerQueue<Message, ?> queue) {
+    private ObjectChannel(Object owner, SingleConsumerQueue<Message, ?> queue) {
         super(owner, queue);
     }
-
-    private ObjectChannel(LightweightThread owner, SingleConsumerQueue<Message, ?> queue) {
-        super(owner, queue);
-    }
-
+    
     /**
      *
      * @param proc

@@ -24,11 +24,7 @@ public class IntChannel extends Channel<Integer> {
         return new IntChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayIntQueue(mailboxSize) : new SingleConsumerLinkedIntQueue());
     }
 
-    private IntChannel(Thread owner, SingleConsumerQueue<Integer, ?> queue) {
-        super(owner, queue);
-    }
-
-    private IntChannel(LightweightThread owner, SingleConsumerQueue<Integer, ?> queue) {
+    private IntChannel(Object owner, SingleConsumerQueue<Integer, ?> queue) {
         super(owner, queue);
     }
 
