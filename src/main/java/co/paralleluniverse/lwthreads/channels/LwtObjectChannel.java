@@ -17,12 +17,12 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public class ObjectChannel<Message> extends Channel<Message> {
-    public static <Message> ObjectChannel<Message> create(LightweightThread owner, int mailboxSize) {
-        return new ObjectChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedObjectQueue<Message>());
+public class LwtObjectChannel<Message> extends LwtChannel<Message> {
+    public static <Message> LwtObjectChannel<Message> create(LightweightThread owner, int mailboxSize) {
+        return new LwtObjectChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedObjectQueue<Message>());
     }
 
-    private ObjectChannel(LightweightThread owner, SingleConsumerQueue<Message, ?> queue) {
+    private LwtObjectChannel(LightweightThread owner, SingleConsumerQueue<Message, ?> queue) {
         super(owner, queue);
     }
 
@@ -42,7 +42,6 @@ public class ObjectChannel<Message> extends Channel<Message> {
         long now;
         long left = unit != null ? unit.toNanos(timeout) : 0;
 
-        final SingleConsumerQueue<Message, Object> queue = queue();
         Object n = null;
         for (;;) {
             n = queue.succ(n);

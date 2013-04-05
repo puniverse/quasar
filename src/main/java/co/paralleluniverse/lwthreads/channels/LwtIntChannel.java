@@ -15,12 +15,12 @@ import co.paralleluniverse.lwthreads.datastruct.SingleConsumerQueue;
  *
  * @author pron
  */
-public class IntChannel extends Channel<Integer> {
-    public static IntChannel create(LightweightThread owner, int mailboxSize) {
-        return new IntChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayIntQueue(mailboxSize) : new SingleConsumerLinkedIntQueue());
+public class LwtIntChannel extends LwtChannel<Integer> {
+    public static LwtIntChannel create(LightweightThread owner, int mailboxSize) {
+        return new LwtIntChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayIntQueue(mailboxSize) : new SingleConsumerLinkedIntQueue());
     }
 
-    private IntChannel(LightweightThread owner, SingleConsumerQueue<Integer, ?> queue) {
+    private LwtIntChannel(LightweightThread owner, SingleConsumerQueue<Integer, ?> queue) {
         super(owner, queue);
     }
 
@@ -29,7 +29,6 @@ public class IntChannel extends Channel<Integer> {
     }
 
     public void send(int message) {
-        final SingleConsumerIntQueue<Object> queue = (SingleConsumerIntQueue<Object>)queue();
         if (isOwnerAlive()) {
             queue.enq(message);
             notifyOwner();
@@ -37,7 +36,6 @@ public class IntChannel extends Channel<Integer> {
     }
 
     public void sendSync(int message) {
-        final SingleConsumerIntQueue<Object> queue = (SingleConsumerIntQueue<Object>)queue();
         if (isOwnerAlive()) {
             queue.enq(message);
             notifyOwnerAndTryToExecNow();

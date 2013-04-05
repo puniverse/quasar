@@ -15,12 +15,12 @@ import co.paralleluniverse.lwthreads.datastruct.SingleConsumerQueue;
  *
  * @author pron
  */
-public class DoubleChannel extends Channel<Double> {
-    public static DoubleChannel create(LightweightThread owner, int mailboxSize) {
-        return new DoubleChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayDoubleQueue(mailboxSize) : new SingleConsumerLinkedDoubleQueue());
+public class LwtDoubleChannel extends LwtChannel<Double> {
+    public static LwtDoubleChannel create(LightweightThread owner, int mailboxSize) {
+        return new LwtDoubleChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayDoubleQueue(mailboxSize) : new SingleConsumerLinkedDoubleQueue());
     }
 
-    private DoubleChannel(LightweightThread owner, SingleConsumerQueue<Double, ?> queue) {
+    private LwtDoubleChannel(LightweightThread owner, SingleConsumerQueue<Double, ?> queue) {
         super(owner, queue);
     }
 
@@ -29,7 +29,6 @@ public class DoubleChannel extends Channel<Double> {
     }
 
     public void send(double message) {
-        final SingleConsumerDoubleQueue<Object> queue = (SingleConsumerDoubleQueue<Object>)queue();
         if (isOwnerAlive()) {
             queue.enq(message);
             notifyOwner();
@@ -37,7 +36,6 @@ public class DoubleChannel extends Channel<Double> {
     }
 
     public void sendSync(double message) {
-        final SingleConsumerDoubleQueue<Object> queue = (SingleConsumerDoubleQueue<Object>)queue();
         if (isOwnerAlive()) {
             queue.enq(message);
             notifyOwnerAndTryToExecNow();

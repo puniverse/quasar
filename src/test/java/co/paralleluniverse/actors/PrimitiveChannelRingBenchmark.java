@@ -2,7 +2,7 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.lwthreads.LightweightThread;
 import co.paralleluniverse.lwthreads.SuspendExecution;
-import co.paralleluniverse.lwthreads.channels.IntChannel;
+import co.paralleluniverse.lwthreads.channels.LwtIntChannel;
 import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;
 
@@ -26,7 +26,7 @@ public class PrimitiveChannelRingBenchmark {
         LightweightThread<Integer> manager = new LightweightThreadWithAnIntChannel<Integer>(fjPool) {
             @Override
             protected Integer run() throws SuspendExecution {
-                IntChannel a = this.channel;
+                LwtIntChannel a = this.channel;
                 for (int i = 0; i < N; i++)
                     a = createRelayActor(a);
 
@@ -48,7 +48,7 @@ public class PrimitiveChannelRingBenchmark {
         System.out.println("messages: " + totalCount + " time (ms): " + time);
     }
 
-    private IntChannel createRelayActor(final IntChannel prev) {
+    private LwtIntChannel createRelayActor(final LwtIntChannel prev) {
         final LightweightThreadWithAnIntChannel<Void> lwt = new LightweightThreadWithAnIntChannel<Void>(fjPool) {
             @Override
             protected Void run() throws SuspendExecution {
@@ -62,7 +62,7 @@ public class PrimitiveChannelRingBenchmark {
     }
 
     private static abstract class LightweightThreadWithAnIntChannel<V> extends LightweightThread<V> {
-        IntChannel channel = IntChannel.create(this, mailboxSize);
+        LwtIntChannel channel = LwtIntChannel.create(this, mailboxSize);
 
         public LightweightThreadWithAnIntChannel(ForkJoinPool fjPool) {
             super(fjPool);
