@@ -43,7 +43,7 @@ package co.paralleluniverse.lwthreads;
  * 
  * @author Matthias Mann
  */
-public final class SuspendExecution extends Exception {
+public final class SuspendExecution extends InterruptedException {
 
     static final SuspendExecution instance = new SuspendExecution();
     

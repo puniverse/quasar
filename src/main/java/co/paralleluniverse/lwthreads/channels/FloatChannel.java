@@ -15,16 +15,24 @@ import co.paralleluniverse.lwthreads.datastruct.SingleConsumerQueue;
  *
  * @author pron
  */
-public class LwtFloatChannel extends LwtChannel<Float> {
-    public static LwtFloatChannel create(LightweightThread owner, int mailboxSize) {
-        return new LwtFloatChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayFloatQueue(mailboxSize) : new SingleConsumerLinkedFloatQueue());
+public class FloatChannel extends Channel<Float> {
+    public static FloatChannel create(Thread owner, int mailboxSize) {
+        return new FloatChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayFloatQueue(mailboxSize) : new SingleConsumerLinkedFloatQueue());
     }
 
-    private LwtFloatChannel(LightweightThread owner, SingleConsumerQueue<Float, ?> queue) {
+    public static FloatChannel create(LightweightThread owner, int mailboxSize) {
+        return new FloatChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayFloatQueue(mailboxSize) : new SingleConsumerLinkedFloatQueue());
+    }
+
+    private FloatChannel(Thread owner, SingleConsumerQueue<Float, ?> queue) {
         super(owner, queue);
     }
 
-    public float receiveFloat() throws SuspendExecution {
+    private FloatChannel(LightweightThread owner, SingleConsumerQueue<Float, ?> queue) {
+        super(owner, queue);
+    }
+
+    public float receiveFloat() throws SuspendExecution, InterruptedException {
         return ((SingleConsumerFloatQueue<Object>)queue).floatValue(receiveNode());
     }
 

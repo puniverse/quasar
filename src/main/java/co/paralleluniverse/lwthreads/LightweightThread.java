@@ -182,7 +182,7 @@ public class LightweightThread<V> implements Serializable {
         }
         
         @Override
-        public Void run() throws SuspendExecution {
+        public Void run() throws SuspendExecution, InterruptedException {
             runnable.run();
             return null;
         }
@@ -298,13 +298,16 @@ public class LightweightThread<V> implements Serializable {
                 postParkActions = null;
             }
             return false;
+        } catch(InterruptedException e) {
+            state = State.TERMINATED;
+            throw new RuntimeException(e);
         } catch (Throwable t) {
             state = State.TERMINATED;
             throw t;
         }
     }
 
-    protected V run() throws SuspendExecution {
+    protected V run() throws SuspendExecution, InterruptedException {
         if (target != null)
             return target.run();
         return null;

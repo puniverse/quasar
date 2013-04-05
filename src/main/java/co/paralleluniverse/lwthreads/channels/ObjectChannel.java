@@ -17,12 +17,20 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public class LwtObjectChannel<Message> extends LwtChannel<Message> {
-    public static <Message> LwtObjectChannel<Message> create(LightweightThread owner, int mailboxSize) {
-        return new LwtObjectChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedObjectQueue<Message>());
+public class ObjectChannel<Message> extends Channel<Message> {
+    public static <Message> ObjectChannel<Message> create(Thread owner, int mailboxSize) {
+        return new ObjectChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedObjectQueue<Message>());
     }
 
-    private LwtObjectChannel(LightweightThread owner, SingleConsumerQueue<Message, ?> queue) {
+    public static <Message> ObjectChannel<Message> create(LightweightThread owner, int mailboxSize) {
+        return new ObjectChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedObjectQueue<Message>());
+    }
+
+    private ObjectChannel(Thread owner, SingleConsumerQueue<Message, ?> queue) {
+        super(owner, queue);
+    }
+
+    private ObjectChannel(LightweightThread owner, SingleConsumerQueue<Message, ?> queue) {
         super(owner, queue);
     }
 
@@ -35,9 +43,9 @@ public class LwtObjectChannel<Message> extends LwtChannel<Message> {
      * @throws TimeoutException
      * @throws LwtInterruptedException
      */
-    public Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit, Message currentMessage) throws SuspendExecution {
-        assert LightweightThread.currentLightweightThread() == getOwner();
-        
+    public Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit, Message currentMessage) throws SuspendExecution, InterruptedException {
+        assert Thread.currentThread() == getOwner();
+
         final long start = timeout > 0 ? System.nanoTime() : 0;
         long now;
         long left = unit != null ? unit.toNanos(timeout) : 0;
@@ -65,27 +73,32 @@ public class LwtObjectChannel<Message> extends LwtChannel<Message> {
                 }
             }
 
-            if (timeout > 0) {
-                await(this, left, TimeUnit.NANOSECONDS);
+            lock();
+            try {
+                if (timeout > 0) {
+                    await(this, left, TimeUnit.NANOSECONDS);
 
-                now = System.nanoTime();
-                left = start + unit.toNanos(timeout) - now;
-                if (left <= 0)
-                    throw new TimeoutException();
-            } else
-                await();
+                    now = System.nanoTime();
+                    left = start + unit.toNanos(timeout) - now;
+                    if (left <= 0)
+                        throw new TimeoutException();
+                } else
+                    await();
+            } finally {
+                unlock();
+            }
         }
     }
 
-    public Message receive(MessageProcessor<Message> proc, Message currentMessage) throws SuspendExecution {
+    public Message receive(MessageProcessor<Message> proc, Message currentMessage) throws SuspendExecution, InterruptedException {
         return receive(proc, 0, null, currentMessage);
     }
 
-    public Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit) throws SuspendExecution {
+    public Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         return receive(proc, timeout, unit, null);
     }
 
-    public Message receive(MessageProcessor<Message> proc) throws SuspendExecution {
+    public Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
         return receive(proc, 0, null, null);
     }
 }

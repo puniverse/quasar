@@ -12,5 +12,5 @@ public interface SuspendableCallable<V> {
      *
      * @throws SuspendExecution This exception should never be caught
      */
-    V run() throws SuspendExecution;
+    V run() throws SuspendExecution, InterruptedException;
 }

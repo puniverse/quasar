@@ -7,7 +7,7 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.lwthreads.LightweightThread;
 import co.paralleluniverse.lwthreads.SuspendExecution;
 import co.paralleluniverse.lwthreads.channels.Channel;
-import co.paralleluniverse.lwthreads.channels.LwtObjectChannel;
+import co.paralleluniverse.lwthreads.channels.ObjectChannel;
 import co.paralleluniverse.lwthreads.datastruct.QueueCapacityExceededException;
 import java.util.Collections;
 import java.util.Map;
@@ -22,7 +22,7 @@ import jsr166e.ForkJoinPool;
  */
 public abstract class Actor<Message, V> extends LightweightThread<V> {
     private static final Map<String, Actor> registeredActors = new ConcurrentHashMapV8<String, Actor>();
-    private final LwtObjectChannel<Object> mailbox;
+    private final ObjectChannel<Object> mailbox;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
     private volatile RuntimeException thrownIn;
 
@@ -31,13 +31,13 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
     @SuppressWarnings("LeakingThisInConstructor")
     public Actor(String name, ForkJoinPool fjPool, int stackSize, int mailboxSize) {
         super(name, fjPool, stackSize);
-        this.mailbox = LwtObjectChannel.create(this, mailboxSize);
+        this.mailbox = ObjectChannel.create(this, mailboxSize);
     }
 
     @SuppressWarnings("LeakingThisInConstructor")
     public Actor(String name, ForkJoinPool fjPool, int mailboxSize) {
         super(name, fjPool);
-        this.mailbox = LwtObjectChannel.create(this, mailboxSize);
+        this.mailbox = ObjectChannel.create(this, mailboxSize);
     }
 
     public Actor(ForkJoinPool fjPool, int stackSize, int mailboxSize) {
@@ -51,13 +51,13 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
     @SuppressWarnings("LeakingThisInConstructor")
     public Actor(String name, int stackSize, int mailboxSize) {
         super(name, stackSize);
-        this.mailbox = LwtObjectChannel.create(this, mailboxSize);
+        this.mailbox = ObjectChannel.create(this, mailboxSize);
     }
 
     @SuppressWarnings("LeakingThisInConstructor")
     public Actor(String name, int mailboxSize) {
         super(name);
-        this.mailbox = LwtObjectChannel.create(this, mailboxSize);
+        this.mailbox = ObjectChannel.create(this, mailboxSize);
     }
 
     public Actor(int stackSize, int mailboxSize) {
@@ -75,7 +75,7 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
         return (Channel<Message>)mailbox;
     }
     
-    protected Message receive() throws SuspendExecution {
+    protected Message receive() throws SuspendExecution, InterruptedException {
         for (;;) {
             checkThrownIn();
             Object m = mailbox.receive();
@@ -99,20 +99,20 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
         };
     }
 
-    protected Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit, Message currentMessage) throws SuspendExecution {
+    protected Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit, Message currentMessage) throws SuspendExecution, InterruptedException {
         checkThrownIn();
         return (Message)mailbox.receive(wrapProcessor(proc), timeout, unit, currentMessage);
     }
 
-    protected Message receive(MessageProcessor<Message> proc, Message currentMessage) throws SuspendExecution {
+    protected Message receive(MessageProcessor<Message> proc, Message currentMessage) throws SuspendExecution, InterruptedException {
         return receive(proc, 0, null, currentMessage);
     }
 
-    protected Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit) throws SuspendExecution {
+    protected Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         return receive(proc, timeout, unit, null);
     }
 
-    protected Message receive(MessageProcessor<Message> proc) throws SuspendExecution {
+    protected Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
         return receive(proc, 0, null, null);
     }
 

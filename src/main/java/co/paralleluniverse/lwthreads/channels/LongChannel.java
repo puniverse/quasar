@@ -15,16 +15,24 @@ import co.paralleluniverse.lwthreads.datastruct.SingleConsumerQueue;
  *
  * @author pron
  */
-public class LwtLongChannel extends LwtChannel<Long> {
-    public static LwtLongChannel create(LightweightThread owner, int mailboxSize) {
-        return new LwtLongChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayLongQueue(mailboxSize) : new SingleConsumerLinkedLongQueue());
+public class LongChannel extends Channel<Long> {
+    public static LongChannel create(Thread owner, int mailboxSize) {
+        return new LongChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayLongQueue(mailboxSize) : new SingleConsumerLinkedLongQueue());
     }
 
-    private LwtLongChannel(LightweightThread owner, SingleConsumerQueue<Long, ?> queue) {
+    public static LongChannel create(LightweightThread owner, int mailboxSize) {
+        return new LongChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayLongQueue(mailboxSize) : new SingleConsumerLinkedLongQueue());
+    }
+
+    private LongChannel(Thread owner, SingleConsumerQueue<Long, ?> queue) {
         super(owner, queue);
     }
 
-    public long receiveInt() throws SuspendExecution {
+    private LongChannel(LightweightThread owner, SingleConsumerQueue<Long, ?> queue) {
+        super(owner, queue);
+    }
+
+    public long receiveInt() throws SuspendExecution, InterruptedException {
         return ((SingleConsumerLongQueue<Object>)queue).longValue(receiveNode());
     }
 
