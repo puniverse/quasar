@@ -25,7 +25,7 @@ import jsr166e.ForkJoinPool;
  *
  * @author Ron Pressler
  */
-public class LightweightThread implements Serializable {
+public class LightweightThread<V> implements Serializable {
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.lwthreads.verifyInstrumentation", "false"));
     public static final int DEFAULT_STACK_SIZE = 16;
     private static final long serialVersionUID = 2783452871536981L;
@@ -37,16 +37,17 @@ public class LightweightThread implements Serializable {
     private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler;
     //
     private final ForkJoinPool fjPool;
-    private final LightweightThreadForkJoinTask fjTask;
+    private final LightweightThreadForkJoinTask<V> fjTask;
     private final Stack stack;
-    private final LightweightThread parent;
+    private final LightweightThread<?> parent;
     private final String name;
     private volatile State state;
     private volatile boolean interrupted;
-    private final SuspendableRunnable target;
+    private final SuspendableCallable<V> target;
     LightweightThreadLocal.LWThreadLocalMap lwthreadLocals;
     private long sleepStart;
     private PostParkActions postParkActions;
+    private V result;
     private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
 
     /**
@@ -57,12 +58,12 @@ public class LightweightThread implements Serializable {
      * @throws NullPointerException when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
-    public LightweightThread(String name, ForkJoinPool fjPool, SuspendableRunnable target, int stackSize) {
+    public LightweightThread(String name, ForkJoinPool fjPool, SuspendableCallable<V> target, int stackSize) {
         this.name = name;
         this.fjPool = fjPool;
         this.parent = currentLightweightThread();
         this.target = target;
-        this.fjTask = new LightweightThreadForkJoinTask(this);
+        this.fjTask = new LightweightThreadForkJoinTask<V>(this);
         this.stack = new Stack(this, stackSize);
         this.state = State.NEW;
 
@@ -76,11 +77,34 @@ public class LightweightThread implements Serializable {
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-    /**
-     * Creates a new LightweightThread from the given SuspendableRunnable.
-     *
-     * @param target the SuspendableRunnable for the LightweightThread.
-     */
+    public LightweightThread(String name, ForkJoinPool fjPool, SuspendableRunnable target, int stackSize) {
+        this(name, fjPool, (SuspendableCallable<V>) wrap(target), stackSize);
+    }
+
+    public LightweightThread(ForkJoinPool fjPool, SuspendableCallable<V> target) {
+        this(null, fjPool, target, DEFAULT_STACK_SIZE);
+    }
+
+    public LightweightThread(String name, ForkJoinPool fjPool, SuspendableCallable<V> target) {
+        this(name, fjPool, target, DEFAULT_STACK_SIZE);
+    }
+
+    public LightweightThread(SuspendableCallable<V> target) {
+        this(null, verifyParent().fjPool, target, DEFAULT_STACK_SIZE);
+    }
+
+    public LightweightThread(String name, SuspendableCallable<V> target) {
+        this(name, verifyParent().fjPool, target, DEFAULT_STACK_SIZE);
+    }
+
+    public LightweightThread(SuspendableCallable<V> target, int stackSize) {
+        this(null, verifyParent().fjPool, target, stackSize);
+    }
+
+    public LightweightThread(String name, SuspendableCallable<V> target, int stackSize) {
+        this(name, verifyParent().fjPool, target, stackSize);
+    }
+
     public LightweightThread(ForkJoinPool fjPool, SuspendableRunnable target) {
         this(null, fjPool, target, DEFAULT_STACK_SIZE);
     }
@@ -97,38 +121,6 @@ public class LightweightThread implements Serializable {
         this(name, verifyParent().fjPool, target, DEFAULT_STACK_SIZE);
     }
 
-    public LightweightThread(ForkJoinPool fjPool) {
-        this(null, fjPool, null, DEFAULT_STACK_SIZE);
-    }
-
-    public LightweightThread(String name, ForkJoinPool fjPool) {
-        this(name, fjPool, null, DEFAULT_STACK_SIZE);
-    }
-
-    public LightweightThread() {
-        this(null, verifyParent().fjPool, null, DEFAULT_STACK_SIZE);
-    }
-
-    public LightweightThread(String name) {
-        this(name, verifyParent().fjPool, null, DEFAULT_STACK_SIZE);
-    }
-
-    public LightweightThread(int stackSize) {
-        this(null, verifyParent().fjPool, null, stackSize);
-    }
-
-    public LightweightThread(String name, int stackSize) {
-        this(name, verifyParent().fjPool, null, stackSize);
-    }
-
-    public LightweightThread(ForkJoinPool fjPool, int stackSize) {
-        this(null, fjPool, null, stackSize);
-    }
-
-    public LightweightThread(String name, ForkJoinPool fjPool, int stackSize) {
-        this(name, fjPool, null, stackSize);
-    }
-
     public LightweightThread(SuspendableRunnable target, int stackSize) {
         this(null, verifyParent().fjPool, target, stackSize);
     }
@@ -137,11 +129,53 @@ public class LightweightThread implements Serializable {
         this(name, verifyParent().fjPool, target, stackSize);
     }
 
+    public LightweightThread(ForkJoinPool fjPool) {
+        this(null, fjPool, (SuspendableCallable) null, DEFAULT_STACK_SIZE);
+    }
+
+    public LightweightThread(String name, ForkJoinPool fjPool) {
+        this(name, fjPool, (SuspendableCallable) null, DEFAULT_STACK_SIZE);
+    }
+
+    public LightweightThread() {
+        this(null, verifyParent().fjPool, (SuspendableCallable) null, DEFAULT_STACK_SIZE);
+    }
+
+    public LightweightThread(String name) {
+        this(name, verifyParent().fjPool, (SuspendableCallable) null, DEFAULT_STACK_SIZE);
+    }
+
+    public LightweightThread(int stackSize) {
+        this(null, verifyParent().fjPool, (SuspendableCallable) null, stackSize);
+    }
+
+    public LightweightThread(String name, int stackSize) {
+        this(name, verifyParent().fjPool, (SuspendableCallable) null, stackSize);
+    }
+
+    public LightweightThread(ForkJoinPool fjPool, int stackSize) {
+        this(null, fjPool, (SuspendableCallable) null, stackSize);
+    }
+
+    public LightweightThread(String name, ForkJoinPool fjPool, int stackSize) {
+        this(name, fjPool, (SuspendableCallable) null, stackSize);
+    }
+
     private static LightweightThread verifyParent() {
         final LightweightThread parent = currentLightweightThread();
         if (parent == null)
             throw new IllegalStateException("This constructor may only be used from within a LightweightThread");
         return parent;
+    }
+
+    private static SuspendableCallable<Void> wrap(final SuspendableRunnable runnable) {
+        return new SuspendableCallable<Void>() {
+            @Override
+            public Void run() throws SuspendExecution {
+                runnable.run();
+                return null;
+            }
+        };
     }
     //</editor-fold>
 
@@ -260,9 +294,10 @@ public class LightweightThread implements Serializable {
         }
     }
 
-    protected void run() throws SuspendExecution {
+    protected V run() throws SuspendExecution {
         if (target != null)
-            target.run();
+            return target.run();
+        return null;
     }
 
     /**
@@ -339,16 +374,24 @@ public class LightweightThread implements Serializable {
     }
 
     public final void join() throws InterruptedException {
+        get();
+    }
+
+    public final void join(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
+        get(timeout, unit);
+    }
+
+    public final V get() throws InterruptedException {
         try {
-            fjTask.get();
+            return fjTask.get();
         } catch (ExecutionException ex) {
             throw new AssertionError(ex);
         }
     }
 
-    public final void join(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
+    public final V get(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
         try {
-            fjTask.get(timeout, unit);
+            return fjTask.get(timeout, unit);
         } catch (ExecutionException ex) {
             throw new AssertionError(ex);
         }
@@ -406,7 +449,7 @@ public class LightweightThread implements Serializable {
 
             @Override
             public void println(String x) {
-                if (x.startsWith("\tat "))  {
+                if (x.startsWith("\tat ")) {
                     if (seenExec)
                         return;
                     if (x.startsWith("\tat " + LightweightThread.class.getName() + ".exec1")) {
@@ -425,10 +468,10 @@ public class LightweightThread implements Serializable {
     }
 
     ////////
-    static class LightweightThreadForkJoinTask extends ParkableForkJoinTask<Void> {
-        private final LightweightThread lwt;
+    static final class LightweightThreadForkJoinTask<V> extends ParkableForkJoinTask<V> {
+        private final LightweightThread<V> lwt;
 
-        public LightweightThreadForkJoinTask(LightweightThread lwThread) {
+        public LightweightThreadForkJoinTask(LightweightThread<V> lwThread) {
             this.lwt = lwThread;
         }
 
@@ -502,12 +545,13 @@ public class LightweightThread implements Serializable {
         }
 
         @Override
-        public Void getRawResult() {
-            return null;
+        public V getRawResult() {
+            return lwt.result;
         }
 
         @Override
-        protected void setRawResult(Void v) {
+        protected void setRawResult(V v) {
+            lwt.result = v;
         }
 
         @Override
