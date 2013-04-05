@@ -37,27 +37,16 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
 
     void enq(final Node<E> node) {
         record("enq", "queue: %s node: %s", this, node);
-        if (DUMMY_NODE_ALGORITHM) {
-            for (;;) {
-                final Node t = tail;
-                node.prev = t;
-                if (compareAndSetTail(t, node)) {
+        for (;;) {
+            final Node t = tail;
+            node.prev = t;
+            if (compareAndSetTail(t, node)) {
+                if (t == null) { // can't happen when DUMMY_NODE_ALGORITHM
+                    head = node;
+                    record("enq", "set head");
+                } else
                     t.next = node;
-                    return;
-                }
-            }
-        } else {
-            for (;;) {
-                final Node t = tail;
-                node.prev = t;
-                if (compareAndSetTail(t, node)) {
-                    if (t == null) {
-                        head = node;
-                        record("enq", "set head");
-                    } else
-                        t.next = node;
-                    break;
-                }
+                break;
             }
         }
     }
