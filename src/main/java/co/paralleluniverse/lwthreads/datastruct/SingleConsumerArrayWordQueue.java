@@ -8,50 +8,15 @@ package co.paralleluniverse.lwthreads.datastruct;
  *
  * @author pron
  */
-public abstract class SingleConsumerArrayWordQueue<E> extends SingleConsumerArrayPrimitiveQueue<E> {
-    public static SingleConsumerArrayWordQueue<Integer> newIntegerQueue(int size) {
-        return new SingleConsumerArrayWordQueue<Integer>(size) {
-            @Override
-            public void enq(Integer item) {
-                if (item == null)
-                    throw new IllegalArgumentException("null values not allowed");
-                enq(item.intValue());
-            }
-
-            @Override
-            public Integer value(int index) {
-                return intValue(index);
-            }
-        };
-    }
-
-    public static SingleConsumerArrayWordQueue<Float> newFloatQueue(int size) {
-        return new SingleConsumerArrayWordQueue<Float>(size) {
-            @Override
-            public void enq(Float item) {
-                if (item == null)
-                    throw new IllegalArgumentException("null values not allowed");
-                enq(item.floatValue());
-            }
-
-            @Override
-            public Float value(int index) {
-                return floatValue(index);
-            }
-        };
-    }
+abstract class SingleConsumerArrayWordQueue<E> extends SingleConsumerArrayPrimitiveQueue<E> {
     private final int[] array;
 
     public SingleConsumerArrayWordQueue(int size) {
         this.array = new int[size];
     }
 
-    public int intValue(int index) {
+    public int rawValue(int index) {
         return array[index];
-    }
-
-    public float floatValue(int index) {
-        return Float.intBitsToFloat(array[index]);
     }
 
     @Override
@@ -59,14 +24,10 @@ public abstract class SingleConsumerArrayWordQueue<E> extends SingleConsumerArra
         return array.length;
     }
 
-    public void enq(int item) {
+    void enq(int item) {
         final int i = preEnq();
         set(i, item);
         postEnq(i);
-    }
-
-    public void enq(float item) {
-        enq(Float.floatToRawIntBits(item));
     }
 
     @Override

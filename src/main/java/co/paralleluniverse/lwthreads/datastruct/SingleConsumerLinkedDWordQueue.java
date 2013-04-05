@@ -10,60 +10,20 @@ import co.paralleluniverse.common.util.Objects;
  *
  * @author pron
  */
-public abstract class SingleConsumerLinkedDWordQueue<E> extends SingleConsumerLinkedQueue<E> {
-    public static SingleConsumerLinkedDWordQueue<Long> newLongQueue() {
-        return new SingleConsumerLinkedDWordQueue<Long>() {
-            @Override
-            public void enq(Long item) {
-                if (item == null)
-                    throw new IllegalArgumentException("null values not allowed");
-                enq(item.longValue());
-            }
-
-            @Override
-            public Long value(Node<Long> node) {
-                return longValue(node);
-            }
-        };
-    }
-
-    public static SingleConsumerLinkedDWordQueue<Double> newDoubleQueue() {
-        return new SingleConsumerLinkedDWordQueue<Double>() {
-            @Override
-            public void enq(Double item) {
-                if (item == null)
-                    throw new IllegalArgumentException("null values not allowed");
-                enq(item.doubleValue());
-            }
-
-            @Override
-            public Double value(Node<Double> node) {
-                return doubleValue(node);
-            }
-        };
-    }
-
+abstract class SingleConsumerLinkedDWordQueue<E> extends SingleConsumerLinkedQueue<E> {
     @Override
     Node newNode() {
         return new DWordNode();
     }
 
-    public void enq(long item) {
+    void enq(long item) {
         DWordNode node = new DWordNode();
         node.value = item;
         enq(node);
     }
 
-    public void enq(double item) {
-        enq(Double.doubleToRawLongBits(item));
-    }
-
-    public long longValue(Node<Long> node) {
+    long rawValue(Node node) {
         return ((DWordNode) node).value;
-    }
-
-    public double doubleValue(Node<Double> node) {
-        return Double.longBitsToDouble(((DWordNode) node).value);
     }
 
     @Override

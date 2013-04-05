@@ -36,12 +36,12 @@ public class SingleConsumerPrimitiveQueueTest {
     public SingleConsumerPrimitiveQueueTest(int queueType) {
         switch (queueType) {
             case 1:
-                this.wordQueue = SingleConsumerArrayWordQueue.newIntegerQueue(10);
-                this.dwordQueue = SingleConsumerArrayDWordQueue.newDoubleQueue(10);
+                this.wordQueue = new SingleConsumerArrayIntQueue(10);
+                this.dwordQueue = new SingleConsumerArrayDoubleQueue(10);
                 break;
             case 2:
-                this.wordQueue = SingleConsumerLinkedWordQueue.newIntegerQueue();
-                this.dwordQueue = SingleConsumerLinkedDWordQueue.newDoubleQueue();
+                this.wordQueue = new SingleConsumerLinkedIntQueue();
+                this.dwordQueue = new SingleConsumerLinkedDoubleQueue();
                 break;
             default:
                 throw new AssertionError();
