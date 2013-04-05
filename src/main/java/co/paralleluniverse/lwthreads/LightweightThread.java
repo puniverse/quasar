@@ -68,7 +68,7 @@ public class LightweightThread<V> implements Serializable {
         this.state = State.NEW;
 
         if (target != null) {
-            if (!isInstrumented(target.getClass()))
+            if (!(target instanceof VoidSuspendableCallable) && !isInstrumented(target.getClass()))
                 throw new IllegalArgumentException("Target class " + target.getClass() + " has not been instrumented.");
         } else if (!isInstrumented(this.getClass())) {
             throw new IllegalArgumentException("LightweightThread class " + this.getClass() + " has not been instrumented.");
@@ -168,14 +168,24 @@ public class LightweightThread<V> implements Serializable {
         return parent;
     }
 
-    private static SuspendableCallable<Void> wrap(final SuspendableRunnable runnable) {
-        return new SuspendableCallable<Void>() {
-            @Override
-            public Void run() throws SuspendExecution {
-                runnable.run();
-                return null;
-            }
-        };
+    private static SuspendableCallable<Void> wrap(SuspendableRunnable runnable) {
+        if (!isInstrumented(runnable.getClass()))
+            throw new IllegalArgumentException("Target class " + runnable.getClass() + " has not been instrumented.");
+        return new VoidSuspendableCallable(runnable);
+    }
+
+    private static class VoidSuspendableCallable implements SuspendableCallable<Void> {
+        private final SuspendableRunnable runnable;
+
+        public VoidSuspendableCallable(SuspendableRunnable runnable) {
+            this.runnable = runnable;
+        }
+        
+        @Override
+        public Void run() throws SuspendExecution {
+            runnable.run();
+            return null;
+        }
     }
     //</editor-fold>
 
