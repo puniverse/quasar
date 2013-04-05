@@ -16,7 +16,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * @author pron
  */
-public abstract class Channel<Message> {
+public abstract class Channel<Message> implements SendChannel<Message> {
     private final Object owner;
     private final boolean lwt;
     private final Lock lock = new ReentrantLock();

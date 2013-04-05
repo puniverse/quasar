@@ -8,6 +8,7 @@ import co.paralleluniverse.lwthreads.LightweightThread;
 import co.paralleluniverse.lwthreads.SuspendExecution;
 import co.paralleluniverse.lwthreads.channels.Channel;
 import co.paralleluniverse.lwthreads.channels.ObjectChannel;
+import co.paralleluniverse.lwthreads.channels.SendChannel;
 import co.paralleluniverse.lwthreads.datastruct.QueueCapacityExceededException;
 import java.util.Collections;
 import java.util.Map;
@@ -71,7 +72,7 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
 
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
-    public Channel<Message> getMaibox() {
+    public SendChannel<Message> getMaibox() {
         return (Channel<Message>)mailbox;
     }
     
