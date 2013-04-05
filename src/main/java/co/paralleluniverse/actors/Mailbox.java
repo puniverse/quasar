@@ -49,7 +49,7 @@ class Mailbox<Message, Node> {
      * @throws TimeoutException
      * @throws LwtInterruptedException
      */
-    public void receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit, Message currentMessage) throws SuspendExecution {
+    public Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit, Message currentMessage) throws SuspendExecution {
         final long start = timeout > 0 ? System.nanoTime() : 0;
         long now;
         long left = unit != null ? unit.toNanos(timeout) : 0;
@@ -68,7 +68,7 @@ class Mailbox<Message, Node> {
                     if (proc.process((Message) m)) {
                         if (queue.value(n) == m) // another call to receive from within the processor may have deleted n
                             queue.del(n);
-                        break;
+                        return (Message)m;
                     }
                 } catch (Exception e) {
                     if (queue.value(n) == m) // another call to receive from within the processor may have deleted n
@@ -89,16 +89,16 @@ class Mailbox<Message, Node> {
         }
     }
 
-    public void receive(MessageProcessor<Message> proc, Message currentMessage) throws SuspendExecution {
-        receive(proc, 0, null, currentMessage);
+    public Message receive(MessageProcessor<Message> proc, Message currentMessage) throws SuspendExecution {
+        return receive(proc, 0, null, currentMessage);
     }
 
-    public void receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit) throws SuspendExecution {
-        receive(proc, timeout, unit, null);
+    public Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit) throws SuspendExecution {
+        return receive(proc, timeout, unit, null);
     }
 
-    public void receive(MessageProcessor<Message> proc) throws SuspendExecution {
-        receive(proc, 0, null, null);
+    public Message receive(MessageProcessor<Message> proc) throws SuspendExecution {
+        return receive(proc, 0, null, null);
     }
 
     public void send(Message message) {
