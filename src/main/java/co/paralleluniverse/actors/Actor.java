@@ -18,7 +18,7 @@ import jsr166e.ForkJoinPool;
  *
  * @author pron
  */
-public abstract class Actor<Message> extends LightweightThread {
+public abstract class Actor<Message, V> extends LightweightThread<V> {
     private static final Map<String, Actor> registeredActors = new ConcurrentHashMapV8<String, Actor>();
     private final Mailbox<Object, ?> mailbox;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
@@ -93,21 +93,21 @@ public abstract class Actor<Message> extends LightweightThread {
         };
     }
 
-    protected void receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit, Message currentMessage) throws SuspendExecution {
+    protected Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit, Message currentMessage) throws SuspendExecution {
         checkThrownIn();
-        mailbox.receive(wrapProcessor(proc), timeout, unit, currentMessage);
+        return (Message)mailbox.receive(wrapProcessor(proc), timeout, unit, currentMessage);
     }
 
-    protected void receive(MessageProcessor<Message> proc, Message currentMessage) throws SuspendExecution {
-        receive(proc, 0, null, currentMessage);
+    protected Message receive(MessageProcessor<Message> proc, Message currentMessage) throws SuspendExecution {
+        return receive(proc, 0, null, currentMessage);
     }
 
-    protected void receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit) throws SuspendExecution {
-        receive(proc, timeout, unit, null);
+    protected Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit) throws SuspendExecution {
+        return receive(proc, timeout, unit, null);
     }
 
-    protected void receive(MessageProcessor<Message> proc) throws SuspendExecution {
-        receive(proc, 0, null, null);
+    protected Message receive(MessageProcessor<Message> proc) throws SuspendExecution {
+        return receive(proc, 0, null, null);
     }
 
     public void send(Message message) {
@@ -135,7 +135,7 @@ public abstract class Actor<Message> extends LightweightThread {
     //<editor-fold desc="Lifecycle">
     /////////// Lifecycle ///////////////////////////////////
     @Override
-    protected abstract void run() throws SuspendExecution;
+    protected abstract V run() throws SuspendExecution;
 
     protected void handleLifecycleMessage(LifecycleMessage m) {
         if (m instanceof ExitMessage)
