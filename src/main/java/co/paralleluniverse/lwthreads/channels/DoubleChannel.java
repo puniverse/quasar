@@ -25,27 +25,22 @@ public class DoubleChannel extends Channel<Double> {
     }
 
     public double receiveInt() throws SuspendExecution {
-        final SingleConsumerQueue<Double, Object> queue = queue();
-        Object n;
-        while((n = queue.pk()) == null)
-            LightweightThread.park(queue);
-        return ((SingleConsumerDoubleQueue<Object>)queue).doubleValue(n);
+        return ((SingleConsumerDoubleQueue<Object>)queue()).doubleValue(receiveNode());
     }
 
     public void send(double message) {
         final SingleConsumerDoubleQueue<Object> queue = (SingleConsumerDoubleQueue<Object>)queue();
-        if (getOwner().isAlive()) {
+        if (isOwnerAlive()) {
             queue.enq(message);
-            getOwner().unpark();
+            notifyOwner();
         }
     }
 
     public void sendSync(double message) {
         final SingleConsumerDoubleQueue<Object> queue = (SingleConsumerDoubleQueue<Object>)queue();
-        if (getOwner().isAlive()) {
+        if (isOwnerAlive()) {
             queue.enq(message);
-            if (!getOwner().exec(this))
-                getOwner().unpark();
+            notifyOwnerAndTryToExecNow();
         }
     }
 }

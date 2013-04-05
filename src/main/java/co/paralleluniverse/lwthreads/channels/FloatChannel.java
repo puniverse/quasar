@@ -25,27 +25,22 @@ public class FloatChannel extends Channel<Float> {
     }
 
     public float receiveFloat() throws SuspendExecution {
-        final SingleConsumerQueue<Float, Object> queue = queue();
-        Object n;
-        while((n = queue.pk()) == null)
-            LightweightThread.park(queue);
-        return ((SingleConsumerFloatQueue<Object>)queue).floatValue(n);
+        return ((SingleConsumerFloatQueue<Object>)queue()).floatValue(receiveNode());
     }
 
     public void send(float message) {
         final SingleConsumerFloatQueue<Object> queue = (SingleConsumerFloatQueue<Object>)queue();
-        if (getOwner().isAlive()) {
+        if (isOwnerAlive()) {
             queue.enq(message);
-            getOwner().unpark();
+            notifyOwner();
         }
     }
 
     public void sendSync(float message) {
         final SingleConsumerFloatQueue<Object> queue = (SingleConsumerFloatQueue<Object>)queue();
-        if (getOwner().isAlive()) {
+        if (isOwnerAlive()) {
             queue.enq(message);
-            if (!getOwner().exec(this))
-                getOwner().unpark();
+            notifyOwnerAndTryToExecNow();
         }
     }
 }

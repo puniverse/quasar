@@ -32,7 +32,6 @@ public class PrimitiveChannelRingBenchmark {
 
                 a.send(1); // start things off
 
-                // final MessageProcessor<Message> relayMessage = relayMessage(a);
                 int msg = 0;
                 for (int i = 0; i < M; i++) {
                     msg = channel.receiveInt();

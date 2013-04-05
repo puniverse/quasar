@@ -36,6 +36,8 @@ public class ObjectChannel<Message> extends Channel<Message> {
      * @throws LwtInterruptedException
      */
     public Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit, Message currentMessage) throws SuspendExecution {
+        assert LightweightThread.currentLightweightThread() == getOwner();
+        
         final long start = timeout > 0 ? System.nanoTime() : 0;
         long now;
         long left = unit != null ? unit.toNanos(timeout) : 0;
@@ -65,14 +67,14 @@ public class ObjectChannel<Message> extends Channel<Message> {
             }
 
             if (timeout > 0) {
-                LightweightThread.park(this, left, TimeUnit.NANOSECONDS);
+                await(this, left, TimeUnit.NANOSECONDS);
 
                 now = System.nanoTime();
                 left = start + unit.toNanos(timeout) - now;
                 if (left <= 0)
                     throw new TimeoutException();
             } else
-                LightweightThread.park(this);
+                await();
         }
     }
 

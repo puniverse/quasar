@@ -25,27 +25,22 @@ public class IntChannel extends Channel<Integer> {
     }
 
     public int receiveInt() throws SuspendExecution {
-        final SingleConsumerQueue<Integer, Object> queue = queue();
-        Object n;
-        while((n = queue.pk()) == null)
-            LightweightThread.park(queue);
-        return ((SingleConsumerIntQueue<Object>)queue).intValue(n);
+        return ((SingleConsumerIntQueue<Object>)queue()).intValue(receiveNode());
     }
 
     public void send(int message) {
         final SingleConsumerIntQueue<Object> queue = (SingleConsumerIntQueue<Object>)queue();
-        if (getOwner().isAlive()) {
+        if (isOwnerAlive()) {
             queue.enq(message);
-            getOwner().unpark();
+            notifyOwner();
         }
     }
 
     public void sendSync(int message) {
         final SingleConsumerIntQueue<Object> queue = (SingleConsumerIntQueue<Object>)queue();
-        if (getOwner().isAlive()) {
+        if (isOwnerAlive()) {
             queue.enq(message);
-            if (!getOwner().exec(this))
-                getOwner().unpark();
+            notifyOwnerAndTryToExecNow();
         }
     }
 }

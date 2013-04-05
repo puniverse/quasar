@@ -25,27 +25,22 @@ public class LongChannel extends Channel<Long> {
     }
 
     public long receiveInt() throws SuspendExecution {
-        final SingleConsumerQueue<Long, Object> queue = queue();
-        Object n;
-        while((n = queue.pk()) == null)
-            LightweightThread.park(queue);
-        return ((SingleConsumerLongQueue<Object>)queue).longValue(n);
+        return ((SingleConsumerLongQueue<Object>)queue()).longValue(receiveNode());
     }
 
     public void send(long message) {
         final SingleConsumerLongQueue<Object> queue = (SingleConsumerLongQueue<Object>)queue();
-        if (getOwner().isAlive()) {
+        if (isOwnerAlive()) {
             queue.enq(message);
-            getOwner().unpark();
+            notifyOwner();
         }
     }
 
     public void sendSync(long message) {
         final SingleConsumerLongQueue<Object> queue = (SingleConsumerLongQueue<Object>)queue();
-        if (getOwner().isAlive()) {
+        if (isOwnerAlive()) {
             queue.enq(message);
-            if (!getOwner().exec(this))
-                getOwner().unpark();
+            notifyOwnerAndTryToExecNow();
         }
     }
 }
