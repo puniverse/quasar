@@ -2,10 +2,10 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package co.paralleluniverse.actors;
+package co.paralleluniverse.lwthreads.channels;
 
+import co.paralleluniverse.actors.MessageProcessor;
 import co.paralleluniverse.lwthreads.LightweightThread;
-import co.paralleluniverse.lwthreads.LwtInterruptedException;
 import co.paralleluniverse.lwthreads.SuspendExecution;
 import co.paralleluniverse.lwthreads.TimeoutException;
 import co.paralleluniverse.lwthreads.datastruct.SingleConsumerArrayObjectQueue;
@@ -17,27 +17,13 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-class Mailbox<Message, Node> {
-    public static <Message, Node> Mailbox<Message, Node> createMailbox(LightweightThread owner, SingleConsumerQueue<Message, Node> queue) {
-        return new Mailbox<Message, Node>(owner, queue);
+public class ObjectChannel<Message> extends Channel<Message> {
+    public static <Message> ObjectChannel<Message> create(LightweightThread owner, int mailboxSize) {
+        return new ObjectChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedObjectQueue<Message>());
     }
 
-    public static <Message> Mailbox<Message, ?> createMailbox(LightweightThread owner, int mailboxSize) {
-        return new Mailbox(owner, mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedObjectQueue<Message>());
-    }
-    private final LightweightThread owner;
-    private final SingleConsumerQueue<Message, Node> queue;
-
-    private Mailbox(LightweightThread owner, SingleConsumerQueue<Message, Node> queue) {
-        this.owner = owner;
-        this.queue = queue;
-    }
-
-    public Message receive() throws SuspendExecution {
-        Message message;
-        while ((message = queue.poll()) == null)
-            LightweightThread.park(queue);
-        return message;
+    private ObjectChannel(LightweightThread owner, SingleConsumerQueue<Message, ?> queue) {
+        super(owner, queue);
     }
 
     /**
@@ -54,7 +40,8 @@ class Mailbox<Message, Node> {
         long now;
         long left = unit != null ? unit.toNanos(timeout) : 0;
 
-        Node n = null;
+        final SingleConsumerQueue<Message, Object> queue = queue();
+        Object n = null;
         for (;;) {
             n = queue.succ(n);
             if (n != null) {
@@ -68,7 +55,7 @@ class Mailbox<Message, Node> {
                     if (proc.process((Message) m)) {
                         if (queue.value(n) == m) // another call to receive from within the processor may have deleted n
                             queue.del(n);
-                        return (Message)m;
+                        return (Message) m;
                     }
                 } catch (Exception e) {
                     if (queue.value(n) == m) // another call to receive from within the processor may have deleted n
@@ -99,20 +86,5 @@ class Mailbox<Message, Node> {
 
     public Message receive(MessageProcessor<Message> proc) throws SuspendExecution {
         return receive(proc, 0, null, null);
-    }
-
-    public void send(Message message) {
-        if (owner.isAlive()) {
-            queue.enq(message);
-            owner.unpark();
-        }
-    }
-
-    public void sendSync(Message message) {
-        if (owner.isAlive()) {
-            queue.enq(message);
-            if (!owner.exec(this))
-                owner.unpark();
-        }
     }
 }

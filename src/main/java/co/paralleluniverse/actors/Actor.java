@@ -6,6 +6,7 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.lwthreads.LightweightThread;
 import co.paralleluniverse.lwthreads.SuspendExecution;
+import co.paralleluniverse.lwthreads.channels.ObjectChannel;
 import co.paralleluniverse.lwthreads.datastruct.QueueCapacityExceededException;
 import java.util.Collections;
 import java.util.Map;
@@ -20,7 +21,7 @@ import jsr166e.ForkJoinPool;
  */
 public abstract class Actor<Message, V> extends LightweightThread<V> {
     private static final Map<String, Actor> registeredActors = new ConcurrentHashMapV8<String, Actor>();
-    private final Mailbox<Object, ?> mailbox;
+    private final ObjectChannel<Object> mailbox;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
     private volatile RuntimeException thrownIn;
 
@@ -29,13 +30,13 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
     @SuppressWarnings("LeakingThisInConstructor")
     public Actor(String name, ForkJoinPool fjPool, int stackSize, int mailboxSize) {
         super(name, fjPool, stackSize);
-        this.mailbox = Mailbox.createMailbox(this, mailboxSize);
+        this.mailbox = ObjectChannel.create(this, mailboxSize);
     }
 
     @SuppressWarnings("LeakingThisInConstructor")
     public Actor(String name, ForkJoinPool fjPool, int mailboxSize) {
         super(name, fjPool);
-        this.mailbox = Mailbox.createMailbox(this, mailboxSize);
+        this.mailbox = ObjectChannel.create(this, mailboxSize);
     }
 
     public Actor(ForkJoinPool fjPool, int stackSize, int mailboxSize) {
@@ -49,13 +50,13 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
     @SuppressWarnings("LeakingThisInConstructor")
     public Actor(String name, int stackSize, int mailboxSize) {
         super(name, stackSize);
-        this.mailbox = Mailbox.createMailbox(this, mailboxSize);
+        this.mailbox = ObjectChannel.create(this, mailboxSize);
     }
 
     @SuppressWarnings("LeakingThisInConstructor")
     public Actor(String name, int mailboxSize) {
         super(name);
-        this.mailbox = Mailbox.createMailbox(this, mailboxSize);
+        this.mailbox = ObjectChannel.create(this, mailboxSize);
     }
 
     public Actor(int stackSize, int mailboxSize) {
