@@ -605,7 +605,7 @@ public class LightweightThread<V> implements Serializable {
     private static LightweightThread verifySuspend() {
         final LightweightThread current = verifyCurrent();
         if (verifyInstrumentation)
-            verifyInstrumentation();
+            assert checkInstrumentation();
         return current;
     }
 
@@ -616,7 +616,7 @@ public class LightweightThread<V> implements Serializable {
         return current;
     }
 
-    private static void verifyInstrumentation() {
+    private static boolean checkInstrumentation() {
         if (!verifyInstrumentation)
             throw new AssertionError();
         StackTraceElement[] stes = Thread.currentThread().getStackTrace();
@@ -626,9 +626,9 @@ public class LightweightThread<V> implements Serializable {
                     if (!isInstrumented(Class.forName(ste.getClassName())))
                         throw new IllegalStateException("Method " + ste.getClassName() + "." + ste.getMethodName() + " on the call-stack has not been instrumented. (trace: " + Arrays.toString(stes) + ")");
                 } else if (ste.getMethodName().equals("run"))
-                    return;
+                    return true;
             }
-            throw new Error();
+            return false;
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException("Not run through LightweightThread.exec(). (trace: " + Arrays.toString(stes) + ")");
         }
