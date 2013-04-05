@@ -7,7 +7,6 @@ package co.paralleluniverse.lwthreads.datastruct;
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
-import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import sun.misc.Unsafe;
 
@@ -15,16 +14,17 @@ import sun.misc.Unsafe;
  *
  * @author pron
  */
-public class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleConsumerLinkedQueue.Node<E>> {
+abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleConsumerLinkedQueue.Node<E>> {
     private static final boolean DUMMY_NODE_ALGORITHM = false;
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
-    volatile Node<E> head;
+    volatile Node head;
     volatile Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
-    volatile Node<E> tail;
+    volatile Node tail;
 
+    @SuppressWarnings("OverridableMethodCallInConstructor")
     public SingleConsumerLinkedQueue() {
         if (DUMMY_NODE_ALGORITHM) {
-            tail = head = new Node(null);
+            tail = head = newNode();
         }
     }
 
@@ -33,17 +33,7 @@ public class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleC
         return true;
     }
 
-    @Override
-    public void enq(E item) {
-        if (item == null)
-            throw new IllegalArgumentException("null values not allowed");
-        enq(new Node(item));
-    }
-
-    @Override
-    public E value(Node<E> node) {
-        return node.value;
-    }
+    abstract Node newNode();
 
     void enq(final Node<E> node) {
         record("enq", "queue: %s node: %s", this, node);
@@ -58,7 +48,7 @@ public class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleC
             }
         } else {
             for (;;) {
-                final Node<E> t = tail;
+                final Node t = tail;
                 node.prev = t;
                 if (compareAndSetTail(t, node)) {
                     if (t == null) {
@@ -83,7 +73,7 @@ public class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleC
             head = node;
             node.prev = null;
         } else {
-            Node<E> h = node.next;
+            Node h = node.next;
             if (h == null) {
                 head = null; // Based on John M. Mellor-Crummey, "Concurrent Queues: Practical Fetch-and-ø Algorithms", 1987
                 if (tail == node && compareAndSetTail(node, null)) { // a concurrent enq would either cause this to fail and wait for node.next, or have this succeed and then set tail and head
@@ -114,7 +104,7 @@ public class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleC
             }
 
             for (;;) {
-                Node<E> h;
+                Node h;
                 if ((h = head) != null) {
                     record("peek", "return %s", h);
                     return h;
@@ -123,7 +113,7 @@ public class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleC
         }
     }
 
-    boolean isHead(Node<E> node) {
+    boolean isHead(Node node) {
         if (DUMMY_NODE_ALGORITHM)
             return node.prev == head;
         else
@@ -139,7 +129,7 @@ public class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleC
             record("succ", "return null");
             return null; // an enq following this will test the lock again
         }
-        Node<E> succ;
+        Node succ;
         while ((succ = node.next) == null); // wait for next
         record("succ", "return %s", succ);
         return succ;
@@ -155,9 +145,9 @@ public class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleC
 
         clearValue(node);
 
-        final Node<E> prev = node.prev;
+        final Node prev = node.prev;
         prev.next = null;
-        final Node<E> t = tail;
+        final Node t = tail;
         if (t != node || !compareAndSetTail(t, node.prev)) {
             // neither head nor tail
             prev.next = node.next;
@@ -174,8 +164,11 @@ public class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleC
     public int size() {
         int n = 0;
         for (Node p = tail; p != null; p = p.prev) {
-            if (p.value != null)
-                n++;
+            if (DUMMY_NODE_ALGORITHM) {
+                if (p.prev == null)
+                    break;
+            }
+            n++;
         }
         return n;
 
@@ -208,26 +201,15 @@ public class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleC
     }
 
     public static class Node<E> {
-        E value;
-        volatile Node<E> next;
-        volatile Node<E> prev;
-
-        Node(E value) {
-            this.value = value;
-        }
-
-        @Override
-        public String toString() {
-            return "Node{" + "value: " + value + ", next: " + next + ", prev: " + Objects.systemToString(prev) + '}';
-        }
+        volatile Node next;
+        volatile Node prev;
     }
     ////////////////////////////////////////////////////////////////////////
-    private static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    static final Unsafe unsafe = UtilUnsafe.getUnsafe();
     private static final long headOffset;
     private static final long tailOffset;
     private static final long nextOffset;
     private static final long prevOffset;
-    private static final long valueOffset;
 
     static {
         try {
@@ -235,8 +217,6 @@ public class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleC
             tailOffset = unsafe.objectFieldOffset(SingleConsumerLinkedQueue.class.getDeclaredField("tail"));
             nextOffset = unsafe.objectFieldOffset(Node.class.getDeclaredField("next"));
             prevOffset = unsafe.objectFieldOffset(Node.class.getDeclaredField("prev"));
-            valueOffset = unsafe.objectFieldOffset(Node.class.getDeclaredField("value"));
-
         } catch (Exception ex) {
             throw new Error(ex);
         }
@@ -245,35 +225,33 @@ public class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleC
     /**
      * CAS head field. Used only by enq.
      */
-    boolean compareAndSetHead(Node<E> update) {
+    boolean compareAndSetHead(Node update) {
         return unsafe.compareAndSwapObject(this, headOffset, null, update);
     }
 
     /**
      * CAS tail field. Used only by enq.
      */
-    boolean compareAndSetTail(Node<E> expect, Node<E> update) {
+    boolean compareAndSetTail(Node expect, Node update) {
         return unsafe.compareAndSwapObject(this, tailOffset, expect, update);
     }
 
     /**
      * CAS next field of a node.
      */
-    static boolean compareAndSetNext(Node<?> node, Node<?> expect, Node<?> update) {
+    static boolean compareAndSetNext(Node node, Node expect, Node update) {
         return unsafe.compareAndSwapObject(node, nextOffset, expect, update);
     }
 
-    static void clearNext(Node<?> node) {
+    static void clearNext(Node node) {
         unsafe.putOrderedObject(node, nextOffset, null);
     }
 
-    static void clearPrev(Node<?> node) {
+    static void clearPrev(Node node) {
         unsafe.putOrderedObject(node, prevOffset, null);
     }
 
-    static void clearValue(Node<?> node) {
-        unsafe.putOrderedObject(node, valueOffset, null);
-    }
+    abstract void clearValue(Node node);
 
     ////////////////////////////
     protected boolean isRecording() {

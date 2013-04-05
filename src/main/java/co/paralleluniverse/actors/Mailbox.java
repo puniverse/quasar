@@ -8,8 +8,8 @@ import co.paralleluniverse.lwthreads.LightweightThread;
 import co.paralleluniverse.lwthreads.LwtInterruptedException;
 import co.paralleluniverse.lwthreads.SuspendExecution;
 import co.paralleluniverse.lwthreads.TimeoutException;
-import co.paralleluniverse.lwthreads.datastruct.SingleConsumerArrayQueue;
-import co.paralleluniverse.lwthreads.datastruct.SingleConsumerLinkedQueue1;
+import co.paralleluniverse.lwthreads.datastruct.SingleConsumerArrayObjectQueue;
+import co.paralleluniverse.lwthreads.datastruct.SingleConsumerLinkedObjectQueue;
 import co.paralleluniverse.lwthreads.datastruct.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -23,7 +23,7 @@ class Mailbox<Message, Node> {
     }
 
     public static <Message> Mailbox<Message, ?> createMailbox(LightweightThread owner, int mailboxSize) {
-        return new Mailbox(owner, mailboxSize > 0 ? new SingleConsumerArrayQueue<Message>(mailboxSize) : new SingleConsumerLinkedQueue1<Message>());
+        return new Mailbox(owner, mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedObjectQueue<Message>());
     }
     private final LightweightThread owner;
     private final SingleConsumerQueue<Message, Node> queue;

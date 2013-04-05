@@ -12,15 +12,11 @@ import sun.misc.Unsafe;
  *
  * @author pron
  */
-public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer> {
-    private final Object[] array;
-    private volatile int head; // next element to be read
+abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer> {
+    volatile int head; // next element to be read
     private volatile Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
-    private volatile int tail; // next element to be written
+    volatile int tail; // next element to be written
 
-    public SingleConsumerArrayQueue(int size) {
-        this.array = new Object[size];
-    }
 
     @Override
     public boolean allowRetainPointers() {
@@ -32,14 +28,21 @@ public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer>
         return value(index.intValue());
     }
 
-    public E value(int index) {
-        return (E) array[index];
+    public abstract E value(int index);
+    
+    abstract int arrayLength();
+    
+    abstract void awaitValue(int index);
+    
+    abstract void clearValue(int index);
+    
+    abstract void copyValue(int to, int from);
+    
+    int maxReadIndex() {
+        return tail;
     }
-
-    @Override
-    public void enq(E item) {
-        if (item == null)
-            throw new IllegalArgumentException("null values not allowed");
+    
+    final int preEnq() {
         if (next(tail) == head)
             throw new QueueCapacityExceededException();
 
@@ -49,7 +52,7 @@ public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer>
             if (compareAndSetTail(t, next(t)))
                 break;
         }
-        set(t, item);
+        return t;
     }
 
     @Override
@@ -60,16 +63,16 @@ public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer>
     public void deq(int index) {
         final int newHead = next(index);
         for (int i = head; i != newHead; i = next(i))
-            lazySet(i, null);
+            clearValue(i);
         head = newHead;
     }
 
     @Override
     @SuppressWarnings("empty-statement")
     public Integer pk() {
-        if (head == tail)
+        if (head == maxReadIndex())
             return null;
-        while (get(head) == null); // volatile read
+        awaitValue(head);
         return Integer.valueOf(head);
     }
 
@@ -87,9 +90,9 @@ public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer>
         }
         int n = index;
         n = next(n);
-        if (n == tail)
+        if (n == maxReadIndex())
             return -1;
-        while (get(n) == null); // volatile read
+        awaitValue(n);
         return n;
     }
 
@@ -104,7 +107,7 @@ public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer>
             return -1;
         }
 
-        lazySet(index, null);
+        clearValue(index);
         int t = tail;
         if (index == t) {
             if (compareAndSetTail(t, prev(t)))
@@ -115,7 +118,7 @@ public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer>
         int i = index;
         while (i != h) {
             int pi = prev(i);
-            lazySet(i, array[pi]);
+            copyValue(i, pi);
             i = pi;
         }
         head = next(h);
@@ -127,16 +130,16 @@ public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer>
         if (tail >= head)
             return tail - head;
         else
-            return tail + (array.length - head);
+            return tail + (arrayLength() - head);
     }
 
-    private int next(int i) {
-        return (i + 1) % array.length;
+    int next(int i) {
+        return (i + 1) % arrayLength();
         //return (++i == array.length) ? 0 : i;
     }
 
-    private int prev(int i) {
-        return (--i == -1) ? (array.length - 1) : i;
+    int prev(int i) {
+        return (--i == -1) ? (arrayLength() - 1) : i;
     }
 
     @Override
@@ -169,44 +172,21 @@ public class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer>
         }
     }
     ////////////////////////////////////////////////////////////////////////
-    private static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    static final Unsafe unsafe = UtilUnsafe.getUnsafe();
     private static final long tailOffset;
-    private static final int base;
-    private static final int shift;
 
     static {
         try {
             tailOffset = unsafe.objectFieldOffset(SingleConsumerArrayQueue.class.getDeclaredField("tail"));
-            base = unsafe.arrayBaseOffset(Object[].class);
-            int scale = unsafe.arrayIndexScale(Object[].class);
-            if ((scale & (scale - 1)) != 0)
-                throw new Error("data type scale not a power of two");
-            shift = 31 - Integer.numberOfLeadingZeros(scale);
         } catch (Exception ex) {
             throw new Error(ex);
         }
     }
 
-    private static long byteOffset(int i) {
-        return ((long) i << shift) + base;
-    }
-
     /**
-     * CAS tail field. Used only by enq.
+     * CAS tail field. Used only by preEnq.
      */
     private boolean compareAndSetTail(int expect, int update) {
         return unsafe.compareAndSwapInt(this, tailOffset, expect, update);
-    }
-
-    private void set(int i, Object value) {
-        unsafe.putObjectVolatile(array, byteOffset(i), value);
-    }
-
-    private void lazySet(int i, Object value) {
-        unsafe.putOrderedObject(array, byteOffset(i), value);
-    }
-
-    private Object get(int i) {
-        return unsafe.getObjectVolatile(array, byteOffset(i));
     }
 }

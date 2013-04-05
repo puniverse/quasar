@@ -33,10 +33,10 @@ public class SingleConsumerQueueTest {
     public SingleConsumerQueueTest(int queueType) {
         switch (queueType) {
             case 1:
-                this.queue = new SingleConsumerArrayQueue<String>(10);
+                this.queue = new SingleConsumerArrayObjectQueue<String>(10);
                 break;
             case 2:
-                this.queue = new SingleConsumerLinkedQueue<String>();
+                this.queue = new SingleConsumerLinkedObjectQueue<String>();
                 break;
             default:
                 throw new AssertionError();
