@@ -23,7 +23,7 @@ public class ThreadDoubleChannel extends ThreadChannel<Double> {
     }
 
     public double receiveInt() throws InterruptedException {
-        return ((SingleConsumerDoubleQueue<Object>)queue()).doubleValue(receiveNode());
+        return ((SingleConsumerDoubleQueue<Object>)queue).doubleValue(receiveNode());
     }
 
     public void send(double message) {

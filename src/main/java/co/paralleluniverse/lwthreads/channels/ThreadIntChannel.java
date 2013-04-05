@@ -23,7 +23,7 @@ public class ThreadIntChannel extends ThreadChannel<Integer> {
     }
 
     public int receiveInt() throws InterruptedException {
-        return ((SingleConsumerIntQueue<Object>)queue()).intValue(receiveNode());
+        return ((SingleConsumerIntQueue<Object>)queue).intValue(receiveNode());
     }
 
     public void send(int message) {

@@ -25,7 +25,7 @@ public class LwtDoubleChannel extends LwtChannel<Double> {
     }
 
     public double receiveInt() throws SuspendExecution {
-        return ((SingleConsumerDoubleQueue<Object>)queue()).doubleValue(receiveNode());
+        return ((SingleConsumerDoubleQueue<Object>)queue).doubleValue(receiveNode());
     }
 
     public void send(double message) {

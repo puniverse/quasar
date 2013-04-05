@@ -23,7 +23,7 @@ public class ThreadLongChannel extends ThreadChannel<Long> {
     }
 
     public long receiveInt() throws InterruptedException {
-        return ((SingleConsumerLongQueue<Object>)queue()).longValue(receiveNode());
+        return ((SingleConsumerLongQueue<Object>)queue).longValue(receiveNode());
     }
 
     public void send(long message) {

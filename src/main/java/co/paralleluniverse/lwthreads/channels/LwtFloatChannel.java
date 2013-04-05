@@ -25,7 +25,7 @@ public class LwtFloatChannel extends LwtChannel<Float> {
     }
 
     public float receiveFloat() throws SuspendExecution {
-        return ((SingleConsumerFloatQueue<Object>)queue()).floatValue(receiveNode());
+        return ((SingleConsumerFloatQueue<Object>)queue).floatValue(receiveNode());
     }
 
     public void send(float message) {

@@ -25,7 +25,7 @@ public class LwtIntChannel extends LwtChannel<Integer> {
     }
 
     public int receiveInt() throws SuspendExecution {
-        return ((SingleConsumerIntQueue<Object>)queue()).intValue(receiveNode());
+        return ((SingleConsumerIntQueue<Object>)queue).intValue(receiveNode());
     }
 
     public void send(int message) {

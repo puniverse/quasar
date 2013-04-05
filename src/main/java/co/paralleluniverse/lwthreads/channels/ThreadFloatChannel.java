@@ -23,7 +23,7 @@ public class ThreadFloatChannel extends ThreadChannel<Float> {
     }
 
     public float receiveFloat() throws InterruptedException {
-        return ((SingleConsumerFloatQueue<Object>)queue()).floatValue(receiveNode());
+        return ((SingleConsumerFloatQueue<Object>)queue).floatValue(receiveNode());
     }
 
     public void send(float message) {

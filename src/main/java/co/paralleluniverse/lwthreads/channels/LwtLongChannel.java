@@ -25,7 +25,7 @@ public class LwtLongChannel extends LwtChannel<Long> {
     }
 
     public long receiveInt() throws SuspendExecution {
-        return ((SingleConsumerLongQueue<Object>)queue()).longValue(receiveNode());
+        return ((SingleConsumerLongQueue<Object>)queue).longValue(receiveNode());
     }
 
     public void send(long message) {

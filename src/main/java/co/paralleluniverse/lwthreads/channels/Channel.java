@@ -17,10 +17,6 @@ public abstract class Channel<Message> {
         this.queue = (SingleConsumerQueue<Message, Object>) queue;
     }
 
-    <Node> SingleConsumerQueue<Message, Node> queue() {
-        return (SingleConsumerQueue<Message, Node>) queue;
-    }
-
     abstract boolean isOwnerAlive();
 
     abstract void notifyOwner();
