@@ -6,6 +6,7 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.lwthreads.LightweightThread;
 import co.paralleluniverse.lwthreads.SuspendExecution;
+import co.paralleluniverse.lwthreads.channels.Channel;
 import co.paralleluniverse.lwthreads.channels.LwtObjectChannel;
 import co.paralleluniverse.lwthreads.datastruct.QueueCapacityExceededException;
 import java.util.Collections;
@@ -70,6 +71,10 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
 
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
+    public Channel<Message> getMaibox() {
+        return (Channel<Message>)mailbox;
+    }
+    
     protected Message receive() throws SuspendExecution {
         for (;;) {
             checkThrownIn();
