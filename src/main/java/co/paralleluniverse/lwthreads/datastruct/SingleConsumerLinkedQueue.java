@@ -15,11 +15,18 @@ import sun.misc.Unsafe;
  *
  * @author pron
  */
-public abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleConsumerLinkedQueue.Node<E>> {
+public class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleConsumerLinkedQueue.Node<E>> {
+    private static final boolean DUMMY_NODE_ALGORITHM = false;
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
     volatile Node<E> head;
     volatile Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
     volatile Node<E> tail;
+
+    public SingleConsumerLinkedQueue() {
+        if (DUMMY_NODE_ALGORITHM) {
+            tail = head = new Node(null);
+        }
+    }
 
     @Override
     public boolean allowRetainPointers() {
@@ -28,7 +35,7 @@ public abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E
 
     @Override
     public void enq(E item) {
-        if(item == null)
+        if (item == null)
             throw new IllegalArgumentException("null values not allowed");
         enq(new Node(item));
     }
@@ -37,22 +44,96 @@ public abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E
     public E value(Node<E> node) {
         return node.value;
     }
-    
-    abstract void enq(final Node<E> node);
+
+    void enq(final Node<E> node) {
+        record("enq", "queue: %s node: %s", this, node);
+        if (DUMMY_NODE_ALGORITHM) {
+            for (;;) {
+                final Node t = tail;
+                node.prev = t;
+                if (compareAndSetTail(t, node)) {
+                    t.next = node;
+                    return;
+                }
+            }
+        } else {
+            for (;;) {
+                final Node<E> t = tail;
+                node.prev = t;
+                if (compareAndSetTail(t, node)) {
+                    if (t == null) {
+                        head = node;
+                        record("enq", "set head");
+                    } else
+                        t.next = node;
+                    break;
+                }
+            }
+        }
+    }
+
+    @SuppressWarnings("empty-statement")
+    @Override
+    public void deq(final Node<E> node) {
+        record("deq", "queue: %s node: %s", this, node);
+
+        clearValue(node);
+
+        if (DUMMY_NODE_ALGORITHM) {
+            head = node;
+            node.prev = null;
+        } else {
+            Node<E> h = node.next;
+            if (h == null) {
+                head = null; // Based on John M. Mellor-Crummey, "Concurrent Queues: Practical Fetch-and-ø Algorithms", 1987
+                if (tail == node && compareAndSetTail(node, null)) { // a concurrent enq would either cause this to fail and wait for node.next, or have this succeed and then set tail and head
+                    record("deq", "set tail to null");
+                    node.next = null;
+                    return;
+                }
+                while ((h = node.next) == null);
+            }
+            head = h;
+            h.prev = null;
+
+            record("deq", "set head to %s", h);
+
+            // clearNext(node); - we don't clear next so that iterator would work
+            clearPrev(node);
+        }
+    }
 
     @Override
-    public abstract void deq(final Node<E> node);
+    public Node<E> pk() {
+        if (DUMMY_NODE_ALGORITHM) {
+            return succ(head);
+        } else {
+            if (tail == null) {
+                record("peek", "return null");
+                return null;
+            }
 
-    abstract boolean isHead(Node<E> node);
+            for (;;) {
+                Node<E> h;
+                if ((h = head) != null) {
+                    record("peek", "return %s", h);
+                    return h;
+                }
+            }
+        }
+    }
 
-    @Override
-    public abstract Node<E> pk();
+    boolean isHead(Node<E> node) {
+        if (DUMMY_NODE_ALGORITHM)
+            return node.prev == head;
+        else
+            return node.prev == null;
+    }
 
     @SuppressWarnings("empty-statement")
     @Override
     public Node<E> succ(final Node<E> node) {
-        record("succ", "queue: %s node: %s", this, node);
-        if(node == null)
+        if (node == null)
             return pk();
         if (tail == node) {
             record("succ", "return null");
@@ -73,7 +154,7 @@ public abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E
         }
 
         clearValue(node);
-        
+
         final Node<E> prev = node.prev;
         prev.next = null;
         final Node<E> t = tail;

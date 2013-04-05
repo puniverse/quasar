@@ -36,10 +36,7 @@ public class SingleConsumerQueueTest {
                 this.queue = new SingleConsumerArrayQueue<String>(10);
                 break;
             case 2:
-                this.queue = new SingleConsumerLinkedQueue1<String>();
-                break;
-            case 3:
-                this.queue = new SingleConsumerLinkedQueue2<String>();
+                this.queue = new SingleConsumerLinkedQueue<String>();
                 break;
             default:
                 throw new AssertionError();
@@ -48,7 +45,7 @@ public class SingleConsumerQueueTest {
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{{1}, {2}, {3}});
+        return Arrays.asList(new Object[][]{{1}, {2}});
     }
 
     @Test
