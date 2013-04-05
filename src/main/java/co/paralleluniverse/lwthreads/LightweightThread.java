@@ -180,7 +180,7 @@ public class LightweightThread<V> implements Serializable {
         public VoidSuspendableCallable(SuspendableRunnable runnable) {
             this.runnable = runnable;
         }
-        
+
         @Override
         public Void run() throws SuspendExecution, InterruptedException {
             runnable.run();
@@ -298,7 +298,7 @@ public class LightweightThread<V> implements Serializable {
                 postParkActions = null;
             }
             return false;
-        } catch(InterruptedException e) {
+        } catch (InterruptedException e) {
             state = State.TERMINATED;
             throw new RuntimeException(e);
         } catch (Throwable t) {
@@ -354,6 +354,10 @@ public class LightweightThread<V> implements Serializable {
         return fjTask.getBlocker();
     }
 
+    public final void setBlocker(Object blocker) {
+        fjTask.setBlocker(blocker);
+    }
+
     public final State getState() {
         return state;
     }
@@ -374,7 +378,7 @@ public class LightweightThread<V> implements Serializable {
      */
     public final boolean exec(Object blocker) {
         for (int i = 0; i < 30; i++) {
-            if (fjTask.getBlocker() == blocker && fjTask.tryUnpark()) {
+            if (getBlocker() == blocker && fjTask.tryUnpark()) {
                 fjTask.exec();
                 return true;
             }
@@ -568,8 +572,13 @@ public class LightweightThread<V> implements Serializable {
         }
 
         @Override
-        protected final int getState() {
+        protected int getState() {
             return super.getState();
+        }
+
+        @Override
+        protected void setBlocker(Object blocker) {
+            super.setBlocker(blocker);
         }
 
         @Override

@@ -26,7 +26,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     //
     static final ThreadLocal<ParkableForkJoinTask<?>> current = new ThreadLocal<ParkableForkJoinTask<?>>();
     private volatile int state;
-    private /*volatile*/ Object blocker;
+    private volatile Object blocker;
 
     public ParkableForkJoinTask() {
         state = RUNNABLE;
@@ -49,7 +49,6 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     boolean doExec() {
         try {
-            this.blocker = null;
             onExec();
             boolean res = exec1();
             onCompletion(res);
@@ -66,6 +65,10 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     public Object getBlocker() {
         return blocker;
+    }
+
+    protected void setBlocker(Object blocker) {
+        this.blocker = blocker;
     }
 
     protected void onExec() {

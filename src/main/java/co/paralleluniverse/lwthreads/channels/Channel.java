@@ -24,7 +24,7 @@ public abstract class Channel<Message> implements SendChannel<Message> {
     final SingleConsumerQueue<Message, Object> queue;
 
     Channel(Object owner, SingleConsumerQueue<Message, ?> queue) {
-        if(!(owner instanceof LightweightThread || owner instanceof Thread))
+        if (!(owner instanceof LightweightThread || owner instanceof Thread))
             throw new IllegalArgumentException("owner must be a Thread or a LightweightThread but is " + owner.getClass().getName());
         this.queue = (SingleConsumerQueue<Message, Object>) queue;
         this.owner = owner;
@@ -54,17 +54,27 @@ public abstract class Channel<Message> implements SendChannel<Message> {
     void lock() {
         if (!lwt)
             lock.lock();
+        else
+            lwtOwner().setBlocker(this);
     }
 
     void unlock() {
         if (!lwt)
             lock.unlock();
+        else
+            lwtOwner().setBlocker(null);
+    }
+
+    void setBlocker() {
+        if (lwt)
+            lwtOwner().setBlocker(this);
     }
 
     void notifyOwner() {
-        if (lwt)
-            lwtOwner().unpark();
-        else
+        if (lwt) {
+            if (lwtOwner().getBlocker() == this)
+                lwtOwner().unpark();
+        } else
             queueNotEmpty.signal();
     }
 
@@ -90,6 +100,7 @@ public abstract class Channel<Message> implements SendChannel<Message> {
             queueNotEmpty.await(timeout, unit);
     }
 
+    @Override
     public void send(Message message) {
         if (isOwnerAlive()) {
             queue.enq(message);
