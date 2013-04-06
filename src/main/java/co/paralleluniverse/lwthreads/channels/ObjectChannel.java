@@ -69,19 +69,19 @@ public class ObjectChannel<Message> extends Channel<Message> {
                 }
             }
 
-            lock();
+            sync.lock();
             try {
                 if (timeout > 0) {
-                    await(this, left, TimeUnit.NANOSECONDS);
+                    sync.await(this, left, TimeUnit.NANOSECONDS);
 
                     now = System.nanoTime();
                     left = start + unit.toNanos(timeout) - now;
                     if (left <= 0)
                         throw new TimeoutException();
                 } else
-                    await();
+                    sync.await();
             } finally {
-                unlock();
+                sync.unlock();
             }
         }
     }

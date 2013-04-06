@@ -5,9 +5,9 @@
 package co.paralleluniverse.lwthreads.channels;
 
 import co.paralleluniverse.lwthreads.LightweightThread;
+import co.paralleluniverse.lwthreads.OwnedSynchronizer;
 import co.paralleluniverse.lwthreads.SuspendExecution;
 import co.paralleluniverse.lwthreads.datastruct.SingleConsumerQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -18,7 +18,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public abstract class Channel<Message> implements SendChannel<Message> {
     private final Object owner;
-    private final boolean lwt;
+    final OwnedSynchronizer sync;
     private final Lock lock = new ReentrantLock();
     private final Condition queueNotEmpty = lock.newCondition();
     final SingleConsumerQueue<Message, Object> queue;
@@ -28,108 +28,43 @@ public abstract class Channel<Message> implements SendChannel<Message> {
             throw new IllegalArgumentException("owner must be a Thread or a LightweightThread but is " + owner.getClass().getName());
         this.queue = (SingleConsumerQueue<Message, Object>) queue;
         this.owner = owner;
-        this.lwt = owner instanceof LightweightThread;
+        this.sync = OwnedSynchronizer.create(owner);
     }
 
     public Object getOwner() {
         return owner;
     }
 
-    void verifyOwner() {
-        assert owner == (lwt ? LightweightThread.currentLightweightThread() : Thread.currentThread());
-    }
-
-    boolean isOwnerAlive() {
-        return lwt ? lwtOwner().isAlive() : threadOwner().isAlive();
-    }
-
-    private LightweightThread lwtOwner() {
-        return (LightweightThread) owner;
-    }
-
-    private Thread threadOwner() {
-        return (Thread) owner;
-    }
-
-    void lock() {
-        if (!lwt)
-            lock.lock();
-        else
-            lwtOwner().setBlocker(this);
-    }
-
-    void unlock() {
-        if (!lwt)
-            lock.unlock();
-        else
-            lwtOwner().setBlocker(null);
-    }
-
-    void setBlocker() {
-        if (lwt)
-            lwtOwner().setBlocker(this);
-    }
-
-    void notifyOwner() {
-        if (lwt) {
-            if (lwtOwner().getBlocker() == this)
-                lwtOwner().unpark();
-        } else
-            queueNotEmpty.signal();
-    }
-
-    void notifyOwnerAndTryToExecNow() {
-        if (lwt) {
-            if (!lwtOwner().exec(this))
-                lwtOwner().unpark();
-        } else
-            notifyOwner();
-    }
-
-    void await() throws InterruptedException, SuspendExecution {
-        if (lwt)
-            LightweightThread.park(this);
-        else
-            queueNotEmpty.await();
-    }
-
-    void await(Object blocker, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
-        if (lwt)
-            LightweightThread.park(this, timeout, unit);
-        else
-            queueNotEmpty.await(timeout, unit);
-    }
-
     @Override
     public void send(Message message) {
-        if (isOwnerAlive()) {
+        if (sync.isOwnerAlive()) {
             queue.enq(message);
-            notifyOwner();
+            sync.signal();
         }
     }
 
     public void sendSync(Message message) {
-        if (isOwnerAlive()) {
+        if (sync.isOwnerAlive()) {
             queue.enq(message);
-            notifyOwnerAndTryToExecNow();
+            sync.signalAndTryToExecNow();
         }
     }
 
     Object receiveNode() throws SuspendExecution, InterruptedException {
-        verifyOwner();
+        sync.verifyOwner();
         Object n;
-        lock();
+        sync.lock();
         try {
             while ((n = queue.pk()) == null)
-                await();
+                sync.await();
         } finally {
-            unlock();
+            sync.unlock();
         }
         return n;
     }
 
     public Message receive() throws SuspendExecution, InterruptedException {
-        verifyOwner();
+        sync.verifyOwner();
         return queue.value(receiveNode());
     }
 }

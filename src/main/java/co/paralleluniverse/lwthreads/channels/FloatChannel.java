@@ -33,16 +33,16 @@ public class FloatChannel extends Channel<Float> {
     }
 
     public void send(float message) {
-        if (isOwnerAlive()) {
+        if (sync.isOwnerAlive()) {
             queue.enq(message);
-            notifyOwner();
+            sync.signal();
         }
     }
 
     public void sendSync(float message) {
-        if (isOwnerAlive()) {
+        if (sync.isOwnerAlive()) {
             queue.enq(message);
-            notifyOwnerAndTryToExecNow();
+            sync.signalAndTryToExecNow();
         }
     }
 }

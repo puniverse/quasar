@@ -33,16 +33,16 @@ public class DoubleChannel extends Channel<Double> {
     }
 
     public void send(double message) {
-        if (isOwnerAlive()) {
+        if (sync.isOwnerAlive()) {
             queue.enq(message);
-            notifyOwner();
+            sync.signal();
         }
     }
 
     public void sendSync(double message) {
-        if (isOwnerAlive()) {
+        if (sync.isOwnerAlive()) {
             queue.enq(message);
-            notifyOwnerAndTryToExecNow();
+            sync.signalAndTryToExecNow();
         }
     }
 }
