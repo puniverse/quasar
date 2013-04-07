@@ -15,7 +15,7 @@ abstract class SingleConsumerArrayWordQueue<E> extends SingleConsumerArrayPrimit
         this.array = new int[size];
     }
 
-    public int rawValue(int index) {
+    int rawValue(int index) {
         return array[index];
     }
 
