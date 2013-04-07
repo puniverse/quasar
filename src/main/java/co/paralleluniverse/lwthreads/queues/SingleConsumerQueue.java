@@ -114,15 +114,24 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
 
     private class QueueIterator implements Iterator<E> {
         private Node n;
+        private boolean hasNextCalled;
 
         @Override
         public boolean hasNext() {
-            return succ(n) != null;
+            Node next = succ(n);
+            hasNextCalled = true;
+            if(next != null) {// in case we want to remove the last element, we're not getting rid of the node just yet
+                n = next;
+                return true;
+            } else
+                return false;
         }
 
         @Override
         public E next() {
-            n = succ(n);
+            if (!hasNextCalled)
+                n = succ(n);
+            hasNextCalled = false;
             return value(n);
         }
 

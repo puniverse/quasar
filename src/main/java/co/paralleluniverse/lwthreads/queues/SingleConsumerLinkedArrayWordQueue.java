@@ -27,7 +27,7 @@ abstract class SingleConsumerLinkedArrayWordQueue<E> extends SingleConsumerLinke
     }
 
     @Override
-    PrimitiveNode newNode() {
+    Node newNode() {
         return new WordNode();
     }
 

@@ -28,8 +28,8 @@ public class SingleConsumerPrimitiveQueueTest {
     final SingleConsumerQueue<Double, ?> dwordQueue;
 
 //    public SingleConsumerPrimitiveQueueTest() {
-//        this.wordQueue = SingleConsumerArrayWordQueue.newIntegerQueue(10);
-//        this.dwordQueue = SingleConsumerArrayDWordQueue.newDoubleQueue(10);
+//        this.wordQueue = new SingleConsumerLinkedArrayIntQueue();
+//        this.dwordQueue = new SingleConsumerLinkedArrayDoubleQueue();
 //    }
 
     public SingleConsumerPrimitiveQueueTest(int queueType) {
@@ -42,14 +42,18 @@ public class SingleConsumerPrimitiveQueueTest {
                 this.wordQueue = new SingleConsumerLinkedIntQueue();
                 this.dwordQueue = new SingleConsumerLinkedDoubleQueue();
                 break;
+            case 3:
+                this.wordQueue = new SingleConsumerLinkedArrayIntQueue();
+                this.dwordQueue = new SingleConsumerLinkedArrayDoubleQueue();
+                break;
             default:
                 throw new AssertionError();
         }
     }
-    
+
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{{1}, {2}});
+        return Arrays.asList(new Object[][]{{1}, {2}, {3}});
     }
 
     @Test

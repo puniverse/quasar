@@ -16,6 +16,11 @@ public class SingleConsumerLinkedArrayObjectQueue<E> extends SingleConsumerLinke
     private static final Object TOMBSTONE = new Object();
 
     @Override
+    Node newNode() {
+        return new ObjectNode();
+    }
+    
+    @Override
     int blockSize() {
         return BLOCK_SIZE;
     }
@@ -29,7 +34,7 @@ public class SingleConsumerLinkedArrayObjectQueue<E> extends SingleConsumerLinke
                     return;
             }
 
-            Node n = new Node();
+            Node n = newNode();
             n.prev = t;
             if (compareAndSetTail(t, n))
                 t.next = n;
@@ -50,7 +55,7 @@ public class SingleConsumerLinkedArrayObjectQueue<E> extends SingleConsumerLinke
     @Override
     boolean isDeleted(Node n, int index) {
         // called after hasValue so no need for volatile read
-        return ((ObjectNode)n).array[index] != TOMBSTONE;
+        return ((ObjectNode)n).array[index] == TOMBSTONE;
     }
     
     @Override

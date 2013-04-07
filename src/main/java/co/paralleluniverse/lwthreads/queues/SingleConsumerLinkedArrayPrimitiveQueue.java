@@ -33,11 +33,9 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
             ;
     }
 
-    abstract PrimitiveNode newNode();
-
     @Override
     boolean hasValue(Node n, int index) {
-        return n != tail || index <= ((PrimitiveNode)n).maxReadIndex;
+        return index < ((PrimitiveNode)n).maxReadIndex;
     }
 
     @Override
@@ -52,7 +50,7 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
         n.deleted = setBit(n.deleted, index);
     }
 
-    static class PrimitiveNode extends Node {
+    static abstract class PrimitiveNode extends Node {
         volatile int tailIndex;
         volatile int maxReadIndex;
         short deleted;

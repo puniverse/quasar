@@ -27,7 +27,7 @@ public class SingleConsumerQueueTest {
     final SingleConsumerQueue<String, ?> queue;
 
 //    public SingleConsumerQueueTest() {
-//        queue = new SingleConsumerArrayQueue<String>(10);
+//        this.queue = new SingleConsumerLinkedArrayObjectQueue<String>();
 //    }
     
     public SingleConsumerQueueTest(int queueType) {
@@ -38,6 +38,9 @@ public class SingleConsumerQueueTest {
             case 2:
                 this.queue = new SingleConsumerLinkedObjectQueue<String>();
                 break;
+            case 3:
+                this.queue = new SingleConsumerLinkedArrayObjectQueue<String>();
+                break;
             default:
                 throw new AssertionError();
         }
@@ -45,7 +48,7 @@ public class SingleConsumerQueueTest {
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{{1}, {2}});
+        return Arrays.asList(new Object[][]{{1}, {2}, {3}});
     }
 
     @Test

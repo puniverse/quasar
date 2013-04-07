@@ -4,7 +4,6 @@
  */
 package co.paralleluniverse.lwthreads.queues;
 
-import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import sun.misc.Unsafe;
 
@@ -20,13 +19,15 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
 
     @SuppressWarnings("OverridableMethodCallInConstructor")
     public SingleConsumerLinkedArrayQueue() {
-        tail = head = new Node();
+        tail = head = newNode();
     }
 
     @Override
     public boolean allowRetainPointers() {
         return true;
     }
+
+    abstract Node newNode();
 
     abstract boolean hasValue(Node n, int index);
 
@@ -43,7 +44,7 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
         int i = headIndex;
         Node n = head;
         for (;;) {
-            int maxI = (head != ep.n ? blockSize - 1 : ep.i);
+            int maxI = (n != ep.n ? blockSize - 1 : ep.i);
             for (; i <= maxI; i++)
                 markDeleted(n, i);
 
@@ -58,7 +59,8 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
                 break;
         };
 
-        head = n;
+        if (head != n) // save the volatile write
+            head = n;
         headIndex = ep.i + 1;
     }
 
@@ -73,7 +75,11 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
             return pk();
 
         ep.i++;
-        return current(ep);
+        if(current(ep) == null) {
+            ep.i--; // restore ep
+            return null;
+        } else
+            return ep;
     }
 
     @SuppressWarnings("empty-statement")
@@ -142,7 +148,7 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
         return count;
     }
 
-    static class Node {
+    static abstract class Node {
         volatile Node next;
         volatile Node prev;
     }
