@@ -9,7 +9,7 @@ import co.paralleluniverse.lwthreads.SuspendExecution;
 import co.paralleluniverse.lwthreads.channels.Channel;
 import co.paralleluniverse.lwthreads.channels.ObjectChannel;
 import co.paralleluniverse.lwthreads.channels.SendChannel;
-import co.paralleluniverse.lwthreads.datastruct.QueueCapacityExceededException;
+import co.paralleluniverse.lwthreads.queues.QueueCapacityExceededException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;

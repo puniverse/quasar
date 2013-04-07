@@ -6,10 +6,10 @@ package co.paralleluniverse.lwthreads.channels;
 
 import co.paralleluniverse.lwthreads.LightweightThread;
 import co.paralleluniverse.lwthreads.SuspendExecution;
-import co.paralleluniverse.lwthreads.datastruct.SingleConsumerArrayFloatQueue;
-import co.paralleluniverse.lwthreads.datastruct.SingleConsumerFloatQueue;
-import co.paralleluniverse.lwthreads.datastruct.SingleConsumerLinkedFloatQueue;
-import co.paralleluniverse.lwthreads.datastruct.SingleConsumerQueue;
+import co.paralleluniverse.lwthreads.queues.SingleConsumerArrayFloatQueue;
+import co.paralleluniverse.lwthreads.queues.SingleConsumerFloatQueue;
+import co.paralleluniverse.lwthreads.queues.SingleConsumerLinkedFloatQueue;
+import co.paralleluniverse.lwthreads.queues.SingleConsumerQueue;
 
 /**
  *

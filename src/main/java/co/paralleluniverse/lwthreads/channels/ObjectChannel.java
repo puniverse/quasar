@@ -8,9 +8,9 @@ import co.paralleluniverse.actors.MessageProcessor;
 import co.paralleluniverse.lwthreads.LightweightThread;
 import co.paralleluniverse.lwthreads.SuspendExecution;
 import co.paralleluniverse.lwthreads.TimeoutException;
-import co.paralleluniverse.lwthreads.datastruct.SingleConsumerArrayObjectQueue;
-import co.paralleluniverse.lwthreads.datastruct.SingleConsumerLinkedObjectQueue;
-import co.paralleluniverse.lwthreads.datastruct.SingleConsumerQueue;
+import co.paralleluniverse.lwthreads.queues.SingleConsumerArrayObjectQueue;
+import co.paralleluniverse.lwthreads.queues.SingleConsumerLinkedObjectQueue;
+import co.paralleluniverse.lwthreads.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
