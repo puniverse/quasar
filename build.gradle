@@ -51,10 +51,10 @@ dependencies {
     testCompile 'org.mockito:mockito-all:1.9.0'
 }
 
-ant.taskdef(name:'continuations', classname:'co.paralleluniverse.lwthreads.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
 
 task instrumentClasses(dependsOn: 'compileJava') << {
     //ant.logging.level = LogLevel.INFO
+    ant.taskdef(name:'continuations', classname:'co.paralleluniverse.lwthreads.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
     ant.continuations(verbose:'true', check:'true', debug:'true') {
         fileset(dir: sourceSets.main.output.classesDir) {
             exclude(name: 'co/paralleluniverse/lwthreads/*.class')
@@ -65,6 +65,7 @@ task instrumentClasses(dependsOn: 'compileJava') << {
 
 task instrumentTestClasses(dependsOn: 'compileTestJava') << {
     //ant.logging.level = LogLevel.INFO
+    ant.taskdef(name:'continuations', classname:'co.paralleluniverse.lwthreads.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
     ant.continuations(verbose:'true', check:'true', debug:'true') {
         fileset(dir: sourceSets.test.output.classesDir)
     }
@@ -87,7 +88,7 @@ jar {
 
 tasks.withType(Test) { 
     useJUnit()
-    systemProperty 'co.paralleluniverse.lwthreads.verifyInstrumentation', 'true'
+    //systemProperty 'co.paralleluniverse.lwthreads.verifyInstrumentation', 'true'
     doLast() {
         println "file://" + testReportDir + "/index.html"    
     }    
@@ -95,7 +96,11 @@ tasks.withType(Test) {
 
 task run(type: JavaExec, dependsOn:[testClasses]) {
     main = mainClass
-    classpath = sourceSets.test.runtimeClasspath
+    //jvmArgs '-agentpath:/Applications/NetBeans/NetBeans 7.2.app/Contents/Resources/NetBeans/profiler/lib/deployed/jdk15/mac/libprofilerinterface.jnilib=/Applications/NetBeans/NetBeans 7.2.app/Contents/Resources/NetBeans/profiler/lib,5140'
+}
+
+tasks.withType(JavaExec) { 
+    classpath = sourceSets.test.runtimeClasspath   
 }
 
 task wrapper(type: Wrapper) {
