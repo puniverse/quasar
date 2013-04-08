@@ -112,21 +112,21 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
         };
     }
 
-    protected Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit, Message currentMessage) throws SuspendExecution, InterruptedException {
+    protected Message receive(long timeout, TimeUnit unit, Message currentMessage, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
         checkThrownIn();
-        return (Message)mailbox.receive(wrapProcessor(proc), timeout, unit, currentMessage);
+        return (Message)mailbox.receive(timeout, unit, currentMessage, wrapProcessor(proc));
     }
 
-    protected Message receive(MessageProcessor<Message> proc, Message currentMessage) throws SuspendExecution, InterruptedException {
-        return receive(proc, 0, null, currentMessage);
+    protected Message receive(Message currentMessage, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
+        return receive(0, null, currentMessage, proc);
     }
 
-    protected Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        return receive(proc, timeout, unit, null);
+    protected Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
+        return receive(timeout, unit, null, proc);
     }
 
     protected Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
-        return receive(proc, 0, null, null);
+        return receive(0, null, null, proc);
     }
 
     public void send(Message message) {

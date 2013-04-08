@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -115,7 +116,7 @@ public class ActorTest {
                             switch (m.type) {
                                 case FOO:
                                     list.add(1);
-                                    receive(new MessageProcessor<ComplexMessage>() {
+                                    receive(m, new MessageProcessor<ComplexMessage>() {
                                         public boolean process(ComplexMessage m) throws SuspendExecution, InterruptedException {
                                             switch (m.type) {
                                                 case BAZ:
@@ -150,7 +151,29 @@ public class ActorTest {
     }
 
     @Test
-    public void testTimeout() {
+    public void whenSimpleReceiveAndTimeoutThenReturnNull() throws Exception {
+        Actor<Message, Void> actor = new Actor<Message, Void>(fjPool, mailboxSize) {
+            int counter;
+
+            @Override
+            protected Void run() throws SuspendExecution, InterruptedException {
+                Message m;
+                m = receive(50, TimeUnit.MILLISECONDS);
+                assertThat(m.num, is(1));
+                m = receive(50, TimeUnit.MILLISECONDS);
+                assertThat(m.num, is(2));
+                m = receive(50, TimeUnit.MILLISECONDS);
+                assertThat(m, is(nullValue()));
+                
+                return null;
+            }
+        }.start();
+
+        actor.send(new Message(1));
+        Thread.sleep(20);
+        actor.send(new Message(2));
+        Thread.sleep(100);
+        actor.send(new Message(3));
     }
 
     @Test
@@ -170,7 +193,7 @@ public class ActorTest {
     }
 
     static class ComplexMessage {
-         enum Type {
+        enum Type {
             FOO, BAR, BAZ, WAT
         };
         final Type type;

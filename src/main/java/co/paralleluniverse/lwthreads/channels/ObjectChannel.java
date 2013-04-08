@@ -39,8 +39,8 @@ public class ObjectChannel<Message> extends Channel<Message> {
      * @throws TimeoutException
      * @throws LwtInterruptedException
      */
-    public Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit, Message currentMessage) throws SuspendExecution, InterruptedException {
-        assert Thread.currentThread() == getOwner();
+    public Message receive(long timeout, TimeUnit unit, Message currentMessage, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
+        sync.verifyOwner();
 
         final long start = timeout > 0 ? System.nanoTime() : 0;
         long now;
@@ -86,15 +86,15 @@ public class ObjectChannel<Message> extends Channel<Message> {
         }
     }
 
-    public Message receive(MessageProcessor<Message> proc, Message currentMessage) throws SuspendExecution, InterruptedException {
-        return receive(proc, 0, null, currentMessage);
+    public Message receive(Message currentMessage, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
+        return receive(0, null, currentMessage, proc);
     }
 
-    public Message receive(MessageProcessor<Message> proc, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        return receive(proc, timeout, unit, null);
+    public Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
+        return receive(timeout, unit, null, proc);
     }
 
     public Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
-        return receive(proc, 0, null, null);
+        return receive(0, null, null, proc);
     }
 }
