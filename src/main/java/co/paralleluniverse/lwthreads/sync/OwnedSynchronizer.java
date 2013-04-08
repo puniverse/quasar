@@ -2,8 +2,10 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package co.paralleluniverse.lwthreads;
+package co.paralleluniverse.lwthreads.sync;
 
+import co.paralleluniverse.lwthreads.LightweightThread;
+import co.paralleluniverse.lwthreads.SuspendExecution;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;

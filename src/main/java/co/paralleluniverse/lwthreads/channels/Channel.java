@@ -5,7 +5,7 @@
 package co.paralleluniverse.lwthreads.channels;
 
 import co.paralleluniverse.lwthreads.LightweightThread;
-import co.paralleluniverse.lwthreads.OwnedSynchronizer;
+import co.paralleluniverse.lwthreads.sync.OwnedSynchronizer;
 import co.paralleluniverse.lwthreads.SuspendExecution;
 import co.paralleluniverse.lwthreads.queues.SingleConsumerQueue;
 import java.util.concurrent.locks.Condition;

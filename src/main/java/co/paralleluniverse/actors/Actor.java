@@ -4,6 +4,7 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.lwthreads.LightweightThread;
 import co.paralleluniverse.lwthreads.SuspendExecution;
 import co.paralleluniverse.lwthreads.channels.Channel;
@@ -157,6 +158,7 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
     @Override
     protected void onException(Throwable t) {
         notifyDeath(t);
+        Exceptions.rethrow(t);
     }
 
     @Override

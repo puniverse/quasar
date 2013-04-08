@@ -1,6 +1,7 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.lwthreads.SuspendExecution;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;
 
@@ -15,7 +16,7 @@ public class RingBenchmark {
     }
     ForkJoinPool fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
-    void run() throws InterruptedException {
+    void run() throws ExecutionException, InterruptedException {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
         System.out.println("Starting ");

@@ -3,6 +3,7 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.lwthreads.LightweightThread;
 import co.paralleluniverse.lwthreads.SuspendExecution;
 import co.paralleluniverse.lwthreads.channels.IntChannel;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;
 
@@ -17,7 +18,7 @@ public class PrimitiveChannelRingBenchmark {
     
     ForkJoinPool fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
-    void run() throws InterruptedException {
+    void run() throws ExecutionException, InterruptedException {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
         System.out.println("Starting ");

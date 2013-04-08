@@ -30,6 +30,11 @@ public class LightweightThread<V> implements Serializable {
     public static final int DEFAULT_STACK_SIZE = 16;
     private static final long serialVersionUID = 2783452871536981L;
 
+    static {
+        if (verifyInstrumentation)
+            System.err.println("WARNING: LightweightThread is set to verify instrumentation. This may severely harm performance");
+    }
+
     public static enum State {
         NEW, RUNNING, WAITING, TERMINATED
     };
@@ -283,7 +288,8 @@ public class LightweightThread<V> implements Serializable {
 
         state = State.RUNNING;
         try {
-            run();
+            this.result = run1();
+
             state = State.TERMINATED;
             return true;
         } catch (SuspendExecution ex) {
@@ -305,6 +311,10 @@ public class LightweightThread<V> implements Serializable {
             state = State.TERMINATED;
             throw t;
         }
+    }
+
+    private V run1() throws SuspendExecution, InterruptedException {
+        return run(); // this method is always on the stack trace. used for verify instrumentation
     }
 
     protected V run() throws SuspendExecution, InterruptedException {
@@ -390,28 +400,20 @@ public class LightweightThread<V> implements Serializable {
         fjTask.unpark();
     }
 
-    public final void join() throws InterruptedException {
+    public final void join() throws ExecutionException, InterruptedException {
         get();
     }
 
-    public final void join(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
+    public final void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
         get(timeout, unit);
     }
 
-    public final V get() throws InterruptedException {
-        try {
-            return fjTask.get();
-        } catch (ExecutionException ex) {
-            throw new AssertionError(ex);
-        }
+    public final V get() throws ExecutionException, InterruptedException {
+        return fjTask.get();
     }
 
-    public final V get(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
-        try {
-            return fjTask.get(timeout, unit);
-        } catch (ExecutionException ex) {
-            throw new AssertionError(ex);
-        }
+    public final V get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+        return fjTask.get(timeout, unit);
     }
 
     private void sleep1(long millis) throws SuspendExecution {
@@ -631,10 +633,12 @@ public class LightweightThread<V> implements Serializable {
         StackTraceElement[] stes = Thread.currentThread().getStackTrace();
         try {
             for (StackTraceElement ste : stes) {
-                if (!ste.getClassName().equals(LightweightThread.class.getName())) {
+                if (ste.getClassName().equals(Thread.class.getName()) && ste.getMethodName().equals("getStackTrace"))
+                    continue;
+                if (!ste.getClassName().equals(LightweightThread.class.getName()) && !ste.getClassName().startsWith(LightweightThread.class.getName() + '$')) {
                     if (!isInstrumented(Class.forName(ste.getClassName())))
                         throw new IllegalStateException("Method " + ste.getClassName() + "." + ste.getMethodName() + " on the call-stack has not been instrumented. (trace: " + Arrays.toString(stes) + ")");
-                } else if (ste.getMethodName().equals("run"))
+                } else if (ste.getMethodName().equals("run1"))
                     return true;
             }
             return false;

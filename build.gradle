@@ -51,17 +51,26 @@ dependencies {
     testCompile 'org.mockito:mockito-all:1.9.0'
 }
 
-task instrumentClasses(dependsOn: 'compileTestJava') << {
-    ant {
-        logging.level = LogLevel.INFO
-        taskdef(name:'continuations', classname:'co.paralleluniverse.lwthreads.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
-        continuations(verbose:'true', check:'true', debug:'true') {
-            fileset(dir: sourceSets.test.output.classesDir)
+ant.taskdef(name:'continuations', classname:'co.paralleluniverse.lwthreads.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
+
+task instrumentClasses(dependsOn: 'compileJava') << {
+    //ant.logging.level = LogLevel.INFO
+    ant.continuations(verbose:'true', check:'true', debug:'true') {
+        fileset(dir: sourceSets.main.output.classesDir) {
+            exclude(name: 'co/paralleluniverse/lwthreads/*.class')
+            exclude(name: 'co/paralleluniverse/lwthreads/instrument/*.class')
         }
     }
 }
-    
-testClasses.dependsOn instrumentClasses
+
+task instrumentTestClasses(dependsOn: 'compileTestJava') << {
+    //ant.logging.level = LogLevel.INFO
+    ant.continuations(verbose:'true', check:'true', debug:'true') {
+        fileset(dir: sourceSets.test.output.classesDir)
+    }
+}
+
+testClasses.dependsOn instrumentClasses, instrumentTestClasses
 
 jar {
     manifest { 
@@ -78,6 +87,7 @@ jar {
 
 tasks.withType(Test) { 
     useJUnit()
+    systemProperty 'co.paralleluniverse.lwthreads.verifyInstrumentation', 'true'
     doLast() {
         println "file://" + testReportDir + "/index.html"    
     }    
