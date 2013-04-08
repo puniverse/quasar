@@ -5,36 +5,34 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;
 
-
 public class RingBenchmark {
-    static final int N = 100;
-    static final int M = 100;
-    static final int mailboxSize = 10;
+    static final int N = 1000;
+    static final int M = 1000;
+    static final int mailboxSize = -1;
+    static ForkJoinPool fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
     public static void main(String args[]) throws Exception {
-        new RingBenchmark().run();
+        for (int i = 0; i < 10; i++)
+            new PrimitiveChannelRingBenchmark().run();
     }
-    ForkJoinPool fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
     void run() throws ExecutionException, InterruptedException {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
-
-        System.out.println("Starting ");
         final long start = System.nanoTime();
 
         Actor<Message, Integer> manager = new Actor<Message, Integer>(fjPool, mailboxSize) {
             @Override
             protected Integer run() throws InterruptedException, SuspendExecution {
                 Actor a = this;
-                for (int i = 0; i < N; i++)
+                for (int i = 0; i < N - 1; i++)
                     a = createRelayActor(a);
 
                 a.send(new Message(1)); // start things off
-                
-                // final MessageProcessor<Message> relayMessage = relayMessage(a);
+
                 Message msg = null;
-                for (int i = 0; i < M; i++)
-                    msg = receive(relayMessage(a));
+                for (int i = 0; i < M; i++) {
+                    msg = receive();
+                    a.send(new Message(msg.num + 1));
+                }
 
                 return msg.num;
             }
@@ -46,23 +44,14 @@ public class RingBenchmark {
         System.out.println("messages: " + totalCount + " time (ms): " + time);
     }
 
-    private MessageProcessor<Message> relayMessage(final Actor to) {
-        return new MessageProcessor<Message>() {
-            @Override
-            public boolean process(Message m) {
-                to.send(new Message(m.num + 1));
-                return true;
-            }
-        };
-    }
-
     private Actor createRelayActor(final Actor<Message, ?> prev) {
-        // final MessageProcessor<Message> relayMessage = relayMessage(prev);
         return new Actor<Message, Void>(fjPool, mailboxSize) {
             @Override
             protected Void run() throws InterruptedException, SuspendExecution {
-                for (;;)
-                    receive(relayMessage(prev));
+                for (;;) {
+                    Message m = receive();
+                    prev.send(new Message(m.num + 1));
+                }
             }
         }.start();
     }

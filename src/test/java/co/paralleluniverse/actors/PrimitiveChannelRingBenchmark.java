@@ -8,27 +8,24 @@ import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;
 
 public class PrimitiveChannelRingBenchmark {
-    static final int N = 100;
-    static final int M = 100;
+    static final int N = 1000;
+    static final int M = 1000;
     static final int mailboxSize = 10;
+    static final ForkJoinPool fjPool = new ForkJoinPool(3, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
     public static void main(String args[]) throws Exception {
-        new PrimitiveChannelRingBenchmark().run();
+        for (int i = 0; i < 10; i++)
+            new PrimitiveChannelRingBenchmark().run();
     }
-    
-    ForkJoinPool fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
     void run() throws ExecutionException, InterruptedException {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
-
-        System.out.println("Starting ");
         final long start = System.nanoTime();
 
         LightweightThread<Integer> manager = new LightweightThreadWithAnIntChannel<Integer>(fjPool) {
             @Override
             protected Integer run() throws InterruptedException, SuspendExecution {
                 IntChannel a = this.channel;
-                for (int i = 0; i < N; i++)
+                for (int i = 0; i < N - 1; i++)
                     a = createRelayActor(a);
 
                 a.send(1); // start things off
@@ -69,7 +66,7 @@ public class PrimitiveChannelRingBenchmark {
             super(fjPool);
         }
     }
-    
+
     static class Message {
         final int num;
 
