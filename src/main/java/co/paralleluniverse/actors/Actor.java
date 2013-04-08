@@ -88,10 +88,21 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
         }
     }
 
+    protected Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        for (;;) {
+            checkThrownIn();
+            Object m = mailbox.receive();
+            if (m instanceof LifecycleMessage)
+                handleLifecycleMessage((LifecycleMessage) m);
+            else
+                return (Message) m;
+        }
+    }
+
     private MessageProcessor<Object> wrapProcessor(final MessageProcessor<Message> proc) {
         return new MessageProcessor<Object>() {
             @Override
-            public boolean process(Object message) {
+            public boolean process(Object message) throws SuspendExecution, InterruptedException {
                 if (message instanceof LifecycleMessage) {
                     handleLifecycleMessage((LifecycleMessage) message);
                     return true;

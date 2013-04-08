@@ -10,6 +10,7 @@ import co.paralleluniverse.lwthreads.queues.SingleConsumerArrayDoubleQueue;
 import co.paralleluniverse.lwthreads.queues.SingleConsumerDoubleQueue;
 import co.paralleluniverse.lwthreads.queues.SingleConsumerLinkedDoubleQueue;
 import co.paralleluniverse.lwthreads.queues.SingleConsumerQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -28,8 +29,15 @@ public class DoubleChannel extends Channel<Double> {
         super(owner, queue);
     }
 
-    public double receiveInt() throws SuspendExecution, InterruptedException {
+    public double receiveDouble() throws SuspendExecution, InterruptedException {
         final Object n = receiveNode();
+        final double m = ((SingleConsumerDoubleQueue<Object>) queue).doubleValue(n);
+        queue.deq(n);
+        return m;
+    }
+
+    public double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        final Object n = receiveNode(timeout, unit);
         final double m = ((SingleConsumerDoubleQueue<Object>) queue).doubleValue(n);
         queue.deq(n);
         return m;

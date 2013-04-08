@@ -10,6 +10,7 @@ import co.paralleluniverse.lwthreads.queues.SingleConsumerArrayLongQueue;
 import co.paralleluniverse.lwthreads.queues.SingleConsumerLinkedLongQueue;
 import co.paralleluniverse.lwthreads.queues.SingleConsumerLongQueue;
 import co.paralleluniverse.lwthreads.queues.SingleConsumerQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -28,8 +29,15 @@ public class LongChannel extends Channel<Long> {
         super(owner, queue);
     }
 
-    public long receiveInt() throws SuspendExecution, InterruptedException {
+    public long receiveLong() throws SuspendExecution, InterruptedException {
         final Object n = receiveNode();
+        final long m = ((SingleConsumerLongQueue<Object>)queue).longValue(n);
+        queue.deq(n);
+        return m;
+    }
+
+    public long receiveLong(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        final Object n = receiveNode(timeout, unit);
         final long m = ((SingleConsumerLongQueue<Object>)queue).longValue(n);
         queue.deq(n);
         return m;

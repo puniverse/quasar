@@ -10,6 +10,7 @@ import co.paralleluniverse.lwthreads.queues.SingleConsumerArrayFloatQueue;
 import co.paralleluniverse.lwthreads.queues.SingleConsumerFloatQueue;
 import co.paralleluniverse.lwthreads.queues.SingleConsumerLinkedFloatQueue;
 import co.paralleluniverse.lwthreads.queues.SingleConsumerQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -30,6 +31,13 @@ public class FloatChannel extends Channel<Float> {
     
     public float receiveFloat() throws SuspendExecution, InterruptedException {
         final Object n = receiveNode();
+        final float m = ((SingleConsumerFloatQueue<Object>)queue).floatValue(n);
+        queue.deq(n);
+        return m;
+    }
+
+    public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        final Object n = receiveNode(timeout, unit);
         final float m = ((SingleConsumerFloatQueue<Object>)queue).floatValue(n);
         queue.deq(n);
         return m;
