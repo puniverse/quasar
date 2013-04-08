@@ -29,7 +29,10 @@ public class IntChannel extends Channel<Integer> {
     }
 
     public int receiveInt() throws SuspendExecution, InterruptedException {
-        return ((SingleConsumerIntQueue<Object>)queue).intValue(receiveNode());
+        final Object n = receiveNode();
+        final int m = ((SingleConsumerIntQueue<Object>)queue).intValue(n);
+        queue.deq(n);
+        return m;
     }
 
     public void send(int message) {

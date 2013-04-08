@@ -64,7 +64,9 @@ public abstract class Channel<Message> implements SendChannel<Message> {
     }
 
     public Message receive() throws SuspendExecution, InterruptedException {
-        sync.verifyOwner();
-        return queue.value(receiveNode());
+        final Object n = receiveNode();
+        final Message m = queue.value(n);
+        queue.deq(n);
+        return m;
     }
 }

@@ -29,7 +29,10 @@ public class FloatChannel extends Channel<Float> {
     }
     
     public float receiveFloat() throws SuspendExecution, InterruptedException {
-        return ((SingleConsumerFloatQueue<Object>)queue).floatValue(receiveNode());
+        final Object n = receiveNode();
+        final float m = ((SingleConsumerFloatQueue<Object>)queue).floatValue(n);
+        queue.deq(n);
+        return m;
     }
 
     public void send(float message) {

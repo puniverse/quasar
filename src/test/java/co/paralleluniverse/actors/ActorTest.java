@@ -79,6 +79,26 @@ public class ActorTest {
     }
 
     @Test
+    public void testReceiveAfterSleep() throws Exception {
+        Actor<Message, Integer> actor = new Actor<Message, Integer>(fjPool, mailboxSize) {
+            int counter;
+
+            @Override
+            protected Integer run() throws SuspendExecution, InterruptedException {
+                Message m1 = receive();
+                Message m2 = receive();
+                return m1.num + m2.num;
+            }
+        }.start();
+        
+        actor.send(new Message(25));
+        Thread.sleep(200);
+        actor.send(new Message(17));
+        
+        assertThat(actor.get(), is(42));
+    }
+
+    @Test
     public void testSelectiveReceive() {
     }
 

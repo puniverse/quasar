@@ -29,7 +29,10 @@ public class DoubleChannel extends Channel<Double> {
     }
 
     public double receiveInt() throws SuspendExecution, InterruptedException {
-        return ((SingleConsumerDoubleQueue<Object>)queue).doubleValue(receiveNode());
+        final Object n = receiveNode();
+        final double m = ((SingleConsumerDoubleQueue<Object>) queue).doubleValue(n);
+        queue.deq(n);
+        return m;
     }
 
     public void send(double message) {

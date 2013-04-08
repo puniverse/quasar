@@ -29,7 +29,10 @@ public class LongChannel extends Channel<Long> {
     }
 
     public long receiveInt() throws SuspendExecution, InterruptedException {
-        return ((SingleConsumerLongQueue<Object>)queue).longValue(receiveNode());
+        final Object n = receiveNode();
+        final long m = ((SingleConsumerLongQueue<Object>)queue).longValue(n);
+        queue.deq(n);
+        return m;
     }
 
     public void send(long message) {
