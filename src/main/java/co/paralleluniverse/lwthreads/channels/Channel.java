@@ -55,12 +55,10 @@ public abstract class Channel<Message> implements SendChannel<Message> {
         sync.verifyOwner();
         Object n;
         sync.lock();
-        try {
-            while ((n = queue.pk()) == null)
-                sync.await();
-        } finally {
-            sync.unlock();
-        }
+        while ((n = queue.pk()) == null)
+            sync.await();
+        sync.unlock();
+
         return n;
     }
 
@@ -70,7 +68,7 @@ public abstract class Channel<Message> implements SendChannel<Message> {
 
         final long start = timeout > 0 ? System.nanoTime() : 0;
         long left = unit != null ? unit.toNanos(timeout) : 0;
-        
+
         sync.lock();
         try {
             while ((n = queue.pk()) == null) {
