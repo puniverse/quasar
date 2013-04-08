@@ -29,7 +29,7 @@ public class ObjectChannel<Message> extends Channel<Message> {
     private ObjectChannel(Object owner, SingleConsumerQueue<Message, ?> queue) {
         super(owner, queue);
     }
-    
+
     /**
      *
      * @param proc
@@ -67,21 +67,21 @@ public class ObjectChannel<Message> extends Channel<Message> {
                         queue.del(n);
                     throw e;
                 }
-            }
+            } else {
+                sync.lock();
+                try {
+                    if (timeout > 0) {
+                        sync.await(this, left, TimeUnit.NANOSECONDS);
 
-            sync.lock();
-            try {
-                if (timeout > 0) {
-                    sync.await(this, left, TimeUnit.NANOSECONDS);
-
-                    now = System.nanoTime();
-                    left = start + unit.toNanos(timeout) - now;
-                    if (left <= 0)
-                        throw new TimeoutException();
-                } else
-                    sync.await();
-            } finally {
-                sync.unlock();
+                        now = System.nanoTime();
+                        left = start + unit.toNanos(timeout) - now;
+                        if (left <= 0)
+                            throw new TimeoutException();
+                    } else
+                        sync.await();
+                } finally {
+                    sync.unlock();
+                }
             }
         }
     }

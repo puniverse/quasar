@@ -18,6 +18,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
+import org.junit.Ignore;
 
 /**
  *
@@ -164,7 +165,7 @@ public class ActorTest {
                 assertThat(m.num, is(2));
                 m = receive(50, TimeUnit.MILLISECONDS);
                 assertThat(m, is(nullValue()));
-                
+
                 return null;
             }
         }.start();
@@ -174,6 +175,10 @@ public class ActorTest {
         actor.send(new Message(2));
         Thread.sleep(100);
         actor.send(new Message(3));
+    }
+
+    @Test
+    public void testTimeoutException() throws Exception {
     }
 
     @Test
