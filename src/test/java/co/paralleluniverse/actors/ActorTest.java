@@ -4,7 +4,9 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.lwthreads.LightweightThread;
 import co.paralleluniverse.lwthreads.SuspendExecution;
+import co.paralleluniverse.lwthreads.TimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -106,8 +108,6 @@ public class ActorTest {
     @Test
     public void testSelectiveReceive() throws Exception {
         Actor<ComplexMessage, List<Integer>> actor = new Actor<ComplexMessage, List<Integer>>(fjPool, mailboxSize) {
-            int counter;
-
             @Override
             protected List<Integer> run() throws SuspendExecution, InterruptedException {
                 final List<Integer> list = new ArrayList<>();
@@ -179,10 +179,65 @@ public class ActorTest {
 
     @Test
     public void testTimeoutException() throws Exception {
+        Actor<Message, Void> actor = new Actor<Message, Void>(fjPool, mailboxSize) {
+            @Override
+            protected Void run() throws SuspendExecution, InterruptedException {
+                try {
+                    receive(100, TimeUnit.MILLISECONDS, new MessageProcessor<Message>() {
+                        public boolean process(Message m) throws SuspendExecution, InterruptedException {
+                            fail();
+                            return true;
+                        }
+                    });
+                    fail();
+                } catch (TimeoutException e) {
+                }
+                return null;
+            }
+        }.start();
+        
+        Thread.sleep(150);
+        actor.send(new Message(1));
+        actor.join();
     }
 
     @Test
-    public void testLink() {
+    public void testLink() throws Exception {
+        Actor<Message, Void> actor1 = new Actor<Message, Void>(fjPool, mailboxSize) {
+            int counter;
+
+            @Override
+            protected Void run() throws SuspendExecution, InterruptedException {
+                try {
+                    LightweightThread.sleep(100);
+                } catch (TimeoutException e) {
+                }
+                return null;
+            }
+        }.start();
+        
+        Actor<Message, Void> actor2 = new Actor<Message, Void>(fjPool, mailboxSize) {
+            int counter;
+
+            @Override
+            protected Void run() throws SuspendExecution, InterruptedException {
+                try {
+                    for(;;) {
+                        receive();
+                    }
+                } catch (TimeoutException e) {
+                    fail();
+                } catch(LifecycleException e) {
+                    
+                }
+                return null;
+            }
+        }.start();
+        
+        actor1.link(actor2);
+        
+        actor1.join();
+        actor2.join();
     }
 
     @Test
