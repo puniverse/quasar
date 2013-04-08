@@ -31,6 +31,8 @@ public abstract class OwnedSynchronizer {
         return new LightweightThreadOwnedSynchronizer(owner);
     }
 
+    public abstract Object getOwner();
+
     public abstract void verifyOwner();
 
     public abstract boolean isOwnerAlive();
@@ -54,6 +56,11 @@ public abstract class OwnedSynchronizer {
 
         public ThreadOwnedSynchronizer(Thread owner) {
             this.owner = owner;
+        }
+
+        @Override
+        public Thread getOwner() {
+            return owner;
         }
 
         @Override
@@ -102,6 +109,11 @@ public abstract class OwnedSynchronizer {
 
         public LightweightThreadOwnedSynchronizer(LightweightThread owner) {
             this.owner = owner;
+        }
+
+        @Override
+        public LightweightThread getOwner() {
+            return owner;
         }
 
         @Override
