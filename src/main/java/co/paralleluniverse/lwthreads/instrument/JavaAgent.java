@@ -65,7 +65,6 @@ import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -112,10 +111,12 @@ public class JavaAgent {
         }
 
         db.setLog(new Log() {
+            @Override
             public void log(LogLevel level, String msg, Object... args) {
                 System.out.println("[Continuations] " + level + ": " + String.format(msg, args));
             }
 
+            @Override
             public void error(String msg, Exception exc) {
                 System.out.println("[Continuations] ERROR: " + msg);
 
@@ -147,12 +148,10 @@ public class JavaAgent {
         @Override
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
                 ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
-            if(MethodDatabase.isJavaCore(className)) {
+            if(MethodDatabase.isJavaCore(className))
                 return null;
-            }
-            if(className.startsWith("org/objectweb/asm/")) {
+            if(className.startsWith("org/objectweb/asm/"))
                 return null;
-            }
 
             db.log(LogLevel.INFO, "TRANSFORM: %s", className);
 
