@@ -8,7 +8,6 @@ import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.lwthreads.LightweightThread;
 import co.paralleluniverse.lwthreads.SuspendExecution;
 import co.paralleluniverse.lwthreads.SuspendableCallable;
-import co.paralleluniverse.lwthreads.SuspendableRunnable;
 import co.paralleluniverse.lwthreads.channels.Channel;
 import co.paralleluniverse.lwthreads.channels.ObjectChannel;
 import co.paralleluniverse.lwthreads.channels.SendChannel;
@@ -33,103 +32,67 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
     @SuppressWarnings("LeakingThisInConstructor")
-    public Actor(String name, ForkJoinPool fjPool, int stackSize, int mailboxSize, SuspendableCallable<V> target) {
-        super(name, fjPool, stackSize, target);
+    public Actor(String name, ForkJoinPool fjPool, int stackSize, int mailboxSize, ActorTarget<V> target) {
+        super(name, fjPool, stackSize, wrap(target));
+        ((ActorCallable) getTarget()).self = this;
         this.mailbox = ObjectChannel.create(this, mailboxSize);
     }
 
     @SuppressWarnings("LeakingThisInConstructor")
-    public Actor(String name, int stackSize, int mailboxSize, SuspendableCallable<V> target) {
-        super(name, stackSize, target);
+    public Actor(String name, int stackSize, int mailboxSize, ActorTarget<V> target) {
+        super(name, stackSize, wrap(target));
+        ((ActorCallable) getTarget()).self = this;
         this.mailbox = ObjectChannel.create(this, mailboxSize);
     }
 
+    private static <V> SuspendableCallable<V> wrap(ActorTarget<V> target) {
+        return new ActorCallable<V>(target);
+    }
+
+    private static class ActorCallable<V> implements SuspendableCallable<V> {
+        private final ActorTarget<V> target;
+        Actor self;
+
+        public ActorCallable(ActorTarget<V> target) {
+            this.target = target;
+        }
+
+        @Override
+        public V run() throws SuspendExecution, InterruptedException {
+            return target.run(self);
+        }
+    }
+
     public Actor(String name, ForkJoinPool fjPool, int stackSize, int mailboxSize) {
-        this(name, fjPool, stackSize, mailboxSize, (SuspendableCallable) null);
+        this(name, fjPool, stackSize, mailboxSize, null);
     }
 
     public Actor(String name, ForkJoinPool fjPool, int mailboxSize) {
-        this(name, fjPool, -1, mailboxSize, (SuspendableCallable) null);
+        this(name, fjPool, -1, mailboxSize, null);
     }
 
     public Actor(ForkJoinPool fjPool, int stackSize, int mailboxSize) {
-        this(null, fjPool, stackSize, mailboxSize, (SuspendableCallable) null);
+        this(null, fjPool, stackSize, mailboxSize, null);
     }
 
     public Actor(ForkJoinPool fjPool, int mailboxSize) {
-        this(null, fjPool, -1, mailboxSize, (SuspendableCallable) null);
+        this(null, fjPool, -1, mailboxSize, null);
     }
 
     public Actor(String name, int stackSize, int mailboxSize) {
-        this(name, stackSize, mailboxSize, (SuspendableCallable) null);
+        this(name, stackSize, mailboxSize, null);
     }
 
     public Actor(String name, int mailboxSize) {
-        this(name, -1, mailboxSize, (SuspendableCallable) null);
+        this(name, -1, mailboxSize, null);
     }
 
     public Actor(int stackSize, int mailboxSize) {
-        this((String) null, stackSize, mailboxSize, (SuspendableCallable) null);
+        this((String) null, stackSize, mailboxSize, null);
     }
 
     public Actor(int mailboxSize) {
-        this((String) null, -1, mailboxSize, (SuspendableCallable) null);
-    }
-
-    public Actor(String name, ForkJoinPool fjPool, int mailboxSize, SuspendableCallable<V> target) {
-        this(name, fjPool, -1, mailboxSize, target);
-    }
-
-    public Actor(ForkJoinPool fjPool, int stackSize, int mailboxSize, SuspendableCallable<V> target) {
-        this(null, fjPool, stackSize, mailboxSize, target);
-    }
-
-    public Actor(ForkJoinPool fjPool, int mailboxSize, SuspendableCallable<V> target) {
-        this(null, fjPool, -1, mailboxSize, target);
-    }
-
-    public Actor(String name, int mailboxSize, SuspendableCallable<V> target) {
-        this(name, -1, mailboxSize, target);
-    }
-
-    public Actor(int stackSize, int mailboxSize, SuspendableCallable<V> target) {
-        this((String) null, stackSize, mailboxSize, target);
-    }
-
-    public Actor(int mailboxSize, SuspendableCallable<V> target) {
-        this((String) null, -1, mailboxSize, target);
-    }
-
-    public Actor(String name, ForkJoinPool fjPool, int stackSize, int mailboxSize, SuspendableRunnable target) {
-        this(name, fjPool, stackSize, mailboxSize, (SuspendableCallable) wrap(target));
-    }
-
-    public Actor(String name, int stackSize, int mailboxSize, SuspendableRunnable target) {
-        this(name, stackSize, mailboxSize, (SuspendableCallable) wrap(target));
-    }
-
-    public Actor(String name, ForkJoinPool fjPool, int mailboxSize, SuspendableRunnable target) {
-        this(name, fjPool, -1, mailboxSize, target);
-    }
-
-    public Actor(ForkJoinPool fjPool, int stackSize, int mailboxSize, SuspendableRunnable target) {
-        this(null, fjPool, stackSize, mailboxSize, target);
-    }
-
-    public Actor(ForkJoinPool fjPool, int mailboxSize, SuspendableRunnable target) {
-        this(null, fjPool, -1, mailboxSize, target);
-    }
-
-    public Actor(String name, int mailboxSize, SuspendableRunnable target) {
-        this(name, null, -1, mailboxSize, target);
-    }
-
-    public Actor(int stackSize, int mailboxSize, SuspendableRunnable target) {
-        this((String) null, stackSize, mailboxSize, target);
-    }
-
-    public Actor(int mailboxSize, SuspendableRunnable target) {
-        this((String) null, -1, mailboxSize, target);
+        this((String) null, -1, mailboxSize, null);
     }
 
     //</editor-fold>

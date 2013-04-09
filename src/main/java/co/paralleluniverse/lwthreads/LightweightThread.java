@@ -111,6 +111,9 @@ public class LightweightThread<V> implements Serializable {
         }
     }
 
+    protected SuspendableCallable<V> getTarget() {
+        return target;
+    }
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
     public LightweightThread(ForkJoinPool fjPool, SuspendableCallable<V> target) {
