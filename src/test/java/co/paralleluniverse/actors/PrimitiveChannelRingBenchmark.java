@@ -11,7 +11,7 @@ public class PrimitiveChannelRingBenchmark {
     static final int N = 1000;
     static final int M = 1000;
     static final int mailboxSize = 10;
-    static final ForkJoinPool fjPool = new ForkJoinPool(3, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+    static final ForkJoinPool fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
     public static void main(String args[]) throws Exception {
         for (int i = 0; i < 10; i++)
