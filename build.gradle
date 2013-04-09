@@ -71,7 +71,9 @@ task instrumentTestClasses(dependsOn: 'compileTestJava') << {
     }
 }
 
-testClasses.dependsOn instrumentClasses, instrumentTestClasses
+//testClasses.dependsOn instrumentClasses, instrumentTestClasses
+
+test.dependsOn jar
 
 jar {
     manifest { 
@@ -80,7 +82,7 @@ jar {
             "Implementation-Title"      :   name,
             "Implementation-Version"    :   version,
             "Implementation-Vendor"     :   vendor,
-            "Premain-Class"             :   "co.paralleluniverse.concurrent.lwthreads.instrument.JavaAgent",
+            "Premain-Class"             :   "co.paralleluniverse.lwthreads.instrument.JavaAgent",
             "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',') 
         )
     }
@@ -88,7 +90,8 @@ jar {
 
 tasks.withType(Test) { 
     useJUnit()
-    //systemProperty 'co.paralleluniverse.lwthreads.verifyInstrumentation', 'true'
+    systemProperty 'co.paralleluniverse.lwthreads.verifyInstrumentation', 'true'
+    jvmArgs "-javaagent:${jar.archivePath}=v"
     doLast() {
         println "file://" + testReportDir + "/index.html"    
     }    
@@ -96,7 +99,8 @@ tasks.withType(Test) {
 
 task run(type: JavaExec, dependsOn:[testClasses]) {
     main = mainClass
-    //jvmArgs '-agentpath:/Applications/NetBeans/NetBeans 7.2.app/Contents/Resources/NetBeans/profiler/lib/deployed/jdk15/mac/libprofilerinterface.jnilib=/Applications/NetBeans/NetBeans 7.2.app/Contents/Resources/NetBeans/profiler/lib,5140'
+    systemProperty 'co.paralleluniverse.lwthreads.verifyInstrumentation', 'true'
+    jvmArgs "-javaagent:${jar.archivePath}=v"
 }
 
 tasks.withType(JavaExec) { 

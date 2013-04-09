@@ -63,13 +63,13 @@ public class LightweightThread<V> implements Serializable {
      * @throws NullPointerException when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
-    public LightweightThread(String name, ForkJoinPool fjPool, SuspendableCallable<V> target, int stackSize) {
+    public LightweightThread(String name, ForkJoinPool fjPool, int stackSize, SuspendableCallable<V> target) {
         this.name = name;
         this.fjPool = fjPool;
         this.parent = currentLightweightThread();
         this.target = target;
         this.fjTask = new LightweightThreadForkJoinTask<V>(this);
-        this.stack = new Stack(this, stackSize);
+        this.stack = new Stack(this, stackSize > 0 ? stackSize : DEFAULT_STACK_SIZE);
         this.state = State.NEW;
 
         if (target != null) {
@@ -80,90 +80,8 @@ public class LightweightThread<V> implements Serializable {
         }
     }
 
-    //<editor-fold defaultstate="collapsed" desc="Constructors">
-    /////////// Constructors ///////////////////////////////////
-    public LightweightThread(String name, ForkJoinPool fjPool, SuspendableRunnable target, int stackSize) {
-        this(name, fjPool, (SuspendableCallable<V>) wrap(target), stackSize);
-    }
-
-    public LightweightThread(ForkJoinPool fjPool, SuspendableCallable<V> target) {
-        this(null, fjPool, target, DEFAULT_STACK_SIZE);
-    }
-
-    public LightweightThread(String name, ForkJoinPool fjPool, SuspendableCallable<V> target) {
-        this(name, fjPool, target, DEFAULT_STACK_SIZE);
-    }
-
-    public LightweightThread(SuspendableCallable<V> target) {
-        this(null, verifyParent().fjPool, target, DEFAULT_STACK_SIZE);
-    }
-
-    public LightweightThread(String name, SuspendableCallable<V> target) {
-        this(name, verifyParent().fjPool, target, DEFAULT_STACK_SIZE);
-    }
-
-    public LightweightThread(SuspendableCallable<V> target, int stackSize) {
-        this(null, verifyParent().fjPool, target, stackSize);
-    }
-
-    public LightweightThread(String name, SuspendableCallable<V> target, int stackSize) {
-        this(name, verifyParent().fjPool, target, stackSize);
-    }
-
-    public LightweightThread(ForkJoinPool fjPool, SuspendableRunnable target) {
-        this(null, fjPool, target, DEFAULT_STACK_SIZE);
-    }
-
-    public LightweightThread(String name, ForkJoinPool fjPool, SuspendableRunnable target) {
-        this(name, fjPool, target, DEFAULT_STACK_SIZE);
-    }
-
-    public LightweightThread(SuspendableRunnable target) {
-        this(null, verifyParent().fjPool, target, DEFAULT_STACK_SIZE);
-    }
-
-    public LightweightThread(String name, SuspendableRunnable target) {
-        this(name, verifyParent().fjPool, target, DEFAULT_STACK_SIZE);
-    }
-
-    public LightweightThread(SuspendableRunnable target, int stackSize) {
-        this(null, verifyParent().fjPool, target, stackSize);
-    }
-
-    public LightweightThread(String name, SuspendableRunnable target, int stackSize) {
-        this(name, verifyParent().fjPool, target, stackSize);
-    }
-
-    public LightweightThread(ForkJoinPool fjPool) {
-        this(null, fjPool, (SuspendableCallable) null, DEFAULT_STACK_SIZE);
-    }
-
-    public LightweightThread(String name, ForkJoinPool fjPool) {
-        this(name, fjPool, (SuspendableCallable) null, DEFAULT_STACK_SIZE);
-    }
-
-    public LightweightThread() {
-        this(null, verifyParent().fjPool, (SuspendableCallable) null, DEFAULT_STACK_SIZE);
-    }
-
-    public LightweightThread(String name) {
-        this(name, verifyParent().fjPool, (SuspendableCallable) null, DEFAULT_STACK_SIZE);
-    }
-
-    public LightweightThread(int stackSize) {
-        this(null, verifyParent().fjPool, (SuspendableCallable) null, stackSize);
-    }
-
-    public LightweightThread(String name, int stackSize) {
-        this(name, verifyParent().fjPool, (SuspendableCallable) null, stackSize);
-    }
-
-    public LightweightThread(ForkJoinPool fjPool, int stackSize) {
-        this(null, fjPool, (SuspendableCallable) null, stackSize);
-    }
-
-    public LightweightThread(String name, ForkJoinPool fjPool, int stackSize) {
-        this(name, fjPool, (SuspendableCallable) null, stackSize);
+    public LightweightThread(String name, int stackSize, SuspendableCallable<V> target) {
+        this(name, verifyParent().fjPool, stackSize, target);
     }
 
     private static LightweightThread verifyParent() {
@@ -173,7 +91,7 @@ public class LightweightThread<V> implements Serializable {
         return parent;
     }
 
-    private static SuspendableCallable<Void> wrap(SuspendableRunnable runnable) {
+    protected static SuspendableCallable<Void> wrap(SuspendableRunnable runnable) {
         if (!isInstrumented(runnable.getClass()))
             throw new IllegalArgumentException("Target class " + runnable.getClass() + " has not been instrumented.");
         return new VoidSuspendableCallable(runnable);
@@ -191,6 +109,88 @@ public class LightweightThread<V> implements Serializable {
             runnable.run();
             return null;
         }
+    }
+
+    //<editor-fold defaultstate="collapsed" desc="Constructors">
+    /////////// Constructors ///////////////////////////////////
+    public LightweightThread(ForkJoinPool fjPool, SuspendableCallable<V> target) {
+        this(null, fjPool, -1, target);
+    }
+
+    public LightweightThread(String name, ForkJoinPool fjPool, SuspendableCallable<V> target) {
+        this(name, fjPool, -1, target);
+    }
+
+    public LightweightThread(SuspendableCallable<V> target) {
+        this(null, -1, target);
+    }
+
+    public LightweightThread(String name, SuspendableCallable<V> target) {
+        this(null, -1, target);
+    }
+
+    public LightweightThread(int stackSize, SuspendableCallable<V> target) {
+        this(null, stackSize, target);
+    }
+
+    public LightweightThread(ForkJoinPool fjPool) {
+        this(null, fjPool, -1, (SuspendableCallable) null);
+    }
+
+    public LightweightThread(String name, ForkJoinPool fjPool) {
+        this(name, fjPool, -1, (SuspendableCallable) null);
+    }
+
+    public LightweightThread() {
+        this(null, -1, (SuspendableCallable) null);
+    }
+
+    public LightweightThread(String name) {
+        this(name, -1, (SuspendableCallable) null);
+    }
+
+    public LightweightThread(int stackSize) {
+        this(null, stackSize, (SuspendableCallable) null);
+    }
+
+    public LightweightThread(String name, int stackSize) {
+        this(name, stackSize, (SuspendableCallable) null);
+    }
+
+    public LightweightThread(ForkJoinPool fjPool, int stackSize) {
+        this(null, fjPool, stackSize, (SuspendableCallable) null);
+    }
+
+    public LightweightThread(String name, ForkJoinPool fjPool, int stackSize) {
+        this(name, fjPool, stackSize, (SuspendableCallable) null);
+    }
+
+    public LightweightThread(String name, ForkJoinPool fjPool, int stackSize, SuspendableRunnable target) {
+        this(name, fjPool, stackSize, (SuspendableCallable<V>) wrap(target));
+    }
+
+    public LightweightThread(String name, int stackSize, SuspendableRunnable target) {
+        this(name, stackSize, (SuspendableCallable<V>) wrap(target));
+    }
+
+    public LightweightThread(ForkJoinPool fjPool, SuspendableRunnable target) {
+        this(null, fjPool, -1, target);
+    }
+
+    public LightweightThread(String name, ForkJoinPool fjPool, SuspendableRunnable target) {
+        this(name, fjPool, -1, target);
+    }
+
+    public LightweightThread(SuspendableRunnable target) {
+        this(null, -1, target);
+    }
+
+    public LightweightThread(String name, SuspendableRunnable target) {
+        this(name, -1, target);
+    }
+
+    public LightweightThread(int stackSize, SuspendableRunnable target) {
+        this(null, stackSize, target);
     }
     //</editor-fold>
 

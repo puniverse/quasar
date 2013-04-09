@@ -7,6 +7,8 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.lwthreads.LightweightThread;
 import co.paralleluniverse.lwthreads.SuspendExecution;
+import co.paralleluniverse.lwthreads.SuspendableCallable;
+import co.paralleluniverse.lwthreads.SuspendableRunnable;
 import co.paralleluniverse.lwthreads.channels.Channel;
 import co.paralleluniverse.lwthreads.channels.ObjectChannel;
 import co.paralleluniverse.lwthreads.channels.SendChannel;
@@ -31,52 +33,112 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
     @SuppressWarnings("LeakingThisInConstructor")
-    public Actor(String name, ForkJoinPool fjPool, int stackSize, int mailboxSize) {
-        super(name, fjPool, stackSize);
+    public Actor(String name, ForkJoinPool fjPool, int stackSize, int mailboxSize, SuspendableCallable<V> target) {
+        super(name, fjPool, stackSize, target);
         this.mailbox = ObjectChannel.create(this, mailboxSize);
     }
 
     @SuppressWarnings("LeakingThisInConstructor")
-    public Actor(String name, ForkJoinPool fjPool, int mailboxSize) {
-        super(name, fjPool);
+    public Actor(String name, int stackSize, int mailboxSize, SuspendableCallable<V> target) {
+        super(name, stackSize, target);
         this.mailbox = ObjectChannel.create(this, mailboxSize);
+    }
+
+    public Actor(String name, ForkJoinPool fjPool, int stackSize, int mailboxSize) {
+        this(name, fjPool, stackSize, mailboxSize, (SuspendableCallable) null);
+    }
+
+    public Actor(String name, ForkJoinPool fjPool, int mailboxSize) {
+        this(name, fjPool, -1, mailboxSize, (SuspendableCallable) null);
     }
 
     public Actor(ForkJoinPool fjPool, int stackSize, int mailboxSize) {
-        this(null, fjPool, stackSize, mailboxSize);
+        this(null, fjPool, stackSize, mailboxSize, (SuspendableCallable) null);
     }
 
     public Actor(ForkJoinPool fjPool, int mailboxSize) {
-        this(null, fjPool, mailboxSize);
+        this(null, fjPool, -1, mailboxSize, (SuspendableCallable) null);
     }
 
-    @SuppressWarnings("LeakingThisInConstructor")
     public Actor(String name, int stackSize, int mailboxSize) {
-        super(name, stackSize);
-        this.mailbox = ObjectChannel.create(this, mailboxSize);
+        this(name, stackSize, mailboxSize, (SuspendableCallable) null);
     }
 
-    @SuppressWarnings("LeakingThisInConstructor")
     public Actor(String name, int mailboxSize) {
-        super(name);
-        this.mailbox = ObjectChannel.create(this, mailboxSize);
+        this(name, -1, mailboxSize, (SuspendableCallable) null);
     }
 
     public Actor(int stackSize, int mailboxSize) {
-        this((String) null, stackSize, mailboxSize);
+        this((String) null, stackSize, mailboxSize, (SuspendableCallable) null);
     }
 
     public Actor(int mailboxSize) {
-        this((String) null, mailboxSize);
+        this((String) null, -1, mailboxSize, (SuspendableCallable) null);
     }
-    //</editor-fold>
 
+    public Actor(String name, ForkJoinPool fjPool, int mailboxSize, SuspendableCallable<V> target) {
+        this(name, fjPool, -1, mailboxSize, target);
+    }
+
+    public Actor(ForkJoinPool fjPool, int stackSize, int mailboxSize, SuspendableCallable<V> target) {
+        this(null, fjPool, stackSize, mailboxSize, target);
+    }
+
+    public Actor(ForkJoinPool fjPool, int mailboxSize, SuspendableCallable<V> target) {
+        this(null, fjPool, -1, mailboxSize, target);
+    }
+
+    public Actor(String name, int mailboxSize, SuspendableCallable<V> target) {
+        this(name, -1, mailboxSize, target);
+    }
+
+    public Actor(int stackSize, int mailboxSize, SuspendableCallable<V> target) {
+        this((String) null, stackSize, mailboxSize, target);
+    }
+
+    public Actor(int mailboxSize, SuspendableCallable<V> target) {
+        this((String) null, -1, mailboxSize, target);
+    }
+
+    public Actor(String name, ForkJoinPool fjPool, int stackSize, int mailboxSize, SuspendableRunnable target) {
+        this(name, fjPool, stackSize, mailboxSize, (SuspendableCallable) wrap(target));
+    }
+
+    public Actor(String name, int stackSize, int mailboxSize, SuspendableRunnable target) {
+        this(name, stackSize, mailboxSize, (SuspendableCallable) wrap(target));
+    }
+
+    public Actor(String name, ForkJoinPool fjPool, int mailboxSize, SuspendableRunnable target) {
+        this(name, fjPool, -1, mailboxSize, target);
+    }
+
+    public Actor(ForkJoinPool fjPool, int stackSize, int mailboxSize, SuspendableRunnable target) {
+        this(null, fjPool, stackSize, mailboxSize, target);
+    }
+
+    public Actor(ForkJoinPool fjPool, int mailboxSize, SuspendableRunnable target) {
+        this(null, fjPool, -1, mailboxSize, target);
+    }
+
+    public Actor(String name, int mailboxSize, SuspendableRunnable target) {
+        this(name, null, -1, mailboxSize, target);
+    }
+
+    public Actor(int stackSize, int mailboxSize, SuspendableRunnable target) {
+        this((String) null, stackSize, mailboxSize, target);
+    }
+
+    public Actor(int mailboxSize, SuspendableRunnable target) {
+        this((String) null, -1, mailboxSize, target);
+    }
+
+    //</editor-fold>
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
     public SendChannel<Message> getMaibox() {
-        return (Channel<Message>)mailbox;
+        return (Channel<Message>) mailbox;
     }
-    
+
     protected Message receive() throws SuspendExecution, InterruptedException {
         for (;;) {
             checkThrownIn();
@@ -114,7 +176,7 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
 
     protected Message receive(long timeout, TimeUnit unit, Message currentMessage, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
         checkThrownIn();
-        return (Message)mailbox.receive(timeout, unit, currentMessage, wrapProcessor(proc));
+        return (Message) mailbox.receive(timeout, unit, currentMessage, wrapProcessor(proc));
     }
 
     protected Message receive(Message currentMessage, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
@@ -207,7 +269,7 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
     public static Actor getActor(String name) {
         return registeredActors.get(name);
     }
-    
+
     public Actor link(Actor other) {
         lifecycleListeners.add(other.lifecycleListener);
         other.lifecycleListeners.add(lifecycleListener);
@@ -219,7 +281,6 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
         other.lifecycleListeners.remove(lifecycleListener);
         return this;
     }
-    
     private final LifecycleListener lifecycleListener = new LifecycleListener() {
         @Override
         public void dead(Actor actor, Object reason) {
