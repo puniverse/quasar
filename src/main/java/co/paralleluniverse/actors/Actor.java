@@ -155,6 +155,10 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
     public Actor start() {
         return (Actor) super.start();
     }
+    
+    public Actor currentActor() {
+        return (Actor)currentLightweightThread();
+    }
 
     //<editor-fold desc="Lifecycle">
     /////////// Lifecycle ///////////////////////////////////
