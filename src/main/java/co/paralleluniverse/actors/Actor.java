@@ -32,35 +32,15 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
     @SuppressWarnings("LeakingThisInConstructor")
-    public Actor(String name, ForkJoinPool fjPool, int stackSize, int mailboxSize, ActorTarget<V> target) {
-        super(name, fjPool, stackSize, wrap(target));
-        ((ActorCallable) getTarget()).self = this;
+    Actor(String name, ForkJoinPool fjPool, int stackSize, int mailboxSize, SuspendableCallable<V> target) {
+        super(name, fjPool, stackSize, target);
         this.mailbox = ObjectChannel.create(this, mailboxSize);
     }
 
     @SuppressWarnings("LeakingThisInConstructor")
-    public Actor(String name, int stackSize, int mailboxSize, ActorTarget<V> target) {
-        super(name, stackSize, wrap(target));
-        ((ActorCallable) getTarget()).self = this;
+    Actor(String name, int stackSize, int mailboxSize, SuspendableCallable<V> target) {
+        super(name, stackSize, target);
         this.mailbox = ObjectChannel.create(this, mailboxSize);
-    }
-
-    private static <V> SuspendableCallable<V> wrap(ActorTarget<V> target) {
-        return new ActorCallable<V>(target);
-    }
-
-    private static class ActorCallable<V> implements SuspendableCallable<V> {
-        private final ActorTarget<V> target;
-        Actor self;
-
-        public ActorCallable(ActorTarget<V> target) {
-            this.target = target;
-        }
-
-        @Override
-        public V run() throws SuspendExecution, InterruptedException {
-            return target.run(self);
-        }
     }
 
     public Actor(String name, ForkJoinPool fjPool, int stackSize, int mailboxSize) {
