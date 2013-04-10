@@ -77,13 +77,16 @@ import org.objectweb.asm.util.CheckClassAdapter;
  * @author Matthias Mann
  */
 public class JavaAgent {
+    private static volatile boolean active;
+
     public static void premain(String agentArguments, Instrumentation instrumentation) {
         MethodDatabase db = new MethodDatabase(Thread.currentThread().getContextClassLoader());
         boolean checkArg = false;
+        active = true;
 
-        if(agentArguments != null) {
-            for(char c : agentArguments.toCharArray()) {
-                switch(c) {
+        if (agentArguments != null) {
+            for (char c : agentArguments.toCharArray()) {
+                switch (c) {
                     case 'v':
                         db.setVerbose(true);
                         break;
@@ -113,18 +116,22 @@ public class JavaAgent {
         db.setLog(new Log() {
             @Override
             public void log(LogLevel level, String msg, Object... args) {
-                System.out.println("[Continuations] " + level + ": " + String.format(msg, args));
+                System.out.println("[quasar] " + level + ": " + String.format(msg, args));
             }
 
             @Override
             public void error(String msg, Exception exc) {
-                System.out.println("[Continuations] ERROR: " + msg);
-
+                System.out.println("[quasar] ERROR: " + msg);
                 exc.printStackTrace(System.out);
             }
         });
 
+        Retransform.instrumentation = instrumentation;
         instrumentation.addTransformer(new Transformer(db, checkArg));
+    }
+
+    public static boolean isActive() {
+        return active;
     }
 
     static byte[] instrumentClass(MethodDatabase db, byte[] data, boolean check) {
@@ -148,17 +155,21 @@ public class JavaAgent {
         @Override
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
                 ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
-            if(MethodDatabase.isJavaCore(className))
+            if (MethodDatabase.isJavaCore(className))
                 return null;
-            if(className.startsWith("org/objectweb/asm/"))
+            if (className.startsWith("org/objectweb/asm/"))
                 return null;
 
-            db.log(LogLevel.INFO, "TRANSFORM: %s", className);
+            db.log(LogLevel.INFO, "TRANSFORM: %s %s", className, db.getClassEntry(className) != null && db.getClassEntry(className).isExaminedByInstrumentClass() ? "(retransform)" : "");
 
             try {
                 return instrumentClass(db, classfileBuffer, check);
-            } catch(Exception ex) {
+            } catch (Exception ex) {
                 db.error("Unable to instrument", ex);
+                return null;
+            } catch(Throwable t) {
+                System.out.println("[quasar] ERROR: " + t.getMessage());
+                t.printStackTrace(System.out);
                 return null;
             }
         }

@@ -28,7 +28,6 @@
  */
 package co.paralleluniverse.lwthreads.instrument;
 
-import static co.paralleluniverse.lwthreads.instrument.Classes.EXCEPTION_NAME;
 import co.paralleluniverse.lwthreads.instrument.MethodDatabase.ClassEntry;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
@@ -72,39 +71,27 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         this.className = name;
-        this.classEntry = new ClassEntry(superName);
+        this.classEntry = new ClassEntry(superName, interfaces);
     }
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-        if(desc.equals(InstrumentClass.ALREADY_INSTRUMENTED_NAME)) {
+        if(desc.equals(InstrumentClass.ALREADY_INSTRUMENTED_NAME))
             alreadyInstrumented = true;
-        }
+
         return null;
     }
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        boolean suspendable = checkExceptions(exceptions);
+        boolean suspendable = SuspendableClassifierService.isSuspendable(false, className, classEntry, name, desc, signature, exceptions);
         if(suspendable) {
             hasSuspendable = true;
             // synchronized methods can't be made suspendable
-            if((access & Opcodes.ACC_SYNCHRONIZED) == Opcodes.ACC_SYNCHRONIZED) {
+            if((access & Opcodes.ACC_SYNCHRONIZED) == Opcodes.ACC_SYNCHRONIZED)
                 throw new UnableToInstrumentException("synchronized method", className, name, desc);
-            }
         }
         classEntry.set(name, desc, suspendable);
         return null;
-    }
-
-    public static boolean checkExceptions(String[] exceptions) {
-        if(exceptions != null) {
-            for(String ex : exceptions) {
-                if(ex.equals(EXCEPTION_NAME)) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 }

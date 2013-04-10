@@ -43,23 +43,21 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
 
 /**
  * Instrument a class by instrumenting all suspendable methods and copying the others.
- * 
+ *
  * @author Matthias Mann
  */
 public class InstrumentClass extends ClassVisitor {
-
     static final String ALREADY_INSTRUMENTED_NAME = Type.getDescriptor(Instrumented.class);
-    
     private final MethodDatabase db;
     private final boolean forceInstrumentation;
     private String className;
+    private boolean retransform;
     private ClassEntry classEntry;
     private boolean alreadyInstrumented;
     private ArrayList<MethodNode> methods;
-    
+
     public InstrumentClass(ClassVisitor cv, MethodDatabase db, boolean forceInstrumentation) {
         super(Opcodes.ASM4, cv);
-        
         this.db = db;
         this.forceInstrumentation = forceInstrumentation;
     }
@@ -67,38 +65,37 @@ public class InstrumentClass extends ClassVisitor {
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         this.className = name;
-        this.classEntry = new ClassEntry(superName);
-        
+        ClassEntry oldClassEntry = db.getClassEntry(className);
+        this.retransform = JavaAgent.isActive() && oldClassEntry != null && oldClassEntry.isExaminedByInstrumentClass();
+        this.classEntry = new ClassEntry(superName, interfaces);
+
         // need atleast 1.5 for annotations to work
-        if(version < Opcodes.V1_5) {
+        if (version < Opcodes.V1_5)
             version = Opcodes.V1_5;
-        }
-        
+
         super.visit(version, access, name, signature, superName, interfaces);
     }
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-        if(desc.equals(InstrumentClass.ALREADY_INSTRUMENTED_NAME)) {
+        if (desc.equals(InstrumentClass.ALREADY_INSTRUMENTED_NAME))
             alreadyInstrumented = true;
-        }
+
         return super.visitAnnotation(desc, visible);
     }
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        boolean suspendable = CheckInstrumentationVisitor.checkExceptions(exceptions);
+        boolean suspendable = SuspendableClassifierService.isSuspendable(retransform, className, classEntry, name, desc, signature, exceptions);
         classEntry.set(name, desc, suspendable);
-        
-        if(suspendable && checkAccess(access) && !isYieldMethod(className, name)) {
-            if(db.isDebug()) {
+
+        if (suspendable && checkAccess(access) && !isYieldMethod(className, name)) {
+            if (db.isDebug())
                 db.log(LogLevel.INFO, "Instrumenting method %s#%s", className, name);
-            }
-            
-            if(methods == null) {
+
+            if (methods == null)
                 methods = new ArrayList<MethodNode>();
-            }
-            
+
             MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
             methods.add(mn);
             return mn; // this causes the mn to be initialized
@@ -109,31 +106,28 @@ public class InstrumentClass extends ClassVisitor {
     @Override
     @SuppressWarnings("CallToThreadDumpStack")
     public void visitEnd() {
+        classEntry.setExaminedByInstrumentClass(true);
         db.recordSuspendableMethods(className, classEntry);
-        
-        if(methods != null) {
-            if(alreadyInstrumented && !forceInstrumentation) {
-                for(MethodNode mn : methods) {
+
+        if (methods != null) {
+            if (alreadyInstrumented && !forceInstrumentation) {
+                for (MethodNode mn : methods)
                     mn.accept(makeOutMV(mn));
-                }
             } else {
-                if(!alreadyInstrumented) {
+                if (!alreadyInstrumented)
                     super.visitAnnotation(ALREADY_INSTRUMENTED_NAME, true);
-                }
-                
-                for(MethodNode mn : methods) {
+
+                for (MethodNode mn : methods) {
                     MethodVisitor outMV = makeOutMV(mn);
                     try {
                         InstrumentMethod im = new InstrumentMethod(db, className, mn);
-                        if(im.collectCodeBlocks()) {
-                            if(mn.name.charAt(0) == '<') {
+                        if (im.collectCodeBlocks()) {
+                            if (mn.name.charAt(0) == '<')
                                 throw new UnableToInstrumentException("special method", className, mn.name, mn.desc);
-                            }
                             im.accept(outMV);
-                        } else {
+                        } else
                             mn.accept(outMV);
-                        }
-                    } catch(AnalyzerException ex) {
+                    } catch (AnalyzerException ex) {
                         ex.printStackTrace();
                         throw new InternalError(ex.getMessage());
                     }
@@ -150,11 +144,11 @@ public class InstrumentClass extends ClassVisitor {
     private static boolean checkAccess(int access) {
         return (access & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE)) == 0;
     }
-    
+
     private static String[] toStringArray(List<?> l) {
-        if(l.isEmpty()) {
+        if (l.isEmpty())
             return null;
-        }
+
         return l.toArray(new String[l.size()]);
     }
 }

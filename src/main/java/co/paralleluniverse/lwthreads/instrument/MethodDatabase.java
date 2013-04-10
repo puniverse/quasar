@@ -28,6 +28,7 @@
  */
 package co.paralleluniverse.lwthreads.instrument;
 
+import static co.paralleluniverse.lwthreads.instrument.Classes.isYieldMethod;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -43,6 +44,7 @@ import org.objectweb.asm.Opcodes;
  * <p>Provides access to configuration parameters and to logging</p>
  *
  * @author Matthias Mann
+ * @author pron
  */
 public class MethodDatabase implements Log {
     private final ClassLoader cl;
@@ -124,16 +126,14 @@ public class MethodDatabase implements Log {
 
     @Override
     public void log(LogLevel level, String msg, Object... args) {
-        if (log != null && (logLevelMask & (1 << level.ordinal())) != 0) {
+        if (log != null && (logLevelMask & (1 << level.ordinal())) != 0)
             log.log(level, msg, args);
-        }
     }
 
     @Override
     public void error(String msg, Exception ex) {
-        if (log != null) {
+        if (log != null)
             log.error(msg, ex);
-        }
     }
 
     public void checkClass(File f) {
@@ -147,9 +147,12 @@ public class MethodDatabase implements Log {
                 if (civ.needsInstrumentation()) {
                     if (civ.isAlreadyInstrumented()) {
                         log(LogLevel.INFO, "Found instrumented class: %s", f.getPath());
+                        if (JavaAgent.isActive())
+                            throw new AssertionError();
                     } else {
                         log(LogLevel.INFO, "Found class: %s", f.getPath());
-                        workList.add(f);
+                        if (!JavaAgent.isActive())
+                            workList.add(f);
                     }
                 }
             }
@@ -161,13 +164,14 @@ public class MethodDatabase implements Log {
     }
 
     public boolean isMethodSuspendable(String className, String methodName, String methodDesc, boolean searchSuperClass) {
-        if (methodName.charAt(0) == '<') {
+        if (methodName.charAt(0) == '<')
             return false;   // special methods are never suspendable
-        }
 
-        if (isJavaCore(className)) {
+        if (isJavaCore(className))
             return false;
-        }
+
+        if (isYieldMethod(className, methodName))
+            return true;
 
         String curClassName = className;
         do {
@@ -176,7 +180,7 @@ public class MethodDatabase implements Log {
                 entry = CLASS_NOT_FOUND;
 
                 if (cl != null) {
-                    log(LogLevel.INFO, "Trying to read class: %s", curClassName);
+                    log(LogLevel.INFO, "Trying to read class: %s to check %s", curClassName, methodName);
 
                     CheckInstrumentationVisitor civ = checkClass(curClassName);
                     if (civ == null) {
@@ -192,6 +196,8 @@ public class MethodDatabase implements Log {
             }
 
             if (entry == CLASS_NOT_FOUND) {
+                if (JavaAgent.isActive())
+                    throw new AssertionError();
                 return true;
             }
 
@@ -207,7 +213,7 @@ public class MethodDatabase implements Log {
         return true;
     }
 
-    private synchronized ClassEntry getClassEntry(String className) {
+    public synchronized ClassEntry getClassEntry(String className) {
         return classes.get(className);
     }
 
@@ -370,15 +376,18 @@ public class MethodDatabase implements Log {
         return className.startsWith("java/") || className.startsWith("javax/")
                 || className.startsWith("sun/") || className.startsWith("com/sun/");
     }
-    private static final ClassEntry CLASS_NOT_FOUND = new ClassEntry("<class not found>");
+    private static final ClassEntry CLASS_NOT_FOUND = new ClassEntry("<class not found>", null);
 
     static final class ClassEntry {
         private final HashMap<String, Boolean> methods;
+        final String[] interfaces;
         final String superName;
+        private boolean examinedByInstrumentClass;
 
-        public ClassEntry(String superName) {
+        public ClassEntry(String superName, String[] interfaces) {
             this.superName = superName;
             this.methods = new HashMap<String, Boolean>();
+            this.interfaces = interfaces;
         }
 
         public void set(String name, String desc, boolean suspendable) {
@@ -406,6 +415,14 @@ public class MethodDatabase implements Log {
 
         private static String key(String methodName, String methodDesc) {
             return methodName.concat(methodDesc);
+        }
+
+        public boolean isExaminedByInstrumentClass() {
+            return examinedByInstrumentClass;
+        }
+
+        public void setExaminedByInstrumentClass(boolean examinedByInstrumentClass) {
+            this.examinedByInstrumentClass = examinedByInstrumentClass;
         }
     }
 
