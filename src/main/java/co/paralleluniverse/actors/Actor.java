@@ -30,7 +30,6 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Stran
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
     private Strand strand;
     private String name;
-    private SuspendableCallable<V> target;
     private ObjectChannel<Object> mailbox;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
     private volatile V result;
@@ -38,35 +37,26 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Stran
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-    Actor(String name, int mailboxSize, SuspendableCallable<V> target) {
-        this.target = target;
+    public Actor(String name, int mailboxSize) {
         this.mailbox = ObjectChannel.create(mailboxSize);
         this.name = name;
     }
 
-    Actor(String name, int mailboxSize) {
-        this(name, mailboxSize, null);
+    public Actor(int mailboxSize) {
+        this((String) null, mailboxSize);
     }
 
-    Actor(int mailboxSize) {
-        this(null, mailboxSize, null);
-    }
-
-    Actor() {
-        this(null, -1, null);
-    }
-
-    Actor(Strand strand, String name, int mailboxSize, SuspendableCallable<V> target) {
-        this(name, mailboxSize, target);
-        setStrand(strand);
+    public Actor() {
+        this((String) null, -1);
     }
 
     public Actor(Strand strand, String name, int mailboxSize) {
-        this(strand, name, mailboxSize, null);
+        this(name, mailboxSize);
+        setStrand(strand);
     }
 
     public Actor(Strand strand, int mailboxSize) {
-        this(strand, (String) null, mailboxSize, null);
+        this(strand, (String) null, mailboxSize);
     }
 
     @Override
@@ -205,10 +195,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Stran
             setStrand(Strand.currentStrand());
         currentActor.set(this);
         try {
-            if (target != null)
-                result = target.run();
-            else
-                result = doRun();
+            result = doRun();
             notifyDeath(null);
             return result;
         } catch (InterruptedException e) {
@@ -218,7 +205,6 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Stran
             notifyDeath(t);
             throw t;
         } finally {
-            target = null;
             currentActor.set(null);
         }
     }
