@@ -58,7 +58,7 @@ public class FiberLocal<T> {
      * are used by the same threads, while remaining well-behaved in
      * less common cases.
      */
-    private final int lwthreadLocalHashCode = nextHashCode();
+    private final int fiberLocalHashCode = nextHashCode();
 
     /**
      * The next hash code to be given out. Updated atomically. Starts at
@@ -119,9 +119,9 @@ public class FiberLocal<T> {
      */
     public T get() {
         Fiber c = Fiber.currentFiber();
-        LWThreadLocalMap map = getMap(c);
+        FiberLocalMap map = getMap(c);
         if (map != null) {
-            LWThreadLocalMap.Entry e = map.getEntry(this);
+            FiberLocalMap.Entry e = map.getEntry(this);
             if (e != null)
                 return (T)e.value;
         }
@@ -137,7 +137,7 @@ public class FiberLocal<T> {
     private T setInitialValue() {
         T value = initialValue();
         Fiber c = Fiber.currentFiber();
-        LWThreadLocalMap map = getMap(c);
+        FiberLocalMap map = getMap(c);
         if (map != null)
             map.set(this, value);
         else
@@ -156,7 +156,7 @@ public class FiberLocal<T> {
      */
     public void set(T value) {
         Fiber c = Fiber.currentFiber();
-        LWThreadLocalMap map = getMap(c);
+        FiberLocalMap map = getMap(c);
         if (map != null)
             map.set(this, value);
         else
@@ -175,7 +175,7 @@ public class FiberLocal<T> {
      * @since 1.5
      */
      public void remove() {
-         LWThreadLocalMap m = getMap(Fiber.currentFiber());
+         FiberLocalMap m = getMap(Fiber.currentFiber());
          if (m != null)
              m.remove(this);
      }
@@ -187,8 +187,8 @@ public class FiberLocal<T> {
      * @param  c the current lightweight thread
      * @return the map
      */
-    LWThreadLocalMap getMap(Fiber c) {
-        return c.lwthreadLocals;
+    FiberLocalMap getMap(Fiber c) {
+        return c.fiberLocals;
     }
 
     /**
@@ -200,7 +200,7 @@ public class FiberLocal<T> {
      * @param map the map to store.
      */
     void createMap(Fiber c, T firstValue) {
-        c.lwthreadLocals = new LWThreadLocalMap(this, firstValue);
+        c.fiberLocals = new FiberLocalMap(this, firstValue);
     }
 
     /**
@@ -210,8 +210,8 @@ public class FiberLocal<T> {
      * @param  parentMap the map associated with parent thread
      * @return a map containing the parent's inheritable bindings
      */
-    static LWThreadLocalMap createInheritedMap(LWThreadLocalMap parentMap) {
-        return new LWThreadLocalMap(parentMap);
+    static FiberLocalMap createInheritedMap(FiberLocalMap parentMap) {
+        return new FiberLocalMap(parentMap);
     }
 
     /**
@@ -236,7 +236,7 @@ public class FiberLocal<T> {
      * used, stale entries are guaranteed to be removed only when
      * the table starts running out of space.
      */
-    static class LWThreadLocalMap {
+    static class FiberLocalMap {
 
         /**
          * The entries in this hash map extend WeakReference, using
@@ -303,9 +303,9 @@ public class FiberLocal<T> {
          * ThreadLocalMaps are constructed lazily, so we only create
          * one when we have at least one entry to put in it.
          */
-        LWThreadLocalMap(FiberLocal firstKey, Object firstValue) {
+        FiberLocalMap(FiberLocal firstKey, Object firstValue) {
             table = new Entry[INITIAL_CAPACITY];
-            int i = firstKey.lwthreadLocalHashCode & (INITIAL_CAPACITY - 1);
+            int i = firstKey.fiberLocalHashCode & (INITIAL_CAPACITY - 1);
             table[i] = new Entry(firstKey, firstValue);
             size = 1;
             setThreshold(INITIAL_CAPACITY);
@@ -317,7 +317,7 @@ public class FiberLocal<T> {
          *
          * @param parentMap the map associated with parent thread.
          */
-        private LWThreadLocalMap(LWThreadLocalMap parentMap) {
+        private FiberLocalMap(FiberLocalMap parentMap) {
             Entry[] parentTable = parentMap.table;
             int len = parentTable.length;
             setThreshold(len);
@@ -330,7 +330,7 @@ public class FiberLocal<T> {
                     if (key != null) {
                         Object value = key.childValue(e.value);
                         Entry c = new Entry(key, value);
-                        int h = key.lwthreadLocalHashCode & (len - 1);
+                        int h = key.fiberLocalHashCode & (len - 1);
                         while (table[h] != null)
                             h = nextIndex(h, len);
                         table[h] = c;
@@ -351,7 +351,7 @@ public class FiberLocal<T> {
          * @return the entry associated with key, or null if no such
          */
         private Entry getEntry(FiberLocal key) {
-            int i = key.lwthreadLocalHashCode & (table.length - 1);
+            int i = key.fiberLocalHashCode & (table.length - 1);
             Entry e = table[i];
             if (e != null && e.get() == key)
                 return e;
@@ -400,7 +400,7 @@ public class FiberLocal<T> {
 
             Entry[] tab = table;
             int len = tab.length;
-            int i = key.lwthreadLocalHashCode & (len-1);
+            int i = key.fiberLocalHashCode & (len-1);
 
             for (Entry e = tab[i];
                  e != null;
@@ -430,7 +430,7 @@ public class FiberLocal<T> {
         private void remove(FiberLocal key) {
             Entry[] tab = table;
             int len = tab.length;
-            int i = key.lwthreadLocalHashCode & (len-1);
+            int i = key.fiberLocalHashCode & (len-1);
             for (Entry e = tab[i];
                  e != null;
                  e = tab[i = nextIndex(i, len)]) {
@@ -547,7 +547,7 @@ public class FiberLocal<T> {
                     tab[i] = null;
                     size--;
                 } else {
-                    int h = k.lwthreadLocalHashCode & (len - 1);
+                    int h = k.fiberLocalHashCode & (len - 1);
                     if (h != i) {
                         tab[i] = null;
 
@@ -632,7 +632,7 @@ public class FiberLocal<T> {
                     if (k == null) {
                         e.value = null; // Help the GC
                     } else {
-                        int h = k.lwthreadLocalHashCode & (newLen - 1);
+                        int h = k.fiberLocalHashCode & (newLen - 1);
                         while (newTab[h] != null)
                             h = nextIndex(h, newLen);
                         newTab[h] = e;

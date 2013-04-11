@@ -49,7 +49,7 @@ public class Fiber<V> implements Serializable {
     private volatile State state;
     private volatile boolean interrupted;
     private final SuspendableCallable<V> target;
-    FiberLocal.LWThreadLocalMap lwthreadLocals;
+    FiberLocal.FiberLocalMap fiberLocals;
     private long sleepStart;
     private PostParkActions postParkActions;
     private V result;
