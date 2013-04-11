@@ -4,7 +4,7 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.lwthreads.SuspendExecution;
+import co.paralleluniverse.fibers.SuspendExecution;
 
 /**
  *

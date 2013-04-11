@@ -1,8 +1,8 @@
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.lwthreads.LightweightThread;
-import co.paralleluniverse.lwthreads.SuspendExecution;
-import co.paralleluniverse.lwthreads.channels.IntChannel;
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.channels.IntChannel;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;
@@ -21,7 +21,7 @@ public class PrimitiveChannelRingBenchmark {
     void run() throws ExecutionException, InterruptedException {
         final long start = System.nanoTime();
 
-        LightweightThread<Integer> manager = new LightweightThreadWithAnIntChannel<Integer>(fjPool) {
+        Fiber<Integer> manager = new LightweightThreadWithAnIntChannel<Integer>(fjPool) {
             @Override
             protected Integer run() throws InterruptedException, SuspendExecution {
                 IntChannel a = this.channel;
@@ -59,7 +59,7 @@ public class PrimitiveChannelRingBenchmark {
         return lwt.channel;
     }
 
-    private static abstract class LightweightThreadWithAnIntChannel<V> extends LightweightThread<V> {
+    private static abstract class LightweightThreadWithAnIntChannel<V> extends Fiber<V> {
         IntChannel channel = IntChannel.create(this, mailboxSize);
 
         public LightweightThreadWithAnIntChannel(ForkJoinPool fjPool) {

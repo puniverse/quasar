@@ -5,13 +5,13 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.util.Exceptions;
-import co.paralleluniverse.lwthreads.LightweightThread;
-import co.paralleluniverse.lwthreads.SuspendExecution;
-import co.paralleluniverse.lwthreads.SuspendableCallable;
-import co.paralleluniverse.lwthreads.channels.Channel;
-import co.paralleluniverse.lwthreads.channels.ObjectChannel;
-import co.paralleluniverse.lwthreads.channels.SendChannel;
-import co.paralleluniverse.lwthreads.queues.QueueCapacityExceededException;
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.SuspendableCallable;
+import co.paralleluniverse.channels.Channel;
+import co.paralleluniverse.channels.ObjectChannel;
+import co.paralleluniverse.channels.SendChannel;
+import co.paralleluniverse.fibers.queues.QueueCapacityExceededException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -23,7 +23,7 @@ import jsr166e.ForkJoinPool;
  *
  * @author pron
  */
-public abstract class Actor<Message, V> extends LightweightThread<V> {
+public abstract class Actor<Message, V> extends Fiber<V> {
     private static final Map<String, Actor> registeredActors = new ConcurrentHashMapV8<String, Actor>();
     private final ObjectChannel<Object> mailbox;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
@@ -157,7 +157,7 @@ public abstract class Actor<Message, V> extends LightweightThread<V> {
     }
     
     public Actor currentActor() {
-        return (Actor)currentLightweightThread();
+        return (Actor)currentFiber();
     }
 
     //<editor-fold desc="Lifecycle">

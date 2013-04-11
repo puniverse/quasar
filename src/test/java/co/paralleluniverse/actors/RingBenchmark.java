@@ -1,6 +1,6 @@
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.lwthreads.SuspendExecution;
+import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;

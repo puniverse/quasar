@@ -4,9 +4,9 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.lwthreads.LightweightThread;
-import co.paralleluniverse.lwthreads.SuspendExecution;
-import co.paralleluniverse.lwthreads.TimeoutException;
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.TimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -209,7 +209,7 @@ public class ActorTest {
             @Override
             protected Void run() throws SuspendExecution, InterruptedException {
                 try {
-                    LightweightThread.sleep(100);
+                    Fiber.sleep(100);
                 } catch (TimeoutException e) {
                 }
                 return null;

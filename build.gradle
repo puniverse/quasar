@@ -54,18 +54,18 @@ dependencies {
 
 task instrumentClasses(dependsOn: 'compileJava') << {
     //ant.logging.level = LogLevel.INFO
-    ant.taskdef(name:'continuations', classname:'co.paralleluniverse.lwthreads.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
+    ant.taskdef(name:'continuations', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
     ant.continuations(verbose:'true', check:'true', debug:'true') {
         fileset(dir: sourceSets.main.output.classesDir) {
-            exclude(name: 'co/paralleluniverse/lwthreads/*.class')
-            exclude(name: 'co/paralleluniverse/lwthreads/instrument/*.class')
+            exclude(name: 'co/paralleluniverse/fibers/*.class')
+            exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
         }
     }
 }
 
 task instrumentTestClasses(dependsOn: 'compileTestJava') << {
     //ant.logging.level = LogLevel.INFO
-    ant.taskdef(name:'continuations', classname:'co.paralleluniverse.lwthreads.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
+    ant.taskdef(name:'continuations', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
     ant.continuations(verbose:'true', check:'true', debug:'true') {
         fileset(dir: sourceSets.test.output.classesDir)
     }
@@ -82,7 +82,7 @@ jar {
             "Implementation-Title"      :   name,
             "Implementation-Version"    :   version,
             "Implementation-Vendor"     :   vendor,
-            "Premain-Class"             :   "co.paralleluniverse.lwthreads.instrument.JavaAgent",
+            "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
             "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',') 
         )
     }
@@ -90,7 +90,7 @@ jar {
 
 tasks.withType(Test) { 
     useJUnit()
-    systemProperty 'co.paralleluniverse.lwthreads.verifyInstrumentation', 'true'
+    systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
     jvmArgs "-javaagent:${jar.archivePath}=v"
     doLast() {
         println "file://" + testReportDir + "/index.html"    
@@ -99,7 +99,7 @@ tasks.withType(Test) {
 
 task run(type: JavaExec, dependsOn:[testClasses]) {
     main = mainClass
-    systemProperty 'co.paralleluniverse.lwthreads.verifyInstrumentation', 'true'
+    systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
     jvmArgs "-javaagent:${jar.archivePath}=v"
 }
 
