@@ -28,7 +28,7 @@ public abstract class OwnedSynchronizer {
     }
 
     public static OwnedSynchronizer create(Fiber owner) {
-        return new LightweightThreadOwnedSynchronizer(owner);
+        return new FiberOwnedSynchronizer(owner);
     }
 
     public abstract Object getOwner();
@@ -104,10 +104,10 @@ public abstract class OwnedSynchronizer {
         }
     }
 
-    private static class LightweightThreadOwnedSynchronizer extends OwnedSynchronizer {
+    private static class FiberOwnedSynchronizer extends OwnedSynchronizer {
         private final Fiber owner;
 
-        public LightweightThreadOwnedSynchronizer(Fiber owner) {
+        public FiberOwnedSynchronizer(Fiber owner) {
             this.owner = owner;
         }
 
