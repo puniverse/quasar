@@ -25,7 +25,7 @@ import jsr166e.ForkJoinPool;
  *
  * @author Ron Pressler
  */
-public class Fiber<V> implements Serializable {
+public class Fiber<V> extends Strand implements Serializable {
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.lwthreads.verifyInstrumentation", "false"));
     public static final int DEFAULT_STACK_SIZE = 16;
     private static final long serialVersionUID = 2783452871536981L;
@@ -213,6 +213,11 @@ public class Fiber<V> implements Serializable {
         }
     }
 
+    @Override
+    public Object getUnderlying() {
+        return this;
+    }
+    
     /**
      * Suspend the currently running Fiber.
      *
