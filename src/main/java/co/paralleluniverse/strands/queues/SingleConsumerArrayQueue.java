@@ -172,12 +172,6 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
             n = del(n);
         }
     }
-
-    @Override
-    public String toString() {
-        return Objects.systemToString(this) + super.toString();
-    }
-    
     
     ////////////////////////////////////////////////////////////////////////
     static final Unsafe unsafe = UtilUnsafe.getUnsafe();
