@@ -80,6 +80,9 @@ public class JavaAgent {
     private static volatile boolean active;
 
     public static void premain(String agentArguments, Instrumentation instrumentation) {
+        if(!instrumentation.isRetransformClassesSupported())
+            System.err.println("Retransforming classes is not supported!");
+        
         MethodDatabase db = new MethodDatabase(Thread.currentThread().getContextClassLoader());
         boolean checkArg = false;
         active = true;

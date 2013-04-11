@@ -83,6 +83,7 @@ jar {
             "Implementation-Version"    :   version,
             "Implementation-Vendor"     :   vendor,
             "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
+            "Can-Retransform-Classes"   :   "true",
             "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',') 
         )
     }
