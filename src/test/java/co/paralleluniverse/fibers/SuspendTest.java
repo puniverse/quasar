@@ -28,6 +28,7 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.strands.SuspendableRunnable;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
 import org.junit.Test;
 

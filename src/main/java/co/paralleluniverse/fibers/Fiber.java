@@ -1,8 +1,14 @@
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.NamingThreadFactory;
 import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
+import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.Stranded;
+import co.paralleluniverse.strands.SuspendableCallable;
+import co.paralleluniverse.strands.SuspendableRunnable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -13,7 +19,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import jsr166e.ForkJoinPool;
+import sun.misc.Unsafe;
 
 /**
  * A lightweight thread.
@@ -36,7 +44,7 @@ public class Fiber<V> extends Strand implements Serializable {
     }
 
     public static enum State {
-        NEW, RUNNING, WAITING, TERMINATED
+        NEW, STARTED, RUNNING, WAITING, TERMINATED
     };
     private static final ScheduledExecutorService timeoutService = Executors.newSingleThreadScheduledExecutor(new NamingThreadFactory("fiber-timeout"));
     private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler;
@@ -63,6 +71,7 @@ public class Fiber<V> extends Strand implements Serializable {
      * @throws NullPointerException when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
+    @SuppressWarnings("LeakingThisInConstructor")
     public Fiber(String name, ForkJoinPool fjPool, int stackSize, SuspendableCallable<V> target) {
         this.name = name;
         this.fjPool = fjPool;
@@ -75,6 +84,9 @@ public class Fiber<V> extends Strand implements Serializable {
         if (target != null) {
             if (!(target instanceof VoidSuspendableCallable) && !isInstrumented(target.getClass()))
                 throw new IllegalArgumentException("Target class " + target.getClass() + " has not been instrumented.");
+
+            if (target instanceof Stranded)
+                ((Stranded) target).setStrand(this);
         } else if (!isInstrumented(this.getClass())) {
             throw new IllegalArgumentException("Fiber class " + this.getClass() + " has not been instrumented.");
         }
@@ -116,6 +128,7 @@ public class Fiber<V> extends Strand implements Serializable {
     }
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
+
     public Fiber(ForkJoinPool fjPool, SuspendableCallable<V> target) {
         this(null, fjPool, -1, target);
     }
@@ -217,7 +230,7 @@ public class Fiber<V> extends Strand implements Serializable {
     public Object getUnderlying() {
         return this;
     }
-    
+
     /**
      * Suspend the currently running Fiber.
      *
@@ -291,7 +304,7 @@ public class Fiber<V> extends Strand implements Serializable {
     }
 
     private boolean exec1() {
-        if (!isAlive() | state == State.RUNNING)
+        if (fjTask.isDone() | state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
 
         state = State.RUNNING;
@@ -335,9 +348,10 @@ public class Fiber<V> extends Strand implements Serializable {
      *
      * @return {@code this}
      */
+    @Override
     public Fiber start() {
-        if (state != State.NEW)
-            throw new IllegalStateException("Fiber has already been started");
+        if (!casState(State.NEW, State.STARTED))
+            throw new IllegalStateException("Fiber has already been started or has died");
         fjTask.submit();
         return this;
     }
@@ -351,23 +365,32 @@ public class Fiber<V> extends Strand implements Serializable {
         else if (defaultUncaughtExceptionHandler != null)
             defaultUncaughtExceptionHandler.uncaughtException(this, t);
         else
-            printStackTrace(t, System.err);
+            Exceptions.rethrow(t);
         // swallow exception
     }
 
+    @Override
     public final void interrupt() {
         interrupted = true;
         unpark();
     }
 
+    @Override
     public final boolean isInterrupted() {
         return interrupted;
     }
 
+    /**
+     * A fiber is alive if it has been started and has not yet died.
+     *
+     * @return
+     */
+    @Override
     public final boolean isAlive() {
-        return !fjTask.isDone();
+        return state != State.NEW && !fjTask.isDone();
     }
 
+    @Override
     public final Object getBlocker() {
         return fjTask.getBlocker();
     }
@@ -384,6 +407,7 @@ public class Fiber<V> extends Strand implements Serializable {
         return parent;
     }
 
+    @Override
     public String getName() {
         return name;
     }
@@ -404,14 +428,17 @@ public class Fiber<V> extends Strand implements Serializable {
         return false;
     }
 
+    @Override
     public final void unpark() {
         fjTask.unpark();
     }
 
+    @Override
     public final void join() throws ExecutionException, InterruptedException {
         get();
     }
 
+    @Override
     public final void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
         get(timeout, unit);
     }
@@ -670,5 +697,19 @@ public class Fiber<V> extends Strand implements Serializable {
     void resetState() {
         fjTask.tryUnpark();
         assert fjTask.getState() == ParkableForkJoinTask.RUNNABLE;
+    }
+    private static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    private static final long stateOffset;
+
+    static {
+        try {
+            stateOffset = unsafe.objectFieldOffset(Fiber.class.getDeclaredField("state"));
+        } catch (Exception ex) {
+            throw new AssertionError(ex);
+        }
+    }
+    
+    private boolean casState(State expected, State update) {
+        return unsafe.compareAndSwapObject(this, stateOffset, expected, update);
     }
 }

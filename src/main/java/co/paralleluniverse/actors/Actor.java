@@ -4,80 +4,88 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.SuspendableCallable;
-import co.paralleluniverse.channels.Channel;
-import co.paralleluniverse.channels.ObjectChannel;
-import co.paralleluniverse.channels.SendChannel;
-import co.paralleluniverse.fibers.queues.QueueCapacityExceededException;
+import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.Stranded;
+import co.paralleluniverse.strands.SuspendableCallable;
+import co.paralleluniverse.strands.channels.Channel;
+import co.paralleluniverse.strands.channels.ObjectChannel;
+import co.paralleluniverse.strands.channels.SendChannel;
+import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import jsr166e.ConcurrentHashMapV8;
-import jsr166e.ForkJoinPool;
 
 /**
  *
  * @author pron
  */
-public abstract class Actor<Message, V> extends Fiber<V> {
+public abstract class Actor<Message, V> implements SuspendableCallable<V>, Stranded {
     private static final Map<String, Actor> registeredActors = new ConcurrentHashMapV8<String, Actor>();
-    private final ObjectChannel<Object> mailbox;
+    private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
+    private Strand strand;
+    private String name;
+    private SuspendableCallable<V> target;
+    private ObjectChannel<Object> mailbox;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
-    private volatile RuntimeException thrownIn;
+    private volatile V result;
+    private volatile RuntimeException exception;
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-    @SuppressWarnings("LeakingThisInConstructor")
-    Actor(String name, ForkJoinPool fjPool, int stackSize, int mailboxSize, SuspendableCallable<V> target) {
-        super(name, fjPool, stackSize, target);
-        this.mailbox = ObjectChannel.create(this, mailboxSize);
+    Actor(String name, int mailboxSize, SuspendableCallable<V> target) {
+        this.target = target;
+        this.mailbox = ObjectChannel.create(mailboxSize);
+        this.name = name;
     }
 
-    @SuppressWarnings("LeakingThisInConstructor")
-    Actor(String name, int stackSize, int mailboxSize, SuspendableCallable<V> target) {
-        super(name, stackSize, target);
-        this.mailbox = ObjectChannel.create(this, mailboxSize);
+    Actor(String name, int mailboxSize) {
+        this(name, mailboxSize, null);
     }
 
-    public Actor(String name, ForkJoinPool fjPool, int stackSize, int mailboxSize) {
-        this(name, fjPool, stackSize, mailboxSize, null);
+    Actor(int mailboxSize) {
+        this(null, mailboxSize, null);
     }
 
-    public Actor(String name, ForkJoinPool fjPool, int mailboxSize) {
-        this(name, fjPool, -1, mailboxSize, null);
+    Actor() {
+        this(null, -1, null);
     }
 
-    public Actor(ForkJoinPool fjPool, int stackSize, int mailboxSize) {
-        this(null, fjPool, stackSize, mailboxSize, null);
+    Actor(Strand strand, String name, int mailboxSize, SuspendableCallable<V> target) {
+        this(name, mailboxSize, target);
+        setStrand(strand);
     }
 
-    public Actor(ForkJoinPool fjPool, int mailboxSize) {
-        this(null, fjPool, -1, mailboxSize, null);
+    public Actor(Strand strand, String name, int mailboxSize) {
+        this(strand, name, mailboxSize, null);
     }
 
-    public Actor(String name, int stackSize, int mailboxSize) {
-        this(name, stackSize, mailboxSize, null);
+    public Actor(Strand strand, int mailboxSize) {
+        this(strand, (String) null, mailboxSize, null);
     }
 
-    public Actor(String name, int mailboxSize) {
-        this(name, -1, mailboxSize, null);
+    @Override
+    public final void setStrand(Strand strand) {
+        if (this.strand != null)
+            throw new IllegalStateException("Strand already set to " + strand);
+        this.strand = strand;
+        this.name = (name != null ? name : strand.getName());
+        mailbox.setStrand(strand);
     }
 
-    public Actor(int stackSize, int mailboxSize) {
-        this((String) null, stackSize, mailboxSize, null);
+    @Override
+    public Strand getStrand() {
+        return strand;
     }
-
-    public Actor(int mailboxSize) {
-        this((String) null, -1, mailboxSize, null);
-    }
-
     //</editor-fold>
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
+
     public SendChannel<Message> getMaibox() {
         return (Channel<Message>) mailbox;
     }
@@ -151,50 +159,90 @@ public abstract class Actor<Message, V> extends Fiber<V> {
     }
     //</editor-fold>
 
-    @Override
-    public Actor start() {
-        return (Actor) super.start();
-    }
-    
     public Actor currentActor() {
-        return (Actor)currentFiber();
+        return currentActor.get();
     }
+
+    //<editor-fold desc="Strand helpers">
+    /////////// Strand helpers ///////////////////////////////////
+    Actor<Message, V> start() {
+        strand.start();
+        return this;
+    }
+
+    public V get() throws InterruptedException, ExecutionException {
+        if (strand instanceof Fiber)
+            return ((Fiber<V>) strand).get();
+        else {
+            strand.join();
+            return result;
+        }
+    }
+
+    public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+        if (strand instanceof Fiber)
+            return ((Fiber<V>) strand).get(timeout, unit);
+        else {
+            strand.join(timeout, unit);
+            return result;
+        }
+    }
+
+    public void join() throws ExecutionException, InterruptedException {
+        strand.join();
+    }
+
+    public void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+        strand.join(timeout, unit);
+    }
+    //</editor-fold>
 
     //<editor-fold desc="Lifecycle">
     /////////// Lifecycle ///////////////////////////////////
     @Override
-    protected abstract V run() throws InterruptedException, SuspendExecution;
+    public final V run() throws InterruptedException, SuspendExecution {
+        if (strand == null)
+            setStrand(Strand.currentStrand());
+        currentActor.set(this);
+        try {
+            if (target != null)
+                result = target.run();
+            else
+                result = doRun();
+            notifyDeath(null);
+            return result;
+        } catch (InterruptedException e) {
+            checkThrownIn();
+            throw e;
+        } catch (Throwable t) {
+            notifyDeath(t);
+            throw t;
+        } finally {
+            target = null;
+            currentActor.set(null);
+        }
+    }
+
+    protected abstract V doRun() throws InterruptedException, SuspendExecution;
 
     protected void handleLifecycleMessage(LifecycleMessage m) {
         if (m instanceof ExitMessage)
             throw new LifecycleException(m);
     }
 
-    @Override
-    protected void onCompletion() {
-        notifyDeath(null);
-    }
-
-    @Override
-    protected void onException(Throwable t) {
-        notifyDeath(t);
-        Exceptions.rethrow(t);
-    }
-
-    @Override
-    protected void postRestore() {
-        super.postRestore();
-        checkThrownIn();
+    public String getName() {
+        return name;
     }
 
     public void throwIn(RuntimeException e) {
-        this.thrownIn = e; // last exception thrown in wins
+        this.exception = e; // last exception thrown in wins
+        strand.interrupt();
     }
 
     private void checkThrownIn() {
-        if (thrownIn != null) {
-            thrownIn.setStackTrace(new Throwable().getStackTrace());
-            throw thrownIn;
+        if (exception != null) {
+            exception.setStackTrace(new Throwable().getStackTrace());
+            throw exception;
         }
     }
 

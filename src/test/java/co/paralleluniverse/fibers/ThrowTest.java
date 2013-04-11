@@ -28,6 +28,7 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.common.util.Exceptions;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
 import java.util.ArrayList;

@@ -4,6 +4,7 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.strands.SuspendableRunnable;
 import java.lang.reflect.Field;
 import static org.junit.Assert.*;
 import org.junit.Test;

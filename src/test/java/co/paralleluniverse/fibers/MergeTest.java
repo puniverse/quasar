@@ -4,6 +4,7 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.strands.SuspendableRunnable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import org.junit.Test;

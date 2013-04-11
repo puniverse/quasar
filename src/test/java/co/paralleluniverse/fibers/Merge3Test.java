@@ -4,6 +4,7 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.Test;
 
 /**

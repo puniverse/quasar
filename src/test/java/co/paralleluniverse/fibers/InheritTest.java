@@ -5,6 +5,7 @@
 
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.strands.SuspendableRunnable;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
 import java.util.ArrayList;
 import static org.junit.Assert.*;

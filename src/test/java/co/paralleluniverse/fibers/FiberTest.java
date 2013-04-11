@@ -4,6 +4,7 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.common.util.Exceptions;
 import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;

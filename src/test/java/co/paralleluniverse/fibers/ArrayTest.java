@@ -5,6 +5,7 @@
 
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.strands.SuspendableRunnable;
 import static org.junit.Assert.*;
 import org.junit.Test;
 

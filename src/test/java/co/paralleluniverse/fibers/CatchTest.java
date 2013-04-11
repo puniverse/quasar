@@ -28,6 +28,7 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.strands.SuspendableRunnable;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -61,13 +62,17 @@ public class CatchTest implements SuspendableRunnable {
             results.add("C");
             Fiber.park();
             throwOnSecondCall();
-            Fiber.park();
-            throwOnSecondCall();
+            suspendableMethod();
             results.add("never reached");
         } catch (Throwable ex) {
             results.add(ex.getMessage());
         }
         results.add("H");
+    }
+    
+    private void suspendableMethod() throws SuspendExecution {
+        Fiber.park();
+        throwOnSecondCall();
     }
 
     @Test

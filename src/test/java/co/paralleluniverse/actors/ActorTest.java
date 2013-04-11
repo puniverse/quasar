@@ -34,16 +34,22 @@ public class ActorTest {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
     }
 
+    private <Message, V> Actor<Message, V> createActor(Actor<Message, V> actor) {
+        new Fiber("actor", fjPool, actor).start();
+        return actor;
+    }
+
     @Test
     public void whenActorThrowsExceptionThenGetThrowsIt() throws Exception {
-        Actor<Message, Integer> actor = new Actor<Message, Integer>(fjPool, mailboxSize) {
+
+        Actor<Message, Integer> actor = createActor(new Actor<Message, Integer>(mailboxSize) {
             int counter;
 
             @Override
-            protected Integer run() throws SuspendExecution, InterruptedException {
+            protected Integer doRun() throws SuspendExecution, InterruptedException {
                 throw new RuntimeException("foo");
             }
-        }.start();
+        });
 
         try {
             actor.get();
@@ -56,29 +62,29 @@ public class ActorTest {
 
     @Test
     public void whenActorReturnsValueThenGetReturnsIt() throws Exception {
-        Actor<Message, Integer> actor = new Actor<Message, Integer>(fjPool, mailboxSize) {
+        Actor<Message, Integer> actor = createActor(new Actor<Message, Integer>(mailboxSize) {
             int counter;
 
             @Override
-            protected Integer run() throws SuspendExecution, InterruptedException {
+            protected Integer doRun() throws SuspendExecution, InterruptedException {
                 return 42;
             }
-        }.start();
+        });
 
         assertThat(actor.get(), is(42));
     }
 
     @Test
     public void testReceive() throws Exception {
-        Actor<Message, Integer> actor = new Actor<Message, Integer>(fjPool, mailboxSize) {
+        Actor<Message, Integer> actor = createActor(new Actor<Message, Integer>(mailboxSize) {
             int counter;
 
             @Override
-            protected Integer run() throws SuspendExecution, InterruptedException {
+            protected Integer doRun() throws SuspendExecution, InterruptedException {
                 Message m = receive();
                 return m.num;
             }
-        }.start();
+        });
 
         actor.send(new Message(15));
 
@@ -87,16 +93,16 @@ public class ActorTest {
 
     @Test
     public void testReceiveAfterSleep() throws Exception {
-        Actor<Message, Integer> actor = new Actor<Message, Integer>(fjPool, mailboxSize) {
+        Actor<Message, Integer> actor = createActor(new Actor<Message, Integer>(mailboxSize) {
             int counter;
 
             @Override
-            protected Integer run() throws SuspendExecution, InterruptedException {
+            protected Integer doRun() throws SuspendExecution, InterruptedException {
                 Message m1 = receive();
                 Message m2 = receive();
                 return m1.num + m2.num;
             }
-        }.start();
+        });
 
         actor.send(new Message(25));
         Thread.sleep(200);
@@ -107,9 +113,9 @@ public class ActorTest {
 
     @Test
     public void testSelectiveReceive() throws Exception {
-        Actor<ComplexMessage, List<Integer>> actor = new Actor<ComplexMessage, List<Integer>>(fjPool, mailboxSize) {
+        Actor<ComplexMessage, List<Integer>> actor = createActor(new Actor<ComplexMessage, List<Integer>>(mailboxSize) {
             @Override
-            protected List<Integer> run() throws SuspendExecution, InterruptedException {
+            protected List<Integer> doRun() throws SuspendExecution, InterruptedException {
                 final List<Integer> list = new ArrayList<>();
                 for (int i = 0; i < 2; i++) {
                     receive(new MessageProcessor<ComplexMessage>() {
@@ -142,7 +148,7 @@ public class ActorTest {
                 }
                 return list;
             }
-        }.start();
+        });
 
         actor.send(new ComplexMessage(ComplexMessage.Type.FOO, 1));
         actor.send(new ComplexMessage(ComplexMessage.Type.BAR, 2));
@@ -153,11 +159,11 @@ public class ActorTest {
 
     @Test
     public void whenSimpleReceiveAndTimeoutThenReturnNull() throws Exception {
-        Actor<Message, Void> actor = new Actor<Message, Void>(fjPool, mailboxSize) {
+        Actor<Message, Void> actor = createActor(new Actor<Message, Void>(mailboxSize) {
             int counter;
 
             @Override
-            protected Void run() throws SuspendExecution, InterruptedException {
+            protected Void doRun() throws SuspendExecution, InterruptedException {
                 Message m;
                 m = receive(50, TimeUnit.MILLISECONDS);
                 assertThat(m.num, is(1));
@@ -168,7 +174,7 @@ public class ActorTest {
 
                 return null;
             }
-        }.start();
+        });
 
         actor.send(new Message(1));
         Thread.sleep(20);
@@ -179,9 +185,9 @@ public class ActorTest {
 
     @Test
     public void testTimeoutException() throws Exception {
-        Actor<Message, Void> actor = new Actor<Message, Void>(fjPool, mailboxSize) {
+        Actor<Message, Void> actor = createActor(new Actor<Message, Void>(mailboxSize) {
             @Override
-            protected Void run() throws SuspendExecution, InterruptedException {
+            protected Void doRun() throws SuspendExecution, InterruptedException {
                 try {
                     receive(100, TimeUnit.MILLISECONDS, new MessageProcessor<Message>() {
                         public boolean process(Message m) throws SuspendExecution, InterruptedException {
@@ -194,8 +200,8 @@ public class ActorTest {
                 }
                 return null;
             }
-        }.start();
-        
+        });
+
         Thread.sleep(150);
         actor.send(new Message(1));
         actor.join();
@@ -203,45 +209,46 @@ public class ActorTest {
 
     @Test
     public void testLink() throws Exception {
-        Actor<Message, Void> actor1 = new Actor<Message, Void>(fjPool, mailboxSize) {
+        Actor<Message, Void> actor1 = createActor(new Actor<Message, Void>(mailboxSize) {
             int counter;
 
             @Override
-            protected Void run() throws SuspendExecution, InterruptedException {
+            protected Void doRun() throws SuspendExecution, InterruptedException {
                 try {
                     Fiber.sleep(100);
                 } catch (TimeoutException e) {
                 }
                 return null;
             }
-        }.start();
-        
-        Actor<Message, Void> actor2 = new Actor<Message, Void>(fjPool, mailboxSize) {
+        });
+
+        Actor<Message, Void> actor2 = createActor(new Actor<Message, Void>(mailboxSize) {
             int counter;
 
             @Override
-            protected Void run() throws SuspendExecution, InterruptedException {
+            protected Void doRun() throws SuspendExecution, InterruptedException {
                 try {
-                    for(;;) {
+                    for (;;) {
                         receive();
                     }
                 } catch (TimeoutException e) {
                     fail();
-                } catch(LifecycleException e) {
-                    
+                } catch (LifecycleException e) {
                 }
                 return null;
             }
-        }.start();
-        
+        });
+
         actor1.link(actor2);
-        
+
         actor1.join();
         actor2.join();
     }
 
+    @Ignore
     @Test
     public void testMonitor() {
+        fail("pending");
     }
 
     static class Message {

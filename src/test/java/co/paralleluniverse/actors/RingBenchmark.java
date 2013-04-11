@@ -1,5 +1,6 @@
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -16,12 +17,17 @@ public class RingBenchmark {
             new PrimitiveChannelRingBenchmark().run();
     }
 
+    private <Message, V> Actor<Message, V> spawnActor(Actor<Message, V> actor) {
+        Fiber<Integer> fiber = new Fiber("actor", fjPool, actor).start();
+        return actor;
+    }
+
     void run() throws ExecutionException, InterruptedException {
         final long start = System.nanoTime();
 
-        Actor<Message, Integer> manager = new Actor<Message, Integer>(fjPool, mailboxSize) {
+        Actor<Message, Integer> manager = spawnActor(new Actor<Message, Integer>(mailboxSize) {
             @Override
-            protected Integer run() throws InterruptedException, SuspendExecution {
+            protected Integer doRun() throws InterruptedException, SuspendExecution {
                 Actor a = this;
                 for (int i = 0; i < N - 1; i++)
                     a = createRelayActor(a);
@@ -36,7 +42,7 @@ public class RingBenchmark {
 
                 return msg.num;
             }
-        }.start();
+        });
 
         int totalCount = manager.get();
         //assert totalCount == M * N;
@@ -45,15 +51,15 @@ public class RingBenchmark {
     }
 
     private Actor createRelayActor(final Actor<Message, ?> prev) {
-        return new Actor<Message, Void>(fjPool, mailboxSize) {
+        return spawnActor(new Actor<Message, Void>(mailboxSize) {
             @Override
-            protected Void run() throws InterruptedException, SuspendExecution {
+            protected Void doRun() throws InterruptedException, SuspendExecution {
                 for (;;) {
                     Message m = receive();
                     prev.send(new Message(m.num + 1));
                 }
             }
-        }.start();
+        });
     }
 
     static class Message {
