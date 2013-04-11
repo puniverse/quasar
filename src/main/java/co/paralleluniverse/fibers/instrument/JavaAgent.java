@@ -80,6 +80,7 @@ public class JavaAgent {
     private static volatile boolean active;
 
     public static void premain(String agentArguments, Instrumentation instrumentation) {
+        System.out.println("Fibers agent 114");
         if(!instrumentation.isRetransformClassesSupported())
             System.err.println("Retransforming classes is not supported!");
         
@@ -132,7 +133,7 @@ public class JavaAgent {
         Retransform.instrumentation = instrumentation;
         Retransform.db = db;
         
-        instrumentation.addTransformer(new Transformer(db, checkArg));
+        instrumentation.addTransformer(new Transformer(db, checkArg), true);
     }
 
     public static boolean isActive() {
@@ -164,8 +165,8 @@ public class JavaAgent {
                 return null;
             if (className.startsWith("org/objectweb/asm/"))
                 return null;
-
-            db.log(LogLevel.INFO, "TRANSFORM: %s", className);
+            
+            db.log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
 
             try {
                 return instrumentClass(db, classfileBuffer, check);
