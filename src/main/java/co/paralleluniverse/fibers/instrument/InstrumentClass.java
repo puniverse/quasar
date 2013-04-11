@@ -45,13 +45,13 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
  * Instrument a class by instrumenting all suspendable methods and copying the others.
  *
  * @author Matthias Mann
+ * @author pron
  */
 public class InstrumentClass extends ClassVisitor {
     static final String ALREADY_INSTRUMENTED_NAME = Type.getDescriptor(Instrumented.class);
     private final MethodDatabase db;
-    private final boolean forceInstrumentation;
+    private boolean forceInstrumentation;
     private String className;
-    private boolean retransform;
     private ClassEntry classEntry;
     private boolean alreadyInstrumented;
     private ArrayList<MethodNode> methods;
@@ -65,9 +65,12 @@ public class InstrumentClass extends ClassVisitor {
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         this.className = name;
-        ClassEntry oldClassEntry = db.getClassEntry(className);
-        this.retransform = JavaAgent.isActive() && oldClassEntry != null && oldClassEntry.isExaminedByInstrumentClass();
-        this.classEntry = new ClassEntry(superName, interfaces);
+        this.classEntry = db.getClassEntry(className);
+        if (classEntry == null)
+            this.classEntry = new ClassEntry(superName);
+        classEntry.setInterfaces(interfaces);
+
+        forceInstrumentation |= classEntry.requiresInstrumentation();
 
         // need atleast 1.5 for annotations to work
         if (version < Opcodes.V1_5)
@@ -86,7 +89,9 @@ public class InstrumentClass extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        boolean suspendable = SuspendableClassifierService.isSuspendable(retransform, className, classEntry, name, desc, signature, exceptions);
+        boolean suspendable = SuspendableClassifierService.isSuspendable(className, classEntry, name, desc, signature, exceptions);
+        if (!suspendable && classEntry.requiresInstrumentation() && classEntry.check(name, desc))
+            suspendable = true;
         classEntry.set(name, desc, suspendable);
 
         if (suspendable && checkAccess(access) && !isYieldMethod(className, name)) {
@@ -106,7 +111,7 @@ public class InstrumentClass extends ClassVisitor {
     @Override
     @SuppressWarnings("CallToThreadDumpStack")
     public void visitEnd() {
-        classEntry.setExaminedByInstrumentClass(true);
+        classEntry.setRequiresInstrumentation(false);
         db.recordSuspendableMethods(className, classEntry);
 
         if (methods != null) {

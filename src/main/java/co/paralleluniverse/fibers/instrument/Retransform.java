@@ -13,6 +13,7 @@ import java.lang.instrument.UnmodifiableClassException;
  */
 class Retransform {
     static volatile Instrumentation instrumentation;
+    static volatile MethodDatabase db;
     
     public static void retransform(Class<?> clazz) throws UnmodifiableClassException {
         instrumentation.retransformClasses(clazz);

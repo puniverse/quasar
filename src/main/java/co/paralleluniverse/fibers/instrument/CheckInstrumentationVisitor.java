@@ -37,12 +37,10 @@ import org.objectweb.asm.Opcodes;
 /**
  * Check if a class contains suspendable methods.
  * Basicly this class checks if a method is declared to throw {@link SuspendExecution}.
- * 
+ *
  * @author Matthias Mann
  */
 public class CheckInstrumentationVisitor extends ClassVisitor {
-
-
     private String className;
     private ClassEntry classEntry;
     private boolean hasSuspendable;
@@ -59,7 +57,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
     ClassEntry getClassEntry() {
         return classEntry;
     }
-    
+
     public String getName() {
         return className;
     }
@@ -67,16 +65,17 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
     public boolean isAlreadyInstrumented() {
         return alreadyInstrumented;
     }
-    
+
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         this.className = name;
-        this.classEntry = new ClassEntry(superName, interfaces);
+        this.classEntry = new ClassEntry(superName);
+        classEntry.setInterfaces(interfaces);
     }
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-        if(desc.equals(InstrumentClass.ALREADY_INSTRUMENTED_NAME))
+        if (desc.equals(InstrumentClass.ALREADY_INSTRUMENTED_NAME))
             alreadyInstrumented = true;
 
         return null;
@@ -84,11 +83,13 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        boolean suspendable = SuspendableClassifierService.isSuspendable(false, className, classEntry, name, desc, signature, exceptions);
-        if(suspendable) {
+        boolean suspendable = SuspendableClassifierService.isSuspendable(className, classEntry, name, desc, signature, exceptions);
+        if (!suspendable && classEntry.requiresInstrumentation() && classEntry.check(name, desc))
+            suspendable = true;
+        if (suspendable) {
             hasSuspendable = true;
             // synchronized methods can't be made suspendable
-            if((access & Opcodes.ACC_SYNCHRONIZED) == Opcodes.ACC_SYNCHRONIZED)
+            if ((access & Opcodes.ACC_SYNCHRONIZED) == Opcodes.ACC_SYNCHRONIZED)
                 throw new UnableToInstrumentException("synchronized method", className, name, desc);
         }
         classEntry.set(name, desc, suspendable);

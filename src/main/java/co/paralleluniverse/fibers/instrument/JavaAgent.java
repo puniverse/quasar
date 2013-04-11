@@ -127,6 +127,8 @@ public class JavaAgent {
         });
 
         Retransform.instrumentation = instrumentation;
+        Retransform.db = db;
+        
         instrumentation.addTransformer(new Transformer(db, checkArg));
     }
 
@@ -160,7 +162,7 @@ public class JavaAgent {
             if (className.startsWith("org/objectweb/asm/"))
                 return null;
 
-            db.log(LogLevel.INFO, "TRANSFORM: %s %s", className, db.getClassEntry(className) != null && db.getClassEntry(className).isExaminedByInstrumentClass() ? "(retransform)" : "");
+            db.log(LogLevel.INFO, "TRANSFORM: %s", className);
 
             try {
                 return instrumentClass(db, classfileBuffer, check);

@@ -15,9 +15,9 @@ import java.util.ServiceLoader;
 class SuspendableClassifierService {
     private static ServiceLoader<SuspendableClassifier> loader = ServiceLoader.load(SuspendableClassifier.class);
 
-    public static boolean isSuspendable(boolean retransform, String className, ClassEntry classEntry, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
+    public static boolean isSuspendable(String className, ClassEntry classEntry, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
         for (SuspendableClassifier sc : loader) {
-            if (sc.isSuspendable(retransform, className, classEntry.superName, classEntry.interfaces, methodName, methodDesc, methodSignature, methodExceptions))
+            if (sc.isSuspendable(className, classEntry.superName, classEntry.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions))
                 return true;
         }
         if (checkExceptions(methodExceptions))

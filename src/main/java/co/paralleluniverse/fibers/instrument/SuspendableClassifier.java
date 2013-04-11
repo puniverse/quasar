@@ -9,5 +9,5 @@ package co.paralleluniverse.fibers.instrument;
  * @author pron
  */
 public interface SuspendableClassifier {
-    boolean isSuspendable(boolean retransform, String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions);
+    boolean isSuspendable(String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions);
 }

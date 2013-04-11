@@ -376,18 +376,17 @@ public class MethodDatabase implements Log {
         return className.startsWith("java/") || className.startsWith("javax/")
                 || className.startsWith("sun/") || className.startsWith("com/sun/");
     }
-    private static final ClassEntry CLASS_NOT_FOUND = new ClassEntry("<class not found>", null);
+    private static final ClassEntry CLASS_NOT_FOUND = new ClassEntry("<class not found>");
 
-    static final class ClassEntry {
+    public static final class ClassEntry {
         private final HashMap<String, Boolean> methods;
-        final String[] interfaces;
+        private String[] interfaces;
         final String superName;
-        private boolean examinedByInstrumentClass;
+        private volatile boolean requiresInstrumentation;
 
-        public ClassEntry(String superName, String[] interfaces) {
+        public ClassEntry(String superName) {
             this.superName = superName;
             this.methods = new HashMap<String, Boolean>();
-            this.interfaces = interfaces;
         }
 
         public void set(String name, String desc, boolean suspendable) {
@@ -395,8 +394,24 @@ public class MethodDatabase implements Log {
             methods.put(nameAndDesc, suspendable);
         }
 
+        public String[] getInterfaces() {
+            return interfaces;
+        }
+
+        public void setInterfaces(String[] interfaces) {
+            this.interfaces = interfaces;
+        }
+
         public Boolean check(String name, String desc) {
             return methods.get(key(name, desc));
+        }
+
+        public boolean requiresInstrumentation() {
+            return requiresInstrumentation;
+        }
+
+        public void setRequiresInstrumentation(boolean requiresInstrumentation) {
+            this.requiresInstrumentation = requiresInstrumentation;
         }
 
         @Override
@@ -415,14 +430,6 @@ public class MethodDatabase implements Log {
 
         private static String key(String methodName, String methodDesc) {
             return methodName.concat(methodDesc);
-        }
-
-        public boolean isExaminedByInstrumentClass() {
-            return examinedByInstrumentClass;
-        }
-
-        public void setExaminedByInstrumentClass(boolean examinedByInstrumentClass) {
-            this.examinedByInstrumentClass = examinedByInstrumentClass;
         }
     }
 
