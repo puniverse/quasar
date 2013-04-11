@@ -20,6 +20,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import jsr166e.ForkJoinPool;
+import jsr166e.ForkJoinWorkerThread;
 import sun.misc.Unsafe;
 
 /**
@@ -56,11 +57,13 @@ public class Fiber<V> extends Strand implements Serializable {
     private volatile State state;
     private volatile boolean interrupted;
     private final SuspendableCallable<V> target;
-    FiberLocal.FiberLocalMap fiberLocals;
+    private Object fiberLocals;
+    private Object inheritableFiberLocals;
     private long sleepStart;
     private PostParkActions postParkActions;
     private V result;
     private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
+    private final DummyRunnable fiberRef = new DummyRunnable(this);
 
     /**
      * Creates a new Fiber from the given SuspendableRunnable.
@@ -89,6 +92,11 @@ public class Fiber<V> extends Strand implements Serializable {
         } else if (!isInstrumented(this.getClass())) {
             throw new IllegalArgumentException("Fiber class " + this.getClass() + " has not been instrumented.");
         }
+
+        final Thread currentThread = Thread.currentThread();
+        Object inheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
+        if (inheritableThreadLocals != null)
+            this.inheritableFiberLocals = ThreadAccess.createInheritedMap(inheritableThreadLocals);
     }
 
     public Fiber(String name, int stackSize, SuspendableCallable<V> target) {
@@ -215,14 +223,7 @@ public class Fiber<V> extends Strand implements Serializable {
      * @return the active Fiber on this thread or NULL if no Fiber is running.
      */
     public static Fiber currentFiber() {
-        try {
-            final FiberForkJoinTask currentFJTask = FiberForkJoinTask.getCurrent();
-            if (currentFJTask == null)
-                return null;
-            return currentFJTask.getFiber();
-        } catch (ClassCastException e) {
-            return null;
-        }
+        return getCurrentFiber();
     }
 
     @Override
@@ -306,9 +307,12 @@ public class Fiber<V> extends Strand implements Serializable {
         if (fjTask.isDone() | state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
 
+        setCurrentFiber(this);
+        installFiberLocals();
+
         state = State.RUNNING;
         try {
-            this.result = run1();
+            this.result = run1(); // we jump into the continuation
 
             state = State.TERMINATED;
             return true;
@@ -330,6 +334,71 @@ public class Fiber<V> extends Strand implements Serializable {
         } catch (Throwable t) {
             state = State.TERMINATED;
             throw t;
+        } finally {
+            setCurrentFiber(null);
+        }
+    }
+
+    private void installFiberLocals() {
+        if(fjPool == null) // in tests
+            return;
+        
+        final Thread currentThread = Thread.currentThread();
+
+        Object tmpThreadLocals = ThreadAccess.getThreadLocals(currentThread);
+        Object tmpInheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
+
+        ThreadAccess.setThreadLocals(currentThread, this.fiberLocals);
+        ThreadAccess.setInheritablehreadLocals(currentThread, this.inheritableFiberLocals);
+
+        this.fiberLocals = tmpThreadLocals;
+        this.inheritableFiberLocals = tmpInheritableThreadLocals;
+    }
+
+    private void restoreThreadLocals() {
+        installFiberLocals();
+    }
+
+    private void setCurrentFiber(Fiber fiber) {
+        if (fjPool == null) // in tests
+            return;
+        final Thread currentThread = Thread.currentThread();
+        if (ThreadAccess.getTarget(currentThread) != null && fiber != null)
+            throw new RuntimeException("Fiber " + fiber + " target: " + ThreadAccess.getTarget(currentThread));
+        ThreadAccess.setTarget(currentThread, fiber != null ? fiber.fiberRef : null);
+    }
+
+    private static Fiber getCurrentFiber() {
+        final Thread currentThread = Thread.currentThread();
+        if (currentThread instanceof ForkJoinWorkerThread) { // false in tests
+            Object target = ThreadAccess.getTarget(currentThread);
+            if (target == null)
+                return null;
+            if (!(target instanceof DummyRunnable))
+                return null;
+            return ((DummyRunnable) ThreadAccess.getTarget(currentThread)).fiber;
+        } else {
+            try {
+                final FiberForkJoinTask currentFJTask = FiberForkJoinTask.getCurrent();
+                if (currentFJTask == null)
+                    return null;
+                return currentFJTask.getFiber();
+            } catch (ClassCastException e) {
+                return null;
+            }
+        }
+    }
+
+    private static final class DummyRunnable implements Runnable {
+        final Fiber fiber;
+
+        public DummyRunnable(Fiber fiber) {
+            this.fiber = fiber;
+        }
+
+        @Override
+        public void run() {
+            throw new RuntimeException("This method shouldn't be run. This object is a placeholder.");
         }
     }
 
@@ -356,6 +425,11 @@ public class Fiber<V> extends Strand implements Serializable {
     }
 
     protected void onCompletion() {
+        restoreThreadLocals();
+    }
+
+    protected void onParked() {
+        restoreThreadLocals();
     }
 
     protected void onException(Throwable t) {
@@ -522,10 +596,10 @@ public class Fiber<V> extends Strand implements Serializable {
 
     ////////
     static final class FiberForkJoinTask<V> extends ParkableForkJoinTask<V> {
-        private final Fiber<V> lwt;
+        private final Fiber<V> fiber;
 
-        public FiberForkJoinTask(Fiber<V> lwThread) {
-            this.lwt = lwThread;
+        public FiberForkJoinTask(Fiber<V> fiber) {
+            this.fiber = fiber;
         }
 
         protected static FiberForkJoinTask getCurrent() {
@@ -533,20 +607,20 @@ public class Fiber<V> extends Strand implements Serializable {
         }
 
         Fiber getFiber() {
-            return lwt;
+            return fiber;
         }
 
         @Override
         protected void submit() {
-            if (getPool() == lwt.fjPool)
+            if (getPool() == fiber.fjPool)
                 fork();
             else
-                lwt.fjPool.submit(this);
+                fiber.fjPool.submit(this);
         }
 
         @Override
         protected boolean exec1() {
-            return lwt.exec1();
+            return fiber.exec1();
         }
 
         @Override
@@ -582,29 +656,35 @@ public class Fiber<V> extends Strand implements Serializable {
         }
 
         @Override
+        protected void onParked(boolean yield) {
+            super.onParked(yield);
+            fiber.onParked();
+        }
+
+        @Override
         protected void throwPark(boolean yield) throws SuspendExecution {
             throw SuspendExecution.instance;
         }
 
         @Override
         protected void onException(Throwable t) {
-            lwt.onException(t);
+            fiber.onException(t);
         }
 
         @Override
         protected void onCompletion(boolean res) {
             if (res)
-                lwt.onCompletion();
+                fiber.onCompletion();
         }
 
         @Override
         public V getRawResult() {
-            return lwt.result;
+            return fiber.result;
         }
 
         @Override
         protected void setRawResult(V v) {
-            lwt.result = v;
+            fiber.result = v;
         }
 
         @Override
@@ -707,7 +787,7 @@ public class Fiber<V> extends Strand implements Serializable {
             throw new AssertionError(ex);
         }
     }
-    
+
     private boolean casState(State expected, State update) {
         return unsafe.compareAndSwapObject(this, stateOffset, expected, update);
     }
