@@ -13,7 +13,7 @@ import java.nio.channels.CompletionHandler;
  *
  * @author pron
  */
-abstract class LightweightThreadAsyncIO<V> extends FiberAsync<V, CompletionHandler<V, Fiber>, IOException> {
+abstract class FiberAsyncIO<V> extends FiberAsync<V, CompletionHandler<V, Fiber>, IOException> {
     @Override
     protected LightweightThreadCallback createCallback() {
         return new LightweightThreadCompletionHandler();

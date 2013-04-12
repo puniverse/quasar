@@ -21,33 +21,33 @@ import java.util.concurrent.ExecutorService;
  *
  * @author pron
  */
-public class LightweightThreadFileChannel implements LightweightThreadByteChannel {
+public class FiberFileChannel implements FiberByteChannel {
     private final AsynchronousFileChannel ac;
     private long position;
 
-    private LightweightThreadFileChannel(AsynchronousFileChannel afc) {
+    private FiberFileChannel(AsynchronousFileChannel afc) {
         ac = afc;
     }
 
-    public static LightweightThreadFileChannel open(ExecutorService ioExecutor, Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
-        return new LightweightThreadFileChannel(AsynchronousFileChannel.open(path, options, ioExecutor, attrs));
+    public static FiberFileChannel open(ExecutorService ioExecutor, Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
+        return new FiberFileChannel(AsynchronousFileChannel.open(path, options, ioExecutor, attrs));
     }
 
-    public static LightweightThreadFileChannel open(Path path, OpenOption... options) throws IOException {
-        return new LightweightThreadFileChannel(AsynchronousFileChannel.open(path, options));
+    public static FiberFileChannel open(Path path, OpenOption... options) throws IOException {
+        return new FiberFileChannel(AsynchronousFileChannel.open(path, options));
     }
 
     public long position() throws IOException {
         return position;
     }
 
-    public LightweightThreadFileChannel position(long newPosition) throws IOException {
+    public FiberFileChannel position(long newPosition) throws IOException {
         this.position = newPosition;
         return this;
     }
 
     public int read(final ByteBuffer dst, final long position) throws IOException, SuspendExecution {
-        return new LightweightThreadAsyncIO<Integer>() {
+        return new FiberAsyncIO<Integer>() {
             @Override
             protected void requestAsync(Fiber current, CompletionHandler<Integer, Fiber> completionHandler) {
                 ac.read(dst, position, current, completionHandler);
@@ -56,7 +56,7 @@ public class LightweightThreadFileChannel implements LightweightThreadByteChanne
     }
 
     public int write(final ByteBuffer src, final long position) throws IOException, SuspendExecution {
-        return new LightweightThreadAsyncIO<Integer>() {
+        return new FiberAsyncIO<Integer>() {
             @Override
             protected void requestAsync(Fiber current, CompletionHandler<Integer, Fiber> completionHandler) {
                 ac.write(src, position, current, completionHandler);
@@ -96,7 +96,7 @@ public class LightweightThreadFileChannel implements LightweightThreadByteChanne
         ac.force(metaData);
     }
 
-    public LightweightThreadFileChannel truncate(long size) throws IOException {
+    public FiberFileChannel truncate(long size) throws IOException {
         ac.truncate(size);
         return this;
     }
@@ -110,7 +110,7 @@ public class LightweightThreadFileChannel implements LightweightThreadByteChanne
     }
 
     public final FileLock lock() throws IOException, SuspendExecution {
-        return new LightweightThreadAsyncIO<FileLock>() {
+        return new FiberAsyncIO<FileLock>() {
             @Override
             protected void requestAsync(Fiber current, CompletionHandler<FileLock, Fiber> completionHandler) {
                 ac.lock(current, completionHandler);
@@ -119,7 +119,7 @@ public class LightweightThreadFileChannel implements LightweightThreadByteChanne
     }
 
     public FileLock lock(final long position, final long size, final boolean shared) throws IOException, SuspendExecution {
-        return new LightweightThreadAsyncIO<FileLock>() {
+        return new FiberAsyncIO<FileLock>() {
             @Override
             protected void requestAsync(Fiber current, CompletionHandler<FileLock, Fiber> completionHandler) {
                 ac.lock(position, size, shared, current, completionHandler);

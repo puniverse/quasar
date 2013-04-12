@@ -13,7 +13,7 @@ import java.nio.channels.Channel;
  *
  * @author pron
  */
-public interface LightweightThreadByteChannel extends Channel /*ByteChannel*/ {
+public interface FiberByteChannel extends Channel /*ByteChannel*/ {
 
     int read(final ByteBuffer dst) throws IOException, SuspendExecution;
     int write(final ByteBuffer src) throws IOException, SuspendExecution;

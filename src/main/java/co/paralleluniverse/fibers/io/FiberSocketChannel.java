@@ -21,23 +21,23 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public class LightweightThreadSocketChannel implements LightweightThreadByteChannel, NetworkChannel {
+public class FiberSocketChannel implements FiberByteChannel, NetworkChannel {
     private final AsynchronousSocketChannel ac;
 
-    public LightweightThreadSocketChannel(AsynchronousSocketChannel asc) {
+    public FiberSocketChannel(AsynchronousSocketChannel asc) {
         this.ac = asc;
     }
 
-    public static LightweightThreadSocketChannel open() throws IOException {
-        return new LightweightThreadSocketChannel(AsynchronousSocketChannel.open());
+    public static FiberSocketChannel open() throws IOException {
+        return new FiberSocketChannel(AsynchronousSocketChannel.open());
     }
 
-    public static LightweightThreadSocketChannel open(SocketAddress remote) throws IOException {
-        return new LightweightThreadSocketChannel(AsynchronousSocketChannel.open());
+    public static FiberSocketChannel open(SocketAddress remote) throws IOException {
+        return new FiberSocketChannel(AsynchronousSocketChannel.open());
     }
 
     public void connect(final SocketAddress remote) throws IOException, SuspendExecution {
-        new LightweightThreadAsyncIO<Void>() {
+        new FiberAsyncIO<Void>() {
             @Override
             protected void requestAsync(Fiber current, CompletionHandler<Void, Fiber> completionHandler) {
                 ac.connect(remote, current, completionHandler);
@@ -46,7 +46,7 @@ public class LightweightThreadSocketChannel implements LightweightThreadByteChan
     }
 
     public long read(final ByteBuffer[] dsts, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
-        return new LightweightThreadAsyncIO<Long>() {
+        return new FiberAsyncIO<Long>() {
             @Override
             protected void requestAsync(Fiber current, CompletionHandler<Long, Fiber> completionHandler) {
                 ac.read(dsts, offset, length, timeout, unit, current, completionHandler);
@@ -55,7 +55,7 @@ public class LightweightThreadSocketChannel implements LightweightThreadByteChan
     }
 
     public int read(final ByteBuffer dst, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
-        return new LightweightThreadAsyncIO<Integer>() {
+        return new FiberAsyncIO<Integer>() {
             @Override
             protected void requestAsync(Fiber current, CompletionHandler<Integer, Fiber> completionHandler) {
                 ac.read(dst, timeout, unit, current, completionHandler);
@@ -64,7 +64,7 @@ public class LightweightThreadSocketChannel implements LightweightThreadByteChan
     }
 
     public long write(final ByteBuffer[] srcs, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
-        return new LightweightThreadAsyncIO<Long>() {
+        return new FiberAsyncIO<Long>() {
             @Override
             protected void requestAsync(Fiber current, CompletionHandler<Long, Fiber> completionHandler) {
                 ac.write(srcs, offset, length, timeout, unit, current, completionHandler);
@@ -73,7 +73,7 @@ public class LightweightThreadSocketChannel implements LightweightThreadByteChan
     }
 
     public int write(final ByteBuffer src, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
-        return new LightweightThreadAsyncIO<Integer>() {
+        return new FiberAsyncIO<Integer>() {
             @Override
             protected void requestAsync(Fiber current, CompletionHandler<Integer, Fiber> completionHandler) {
                 ac.write(src, timeout, unit, current, completionHandler);
@@ -118,12 +118,12 @@ public class LightweightThreadSocketChannel implements LightweightThreadByteChan
         ac.close();
     }
 
-    public LightweightThreadSocketChannel shutdownInput() throws IOException {
+    public FiberSocketChannel shutdownInput() throws IOException {
         ac.shutdownInput();
         return this;
     }
 
-    public LightweightThreadSocketChannel shutdownOutput() throws IOException {
+    public FiberSocketChannel shutdownOutput() throws IOException {
         ac.shutdownOutput();
         return this;
     }
@@ -137,13 +137,13 @@ public class LightweightThreadSocketChannel implements LightweightThreadByteChan
     }
 
     @Override
-    public LightweightThreadSocketChannel bind(SocketAddress local) throws IOException {
+    public FiberSocketChannel bind(SocketAddress local) throws IOException {
         ac.bind(local);
         return this;
     }
 
     @Override
-    public <T> LightweightThreadSocketChannel setOption(SocketOption<T> name, T value) throws IOException {
+    public <T> FiberSocketChannel setOption(SocketOption<T> name, T value) throws IOException {
         ac.setOption(name, value);
         return this;
     }

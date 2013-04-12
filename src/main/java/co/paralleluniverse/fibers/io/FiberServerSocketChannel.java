@@ -19,19 +19,19 @@ import java.util.Set;
  *
  * @author pron
  */
-public class LightweightThreadServerSocketChannel implements NetworkChannel {
+public class FiberServerSocketChannel implements NetworkChannel {
     private final AsynchronousServerSocketChannel ac;
 
-    private LightweightThreadServerSocketChannel(AsynchronousServerSocketChannel assc) {
+    private FiberServerSocketChannel(AsynchronousServerSocketChannel assc) {
         this.ac = assc;
     }
 
-    public static LightweightThreadServerSocketChannel open() throws IOException {
-        return new LightweightThreadServerSocketChannel(AsynchronousServerSocketChannel.open());
+    public static FiberServerSocketChannel open() throws IOException {
+        return new FiberServerSocketChannel(AsynchronousServerSocketChannel.open());
     }
 
-    public LightweightThreadSocketChannel accept() throws IOException, SuspendExecution {
-        return new LightweightThreadSocketChannel(new LightweightThreadAsyncIO<AsynchronousSocketChannel>() {
+    public FiberSocketChannel accept() throws IOException, SuspendExecution {
+        return new FiberSocketChannel(new FiberAsyncIO<AsynchronousSocketChannel>() {
             @Override
             protected void requestAsync(Fiber current, CompletionHandler<AsynchronousSocketChannel, Fiber> completionHandler) {
                 ac.accept(current, completionHandler);
@@ -50,18 +50,18 @@ public class LightweightThreadServerSocketChannel implements NetworkChannel {
     }
 
     @Override
-    public LightweightThreadServerSocketChannel bind(SocketAddress local) throws IOException {
+    public FiberServerSocketChannel bind(SocketAddress local) throws IOException {
         ac.bind(local);
         return this;
     }
 
-    public LightweightThreadServerSocketChannel bind(SocketAddress local, int backlog) throws IOException {
+    public FiberServerSocketChannel bind(SocketAddress local, int backlog) throws IOException {
         ac.bind(local, backlog);
         return this;
     }
 
     @Override
-    public <T> LightweightThreadServerSocketChannel setOption(SocketOption<T> name, T value) throws IOException {
+    public <T> FiberServerSocketChannel setOption(SocketOption<T> name, T value) throws IOException {
         ac.setOption(name, value);
         return this;
     }
