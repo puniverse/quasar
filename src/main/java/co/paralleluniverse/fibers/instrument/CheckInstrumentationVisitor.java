@@ -83,9 +83,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        boolean suspendable = SuspendableClassifierService.isSuspendable(className, classEntry, name, desc, signature, exceptions);
-        if (!suspendable && classEntry.requiresInstrumentation() && classEntry.check(name, desc))
-            suspendable = true;
+        boolean suspendable = SuspendableClassifierService.isSuspendable(className, classEntry, name, desc, signature, exceptions) || classEntry.check(name, desc) == Boolean.TRUE;
         if (suspendable) {
             hasSuspendable = true;
             // synchronized methods can't be made suspendable

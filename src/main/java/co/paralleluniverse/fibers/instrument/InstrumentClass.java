@@ -32,6 +32,7 @@ import co.paralleluniverse.fibers.Instrumented;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
@@ -49,6 +50,7 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
  */
 public class InstrumentClass extends ClassVisitor {
     static final String ALREADY_INSTRUMENTED_NAME = Type.getDescriptor(Instrumented.class);
+    //static final String SUSPENDABLE_NAME = Type.getInternalName(Suspendable.class);
     private final MethodDatabase db;
     private boolean forceInstrumentation;
     private String className;
@@ -76,6 +78,12 @@ public class InstrumentClass extends ClassVisitor {
         if (version < Opcodes.V1_5)
             version = Opcodes.V1_5;
 
+// When Java allows adding interfaces in retransformation, we can mark the class with an interface, which makes checking whether it's instrumented faster (with instanceof)       
+//        if(classEntry.requiresInstrumentation() && !contains(interfaces, SUSPENDABLE_NAME)) {
+//            System.out.println("XX: Marking " + className + " as " + SUSPENDABLE_NAME);
+//            interfaces = add(interfaces, SUSPENDABLE_NAME);
+//        }
+        
         super.visit(version, access, name, signature, superName, interfaces);
     }
 
@@ -89,9 +97,7 @@ public class InstrumentClass extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        boolean suspendable = SuspendableClassifierService.isSuspendable(className, classEntry, name, desc, signature, exceptions);
-        if (!suspendable && classEntry.requiresInstrumentation() && classEntry.check(name, desc))
-            suspendable = true;
+        boolean suspendable = SuspendableClassifierService.isSuspendable(className, classEntry, name, desc, signature, exceptions) || classEntry.check(name, desc) == Boolean.TRUE;
         classEntry.set(name, desc, suspendable);
 
         if (suspendable && checkAccess(access) && !isYieldMethod(className, name)) {
@@ -156,4 +162,18 @@ public class InstrumentClass extends ClassVisitor {
 
         return l.toArray(new String[l.size()]);
     }
+//    
+//    private static boolean contains(String[] ifaces, String iface) {
+//        for(String i : ifaces) {
+//            if(i.equals(iface))
+//                return true;
+//        }
+//        return false;
+//    }
+//    
+//    private static String[] add(String[] ifaces, String iface) {
+//        String[] newIfaces = Arrays.copyOf(ifaces, ifaces.length + 1);
+//        newIfaces[newIfaces.length - 1] = iface;
+//        return newIfaces;
+//    }
 }
