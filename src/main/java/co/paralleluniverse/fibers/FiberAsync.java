@@ -15,7 +15,7 @@ public abstract class FiberAsync<V, Callback, E extends Throwable> {
 
     @SuppressWarnings("empty-statement")
     public V run() throws E, SuspendExecution {
-        final LightweightThreadCallback handler = new LightweightThreadCallback();
+        final FiberCallback handler = new FiberCallback();
         while(!Fiber.park(this, handler)) // make sure we actually park and run PostParkActions
             ;
         while (!handler.isCompleted())
@@ -33,9 +33,9 @@ public abstract class FiberAsync<V, Callback, E extends Throwable> {
     /**
      * Returns a LightweightThreadCallback that implements Callback
      */
-    protected abstract LightweightThreadCallback createCallback();
+    protected abstract FiberCallback createCallback();
     
-    protected class LightweightThreadCallback implements Fiber.PostParkActions {
+    protected class FiberCallback implements Fiber.PostParkActions {
         private volatile boolean completed;
         private Throwable exception;
         private V result;

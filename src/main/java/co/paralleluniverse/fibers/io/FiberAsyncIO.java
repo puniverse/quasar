@@ -15,11 +15,11 @@ import java.nio.channels.CompletionHandler;
  */
 abstract class FiberAsyncIO<V> extends FiberAsync<V, CompletionHandler<V, Fiber>, IOException> {
     @Override
-    protected LightweightThreadCallback createCallback() {
-        return new LightweightThreadCompletionHandler();
+    protected FiberCallback createCallback() {
+        return new FiberCompletionHandler();
     }
 
-    private class LightweightThreadCompletionHandler extends LightweightThreadCallback implements CompletionHandler<V, Fiber> {
+    private class FiberCompletionHandler extends FiberCallback implements CompletionHandler<V, Fiber> {
         @Override
         public void completed(V result, Fiber lwthread) {
             super.completed(result, lwthread);
