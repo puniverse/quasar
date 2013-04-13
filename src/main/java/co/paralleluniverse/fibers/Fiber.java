@@ -130,7 +130,7 @@ public class Fiber<V> extends Strand implements Serializable {
         }
     }
 
-    protected SuspendableCallable<V> getTarget() {
+    public SuspendableCallable<V> getTarget() {
         return target;
     }
     //<editor-fold defaultstate="collapsed" desc="Constructors">

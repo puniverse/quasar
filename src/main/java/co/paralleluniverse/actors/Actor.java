@@ -149,8 +149,14 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Stran
     }
     //</editor-fold>
 
-    public Actor currentActor() {
-        return currentActor.get();
+    public static Actor currentActor() {
+        final Fiber currentFiber = Fiber.currentFiber();
+        if (currentFiber == null)
+            return currentActor.get();
+        final SuspendableCallable target = currentFiber.getTarget();
+        if (target == null || !(target instanceof Actor))
+            return null;
+        return (Actor) target;
     }
 
     //<editor-fold desc="Strand helpers">
@@ -193,7 +199,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Stran
     public final V run() throws InterruptedException, SuspendExecution {
         if (strand == null)
             setStrand(Strand.currentStrand());
-        currentActor.set(this);
+        if (!(strand instanceof Fiber))
+            currentActor.set(this);
         try {
             result = doRun();
             notifyDeath(null);
@@ -205,7 +212,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Stran
             notifyDeath(t);
             throw t;
         } finally {
-            currentActor.set(null);
+            if (!(strand instanceof Fiber))
+                currentActor.set(this);
         }
     }
 
