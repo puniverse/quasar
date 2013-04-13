@@ -123,7 +123,7 @@ public class ActorTest {
                             switch (m.type) {
                                 case FOO:
                                     list.add(1);
-                                    receive(m, new MessageProcessor<ComplexMessage>() {
+                                    receive(new MessageProcessor<ComplexMessage>() {
                                         public boolean process(ComplexMessage m) throws SuspendExecution, InterruptedException {
                                             switch (m.type) {
                                                 case BAZ:

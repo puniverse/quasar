@@ -115,21 +115,13 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Stran
         };
     }
 
-    protected Message receive(long timeout, TimeUnit unit, Message currentMessage, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
-        checkThrownIn();
-        return (Message) mailbox.receive(timeout, unit, currentMessage, wrapProcessor(proc));
-    }
-
-    protected Message receive(Message currentMessage, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
-        return receive(0, null, currentMessage, proc);
-    }
-
     protected Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
-        return receive(timeout, unit, null, proc);
+        checkThrownIn();
+        return (Message) mailbox.receive(timeout, unit, wrapProcessor(proc));
     }
 
     protected Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
-        return receive(0, null, null, proc);
+        return receive(0, null, proc);
     }
 
     public void send(Message message) {

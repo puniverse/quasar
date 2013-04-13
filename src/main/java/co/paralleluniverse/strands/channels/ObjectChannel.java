@@ -17,6 +17,8 @@ import java.util.concurrent.TimeUnit;
  * @author pron
  */
 public class ObjectChannel<Message> extends Channel<Message> {
+    private Message currentMessage; // this works because channel is single-consumer
+    
     public static <Message> ObjectChannel<Message> create(Object owner, int mailboxSize) {
         return new ObjectChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedObjectQueue<Message>());
     }
@@ -42,7 +44,7 @@ public class ObjectChannel<Message> extends Channel<Message> {
      * @throws TimeoutException
      * @throws LwtInterruptedException
      */
-    public Message receive(long timeout, TimeUnit unit, Message currentMessage, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
+    public Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
         sync().verifyOwner();
 
         final long start = timeout > 0 ? System.nanoTime() : 0;
@@ -60,10 +62,12 @@ public class ObjectChannel<Message> extends Channel<Message> {
                 }
 
                 try {
-                    if (proc.process((Message) m)) {
-                        if (queue.value(n) == m) // another call to receive from within the processor may have deleted n
+                    final Message msg = (Message)m;
+                    currentMessage = msg;
+                    if (proc.process(msg)) {
+                        if (queue.value(n) == msg) // another call to receive from within the processor may have deleted n
                             queue.del(n);
-                        return (Message) m;
+                        return msg;
                     }
                 } catch (Exception e) {
                     if (queue.value(n) == m) // another call to receive from within the processor may have deleted n
@@ -89,15 +93,7 @@ public class ObjectChannel<Message> extends Channel<Message> {
         }
     }
 
-    public Message receive(Message currentMessage, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
-        return receive(0, null, currentMessage, proc);
-    }
-
-    public Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
-        return receive(timeout, unit, null, proc);
-    }
-
     public Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
-        return receive(0, null, null, proc);
+        return receive(0, null, proc);
     }
 }
