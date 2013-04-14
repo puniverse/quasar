@@ -40,6 +40,13 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
         this.sync = OwnedSynchronizer.create(owner);
     }
 
+    protected void maybeSetCurrentStrandAsOwner() {
+        if(owner == null)
+            setStrand(Strand.currentStrand());
+        else
+            sync.verifyOwner();
+    }
+    
     protected OwnedSynchronizer sync() {
         verifySync();
         return sync;
@@ -68,8 +75,7 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
     }
 
     Object receiveNode() throws SuspendExecution, InterruptedException {
-        verifySync();
-        sync.verifyOwner();
+        maybeSetCurrentStrandAsOwner();
         Object n;
         sync.lock();
         while ((n = queue.pk()) == null)
@@ -80,8 +86,7 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
     }
 
     Object receiveNode(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        verifySync();
-        sync.verifyOwner();
+        maybeSetCurrentStrandAsOwner();
         Object n;
 
         final long start = timeout > 0 ? System.nanoTime() : 0;

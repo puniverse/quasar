@@ -45,7 +45,7 @@ public class ObjectChannel<Message> extends Channel<Message> {
      * @throws LwtInterruptedException
      */
     public Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
-        sync().verifyOwner();
+        maybeSetCurrentStrandAsOwner();
 
         final long start = timeout > 0 ? System.nanoTime() : 0;
         long now;

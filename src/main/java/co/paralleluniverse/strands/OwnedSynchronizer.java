@@ -5,7 +5,6 @@
 package co.paralleluniverse.strands;
 
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -74,7 +73,9 @@ public abstract class OwnedSynchronizer {
 
         @Override
         public void verifyOwner() {
-            assert owner == Thread.currentThread();
+            assert owner == Thread.currentThread() : "This method has been called by a different strand (thread or fiber) than that owning this object";
+            if(owner != Thread.currentThread())
+                throw new RuntimeException("This method has been called by a different strand (thread or fiber) than that owning this object");
         }
 
         @Override
@@ -127,7 +128,9 @@ public abstract class OwnedSynchronizer {
 
         @Override
         public void verifyOwner() {
-            assert owner == Fiber.currentFiber();
+            assert owner == Fiber.currentFiber() : "This method has been called by a different strand (thread or fiber) than that owning this object";
+//            if(owner != Fiber.currentFiber())
+//                throw new RuntimeException("This method has been called by a different strand (thread or fiber) than that owning this object");
         }
 
         @Override
