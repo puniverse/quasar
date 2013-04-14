@@ -33,7 +33,7 @@ import sun.misc.Unsafe;
  *
  * @author Ron Pressler
  */
-public class Fiber<V> extends Strand implements Serializable {
+public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.lwthreads.verifyInstrumentation", "false"));
     public static final int DEFAULT_STACK_SIZE = 16;
     private static final long serialVersionUID = 2783452871536981L;
@@ -516,14 +516,21 @@ public class Fiber<V> extends Strand implements Serializable {
         get(timeout, unit);
     }
 
+    @Override
     public final V get() throws ExecutionException, InterruptedException {
         return fjTask.get();
     }
 
+    @Override
     public final V get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
         return fjTask.get(timeout, unit);
     }
 
+    @Override
+    public boolean isDone() {
+        return state == State.TERMINATED;
+    }
+    
     private void sleep1(long millis) throws SuspendExecution {
         // this class's methods aren't instrumented, so we can't rely on the stack. This method will be called again when unparked
         try {

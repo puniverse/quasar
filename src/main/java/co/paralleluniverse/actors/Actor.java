@@ -5,6 +5,7 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
@@ -25,7 +26,7 @@ import jsr166e.ConcurrentHashMapV8;
  *
  * @author pron
  */
-public abstract class Actor<Message, V> implements SuspendableCallable<V>, Stranded {
+public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joinable<V>, Stranded {
     private static final Map<String, Actor> registeredActors = new ConcurrentHashMapV8<String, Actor>();
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
     private Strand strand;
@@ -158,6 +159,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Stran
         return this;
     }
 
+    @Override
     public V get() throws InterruptedException, ExecutionException {
         if (strand instanceof Fiber)
             return ((Fiber<V>) strand).get();
@@ -167,6 +169,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Stran
         }
     }
 
+    @Override
     public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         if (strand instanceof Fiber)
             return ((Fiber<V>) strand).get(timeout, unit);
@@ -176,13 +179,21 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Stran
         }
     }
 
+    @Override
     public void join() throws ExecutionException, InterruptedException {
         strand.join();
     }
 
+    @Override
     public void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
         strand.join(timeout, unit);
     }
+
+    @Override
+    public boolean isDone() {
+        return strand.isAlive();
+    }
+    
     //</editor-fold>
 
     //<editor-fold desc="Lifecycle">
