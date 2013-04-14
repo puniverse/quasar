@@ -4,8 +4,8 @@
  */
 package co.paralleluniverse.fibers;
 
-import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.strands.SuspendableRunnable;
 import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;
 import org.junit.After;
@@ -36,21 +36,9 @@ public class FiberTest {
         });
     }
 
-    @AfterClass
-    public static void tearDownClass() {
-    }
-
-    @Before
-    public void setUp() {
-    }
-
-    @After
-    public void tearDown() {
-    }
-
     @Test
     public void testTimeout() throws Exception {
-        Fiber lwt = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
                 Fiber.park(100, TimeUnit.MILLISECONDS);
@@ -59,17 +47,17 @@ public class FiberTest {
 
         
         try {
-            lwt.join(2, TimeUnit.MILLISECONDS);
+            fiber.join(2, TimeUnit.MILLISECONDS);
             fail();
         } catch (java.util.concurrent.TimeoutException e) {
         }
 
-        lwt.join(200, TimeUnit.MILLISECONDS);
+        fiber.join(200, TimeUnit.MILLISECONDS);
     }
 
     @Test
     public void testInterrupt() throws Exception {
-        Fiber lwt = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
                 try {
@@ -79,9 +67,9 @@ public class FiberTest {
                 }
             }
         });
-        lwt.start();
+        fiber.start();
 
         Thread.sleep(20);
-        lwt.interrupt();
+        fiber.interrupt();
     }
 }
