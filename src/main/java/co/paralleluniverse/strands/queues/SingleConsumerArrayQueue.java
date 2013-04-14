@@ -4,7 +4,6 @@
  */
 package co.paralleluniverse.strands.queues;
 
-import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import java.util.Iterator;
 import sun.misc.Unsafe;
@@ -14,10 +13,33 @@ import sun.misc.Unsafe;
  * @author pron
  */
 abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer> {
+    private final int mask;
+    volatile int p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
     volatile int head; // next element to be read
-    volatile Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
+    volatile int p101, p102, p103, p104, p105, p106, p107, p108, p109, p110, p111, p112, p113, p114, p115;
     volatile int tail; // next element to be written
+    volatile int p201, p202, p203, p204, p205, p206, p207, p208, p209, p210, p211, p212, p213, p214, p215;
+    private int cachedHead;
+    volatile int p301, p302, p303, p304, p305, p306, p307, p308, p309, p310, p311, p312, p313, p314, p315;
+    private int cachedMaxReadIndex;
 
+    SingleConsumerArrayQueue(int size) {
+        // size is a power of 2
+        this.mask = size - 1;
+    }
+
+    // taken from http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+    static int nextPowerOfTwo(int v) {
+        assert v >= 0;
+        v--;
+        v |= v >> 1;
+        v |= v >> 2;
+        v |= v >> 4;
+        v |= v >> 8;
+        v |= v >> 16;
+        v++;
+        return v;
+    }
 
     @Override
     public boolean allowRetainPointers() {
@@ -30,22 +52,27 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
     }
 
     public abstract E value(int index);
-    
+
     abstract int arrayLength();
-    
+
     abstract void awaitValue(int index);
-    
+
     abstract void clearValue(int index);
-    
+
     abstract void copyValue(int to, int from);
-    
+
     int maxReadIndex() {
         return tail;
     }
-    
+
     final int preEnq() {
-        if (next(tail) == head)
-            throw new QueueCapacityExceededException();
+        final int nextTail = next(tail);
+        if (nextTail == cachedHead) {
+            cachedHead = head; // only time a producer reads head
+
+            if (nextTail == cachedHead)
+                throw new QueueCapacityExceededException();
+        }
 
         int t;
         for (;;) {
@@ -65,14 +92,17 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
         final int newHead = next(index);
         for (int i = head; i != newHead; i = next(i))
             clearValue(i);
-        head = newHead;
+        orderedSetHead(newHead);//head = newHead;
     }
 
     @Override
     @SuppressWarnings("empty-statement")
     public Integer pk() {
-        if (head == maxReadIndex())
-            return null;
+        if (head == cachedMaxReadIndex) {
+            cachedMaxReadIndex = maxReadIndex();
+            if (head == cachedMaxReadIndex)
+                return null;
+        }
         awaitValue(head);
         return Integer.valueOf(head);
     }
@@ -91,8 +121,11 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
         }
         int n = index;
         n = next(n);
-        if (n == maxReadIndex())
-            return -1;
+        if (n == cachedMaxReadIndex) {
+            cachedMaxReadIndex = maxReadIndex();
+            if (n == cachedMaxReadIndex)
+                return -1;
+        }
         awaitValue(n);
         return n;
     }
@@ -122,7 +155,7 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
             copyValue(i, pi);
             i = pi;
         }
-        head = next(h);
+        orderedSetHead(next(h));//head = next(h);
         return index;
     }
 
@@ -135,12 +168,12 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
     }
 
     int next(int i) {
-        return (i + 1) % arrayLength();
+        return (i + 1) & mask;
         //return (++i == array.length) ? 0 : i;
     }
 
     int prev(int i) {
-        return (--i == -1) ? (arrayLength() - 1) : i;
+        return --i & mask;
     }
 
     @Override
@@ -172,13 +205,14 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
             n = del(n);
         }
     }
-    
     ////////////////////////////////////////////////////////////////////////
     static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    private static final long headOffset;
     private static final long tailOffset;
 
     static {
         try {
+            headOffset = unsafe.objectFieldOffset(SingleConsumerArrayQueue.class.getDeclaredField("head"));
             tailOffset = unsafe.objectFieldOffset(SingleConsumerArrayQueue.class.getDeclaredField("tail"));
         } catch (Exception ex) {
             throw new Error(ex);
@@ -190,5 +224,9 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
      */
     private boolean compareAndSetTail(int expect, int update) {
         return unsafe.compareAndSwapInt(this, tailOffset, expect, update);
+    }
+
+    private void orderedSetHead(int value) {
+        unsafe.putOrderedInt(this, headOffset, value);
     }
 }

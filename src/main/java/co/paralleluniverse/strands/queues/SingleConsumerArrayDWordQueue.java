@@ -12,7 +12,8 @@ abstract class SingleConsumerArrayDWordQueue<E> extends SingleConsumerArrayPrimi
     private final long[] array;
 
     public SingleConsumerArrayDWordQueue(int size) {
-        this.array = new long[size];
+        super(nextPowerOfTwo(size));
+        this.array = new long[nextPowerOfTwo(size)];
     }
 
     long rawValue(int index) {

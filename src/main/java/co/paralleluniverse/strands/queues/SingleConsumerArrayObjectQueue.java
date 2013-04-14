@@ -12,7 +12,8 @@ public class SingleConsumerArrayObjectQueue<E> extends SingleConsumerArrayQueue<
     private final Object[] array;
 
     public SingleConsumerArrayObjectQueue(int size) {
-        this.array = new Object[size];
+        super(nextPowerOfTwo(size));
+        this.array = new Object[nextPowerOfTwo(size)];
     }
 
     @Override
@@ -40,12 +41,12 @@ public class SingleConsumerArrayObjectQueue<E> extends SingleConsumerArrayQueue<
     
     @Override
     void clearValue(int index) {
-        lazySet(index, null);
+        array[index] = null; //orderedSet(index, null);
     }
 
     @Override
     void copyValue(int to, int from) {
-        lazySet(to, array[from]);
+        array[to] = array[from]; // orderedSet(to, array[from]);
     }
     
     private static final int base;
@@ -71,7 +72,7 @@ public class SingleConsumerArrayObjectQueue<E> extends SingleConsumerArrayQueue<
         unsafe.putObjectVolatile(array, byteOffset(i), value);
     }
 
-    private void lazySet(int i, Object value) {
+    private void orderedSet(int i, Object value) {
         unsafe.putOrderedObject(array, byteOffset(i), value);
     }
 

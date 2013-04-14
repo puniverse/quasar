@@ -12,7 +12,8 @@ abstract class SingleConsumerArrayWordQueue<E> extends SingleConsumerArrayPrimit
     private final int[] array;
 
     public SingleConsumerArrayWordQueue(int size) {
-        this.array = new int[size];
+        super(nextPowerOfTwo(size));
+        this.array = new int[nextPowerOfTwo(size)];
     }
 
     int rawValue(int index) {

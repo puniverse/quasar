@@ -12,6 +12,10 @@ abstract class SingleConsumerArrayPrimitiveQueue<E> extends SingleConsumerArrayQ
     private volatile Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
     volatile int maxReadIndex;
 
+    public SingleConsumerArrayPrimitiveQueue(int size) {
+        super(size);
+    }
+
     @Override
     void clearValue(int index) {
     }
