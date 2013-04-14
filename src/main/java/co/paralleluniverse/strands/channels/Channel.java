@@ -119,6 +119,8 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
 
     public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         final Object n = receiveNode(timeout, unit);
+        if(n == null)
+            return null; // timeout
         final Message m = queue.value(n);
         queue.deq(n);
         return m;

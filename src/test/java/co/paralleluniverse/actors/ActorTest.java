@@ -181,6 +181,7 @@ public class ActorTest {
         actor.send(new Message(2));
         Thread.sleep(100);
         actor.send(new Message(3));
+        actor.join();
     }
 
     @Test

@@ -93,13 +93,24 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
 
     protected Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        final long start = timeout > 0 ? System.nanoTime() : 0;
+        long now;
+        long left = unit != null ? unit.toNanos(timeout) : 0;
+
         for (;;) {
             checkThrownIn();
-            Object m = mailbox.receive();
+            Object m = mailbox.receive(left, TimeUnit.NANOSECONDS);
             if (m instanceof LifecycleMessage)
                 handleLifecycleMessage((LifecycleMessage) m);
             else
                 return (Message) m;
+
+            if (timeout > 0) {
+                now = System.nanoTime();
+                left = start + unit.toNanos(timeout) - now;
+                if (left <= 0)
+                    return null;
+            }
         }
     }
 
@@ -193,9 +204,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     public boolean isDone() {
         return strand.isAlive();
     }
-    
-    //</editor-fold>
 
+    //</editor-fold>
     //<editor-fold desc="Lifecycle">
     /////////// Lifecycle ///////////////////////////////////
     @Override
