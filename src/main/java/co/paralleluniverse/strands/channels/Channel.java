@@ -41,22 +41,22 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
     }
 
     protected void maybeSetCurrentStrandAsOwner() {
-        if(owner == null)
+        if (owner == null)
             setStrand(Strand.currentStrand());
         else
             sync.verifyOwner();
     }
-    
+
     protected OwnedSynchronizer sync() {
         verifySync();
         return sync;
     }
-    
+
     @Override
     public Strand getStrand() {
-        return (Strand)owner;
+        return (Strand) owner;
     }
-    
+
     @Override
     public void send(Message message) {
         verifySync();
@@ -86,23 +86,23 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
     }
 
     Object receiveNode(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        if (timeout <= 0 || unit == null)
+            return receiveNode();
+
         maybeSetCurrentStrandAsOwner();
         Object n;
 
-        final long start = timeout > 0 ? System.nanoTime() : 0;
-        long left = unit != null ? unit.toNanos(timeout) : 0;
+        final long start = System.nanoTime();
+        long left = unit.toNanos(timeout);
 
         sync.lock();
         try {
             while ((n = queue.pk()) == null) {
-                if (timeout > 0) {
-                    sync.await(this, left, TimeUnit.NANOSECONDS);
+                sync.await(this, left, TimeUnit.NANOSECONDS);
 
-                    left = start + unit.toNanos(timeout) - System.nanoTime();
-                    if (left <= 0)
-                        return null;
-                } else
-                    sync.await();
+                left = start + unit.toNanos(timeout) - System.nanoTime();
+                if (left <= 0)
+                    return null;
             }
         } finally {
             sync.unlock();
@@ -119,15 +119,15 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
 
     public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         final Object n = receiveNode(timeout, unit);
-        if(n == null)
+        if (n == null)
             return null; // timeout
         final Message m = queue.value(n);
         queue.deq(n);
         return m;
     }
-    
+
     private void verifySync() {
-        if(sync == null)
+        if (sync == null)
             throw new IllegalStateException("Owning strand has not been set");
     }
 }
