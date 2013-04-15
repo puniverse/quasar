@@ -64,7 +64,11 @@ package co.paralleluniverse.fibers.instrument;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
+import java.lang.ref.WeakReference;
 import java.security.ProtectionDomain;
+import java.util.Collections;
+import java.util.Set;
+import jsr166e.ConcurrentHashMapV8;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -78,7 +82,8 @@ import org.objectweb.asm.util.CheckClassAdapter;
  */
 public class JavaAgent {
     private static volatile boolean active;
-
+    private static final Set<WeakReference<ClassLoader>> classLoaders = Collections.newSetFromMap(new ConcurrentHashMapV8<WeakReference<ClassLoader>, Boolean>());
+    
     public static void premain(String agentArguments, Instrumentation instrumentation) {
         System.out.println("Fibers agent 114");
         if(!instrumentation.isRetransformClassesSupported())
@@ -132,6 +137,7 @@ public class JavaAgent {
 
         Retransform.instrumentation = instrumentation;
         Retransform.db = db;
+        Retransform.classLoaders = classLoaders;
         
         instrumentation.addTransformer(new Transformer(db, checkArg), true);
     }
@@ -168,6 +174,8 @@ public class JavaAgent {
             
             db.log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
 
+            classLoaders.add(new WeakReference<ClassLoader>(loader));
+            
             try {
                 return instrumentClass(db, classfileBuffer, check);
             } catch (Exception ex) {
