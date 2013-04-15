@@ -61,55 +61,64 @@ public abstract class Strand {
         final Fiber fiber = Fiber.currentFiber();
         if (fiber != null)
             return create(fiber);
-        return create(Thread.currentThread());
+        else
+            return create(Thread.currentThread());
     }
 
     public static boolean interrupted() {
         if (Fiber.currentFiber() != null)
             return Fiber.interrupted();
-        return Thread.interrupted();
+        else
+            return Thread.interrupted();
     }
 
     public static void yield() throws SuspendExecution {
         if (Fiber.currentFiber() != null)
             Fiber.yield();
-        Thread.yield();
+        else
+            Thread.yield();
     }
 
     public static void sleep(long millis) throws SuspendExecution, InterruptedException {
         if (Fiber.currentFiber() != null)
             Fiber.sleep(millis);
-        Thread.sleep(millis);
+        else
+            Thread.sleep(millis);
     }
 
     public static void park() throws SuspendExecution, InterruptedException {
         if (Fiber.currentFiber() != null)
             Fiber.park();
-        LockSupport.park();
+        else
+            LockSupport.park();
     }
 
     public static void park(Object blocker) throws SuspendExecution, InterruptedException {
         if (Fiber.currentFiber() != null)
             Fiber.park(blocker);
-        LockSupport.park(blocker);
+        else
+            LockSupport.park(blocker);
     }
 
     public static void parkNanos(long nanos) throws SuspendExecution, InterruptedException {
         if (Fiber.currentFiber() != null)
             Fiber.park(nanos, TimeUnit.NANOSECONDS);
-        LockSupport.parkNanos(nanos);
+        else
+            LockSupport.parkNanos(nanos);
     }
 
     public static void parkNanos(Object blocker, long nanos) throws SuspendExecution, InterruptedException {
         if (Fiber.currentFiber() != null)
             Fiber.park(blocker, nanos, TimeUnit.NANOSECONDS);
-        LockSupport.parkNanos(blocker, nanos);
+        else
+            LockSupport.parkNanos(blocker, nanos);
     }
 
     public static void dumpStack() {
         if (Fiber.currentFiber() != null)
             Fiber.dumpStack();
-        Thread.dumpStack();
+        else
+            Thread.dumpStack();
     }
 
     private static class ThreadStrand extends Strand {
