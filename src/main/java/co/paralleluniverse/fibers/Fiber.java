@@ -5,6 +5,7 @@ import co.paralleluniverse.common.util.NamingThreadFactory;
 import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import co.paralleluniverse.fibers.instrument.Retransform;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
@@ -39,8 +40,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     private static final long serialVersionUID = 2783452871536981L;
 
     static {
+        assert printVerifyInstrumentationWarning();
+    }
+
+    private static boolean printVerifyInstrumentationWarning() {
         if (verifyInstrumentation)
             System.err.println("WARNING: Fiber is set to verify instrumentation. This may severely harm performance");
+        return true;
     }
 
     public static enum State {
@@ -328,6 +334,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
                 postParkActions = null;
             }
             return false;
+        } catch (FiberInterruptedException e) {
+            state = State.TERMINATED;
+            return true;
         } catch (InterruptedException e) {
             state = State.TERMINATED;
             throw new RuntimeException(e);
@@ -340,9 +349,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     }
 
     private void installFiberLocals() {
-        if(fjPool == null) // in tests
+        if (fjPool == null) // in tests
             return;
-        
+
         final Thread currentThread = Thread.currentThread();
 
         Object tmpThreadLocals = ThreadAccess.getThreadLocals(currentThread);
@@ -530,7 +539,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     public boolean isDone() {
         return state == State.TERMINATED;
     }
-    
+
     private void sleep1(long millis) throws SuspendExecution {
         // this class's methods aren't instrumented, so we can't rely on the stack. This method will be called again when unparked
         try {
@@ -751,21 +760,21 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     private static boolean checkInstrumentation() {
         if (!verifyInstrumentation)
             throw new AssertionError();
+
         StackTraceElement[] stes = Thread.currentThread().getStackTrace();
-        try {
-            for (StackTraceElement ste : stes) {
-                if (ste.getClassName().equals(Thread.class.getName()) && ste.getMethodName().equals("getStackTrace"))
-                    continue;
-                if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')) {
-                    if (!isInstrumented(Class.forName(ste.getClassName())))
-                        throw new IllegalStateException("Method " + ste.getClassName() + "." + ste.getMethodName() + " on the call-stack has not been instrumented. (trace: " + Arrays.toString(stes) + ")");
-                } else if (ste.getMethodName().equals("run1"))
-                    return true;
-            }
-            return false;
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("Not run through Fiber.exec(). (trace: " + Arrays.toString(stes) + ")");
+        for (StackTraceElement ste : stes) {
+            if (ste.getClassName().equals(Thread.class.getName()) && ste.getMethodName().equals("getStackTrace"))
+                continue;
+            if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')) {
+                if (!Retransform.isInstrumented(ste.getClassName())) {
+                    final String str = "Method " + ste.getClassName() + "." + ste.getMethodName() + " on the call-stack has not been instrumented. (trace: " + Arrays.toString(stes) + ")";
+                    throw new IllegalStateException(str);
+                    //System.err.println("WARNING: " + str);
+                }
+            } else if (ste.getMethodName().equals("run1"))
+                return true;
         }
+        throw new IllegalStateException("Not run through Fiber.exec(). (trace: " + Arrays.toString(stes) + ")");
     }
 
     @SuppressWarnings("unchecked")
