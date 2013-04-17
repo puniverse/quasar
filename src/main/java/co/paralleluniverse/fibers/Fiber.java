@@ -344,6 +344,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
             state = State.TERMINATED;
             throw t;
         } finally {
+            restoreThreadLocals();
             setCurrentFiber(null);
         }
     }
@@ -434,11 +435,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     }
 
     protected void onCompletion() {
-        restoreThreadLocals();
     }
 
     protected void onParked() {
-        restoreThreadLocals();
     }
 
     protected void onException(Throwable t) {

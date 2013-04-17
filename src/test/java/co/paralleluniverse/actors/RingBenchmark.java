@@ -9,7 +9,7 @@ import jsr166e.ForkJoinPool;
 public class RingBenchmark {
     static final int N = 1000;
     static final int M = 1000;
-    static final int mailboxSize = -1;
+    static final int mailboxSize = 10;
     static ForkJoinPool fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
     public static void main(String args[]) throws Exception {
@@ -18,55 +18,46 @@ public class RingBenchmark {
     }
 
     private <Message, V> Actor<Message, V> spawnActor(Actor<Message, V> actor) {
-        Fiber<Integer> fiber = new Fiber("actor", fjPool, actor).start();
+        new Fiber("actor", fjPool, actor).start();
         return actor;
     }
 
     void run() throws ExecutionException, InterruptedException {
         final long start = System.nanoTime();
 
-        Actor<Message, Integer> manager = spawnActor(new Actor<Message, Integer>(mailboxSize) {
+        Actor<Integer, Integer> manager = spawnActor(new Actor<Integer, Integer>(mailboxSize) {
             @Override
             protected Integer doRun() throws InterruptedException, SuspendExecution {
-                Actor a = this;
+                Actor<Integer, ?> a = this;
                 for (int i = 0; i < N - 1; i++)
                     a = createRelayActor(a);
 
-                a.send(new Message(1)); // start things off
+                a.send(1); // start things off
 
-                Message msg = null;
+                Integer msg = null;
                 for (int i = 0; i < M; i++) {
                     msg = receive();
-                    a.send(new Message(msg.num + 1));
+                    a.send(msg + 1);
                 }
 
-                return msg.num;
+                return msg;
             }
         });
 
         int totalCount = manager.get();
-        //assert totalCount == M * N;
         final long time = TimeUnit.MILLISECONDS.convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
         System.out.println("messages: " + totalCount + " time (ms): " + time);
     }
 
-    private Actor createRelayActor(final Actor<Message, ?> prev) {
-        return spawnActor(new Actor<Message, Void>(mailboxSize) {
+    private Actor<Integer,?> createRelayActor(final Actor<Integer, ?> prev) {
+        return spawnActor(new Actor<Integer, Void>(mailboxSize) {
             @Override
             protected Void doRun() throws InterruptedException, SuspendExecution {
                 for (;;) {
-                    Message m = receive();
-                    prev.send(new Message(m.num + 1));
+                    Integer m = receive();
+                    prev.send(m + 1);
                 }
             }
         });
-    }
-
-    static class Message {
-        final int num;
-
-        public Message(int num) {
-            this.num = num;
-        }
     }
 }

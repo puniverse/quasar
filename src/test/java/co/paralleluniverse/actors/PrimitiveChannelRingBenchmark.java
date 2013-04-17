@@ -45,7 +45,6 @@ public class PrimitiveChannelRingBenchmark {
         manager.start();
 
         int totalCount = manager.get();
-        //assert totalCount == M * N;
         final long time = TimeUnit.MILLISECONDS.convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
         System.out.println("messages: " + totalCount + " time (ms): " + time);
     }
@@ -62,13 +61,5 @@ public class PrimitiveChannelRingBenchmark {
         channel.setStrand(fiber);
         fiber.start();
         return channel;
-    }
-
-    static class Message {
-        final int num;
-
-        public Message(int num) {
-            this.num = num;
-        }
     }
 }
