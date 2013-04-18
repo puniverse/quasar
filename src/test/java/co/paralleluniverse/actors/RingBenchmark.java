@@ -17,8 +17,8 @@ public class RingBenchmark {
             new PrimitiveChannelRingBenchmark().run();
     }
 
-    private <Message, V> Actor<Message, V> spawnActor(Actor<Message, V> actor) {
-        new Fiber("actor", fjPool, actor).start();
+    private static <Message, V> Actor<Message, V> spawnActor(Actor<Message, V> actor) {
+        new Fiber(fjPool, actor).start();
         return actor;
     }
 

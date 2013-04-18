@@ -304,11 +304,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         fjTask.yield1();
     }
 
-    protected void postRestore() {
-        if (interrupted)
-            throw new FiberInterruptedException();
-    }
-
     private boolean exec1() {
         if (fjTask.isDone() | state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
@@ -434,10 +429,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         return this;
     }
 
-    protected void onCompletion() {
+    protected void onParked() {
     }
 
-    protected void onParked() {
+    protected void onResume() {
+        if (interrupted)
+            throw new FiberInterruptedException();
+    }
+
+    protected void onCompletion() {
     }
 
     protected void onException(Throwable t) {
@@ -543,7 +543,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         // this class's methods aren't instrumented, so we can't rely on the stack. This method will be called again when unparked
         try {
             for (;;) {
-                postRestore();
+                onResume();
                 final long now = System.nanoTime();
                 if (sleepStart == 0)
                     this.sleepStart = now;

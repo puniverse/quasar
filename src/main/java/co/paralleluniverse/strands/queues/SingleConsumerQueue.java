@@ -7,6 +7,7 @@ package co.paralleluniverse.strands.queues;
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
+import co.paralleluniverse.common.util.Objects;
 import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Iterator;
@@ -144,6 +145,7 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
+        sb.append(Objects.systemToString(this));
         sb.append('[');
         for (Iterator<E> it = iterator(); it.hasNext();)
             sb.append(it.next()).append(", ");

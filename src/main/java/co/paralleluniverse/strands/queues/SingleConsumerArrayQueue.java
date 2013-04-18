@@ -98,13 +98,14 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
     @Override
     @SuppressWarnings("empty-statement")
     public Integer pk() {
-        if (head == cachedMaxReadIndex) {
+        final int h = head;
+        if (h == cachedMaxReadIndex) {
             cachedMaxReadIndex = maxReadIndex();
-            if (head == cachedMaxReadIndex)
+            if (h == cachedMaxReadIndex)
                 return null;
         }
-        awaitValue(head);
-        return Integer.valueOf(head);
+        awaitValue(h);
+        return Integer.valueOf(h);
     }
 
     @Override

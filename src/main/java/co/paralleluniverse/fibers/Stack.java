@@ -14,7 +14,7 @@ import java.util.Arrays;
  */
 public final class Stack implements Serializable {
     private static final long serialVersionUID = 12786283751253L;
-    private final Fiber lwThread;
+    private final Fiber fiber;
     private int methodTOS = -1;
     private int[] method;           // holds each method's entry point as well as stack pointer
     private long[] dataLong;        // holds primitives on stack
@@ -25,7 +25,7 @@ public final class Stack implements Serializable {
         if (stackSize <= 0) {
             throw new IllegalArgumentException("stackSize");
         }
-        this.lwThread = lwThread;
+        this.fiber = lwThread;
         this.method = new int[8];
         this.dataLong = new long[stackSize];
         this.dataObject = new Object[stackSize];
@@ -128,7 +128,7 @@ public final class Stack implements Serializable {
     }
 
     public final void postRestore() {
-        lwThread.postRestore();
+        fiber.onResume();
     }
     
     /**
