@@ -264,6 +264,13 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return register(getName());
     }
 
+    public Actor unregister() {
+        if (name == null)
+            throw new IllegalArgumentException("name is null");
+        unregister(name);
+        return this;
+    }
+
     public static void unregister(String name) {
         registeredActors.remove(name);
     }
