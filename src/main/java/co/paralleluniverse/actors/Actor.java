@@ -115,6 +115,15 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         }
     }
 
+    protected Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
+        checkThrownIn();
+        return (Message) mailbox.receive(timeout, unit, wrapProcessor(proc));
+    }
+
+    protected Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
+        return receive(0, null, proc);
+    }
+
     private MessageProcessor<Object> wrapProcessor(final MessageProcessor<Message> proc) {
         return new MessageProcessor<Object>() {
             @Override
@@ -126,15 +135,6 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
                 return proc.process((Message) message);
             }
         };
-    }
-
-    protected Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
-        checkThrownIn();
-        return (Message) mailbox.receive(timeout, unit, wrapProcessor(proc));
-    }
-
-    protected Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
-        return receive(0, null, proc);
     }
 
     public void send(Message message) {
@@ -235,6 +235,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     protected abstract V doRun() throws InterruptedException, SuspendExecution;
 
     protected void handleLifecycleMessage(LifecycleMessage m) {
+        if (m instanceof ExitMessage && ((ExitMessage) m).getMonitor() == null)
+            throw new LifecycleException(m);
     }
 
     public String getName() {
