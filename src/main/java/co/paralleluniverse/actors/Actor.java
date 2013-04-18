@@ -139,7 +139,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     public void send(Message message) {
         try {
-            mailbox.send(message);
+            if (mailbox.isOwnerAlive())
+                mailbox.send(message);
         } catch (QueueCapacityExceededException e) {
             throwIn(e);
         }

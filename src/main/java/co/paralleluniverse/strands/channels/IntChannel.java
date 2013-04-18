@@ -34,29 +34,25 @@ public class IntChannel extends Channel<Integer> {
 
     public int receiveInt() throws SuspendExecution, InterruptedException {
         final Object n = receiveNode();
-        final int m = ((SingleConsumerIntQueue<Object>)queue).intValue(n);
+        final int m = ((SingleConsumerIntQueue<Object>) queue).intValue(n);
         queue.deq(n);
         return m;
     }
 
     public int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         final Object n = receiveNode(timeout, unit);
-        final int m = ((SingleConsumerIntQueue<Object>)queue).intValue(n);
+        final int m = ((SingleConsumerIntQueue<Object>) queue).intValue(n);
         queue.deq(n);
         return m;
     }
 
     public void send(int message) {
-        if (sync().isOwnerAlive()) {
-            queue.enq(message);
-            sync().signal();
-        }
+        queue.enq(message);
+        signal();
     }
 
     public void sendSync(int message) {
-        if (sync().isOwnerAlive()) {
-            queue.enq(message);
-            sync().signalAndTryToExecNow();
-        }
+        queue.enq(message);
+        signalAndTryToExecNow();
     }
 }

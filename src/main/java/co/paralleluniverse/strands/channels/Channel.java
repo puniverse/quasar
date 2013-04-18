@@ -34,8 +34,14 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
         return owner;
     }
 
+    public boolean isOwnerAlive() {
+        return sync.isOwnerAlive();
+    }
+
     @Override
     public void setStrand(Strand strand) {
+        if (owner != null && strand != owner)
+            throw new IllegalStateException("Channel " + this + " is already owned by " + owner);
         this.owner = strand;
         this.sync = OwnedSynchronizer.create(owner);
     }
@@ -57,21 +63,25 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
         return (Strand) owner;
     }
 
+    protected void signal() {
+        if (sync != null && sync.isOwnerAlive())
+            sync.signal();
+    }
+
+    protected void signalAndTryToExecNow() {
+        if (sync != null && sync.isOwnerAlive())
+            sync.signalAndTryToExecNow();
+    }
+
     @Override
     public void send(Message message) {
-        verifySync();
-        if (sync.isOwnerAlive()) {
-            queue.enq(message);
-            sync.signal();
-        }
+        queue.enq(message);
+        signal();
     }
 
     public void sendSync(Message message) {
-        verifySync();
-        if (sync.isOwnerAlive()) {
-            queue.enq(message);
-            sync.signalAndTryToExecNow();
-        }
+        queue.enq(message);
+        signalAndTryToExecNow();
     }
 
     Object receiveNode() throws SuspendExecution, InterruptedException {

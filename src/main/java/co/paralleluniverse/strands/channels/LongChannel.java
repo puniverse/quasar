@@ -34,29 +34,25 @@ public class LongChannel extends Channel<Long> {
 
     public long receiveLong() throws SuspendExecution, InterruptedException {
         final Object n = receiveNode();
-        final long m = ((SingleConsumerLongQueue<Object>)queue).longValue(n);
+        final long m = ((SingleConsumerLongQueue<Object>) queue).longValue(n);
         queue.deq(n);
         return m;
     }
 
     public long receiveLong(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         final Object n = receiveNode(timeout, unit);
-        final long m = ((SingleConsumerLongQueue<Object>)queue).longValue(n);
+        final long m = ((SingleConsumerLongQueue<Object>) queue).longValue(n);
         queue.deq(n);
         return m;
     }
 
     public void send(long message) {
-        if (sync().isOwnerAlive()) {
-            queue.enq(message);
-            sync().signal();
-        }
+        queue.enq(message);
+        signal();
     }
 
     public void sendSync(long message) {
-        if (sync().isOwnerAlive()) {
-            queue.enq(message);
-            sync().signalAndTryToExecNow();
-        }
+        queue.enq(message);
+        signalAndTryToExecNow();
     }
 }

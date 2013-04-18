@@ -27,36 +27,32 @@ public class FloatChannel extends Channel<Float> {
     private FloatChannel(Object owner, SingleConsumerQueue<Float, ?> queue) {
         super(owner, queue);
     }
-    
+
     private FloatChannel(SingleConsumerQueue<Float, ?> queue) {
         super(queue);
     }
-    
+
     public float receiveFloat() throws SuspendExecution, InterruptedException {
         final Object n = receiveNode();
-        final float m = ((SingleConsumerFloatQueue<Object>)queue).floatValue(n);
+        final float m = ((SingleConsumerFloatQueue<Object>) queue).floatValue(n);
         queue.deq(n);
         return m;
     }
 
     public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         final Object n = receiveNode(timeout, unit);
-        final float m = ((SingleConsumerFloatQueue<Object>)queue).floatValue(n);
+        final float m = ((SingleConsumerFloatQueue<Object>) queue).floatValue(n);
         queue.deq(n);
         return m;
     }
 
     public void send(float message) {
-        if (sync().isOwnerAlive()) {
-            queue.enq(message);
-            sync().signal();
-        }
+        queue.enq(message);
+        signal();
     }
 
     public void sendSync(float message) {
-        if (sync().isOwnerAlive()) {
-            queue.enq(message);
-            sync().signalAndTryToExecNow();
-        }
+        queue.enq(message);
+        signalAndTryToExecNow();
     }
 }

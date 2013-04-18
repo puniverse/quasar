@@ -32,7 +32,6 @@ import co.paralleluniverse.fibers.Instrumented;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
@@ -117,9 +116,10 @@ public class InstrumentClass extends ClassVisitor {
     @Override
     @SuppressWarnings("CallToThreadDumpStack")
     public void visitEnd() {
+        final boolean requiresInstrumentation = classEntry.requiresInstrumentation();
         classEntry.setRequiresInstrumentation(false);
         db.recordSuspendableMethods(className, classEntry);
-
+        
         if (methods != null) {
             if (alreadyInstrumented && !forceInstrumentation) {
                 for (MethodNode mn : methods)
@@ -129,6 +129,9 @@ public class InstrumentClass extends ClassVisitor {
                     super.visitAnnotation(ALREADY_INSTRUMENTED_NAME, true);
 
                 for (MethodNode mn : methods) {
+                    if (requiresInstrumentation)
+                        System.out.println("EEE: TRANSFORM: " + className + "." + mn.name + mn.desc);
+
                     MethodVisitor outMV = makeOutMV(mn);
                     try {
                         InstrumentMethod im = new InstrumentMethod(db, className, mn);
