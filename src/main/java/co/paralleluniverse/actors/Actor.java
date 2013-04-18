@@ -235,8 +235,6 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     protected abstract V doRun() throws InterruptedException, SuspendExecution;
 
     protected void handleLifecycleMessage(LifecycleMessage m) {
-        if (m instanceof ExitMessage)
-            throw new LifecycleException(m);
     }
 
     public String getName() {
