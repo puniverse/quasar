@@ -9,5 +9,5 @@ package co.paralleluniverse.actors;
  * @author pron
  */
 interface LifecycleListener {
-    void dead(AbstractActor actor, Object reason);
+    void dead(Actor actor, Object reason);
 }

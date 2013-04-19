@@ -17,7 +17,7 @@ public class RingBenchmark {
             new PrimitiveChannelRingBenchmark().run();
     }
 
-    private static <Message, V> Actor<Message, V> spawnActor(Actor<Message, V> actor) {
+    private static <Message, V> BasicActor<Message, V> spawnActor(BasicActor<Message, V> actor) {
         new Fiber(fjPool, actor).start();
         return actor;
     }
@@ -25,10 +25,10 @@ public class RingBenchmark {
     void run() throws ExecutionException, InterruptedException {
         final long start = System.nanoTime();
 
-        Actor<Integer, Integer> manager = spawnActor(new Actor<Integer, Integer>(mailboxSize) {
+        BasicActor<Integer, Integer> manager = spawnActor(new BasicActor<Integer, Integer>(mailboxSize) {
             @Override
             protected Integer doRun() throws InterruptedException, SuspendExecution {
-                Actor<Integer, ?> a = this;
+                BasicActor<Integer, ?> a = this;
                 for (int i = 0; i < N - 1; i++)
                     a = createRelayActor(a);
 
@@ -49,8 +49,8 @@ public class RingBenchmark {
         System.out.println("messages: " + totalCount + " time (ms): " + time);
     }
 
-    private Actor<Integer,?> createRelayActor(final Actor<Integer, ?> prev) {
-        return spawnActor(new Actor<Integer, Void>(mailboxSize) {
+    private BasicActor<Integer,?> createRelayActor(final BasicActor<Integer, ?> prev) {
+        return spawnActor(new BasicActor<Integer, Void>(mailboxSize) {
             @Override
             protected Void doRun() throws InterruptedException, SuspendExecution {
                 for (;;) {

@@ -34,7 +34,7 @@ public class ActorTest {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
     }
 
-    private <Message, V> AbstractActor<Message, V> createActor(AbstractActor<Message, V> actor) {
+    private <Message, V> Actor<Message, V> createActor(Actor<Message, V> actor) {
         new Fiber("actor", fjPool, actor).start();
         return actor;
     }
@@ -42,7 +42,7 @@ public class ActorTest {
     @Test
     public void whenActorThrowsExceptionThenGetThrowsIt() throws Exception {
 
-        AbstractActor<Message, Integer> actor = createActor(new Actor<Message, Integer>(mailboxSize) {
+        Actor<Message, Integer> actor = createActor(new BasicActor<Message, Integer>(mailboxSize) {
             int counter;
 
             @Override
@@ -62,7 +62,7 @@ public class ActorTest {
 
     @Test
     public void whenActorReturnsValueThenGetReturnsIt() throws Exception {
-        AbstractActor<Message, Integer> actor = createActor(new Actor<Message, Integer>(mailboxSize) {
+        Actor<Message, Integer> actor = createActor(new BasicActor<Message, Integer>(mailboxSize) {
             int counter;
 
             @Override
@@ -76,7 +76,7 @@ public class ActorTest {
 
     @Test
     public void testReceive() throws Exception {
-        AbstractActor<Message, Integer> actor = createActor(new Actor<Message, Integer>(mailboxSize) {
+        Actor<Message, Integer> actor = createActor(new BasicActor<Message, Integer>(mailboxSize) {
             int counter;
 
             @Override
@@ -93,7 +93,7 @@ public class ActorTest {
 
     @Test
     public void testReceiveAfterSleep() throws Exception {
-        AbstractActor<Message, Integer> actor = createActor(new Actor<Message, Integer>(mailboxSize) {
+        Actor<Message, Integer> actor = createActor(new BasicActor<Message, Integer>(mailboxSize) {
             int counter;
 
             @Override
@@ -113,7 +113,7 @@ public class ActorTest {
 
     @Test
     public void testSelectiveReceive() throws Exception {
-        AbstractActor<ComplexMessage, List<Integer>> actor = createActor(new Actor<ComplexMessage, List<Integer>>(mailboxSize) {
+        Actor<ComplexMessage, List<Integer>> actor = createActor(new BasicActor<ComplexMessage, List<Integer>>(mailboxSize) {
             @Override
             protected List<Integer> doRun() throws SuspendExecution, InterruptedException {
                 final List<Integer> list = new ArrayList<>();
@@ -159,7 +159,7 @@ public class ActorTest {
 
     @Test
     public void whenSimpleReceiveAndTimeoutThenReturnNull() throws Exception {
-        AbstractActor<Message, Void> actor = createActor(new Actor<Message, Void>(mailboxSize) {
+        Actor<Message, Void> actor = createActor(new BasicActor<Message, Void>(mailboxSize) {
             int counter;
 
             @Override
@@ -186,7 +186,7 @@ public class ActorTest {
 
     @Test
     public void testTimeoutException() throws Exception {
-        AbstractActor<Message, Void> actor = createActor(new Actor<Message, Void>(mailboxSize) {
+        Actor<Message, Void> actor = createActor(new BasicActor<Message, Void>(mailboxSize) {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 try {
@@ -210,7 +210,7 @@ public class ActorTest {
 
     @Test
     public void testLink() throws Exception {
-        AbstractActor<Message, Void> actor1 = createActor(new Actor<Message, Void>(mailboxSize) {
+        Actor<Message, Void> actor1 = createActor(new BasicActor<Message, Void>(mailboxSize) {
             int counter;
 
             @Override
@@ -223,7 +223,7 @@ public class ActorTest {
             }
         });
 
-        AbstractActor<Message, Void> actor2 = createActor(new Actor<Message, Void>(mailboxSize) {
+        Actor<Message, Void> actor2 = createActor(new BasicActor<Message, Void>(mailboxSize) {
             int counter;
 
             @Override
