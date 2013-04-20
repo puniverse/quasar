@@ -57,9 +57,12 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
 
         Object n = null;
         for (;;) {
+            if (flightRecorder != null)
+                record(1, "Actor", "receive", "%s waiting for a message. %s", this, timeout > 0 ? "millis left: " + TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS) : "");
+
             mailbox.lock();
             n = mailbox.succ(n);
-            
+
             if (n != null) {
                 mailbox.unlock();
                 final Object m = mailbox.value(n);
@@ -68,6 +71,7 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
                     continue;
                 }
 
+                record(1, "Actor", "receive", "Received %s <- %s", this, m);
                 try {
                     if (m instanceof LifecycleMessage) {
                         handleLifecycleMessage((LifecycleMessage) m);
@@ -94,8 +98,10 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
 
                         now = System.nanoTime();
                         left = start + unit.toNanos(timeout) - now;
-                        if (left <= 0)
+                        if (left <= 0) {
+                            record(1, "Actor", "receive", "%s timed out.", this);
                             throw new TimeoutException();
+                        }
                     } else
                         mailbox.await();
                 } finally {
@@ -108,5 +114,4 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
     public Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
         return receive(0, null, proc);
     }
-    
 }

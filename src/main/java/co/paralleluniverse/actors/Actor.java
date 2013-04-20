@@ -4,6 +4,9 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.common.monitoring.FlightRecorder;
+import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -35,12 +38,16 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
     private volatile V result;
     private volatile RuntimeException exception;
+    protected final FlightRecorder flightRecorder;
 
-    //<editor-fold defaultstate="collapsed" desc="Constructors">
-    /////////// Constructors ///////////////////////////////////
     public Actor(String name, int mailboxSize) {
         this.name = name;
         this.mailbox = Mailbox.create(mailboxSize);
+
+        if (Debug.isDebug())
+            this.flightRecorder = Debug.getGlobalFlightRecorder();
+        else
+            this.flightRecorder = null;
     }
 
     public Actor(Strand strand, String name, int mailboxSize) {
@@ -61,10 +68,14 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     public Strand getStrand() {
         return strand;
     }
-    //</editor-fold>
+
+    @Override
+    public String toString() {
+        return "Actor@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this))) + "[owner: " + strand + ']';
+    }
+
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
-
     Mailbox<Object> mailbox() {
         return mailbox;
     }
@@ -76,7 +87,9 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     protected Message receive() throws SuspendExecution, InterruptedException {
         for (;;) {
             checkThrownIn();
+            record(1, "Actor", "receive", "%s waiting for a message", this);
             Object m = mailbox.receive();
+            record(1, "Actor", "receive", "Received %s <- %s", this, m);
             if (m instanceof LifecycleMessage)
                 handleLifecycleMessage((LifecycleMessage) m);
             else
@@ -93,6 +106,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         long left = unit.toNanos(timeout);
 
         for (;;) {
+            if (flightRecorder != null)
+                record(1, "Actor", "receive", "%s waiting for a message. millis left: ", this, TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS));
             checkThrownIn();
             Object m = mailbox.receive(left, TimeUnit.NANOSECONDS);
             if (m instanceof LifecycleMessage)
@@ -102,15 +117,20 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
             now = System.nanoTime();
             left = start + unit.toNanos(timeout) - now;
-            if (left <= 0)
+            if (left <= 0) {
+                record(1, "Actor", "receive", "%s timed out.", this);
                 return null;
+            }
         }
     }
 
     public void send(Message message) {
         try {
+            record(1, "Actor", "send", "Sending %s -> %s", message, this);
             if (mailbox.isOwnerAlive())
                 mailbox.send(message);
+            else
+                record(1, "Actor", "send", "Message dropped. Owner not alive.");
         } catch (QueueCapacityExceededException e) {
             throwIn(e);
         }
@@ -118,7 +138,11 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     public void sendSync(Message message) {
         try {
-            mailbox.sendSync(message);
+            record(1, "Actor", "sendSync", "Sending sync %s -> %s", message, this);
+            if (mailbox.isOwnerAlive())
+                mailbox.sendSync(message);
+            else
+                record(1, "Actor", "sendSync", "Message dropped. Owner not alive.");
         } catch (QueueCapacityExceededException e) {
             throwIn(e);
         }
@@ -138,6 +162,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     //<editor-fold desc="Strand helpers">
     /////////// Strand helpers ///////////////////////////////////
     Actor<Message, V> start() {
+        record(1, "Actor", "start", "Starting actor %s", this);
         strand.start();
         return this;
     }
@@ -176,8 +201,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     public boolean isDone() {
         return strand.isAlive();
     }
-
     //</editor-fold>
+
     //<editor-fold desc="Lifecycle">
     /////////// Lifecycle ///////////////////////////////////
     @Override
@@ -192,6 +217,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             return result;
         } catch (InterruptedException e) {
             checkThrownIn();
+            notifyDeath(e);
             throw e;
         } catch (Throwable t) {
             notifyDeath(t);
@@ -205,6 +231,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     protected abstract V doRun() throws InterruptedException, SuspendExecution;
 
     protected void handleLifecycleMessage(LifecycleMessage m) {
+        record(1, "Actor", "handleLifecycleMessage", "%s got LifecycleMessage %s", this, m);
         if (m instanceof ExitMessage && ((ExitMessage) m).getMonitor() == null)
             throw new LifecycleException(m);
     }
@@ -214,18 +241,21 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
 
     public void throwIn(RuntimeException e) {
+        record(1, "Actor", "throwIn", "Exception %s thrown into actor %s", e, this);
         this.exception = e; // last exception thrown in wins
         strand.interrupt();
     }
 
     void checkThrownIn() {
         if (exception != null) {
+            record(1, "Actor", "checkThrownIn", "%s detected thrown in exception %s", this, exception);
             exception.setStackTrace(new Throwable().getStackTrace());
             throw exception;
         }
     }
 
     public Actor register(String name) {
+        record(1, "Actor", "register", "Registering actor %s as %s", this, name);
         if (name == null)
             throw new IllegalArgumentException("name is null");
         registeredActors.put(name, this);
@@ -237,6 +267,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
 
     public Actor unregister() {
+        record(1, "Actor", "unregister", "Unregistering actor %s (name: %s)", name);
         if (name == null)
             throw new IllegalArgumentException("name is null");
         unregister(name);
@@ -252,12 +283,14 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
 
     public Actor link(Actor other) {
+        record(1, "Actor", "link", "Linking actors %s, %s", this, other);
         lifecycleListeners.add(other.lifecycleListener);
         other.lifecycleListeners.add(lifecycleListener);
         return this;
     }
 
     public Actor unlink(Actor other) {
+        record(1, "Actor", "unlink", "Uninking actors %s, %s", this, other);
         lifecycleListeners.remove(other.lifecycleListener);
         other.lifecycleListeners.remove(lifecycleListener);
         return this;
@@ -276,17 +309,97 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
                 mailbox.send(new ExitMessage(actor, reason, this));
             }
         };
+        record(1, "Actor", "monitor", "Actor %s to monitor %s (listener: %s)", this, other, listener);
         other.lifecycleListeners.add(listener);
         return listener;
     }
 
     public void demonitor(Actor other, Object listener) {
+        record(1, "Actor", "demonitor", "Actor %s to stop monitoring %s (listener: %s)", this, other, listener);
         other.lifecycleListeners.remove(listener);
     }
 
     private void notifyDeath(Object reason) {
         for (LifecycleListener listener : lifecycleListeners)
             listener.dead(this, reason);
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Recording">
+    /////////// Recording ///////////////////////////////////
+    protected void record(int level, String clazz, String method, String format) {
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format);
+    }
+
+    protected void record(int level, String clazz, String method, String format, Object arg1) {
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, arg1);
+    }
+
+    protected void record(int level, String clazz, String method, String format, Object arg1, Object arg2) {
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2);
+    }
+
+    protected void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3) {
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3);
+    }
+
+    protected void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3, arg4);
+    }
+
+    protected void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3, arg4, arg5);
+    }
+
+    protected void record(int level, String clazz, String method, String format, Object... args) {
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, args);
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, null));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1}));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2}));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2, arg3}));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2, arg3, arg4}));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object... args) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, args));
+    }
+
+    private static FlightRecorderMessage makeFlightRecorderMessage(FlightRecorder.ThreadRecorder recorder, String clazz, String method, String format, Object[] args) {
+        return new FlightRecorderMessage(clazz, method, format, args);
+        //return ((FlightRecorderMessageFactory) recorder.getAux()).makeFlightRecorderMessage(clazz, method, format, args);
     }
     //</editor-fold>
 }
