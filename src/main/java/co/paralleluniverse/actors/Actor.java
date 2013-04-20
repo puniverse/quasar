@@ -30,7 +30,7 @@ import jsr166e.ConcurrentHashMapV8;
  * @author pron
  */
 public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joinable<V>, Stranded {
-    private static final Map<String, Actor> registeredActors = new ConcurrentHashMapV8<String, Actor>();
+    private static final Map<Object, Actor> registeredActors = new ConcurrentHashMapV8<Object, Actor>();
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
     private Strand strand;
     private String name;
@@ -254,7 +254,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         }
     }
 
-    public Actor register(String name) {
+    public Actor register(Object name) {
         record(1, "Actor", "register", "Registering actor %s as %s", this, name);
         if (name == null)
             throw new IllegalArgumentException("name is null");
@@ -274,11 +274,11 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return this;
     }
 
-    public static void unregister(String name) {
+    public static void unregister(Object name) {
         registeredActors.remove(name);
     }
 
-    public static Actor getActor(String name) {
+    public static Actor getActor(Object name) {
         return registeredActors.get(name);
     }
 
