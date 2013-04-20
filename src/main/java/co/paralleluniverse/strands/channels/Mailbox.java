@@ -58,11 +58,11 @@ public final class Mailbox<Message> extends Channel<Message> {
     }
 
     public void await() throws SuspendExecution, InterruptedException {
-        sync().lock();
-        sync().await();
-    }
+            sync().lock();
+            sync().await();
+        }
 
     public void await(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        sync().await(this, timeout, unit);
+        sync().await(timeout, unit);
     }
 }

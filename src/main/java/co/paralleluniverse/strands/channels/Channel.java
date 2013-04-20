@@ -108,7 +108,7 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
         sync.lock();
         try {
             while ((n = queue.pk()) == null) {
-                sync.await(this, left, TimeUnit.NANOSECONDS);
+                sync.await(left, TimeUnit.NANOSECONDS);
 
                 left = start + unit.toNanos(timeout) - System.nanoTime();
                 if (left <= 0)

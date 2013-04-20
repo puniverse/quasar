@@ -51,7 +51,7 @@ public abstract class OwnedSynchronizer {
 
     public abstract void await() throws InterruptedException, SuspendExecution;
 
-    public abstract void await(Object blocker, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution;
+    public abstract void await(long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution;
 
     public abstract void signal();
 
@@ -99,7 +99,7 @@ public abstract class OwnedSynchronizer {
         }
 
         @Override
-        public void await(Object blocker, long timeout, TimeUnit unit) throws InterruptedException {
+        public void await(long timeout, TimeUnit unit) throws InterruptedException {
             condition.await(timeout, unit);
         }
 
@@ -149,12 +149,12 @@ public abstract class OwnedSynchronizer {
         }
 
         @Override
-        public void await() throws InterruptedException, SuspendExecution {
+        public void await() throws SuspendExecution {
             Fiber.park(this);
         }
 
         @Override
-        public void await(Object blocker, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
+        public void await(long timeout, TimeUnit unit) throws SuspendExecution {
             Fiber.park(this, timeout, unit);
         }
 
