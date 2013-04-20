@@ -34,7 +34,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
@@ -48,7 +52,7 @@ import org.objectweb.asm.Opcodes;
  */
 public class MethodDatabase implements Log {
     private final ClassLoader cl;
-    private final HashMap<String, ClassEntry> classes;
+    private final NavigableMap<String, ClassEntry> classes;
     private final HashMap<String, String> superClasses;
     private final ArrayList<File> workList;
     private Log log;
@@ -65,7 +69,7 @@ public class MethodDatabase implements Log {
 
         this.cl = classloader;
 
-        classes = new HashMap<String, ClassEntry>();
+        classes = new TreeMap<String, ClassEntry>();
         superClasses = new HashMap<String, String>();
         workList = new ArrayList<File>();
 
@@ -215,6 +219,16 @@ public class MethodDatabase implements Log {
 
     public synchronized ClassEntry getClassEntry(String className) {
         return classes.get(className);
+    }
+    
+    public synchronized Map<String, ClassEntry> getInnerClassesEntries(String className) {
+        Map<String, ClassEntry> tailMap = classes.tailMap(className, true);
+        HashMap<String, ClassEntry> map = new HashMap<String, ClassEntry>();
+        for(Map.Entry<String, ClassEntry> entry : tailMap.entrySet()) {
+            if(entry.getKey().equals(className) || entry.getKey().startsWith(className + '$'))
+                map.put(entry.getKey(), entry.getValue());
+        }
+        return Collections.unmodifiableMap(map);
     }
 
     void recordSuspendableMethods(String className, ClassEntry entry) {

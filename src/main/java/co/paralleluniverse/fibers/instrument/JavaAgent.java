@@ -61,6 +61,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import java.io.PrintWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
@@ -73,6 +74,8 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.util.CheckClassAdapter;
+import org.objectweb.asm.util.Textifier;
+import org.objectweb.asm.util.TraceClassVisitor;
 
 /*
  * Created on Nov 21, 2010
@@ -83,12 +86,11 @@ import org.objectweb.asm.util.CheckClassAdapter;
 public class JavaAgent {
     private static volatile boolean active;
     private static final Set<WeakReference<ClassLoader>> classLoaders = Collections.newSetFromMap(new ConcurrentHashMapV8<WeakReference<ClassLoader>, Boolean>());
-    
+
     public static void premain(String agentArguments, Instrumentation instrumentation) {
-        System.out.println("Fibers agent 114");
-        if(!instrumentation.isRetransformClassesSupported())
+        if (!instrumentation.isRetransformClassesSupported())
             System.err.println("Retransforming classes is not supported!");
-        
+
         MethodDatabase db = new MethodDatabase(Thread.currentThread().getContextClassLoader());
         boolean checkArg = false;
         active = true;
@@ -138,7 +140,7 @@ public class JavaAgent {
         Retransform.instrumentation = instrumentation;
         Retransform.db = db;
         Retransform.classLoaders = classLoaders;
-        
+
         instrumentation.addTransformer(new Transformer(db, checkArg), true);
     }
 
@@ -153,6 +155,14 @@ public class JavaAgent {
         InstrumentClass ic = new InstrumentClass(cv, db, false);
         r.accept(ic, ClassReader.SKIP_FRAMES);
         return cw.toByteArray();
+    }
+
+    private static void dumpClass(String className, byte[] data) {
+        System.out.println("DUMP OF CLASS: " + className);
+        ClassReader cr = new ClassReader(data);
+        ClassVisitor cv = new TraceClassVisitor(null, new Textifier(), new PrintWriter(System.out));
+        cr.accept(cv, ClassReader.SKIP_FRAMES);
+        System.out.println("=================");
     }
 
     private static class Transformer implements ClassFileTransformer {
@@ -171,17 +181,17 @@ public class JavaAgent {
                 return null;
             if (className.startsWith("org/objectweb/asm/"))
                 return null;
-            
+
             db.log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
 
             classLoaders.add(new WeakReference<ClassLoader>(loader));
-            
+
             try {
                 return instrumentClass(db, classfileBuffer, check);
             } catch (Exception ex) {
                 db.error("Unable to instrument", ex);
                 return null;
-            } catch(Throwable t) {
+            } catch (Throwable t) {
                 System.out.println("[quasar] ERROR: " + t.getMessage());
                 t.printStackTrace(System.out);
                 return null;
