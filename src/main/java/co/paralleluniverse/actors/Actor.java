@@ -56,6 +56,16 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         setStrand(strand);
     }
 
+    public static Actor currentActor() {
+        final Fiber currentFiber = Fiber.currentFiber();
+        if (currentFiber == null)
+            return currentActor.get();
+        final SuspendableCallable target = currentFiber.getTarget();
+        if (target == null || !(target instanceof Actor))
+            return null;
+        return (Actor) target;
+    }
+
     @Override
     public final void setStrand(Strand strand) {
         if (this.strand != null)
@@ -150,16 +160,6 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
     //</editor-fold>
 
-    public static Actor currentActor() {
-        final Fiber currentFiber = Fiber.currentFiber();
-        if (currentFiber == null)
-            return currentActor.get();
-        final SuspendableCallable target = currentFiber.getTarget();
-        if (target == null || !(target instanceof Actor))
-            return null;
-        return (Actor) target;
-    }
-
     //<editor-fold desc="Serialization">
     /////////// Serialization ///////////////////////////////////
     // If using Kryo, see what needs to be done: https://code.google.com/p/kryo/
@@ -167,7 +167,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         //return new SerializedActor(this);
         throw new UnsupportedOperationException();
     }
-    
+
     protected static class SerializedActor implements java.io.Serializable {
         static final long serialVersionUID = 894359345L;
         private Actor actor;
@@ -178,14 +178,14 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
         public SerializedActor() {
         }
-        
+
         protected Object readResolve() throws java.io.ObjectStreamException {
             // return new Actor(...);
             throw new UnsupportedOperationException();
         }
     }
     //</editor-fold>
-    
+
     //<editor-fold desc="Strand helpers">
     /////////// Strand helpers ///////////////////////////////////
     Actor<Message, V> start() {
