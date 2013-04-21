@@ -227,7 +227,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     @Override
     public boolean isDone() {
-        return strand.isAlive();
+        return !strand.isAlive();
     }
     //</editor-fold>
 
