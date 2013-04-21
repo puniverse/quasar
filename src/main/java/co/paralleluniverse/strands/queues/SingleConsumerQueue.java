@@ -21,7 +21,7 @@ import java.util.Queue;
 public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E> implements Iterable<E>, Queue<E> {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
-    public abstract void enq(E element);
+    public abstract boolean enq(E element);
 
     public abstract E value(Node node);
 
@@ -43,8 +43,6 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
         return pk() == null;
     }
 
-    public abstract boolean isFull();
-    
     @Override
     public boolean add(E e) {
         enq(e);
@@ -68,10 +66,7 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
 
     @Override
     public boolean offer(E e) {
-        if(isFull())
-            return false;
-        enq(e);
-        return true;
+        return enq(e);
     }
 
     @Override

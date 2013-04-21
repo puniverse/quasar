@@ -11,9 +11,9 @@ package co.paralleluniverse.strands.queues;
 abstract class SingleConsumerArrayDWordQueue<E> extends SingleConsumerArrayPrimitiveQueue<E> {
     private final long[] array;
 
-    public SingleConsumerArrayDWordQueue(int size) {
-        super(nextPowerOfTwo(size));
-        this.array = new long[nextPowerOfTwo(size)];
+    public SingleConsumerArrayDWordQueue(int capacity) {
+        super(nextPowerOfTwo(capacity));
+        this.array = new long[nextPowerOfTwo(capacity)];
     }
 
     long rawValue(int index) {
@@ -25,10 +25,13 @@ abstract class SingleConsumerArrayDWordQueue<E> extends SingleConsumerArrayPrimi
         return array.length;
     }
 
-    void enq(long item) {
-        final int i = preEnq();
-        array[i] = item; // no need for volatile semantics because postEnq does a volatile write (cas) which is then read in await value
+    boolean enq(long item) {
+        final long i = preEnq();
+        if(i < 0)
+            return false;
+        array[(int) i & mask] = item; // no need for volatile semantics because postEnq does a volatile write (cas) which is then read in await value
         postEnq(i);
+        return true;
     }
 
     @Override

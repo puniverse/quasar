@@ -16,10 +16,10 @@ abstract class SingleConsumerLinkedWordQueue<E> extends SingleConsumerLinkedQueu
         return new WordNode();
     }
 
-    void enq(int item) {
+    boolean enq(int item) {
         WordNode node = new WordNode();
         node.value = item;
-        enq(node);
+        return enq(node);
     }
 
     int rawValue(Node node) {

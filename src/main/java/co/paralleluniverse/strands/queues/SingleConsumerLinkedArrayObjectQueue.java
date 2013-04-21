@@ -26,12 +26,12 @@ public class SingleConsumerLinkedArrayObjectQueue<E> extends SingleConsumerLinke
     }
     
     @Override
-    public void enq(E item) {
+    public boolean enq(E item) {
         for (;;) {
             final Node t = tail;
             for (int i = 0; i < BLOCK_SIZE; i++) {
                 if (get(t, i) == null && compareAndSetElement(t, i, null, item))
-                    return;
+                    return true;
             }
 
             Node n = newNode();

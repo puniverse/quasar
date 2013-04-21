@@ -26,18 +26,23 @@ import java.util.concurrent.TimeUnit;
 public class QueueBenchmark {
     public static final int QUEUE_CAPACITY = 32 * 1024;
     public static final int REPETITIONS = 50 * 1000 * 1000;
-    public static final Integer TEST_VALUE = Integer.valueOf(111);
+    public static final int NUM_PRODUCERS = 2;
+    public static final Integer TEST_VALUE = Integer.valueOf(777);
 
     public static void main(String[] args) throws Exception {
-        for (int type = 1; type <= 10; type++) {
-            final Queue<Integer> queue = createQueue(type);
+        for (int type = 1; type <= 10; type++)
+            timeQueue(type);
+    }
 
-            System.out.println("===== " + queue.getClass().getSimpleName() + " ===");
-            for (int i = 0; i < 5; i++) {
-                System.gc();
-                System.gc();
-                performanceRun(i, queue);
-            }
+    private static void timeQueue(int type) throws Exception {
+        final Queue<Integer> queue = createQueue(type);
+        if (queue == null)
+            return;
+        System.out.println("===== " + queue.getClass().getSimpleName() + ", " + NUM_PRODUCERS + " producers ===");
+        for (int i = 0; i < 5; i++) {
+            System.gc();
+            System.gc();
+            performanceRun(i, queue);
         }
     }
 
@@ -71,30 +76,38 @@ public class QueueBenchmark {
 
     private static void performanceRun(final int runNumber, final Queue<Integer> queue) throws Exception {
         final long start = System.nanoTime();
-        final Thread producer = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                int i = REPETITIONS;
-                do {
-                    while (!queue.offer(TEST_VALUE))
-                        Thread.yield();
-                } while (0 != --i);
-            }
-        });
-        
-        producer.start();
+        final int repetitions = (REPETITIONS / NUM_PRODUCERS) * NUM_PRODUCERS;
+        final Thread[] producers = new Thread[NUM_PRODUCERS];
+
+        for (int t = 0; t < NUM_PRODUCERS; t++) {
+            final int tn = t;
+            producers[t] = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    int i = REPETITIONS / NUM_PRODUCERS;
+                    do {
+                        while (!queue.offer(TEST_VALUE))
+                            Thread.yield();
+                    } while (0 != --i);
+                }
+            });
+        }
+
+        for (int t = 0; t < NUM_PRODUCERS; t++)
+            producers[t].start();
 
         Integer result;
-        int i = REPETITIONS;
+        int i = repetitions;
         do {
             while (null == (result = queue.poll()))
                 Thread.yield();
         } while (0 != --i);
 
-        producer.join();
+        for (int t = 0; t < NUM_PRODUCERS; t++)
+            producers[t].join();
 
         final long duration = System.nanoTime() - start;
-        final long ops = (REPETITIONS * TimeUnit.SECONDS.toNanos(1)) / duration;
+        final long ops = (repetitions * TimeUnit.SECONDS.toNanos(1)) / duration;
         System.out.format("%d - ops/sec=%,d - %s result=%d\n",
                 Integer.valueOf(runNumber), Long.valueOf(ops),
                 queue.getClass().getSimpleName(), result);

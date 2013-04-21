@@ -27,11 +27,6 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
         return true;
     }
 
-    @Override
-    public boolean isFull() {
-        return false;
-    }
-
     abstract Node newNode();
 
     abstract boolean hasValue(Node n, int index);
@@ -174,8 +169,6 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
     private static final long tailOffset;
     private static final long nextOffset;
     private static final long prevOffset;
-    private static final int base;
-    private static final int shift;
 
     static {
         try {
@@ -183,12 +176,6 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
             tailOffset = unsafe.objectFieldOffset(SingleConsumerLinkedArrayQueue.class.getDeclaredField("tail"));
             nextOffset = unsafe.objectFieldOffset(Node.class.getDeclaredField("next"));
             prevOffset = unsafe.objectFieldOffset(Node.class.getDeclaredField("prev"));
-
-            base = unsafe.arrayBaseOffset(Object[].class);
-            int scale = unsafe.arrayIndexScale(Object[].class);
-            if ((scale & (scale - 1)) != 0)
-                throw new Error("data type scale not a power of two");
-            shift = 31 - Integer.numberOfLeadingZeros(scale);
         } catch (Exception ex) {
             throw new Error(ex);
         }

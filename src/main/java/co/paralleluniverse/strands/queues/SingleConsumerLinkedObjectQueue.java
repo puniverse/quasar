@@ -17,12 +17,12 @@ public class SingleConsumerLinkedObjectQueue<E> extends SingleConsumerLinkedQueu
     }
 
     @Override
-    public void enq(E item) {
+    public boolean enq(E item) {
         if (item == null)
             throw new IllegalArgumentException("null values not allowed");
         ObjectNode node = new ObjectNode();
         node.value = item;
-        enq(node);
+        return enq(node);
     }
 
     @Override

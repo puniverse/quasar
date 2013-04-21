@@ -9,20 +9,20 @@ package co.paralleluniverse.strands.queues;
  * @author pron
  */
 public class SingleConsumerArrayLongQueue extends SingleConsumerArrayDWordQueue<Long> implements SingleConsumerLongQueue<Integer> {
-    public SingleConsumerArrayLongQueue(int size) {
-        super(size);
+    public SingleConsumerArrayLongQueue(int capacity) {
+        super(capacity);
     }
 
     @Override
-    public void enq(long item) {
-        super.enq(item);
+    public boolean enq(long item) {
+        return super.enq(item);
     }
 
     @Override
-    public void enq(Long item) {
+    public boolean enq(Long item) {
         if (item == null)
             throw new IllegalArgumentException("null values not allowed");
-        enq(item.longValue());
+        return enq(item.longValue());
     }
 
     public long longValue(int index) {

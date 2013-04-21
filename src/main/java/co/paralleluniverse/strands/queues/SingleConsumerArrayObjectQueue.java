@@ -27,21 +27,25 @@ public class SingleConsumerArrayObjectQueue<E> extends SingleConsumerArrayQueue<
     }
 
     @Override
-    public void enq(E item) {
+    public boolean enq(E item) {
         if (item == null)
             throw new IllegalArgumentException("null values not allowed");
-        set(preEnq(), item);
+        final long i = preEnq();
+        if(i < 0)
+            return false;
+        set((int) i & mask, item);
+        return true;
     }
 
     @SuppressWarnings("empty-statement")
     @Override
-    void awaitValue(int i) {
-        while (get(i) == null); // volatile read
+    void awaitValue(long i) {
+        while (get((int) i & mask) == null); // volatile read
     }
     
     @Override
-    void clearValue(int index) {
-        array[index] = null; //orderedSet(index, null);
+    void clearValue(long index) {
+        array[(int) index & mask] = null; //orderedSet(index, null);
     }
 
     @Override

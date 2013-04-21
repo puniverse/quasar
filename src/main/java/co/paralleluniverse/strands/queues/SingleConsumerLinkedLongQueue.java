@@ -10,15 +10,15 @@ package co.paralleluniverse.strands.queues;
  */
 public class SingleConsumerLinkedLongQueue extends SingleConsumerLinkedDWordQueue<Long> implements SingleConsumerLongQueue<SingleConsumerLinkedQueue.Node<Long>> {
     @Override
-    public void enq(long item) {
-        super.enq(item);
+    public boolean enq(long item) {
+        return super.enq(item);
     }
 
     @Override
-    public void enq(Long item) {
+    public boolean enq(Long item) {
         if (item == null)
             throw new IllegalArgumentException("null values not allowed");
-        enq(item.longValue());
+        return enq(item.longValue());
     }
 
     @Override

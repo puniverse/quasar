@@ -8,6 +8,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.OwnedSynchronizer;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
+import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -75,12 +76,14 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
 
     @Override
     public void send(Message message) {
-        queue.enq(message);
+        if (!queue.enq(message))
+            throw new QueueCapacityExceededException();
         signal();
     }
 
     public void sendSync(Message message) {
-        queue.enq(message);
+        if (!queue.enq(message))
+            throw new QueueCapacityExceededException();
         signalAndTryToExecNow();
     }
 

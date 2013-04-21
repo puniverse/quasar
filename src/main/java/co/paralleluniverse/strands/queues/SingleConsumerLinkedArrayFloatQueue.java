@@ -10,13 +10,14 @@ package co.paralleluniverse.strands.queues;
  */
 public class SingleConsumerLinkedArrayFloatQueue extends SingleConsumerLinkedArrayWordQueue<Float> implements SingleConsumerFloatQueue<SingleConsumerLinkedArrayQueue.ElementPointer> {
 
-    public void enq(float element) {
-        super.enq(Float.floatToRawIntBits(element));
+    @Override
+    public boolean enq(float element) {
+        return super.enq(Float.floatToRawIntBits(element));
     }
 
     @Override
-    public void enq(Float element) {
-        enq(element.floatValue());
+    public boolean enq(Float element) {
+        return enq(element.floatValue());
     }
 
     @Override

@@ -16,10 +16,10 @@ abstract class SingleConsumerLinkedDWordQueue<E> extends SingleConsumerLinkedQue
         return new DWordNode();
     }
 
-    void enq(long item) {
+    boolean enq(long item) {
         DWordNode node = new DWordNode();
         node.value = item;
-        enq(node);
+        return enq(node);
     }
 
     long rawValue(Node node) {

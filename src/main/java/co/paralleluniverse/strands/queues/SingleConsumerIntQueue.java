@@ -9,6 +9,6 @@ package co.paralleluniverse.strands.queues;
  * @author pron
  */
 public interface SingleConsumerIntQueue<Node> {
-    void enq(int item);
+    boolean enq(int item);
     int intValue(Node node);
 }

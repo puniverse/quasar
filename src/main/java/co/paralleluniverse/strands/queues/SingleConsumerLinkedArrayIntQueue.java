@@ -10,13 +10,14 @@ package co.paralleluniverse.strands.queues;
  */
 public class SingleConsumerLinkedArrayIntQueue extends SingleConsumerLinkedArrayWordQueue<Integer> implements SingleConsumerIntQueue<SingleConsumerLinkedArrayQueue.ElementPointer> {
 
-    public void enq(int element) {
-        super.enq(element);
+    @Override
+    public boolean enq(int element) {
+        return super.enq(element);
     }
 
     @Override
-    public void enq(Integer element) {
-        enq(element.intValue());
+    public boolean enq(Integer element) {
+        return enq(element.intValue());
     }
 
     @Override

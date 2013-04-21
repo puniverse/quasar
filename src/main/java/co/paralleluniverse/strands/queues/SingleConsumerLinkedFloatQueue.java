@@ -10,15 +10,15 @@ package co.paralleluniverse.strands.queues;
  */
 public class SingleConsumerLinkedFloatQueue extends SingleConsumerLinkedWordQueue<Float> implements SingleConsumerFloatQueue<SingleConsumerLinkedQueue.Node<Float>> {
     @Override
-    public void enq(float item) {
-        super.enq(Float.floatToRawIntBits(item));
+    public boolean enq(float item) {
+        return super.enq(Float.floatToRawIntBits(item));
     }
 
     @Override
-    public void enq(Float item) {
+    public boolean enq(Float item) {
         if (item == null)
             throw new IllegalArgumentException("null values not allowed");
-        enq(item.floatValue());
+        return enq(item.floatValue());
     }
 
     @Override

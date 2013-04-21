@@ -16,10 +16,11 @@ abstract class SingleConsumerLinkedArrayWordQueue<E> extends SingleConsumerLinke
         return BLOCK_SIZE;
     }
 
-    void enq(int item) {
+    boolean enq(int item) {
         ElementPointer ep = preEnq();
         ((WordNode) ep.n).array[ep.i] = item;
         postEnq(ep.n, ep.i);
+        return true;
     }
 
     int rawValue(Node n, int i) {

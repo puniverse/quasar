@@ -9,6 +9,6 @@ package co.paralleluniverse.strands.queues;
  * @author pron
  */
 public interface SingleConsumerFloatQueue<Node> {
-    void enq(float item);
+    boolean enq(float item);
     float floatValue(Node node);
 }

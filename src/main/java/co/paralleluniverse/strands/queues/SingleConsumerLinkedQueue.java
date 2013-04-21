@@ -12,7 +12,7 @@ import sun.misc.Unsafe;
  * @author pron
  */
 abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleConsumerLinkedQueue.Node<E>> {
-    private static final boolean DUMMY_NODE_ALGORITHM = false;
+    private static final boolean DUMMY_NODE_ALGORITHM = true;
     volatile Node head;
     volatile Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
     volatile Node tail;
@@ -30,13 +30,8 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
     }
 
     abstract Node newNode();
-
-    @Override
-    public boolean isFull() {
-        return false;
-    }
     
-    void enq(final Node<E> node) {
+    boolean enq(final Node<E> node) {
         record("enq", "queue: %s node: %s", this, node);
         for (;;) {
             final Node t = tail;
@@ -50,6 +45,7 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
                 break;
             }
         }
+        return true;
     }
 
     @SuppressWarnings("empty-statement")

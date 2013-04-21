@@ -10,13 +10,14 @@ package co.paralleluniverse.strands.queues;
  */
 public class SingleConsumerLinkedArrayLongQueue extends SingleConsumerLinkedArrayDWordQueue<Long> implements SingleConsumerLongQueue<SingleConsumerLinkedArrayQueue.ElementPointer> {
 
-    public void enq(long element) {
-        super.enq(element);
+    @Override
+    public boolean enq(long element) {
+        return super.enq(element);
     }
 
     @Override
-    public void enq(Long element) {
-        enq(element.longValue());
+    public boolean enq(Long element) {
+        return enq(element.longValue());
     }
 
     @Override
