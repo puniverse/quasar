@@ -31,6 +31,11 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
 
     abstract Node newNode();
 
+    @Override
+    public boolean isFull() {
+        return false;
+    }
+    
     void enq(final Node<E> node) {
         record("enq", "queue: %s node: %s", this, node);
         for (;;) {

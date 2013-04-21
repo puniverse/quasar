@@ -27,6 +27,11 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
         return true;
     }
 
+    @Override
+    public boolean isFull() {
+        return false;
+    }
+
     abstract Node newNode();
 
     abstract boolean hasValue(Node n, int index);
@@ -75,7 +80,7 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
             return pk();
 
         ep.i++;
-        if(current(ep) == null) {
+        if (current(ep) == null) {
             ep.i--; // restore ep
             return null;
         } else

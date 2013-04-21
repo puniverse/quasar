@@ -65,14 +65,22 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
         return tail;
     }
 
-    final int preEnq() {
+    @Override
+    public boolean isFull() {
         final int nextTail = next(tail);
         if (nextTail == cachedHead) {
             cachedHead = head; // only time a producer reads head
 
             if (nextTail == cachedHead)
-                throw new QueueCapacityExceededException();
+                return true;
         }
+        return false;
+    }
+
+    
+    final int preEnq() {
+        if(isFull())
+            throw new QueueCapacityExceededException();
 
         int t;
         for (;;) {

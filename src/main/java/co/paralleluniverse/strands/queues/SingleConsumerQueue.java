@@ -43,6 +43,8 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
         return pk() == null;
     }
 
+    public abstract boolean isFull();
+    
     @Override
     public boolean add(E e) {
         enq(e);
@@ -66,6 +68,8 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
 
     @Override
     public boolean offer(E e) {
+        if(isFull())
+            return false;
         enq(e);
         return true;
     }
