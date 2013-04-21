@@ -7,7 +7,7 @@ package co.paralleluniverse.strands.channels;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayFloatQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerFloatQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerLinkedFloatQueue;
+import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayFloatQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -17,11 +17,11 @@ import java.util.concurrent.TimeUnit;
  */
 public class FloatChannel extends Channel<Float> {
     public static FloatChannel create(Object owner, int mailboxSize) {
-        return new FloatChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayFloatQueue(mailboxSize) : new SingleConsumerLinkedFloatQueue());
+        return new FloatChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayFloatQueue(mailboxSize) : new SingleConsumerLinkedArrayFloatQueue());
     }
 
     public static FloatChannel create(int mailboxSize) {
-        return new FloatChannel(mailboxSize > 0 ? new SingleConsumerArrayFloatQueue(mailboxSize) : new SingleConsumerLinkedFloatQueue());
+        return new FloatChannel(mailboxSize > 0 ? new SingleConsumerArrayFloatQueue(mailboxSize) : new SingleConsumerLinkedArrayFloatQueue());
     }
 
     private FloatChannel(Object owner, SingleConsumerQueue<Float, ?> queue) {

@@ -7,7 +7,7 @@ package co.paralleluniverse.strands.channels;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayDoubleQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerDoubleQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerLinkedDoubleQueue;
+import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayDoubleQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -17,11 +17,11 @@ import java.util.concurrent.TimeUnit;
  */
 public class DoubleChannel extends Channel<Double> {
     public static DoubleChannel create(int mailboxSize) {
-        return new DoubleChannel(mailboxSize > 0 ? new SingleConsumerArrayDoubleQueue(mailboxSize) : new SingleConsumerLinkedDoubleQueue());
+        return new DoubleChannel(mailboxSize > 0 ? new SingleConsumerArrayDoubleQueue(mailboxSize) : new SingleConsumerLinkedArrayDoubleQueue());
     }
 
     public static DoubleChannel create(Object owner, int mailboxSize) {
-        return new DoubleChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayDoubleQueue(mailboxSize) : new SingleConsumerLinkedDoubleQueue());
+        return new DoubleChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayDoubleQueue(mailboxSize) : new SingleConsumerLinkedArrayDoubleQueue());
     }
 
     private DoubleChannel(Object owner, SingleConsumerQueue<Double, ?> queue) {

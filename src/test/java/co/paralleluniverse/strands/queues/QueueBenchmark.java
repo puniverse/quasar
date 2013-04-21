@@ -24,14 +24,22 @@ import java.util.concurrent.TimeUnit;
  * @autor pron
  */
 public class QueueBenchmark {
+    public static final int NUM_PRODUCERS = 3;
     public static final int QUEUE_CAPACITY = 32 * 1024;
     public static final int REPETITIONS = 50 * 1000 * 1000;
-    public static final int NUM_PRODUCERS = 2;
     public static final Integer TEST_VALUE = Integer.valueOf(777);
 
     public static void main(String[] args) throws Exception {
-        for (int type = 1; type <= 10; type++)
-            timeQueue(type);
+        timeQueue(1);   // SingleConsumerArrayObjectQueue
+        timeQueue(2);   // SingleConsumerLinkedObjectQueue
+        timeQueue(3);   // SingleConsumerLinkedArrayObjectQueue
+        timeQueue(4);   // SingleConsumerArrayIntQueue
+        timeQueue(5);   // SingleConsumerLinkedIntQueue
+        timeQueue(6);   // SingleConsumerLinkedArrayIntQueue
+        timeQueue(7);   // ArrayBlockingQueue
+        timeQueue(8);   // LinkedBlockingQueue
+        timeQueue(9);   // ConcurrentLinkedQueue
+        timeQueue(10);  // LinkedTransferQueue
     }
 
     private static void timeQueue(int type) throws Exception {

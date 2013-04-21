@@ -6,7 +6,7 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayLongQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerLinkedLongQueue;
+import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayLongQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLongQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
@@ -17,11 +17,11 @@ import java.util.concurrent.TimeUnit;
  */
 public class LongChannel extends Channel<Long> {
     public static LongChannel create(Object owner, int mailboxSize) {
-        return new LongChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayLongQueue(mailboxSize) : new SingleConsumerLinkedLongQueue());
+        return new LongChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayLongQueue(mailboxSize) : new SingleConsumerLinkedArrayLongQueue());
     }
 
     public static LongChannel create(int mailboxSize) {
-        return new LongChannel(mailboxSize > 0 ? new SingleConsumerArrayLongQueue(mailboxSize) : new SingleConsumerLinkedLongQueue());
+        return new LongChannel(mailboxSize > 0 ? new SingleConsumerArrayLongQueue(mailboxSize) : new SingleConsumerLinkedArrayLongQueue());
     }
 
     private LongChannel(Object owner, SingleConsumerQueue<Long, ?> queue) {

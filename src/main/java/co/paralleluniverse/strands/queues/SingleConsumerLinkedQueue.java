@@ -12,7 +12,7 @@ import sun.misc.Unsafe;
  * @author pron
  */
 abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleConsumerLinkedQueue.Node<E>> {
-    private static final boolean DUMMY_NODE_ALGORITHM = true;
+    private static final boolean DUMMY_NODE_ALGORITHM = false;
     volatile Node head;
     volatile Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
     volatile Node tail;
@@ -32,15 +32,13 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
     abstract Node newNode();
     
     boolean enq(final Node<E> node) {
-        record("enq", "queue: %s node: %s", this, node);
         for (;;) {
             final Node t = tail;
             node.prev = t;
             if (compareAndSetTail(t, node)) {
-                if (t == null) { // can't happen when DUMMY_NODE_ALGORITHM
+                if (t == null) // can't happen when DUMMY_NODE_ALGORITHM
                     head = node;
-                    record("enq", "set head");
-                } else
+                else
                     t.next = node;
                 break;
             }
@@ -51,8 +49,6 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
     @SuppressWarnings("empty-statement")
     @Override
     public void deq(final Node<E> node) {
-        record("deq", "queue: %s node: %s", this, node);
-
         clearValue(node);
 
         if (DUMMY_NODE_ALGORITHM) {
@@ -63,7 +59,6 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
             if (h == null) {
                 head = null; // Based on John M. Mellor-Crummey, "Concurrent Queues: Practical Fetch-and-ø Algorithms", 1987
                 if (tail == node && compareAndSetTail(node, null)) { // a concurrent enq would either cause this to fail and wait for node.next, or have this succeed and then set tail and head
-                    record("deq", "set tail to null");
                     node.next = null;
                     return;
                 }
@@ -71,8 +66,6 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
             }
             head = h;
             h.prev = null;
-
-            record("deq", "set head to %s", h);
 
             // clearNext(node); - we don't clear next so that iterator would work
             clearPrev(node);
@@ -84,17 +77,13 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
         if (DUMMY_NODE_ALGORITHM) {
             return succ(head);
         } else {
-            if (tail == null) {
-                record("peek", "return null");
+            if (tail == null)
                 return null;
-            }
 
             for (;;) {
                 Node h;
-                if ((h = head) != null) {
-                    record("peek", "return %s", h);
+                if ((h = head) != null)
                     return h;
-                }
             }
         }
     }
@@ -111,13 +100,11 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
     public Node<E> succ(final Node<E> node) {
         if (node == null)
             return pk();
-        if (tail == node) {
-            record("succ", "return null");
+        if (tail == node)
             return null; // an enq following this will test the lock again
-        }
+        
         Node succ;
         while ((succ = node.next) == null); // wait for next
-        record("succ", "return %s", succ);
         return succ;
     }
 

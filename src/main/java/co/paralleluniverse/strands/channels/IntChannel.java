@@ -7,7 +7,7 @@ package co.paralleluniverse.strands.channels;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayIntQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerIntQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerLinkedIntQueue;
+import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayIntQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -17,11 +17,11 @@ import java.util.concurrent.TimeUnit;
  */
 public class IntChannel extends Channel<Integer> {
     public static IntChannel create(Object owner, int mailboxSize) {
-        return new IntChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayIntQueue(mailboxSize) : new SingleConsumerLinkedIntQueue());
+        return new IntChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayIntQueue(mailboxSize) : new SingleConsumerLinkedArrayIntQueue());
     }
 
     public static IntChannel create(int mailboxSize) {
-        return new IntChannel(mailboxSize > 0 ? new SingleConsumerArrayIntQueue(mailboxSize) : new SingleConsumerLinkedIntQueue());
+        return new IntChannel(mailboxSize > 0 ? new SingleConsumerArrayIntQueue(mailboxSize) : new SingleConsumerLinkedArrayIntQueue());
     }
 
     private IntChannel(Object owner, SingleConsumerQueue<Integer, ?> queue) {
