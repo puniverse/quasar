@@ -29,7 +29,8 @@ import jsr166e.ConcurrentHashMapV8;
  *
  * @author pron
  */
-public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joinable<V>, Stranded {
+public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joinable<V>, Stranded, java.io.Serializable {
+    static final long serialVersionUID = 894359345L;
     private static final Map<Object, Actor> registeredActors = new ConcurrentHashMapV8<Object, Actor>();
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
     private Strand strand;
@@ -159,6 +160,32 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return (Actor) target;
     }
 
+    //<editor-fold desc="Serialization">
+    /////////// Serialization ///////////////////////////////////
+    // If using Kryo, see what needs to be done: https://code.google.com/p/kryo/
+    protected Object writeReplace() throws java.io.ObjectStreamException {
+        //return new SerializedActor(this);
+        throw new UnsupportedOperationException();
+    }
+    
+    protected static class SerializedActor implements java.io.Serializable {
+        static final long serialVersionUID = 894359345L;
+        private Actor actor;
+
+        public SerializedActor(Actor actor) {
+            this.actor = actor;
+        }
+
+        public SerializedActor() {
+        }
+        
+        protected Object readResolve() throws java.io.ObjectStreamException {
+            // return new Actor(...);
+            throw new UnsupportedOperationException();
+        }
+    }
+    //</editor-fold>
+    
     //<editor-fold desc="Strand helpers">
     /////////// Strand helpers ///////////////////////////////////
     Actor<Message, V> start() {
