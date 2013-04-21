@@ -39,6 +39,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
     private volatile V result;
     private volatile RuntimeException exception;
+    private volatile Object deathReason;
     protected final FlightRecorder flightRecorder;
 
     public Actor(String name, int mailboxSize) {
@@ -311,8 +312,16 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     public Actor link(Actor other) {
         record(1, "Actor", "link", "Linking actors %s, %s", this, other);
-        lifecycleListeners.add(other.lifecycleListener);
-        other.lifecycleListeners.add(lifecycleListener);
+        if (!this.isDone() || !other.isDone()) {
+            if (this.isDone())
+                other.lifecycleListener.dead(this, deathReason);
+            else if (other.isDone())
+                this.lifecycleListener.dead(other, other.deathReason);
+            else {
+                lifecycleListeners.add(other.lifecycleListener);
+                other.lifecycleListeners.add(lifecycleListener);
+            }
+        }
         return this;
     }
 
@@ -322,12 +331,6 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         other.lifecycleListeners.remove(lifecycleListener);
         return this;
     }
-    private final LifecycleListener lifecycleListener = new LifecycleListener() {
-        @Override
-        public void dead(Actor actor, Object reason) {
-            mailbox.send(new ExitMessage(actor, reason));
-        }
-    };
 
     public Object monitor(Actor other) {
         LifecycleListener listener = new LifecycleListener() {
@@ -337,7 +340,11 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             }
         };
         record(1, "Actor", "monitor", "Actor %s to monitor %s (listener: %s)", this, other, listener);
-        other.lifecycleListeners.add(listener);
+
+        if (other.isDone())
+            listener.dead(other, other.deathReason);
+        else
+            other.lifecycleListeners.add(listener);
         return listener;
     }
 
@@ -347,12 +354,19 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
 
     private void notifyDeath(Object reason) {
+        this.deathReason = reason;
         for (LifecycleListener listener : lifecycleListeners)
             listener.dead(this, reason);
     }
-    //</editor-fold>
+    private final LifecycleListener lifecycleListener = new LifecycleListener() {
+        @Override
+        public void dead(Actor actor, Object reason) {
+            mailbox.send(new ExitMessage(actor, reason));
+        }
+    };
 
-    //<editor-fold desc="Recording">
+    //</editor-fold>
+    //<editor-fold defaultstate="collapsed" desc="Recording">
     /////////// Recording ///////////////////////////////////
     protected void record(int level, String clazz, String method, String format) {
         if (flightRecorder != null)
