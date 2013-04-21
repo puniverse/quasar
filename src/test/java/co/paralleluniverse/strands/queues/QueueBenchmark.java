@@ -16,6 +16,7 @@
 package co.paralleluniverse.strands.queues;
 
 import java.util.Queue;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -25,7 +26,7 @@ import java.util.Queue;
 public class QueueBenchmark {
     public static final int QUEUE_CAPACITY = 32 * 1024;
     public static final int REPETITIONS = 50 * 1000 * 1000;
-    public static final Integer TEST_VALUE = Integer.valueOf(777);
+    public static final Integer TEST_VALUE = Integer.valueOf(111);
 
     public static void main(String[] args) throws Exception {
         for (int type = 1; type <= 10; type++) {
@@ -70,8 +71,18 @@ public class QueueBenchmark {
 
     private static void performanceRun(final int runNumber, final Queue<Integer> queue) throws Exception {
         final long start = System.nanoTime();
-        final Thread thread = new Thread(new Producer(queue));
-        thread.start();
+        final Thread producer = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                int i = REPETITIONS;
+                do {
+                    while (!queue.offer(TEST_VALUE))
+                        Thread.yield();
+                } while (0 != --i);
+            }
+        });
+        
+        producer.start();
 
         Integer result;
         int i = REPETITIONS;
@@ -80,29 +91,12 @@ public class QueueBenchmark {
                 Thread.yield();
         } while (0 != --i);
 
-        thread.join();
+        producer.join();
 
         final long duration = System.nanoTime() - start;
-        final long ops = (REPETITIONS * 1000L * 1000L * 1000L) / duration;
+        final long ops = (REPETITIONS * TimeUnit.SECONDS.toNanos(1)) / duration;
         System.out.format("%d - ops/sec=%,d - %s result=%d\n",
                 Integer.valueOf(runNumber), Long.valueOf(ops),
                 queue.getClass().getSimpleName(), result);
-    }
-
-    public static class Producer implements Runnable {
-        private final Queue<Integer> queue;
-
-        public Producer(final Queue<Integer> queue) {
-            this.queue = queue;
-        }
-
-        @Override
-        public void run() {
-            int i = REPETITIONS;
-            do {
-                while (!queue.offer(TEST_VALUE))
-                    Thread.yield();
-            } while (0 != --i);
-        }
     }
 }
