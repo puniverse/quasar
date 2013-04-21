@@ -88,7 +88,6 @@ public class QueueBenchmark {
         final Thread[] producers = new Thread[NUM_PRODUCERS];
 
         for (int t = 0; t < NUM_PRODUCERS; t++) {
-            final int tn = t;
             producers[t] = new Thread(new Runnable() {
                 @Override
                 public void run() {
