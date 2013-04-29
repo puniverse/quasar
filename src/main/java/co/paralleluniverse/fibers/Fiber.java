@@ -52,7 +52,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
 
     private static boolean printVerifyInstrumentationWarning() {
         if (verifyInstrumentation)
-            System.err.println("QUASAR WARNING: Fiber is set to verify instrumentation. This may *severely* harm performance");
+            System.err.println("QUASAR WARNING: Fiber is set to verify instrumentation. This may *severely* harm performance.");
         return true;
     }
 
@@ -113,6 +113,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         Object inheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
         if (inheritableThreadLocals != null)
             this.inheritableFiberLocals = ThreadAccess.createInheritedMap(inheritableThreadLocals);
+
+        record(1, "Fiber", "<init>", "Created fiber %s", this);
     }
 
     public Fiber(String name, int stackSize, SuspendableCallable<V> target) {
@@ -318,7 +320,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         if (fjTask.isDone() | state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
 
-        record(1, "Fiber", "exec1", "starting %s", this);
+        record(1, "Fiber", "exec1", "running %s %s", state, this);
         setCurrentFiber(this);
         installFiberLocals();
 
@@ -326,15 +328,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         try {
             this.result = run1(); // we jump into the continuation
             state = State.TERMINATED;
-            record(1, "Fiber", "exec1", "finished %s", this);
+            record(1, "Fiber", "exec1", "finished %s %s", state, this);
             return true;
         } catch (SuspendExecution ex) {
             assert ex == SuspendExecution.instance;
-            record(1, "Fiber", "exec1", "parked %s", this);
             //stack.dump();
             stack.resumeStack();
             state = State.WAITING;
             fjTask.doPark(false); // now we can complete parking
+
+            record(1, "Fiber", "exec1", "parked %s %s", state, this);
 
             if (postParkActions != null) {
                 postParkActions.run(this);
@@ -342,16 +345,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
             }
             return false;
         } catch (FiberInterruptedException e) {
-            record(1, "Fiber", "exec1", "FiberInterruptedException: %s", this);
             state = State.TERMINATED;
+            record(1, "Fiber", "exec1", "FiberInterruptedException: %s %s", state, this);
             return true;
         } catch (InterruptedException e) {
-            record(1, "Fiber", "exec1", "InterruptedException: %s", this);
             state = State.TERMINATED;
+            record(1, "Fiber", "exec1", "InterruptedException: %s, %s", state, this);
             throw new RuntimeException(e);
         } catch (Throwable t) {
-            record(1, "Fiber", "exec1", "Exception in %s: %s", this, t);
             state = State.TERMINATED;
+            record(1, "Fiber", "exec1", "Exception in %s %s: %s", state, this, t);
             throw t;
         } finally {
             restoreThreadLocals();

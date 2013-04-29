@@ -113,7 +113,6 @@ public class Debug {
             @Override
             public void run() {
                 try {
-                    System.err.println("RRRR: " + millis);
                     Thread.sleep(millis);
                     dumpRecorder(filename);
                 } catch (InterruptedException e) {
