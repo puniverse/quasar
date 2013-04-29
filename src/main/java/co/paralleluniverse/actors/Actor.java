@@ -141,6 +141,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             checkThrownIn();
             Object m = mailbox.tryReceive();
             if(m == null)
+                return null;
             record(1, "Actor", "tryReceive", "Received %s <- %s", this, m);
             if (m instanceof LifecycleMessage)
                 handleLifecycleMessage((LifecycleMessage) m);
@@ -377,41 +378,41 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             mailbox.send(new ExitMessage(actor, reason));
         }
     };
-
     //</editor-fold>
+    
     //<editor-fold defaultstate="collapsed" desc="Recording">
     /////////// Recording ///////////////////////////////////
-    protected void record(int level, String clazz, String method, String format) {
+    protected final void record(int level, String clazz, String method, String format) {
         if (flightRecorder != null)
             record(flightRecorder.get(), level, clazz, method, format);
     }
 
-    protected void record(int level, String clazz, String method, String format, Object arg1) {
+    protected final void record(int level, String clazz, String method, String format, Object arg1) {
         if (flightRecorder != null)
             record(flightRecorder.get(), level, clazz, method, format, arg1);
     }
 
-    protected void record(int level, String clazz, String method, String format, Object arg1, Object arg2) {
+    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2) {
         if (flightRecorder != null)
             record(flightRecorder.get(), level, clazz, method, format, arg1, arg2);
     }
 
-    protected void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3) {
+    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3) {
         if (flightRecorder != null)
             record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3);
     }
 
-    protected void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
         if (flightRecorder != null)
             record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3, arg4);
     }
 
-    protected void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
         if (flightRecorder != null)
             record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3, arg4, arg5);
     }
 
-    protected void record(int level, String clazz, String method, String format, Object... args) {
+    protected final void record(int level, String clazz, String method, String format, Object... args) {
         if (flightRecorder != null)
             record(flightRecorder.get(), level, clazz, method, format, args);
     }

@@ -1,7 +1,11 @@
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.common.monitoring.FlightRecorder;
+import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.NamingThreadFactory;
+import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
@@ -38,14 +42,17 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.lwthreads.verifyInstrumentation", "false"));
     public static final int DEFAULT_STACK_SIZE = 16;
     private static final long serialVersionUID = 2783452871536981L;
+    protected static final FlightRecorder flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
     static {
+        if (Debug.isDebug())
+            System.err.println("QUASAR WARNING: Debug mode enabled. This may harm performance.");
         assert printVerifyInstrumentationWarning();
     }
 
     private static boolean printVerifyInstrumentationWarning() {
         if (verifyInstrumentation)
-            System.err.println("WARNING: Fiber is set to verify instrumentation. This may severely harm performance");
+            System.err.println("QUASAR WARNING: Fiber is set to verify instrumentation. This may *severely* harm performance");
         return true;
     }
 
@@ -88,6 +95,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         this.fjTask = new FiberForkJoinTask<V>(this);
         this.stack = new Stack(this, stackSize > 0 ? stackSize : DEFAULT_STACK_SIZE);
         this.state = State.NEW;
+
+        if (Debug.isDebug())
+            record(1, "Fiber", "<init>", "Creating fiber name: %s, fjPool: %s, parent: %s, target: %s, task: %s, stackSize: %s", name, fjPool, parent, target, fjTask, stackSize);
 
         if (target != null) {
             if (!(target instanceof VoidSuspendableCallable) && !isInstrumented(target.getClass()))
@@ -308,17 +318,19 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         if (fjTask.isDone() | state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
 
+        record(1, "Fiber", "exec1", "starting %s", this);
         setCurrentFiber(this);
         installFiberLocals();
 
         state = State.RUNNING;
         try {
             this.result = run1(); // we jump into the continuation
-
             state = State.TERMINATED;
+            record(1, "Fiber", "exec1", "finished %s", this);
             return true;
         } catch (SuspendExecution ex) {
             assert ex == SuspendExecution.instance;
+            record(1, "Fiber", "exec1", "parked %s", this);
             //stack.dump();
             stack.resumeStack();
             state = State.WAITING;
@@ -330,12 +342,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
             }
             return false;
         } catch (FiberInterruptedException e) {
+            record(1, "Fiber", "exec1", "FiberInterruptedException: %s", this);
             state = State.TERMINATED;
             return true;
         } catch (InterruptedException e) {
+            record(1, "Fiber", "exec1", "InterruptedException: %s", this);
             state = State.TERMINATED;
             throw new RuntimeException(e);
         } catch (Throwable t) {
+            record(1, "Fiber", "exec1", "Exception in %s: %s", this, t);
             state = State.TERMINATED;
             throw t;
         } finally {
@@ -433,6 +448,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     }
 
     protected void onResume() {
+        record(1, "Fiber", "onResume", "Resuming at: %s", Arrays.toString(Thread.currentThread().getStackTrace()));
         if (interrupted)
             throw new FiberInterruptedException();
     }
@@ -606,7 +622,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
 
     @Override
     public String toString() {
-        return "Fiber@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this))) + "[state: " + state + " pool=" + fjPool + ", task=" + fjTask + ']';
+        return "Fiber@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this))) + "[state: " + state + " pool=" + fjPool + ", task=" + fjTask + ", target= " + (target instanceof co.paralleluniverse.actors.Actor ? Objects.systemToString(target) : target) + ']';
     }
 
     ////////
@@ -806,4 +822,102 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     private boolean casState(State expected, State update) {
         return unsafe.compareAndSwapObject(this, stateOffset, expected, update);
     }
+
+    //<editor-fold defaultstate="collapsed" desc="Recording">
+    /////////// Recording ///////////////////////////////////
+    protected final void record(int level, String clazz, String method, String format) {
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format);
+    }
+
+    protected final void record(int level, String clazz, String method, String format, Object arg1) {
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, arg1);
+    }
+
+    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2) {
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2);
+    }
+
+    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3) {
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3);
+    }
+
+    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3, arg4);
+    }
+
+    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3, arg4, arg5);
+    }
+
+    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Object arg6) {
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3, arg4, arg5, arg6);
+    }
+
+    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Object arg6, Object arg7) {
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+    }
+
+    protected final void record(int level, String clazz, String method, String format, Object... args) {
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, args);
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, null));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1}));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2}));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2, arg3}));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2, arg3, arg4}));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Object arg6) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2, arg3, arg4, arg5, arg6}));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Object arg6, Object arg7) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2, arg3, arg4, arg5, arg6, arg7}));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object... args) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, args));
+    }
+
+    private static FlightRecorderMessage makeFlightRecorderMessage(FlightRecorder.ThreadRecorder recorder, String clazz, String method, String format, Object[] args) {
+        return new FlightRecorderMessage(clazz, method, format, args);
+        //return ((FlightRecorderMessageFactory) recorder.getAux()).makeFlightRecorderMessage(clazz, method, format, args);
+    }
+    //</editor-fold>
 }
