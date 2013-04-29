@@ -32,7 +32,10 @@ public final class Stack implements Serializable {
     }
 
     public static Stack getStack() {
-        return Fiber.currentFiber().getStack();
+        final Fiber currentFiber = Fiber.currentFiber();
+        if(currentFiber == null)
+            throw new RuntimeException("Not running in a fiber");
+        return currentFiber.getStack();
     }
 
     /**
