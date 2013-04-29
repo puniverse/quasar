@@ -98,6 +98,10 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
         return n;
     }
 
+    Object tryReceiveNode() {
+        return queue.pk();
+    }
+
     Object receiveNode(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         if (timeout <= 0 || unit == null)
             return receiveNode();
@@ -121,6 +125,19 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
             sync.unlock();
         }
         return n;
+    }
+
+    public boolean isMessageAvailable() {
+        return queue.pk() != null;
+    }
+
+    public Message tryReceive() {
+        final Object n = tryReceiveNode();
+        if (n == null)
+            return null; // timeout
+        final Message m = queue.value(n);
+        queue.deq(n);
+        return m;
     }
 
     public Message receive() throws SuspendExecution, InterruptedException {

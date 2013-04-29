@@ -136,6 +136,19 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         }
     }
 
+    protected Message tryReceive() {
+        for (;;) {
+            checkThrownIn();
+            Object m = mailbox.tryReceive();
+            if(m == null)
+            record(1, "Actor", "tryReceive", "Received %s <- %s", this, m);
+            if (m instanceof LifecycleMessage)
+                handleLifecycleMessage((LifecycleMessage) m);
+            else
+                return (Message) m;
+        }
+    }
+
     public void send(Message message) {
         try {
             record(1, "Actor", "send", "Sending %s -> %s", message, this);
