@@ -106,6 +106,7 @@ class InstrumentMethod {
                         FrameInfo fi = addCodeBlock(f, i);
                         splitTryCatch(fi);
                     } else {
+                        db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
                         int blockingId = isBlockingCall(min);
                         if (blockingId >= 0) {
                             int mask = 1 << blockingId;
@@ -150,7 +151,7 @@ class InstrumentMethod {
                 throw new UnableToInstrumentException("catch for " + SUSPEND_EXECUTION_CLASS.getSimpleName(), className, mn.name, mn.desc);
 //            if (INTERRUPTED_EXCEPTION_NAME.equals(tcb.type))
 //                throw new UnableToInstrumentException("catch for " + InterruptedException.class.getSimpleName(), className, mn.name, mn.desc);
-            
+
             tcb.accept(mv);
         }
 
@@ -188,9 +189,9 @@ class InstrumentMethod {
             if (isYieldMethod(min.owner, min.name)) { // special case - call to yield
                 if (min.getOpcode() != Opcodes.INVOKESTATIC)
                     throw new UnableToInstrumentException("invalid call to suspending method.", className, mn.name, mn.desc);
-                
+
                 emitStoreState(mv, i, fi);
-                
+
                 //mv.visitFieldInsn(Opcodes.GETSTATIC, STACK_NAME, EXCEPTION_INSTANCE_NAME, EXCEPTION_DESC);
                 //mv.visitInsn(Opcodes.ATHROW);
 
@@ -198,7 +199,7 @@ class InstrumentMethod {
                 min.accept(mv); // call the yield method
                 mv.visitLabel(lMethodCalls[i - 1]); // resume AFTER the call
                 emitPostRestore(mv);
-                
+
                 emitRestoreState(mv, i, fi);
                 dumpCodeBlock(mv, i, 1);    // skip the call
             } else {
@@ -461,7 +462,7 @@ class InstrumentMethod {
 
     private void emitRestoreOperandStack(MethodVisitor mv, FrameInfo fi) {
         Frame f = frames[fi.endInstruction];
-        
+
         for (int i = 0; i < f.getStackSize(); i++) {
             BasicValue v = (BasicValue) f.getStack(i);
             if (!isOmitted(v)) {
@@ -475,12 +476,12 @@ class InstrumentMethod {
             }
         }
     }
-    
+
     private void emitPostRestore(MethodVisitor mv) {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "postRestore", "()V");
     }
-    
+
     private void emitStoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx) throws InternalError, IndexOutOfBoundsException {
         String desc;
 

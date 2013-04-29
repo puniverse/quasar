@@ -139,8 +139,9 @@ public class InstrumentClass extends ClassVisitor {
                             if (mn.name.charAt(0) == '<')
                                 throw new UnableToInstrumentException("special method", className, mn.name, mn.desc);
                             im.accept(outMV);
-                        } else
+                        } else {
                             mn.accept(outMV);
+                        }
                     } catch (AnalyzerException ex) {
                         ex.printStackTrace();
                         throw new InternalError(ex.getMessage());

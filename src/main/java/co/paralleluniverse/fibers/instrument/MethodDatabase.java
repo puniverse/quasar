@@ -408,6 +408,11 @@ public class MethodDatabase implements Log {
             methods.put(nameAndDesc, suspendable);
         }
 
+        public void setAll(boolean suspendable) {
+            for(Map.Entry<String, Boolean> entry : methods.entrySet())
+                entry.setValue(suspendable);
+        }
+
         public String[] getInterfaces() {
             return interfaces;
         }
