@@ -102,6 +102,26 @@ public class Debug {
             flightRecorder.dump(filename);
     }
 
+    public static void dumpAfter(final long millis) {
+        dumpAfter(millis, FLIGHT_RECORDER_DUMP_FILE);
+    }
+
+    public static void dumpAfter(final long millis, final String filename) {
+        if(!debugMode)
+            return;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    System.err.println("RRRR: " + millis);
+                    Thread.sleep(millis);
+                    dumpRecorder(filename);
+                } catch (InterruptedException e) {
+                }
+            }
+        }, "DEBUG").start();
+    }
+
     public interface StackTraceFilter {
         boolean filter(StackTraceElement ste);
     }

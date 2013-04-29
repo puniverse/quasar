@@ -73,7 +73,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     protected void onExec() {
         if (Debug.isDebug())
-            record("doExec", "executing %s");
+            record("doExec", "executing %s", this);
     }
 
     protected void onCompletion(boolean res) {
