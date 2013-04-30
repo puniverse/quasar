@@ -788,7 +788,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
             if (ste.getClassName().equals(Thread.class.getName()) && ste.getMethodName().equals("getStackTrace"))
                 continue;
             if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')) {
-                if (!Retransform.isInstrumented(ste.getClassName())) {
+                if (!Retransform.isWaiver(ste.getClassName(), ste.getMethodName()) && !Retransform.isInstrumented(ste.getClassName())) {
                     final String str = "Method " + ste.getClassName() + "." + ste.getMethodName() + " on the call-stack has not been instrumented. (trace: " + Arrays.toString(stes) + ")";
                     System.err.println("WARNING: " + str);
                     throw new IllegalStateException(str);
