@@ -300,7 +300,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     }
 
     private boolean park1(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
-        record(2, "Fiber", "park", "Parking %s at %s", this, Arrays.toString(Thread.currentThread().getStackTrace()));
+        record(1, "Fiber", "park", "Parking %s", this);
+        //record(2, "Fiber", "park", "Parking %s at %s", this, Arrays.toString(Thread.currentThread().getStackTrace()));
         this.postParkActions = postParkActions;
         if (timeout > 0 & unit != null) {
             timeoutService.schedule(new Runnable() {
@@ -453,7 +454,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     }
 
     protected void onResume() {
-        record(2, "Fiber", "onResume", "Resuming %s at: %s", this, Arrays.toString(Thread.currentThread().getStackTrace()));
+        record(1, "Fiber", "onResume", "Resuming %s", this);
+        //record(2, "Fiber", "onResume", "Resuming %s at: %s", this, Arrays.toString(Thread.currentThread().getStackTrace()));
         if (interrupted)
             throw new FiberInterruptedException();
     }
