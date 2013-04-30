@@ -71,10 +71,12 @@ public final class MonitoringServices implements MonitoringServicesMXBean {
         }
     }
 
+    @Override
     public synchronized int getPerformanceTimerPeriod() {
         return perfTimerPeriod;
     }
 
+    @Override
     public synchronized void setPerformanceTimerPeriod(int perfTimerPeriod) {
         if (perfTimerPeriod != this.perfTimerPeriod) {
             this.perfTimerPeriod = perfTimerPeriod;
@@ -85,10 +87,12 @@ public final class MonitoringServices implements MonitoringServicesMXBean {
         }
     }
 
+    @Override
     public synchronized boolean isPerformanceUpdates() {
         return perfTimerStarted;
     }
 
+    @Override
     public synchronized void setPerformanceUpdates(boolean value) {
         if (value == perfTimerStarted)
             return;
@@ -98,6 +102,7 @@ public final class MonitoringServices implements MonitoringServicesMXBean {
             stopPerformanceUpdates();
     }
 
+    @Override
     public synchronized void startPerformanceUpdates() {
         if (!perfTimerStarted) {
             timer.addNotification("perfTimer", null, null, new Date(System.currentTimeMillis()), perfTimerPeriod);
@@ -106,6 +111,7 @@ public final class MonitoringServices implements MonitoringServicesMXBean {
         manageTimer();
     }
 
+    @Override
     public synchronized void stopPerformanceUpdates() {
         if (perfTimerStarted) {
             try {
@@ -120,6 +126,7 @@ public final class MonitoringServices implements MonitoringServicesMXBean {
     public synchronized void addPerfNotificationListener(NotificationListener listener, Object handback) {
         timer.addNotificationListener(listener, new NotificationFilter() {
 
+            @Override
             public boolean isNotificationEnabled(Notification notification) {
                 return "perfTimer".equals(notification.getType());
             }
@@ -138,10 +145,12 @@ public final class MonitoringServices implements MonitoringServicesMXBean {
         }
     }
 
+    @Override
     public synchronized boolean isStructuralUpdates() {
         return structuralTimerStarted;
     }
 
+    @Override
     public synchronized void setStructuralUpdates(boolean value) {
         if (value == structuralTimerStarted)
             return;
@@ -151,6 +160,7 @@ public final class MonitoringServices implements MonitoringServicesMXBean {
             stopStructuralUpdates();
     }
 
+    @Override
     public synchronized void startStructuralUpdates() {
         if (!structuralTimerStarted) {
             timer.addNotification("structTimer", null, null, new Date(System.currentTimeMillis()), structuralTimerPeriod);
@@ -159,6 +169,7 @@ public final class MonitoringServices implements MonitoringServicesMXBean {
         manageTimer();
     }
 
+    @Override
     public synchronized void stopStructuralUpdates() {
         if (structuralTimerStarted) {
             try {
@@ -170,10 +181,12 @@ public final class MonitoringServices implements MonitoringServicesMXBean {
         manageTimer();
     }
 
+    @Override
     public synchronized int getStructuraltimerPeriod() {
         return structuralTimerPeriod;
     }
 
+    @Override
     public synchronized void setStructuraltimerPeriod(int structuralTimerPeriod) {
         if (structuralTimerPeriod != this.structuralTimerPeriod) {
             this.structuralTimerPeriod = structuralTimerPeriod;
@@ -187,6 +200,7 @@ public final class MonitoringServices implements MonitoringServicesMXBean {
     public synchronized void addStructuralNotificationListener(NotificationListener listener, Object handback) {
         timer.addNotificationListener(listener, new NotificationFilter() {
 
+            @Override
             public boolean isNotificationEnabled(Notification notification) {
                 return "structTimer".equals(notification.getType());
             }

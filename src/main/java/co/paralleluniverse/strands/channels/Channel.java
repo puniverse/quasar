@@ -160,4 +160,8 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
         if (sync == null)
             throw new IllegalStateException("Owning strand has not been set");
     }
+    
+    public int getQueueLength() {
+        return queue.size();
+    }
 }

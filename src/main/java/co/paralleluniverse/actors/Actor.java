@@ -18,7 +18,6 @@ import co.paralleluniverse.strands.channels.Mailbox;
 import co.paralleluniverse.strands.channels.SendChannel;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -31,7 +30,6 @@ import jsr166e.ConcurrentHashMapV8;
  */
 public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joinable<V>, Stranded, java.io.Serializable {
     static final long serialVersionUID = 894359345L;
-    private static final Map<Object, Actor> registeredActors = new ConcurrentHashMapV8<Object, Actor>();
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
     private Strand strand;
     private String name;
@@ -40,6 +38,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private volatile V result;
     private volatile RuntimeException exception;
     private volatile Object deathReason;
+    private ActorMonitor monitor;
     protected final FlightRecorder flightRecorder;
 
     public Actor(String name, int mailboxSize) {
@@ -85,6 +84,14 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     public String toString() {
         return "Actor@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this))) + "[owner: " + strand + ']';
     }
+    
+    public int getQueueLength() {
+        return mailbox.getQueueLength();
+    }
+
+    static ActorMonitor newActorMonitor(String name) {
+        return new JMXActorMonitor(name);
+    }
 
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
@@ -102,6 +109,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             record(1, "Actor", "receive", "%s waiting for a message", this);
             Object m = mailbox.receive();
             record(1, "Actor", "receive", "Received %s <- %s", this, m);
+            monitorAddMessage();
             if (m instanceof LifecycleMessage)
                 handleLifecycleMessage((LifecycleMessage) m);
             else
@@ -122,6 +130,11 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
                 record(1, "Actor", "receive", "%s waiting for a message. millis left: ", this, TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS));
             checkThrownIn();
             Object m = mailbox.receive(left, TimeUnit.NANOSECONDS);
+            if(m != null) {
+                record(1, "Actor", "receive", "Received %s <- %s", this, m);
+                monitorAddMessage();
+            }
+            
             if (m instanceof LifecycleMessage)
                 handleLifecycleMessage((LifecycleMessage) m);
             else
@@ -140,9 +153,10 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         for (;;) {
             checkThrownIn();
             Object m = mailbox.tryReceive();
-            if(m == null)
+            if (m == null)
                 return null;
             record(1, "Actor", "tryReceive", "Received %s <- %s", this, m);
+            monitorAddMessage();
             if (m instanceof LifecycleMessage)
                 handleLifecycleMessage((LifecycleMessage) m);
             else
@@ -298,9 +312,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     public Actor register(Object name) {
         record(1, "Actor", "register", "Registering actor %s as %s", this, name);
-        if (name == null)
-            throw new IllegalArgumentException("name is null");
-        registeredActors.put(name, this);
+        this.monitor = ActorRegistry.register(name, this);
+        monitorAddRestart();
         return this;
     }
 
@@ -316,12 +329,13 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return this;
     }
 
-    public static void unregister(Object name) {
-        registeredActors.remove(name);
+    public void unregister(Object name) {
+        ActorRegistry.unregister(name);
+        this.monitor = null;
     }
 
     public static Actor getActor(Object name) {
-        return registeredActors.get(name);
+        return ActorRegistry.getActor(name);
     }
 
     public Actor link(Actor other) {
@@ -369,6 +383,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     private void notifyDeath(Object reason) {
         this.deathReason = reason;
+        monitorAddDeath(reason);
         for (LifecycleListener listener : lifecycleListeners)
             listener.dead(this, reason);
     }
@@ -379,7 +394,35 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         }
     };
     //</editor-fold>
-    
+
+    //<editor-fold defaultstate="collapsed" desc="Monitor delegates">
+    /////////// Monitor delegates ///////////////////////////////////
+    protected final void monitorAddDeath(Object reason) {
+        if (monitor != null)
+            monitor.addDeath(reason);
+    }
+
+    protected final  void monitorAddRestart() {
+        if (monitor != null)
+            monitor.addRestart();
+    }
+
+    protected final  void monitorAddMessage() {
+        if (monitor != null)
+            monitor.addMessage();
+    }
+
+    protected final void monitorSkippedMessage() {
+        if (monitor != null)
+            monitor.skippedMessage();
+    }
+
+    protected final void monitorResetSkippedMessages() {
+        if (monitor != null)
+            monitor.resetSkippedMessages();
+    }
+    //</editor-fold>
+
     //<editor-fold defaultstate="collapsed" desc="Recording">
     /////////// Recording ///////////////////////////////////
     protected final void record(int level, String clazz, String method, String format) {

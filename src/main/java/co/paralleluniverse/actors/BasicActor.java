@@ -55,6 +55,7 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
         long now;
         long left = unit != null ? unit.toNanos(timeout) : 0;
 
+        monitorResetSkippedMessages();
         Object n = null;
         for (;;) {
             if (flightRecorder != null)
@@ -72,6 +73,7 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
                 }
 
                 record(1, "Actor", "receive", "Received %s <- %s", this, m);
+                monitorAddMessage();
                 try {
                     if (m instanceof LifecycleMessage) {
                         handleLifecycleMessage((LifecycleMessage) m);
@@ -84,6 +86,7 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
                                 mailbox.del(n);
                             return msg;
                         }
+                        monitorSkippedMessage();
                     }
 
                 } catch (Exception e) {
