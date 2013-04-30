@@ -24,14 +24,14 @@ public class ActorRegistry {
         final Actor old = registeredActors.get(name);
         if (old != null && !old.isDone())
             throw new RuntimeException("Actor " + old + " is not dead and is already registered under " + name);
-        if (!registeredActors.remove(name, old))
+        if (old != null && !registeredActors.remove(name, old))
             throw new RuntimeException("Concurrent registration under the name " + name);
         if (registeredActors.putIfAbsent(name, actor) != null)
             throw new RuntimeException("Concurrent registration under the name " + name);
 
         ActorMonitor monitor = registeredActorMonitors.get(name);
         if (monitor == null) {
-            monitor = Actor.newActorMonitor(name.toString());
+            monitor = Actor.newActorMonitor(name.toString().replaceAll(":", ""));
             registeredActorMonitors.put(name, monitor);
         }
         

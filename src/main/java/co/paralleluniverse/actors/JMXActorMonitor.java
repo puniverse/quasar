@@ -144,6 +144,8 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
 
     @Override
     public void addDeath(Object reason) {
+        if(reason == null)
+            reason = "normal";
         while (deathReasons.size() > 20)
             deathReasons.poll();
         deathReasons.add(reason.toString());
