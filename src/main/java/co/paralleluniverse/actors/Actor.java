@@ -17,12 +17,15 @@ import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Mailbox;
 import co.paralleluniverse.strands.channels.SendChannel;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import jsr166e.ConcurrentHashMapV8;
+import sun.security.util.BigInt;
 
 /**
  *
@@ -93,6 +96,10 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return new JMXActorMonitor(name);
     }
 
+    public static Object randtag() {
+        return new BigInteger(80, ThreadLocalRandom.current());
+    }
+    
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
     Mailbox<Object> mailbox() {
