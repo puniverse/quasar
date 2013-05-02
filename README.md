@@ -33,6 +33,10 @@ When running code that uses Quasar, the instrumentation agent must be run by add
 -javaagent:path-to-quasar-jar.jar
 ```
 
+## Getting help
+
+Questions and suggestions are welcome at this [forum/mailing list](https://groups.google.com/forum/?fromgroups#!forum/quasar-pulsar-user).
+
 ## License 
 
 Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
