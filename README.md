@@ -25,7 +25,7 @@ Or, build from sources by running:
 Currently, there isn’t much in the way of documentation (coming soon!).
 In the meantime, you can study the examples [here](https://github.com/puniverse/quasar/tree/master/src/test/java/co/paralleluniverse/actors).
 
-You can also read the introductory [blog post](http://blog.paralleluniverse.co).
+You can also read the introductory [blog post](http://blog.paralleluniverse.co/post/49445260575/quasar-pulsar).
 
 When running code that uses Quasar, the instrumentation agent must be run by adding this to the `java` command line:
 
