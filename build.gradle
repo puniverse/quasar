@@ -113,3 +113,71 @@ task wrapper(type: Wrapper) {
 }
 
 defaultTasks 'build'
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+} 
+
+///////// Publish Artifacts 
+apply plugin: 'maven'
+apply plugin: 'signing'
+
+artifacts {
+    archives jar
+    archives sourcesJar
+    archives javadocJar
+    //    archives distZip
+}
+
+signing {
+    sign configurations.archives
+}
+// remove high scale lib from local install pom
+configure(install.repositories.mavenInstaller) {
+    pom.whenConfigured { pom -> pom.dependencies = pom.dependencies.findAll { 
+            dep -> !dep.artifactId.startsWith('jsr166e') } 
+    }
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signPom(deployment) }
+            repository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
+                //            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
+                // User and Password are taken from ~/.gradle/gradle.properties
+                if (hasProperty("sonatypeUsername") && hasProperty("sonatypePassword")) {
+                    authentication(userName: sonatypeUsername, password: sonatypePassword)
+                } else {
+                    authentication(userName: "", password: "")                    
+                }
+            } 
+            pom.whenConfigured { pom -> pom.dependencies = pom.dependencies.findAll { 
+                    dep -> !dep.artifactId.startsWith('jsr166e') } 
+            }
+            pom.project {
+                name project.name
+                packaging 'jar'
+                description project.description
+                url project.url
+                scm {
+                    url project.scmUrl
+                    connection project.scmConnection
+                    developerConnection project.scmConnection
+                } 
+                licenses {
+                    license {
+                        name project.licenseName
+                        url project.licenseUrl
+                        distribution 'repo'
+                    }
+                }
+            }
+        }
+    }
+}

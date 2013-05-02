@@ -66,7 +66,7 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
         } else {
             Node h = node.next;
             if (h == null) {
-                head = null; // Based on John M. Mellor-Crummey, "Concurrent Queues: Practical Fetch-and-ø Algorithms", 1987
+                head = null; // Based on John M. Mellor-Crummey, "Concurrent Queues: Practical Fetch-and-phi Algorithms", 1987
                 if (tail == node && compareAndSetTail(node, null)) { // a concurrent enq would either cause this to fail and wait for node.next, or have this succeed and then set tail and head
                     node.next = null;
                     return;
