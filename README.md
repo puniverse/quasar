@@ -5,6 +5,8 @@ In the meantime, you can study the examples [here](https://github.com/puniverse/
 
 You can also read the introductory [blog post](http://blog.paralleluniverse.co).
 
+**NOTE: This is alpha software**
+
 ## Getting started
 
 In Maven:
@@ -13,7 +15,7 @@ In Maven:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar</artifactId>
-    <version>0.1.0</version>
+    <version>0.1</version>
 </dependency>
 ```
 
