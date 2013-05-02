@@ -8,11 +8,13 @@ targetCompatibility = '1.7'
 group               = "co.paralleluniverse"
 version             = "0.1-SNAPSHOT"
 status              = "integration"
-description         = "A fork-join backed, lightweight threads Java library."
+description         = "lightweight threads and actors for the JVM."
 ext.url             = "http://puniverse.github.com/quasar"
 ext.vendor          = "Parallel Universe Software Co."
-ext.licenseName     = "The GNU Lesser General Public License, version 3"
-ext.licenseUrl      = "http://www.gnu.org/licenses/lgpl-3.0.txt"
+ext.licenseName1    = "The GNU Lesser General Public License, version 3"
+ext.licenseUrl1     = "http://www.gnu.org/licenses/lgpl-3.0.txt"
+ext.licenseName2    = "Eclipse Public License - v 1.0"
+ext.licenseUrl2     = "http://www.eclipse.org/legal/epl-v10.html"
 ext.scmUrl          = "https://github.com/puniverse/quasar"
 ext.scmConnection   = "https://github.com/puniverse/quasar.git"
 ext.distDir         = "$buildDir/dist"
@@ -172,8 +174,13 @@ uploadArchives {
                 } 
                 licenses {
                     license {
-                        name project.licenseName
-                        url project.licenseUrl
+                        name project.licenseName1
+                        url project.licenseUrl1
+                        distribution 'repo'
+                    }
+                    license {
+                        name project.licenseName2
+                        url project.licenseUrl2
                         distribution 'repo'
                     }
                 }
