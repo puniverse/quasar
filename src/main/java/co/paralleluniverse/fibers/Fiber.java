@@ -60,6 +60,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     static {
         if (Debug.isDebug())
             System.err.println("QUASAR WARNING: Debug mode enabled. This may harm performance.");
+        if(Debug.isAssertionsEnabled())
+            System.err.println("QUASAR WARNING: Assertions enabled. This may harm performance.");
         assert printVerifyInstrumentationWarning();
     }
 
