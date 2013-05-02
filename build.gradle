@@ -149,7 +149,7 @@ configure(install.repositories.mavenInstaller) {
 uploadArchives {
     repositories {
         mavenDeployer {
-            beforeDeployment { MavenDeployment deployment -> signPom(deployment) }
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
             repository(
                 // url: "https://oss.sonatype.org/content/repositories/snapshots") {
                    url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
