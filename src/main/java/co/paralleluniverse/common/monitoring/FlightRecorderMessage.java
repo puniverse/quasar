@@ -1,6 +1,15 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
+ * 
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *  
+ *   or (per the licensee's choosing)
+ *  
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.common.monitoring;
 
@@ -76,10 +85,10 @@ public class FlightRecorderMessage {
             return "ERROR in formatting this message: " + clazz + "." + method + " " + format;
         }
     }
-    
+
     public Object recordingDouble(Object obj) {
-        if(obj instanceof RecordingDouble)
-            return ((RecordingDouble)obj).getRecordingDouble();
+        if (obj instanceof RecordingDouble)
+            return ((RecordingDouble) obj).getRecordingDouble();
         if (obj instanceof java.util.Map)
             return com.google.common.collect.ImmutableMap.copyOf((java.util.Map) obj);
         if (obj instanceof java.util.Set)

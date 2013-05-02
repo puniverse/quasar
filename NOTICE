@@ -4,6 +4,29 @@ This product contains modified source code from Continuations Library, by Matthi
     * LICENSE: New BSD (http://directory.fsf.org/wiki/License:BSD_3Clause)
     * HOMEPAGE: http://www.matthiasmann.de/content/view/24/26/
 
+This product depends on ASM, an all purpose Java bytecode manipulation and analysis framework
+
+    Copyright (c) 2012 France Télécom
+    * LICENSE: New BSD (http://directory.fsf.org/wiki/License:BSD_3Clause)
+    * HOMEPAGE: http://asm.ow2.org/
+
+This product includes code derived from the JSR-166 project (ThreadLocalRandom), which was released
+with the following comments:
+
+    Written by Doug Lea with assistance from members of JCP JSR-166
+    Expert Group and released to the public domain, as explained at
+    http://creativecommons.org/publicdomain/zero/1.0/
+
+This product depends on 'Google Guava Libraries'
+  
+    * LICENSE: Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0.html)
+    * HOMEPAGE: http://code.google.com/p/guava-libraries/ (Apache 2.0)
+
+This product depends on 'Metrics', capturing JVM- and application-level metrics,
+software developed by Coda Hale and Yammer, Inc:
+
+    * LICENSE: Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0.html)
+    * HOMEPAGE: http://metrics.codahale.com/
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
