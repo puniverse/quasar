@@ -129,8 +129,8 @@ public class InstrumentClass extends ClassVisitor {
                     super.visitAnnotation(ALREADY_INSTRUMENTED_NAME, true);
 
                 for (MethodNode mn : methods) {
-                    if (requiresInstrumentation)
-                        System.out.println("EEE: TRANSFORM: " + className + "." + mn.name + mn.desc);
+//                    if (requiresInstrumentation)
+//                        System.out.println("TRANSFORM: " + className + "." + mn.name + mn.desc);
 
                     MethodVisitor outMV = makeOutMV(mn);
                     try {
