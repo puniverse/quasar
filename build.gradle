@@ -185,6 +185,12 @@ uploadArchives {
                         distribution 'repo'
                     }
                 }
+                developers {
+                    developer {
+                        id 'pron'
+                        name 'Ron Pressler'
+                    }
+                }
             }
         }
     }
