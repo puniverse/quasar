@@ -1,10 +1,5 @@
 # Quasar: lightweight threads and actors for the JVM.
 
-Currently, there isn’t much in the way of documentation (coming soon!).
-In the meantime, you can study the examples [here](https://github.com/puniverse/quasar/tree/master/src/test/java/co/paralleluniverse/actors).
-
-You can also read the introductory [blog post](http://blog.paralleluniverse.co).
-
 **NOTE: This is alpha software**
 
 ## Getting started
@@ -23,6 +18,19 @@ Or, build from sources by running:
 
 ```
 ./gradlew
+```
+
+## Usage
+
+Currently, there isn’t much in the way of documentation (coming soon!).
+In the meantime, you can study the examples [here](https://github.com/puniverse/quasar/tree/master/src/test/java/co/paralleluniverse/actors).
+
+You can also read the introductory [blog post](http://blog.paralleluniverse.co).
+
+When running code that uses Quasar, the instrumentation agent must be run by adding this to the `java` command line:
+
+```
+-javaagent:path-to-quasar-jar.jar
 ```
 
 ## License 
