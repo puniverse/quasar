@@ -1,6 +1,8 @@
 /dist/
 /artifacts
 /nbproject/private/
+/.nb-gradle
 build/
 .DS_Store
 .gradle/
+.nb-gradle-properties
