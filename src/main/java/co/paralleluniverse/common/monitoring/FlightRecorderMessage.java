@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
+ * Copyright (C) 2011-2013, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -87,16 +87,20 @@ public class FlightRecorderMessage {
     }
 
     public Object recordingDouble(Object obj) {
-        if (obj instanceof RecordingDouble)
-            return ((RecordingDouble) obj).getRecordingDouble();
-        if (obj instanceof java.util.Map)
-            return com.google.common.collect.ImmutableMap.copyOf((java.util.Map) obj);
-        if (obj instanceof java.util.Set)
-            return com.google.common.collect.ImmutableSet.copyOf((java.util.Set) obj);
-        if (obj instanceof java.util.List)
-            return com.google.common.collect.ImmutableList.copyOf((java.util.List) obj);
-        if (obj instanceof gnu.trove.map.hash.TObjectIntHashMap)
-            return new gnu.trove.map.hash.TObjectIntHashMap((gnu.trove.map.hash.TObjectIntHashMap) obj);
-        return obj;
+        try {
+            if (obj instanceof RecordingDouble)
+                return ((RecordingDouble) obj).getRecordingDouble();
+            if (obj instanceof java.util.Map)
+                return com.google.common.collect.ImmutableMap.copyOf((java.util.Map) obj);
+            if (obj instanceof java.util.Set)
+                return com.google.common.collect.ImmutableSet.copyOf((java.util.Set) obj);
+            if (obj instanceof java.util.List)
+                return com.google.common.collect.ImmutableList.copyOf((java.util.List) obj);
+            if (obj instanceof gnu.trove.map.hash.TObjectIntHashMap)
+                return new gnu.trove.map.hash.TObjectIntHashMap((gnu.trove.map.hash.TObjectIntHashMap) obj);
+            return obj;
+        } catch (Exception e) {
+            return "<ERROR: " + e.getMessage() + '>';
+        }
     }
 }
