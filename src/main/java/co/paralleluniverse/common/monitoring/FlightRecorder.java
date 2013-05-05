@@ -93,7 +93,7 @@ public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean 
         //private final long startTimestamp;
         private final long[] timestamps;
         private final Object[] payloads;
-        private int totalRecs;
+        private long totalRecs;
         private int head; // points to earliest entry available for reading
         private int tail; // points to slot where next record will be written
 //    private volatile boolean sync = true;
@@ -128,7 +128,7 @@ public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean 
             return n;
         }
 
-        public int getTotalRecs() {
+        public long getTotalRecs() {
             return totalRecs;
         }
 
