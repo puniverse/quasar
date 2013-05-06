@@ -18,6 +18,7 @@ ext.licenseUrl2     = "http://www.eclipse.org/legal/epl-v10.html"
 ext.scmUrl          = "https://github.com/puniverse/quasar"
 ext.scmConnection   = "https://github.com/puniverse/quasar.git"
 ext.distDir         = "$buildDir/dist"
+ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 // NetBeans will automatically add "run" and "debug" tasks relying on the
 // "mainClass" property. You may however define the property prior executing
@@ -138,6 +139,7 @@ artifacts {
 }
 
 signing {
+    required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
     sign configurations.archives
 }
 
