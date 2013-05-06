@@ -46,7 +46,7 @@ public class PrimitiveChannelRingBenchmark {
 
         int totalCount = manager.get();
         final long time = TimeUnit.MILLISECONDS.convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
-        System.out.println("messages: " + totalCount + " time (ms): " + time);
+        System.out.println("Messages: " + totalCount + " Time (ms): " + time);
     }
 
     private IntChannel createRelayActor(final IntChannel prev) {
