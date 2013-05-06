@@ -6,7 +6,7 @@ targetCompatibility = '1.7'
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
 group               = "co.paralleluniverse"
-version             = "0.1.1-SNAPSHOT"
+version             = "0.1.1"
 status              = "integration"
 description         = "lightweight threads and actors for the JVM."
 ext.url             = "http://puniverse.github.com/quasar"
@@ -78,6 +78,7 @@ task instrumentTestClasses(dependsOn: 'compileTestJava') << {
 test.dependsOn jar
 
 jar {
+    from zipTree('baselib/jsr166e.jar')  // include non-Maven jars
     manifest { 
         attributes(
             "Built-By"                  :   System.getProperty("user.name"),
@@ -139,7 +140,8 @@ artifacts {
 signing {
     sign configurations.archives
 }
-// remove high scale lib from local install pom
+
+// remove jsr166e
 configure(install.repositories.mavenInstaller) {
     pom.whenConfigured { pom -> pom.dependencies = pom.dependencies.findAll { 
             dep -> !dep.artifactId.startsWith('jsr166e') } 
@@ -151,8 +153,8 @@ uploadArchives {
         mavenDeployer {
             beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
             repository(
-                   url: "https://oss.sonatype.org/content/repositories/snapshots") {
-                // url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
+                 // url: "https://oss.sonatype.org/content/repositories/snapshots") {
+                 url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
                 // User and Password are taken from ~/.gradle/gradle.properties
                 if (hasProperty("sonatypeUsername") && hasProperty("sonatypePassword")) {
                     authentication(userName: sonatypeUsername, password: sonatypePassword)
