@@ -94,7 +94,7 @@ public class Debug {
         }
     }
 
-    private static void dumpRecorder() {
+    public static void dumpRecorder() {
         if (isDebug()) {
             final String fileName = getDumpFile();
             if (fileName != null && !fileName.trim().equals("")) {
@@ -105,7 +105,7 @@ public class Debug {
         }
     }
 
-    private static void dumpRecorder(String filename) {
+    public static void dumpRecorder(String filename) {
         if (flightRecorder != null)
             flightRecorder.dump(filename);
     }

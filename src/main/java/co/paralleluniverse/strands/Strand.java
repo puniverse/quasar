@@ -61,6 +61,8 @@ public abstract class Strand {
 
     public abstract Object getBlocker();
 
+    public abstract StackTraceElement[] getStackTrace();
+
     /**
      * Returns the current fiber, if there is one, or the current thread otherwise.
      *
@@ -193,6 +195,11 @@ public abstract class Strand {
         }
 
         @Override
+        public StackTraceElement[] getStackTrace() {
+            return thread.getStackTrace();
+        }
+
+        @Override
         public String toString() {
             return thread.toString();
         }
@@ -254,6 +261,11 @@ public abstract class Strand {
         @Override
         public Object getBlocker() {
             return fiber.getBlocker();
+        }
+
+        @Override
+        public StackTraceElement[] getStackTrace() {
+            return fiber.getStackTrace();
         }
 
         @Override

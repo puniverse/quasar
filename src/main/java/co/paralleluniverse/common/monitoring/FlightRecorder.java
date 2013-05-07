@@ -172,6 +172,7 @@ public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean 
 //        if (!sync)
 //            throw new AssertionError();
         return new Iterable<Record>() {
+            @Override
             public Iterator<Record> iterator() {
                 return new Iterator<Record>() {
                     final Thread[] threads = recorders.keySet().toArray(new Thread[0]);
@@ -225,10 +226,12 @@ public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean 
                         return new Record(threads[index], is[index], time, ps[index], time == lastTimestamp);
                     }
 
+                    @Override
                     public boolean hasNext() {
                         return nextFr >= 0;
                     }
 
+                    @Override
                     public Record next() {
                         if (!hasNext())
                             throw new NoSuchElementException();
@@ -238,6 +241,7 @@ public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean 
                         return r;
                     }
 
+                    @Override
                     public void remove() {
                         throw new UnsupportedOperationException();
                     }

@@ -96,8 +96,6 @@ public class FlightRecorderMessage {
                 return com.google.common.collect.ImmutableSet.copyOf((java.util.Set) obj);
             if (obj instanceof java.util.List)
                 return com.google.common.collect.ImmutableList.copyOf((java.util.List) obj);
-            if (obj instanceof gnu.trove.map.hash.TObjectIntHashMap)
-                return new gnu.trove.map.hash.TObjectIntHashMap((gnu.trove.map.hash.TObjectIntHashMap) obj);
             return obj;
         } catch (Exception e) {
             return "<ERROR: " + e.getMessage() + '>';

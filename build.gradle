@@ -48,7 +48,6 @@ dependencies {
     compile "org.ow2.asm:asm-util:4.1"
     compile "ant:ant:1.7.0"
     compile "com.google.guava:guava:11.0.1"
-    compile "net.sf.trove4j:trove4j:3.0.2"
     testCompile 'junit:junit:4.10'
     testCompile 'org.hamcrest:hamcrest-all:1.3'
     testCompile 'org.mockito:mockito-all:1.9.0'

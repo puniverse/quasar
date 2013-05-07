@@ -316,7 +316,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
 
     private boolean park1(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
         record(1, "Fiber", "park", "Parking %s", this);
-        //record(2, "Fiber", "park", "Parking %s at %s", this, Arrays.toString(Thread.currentThread().getStackTrace()));
+        record(2, "Fiber", "park", "Parking %s at %s", this, Arrays.toString(getStackTrace()));
         this.postParkActions = postParkActions;
         if (timeout > 0 & unit != null) {
             timeoutService.schedule(new Runnable() {
@@ -330,7 +330,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     }
 
     private void yield1() throws SuspendExecution {
-        record(2, "Fiber", "yield", "Yielding %s at %s", this, Arrays.toString(Thread.currentThread().getStackTrace()));
+        record(2, "Fiber", "yield", "Yielding %s at %s", this, Arrays.toString(getStackTrace()));
         fjTask.yield1();
     }
 
@@ -346,7 +346,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         try {
             this.result = run1(); // we jump into the continuation
             state = State.TERMINATED;
-            record(1, "Fiber", "exec1", "finished %s %s", state, this);
+            record(1, "Fiber", "exec1", "finished %s %s res: %s", state, this, this.result);
             return true;
         } catch (SuspendExecution ex) {
             assert ex == SuspendExecution.instance;
@@ -470,7 +470,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
 
     protected void onResume() {
         record(1, "Fiber", "onResume", "Resuming %s", this);
-        //record(2, "Fiber", "onResume", "Resuming %s at: %s", this, Arrays.toString(Thread.currentThread().getStackTrace()));
+        record(2, "Fiber", "onResume", "Resuming %s at: %s", this, Arrays.toString(getStackTrace()));
         if (interrupted)
             throw new FiberInterruptedException();
     }
@@ -617,6 +617,28 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         Fiber.defaultUncaughtExceptionHandler = defaultUncaughtExceptionHandler;
     }
 
+    @Override
+    public StackTraceElement[] getStackTrace() {
+        StackTraceElement[] threadStack = Thread.currentThread().getStackTrace();
+        int count = 0;
+        for(int i=1; i<threadStack.length; i++) {
+            count++;
+            StackTraceElement ste = threadStack[i];
+            if(Fiber.class.getName().equals(ste.getClassName())) {
+                if("run".equals(ste.getMethodName()))
+                    break;
+                if("run1".equals(ste.getMethodName())) {
+                    count--;
+                    break;
+                }
+            }
+        }
+        
+        StackTraceElement[] fiberStack = new StackTraceElement[count];
+        System.arraycopy(threadStack, 1, fiberStack, 0, count);
+        return fiberStack;
+    }
+    
     public static void dumpStack() {
         verifyCurrent();
         printStackTrace(new Exception("Stack trace"), System.err);
@@ -644,7 +666,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
 
     @Override
     public String toString() {
-        return "Fiber@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this))) + "[state: " + state + ", task=" + fjTask + ", target= " + (target instanceof co.paralleluniverse.actors.Actor ? Objects.systemToString(target) : target) + ']';
+        return "Fiber@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this))) + "[task: " + fjTask + ", target: " + (target instanceof co.paralleluniverse.actors.Actor ? Objects.systemToString(target) : target) + " state: " + state + ']';
     }
 
     ////////

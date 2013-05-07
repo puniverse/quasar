@@ -1,5 +1,6 @@
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.common.util.Debug;
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -33,7 +34,7 @@ public final class Stack implements Serializable {
 
     public static Stack getStack() {
         final Fiber currentFiber = Fiber.currentFiber();
-        if(currentFiber == null)
+        if (currentFiber == null)
             throw new RuntimeException("Not running in a fiber");
         return currentFiber.getStack();
     }
@@ -44,7 +45,7 @@ public final class Stack implements Serializable {
      * @param entry the entry point in the method for resume
      * @param numSlots the number of required stack slots for storing the state
      */
-    public final void pushMethodAndReserveSpace(int entry, int numSlots) {
+    public final void pushMethod(int entry, int numSlots) {
         final int methodIdx = methodTOS;
 
         if (method.length - methodIdx < 2)
@@ -60,6 +61,9 @@ public final class Stack implements Serializable {
 
         if (dataTOS > dataObject.length)
             growDataStack(dataTOS);
+
+        if (Debug.isDebug())
+            fiber.record(2, "Stack", "pushMethod     ", "%s %s", entry, Thread.currentThread().getStackTrace()[2] /*Arrays.toString(fiber.getStackTrace())*/);
     }
 
     /**
@@ -87,7 +91,10 @@ public final class Stack implements Serializable {
         int idx = methodTOS;
         curMethodSP = method[++idx];
         methodTOS = ++idx;
-        return method[idx];
+        final int entry = method[idx];
+        if (Debug.isDebug())
+            fiber.record(2, "Stack", "nextMethodEntry", "%s %s", entry, Thread.currentThread().getStackTrace()[2] /*Arrays.toString(fiber.getStackTrace())*/);
+        return entry;
     }
 
     public static void push(int value, Stack s, int idx) {
@@ -133,7 +140,7 @@ public final class Stack implements Serializable {
     public final void postRestore() {
         fiber.onResume();
     }
-    
+
     /**
      * called when resuming a stack
      */
@@ -159,7 +166,7 @@ public final class Stack implements Serializable {
     void dump() {
         int sp = 0;
         for (int i = 0; i <= methodTOS; i += 2) {
-            System.out.println("i=" + i + " entry=" + method[i] + " sp=" + method[i+1]);
+            System.out.println("i=" + i + " entry=" + method[i] + " sp=" + method[i + 1]);
             for (; sp < method[i + 3]; sp++)
                 System.out.println("sp=" + sp + " long=" + dataLong[sp] + " obj=" + dataObject[sp]);
         }

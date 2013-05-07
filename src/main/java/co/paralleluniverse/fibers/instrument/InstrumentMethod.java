@@ -395,7 +395,7 @@ class InstrumentMethod {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         emitConst(mv, idx);
         emitConst(mv, fi.numSlots);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "pushMethodAndReserveSpace", "(II)V");
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "pushMethod", "(II)V");
 
         // store operand stack
         for (int i = f.getStackSize(); i-- > 0;) {
