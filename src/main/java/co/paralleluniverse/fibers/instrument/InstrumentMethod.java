@@ -155,13 +155,11 @@ class InstrumentMethod {
             tcb.accept(mv);
         }
 
-        if (mn.visibleParameterAnnotations != null) {
+        if (mn.visibleParameterAnnotations != null)
             dumpParameterAnnotations(mv, mn.visibleParameterAnnotations, true);
-        }
 
-        if (mn.invisibleParameterAnnotations != null) {
+        if (mn.invisibleParameterAnnotations != null)
             dumpParameterAnnotations(mv, mn.invisibleParameterAnnotations, false);
-        }
 
         if (mn.visibleAnnotations != null) {
             for (Object o : mn.visibleAnnotations) {
@@ -199,7 +197,6 @@ class InstrumentMethod {
                 min.accept(mv); // call the yield method
                 mv.visitLabel(lMethodCalls[i - 1]); // resume AFTER the call
                 emitPostRestore(mv);
-
                 emitRestoreState(mv, i, fi);
                 dumpCodeBlock(mv, i, 1);    // skip the call
             } else {

@@ -20,6 +20,12 @@ ext.scmConnection   = "https://github.com/puniverse/quasar.git"
 ext.distDir         = "$buildDir/dist"
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
+if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
+    println "sonatype username or password not set"
+    sonatypeUsername = ""
+    sonatypePassword = ""
+}
+
 // NetBeans will automatically add "run" and "debug" tasks relying on the
 // "mainClass" property. You may however define the property prior executing
 // tasks by passing a "-PmainClass=<QUALIFIED_CLASS_NAME>" argument.
@@ -148,20 +154,17 @@ configure(install.repositories.mavenInstaller) {
             dep -> !dep.artifactId.startsWith('jsr166e') } 
     }
 }
-
+                
 uploadArchives {
     repositories {
         mavenDeployer {
             beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
             repository(
-                 url: "https://oss.sonatype.org/content/repositories/snapshots") {
-                 // url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
+                url: "https://oss.sonatype.org/content/repositories/snapshots") {
+                // url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
                 // User and Password are taken from ~/.gradle/gradle.properties
-                if (hasProperty("sonatypeUsername") && hasProperty("sonatypePassword")) {
-                    authentication(userName: sonatypeUsername, password: sonatypePassword)
-                } else {
-                    authentication(userName: "", password: "")                    
-                }
+                authentication(userName: sonatypeUsername, password: sonatypePassword)
             } 
             pom.whenConfigured { pom -> pom.dependencies = pom.dependencies.findAll { 
                     dep -> !dep.artifactId.startsWith('jsr166e') } 
