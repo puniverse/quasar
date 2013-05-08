@@ -41,6 +41,7 @@ Questions and suggestions are welcome at this [forum/mailing list](https://group
 
 ## License 
 
+```
 Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
 
 This program and the accompanying materials are dual-licensed under
@@ -51,3 +52,4 @@ the Eclipse Foundation
  
 under the terms of the GNU Lesser General Public License version 3.0
 as published by the Free Software Foundation.
+```
