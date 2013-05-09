@@ -15,7 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayObjectQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerLinkedObjectQueue;
+import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayObjectQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -26,11 +26,11 @@ import java.util.concurrent.TimeUnit;
  */
 public final class Mailbox<Message> extends Channel<Message> {
     public static <Message> Mailbox<Message> create(Object owner, int mailboxSize) {
-        return new Mailbox(owner, mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedObjectQueue<Message>());
+        return new Mailbox(owner, mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedArrayObjectQueue<Message>());
     }
 
     public static <Message> Mailbox<Message> create(int mailboxSize) {
-        return new Mailbox(mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedObjectQueue<Message>());
+        return new Mailbox(mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedArrayObjectQueue<Message>());
     }
 
     private Mailbox(Object owner, SingleConsumerQueue<Message, ?> queue) {
