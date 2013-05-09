@@ -12,6 +12,12 @@ public class FJBenchmark {
     static ForkJoinPool fjPool = new ForkJoinPool(PARALLELISM, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
     public static void main(String[] args) throws Exception {
+        System.out.println("COMPILER: " + System.getProperty("java.vm.name"));
+        System.out.println("VERSION: " + System.getProperty("java.version"));
+        System.out.println("OS: " + System.getProperty("os.name"));
+        System.out.println("PROCESSORS: " + Runtime.getRuntime().availableProcessors());
+        System.out.println();
+
         for (int i = 0; i < 10; i++)
             run(COUNT);
     }

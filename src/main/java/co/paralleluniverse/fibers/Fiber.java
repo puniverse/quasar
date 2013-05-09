@@ -60,7 +60,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     static {
         if (Debug.isDebug())
             System.err.println("QUASAR WARNING: Debug mode enabled. This may harm performance.");
-        if(Debug.isAssertionsEnabled())
+        if (Debug.isAssertionsEnabled())
             System.err.println("QUASAR WARNING: Assertions enabled. This may harm performance.");
         assert printVerifyInstrumentationWarning();
     }
@@ -316,7 +316,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
 
     private boolean park1(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
         record(1, "Fiber", "park", "Parking %s", this);
-        record(2, "Fiber", "park", "Parking %s at %s", this, Arrays.toString(getStackTrace()));
+        if (recordsLevel(2))
+            record(2, "Fiber", "park", "Parking %s at %s", this, Arrays.toString(getStackTrace()));
         this.postParkActions = postParkActions;
         if (timeout > 0 & unit != null) {
             timeoutService.schedule(new Runnable() {
@@ -330,7 +331,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     }
 
     private void yield1() throws SuspendExecution {
-        record(2, "Fiber", "yield", "Yielding %s at %s", this, Arrays.toString(getStackTrace()));
+        if (recordsLevel(2))
+            record(2, "Fiber", "yield", "Yielding %s at %s", this, Arrays.toString(getStackTrace()));
         fjTask.yield1();
     }
 
@@ -470,7 +472,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
 
     protected void onResume() {
         record(1, "Fiber", "onResume", "Resuming %s", this);
-        record(2, "Fiber", "onResume", "Resuming %s at: %s", this, Arrays.toString(getStackTrace()));
+        if (recordsLevel(2))
+            record(2, "Fiber", "onResume", "Resuming %s at: %s", this, Arrays.toString(getStackTrace()));
         if (interrupted)
             throw new FiberInterruptedException();
     }
@@ -621,24 +624,24 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     public StackTraceElement[] getStackTrace() {
         StackTraceElement[] threadStack = Thread.currentThread().getStackTrace();
         int count = 0;
-        for(int i=1; i<threadStack.length; i++) {
+        for (int i = 1; i < threadStack.length; i++) {
             count++;
             StackTraceElement ste = threadStack[i];
-            if(Fiber.class.getName().equals(ste.getClassName())) {
-                if("run".equals(ste.getMethodName()))
+            if (Fiber.class.getName().equals(ste.getClassName())) {
+                if ("run".equals(ste.getMethodName()))
                     break;
-                if("run1".equals(ste.getMethodName())) {
+                if ("run1".equals(ste.getMethodName())) {
                     count--;
                     break;
                 }
             }
         }
-        
+
         StackTraceElement[] fiberStack = new StackTraceElement[count];
         System.arraycopy(threadStack, 1, fiberStack, 0, count);
         return fiberStack;
     }
-    
+
     public static void dumpStack() {
         verifyCurrent();
         printStackTrace(new Exception("Stack trace"), System.err);
@@ -869,6 +872,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
 
     //<editor-fold defaultstate="collapsed" desc="Recording">
     /////////// Recording ///////////////////////////////////
+    protected final boolean recordsLevel(int level) {
+        return (Debug.isDebug() && flightRecorder.get().recordsLevel(level));
+    }
+    
     protected final void record(int level, String clazz, String method, String format) {
         if (flightRecorder != null)
             record(flightRecorder.get(), level, clazz, method, format);

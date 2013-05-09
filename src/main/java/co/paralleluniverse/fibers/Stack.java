@@ -1,6 +1,5 @@
 package co.paralleluniverse.fibers;
 
-import co.paralleluniverse.common.util.Debug;
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -62,7 +61,7 @@ public final class Stack implements Serializable {
         if (dataTOS > dataObject.length)
             growDataStack(dataTOS);
 
-        if (Debug.isDebug())
+        if (fiber.recordsLevel(2))
             fiber.record(2, "Stack", "pushMethod     ", "%s %s", entry, Thread.currentThread().getStackTrace()[2] /*Arrays.toString(fiber.getStackTrace())*/);
     }
 
@@ -92,7 +91,7 @@ public final class Stack implements Serializable {
         curMethodSP = method[++idx];
         methodTOS = ++idx;
         final int entry = method[idx];
-        if (Debug.isDebug())
+        if (fiber.recordsLevel(2))
             fiber.record(2, "Stack", "nextMethodEntry", "%s %s", entry, Thread.currentThread().getStackTrace()[2] /*Arrays.toString(fiber.getStackTrace())*/);
         return entry;
     }

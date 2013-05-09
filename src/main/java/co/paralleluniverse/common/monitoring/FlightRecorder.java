@@ -112,6 +112,10 @@ public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean 
             //startTime = System.currentTimeMillis();
 //        recording = true;
         }
+        
+        public boolean recordsLevel(int level) {
+            return level <= this.level;
+        }
 
         public void setAux(Object aux) {
             this.aux = aux;
