@@ -183,9 +183,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     public SuspendableCallable<V> getTarget() {
         return target;
     }
+
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-
     /**
      * Creates a new Fiber from the given {@link SuspendableCallable}.
      * The new fiber uses the default initial stack size.
@@ -414,7 +414,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     }
 
     /**
-     * Suspend the currently running Fiber.
+     * Suspends (deschedules) the currently running Fiber unless the
+     * permit is available.
      *
      * @throws SuspendExecution This exception is used for control transfer and must never be caught.
      * @throws IllegalStateException If not called from a Fiber
@@ -699,6 +700,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         return false;
     }
 
+    /**
+     * Makes available the permit for this fiber, if it was not already available. 
+     * If the fiber was blocked on {@code park} then it will unblock. 
+     * Otherwise, its next call to {@code park} is guaranteed not to block.
+     */
     @Override
     public final void unpark() {
         fjTask.unpark();
