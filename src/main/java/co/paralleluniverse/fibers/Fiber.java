@@ -44,8 +44,13 @@ import sun.misc.Unsafe;
 /**
  * A lightweight thread.
  * <p/>
- * A Fiber can be serialized if it's not running and all involved
- * classes and data types are also {@link Serializable}.
+ * There are two ways to create a new fiber: either subclass the {@code Fiber} class and override the {@code run} method,
+ * or pass the code to be executed in the fiber as the {@code target} parameter to the constructor. All in all, the Fiber API
+ * resembles the {@link Thread} class in many ways.
+ * <p/>
+ * A fiber runs inside a ForkJoinPool.
+ * <p/>
+ * A Fiber can be serialized if it's not running and all involved classes and data types are also {@link Serializable}.
  * <p/>
  * A new Fiber occupies under 400 bytes of memory (when using the default stack size, and compressed OOPs are turned on, as they are by default).
  *
@@ -94,10 +99,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     private final DummyRunnable fiberRef = new DummyRunnable(this);
 
     /**
-     * Creates a new Fiber from the given SuspendableRunnable.
+     * Creates a new Fiber from the given {@link SuspendableCallable}.
      *
+     * @param name The name of the fiber (may be null)
+     * @param fjPool The fork/join pool in which the fiber should run.
+     * @param stackSize the initial size of the data stack.
      * @param target the SuspendableRunnable for the Fiber.
-     * @param stackSize the initial stack size for the data stack
      * @throws NullPointerException when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
@@ -132,6 +139,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         record(1, "Fiber", "<init>", "Created fiber %s", this);
     }
 
+    /**
+     * Creates a new child Fiber from the given {@link SuspendableCallable}.
+     * This constructor may only be called from within another fiber. This fiber will use the same fork/join pool as the creating fiber.
+     *
+     * @param name The name of the fiber (may be null)
+     * @param stackSize the initial size of the data stack.
+     * @param target the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
     public Fiber(String name, int stackSize, SuspendableCallable<V> target) {
         this(name, verifyParent().fjPool, stackSize, target);
     }
@@ -169,84 +186,216 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
 
-    public Fiber(ForkJoinPool fjPool, SuspendableCallable<V> target) {
-        this(null, fjPool, -1, target);
-    }
-
+    /**
+     * Creates a new Fiber from the given {@link SuspendableCallable}.
+     * The new fiber uses the default initial stack size.
+     *
+     * @param name The name of the fiber (may be null)
+     * @param fjPool The fork/join pool in which the fiber should run.
+     * @param target the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
     public Fiber(String name, ForkJoinPool fjPool, SuspendableCallable<V> target) {
         this(name, fjPool, -1, target);
     }
 
-    public Fiber(SuspendableCallable<V> target) {
-        this(null, -1, target);
+    /**
+     * Creates a new Fiber from the given {@link SuspendableCallable}.
+     * The new fiber has no name, and uses the default initial stack size.
+     *
+     * @param fjPool The fork/join pool in which the fiber should run.
+     * @param target the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
+    public Fiber(ForkJoinPool fjPool, SuspendableCallable<V> target) {
+        this(null, fjPool, -1, target);
     }
 
-    public Fiber(String name, SuspendableCallable<V> target) {
-        this(null, -1, target);
-    }
-
-    public Fiber(int stackSize, SuspendableCallable<V> target) {
-        this(null, stackSize, target);
-    }
-
-    public Fiber(ForkJoinPool fjPool) {
-        this(null, fjPool, -1, (SuspendableCallable) null);
-    }
-
-    public Fiber(String name, ForkJoinPool fjPool) {
-        this(name, fjPool, -1, (SuspendableCallable) null);
-    }
-
-    public Fiber() {
-        this(null, -1, (SuspendableCallable) null);
-    }
-
-    public Fiber(String name) {
-        this(name, -1, (SuspendableCallable) null);
-    }
-
-    public Fiber(int stackSize) {
-        this(null, stackSize, (SuspendableCallable) null);
-    }
-
-    public Fiber(String name, int stackSize) {
-        this(name, stackSize, (SuspendableCallable) null);
-    }
-
-    public Fiber(ForkJoinPool fjPool, int stackSize) {
-        this(null, fjPool, stackSize, (SuspendableCallable) null);
-    }
-
-    public Fiber(String name, ForkJoinPool fjPool, int stackSize) {
-        this(name, fjPool, stackSize, (SuspendableCallable) null);
-    }
-
+    /**
+     * Creates a new Fiber from the given {@link SuspendableRunnable}.
+     *
+     * @param name The name of the fiber (may be null)
+     * @param fjPool The fork/join pool in which the fiber should run.
+     * @param stackSize the initial size of the data stack.
+     * @param target the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
     public Fiber(String name, ForkJoinPool fjPool, int stackSize, SuspendableRunnable target) {
         this(name, fjPool, stackSize, (SuspendableCallable<V>) wrap(target));
     }
 
-    public Fiber(String name, int stackSize, SuspendableRunnable target) {
-        this(name, stackSize, (SuspendableCallable<V>) wrap(target));
-    }
-
-    public Fiber(ForkJoinPool fjPool, SuspendableRunnable target) {
-        this(null, fjPool, -1, target);
-    }
-
+    /**
+     * Creates a new Fiber from the given {@link SuspendableRunnable}.
+     * The new fiber uses the default initial stack size.
+     *
+     * @param name The name of the fiber (may be null)
+     * @param fjPool The fork/join pool in which the fiber should run.
+     * @param target the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
     public Fiber(String name, ForkJoinPool fjPool, SuspendableRunnable target) {
         this(name, fjPool, -1, target);
     }
 
-    public Fiber(SuspendableRunnable target) {
+    /**
+     * Creates a new Fiber from the given SuspendableRunnable.
+     * The new fiber has no name, and uses the default initial stack size.
+     *
+     * @param fjPool The fork/join pool in which the fiber should run.
+     * @param target the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
+    public Fiber(ForkJoinPool fjPool, SuspendableRunnable target) {
+        this(null, fjPool, -1, target);
+    }
+
+    /**
+     * Creates a new Fiber subclassing the Fiber class and overriding the {@link #run() run} method.
+     *
+     * @param name The name of the fiber (may be null)
+     * @param fjPool The fork/join pool in which the fiber should run.
+     * @param stackSize the initial size of the data stack.
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
+    public Fiber(String name, ForkJoinPool fjPool, int stackSize) {
+        this(name, fjPool, stackSize, (SuspendableCallable) null);
+    }
+
+    /**
+     * Creates a new Fiber subclassing the Fiber class and overriding the {@link #run() run} method.
+     * The new fiber uses the default initial stack size.
+     *
+     * @param name The name of the fiber (may be null)
+     * @param fjPool The fork/join pool in which the fiber should run.
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
+    public Fiber(String name, ForkJoinPool fjPool) {
+        this(name, fjPool, -1, (SuspendableCallable) null);
+    }
+
+    /**
+     * Creates a new Fiber subclassing the Fiber class and overriding the {@link #run() run} method.
+     * The new fiber has no name, and uses the default initial stack size.
+     *
+     * @param fjPool The fork/join pool in which the fiber should run.
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
+    public Fiber(ForkJoinPool fjPool) {
+        this(null, fjPool, -1, (SuspendableCallable) null);
+    }
+
+    /**
+     * Creates a new child Fiber from the given {@link SuspendableCallable}.
+     * This constructor may only be called from within another fiber. This fiber will use the same fork/join pool as the creating fiber.
+     * The new fiber uses the default initial stack size.
+     *
+     * @param name The name of the fiber (may be null)
+     * @param target the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
+    public Fiber(String name, SuspendableCallable<V> target) {
         this(null, -1, target);
     }
 
+    /**
+     * Creates a new child Fiber from the given {@link SuspendableCallable}.
+     * This constructor may only be called from within another fiber. This fiber will use the same fork/join pool as the creating fiber.
+     * The new fiber has no name, and uses the default initial stack size.
+     *
+     * @param target the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
+    public Fiber(SuspendableCallable<V> target) {
+        this(null, -1, target);
+    }
+
+    /**
+     * Creates a new child Fiber from the given {@link SuspendableRunnable}.
+     * This constructor may only be called from within another fiber. This fiber will use the same fork/join pool as the creating fiber.
+     *
+     * @param name The name of the fiber (may be null)
+     * @param stackSize the initial size of the data stack.
+     * @param target the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
+    public Fiber(String name, int stackSize, SuspendableRunnable target) {
+        this(name, stackSize, (SuspendableCallable<V>) wrap(target));
+    }
+
+    /**
+     * Creates a new child Fiber from the given {@link SuspendableRunnable}.
+     * This constructor may only be called from within another fiber. This fiber will use the same fork/join pool as the creating fiber.
+     * The new fiber uses the default initial stack size.
+     *
+     * @param name The name of the fiber (may be null)
+     * @param target the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
     public Fiber(String name, SuspendableRunnable target) {
         this(name, -1, target);
     }
 
-    public Fiber(int stackSize, SuspendableRunnable target) {
-        this(null, stackSize, target);
+    /**
+     * Creates a new child Fiber from the given {@link SuspendableRunnable}.
+     * This constructor may only be called from within another fiber. This fiber will use the same fork/join pool as the creating fiber.
+     * The new fiber has no name, and uses the default initial stack size.
+     *
+     * @param target the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
+    public Fiber(SuspendableRunnable target) {
+        this(null, -1, target);
+    }
+
+    /**
+     * Creates a new child Fiber subclassing the Fiber class and overriding the {@link #run() run} method.
+     * This constructor may only be called from within another fiber. This fiber will use the same fork/join pool as the creating fiber.
+     *
+     * @param name The name of the fiber (may be null)
+     * @param stackSize the initial size of the data stack.
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
+    public Fiber(String name, int stackSize) {
+        this(name, stackSize, (SuspendableCallable) null);
+    }
+
+    /**
+     * Creates a new child Fiber subclassing the Fiber class and overriding the {@link #run() run} method.
+     * This constructor may only be called from within another fiber. This fiber will use the same fork/join pool as the creating fiber.
+     * The new fiber uses the default initial stack size.
+     *
+     * @param name The name of the fiber (may be null)
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
+    public Fiber(String name) {
+        this(name, -1, (SuspendableCallable) null);
+    }
+
+    /**
+     * Creates a new child Fiber subclassing the Fiber class and overriding the {@link #run() run} method.
+     * This constructor may only be called from within another fiber. This fiber will use the same fork/join pool as the creating fiber.
+     * The new fiber has no name, and uses the default initial stack size.
+     *
+     * @throws NullPointerException when proto is null
+     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     */
+    public Fiber() {
+        this(null, -1, (SuspendableCallable) null);
     }
     //</editor-fold>
 
@@ -505,7 +654,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     /**
      * A fiber is alive if it has been started and has not yet died.
      *
-     * @return
+     * @return {@code true} if the fiber has been started and has not yet died; {@code false} otherwise.
      */
     @Override
     public final boolean isAlive() {
@@ -538,7 +687,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
      * Executes LWT on this thread, after waiting until the given blocker is indeed the LWT's blocker, and that the LWT is not being run concurrently.
      *
      * @param blocker
-     * @return
+     * @return {@code true} if the task has been executed by this method; {@code false} otherwise.
      */
     public final boolean exec(Object blocker) {
         for (int i = 0; i < 30; i++) {
@@ -875,7 +1024,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     protected final boolean recordsLevel(int level) {
         return (Debug.isDebug() && flightRecorder.get().recordsLevel(level));
     }
-    
+
     protected final void record(int level, String clazz, String method, String format) {
         if (flightRecorder != null)
             record(flightRecorder.get(), level, clazz, method, format);

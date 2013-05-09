@@ -49,7 +49,6 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
     /**
      *
      * @param proc
-     * @param currentMessage
      * @param timeout
      * @param unit
      * @throws TimeoutException

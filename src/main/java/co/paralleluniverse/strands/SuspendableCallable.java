@@ -15,13 +15,13 @@ package co.paralleluniverse.strands;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 
+/**
+ * This interface can represent any operation that may suspend the currently executing {@link Strand} (i.e. thread or fiber).
+ * Unlike {@link SuspendableCallable}, the operation represented by this interface returns a result. 
+ * This is just like a {@link java.util.concurrent.Callable}, only suspendable.
+ * 
+ * @author pron
+ */
 public interface SuspendableCallable<V> {
-    /**
-     * Entry point for LightweightThread execution.
-     *
-     * This method should never be called directly.
-     *
-     * @throws SuspendExecution This exception should never be caught
-     */
     V run() throws SuspendExecution, InterruptedException;
 }

@@ -28,7 +28,5 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  * </pre>
- * 
- * @see de.matthiasmann.continuations.instrument.InstrumentationTask
  */
 package co.paralleluniverse.fibers.instrument;

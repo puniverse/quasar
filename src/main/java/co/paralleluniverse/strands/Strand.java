@@ -66,7 +66,7 @@ public abstract class Strand {
     /**
      * Returns the current fiber, if there is one, or the current thread otherwise.
      *
-     * @return
+     * @return The current fiber or thread
      */
     public static Strand currentStrand() {
         final Fiber fiber = Fiber.currentFiber();

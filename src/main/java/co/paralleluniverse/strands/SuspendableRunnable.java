@@ -15,6 +15,12 @@ package co.paralleluniverse.strands;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 
+/**
+ * This interface can represent any operation that may suspend the currently executing {@link Strand} (i.e. thread or fiber).
+ * This is just like a {@link Runnable}, only suspendable.
+ * 
+ * @author pron
+ */
 public interface SuspendableRunnable {
     void run() throws SuspendExecution, InterruptedException;
 }

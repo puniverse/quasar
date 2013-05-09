@@ -28,6 +28,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;

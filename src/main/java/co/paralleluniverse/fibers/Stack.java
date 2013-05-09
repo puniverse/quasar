@@ -7,7 +7,7 @@ import java.util.Arrays;
  * Internal Class - DO NOT USE !
  *
  * Needs to be public so that instrumented code can access it.
- * ANY CHANGE IN THIS CLASS NEEDS TO BE SYNCHRONIZED WITH {@link co.paralleluniverse.lwthreads.InstrumentMethod}
+ * ANY CHANGE IN THIS CLASS NEEDS TO BE SYNCHRONIZED WITH {@link co.paralleluniverse.fibers.instrument.InstrumentMethod}
  *
  * @author Matthias Mann
  * @author Ron Pressler
@@ -56,8 +56,6 @@ public final class Stack implements Serializable {
         method[methodIdx] = entry;
         method[methodIdx + 1] = dataTOS;
 
-        //System.out.println("entry="+entry+" size="+size+" sp="+curMethodSP+" tos="+dataTOS+" nr="+methodIdx);
-
         if (dataTOS > dataObject.length)
             growDataStack(dataTOS);
 
@@ -82,7 +80,7 @@ public final class Stack implements Serializable {
     }
 
     /**
-     * called at the begin of a method
+     * called at the beginning of a method
      *
      * @return the entry point of this method
      */
