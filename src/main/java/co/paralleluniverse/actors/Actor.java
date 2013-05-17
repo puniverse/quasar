@@ -344,9 +344,10 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return this;
     }
 
-    public void unregister(Object name) {
+    public Actor unregister(Object name) {
         ActorRegistry.unregister(name);
         this.monitor = null;
+        return this;
     }
 
     public static Actor getActor(Object name) {
