@@ -44,7 +44,7 @@ public class ChannelGroup<Message> implements ReceiveChannel<Message>, Stranded 
      * @param channels The member channels
      */
     public ChannelGroup(Collection<? extends Message> channels) {
-        this.channels = (Channel<? extends Message>[]) channels.toArray();
+        this.channels = (Channel<? extends Message>[]) channels.toArray(new Channel[channels.size()]);
     }
 
     /**
