@@ -491,6 +491,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
             throw new IllegalStateException("Not new or suspended");
 
         record(1, "Fiber", "exec1", "running %s %s", state, this);
+        final Fiber oldFiber = getCurrentFiber(); // a fiber can directly call exec on another fiber, e.g.: Channel.sendSync
         setCurrentFiber(this);
         installFiberLocals();
 
@@ -528,7 +529,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
             throw t;
         } finally {
             restoreThreadLocals();
-            setCurrentFiber(null);
+            setCurrentFiber(oldFiber);
         }
     }
 
@@ -556,8 +557,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         if (fjPool == null) // in tests
             return;
         final Thread currentThread = Thread.currentThread();
-        if (ThreadAccess.getTarget(currentThread) != null && fiber != null)
-            throw new RuntimeException("Fiber " + fiber + " target: " + ThreadAccess.getTarget(currentThread));
+//        if (ThreadAccess.getTarget(currentThread) != null && fiber != null)
+//            throw new RuntimeException("Fiber " + fiber + " target: " + ThreadAccess.getTarget(currentThread));
         ThreadAccess.setTarget(currentThread, fiber != null ? fiber.fiberRef : null);
     }
 
@@ -637,8 +638,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         else if (defaultUncaughtExceptionHandler != null)
             defaultUncaughtExceptionHandler.uncaughtException(this, t);
         else
-            Exceptions.rethrow(t);
-        // swallow exception
+            throw Exceptions.rethrow(t);
     }
 
     @Override

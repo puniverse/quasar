@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.TimeoutException;
@@ -45,7 +46,16 @@ public class ActorTest {
     }
 
     private <Message, V> Actor<Message, V> spawnActor(Actor<Message, V> actor) {
-        new Fiber("actor", fjPool, actor).start();
+        Fiber fiber = new Fiber("actor", fjPool, actor);
+        fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
+
+            @Override
+            public void uncaughtException(Fiber lwt, Throwable e) {
+                e.printStackTrace();
+                throw Exceptions.rethrow(e);
+            }
+        });
+        fiber.start();
         return actor;
     }
 
@@ -219,6 +229,42 @@ public class ActorTest {
     }
 
     @Test
+    public void testSendSync() throws Exception {
+        final Actor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
+            int counter;
+
+            @Override
+            protected Void doRun() throws SuspendExecution, InterruptedException {
+                Message m;
+                m = receive();
+                assertThat(m.num, is(1));
+                m = receive();
+                assertThat(m.num, is(2));
+                m = receive();
+                assertThat(m.num, is(3));
+                return null;
+            }
+        });
+
+        final Actor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
+            int counter;
+
+            @Override
+            protected Void doRun() throws SuspendExecution, InterruptedException {
+                Fiber.sleep(20);
+                actor1.send(new Message(1));
+                Fiber.sleep(10);
+                actor1.sendSync(new Message(2));
+                actor1.send(new Message(3));
+                return null;
+            }
+        });
+
+        actor1.join();
+        actor2.join();
+    }
+
+    @Test
     public void testLink() throws Exception {
         Actor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
             int counter;
@@ -272,7 +318,7 @@ public class ActorTest {
         });
 
         final AtomicBoolean handlerCalled = new AtomicBoolean(false);
-        
+
         Actor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
@@ -292,7 +338,7 @@ public class ActorTest {
 
         actor1.join();
         actor2.join();
-        
+
         assertThat(handlerCalled.get(), is(true));
     }
 
