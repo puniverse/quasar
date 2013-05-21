@@ -25,10 +25,11 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public abstract class Channel<Message> implements SendChannel<Message>, Stranded {
+public abstract class Channel<Message> implements SendChannel<Message>, ReceiveChannel<Message>, Stranded {
     private Object owner;
-    private OwnedSynchronizer sync;
+    private volatile OwnedSynchronizer sync;
     final SingleConsumerQueue<Message, Object> queue;
+    private OwnedSynchronizer mySync;
 
     Channel(Object owner, SingleConsumerQueue<Message, ?> queue) {
         this.queue = (SingleConsumerQueue<Message, Object>) queue;
@@ -53,14 +54,18 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
         if (owner != null && strand != owner)
             throw new IllegalStateException("Channel " + this + " is already owned by " + owner);
         this.owner = strand;
-        this.sync = OwnedSynchronizer.create(owner);
+        this.mySync = OwnedSynchronizer.create(owner);
+        this.sync = mySync;
     }
 
     protected void maybeSetCurrentStrandAsOwner() {
         if (owner == null)
             setStrand(Strand.currentStrand());
-        else
+        else {
+            if(sync != mySync)
+                sync = mySync;
             sync.verifyOwner();
+        }
     }
 
     protected OwnedSynchronizer sync() {
@@ -68,6 +73,10 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
         return sync;
     }
 
+    void setSync(OwnedSynchronizer sync) {
+        this.sync = sync;
+    }
+    
     @Override
     public Strand getStrand() {
         return (Strand) owner;
@@ -143,12 +152,13 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
     public Message tryReceive() {
         final Object n = tryReceiveNode();
         if (n == null)
-            return null; // timeout
+            return null;
         final Message m = queue.value(n);
         queue.deq(n);
         return m;
     }
 
+    @Override
     public Message receive() throws SuspendExecution, InterruptedException {
         final Object n = receiveNode();
         final Message m = queue.value(n);
@@ -156,6 +166,7 @@ public abstract class Channel<Message> implements SendChannel<Message>, Stranded
         return m;
     }
 
+    @Override
     public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         final Object n = receiveNode(timeout, unit);
         if (n == null)
