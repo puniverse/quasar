@@ -401,7 +401,7 @@ class InstrumentMethod {
         int neededLocals = 0;
         for (int i = arguments; i >= 1; i--) {
             BasicValue v = (BasicValue) frame.getStack(stackIndex + i);
-            mv.visitVarInsn(v.getType().getOpcode(Opcodes.ISTORE), lvarStack + 1 + neededLocals);
+            mv.visitVarInsn(v.getType().getOpcode(Opcodes.ISTORE), lvarStack + NUM_LOCALS + neededLocals);
             neededLocals += v.getSize();
         }
         db.log(LogLevel.DEBUG, "Inserting NEW & DUP for constructor call %s%s with %d arguments (%d locals)", min.owner, min.desc, arguments, neededLocals);
