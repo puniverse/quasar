@@ -82,7 +82,7 @@ public abstract class OwnedSynchronizer {
 
         @Override
         public void verifyOwner() {
-            assert owner == Thread.currentThread() : "This method has been called by a different strand (thread or fiber) than that owning this object";
+            // assert owner == Thread.currentThread() : "This method has been called by a different strand (thread or fiber) than that owning this object";
             if(owner != Thread.currentThread())
                 throw new RuntimeException("This method has been called by a different strand (thread or fiber) than that owning this object");
         }
@@ -114,7 +114,12 @@ public abstract class OwnedSynchronizer {
 
         @Override
         public void signal() {
-            condition.signal();
+            lock.lock();
+            try {
+                condition.signalAll();
+            } finally {
+                lock.unlock();
+            }
         }
 
         @Override
@@ -137,9 +142,9 @@ public abstract class OwnedSynchronizer {
 
         @Override
         public void verifyOwner() {
-            assert owner == Fiber.currentFiber() : "This method has been called by a different strand (thread or fiber) than that owning this object";
-//            if(owner != Fiber.currentFiber())
-//                throw new RuntimeException("This method has been called by a different strand (thread or fiber) than that owning this object");
+//            assert owner == Fiber.currentFiber() : "This method has been called by a different strand (thread or fiber) than that owning this object";
+            if(owner != Fiber.currentFiber())
+                throw new RuntimeException("This method has been called by a different strand (thread or fiber) than that owning this object");
         }
 
         @Override

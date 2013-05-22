@@ -23,6 +23,7 @@ import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
+import org.junit.Ignore;
 
 /**
  *
@@ -35,13 +36,212 @@ public class ChannelTest {
     public ChannelTest() {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
     }
-    
+
     @Before
     public void setUp() {
     }
-    
+
     @After
     public void tearDown() {
+    }
+
+    @Test
+    public void sendMessageFromFiberToFiber() throws Exception {
+        final Channel<String> ch = ObjectChannel.<String>create(mailboxSize);
+
+        Fiber fib1 = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                String m = ch.receive();
+
+                assertThat(m, equalTo("a message"));
+            }
+        }).start();
+
+        Fiber fib2 = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                Fiber.sleep(50);
+                ch.send("a message");
+            }
+        }).start();
+
+        fib1.join();
+        fib2.join();
+    }
+
+    @Test
+    public void sendMessageFromThreadToFiber() throws Exception {
+        final Channel<String> ch = ObjectChannel.<String>create(mailboxSize);
+
+        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                String m = ch.receive();
+
+                assertThat(m, equalTo("a message"));
+            }
+        }).start();
+
+        Thread.sleep(50);
+        ch.send("a message");
+
+        fib.join();
+    }
+
+    @Test
+    public void sendMessageFromFiberToThread() throws Exception {
+        final Channel<String> ch = ObjectChannel.<String>create(mailboxSize);
+
+        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                Fiber.sleep(100);
+
+                ch.send("a message");
+            }
+        }).start();
+
+        String m = ch.receive();
+
+        assertThat(m, equalTo("a message"));
+
+        fib.join();
+    }
+
+    @Test
+    public void sendMessageFromThreadToThread() throws Exception {
+        final Channel<String> ch = ObjectChannel.<String>create(mailboxSize);
+
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(100);
+
+                    ch.send("a message");
+                } catch (InterruptedException ex) {
+                    throw new AssertionError(ex);
+                }
+            }
+        });
+        thread.start();
+
+        String m = ch.receive();
+
+        assertThat(m, equalTo("a message"));
+
+        thread.join();
+    }
+
+    @Test
+    public void whenReceiveNotCalledFromOwnerThenThrowException1() throws Exception {
+        final Channel<String> ch = ObjectChannel.<String>create(mailboxSize);
+
+        Fiber fib1 = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                String m = ch.receive();
+
+                assertThat(m, equalTo("a message"));
+            }
+        }).start();
+
+        Fiber fib2 = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                Fiber.sleep(50);
+                ch.send("a message");
+
+                try {
+                    ch.receive();
+                    fail();
+                } catch (Exception e) {
+                }
+            }
+        }).start();
+
+        fib1.join();
+        fib2.join();
+    }
+
+    @Test
+    public void whenReceiveNotCalledFromOwnerThenThrowException2() throws Exception {
+        final Channel<String> ch = ObjectChannel.<String>create(mailboxSize);
+
+        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                String m = ch.receive();
+
+                assertThat(m, equalTo("a message"));
+            }
+        }).start();
+
+        Thread.sleep(50);
+        ch.send("a message");
+
+        try {
+            ch.receive();
+            fail();
+        } catch (Exception e) {
+        }
+
+        fib.join();
+    }
+
+    @Test
+    public void whenReceiveNotCalledFromOwnerThenThrowException3() throws Exception {
+        final Channel<String> ch = ObjectChannel.<String>create(mailboxSize);
+
+        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                Fiber.sleep(100);
+
+                ch.send("a message");
+
+                try {
+                    ch.receive();
+                    fail();
+                } catch (Exception e) {
+                }
+            }
+        }).start();
+
+        String m = ch.receive();
+
+        assertThat(m, equalTo("a message"));
+
+        fib.join();
+    }
+
+    @Test
+    public void whenReceiveNotCalledFromOwnerThenThrowException4() throws Exception {
+        final Channel<String> ch = ObjectChannel.<String>create(mailboxSize);
+
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    ch.receive();
+                } catch (InterruptedException ex) {
+                    throw new AssertionError(ex);
+                }
+            }
+        });
+        thread.start();
+
+        Thread.sleep(100);
+        ch.send("a message");
+
+        try {
+            ch.receive();
+            fail();
+        } catch (Exception e) {
+        }
+        
+        thread.join();
     }
 
     @Test
@@ -49,21 +249,20 @@ public class ChannelTest {
         final Channel<String> channel1 = ObjectChannel.<String>create(mailboxSize);
         final Channel<String> channel2 = ObjectChannel.<String>create(mailboxSize);
         final Channel<String> channel3 = ObjectChannel.<String>create(mailboxSize);
-        
-        final ChannelGroup<String> group = new ChannelGroup<String>(channel1, channel2, channel3);
-        
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
 
+        final ChannelGroup<String> group = new ChannelGroup<String>(channel1, channel2, channel3);
+
+        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 String m1 = group.receive();
                 String m2 = channel2.receive();
-                
+
                 assertThat(m1, equalTo("hello"));
                 assertThat(m2, equalTo("world!"));
             }
         }).start();
-        
+
         Thread.sleep(100);
         channel3.send("hello");
         Thread.sleep(100);
@@ -78,25 +277,24 @@ public class ChannelTest {
         final Channel<String> channel1 = ObjectChannel.<String>create(mailboxSize);
         final Channel<String> channel2 = ObjectChannel.<String>create(mailboxSize);
         final Channel<String> channel3 = ObjectChannel.<String>create(mailboxSize);
-        
-        final ChannelGroup<String> group = new ChannelGroup<String>(channel1, channel2, channel3);
-        
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
 
+        final ChannelGroup<String> group = new ChannelGroup<String>(channel1, channel2, channel3);
+
+        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 String m1 = group.receive();
                 String m2 = channel2.receive();
                 String m3 = group.receive(10, TimeUnit.MILLISECONDS);
                 String m4 = group.receive(100, TimeUnit.MILLISECONDS);
-                
+
                 assertThat(m1, equalTo("hello"));
                 assertThat(m2, equalTo("world!"));
                 assertThat(m3, nullValue());
                 assertThat(m4, equalTo("foo"));
             }
         }).start();
-        
+
         Thread.sleep(100);
         channel3.send("hello");
         Thread.sleep(100);
@@ -105,5 +303,4 @@ public class ChannelTest {
         channel1.send("foo");
         fib.join();
     }
-
 }

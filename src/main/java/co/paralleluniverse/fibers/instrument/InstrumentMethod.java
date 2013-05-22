@@ -62,6 +62,7 @@ import org.objectweb.asm.tree.analysis.Value;
 class InstrumentMethod {
     private static final String INTERRUPTED_EXCEPTION_NAME = Type.getInternalName(InterruptedException.class);
     private static final String STACK_NAME = Type.getInternalName(STACK_CLASS);
+    private static final boolean DUAL = true; // true if suspendable methods can be called from regular threads in addition to fibers
     private final MethodDatabase db;
     private final String className;
     private final MethodNode mn;
@@ -174,6 +175,11 @@ class InstrumentMethod {
         mv.visitInsn(Opcodes.DUP);
         mv.visitVarInsn(Opcodes.ASTORE, lvarStack);
 
+        if (DUAL) {
+            mv.visitJumpInsn(Opcodes.IFNULL, lMethodStart);
+            mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+        }
+
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "nextMethodEntry", "()I");
         mv.visitTableSwitchInsn(1, numCodeBlocks - 1, lMethodStart, lMethodCalls);
 
@@ -189,21 +195,28 @@ class InstrumentMethod {
                     throw new UnableToInstrumentException("invalid call to suspending method.", className, mn.name, mn.desc);
 
                 emitStoreState(mv, i, fi);
-
-                //mv.visitFieldInsn(Opcodes.GETSTATIC, STACK_NAME, EXCEPTION_INSTANCE_NAME, EXCEPTION_DESC);
-                //mv.visitInsn(Opcodes.ATHROW);
-
                 emitRestoreOperandStack(mv, fi); // we restore the operand stack for the sake of yield calls that take arguments
+
                 min.accept(mv); // call the yield method
                 mv.visitLabel(lMethodCalls[i - 1]); // resume AFTER the call
                 emitPostRestore(mv);
                 emitRestoreState(mv, i, fi);
                 dumpCodeBlock(mv, i, 1);    // skip the call
             } else {
+                final Label lbl = new Label();
+                if (DUAL) {
+                    mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+                    mv.visitJumpInsn(Opcodes.IFNULL, lbl);
+                }
+
                 // normal case - call to a suspendable method - resume before the call
                 emitStoreState(mv, i, fi);
                 mv.visitLabel(lMethodCalls[i - 1]);
                 emitRestoreState(mv, i, fi);
+
+                if (DUAL)
+                    mv.visitLabel(lbl);
+
                 dumpCodeBlock(mv, i, 0);
             }
         }
@@ -378,8 +391,17 @@ class InstrumentMethod {
     }
 
     private void emitPopMethod(MethodVisitor mv) {
+        final Label lbl = new Label();
+        if (DUAL) {
+            mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+            mv.visitJumpInsn(Opcodes.IFNULL, lbl);
+        }
+
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "popMethod", "()V");
+
+        if (DUAL)
+            mv.visitLabel(lbl);
     }
 
     private void emitStoreState(MethodVisitor mv, int idx, FrameInfo fi) {
