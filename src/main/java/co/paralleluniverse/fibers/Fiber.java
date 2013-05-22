@@ -416,7 +416,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     /**
      * Suspends (deschedules) the currently running Fiber unless the
      * permit is available.
-     *
+     *  <p/>
+     * Returns {@code true} iff we've been suspended and then resumed. 
+     * 
      * @throws SuspendExecution This exception is used for control transfer and must never be caught.
      * @throws IllegalStateException If not called from a Fiber
      */
@@ -432,8 +434,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         return park(null, postParkActions, 0, null);
     }
 
-    public static void park(Object blocker, long timeout, TimeUnit unit) throws SuspendExecution {
-        park(blocker, null, timeout, unit);
+    public static boolean park(Object blocker, long timeout, TimeUnit unit) throws SuspendExecution {
+        return park(blocker, null, timeout, unit);
     }
 
     public static void park(Object blocker) throws SuspendExecution {
@@ -464,6 +466,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         return interrupted;
     }
 
+    /**
+     * Returns {@code true} iff we've been suspended and then resumed. 
+     * (The return value in the Java code is actually ignored. It is generated and injected in InstrumentMethod.accept())
+     * @param blocker
+     * @param postParkActions
+     * @param timeout
+     * @param unit
+     * @return
+     * @throws SuspendExecution 
+     */
     private boolean park1(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
         record(1, "Fiber", "park", "Parking %s", this);
         if (recordsLevel(2))
@@ -506,14 +518,19 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
             //stack.dump();
             stack.resumeStack();
             state = State.WAITING;
-            fjTask.doPark(false); // now we can complete parking
+
+            final PostParkActions ppa = postParkActions;
+            this.postParkActions = null;
+
+            restoreThreadLocals();
+            setCurrentFiber(oldFiber);
 
             record(1, "Fiber", "exec1", "parked %s %s", state, this);
+            fjTask.doPark(false); // now we can complete parking
 
-            if (postParkActions != null) {
-                postParkActions.run(this);
-                postParkActions = null;
-            }
+            if (ppa != null)
+                ppa.run(this);
+
             return false;
         } catch (FiberInterruptedException e) {
             state = State.TERMINATED;
@@ -528,8 +545,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
             record(1, "Fiber", "exec1", "Exception in %s %s: %s", state, this, t);
             throw t;
         } finally {
-            restoreThreadLocals();
-            setCurrentFiber(oldFiber);
+            if (state != State.WAITING) {
+                restoreThreadLocals();
+                setCurrentFiber(oldFiber);
+            }
         }
     }
 
@@ -701,8 +720,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     }
 
     /**
-     * Makes available the permit for this fiber, if it was not already available. 
-     * If the fiber was blocked on {@code park} then it will unblock. 
+     * Makes available the permit for this fiber, if it was not already available.
+     * If the fiber was blocked on {@code park} then it will unblock.
      * Otherwise, its next call to {@code park} is guaranteed not to block.
      */
     @Override
@@ -957,6 +976,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     }
 
     public static interface PostParkActions {
+        /**
+         * Called by Fiber immediately after park.
+         * This method may not use any ThreadLocals as they have been rest by the time the method is called. 
+         *
+         * @param current
+         */
         void run(Fiber current);
     }
 

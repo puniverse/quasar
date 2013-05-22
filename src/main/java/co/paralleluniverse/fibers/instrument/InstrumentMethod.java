@@ -67,7 +67,9 @@ class InstrumentMethod {
     private final String className;
     private final MethodNode mn;
     private final Frame[] frames;
-    private final int lvarStack;
+    private static final int NUM_LOCALS = 2; // lvarStack, lvarResumed
+    private final int lvarStack; // ref to Stack
+    private final int lvarResumed; // boolean indicating if we've been resumed
     private final int firstLocal;
     private FrameInfo[] codeBlocks = new FrameInfo[32];
     private int numCodeBlocks;
@@ -84,6 +86,7 @@ class InstrumentMethod {
             Analyzer a = new TypeAnalyzer(db);
             this.frames = a.analyze(className, mn);
             this.lvarStack = mn.maxLocals;
+            this.lvarResumed = mn.maxLocals + 1;
             this.firstLocal = ((mn.access & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC) ? 0 : 1;
         } catch (UnsupportedOperationException ex) {
             throw new AnalyzerException(null, ex.getMessage(), ex);
@@ -140,9 +143,8 @@ class InstrumentMethod {
         Label lCatchAll = new Label();
         Label[] lMethodCalls = new Label[numCodeBlocks - 1];
 
-        for (int i = 1; i < numCodeBlocks; i++) {
+        for (int i = 1; i < numCodeBlocks; i++)
             lMethodCalls[i - 1] = new Label();
-        }
 
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, EXCEPTION_NAME);
 
@@ -180,10 +182,15 @@ class InstrumentMethod {
             mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         }
 
+        emitStoreResumed(mv, true); // we'll assume we have been resumed
+
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "nextMethodEntry", "()I");
         mv.visitTableSwitchInsn(1, numCodeBlocks - 1, lMethodStart, lMethodCalls);
 
         mv.visitLabel(lMethodStart);
+
+        emitStoreResumed(mv, false); // no, we have not been resumed
+
         dumpCodeBlock(mv, 0, 0);
 
         for (int i = 1; i < numCodeBlocks; i++) {
@@ -194,13 +201,27 @@ class InstrumentMethod {
                 if (min.getOpcode() != Opcodes.INVOKESTATIC)
                     throw new UnableToInstrumentException("invalid call to suspending method.", className, mn.name, mn.desc);
 
-                emitStoreState(mv, i, fi);
-                emitRestoreOperandStack(mv, fi); // we restore the operand stack for the sake of yield calls that take arguments
+                final int numYieldArgs = TypeAnalyzer.getNumArguments(min.desc);
+                final boolean yieldReturnsValue = (Type.getReturnType(min.desc) != Type.VOID_TYPE);
 
-                min.accept(mv); // call the yield method
-                mv.visitLabel(lMethodCalls[i - 1]); // resume AFTER the call
+                emitStoreState(mv, i, fi, numYieldArgs); // we preserve the arguments for the call to yield on the operand stack
+                emitStoreResumed(mv, false); // we have not been resumed
+
+                min.accept(mv);                              // we call the yield method
+                if (yieldReturnsValue)
+                    mv.visitInsn(Opcodes.POP);               // we ignore the returned value...
+                mv.visitLabel(lMethodCalls[i - 1]);          // we resume AFTER the call
+
+                final Label afterPostRestore = new Label();
+                mv.visitVarInsn(Opcodes.ILOAD, lvarResumed);
+                mv.visitJumpInsn(Opcodes.IFEQ, afterPostRestore);
                 emitPostRestore(mv);
-                emitRestoreState(mv, i, fi);
+                mv.visitLabel(afterPostRestore);
+
+                emitRestoreState(mv, i, fi, numYieldArgs);
+                if (yieldReturnsValue)
+                    mv.visitVarInsn(Opcodes.ILOAD, lvarResumed); // ... and replace the returned value with the value of resumed
+
                 dumpCodeBlock(mv, i, 1);    // skip the call
             } else {
                 final Label lbl = new Label();
@@ -210,9 +231,11 @@ class InstrumentMethod {
                 }
 
                 // normal case - call to a suspendable method - resume before the call
-                emitStoreState(mv, i, fi);
+                emitStoreState(mv, i, fi, 0);
+                emitStoreResumed(mv, false); // we have not been resumed
+
                 mv.visitLabel(lMethodCalls[i - 1]);
-                emitRestoreState(mv, i, fi);
+                emitRestoreState(mv, i, fi, 0);
 
                 if (DUAL)
                     mv.visitLabel(lbl);
@@ -229,12 +252,11 @@ class InstrumentMethod {
         mv.visitInsn(Opcodes.ATHROW);   // rethrow shared between catchAll and catchSSE
 
         if (mn.localVariables != null) {
-            for (Object o : mn.localVariables) {
+            for (Object o : mn.localVariables)
                 ((LocalVariableNode) o).accept(mv);
-            }
         }
 
-        mv.visitMaxs(mn.maxStack + 3, mn.maxLocals + 1 + additionalLocals);
+        mv.visitMaxs(mn.maxStack + 4, mn.maxLocals + NUM_LOCALS + additionalLocals);
         mv.visitEnd();
     }
 
@@ -247,6 +269,11 @@ class InstrumentMethod {
         FrameInfo fi = new FrameInfo(f, firstLocal, end, mn.instructions, db);
         codeBlocks[numCodeBlocks] = fi;
         return fi;
+    }
+
+    private void emitStoreResumed(MethodVisitor mv, boolean value) {
+        mv.visitInsn(value ? Opcodes.ICONST_1 : Opcodes.ICONST_0);
+        mv.visitVarInsn(Opcodes.ISTORE, lvarResumed);
     }
 
     private int getLabelIdx(LabelNode l) {
@@ -386,7 +413,7 @@ class InstrumentMethod {
         for (int i = 1; i <= arguments; i++) {
             BasicValue v = (BasicValue) frame.getStack(stackIndex + i);
             neededLocals -= v.getSize();
-            mv.visitVarInsn(v.getType().getOpcode(Opcodes.ILOAD), lvarStack + 1 + neededLocals);
+            mv.visitVarInsn(v.getType().getOpcode(Opcodes.ILOAD), lvarStack + NUM_LOCALS + neededLocals);
         }
     }
 
@@ -404,7 +431,7 @@ class InstrumentMethod {
             mv.visitLabel(lbl);
     }
 
-    private void emitStoreState(MethodVisitor mv, int idx, FrameInfo fi) {
+    private void emitStoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsToPreserve) {
         Frame f = frames[fi.endInstruction];
 
         if (fi.lBefore != null) {
@@ -441,9 +468,23 @@ class InstrumentMethod {
                 emitStoreValue(mv, v, lvarStack, slotIdx);
             }
         }
+
+        // restore last numArgsToPreserve operands
+        for (int i = f.getStackSize() - numArgsToPreserve; i < f.getStackSize(); i++) {
+            BasicValue v = (BasicValue) f.getStack(i);
+            if (!isOmitted(v)) {
+                if (!isNullType(v)) {
+                    int slotIdx = fi.stackSlotIndices[i];
+                    assert slotIdx >= 0 && slotIdx < fi.numSlots;
+                    emitRestoreValue(mv, v, lvarStack, slotIdx);
+                } else {
+                    mv.visitInsn(Opcodes.ACONST_NULL);
+                }
+            }
+        }
     }
 
-    private void emitRestoreState(MethodVisitor mv, int idx, FrameInfo fi) {
+    private void emitRestoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsPreserved) {
         Frame f = frames[fi.endInstruction];
 
         // restore local vars
@@ -461,7 +502,7 @@ class InstrumentMethod {
         }
 
         // restore operand stack
-        for (int i = 0; i < f.getStackSize(); i++) {
+        for (int i = 0; i < f.getStackSize() - numArgsPreserved; i++) {
             BasicValue v = (BasicValue) f.getStack(i);
             if (!isOmitted(v)) {
                 if (!isNullType(v)) {
@@ -476,23 +517,6 @@ class InstrumentMethod {
 
         if (fi.lAfter != null) {
             fi.lAfter.accept(mv);
-        }
-    }
-
-    private void emitRestoreOperandStack(MethodVisitor mv, FrameInfo fi) {
-        Frame f = frames[fi.endInstruction];
-
-        for (int i = 0; i < f.getStackSize(); i++) {
-            BasicValue v = (BasicValue) f.getStack(i);
-            if (!isOmitted(v)) {
-                if (!isNullType(v)) {
-                    int slotIdx = fi.stackSlotIndices[i];
-                    assert slotIdx >= 0 && slotIdx < fi.numSlots;
-                    emitRestoreValue(mv, v, lvarStack, slotIdx);
-                } else {
-                    mv.visitInsn(Opcodes.ACONST_NULL);
-                }
-            }
         }
     }
 

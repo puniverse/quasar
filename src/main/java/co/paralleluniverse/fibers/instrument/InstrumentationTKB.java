@@ -25,6 +25,5 @@ public class InstrumentationTKB {
     }
 
     void foo() {
-        
     }
 }

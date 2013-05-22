@@ -22,21 +22,14 @@ import java.nio.channels.CompletionHandler;
  *
  * @author pron
  */
-abstract class FiberAsyncIO<V> extends FiberAsync<V, CompletionHandler<V, Fiber>, IOException> {
+abstract class FiberAsyncIO<V> extends FiberAsync<V, CompletionHandler<V, Fiber>, IOException> implements CompletionHandler<V, Fiber> {
     @Override
-    protected FiberCallback createCallback() {
-        return new FiberCompletionHandler();
+    public void completed(V result, Fiber lwthread) {
+        super.completed(result, lwthread);
     }
 
-    private class FiberCompletionHandler extends FiberCallback implements CompletionHandler<V, Fiber> {
-        @Override
-        public void completed(V result, Fiber lwthread) {
-            super.completed(result, lwthread);
-        }
-
-        @Override
-        public void failed(Throwable exc, Fiber lwthread) {
-            super.failed(exc, lwthread);
-        }
+    @Override
+    public void failed(Throwable exc, Fiber lwthread) {
+        super.failed(exc, lwthread);
     }
 }
