@@ -33,7 +33,7 @@ import jsr166e.ConcurrentHashMapV8;
  */
 public abstract class LocalActor<Message, V> extends Actor<Message> implements SuspendableCallable<V>, Joinable<V>, Stranded {
     private Strand strand;
-    private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
+    private static final ThreadLocal<LocalActor> currentActor = new ThreadLocal<LocalActor>();
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
     private volatile V result;
     private volatile RuntimeException exception;
@@ -58,14 +58,14 @@ public abstract class LocalActor<Message, V> extends Actor<Message> implements S
         return new JMXActorMonitor(name);
     }
 
-    public static Actor currentActor() {
+    public static LocalActor currentActor() {
         final Fiber currentFiber = Fiber.currentFiber();
         if (currentFiber == null)
             return currentActor.get();
         final SuspendableCallable target = currentFiber.getTarget();
         if (target == null || !(target instanceof Actor))
             return null;
-        return (Actor) target;
+        return (LocalActor) target;
     }
 
     @Override
@@ -149,6 +149,18 @@ public abstract class LocalActor<Message, V> extends Actor<Message> implements S
                 return (Message) m;
         }
     }
+    
+    public static Object currentActorReceive() throws SuspendExecution, InterruptedException {
+        return currentActor().receive();
+    }
+    
+    public static Object currentActorReceive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        return currentActor().receive(timeout, unit);
+    }
+    
+    public static Object currentActorTryReceive() {
+        return currentActor().tryReceive();
+    }    
     //</editor-fold>
 
     //<editor-fold desc="Strand helpers">
