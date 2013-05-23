@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.net.SocketOption;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.nio.channels.NetworkChannel;
@@ -41,8 +42,20 @@ public class FiberSocketChannel implements FiberByteChannel, NetworkChannel {
         return new FiberSocketChannel(AsynchronousSocketChannel.open());
     }
 
-    public static FiberSocketChannel open(SocketAddress remote) throws IOException {
-        return new FiberSocketChannel(AsynchronousSocketChannel.open());
+    public static FiberSocketChannel open(AsynchronousChannelGroup group) throws IOException {
+        return new FiberSocketChannel(AsynchronousSocketChannel.open(group));
+    }
+
+    public static FiberSocketChannel open(SocketAddress remote) throws IOException, SuspendExecution {
+        final FiberSocketChannel channel = open();
+        channel.connect(remote);
+        return channel;
+    }
+
+    public static FiberSocketChannel open(AsynchronousChannelGroup group, SocketAddress remote) throws IOException, SuspendExecution {
+        final FiberSocketChannel channel = open(group);
+        channel.connect(remote);
+        return channel;
     }
 
     public void connect(final SocketAddress remote) throws IOException, SuspendExecution {

@@ -18,6 +18,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.net.SocketOption;
+import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
@@ -37,6 +38,10 @@ public class FiberServerSocketChannel implements NetworkChannel {
 
     public static FiberServerSocketChannel open() throws IOException {
         return new FiberServerSocketChannel(AsynchronousServerSocketChannel.open());
+    }
+
+    public static FiberServerSocketChannel open(AsynchronousChannelGroup group) throws IOException {
+        return new FiberServerSocketChannel(AsynchronousServerSocketChannel.open(group));
     }
 
     public FiberSocketChannel accept() throws IOException, SuspendExecution {
