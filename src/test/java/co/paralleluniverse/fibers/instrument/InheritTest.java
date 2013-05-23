@@ -3,8 +3,10 @@
  * and open the template in the editor.
  */
 
-package co.paralleluniverse.fibers;
+package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
 import java.util.ArrayList;

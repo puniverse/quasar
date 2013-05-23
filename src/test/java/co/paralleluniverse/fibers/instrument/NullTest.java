@@ -3,8 +3,11 @@
  * and open the template in the editor.
  */
 
-package co.paralleluniverse.fibers;
+package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.TestsHelper;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -22,7 +25,7 @@ public class NullTest implements SuspendableRunnable {
     public void testNull() {
         Fiber co = new Fiber(null, null, this);
         int count = 1;
-        while(!co.exec())
+        while(!TestsHelper.exec(co))
             count++;
 
         assertEquals(2, count);

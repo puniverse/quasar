@@ -26,36 +26,36 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package co.paralleluniverse.fibers;
+package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableRunnable;
-import co.paralleluniverse.common.util.Exceptions;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import static org.junit.Assert.*;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-
 /**
- * Test the propagation of unhandled exceptions throw a suspendable call
- * 
+ * Check that a generic catch all does not affect the suspendtion of a method
+ *
  * @author Matthias Mann
  */
-public class ThrowTest implements SuspendableRunnable {
-
+public class CatchTest implements SuspendableRunnable {
     private ArrayList<String> results = new ArrayList<String>();
-    
-    @BeforeClass
-    public static void setupClass() {
-        Fiber.setDefaultUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
+    int cnt = 0;
 
-            @Override
-            public void uncaughtException(Fiber lwt, Throwable e) {
-                Exceptions.rethrow(e);
-            }
-        });
+    private void throwOnSecondCall() throws SuspendExecution {
+        results.add("cnt=" + cnt);
+        Fiber.park();
+        if (++cnt >= 2) {
+            throw new IllegalStateException("called second time");
+        }
+        results.add("not thrown");
     }
+
     @Override
     public void run() throws SuspendExecution {
         results.add("A");
@@ -63,40 +63,70 @@ public class ThrowTest implements SuspendableRunnable {
         try {
             results.add("C");
             Fiber.park();
-            if("".length() == 0) {
-                throw new IllegalStateException("bla");
-            }
-            results.add("E");
-        } finally {
-            results.add("F");
+            throwOnSecondCall();
+            suspendableMethod();
+            results.add("never reached");
+        } catch (Throwable ex) {
+            results.add(ex.getMessage());
         }
-        results.add("G");
+        results.add("H");
+    }
+    
+    private void suspendableMethod() throws SuspendExecution {
+        Fiber.park();
+        throwOnSecondCall();
     }
 
     @Test
-    public void testThrow() {
+    public void testCatch() {
         results.clear();
-        
-        Fiber co = new Fiber(null, null, this);
+
         try {
+            Fiber co = new Fiber(null, null, this);
             exec(co);
             results.add("B");
             exec(co);
             results.add("D");
             exec(co);
-            assertTrue(false);
-        } catch (IllegalStateException es) {
-            assertEquals("bla", es.getMessage());
-            //assertEquals(LightweightThread.State.FINISHED, co.getState());
+            results.add("E");
+            exec(co);
+            results.add("F");
+            exec(co);
+            results.add("G");
+            exec(co);
+            results.add("I");
         } finally {
             System.out.println(results);
         }
-        
-        assertEquals(5, results.size());
-        assertEquals("A", results.get(0));
-        assertEquals("B", results.get(1));
-        assertEquals("C", results.get(2));
-        assertEquals("D", results.get(3));
-        assertEquals("F", results.get(4));
+
+        assertEquals(13, results.size());
+        assertEquals(Arrays.asList(
+                "A",
+                "B",
+                "C",
+                "D",
+                "cnt=0",
+                "E",
+                "not thrown",
+                "F",
+                "cnt=1",
+                "G",
+                "called second time",
+                "H",
+                "I"), results);
+        Iterator<String> iter = results.iterator();
+        assertEquals("A", iter.next());
+        assertEquals("B", iter.next());
+        assertEquals("C", iter.next());
+        assertEquals("D", iter.next());
+        assertEquals("cnt=0", iter.next());
+        assertEquals("E", iter.next());
+        assertEquals("not thrown", iter.next());
+        assertEquals("F", iter.next());
+        assertEquals("cnt=1", iter.next());
+        assertEquals("G", iter.next());
+        assertEquals("called second time", iter.next());
+        assertEquals("H", iter.next());
+        assertEquals("I", iter.next());
     }
 }

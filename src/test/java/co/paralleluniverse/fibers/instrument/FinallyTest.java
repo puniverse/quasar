@@ -26,34 +26,26 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package co.paralleluniverse.fibers;
+package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
 import static org.junit.Assert.*;
 import org.junit.Test;
 
+
 /**
- * Check that a generic catch all does not affect the suspendtion of a method
- *
+ * Test correct execution of a finally statement
+ * 
  * @author Matthias Mann
  */
-public class CatchTest implements SuspendableRunnable {
+public class FinallyTest implements SuspendableRunnable {
+
     private ArrayList<String> results = new ArrayList<String>();
-    int cnt = 0;
-
-    private void throwOnSecondCall() throws SuspendExecution {
-        results.add("cnt=" + cnt);
-        Fiber.park();
-        if (++cnt >= 2) {
-            throw new IllegalStateException("called second time");
-        }
-        results.add("not thrown");
-    }
-
+    
     @Override
     public void run() throws SuspendExecution {
         results.add("A");
@@ -61,24 +53,19 @@ public class CatchTest implements SuspendableRunnable {
         try {
             results.add("C");
             Fiber.park();
-            throwOnSecondCall();
-            suspendableMethod();
-            results.add("never reached");
-        } catch (Throwable ex) {
-            results.add(ex.getMessage());
+            results.add("E");
+        } finally {
+            results.add("F");
         }
-        results.add("H");
-    }
-    
-    private void suspendableMethod() throws SuspendExecution {
+        results.add("G");
         Fiber.park();
-        throwOnSecondCall();
+        results.add("I");
     }
 
     @Test
-    public void testCatch() {
+    public void testFinally() {
         results.clear();
-
+        
         try {
             Fiber co = new Fiber(null, null, this);
             exec(co);
@@ -86,45 +73,21 @@ public class CatchTest implements SuspendableRunnable {
             exec(co);
             results.add("D");
             exec(co);
-            results.add("E");
+            results.add("H");
             exec(co);
-            results.add("F");
-            exec(co);
-            results.add("G");
-            exec(co);
-            results.add("I");
         } finally {
             System.out.println(results);
         }
-
-        assertEquals(13, results.size());
-        assertEquals(Arrays.asList(
-                "A",
-                "B",
-                "C",
-                "D",
-                "cnt=0",
-                "E",
-                "not thrown",
-                "F",
-                "cnt=1",
-                "G",
-                "called second time",
-                "H",
-                "I"), results);
-        Iterator<String> iter = results.iterator();
-        assertEquals("A", iter.next());
-        assertEquals("B", iter.next());
-        assertEquals("C", iter.next());
-        assertEquals("D", iter.next());
-        assertEquals("cnt=0", iter.next());
-        assertEquals("E", iter.next());
-        assertEquals("not thrown", iter.next());
-        assertEquals("F", iter.next());
-        assertEquals("cnt=1", iter.next());
-        assertEquals("G", iter.next());
-        assertEquals("called second time", iter.next());
-        assertEquals("H", iter.next());
-        assertEquals("I", iter.next());
+        
+        assertEquals(9, results.size());
+        assertEquals("A", results.get(0));
+        assertEquals("B", results.get(1));
+        assertEquals("C", results.get(2));
+        assertEquals("D", results.get(3));
+        assertEquals("E", results.get(4));
+        assertEquals("F", results.get(5));
+        assertEquals("G", results.get(6));
+        assertEquals("H", results.get(7));
+        assertEquals("I", results.get(8));
     }
 }

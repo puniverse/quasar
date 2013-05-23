@@ -2,8 +2,12 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package co.paralleluniverse.fibers;
+package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.Stack;
+import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.TestsHelper;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import java.lang.reflect.Field;
 import static org.junit.Assert.*;
@@ -34,9 +38,9 @@ public class InitialSizeTest implements SuspendableRunnable {
     private void testWithSize(int stackSize) {
         Fiber c = new Fiber(null, null, stackSize, this);
         assertEquals(getStackSize(c), stackSize);
-        boolean res = c.exec();
+        boolean res = TestsHelper.exec(c);
         assertEquals(res, false);
-        res = c.exec();
+        res = TestsHelper.exec(c);
         assertEquals(res, true);
         assertTrue(getStackSize(c) > 10);
     }

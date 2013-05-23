@@ -2,8 +2,11 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package co.paralleluniverse.fibers;
+package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.TestsHelper;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -33,6 +36,6 @@ public class MergeTest implements SuspendableRunnable {
     @Test
     public void testMerge() {
         Fiber c = new Fiber(null, null, new MergeTest());
-        c.exec();
+        TestsHelper.exec(c);
     }
 }

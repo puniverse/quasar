@@ -26,66 +26,43 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package co.paralleluniverse.fibers;
+package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
-import java.util.ArrayList;
-import static org.junit.Assert.*;
 import org.junit.Test;
 
-
 /**
- * Test correct execution of a finally statement
- * 
+ * Basic test
+ *
  * @author Matthias Mann
  */
-public class FinallyTest implements SuspendableRunnable {
+public class SuspendTest implements SuspendableRunnable {
+    @Test
+    public void testSuspend() {
+        SuspendTest test = new SuspendTest();
+        Fiber co = new Fiber(null, null, test);
 
-    private ArrayList<String> results = new ArrayList<String>();
-    
-    @Override
-    public void run() throws SuspendExecution {
-        results.add("A");
-        Fiber.park();
-        try {
-            results.add("C");
-            Fiber.park();
-            results.add("E");
-        } finally {
-            results.add("F");
-        }
-        results.add("G");
-        Fiber.park();
-        results.add("I");
+        while (!exec(co))
+            System.out.println("State=" + co.getState());
+
+        System.out.println("State=" + co.getState());
     }
 
-    @Test
-    public void testFinally() {
-        results.clear();
-        
-        try {
-            Fiber co = new Fiber(null, null, this);
-            exec(co);
-            results.add("B");
-            exec(co);
-            results.add("D");
-            exec(co);
-            results.add("H");
-            exec(co);
-        } finally {
-            System.out.println(results);
+    @Override
+    public void run() throws SuspendExecution {
+        int i0 = 0, i1 = 1;
+        for (int j = 0; j < 10; j++) {
+            i1 = i1 + i0;
+            i0 = i1 - i0;
+            print("bla %d %d\n", i0, i1);
         }
-        
-        assertEquals(9, results.size());
-        assertEquals("A", results.get(0));
-        assertEquals("B", results.get(1));
-        assertEquals("C", results.get(2));
-        assertEquals("D", results.get(3));
-        assertEquals("E", results.get(4));
-        assertEquals("F", results.get(5));
-        assertEquals("G", results.get(6));
-        assertEquals("H", results.get(7));
-        assertEquals("I", results.get(8));
+    }
+
+    private static void print(String fmt, Object... args) throws SuspendExecution {
+        System.out.printf(fmt, args);
+        Fiber.park();
     }
 }

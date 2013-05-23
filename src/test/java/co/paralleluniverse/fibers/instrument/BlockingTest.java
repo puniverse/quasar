@@ -26,8 +26,10 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package co.paralleluniverse.fibers;
+package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.fibers.Instrumented;
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.instrument.InstrumentClass;
 import co.paralleluniverse.fibers.instrument.Log;
 import co.paralleluniverse.fibers.instrument.LogLevel;

@@ -2,8 +2,11 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package co.paralleluniverse.fibers;
+package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.TestsHelper;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.Test;
 
@@ -35,6 +38,6 @@ public class Merge3Test implements SuspendableRunnable {
     @Test
     public void testMerge3() {
         Fiber c = new Fiber(null, null, new Merge3Test());
-        c.exec();
+        TestsHelper.exec(c);
     }
 }
