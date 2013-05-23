@@ -28,6 +28,8 @@ public class FiberAsyncTest {
 
     interface MyCallback {
         void call(String str);
+
+        void fail(RuntimeException e);
     }
 
     interface Service {
@@ -39,6 +41,12 @@ public class FiberAsyncTest {
             callback.call("sync result!");
         }
     };
+    final Service badSyncService = new Service() {
+        @Override
+        public void registerCallback(MyCallback callback) {
+            callback.fail(new RuntimeException("sync exception!"));
+        }
+    };
     final ExecutorService executor = Executors.newFixedThreadPool(1);
     final Service asyncService = new Service() {
         @Override
@@ -46,14 +54,45 @@ public class FiberAsyncTest {
             executor.submit(new Runnable() {
                 @Override
                 public void run() {
-                    callback.call("async result!");
+                    try {
+                        Thread.sleep(20);
+                        callback.call("async result!");
+                    } catch (InterruptedException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                }
+            });
+
+        }
+    };
+    final Service badAsyncService = new Service() {
+        @Override
+        public void registerCallback(final MyCallback callback) {
+            executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Thread.sleep(20);
+                        callback.fail(new RuntimeException("async exception!"));
+                    } catch (InterruptedException ex) {
+                        throw new RuntimeException(ex);
+                    }
                 }
             });
 
         }
     };
 
-    abstract class MyFiberAsync extends FiberAsync<String, MyCallback, RuntimeException> implements MyCallback {
+    static String callService(final Service service) throws SuspendExecution {
+        return new MyFiberAsync() {
+            @Override
+            protected void requestAsync(Fiber current, MyCallback callback) {
+                service.registerCallback(callback);
+            }
+        }.run();
+    }
+
+    static abstract class MyFiberAsync extends FiberAsync<String, MyCallback, RuntimeException> implements MyCallback {
         private final Fiber fiber;
 
         public MyFiberAsync() {
@@ -62,11 +101,12 @@ public class FiberAsyncTest {
 
         @Override
         public void call(String str) {
-            try {
-                super.completed(str, fiber);
-            } catch (RuntimeException e) {
-                super.failed(e, fiber);
-            }
+            super.completed(str, fiber);
+        }
+
+        @Override
+        public void fail(RuntimeException e) {
+            super.failed(e, fiber);
         }
     }
 
@@ -75,14 +115,25 @@ public class FiberAsyncTest {
         final Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
-                String res = new MyFiberAsync() {
-                    @Override
-                    protected void requestAsync(Fiber current, MyCallback callback) {
-                        syncService.registerCallback(callback);
-                    }
-                }.run();
-
+                String res = callService(syncService);
                 assertThat(res, equalTo("sync result!"));
+            }
+        }).start();
+
+        fiber.join();
+    }
+
+    @Test
+    public void testSyncCallbackException() throws Exception {
+        final Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution {
+                try {
+                    String res = callService(badSyncService);
+                    fail();
+                } catch (Exception e) {
+                    assertThat(e.getMessage(), equalTo("sync exception!"));
+                }
             }
         }).start();
 
@@ -94,14 +145,25 @@ public class FiberAsyncTest {
         final Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
-                String res = new MyFiberAsync() {
-                    @Override
-                    protected void requestAsync(Fiber current, MyCallback callback) {
-                        asyncService.registerCallback(callback);
-                    }
-                }.run();
-
+                String res = callService(asyncService);
                 assertThat(res, equalTo("async result!"));
+            }
+        }).start();
+
+        fiber.join();
+    }
+
+    @Test
+    public void testAsyncCallbackException() throws Exception {
+        final Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution {
+                try {
+                    String res = callService(badAsyncService);
+                    fail();
+                } catch (Exception e) {
+                    assertThat(e.getMessage(), equalTo("async exception!"));
+                }
             }
         }).start();
 
