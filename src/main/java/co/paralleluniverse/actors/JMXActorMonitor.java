@@ -44,7 +44,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
      * For the time being, we're not worried about data races. Messages counters are all updated by the actor, so there's no problem there.
      * For the JMX thread to see the messages counter, it should really be volatile, but as an approximation, we keep it a regular int.
      */
-    private WeakReference<Actor> actor;
+    private WeakReference<LocalActor> actor;
     private final String name;
     private boolean registered;
     private long lastCollectTime;
@@ -68,8 +68,8 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
     }
 
     @Override
-    public void setActor(Actor actor) {
-        this.actor = new WeakReference<Actor>(actor);
+    public void setActor(LocalActor actor) {
+        this.actor = new WeakReference<LocalActor>(actor);
     }
 
     private void registerMBean() {
@@ -185,7 +185,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
     public int getQueueLength() {
         if (this.actor == null)
             return 0;
-        final Actor a = this.actor.get();
+        final LocalActor a = this.actor.get();
         if (a == null) {
             unregisterMBean();
             return 0;

@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public abstract class BasicActor<Message, V> extends Actor<Message, V> {
+public abstract class BasicActor<Message, V> extends LocalActor<Message, V> {
     private Message currentMessage; // this works because channel is single-consumer
 
     public BasicActor(String name, int mailboxSize) {

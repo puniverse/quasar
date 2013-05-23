@@ -45,7 +45,7 @@ public class ActorTest {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
     }
 
-    private <Message, V> Actor<Message, V> spawnActor(Actor<Message, V> actor) {
+    private <Message, V> LocalActor<Message, V> spawnActor(LocalActor<Message, V> actor) {
         Fiber fiber = new Fiber("actor", fjPool, actor);
         fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
 
@@ -62,7 +62,7 @@ public class ActorTest {
     @Test
     public void whenActorThrowsExceptionThenGetThrowsIt() throws Exception {
 
-        Actor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxSize) {
+        LocalActor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxSize) {
             int counter;
 
             @Override
@@ -82,7 +82,7 @@ public class ActorTest {
 
     @Test
     public void whenActorReturnsValueThenGetReturnsIt() throws Exception {
-        Actor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxSize) {
+        LocalActor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxSize) {
             int counter;
 
             @Override
@@ -96,7 +96,7 @@ public class ActorTest {
 
     @Test
     public void testReceive() throws Exception {
-        Actor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxSize) {
+        LocalActor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxSize) {
             int counter;
 
             @Override
@@ -113,7 +113,7 @@ public class ActorTest {
 
     @Test
     public void testReceiveAfterSleep() throws Exception {
-        Actor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxSize) {
+        LocalActor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxSize) {
             int counter;
 
             @Override
@@ -133,7 +133,7 @@ public class ActorTest {
 
     @Test
     public void testSelectiveReceive() throws Exception {
-        Actor<ComplexMessage, List<Integer>> actor = spawnActor(new BasicActor<ComplexMessage, List<Integer>>(mailboxSize) {
+        LocalActor<ComplexMessage, List<Integer>> actor = spawnActor(new BasicActor<ComplexMessage, List<Integer>>(mailboxSize) {
             @Override
             protected List<Integer> doRun() throws SuspendExecution, InterruptedException {
                 final List<Integer> list = new ArrayList<>();
@@ -179,7 +179,7 @@ public class ActorTest {
 
     @Test
     public void whenSimpleReceiveAndTimeoutThenReturnNull() throws Exception {
-        Actor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
+        LocalActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
             int counter;
 
             @Override
@@ -206,7 +206,7 @@ public class ActorTest {
 
     @Test
     public void testTimeoutException() throws Exception {
-        Actor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
+        LocalActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 try {
@@ -230,7 +230,7 @@ public class ActorTest {
 
     @Test
     public void testSendSync() throws Exception {
-        final Actor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
+        final LocalActor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
             int counter;
 
             @Override
@@ -246,7 +246,7 @@ public class ActorTest {
             }
         });
 
-        final Actor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
+        final LocalActor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
             int counter;
 
             @Override
@@ -266,7 +266,7 @@ public class ActorTest {
 
     @Test
     public void testLink() throws Exception {
-        Actor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
+        LocalActor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
             int counter;
 
             @Override
@@ -279,7 +279,7 @@ public class ActorTest {
             }
         });
 
-        Actor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
+        LocalActor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
             int counter;
 
             @Override
@@ -304,7 +304,7 @@ public class ActorTest {
 
     @Test
     public void testMonitor() throws Exception {
-        Actor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
+        LocalActor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
             int counter;
 
             @Override
@@ -319,7 +319,7 @@ public class ActorTest {
 
         final AtomicBoolean handlerCalled = new AtomicBoolean(false);
 
-        Actor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
+        LocalActor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 Message m = receive(200, TimeUnit.MILLISECONDS);

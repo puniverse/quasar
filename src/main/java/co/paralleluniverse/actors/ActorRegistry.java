@@ -22,10 +22,10 @@ import jsr166e.ConcurrentHashMapV8;
  */
 public class ActorRegistry {
     // TODO: logs
-    private static final ConcurrentMap<Object, Actor> registeredActors = new ConcurrentHashMapV8<Object, Actor>();
+    private static final ConcurrentMap<Object, LocalActor> registeredActors = new ConcurrentHashMapV8<Object, LocalActor>();
     private static final ConcurrentMap<Object, ActorMonitor> registeredActorMonitors = new ConcurrentHashMapV8<Object, ActorMonitor>();
 
-    public static ActorMonitor register(Object name, Actor actor) {
+    public static ActorMonitor register(Object name, LocalActor actor) {
         if (name == null)
             throw new IllegalArgumentException("name is null");
 
@@ -40,7 +40,7 @@ public class ActorRegistry {
 
         ActorMonitor monitor = registeredActorMonitors.get(name);
         if (monitor == null) {
-            monitor = Actor.newActorMonitor(name.toString().replaceAll(":", ""));
+            monitor = LocalActor.newActorMonitor(name.toString().replaceAll(":", ""));
             registeredActorMonitors.put(name, monitor);
         }
         
