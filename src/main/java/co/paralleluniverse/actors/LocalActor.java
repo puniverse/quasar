@@ -20,6 +20,7 @@ import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.channels.Mailbox;
+import co.paralleluniverse.strands.channels.ReceiveChannel;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -31,7 +32,7 @@ import jsr166e.ConcurrentHashMapV8;
  *
  * @author pron
  */
-public abstract class LocalActor<Message, V> extends Actor<Message> implements SuspendableCallable<V>, Joinable<V>, Stranded {
+public abstract class LocalActor<Message, V> extends ActorImpl<Message> implements SuspendableCallable<V>, Joinable<V>, Stranded, ReceiveChannel<Message> {
     private Strand strand;
     private static final ThreadLocal<LocalActor> currentActor = new ThreadLocal<LocalActor>();
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
@@ -89,7 +90,8 @@ public abstract class LocalActor<Message, V> extends Actor<Message> implements S
         return mailbox().getQueueLength();
     }
 
-    protected Message receive() throws SuspendExecution, InterruptedException {
+    @Override
+    public Message receive() throws SuspendExecution, InterruptedException {
         for (;;) {
             checkThrownIn();
             record(1, "Actor", "receive", "%s waiting for a message", this);
@@ -103,7 +105,8 @@ public abstract class LocalActor<Message, V> extends Actor<Message> implements S
         }
     }
 
-    protected Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    @Override
+    public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         if (timeout <= 0 || unit == null)
             return receive();
 
@@ -148,18 +151,6 @@ public abstract class LocalActor<Message, V> extends Actor<Message> implements S
             else
                 return (Message) m;
         }
-    }
-    
-    public static Object currentActorReceive() throws SuspendExecution, InterruptedException {
-        return currentActor().receive();
-    }
-    
-    public static Object currentActorReceive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        return currentActor().receive(timeout, unit);
-    }
-    
-    public static Object currentActorTryReceive() {
-        return currentActor().tryReceive();
     }    
     //</editor-fold>
 

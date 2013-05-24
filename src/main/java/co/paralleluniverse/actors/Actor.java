@@ -1,263 +1,29 @@
 /*
- * Quasar: lightweight threads and actors for the JVM.
- * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
- * 
- * This program and the accompanying materials are dual-licensed under
- * either the terms of the Eclipse Public License v1.0 as published by
- * the Eclipse Foundation
- *  
- *   or (per the licensee's choosing)
- *  
- * under the terms of the GNU Lesser General Public License version 3.0
- * as published by the Free Software Foundation.
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.common.monitoring.FlightRecorder;
-import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
-import co.paralleluniverse.common.util.Debug;
-import co.paralleluniverse.strands.channels.Channel;
-import co.paralleluniverse.strands.channels.Mailbox;
 import co.paralleluniverse.strands.channels.SendChannel;
-import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
-import java.math.BigInteger;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  *
  * @author pron
  */
-public abstract class Actor<Message> implements java.io.Serializable {
-    static final long serialVersionUID = 894359345L;
-    private String name;
-    final Mailbox<Object> mailbox;
-    protected final FlightRecorder flightRecorder;
+public interface Actor<Message> extends SendChannel<Message> {
+    String getName();
 
-    @Override
-    public String toString() {
-        return "Actor@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this)));
-    }
+    boolean isDone();
 
-    protected Actor(String name, Mailbox<Object> mailbox) {
-        this.name = name;
-        this.mailbox = mailbox;
+    void send(Message message);
 
-        if (Debug.isDebug())
-            this.flightRecorder = Debug.getGlobalFlightRecorder();
-        else
-            this.flightRecorder = null;
-    }
+    void sendSync(Message message);
 
-    public String getName() {
-        return name;
-    }
+    Object monitor(Actor other);
 
-    void setName(String name) {
-        this.name = name;
-    }
+    void demonitor(Actor other, Object listener);
 
-    public static Object randtag() {
-        return new BigInteger(80, ThreadLocalRandom.current());
-    }
+    Actor link(Actor other);
 
-    public static Actor getActor(Object name) {
-        return ActorRegistry.getActor(name);
-    }
-
-    //<editor-fold desc="Mailbox methods">
-    /////////// Mailbox methods ///////////////////////////////////
-    Mailbox<Object> mailbox() {
-        return mailbox;
-    }
-
-    public SendChannel<Message> getMailbox() {
-        return (Channel<Message>) mailbox;
-    }
-
-    public void send(Message message) {
-        try {
-            record(1, "Actor", "send", "Sending %s -> %s", message, this);
-            if (mailbox.isOwnerAlive())
-                mailbox.send(message);
-            else
-                record(1, "Actor", "send", "Message dropped. Owner not alive.");
-        } catch (QueueCapacityExceededException e) {
-            throwIn(e);
-        }
-    }
-
-    public void sendSync(Message message) {
-        try {
-            record(1, "Actor", "sendSync", "Sending sync %s -> %s", message, this);
-            if (mailbox.isOwnerAlive())
-                mailbox.sendSync(message);
-            else
-                record(1, "Actor", "sendSync", "Message dropped. Owner not alive.");
-        } catch (QueueCapacityExceededException e) {
-            throwIn(e);
-        }
-    }
-    //</editor-fold>
-
-    //<editor-fold desc="Lifecycle">
-    /////////// Lifecycle ///////////////////////////////////
-    public abstract void throwIn(RuntimeException e);
-
-    public abstract boolean isDone();
-
-    abstract void addLifecycleListener(LifecycleListener listener);
-
-    abstract void removeLifecycleListener(LifecycleListener listener);
-
-    abstract LifecycleListener getLifecycleListener();
-
-    abstract Object getDeathReason();
-
-    public Actor link(Actor other) {
-        record(1, "Actor", "link", "Linking actors %s, %s", this, other);
-        if (!this.isDone() || !other.isDone()) {
-            if (this.isDone())
-                other.getLifecycleListener().dead(this, getDeathReason());
-            else if (other.isDone())
-                getLifecycleListener().dead(other, other.getDeathReason());
-            else {
-                addLifecycleListener(other.getLifecycleListener());
-                other.addLifecycleListener(getLifecycleListener());
-            }
-        }
-        return this;
-    }
-
-    public Actor unlink(Actor other) {
-        record(1, "Actor", "unlink", "Uninking actors %s, %s", this, other);
-        removeLifecycleListener(other.getLifecycleListener());
-        other.removeLifecycleListener(getLifecycleListener());
-        return this;
-    }
-
-    public Object monitor(Actor other) {
-        LifecycleListener listener = new LifecycleListener() {
-            @Override
-            public void dead(Actor actor, Object reason) {
-                mailbox.send(new ExitMessage(actor, reason, this));
-            }
-        };
-        record(1, "Actor", "monitor", "Actor %s to monitor %s (listener: %s)", this, other, listener);
-
-        if (other.isDone())
-            listener.dead(other, other.getDeathReason());
-        else
-            other.addLifecycleListener(listener);
-        return listener;
-    }
-
-    public void demonitor(Actor other, Object listener) {
-        record(1, "Actor", "demonitor", "Actor %s to stop monitoring %s (listener: %s)", this, other, listener);
-        other.removeLifecycleListener((LifecycleListener) listener);
-    }
-    //</editor-fold>
-
-    //<editor-fold desc="Serialization">
-    /////////// Serialization ///////////////////////////////////
-    // If using Kryo, see what needs to be done: https://code.google.com/p/kryo/
-    protected Object writeReplace() throws java.io.ObjectStreamException {
-        //return new SerializedActor(this);
-        throw new UnsupportedOperationException();
-    }
-
-    protected static class SerializedActor implements java.io.Serializable {
-        static final long serialVersionUID = 894359345L;
-        private Actor actor;
-
-        public SerializedActor(Actor actor) {
-            this.actor = actor;
-        }
-
-        public SerializedActor() {
-        }
-
-        protected Object readResolve() throws java.io.ObjectStreamException {
-            // return new Actor(...);
-            throw new UnsupportedOperationException();
-        }
-    }
-    //</editor-fold>
-
-    //<editor-fold defaultstate="collapsed" desc="Recording">
-    /////////// Recording ///////////////////////////////////
-    protected final void record(int level, String clazz, String method, String format) {
-        if (flightRecorder != null)
-            record(flightRecorder.get(), level, clazz, method, format);
-    }
-
-    protected final void record(int level, String clazz, String method, String format, Object arg1) {
-        if (flightRecorder != null)
-            record(flightRecorder.get(), level, clazz, method, format, arg1);
-    }
-
-    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2) {
-        if (flightRecorder != null)
-            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2);
-    }
-
-    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3) {
-        if (flightRecorder != null)
-            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3);
-    }
-
-    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
-        if (flightRecorder != null)
-            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3, arg4);
-    }
-
-    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
-        if (flightRecorder != null)
-            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3, arg4, arg5);
-    }
-
-    protected final void record(int level, String clazz, String method, String format, Object... args) {
-        if (flightRecorder != null)
-            record(flightRecorder.get(), level, clazz, method, format, args);
-    }
-
-    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format) {
-        if (recorder != null)
-            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, null));
-    }
-
-    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1) {
-        if (recorder != null)
-            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1}));
-    }
-
-    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2) {
-        if (recorder != null)
-            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2}));
-    }
-
-    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3) {
-        if (recorder != null)
-            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2, arg3}));
-    }
-
-    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
-        if (recorder != null)
-            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2, arg3, arg4}));
-    }
-
-    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
-        if (recorder != null)
-            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
-    }
-
-    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object... args) {
-        if (recorder != null)
-            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, args));
-    }
-
-    private static FlightRecorderMessage makeFlightRecorderMessage(FlightRecorder.ThreadRecorder recorder, String clazz, String method, String format, Object[] args) {
-        return new FlightRecorderMessage(clazz, method, format, args);
-        //return ((FlightRecorderMessageFactory) recorder.getAux()).makeFlightRecorderMessage(clazz, method, format, args);
-    }
-    //</editor-fold>
+    Actor unlink(Actor other);
 }

@@ -45,7 +45,7 @@ public abstract class GenServerImpl<Message, V> extends LocalActor<GenServerImpl
     @Override
     public V call(Message m) throws InterruptedException, SuspendExecution {
         sendSync(new GenServerMessage<Message>(MessageType.CALL, LocalActor.currentActor(), m));
-        V res = (V) currentActorReceive();
+        V res = (V) currentActor().receive();
         return res;
     }
 
