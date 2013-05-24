@@ -128,7 +128,7 @@ public class LocalGenServer<Message, V> extends LocalActor<GenServerMessage<Mess
         server.handleInfo(m);
     }
 
-    protected void terminate(Object reason) {
-        server.terminate(reason);
+    protected void terminate(Throwable cause) {
+        server.terminate(cause);
     }
 }

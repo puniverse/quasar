@@ -24,5 +24,5 @@ public interface Server<Message, V> {
     V handleCall(Actor<V> from, Message m);
     void handleCast(Actor<V> from, Message m);
     void handleInfo(Object m);
-    void terminate(Object reason);
+    void terminate(Throwable cause);
 }

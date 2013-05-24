@@ -113,7 +113,7 @@ abstract class ActorImpl<Message> implements Actor<Message>, java.io.Serializabl
 
     abstract LifecycleListener getLifecycleListener();
 
-    abstract Object getDeathReason();
+    abstract Throwable getDeathCause();
 
     @Override
     public Actor link(Actor other1) {
@@ -121,9 +121,9 @@ abstract class ActorImpl<Message> implements Actor<Message>, java.io.Serializabl
         record(1, "Actor", "link", "Linking actors %s, %s", this, other);
         if (!this.isDone() || !other.isDone()) {
             if (this.isDone())
-                other.getLifecycleListener().dead(this, getDeathReason());
+                other.getLifecycleListener().dead(this, getDeathCause());
             else if (other.isDone())
-                getLifecycleListener().dead(other, other.getDeathReason());
+                getLifecycleListener().dead(other, other.getDeathCause());
             else {
                 addLifecycleListener(other.getLifecycleListener());
                 other.addLifecycleListener(getLifecycleListener());
@@ -153,7 +153,7 @@ abstract class ActorImpl<Message> implements Actor<Message>, java.io.Serializabl
         record(1, "Actor", "monitor", "Actor %s to monitor %s (listener: %s)", this, other, listener);
 
         if (other.isDone())
-            listener.dead(other, other.getDeathReason());
+            listener.dead(other, other.getDeathCause());
         else
             other.addLifecycleListener(listener);
         return listener;

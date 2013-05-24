@@ -33,12 +33,12 @@ import jsr166e.ConcurrentHashMapV8;
  * @author pron
  */
 public abstract class LocalActor<Message, V> extends ActorImpl<Message> implements SuspendableCallable<V>, Joinable<V>, Stranded, ReceiveChannel<Message> {
-    private Strand strand;
     private static final ThreadLocal<LocalActor> currentActor = new ThreadLocal<LocalActor>();
+    private Strand strand;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
     private volatile V result;
     private volatile RuntimeException exception;
-    private volatile Object deathReason;
+    private volatile Throwable deathCause;
     private ActorMonitor monitor;
 
     public LocalActor(String name, int mailboxSize) {
@@ -157,7 +157,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     //<editor-fold desc="Strand helpers">
     /////////// Strand helpers ///////////////////////////////////
-    LocalActor<Message, V> start() {
+    public LocalActor<Message, V> start() {
         record(1, "Actor", "start", "Starting actor %s", this);
         strand.start();
         return this;
@@ -248,8 +248,8 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
-    Object getDeathReason() {
-        return deathReason;
+    Throwable getDeathCause() {
+        return deathCause;
     }
 
     @Override
@@ -292,8 +292,8 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         return this;
     }
 
-    private void notifyDeath(Object reason) {
-        this.deathReason = reason;
+    private void notifyDeath(Throwable reason) {
+        this.deathCause = reason;
         monitorAddDeath(reason);
         for (LifecycleListener listener : lifecycleListeners)
             listener.dead(this, reason);
