@@ -20,6 +20,9 @@ import co.paralleluniverse.actors.Actor;
  * @author pron
  */
 public interface Server<Message, V> {
+    void init();
     V handleCall(Actor<V> from, Message m);
     void handleCast(Actor<V> from, Message m);
+    void handleInfo(Object m);
+    void terminate(Object reason);
 }

@@ -47,7 +47,8 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     public LocalActor(Strand strand, String name, int mailboxSize) {
         this(name, mailboxSize);
-        setStrand(strand);
+        if (strand != null)
+            setStrand(strand);
     }
 
     @Override
@@ -151,7 +152,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
             else
                 return (Message) m;
         }
-    }    
+    }
     //</editor-fold>
 
     //<editor-fold desc="Strand helpers">
