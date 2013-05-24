@@ -29,11 +29,11 @@ public interface Actor<Message> extends SendChannel<Message> {
 
     void sendSync(Message message);
 
-    Object monitor(Actor other);
-
-    void demonitor(Actor other, Object listener);
-
     Actor link(Actor other);
 
     Actor unlink(Actor other);
+
+    Object monitor(Actor other);
+
+    void demonitor(Actor other, Object listener);
 }
