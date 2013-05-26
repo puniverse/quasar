@@ -21,6 +21,7 @@ import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.channels.Mailbox;
 import co.paralleluniverse.strands.channels.ReceiveChannel;
+import java.lang.reflect.Constructor;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -32,7 +33,7 @@ import jsr166e.ConcurrentHashMapV8;
  *
  * @author pron
  */
-public abstract class LocalActor<Message, V> extends ActorImpl<Message> implements SuspendableCallable<V>, Joinable<V>, Stranded, ReceiveChannel<Message> {
+public abstract class LocalActor<Message, V> extends ActorImpl<Message> implements SuspendableCallable<V>, Joinable<V>, Stranded, ReceiveChannel<Message>, ActorBuilder<Message, V> {
     private static final ThreadLocal<LocalActor> currentActor = new ThreadLocal<LocalActor>();
     private Strand strand;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
@@ -40,6 +41,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     private volatile RuntimeException exception;
     private volatile Throwable deathCause;
     private ActorMonitor monitor;
+    private ActorSpec<?, Message, V> spec;
 
     public LocalActor(String name, int mailboxSize) {
         super(name, Mailbox.create(mailboxSize));
@@ -49,6 +51,62 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         this(name, mailboxSize);
         if (strand != null)
             setStrand(strand);
+    }
+
+    public static <T extends LocalActor<Message, V>, Message, V> T newActor(Class<T> clazz, Object... params) {
+        return newActor(new ActorSpec<T, Message, V>(clazz, params));
+    }
+
+    public static <T extends LocalActor<Message, V>, Message, V> T newActor(ActorSpec<T, Message, V> spec) {
+        return spec.build();
+    }
+
+    @Override
+    public final LocalActor<Message, V> build() {
+        if(!isDone())
+            throw new IllegalStateException("Actor " + this + " isn't dead. Cannot build a copy");
+        
+        final LocalActor newInstance = reinstantiate();
+        
+        newInstance.setName(this.getName());
+        newInstance.strand = null;
+        newInstance.monitor = this.monitor;
+        monitorAddRestart();
+        if(getName() != null && ActorRegistry.getActor(getName()) == this)
+            newInstance.register();
+        return newInstance;
+
+    }
+
+    protected LocalActor<Message, V> reinstantiate() {
+        final LocalActor<Message, V> newInstance;
+        if (spec != null)
+            newInstance = newActor(spec);
+        else if (getClass().isAnonymousClass() && getClass().getSuperclass().equals(LocalActor.class))
+            newInstance = newActor(createSpecForAnonymousClass());
+        else
+            throw new RuntimeException("Actor " + this + " cannot be reinstantiated");
+        return newInstance;
+    }
+
+    private ActorSpec<LocalActor<Message, V>, Message, V> createSpecForAnonymousClass() {
+        assert getClass().isAnonymousClass() && getClass().getSuperclass().equals(LocalActor.class);
+        Constructor<LocalActor<Message, V>> ctor = (Constructor<LocalActor<Message, V>>) getClass().getDeclaredConstructors()[0];
+        Object[] params = new Object[ctor.getParameterTypes().length];
+        for (int i = 0; i < params.length; i++) {
+            Class<?> type = ctor.getParameterTypes()[i];
+            if (String.class.equals(type))
+                params[i] = getName();
+            if (Integer.TYPE.equals(type))
+                params[i] = mailbox.capacity();
+            else
+                params[i] = type.isPrimitive() ? 0 : null;
+        }
+        return new ActorSpec<LocalActor<Message, V>, Message, V>(ctor, params);
+    }
+
+    void setSpec(ActorSpec<?, Message, V> spec) {
+        this.spec = spec;
     }
 
     @Override
@@ -208,6 +266,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         if (!(strand instanceof Fiber))
             currentActor.set(this);
         try {
+            init();
             result = doRun();
             notifyDeath(null);
             return result;
@@ -222,6 +281,9 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
             if (!(strand instanceof Fiber))
                 currentActor.set(this);
         }
+    }
+
+    protected void init() {
     }
 
     protected abstract V doRun() throws InterruptedException, SuspendExecution;
@@ -301,9 +363,9 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         }
     };
     //</editor-fold>
-
     //<editor-fold defaultstate="collapsed" desc="Monitor delegates">
     /////////// Monitor delegates ///////////////////////////////////
+
     protected final void monitorAddDeath(Object reason) {
         if (monitor != null)
             monitor.addDeath(reason);
