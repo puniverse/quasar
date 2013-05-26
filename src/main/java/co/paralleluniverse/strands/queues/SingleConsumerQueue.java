@@ -47,6 +47,8 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
     @Override
     public abstract int size();
 
+    public abstract int capacity();
+    
     @Override
     public boolean isEmpty() {
         return pk() == null;

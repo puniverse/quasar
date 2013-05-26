@@ -41,6 +41,10 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
         this.queue = (SingleConsumerQueue<Message, Object>) queue;
     }
 
+    public int capacity() {
+        return queue.capacity();
+    }
+
     public Object getOwner() {
         return owner;
     }
@@ -62,7 +66,7 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
         if (owner == null)
             setStrand(Strand.currentStrand());
         else {
-            if(sync != mySync)
+            if (sync != mySync)
                 sync = mySync;
             sync.verifyOwner();
         }
@@ -76,7 +80,7 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
     void setSync(OwnedSynchronizer sync) {
         this.sync = sync;
     }
-    
+
     @Override
     public Strand getStrand() {
         return (Strand) owner;
@@ -180,7 +184,7 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
         if (sync == null)
             throw new IllegalStateException("Owning strand has not been set");
     }
-    
+
     public int getQueueLength() {
         return queue.size();
     }

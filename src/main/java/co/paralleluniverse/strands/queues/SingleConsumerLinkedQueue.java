@@ -38,6 +38,11 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
         return true;
     }
 
+    @Override
+    public int capacity() {
+        return -1;
+    }
+    
     abstract Node newNode();
     
     boolean enq(final Node<E> node) {

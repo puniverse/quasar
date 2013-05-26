@@ -36,6 +36,11 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
         return true;
     }
 
+    @Override
+    public int capacity() {
+        return -1;
+    }
+
     abstract Node newNode();
 
     abstract boolean hasValue(Node n, int index);
