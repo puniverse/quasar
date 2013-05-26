@@ -82,7 +82,7 @@ public class CatchTest implements SuspendableRunnable {
         results.clear();
 
         try {
-            Fiber co = new Fiber(null, null, this);
+            Fiber co = new Fiber((String)null, null, this);
             exec(co);
             results.add("B");
             exec(co);

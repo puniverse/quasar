@@ -132,6 +132,62 @@ public abstract class Strand {
             Thread.dumpStack();
     }
 
+    public static Strand clone(Strand strand, final SuspendableCallable<?> target) {
+        if(strand.isAlive())
+            throw new IllegalStateException("A strand can only be cloned after death. " + strand + " isn't dead.");
+        if(strand instanceof FiberStrand)
+            return clone((Fiber)strand.getUnderlying(), target);
+        
+        if(strand instanceof Fiber)
+            return new Fiber((Fiber)strand, target);
+        else
+            return new ThreadStrand(cloneThread((Thread)strand.getUnderlying(), toRunnable(target)));
+    }
+    
+    public static Strand clone(Strand strand, final SuspendableRunnable target) {
+        if(strand.isAlive())
+            throw new IllegalStateException("A strand can only be cloned after death. " + strand + " isn't dead.");
+        if(strand instanceof FiberStrand)
+            return clone((Fiber)strand.getUnderlying(), target);
+        
+        if(strand instanceof Fiber)
+            return new Fiber((Fiber)strand, target);
+        else
+            return new ThreadStrand(cloneThread((Thread)strand.getUnderlying(), toRunnable(target)));
+    }
+    
+    public static Runnable toRunnable(final SuspendableRunnable runnable) {
+        return new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    runnable.run();
+                } catch (SuspendExecution ex) {
+                    throw new AssertionError(ex);
+                } catch (InterruptedException ex) {
+                }
+            }
+        };
+    }
+
+    public static Runnable toRunnable(final SuspendableCallable<?> callable) {
+        return new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    callable.run();
+                } catch (SuspendExecution ex) {
+                    throw new AssertionError(ex);
+                } catch (InterruptedException ex) {
+                }
+            }
+        };
+    }
+    private static Thread cloneThread(Thread thread, Runnable target) {
+        Thread t = new Thread(thread.getThreadGroup(), target, thread.getName());
+        t.setDaemon(thread.isDaemon());
+        return t;
+    }
     private static class ThreadStrand extends Strand {
         private final Thread thread;
 

@@ -53,7 +53,7 @@ public class Merge2Test implements SuspendableRunnable {
     @Test
     public void testMerge2() {
         try {
-            Fiber c = new Fiber(null, null, new Merge2Test());
+            Fiber c = new Fiber((String)null, null, new Merge2Test());
             TestsHelper.exec(c);
             assertTrue("Should not reach here", false);
         } catch (NullPointerException ex) {

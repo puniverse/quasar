@@ -43,7 +43,7 @@ public class SuspendTest implements SuspendableRunnable {
     @Test
     public void testSuspend() {
         SuspendTest test = new SuspendTest();
-        Fiber co = new Fiber(null, null, test);
+        Fiber co = new Fiber((String)null, null, test);
 
         while (!exec(co))
             System.out.println("State=" + co.getState());

@@ -27,6 +27,8 @@ import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import co.paralleluniverse.strands.SuspendableUtils.VoidSuspendableCallable;
+import static co.paralleluniverse.strands.SuspendableUtils.runnableToCallable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -87,6 +89,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     private final Stack stack;
     private final Fiber<?> parent;
     private final String name;
+    private final int initialStackSize;
     private volatile State state;
     private volatile boolean interrupted;
     private final SuspendableCallable<V> target;
@@ -115,6 +118,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         this.parent = currentFiber();
         this.target = target;
         this.fjTask = new FiberForkJoinTask<V>(this);
+        this.initialStackSize = stackSize;
         this.stack = new Stack(this, stackSize > 0 ? stackSize : DEFAULT_STACK_SIZE);
         this.state = State.NEW;
 
@@ -122,8 +126,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
             record(1, "Fiber", "<init>", "Creating fiber name: %s, fjPool: %s, parent: %s, target: %s, task: %s, stackSize: %s", name, fjPool, parent, target, fjTask, stackSize);
 
         if (target != null) {
-            if (!(target instanceof VoidSuspendableCallable) && !isInstrumented(target.getClass()))
-                throw new IllegalArgumentException("Target class " + target.getClass() + " has not been instrumented.");
+            verifyInstrumentedTarget(target);
 
             if (target instanceof Stranded)
                 ((Stranded) target).setStrand(this);
@@ -160,24 +163,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         return parent;
     }
 
-    protected static SuspendableCallable<Void> wrap(SuspendableRunnable runnable) {
-        if (!isInstrumented(runnable.getClass()))
-            throw new IllegalArgumentException("Target class " + runnable.getClass() + " has not been instrumented.");
-        return new VoidSuspendableCallable(runnable);
-    }
+    private static void verifyInstrumentedTarget(SuspendableCallable<?> target) {
+        Object t = target;
+        if (target instanceof VoidSuspendableCallable)
+            t = ((VoidSuspendableCallable) target).getRunnable();
 
-    private static class VoidSuspendableCallable implements SuspendableCallable<Void> {
-        private final SuspendableRunnable runnable;
-
-        public VoidSuspendableCallable(SuspendableRunnable runnable) {
-            this.runnable = runnable;
-        }
-
-        @Override
-        public Void run() throws SuspendExecution, InterruptedException {
-            runnable.run();
-            return null;
-        }
+        if (!isInstrumented(t.getClass()))
+            throw new IllegalArgumentException("Target class " + t.getClass() + " has not been instrumented.");
     }
 
     public SuspendableCallable<V> getTarget() {
@@ -224,7 +216,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(String name, ForkJoinPool fjPool, int stackSize, SuspendableRunnable target) {
-        this(name, fjPool, stackSize, (SuspendableCallable<V>) wrap(target));
+        this(name, fjPool, stackSize, (SuspendableCallable<V>) runnableToCallable(target));
     }
 
     /**
@@ -330,7 +322,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(String name, int stackSize, SuspendableRunnable target) {
-        this(name, stackSize, (SuspendableCallable<V>) wrap(target));
+        this(name, stackSize, (SuspendableCallable<V>) runnableToCallable(target));
     }
 
     /**
@@ -397,8 +389,24 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     public Fiber() {
         this(null, -1, (SuspendableCallable) null);
     }
-    //</editor-fold>
 
+    public Fiber(Fiber fiber, SuspendableCallable<V> target) {
+        this(fiber.name, fiber.fjPool, fiber.initialStackSize, target);
+    }
+
+    public Fiber(Fiber fiber, SuspendableRunnable target) {
+        this(fiber.name, fiber.fjPool, fiber.initialStackSize, target);
+    }
+
+    public Fiber(Fiber fiber, ForkJoinPool fjPool, SuspendableCallable<V> target) {
+        this(fiber.name, fjPool, fiber.initialStackSize, target);
+    }
+
+    public Fiber(Fiber fiber, ForkJoinPool fjPool, SuspendableRunnable target) {
+        this(fiber.name, fjPool, fiber.initialStackSize, target);
+    }
+
+    //</editor-fold>
     /**
      * Returns the active Fiber on this thread or NULL if no Fiber is running.
      *
@@ -416,9 +424,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     /**
      * Suspends (deschedules) the currently running Fiber unless the
      * permit is available.
-     *  <p/>
-     * Returns {@code true} iff we've been suspended and then resumed. 
-     * 
+     * <p/>
+     * Returns {@code true} iff we've been suspended and then resumed.
+     *
      * @throws SuspendExecution This exception is used for control transfer and must never be caught.
      * @throws IllegalStateException If not called from a Fiber
      */
@@ -467,14 +475,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     }
 
     /**
-     * Returns {@code true} iff we've been suspended and then resumed. 
+     * Returns {@code true} iff we've been suspended and then resumed.
      * (The return value in the Java code is actually ignored. It is generated and injected in InstrumentMethod.accept())
+     *
      * @param blocker
      * @param postParkActions
      * @param timeout
      * @param unit
      * @return
-     * @throws SuspendExecution 
+     * @throws SuspendExecution
      */
     private boolean park1(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
         record(1, "Fiber", "park", "Parking %s", this);
@@ -978,7 +987,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     public static interface PostParkActions {
         /**
          * Called by Fiber immediately after park.
-         * This method may not use any ThreadLocals as they have been rest by the time the method is called. 
+         * This method may not use any ThreadLocals as they have been rest by the time the method is called.
          *
          * @param current
          */

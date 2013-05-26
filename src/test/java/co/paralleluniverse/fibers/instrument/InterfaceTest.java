@@ -49,7 +49,7 @@ public class InterfaceTest {
     @Test
     public void testSuspend() {
 //		final I i = new C();
-        Fiber co = new Fiber(null, null, new SuspendableRunnable() {
+        Fiber co = new Fiber((String)null, null, new SuspendableRunnable() {
             @Override
             public final void run() throws SuspendExecution {
                 // next line causes an error because of incomplete merge in TypeInterpreter

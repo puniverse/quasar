@@ -23,7 +23,7 @@ public class DoubleTest implements SuspendableRunnable {
 
     @Test
     public void testDouble() {
-        Fiber co = new Fiber(null, null, this);
+        Fiber co = new Fiber((String)null, null, this);
         TestsHelper.exec(co);
         assertEquals(0, result, 1e-8);
         boolean res = TestsHelper.exec(co);

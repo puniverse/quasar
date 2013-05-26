@@ -22,7 +22,7 @@ public class InheritTest {
     @Test
     public void testInherit() {
         final C dut = new C();
-        Fiber c = new Fiber(null, null, new SuspendableRunnable() {
+        Fiber c = new Fiber((String)null, null, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
                 dut.myMethod();

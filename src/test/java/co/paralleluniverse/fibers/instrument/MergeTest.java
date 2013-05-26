@@ -35,7 +35,7 @@ public class MergeTest implements SuspendableRunnable {
 
     @Test
     public void testMerge() {
-        Fiber c = new Fiber(null, null, new MergeTest());
+        Fiber c = new Fiber((String)null, null, new MergeTest());
         TestsHelper.exec(c);
     }
 }

@@ -23,7 +23,7 @@ public class UninitializedTest implements SuspendableRunnable {
     
     @Test
     public void testUninitialized() {
-        Fiber co = new Fiber(null, null, this);
+        Fiber co = new Fiber((String)null, null, this);
         int count = 1;
         while(!TestsHelper.exec(co))
             count++;

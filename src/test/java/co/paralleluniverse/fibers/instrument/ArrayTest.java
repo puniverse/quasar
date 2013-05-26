@@ -24,7 +24,7 @@ public class ArrayTest implements SuspendableRunnable {
     
     @Test
     public void testArray() {
-        Fiber co = new Fiber(null, null, this);
+        Fiber co = new Fiber((String)null, null, this);
         TestsHelper.exec(co);
         assertEquals(42, l1.i);
     }
