@@ -268,9 +268,10 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     public Actor register(Object name) {
+        if(getName() != null && !name.equals(name))
+            throw new RuntimeException("Cannot register actor named " + getName() + " under a different name (" + name + ")");
         record(1, "Actor", "register", "Registering actor %s as %s", this, name);
-        this.monitor = ActorRegistry.register(name, this);
-        monitorAddRestart();
+        this.monitor = ActorRegistry.register(this);
         return this;
     }
 
@@ -282,12 +283,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         record(1, "Actor", "unregister", "Unregistering actor %s (name: %s)", getName());
         if (getName() == null)
             throw new IllegalArgumentException("name is null");
-        unregister(getName());
-        return this;
-    }
-
-    public Actor unregister(Object name) {
-        ActorRegistry.unregister(name);
+        ActorRegistry.unregister(getName());
         this.monitor = null;
         return this;
     }

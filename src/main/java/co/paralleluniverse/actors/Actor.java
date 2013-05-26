@@ -20,7 +20,7 @@ import co.paralleluniverse.strands.channels.SendChannel;
  * @author pron
  */
 public interface Actor<Message> extends SendChannel<Message> {
-    String getName();
+    Object getName();
 
     boolean isDone();
 

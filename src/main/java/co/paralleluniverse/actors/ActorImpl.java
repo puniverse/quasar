@@ -30,7 +30,7 @@ import java.util.concurrent.ThreadLocalRandom;
 abstract class ActorImpl<Message> implements Actor<Message>, java.io.Serializable {
     // TODO: This class may be redundant
     static final long serialVersionUID = 894359345L;
-    private String name;
+    private volatile Object name;
     final Mailbox<Object> mailbox;
     protected final FlightRecorder flightRecorder;
 
@@ -39,7 +39,7 @@ abstract class ActorImpl<Message> implements Actor<Message>, java.io.Serializabl
         return "Actor@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this)));
     }
 
-    protected ActorImpl(String name, Mailbox<Object> mailbox) {
+    protected ActorImpl(Object name, Mailbox<Object> mailbox) {
         this.name = name;
         this.mailbox = mailbox;
 
@@ -50,11 +50,11 @@ abstract class ActorImpl<Message> implements Actor<Message>, java.io.Serializabl
     }
 
     @Override
-    public String getName() {
+    public Object getName() {
         return name;
     }
 
-    void setName(String name) {
+    void setName(Object name) {
         this.name = name;
     }
 
