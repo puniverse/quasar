@@ -25,4 +25,5 @@ public interface ActorMonitor {
     void addMessage();
     void skippedMessage();
     void resetSkippedMessages();
+    void shutdown();
 }

@@ -40,6 +40,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     private volatile V result;
     private volatile RuntimeException exception;
     private volatile Throwable deathCause;
+    private boolean registered;
     private ActorMonitor monitor;
     private ActorSpec<?, Message, V> spec;
 
@@ -63,16 +64,16 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     @Override
     public final LocalActor<Message, V> build() {
-        if(!isDone())
+        if (!isDone())
             throw new IllegalStateException("Actor " + this + " isn't dead. Cannot build a copy");
-        
+
         final LocalActor newInstance = reinstantiate();
-        
+
         newInstance.setName(this.getName());
         newInstance.strand = null;
         newInstance.monitor = this.monitor;
-        monitorAddRestart();
-        if(getName() != null && ActorRegistry.getActor(getName()) == this)
+        monitor.setActor(newInstance);
+        if (getName() != null && ActorRegistry.getActor(getName()) == this)
             newInstance.register();
         return newInstance;
 
@@ -114,8 +115,22 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         return "Actor@" + (getName() != null ? getName() : Integer.toHexString(System.identityHashCode(this))) + "[owner: " + strand + ']';
     }
 
-    static ActorMonitor newActorMonitor(String name) {
-        return new JMXActorMonitor(name);
+    public ActorMonitor monitor() {
+        if(monitor != null)
+            return monitor;
+        final String name = getName().toString().replaceAll(":", "");
+        this.monitor = new JMXActorMonitor(name);
+        monitor.setActor(this);
+        return monitor;
+    }
+
+    public void stopMonitor() {
+        monitor.shutdown();
+        this.monitor = null;
+    }
+    
+    public ActorMonitor getMonitor() {
+        return monitor;
     }
 
     public static LocalActor currentActor() {
@@ -255,6 +270,12 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     public boolean isDone() {
         return !strand.isAlive();
     }
+    
+    protected void verifyInActor() {
+        if(currentActor() != this)
+            throw new ConcurrencyException("Operation not called from within the actor (" + this + ")");
+    }
+    
     //</editor-fold>
 
     //<editor-fold desc="Lifecycle">
@@ -268,18 +289,18 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         try {
             init();
             result = doRun();
-            notifyDeath(null);
+            die(null);
             return result;
         } catch (InterruptedException e) {
             checkThrownIn();
-            notifyDeath(e);
+            die(e);
             throw e;
         } catch (Throwable t) {
-            notifyDeath(t);
+            die(t);
             throw t;
         } finally {
             if (!(strand instanceof Fiber))
-                currentActor.set(this);
+                currentActor.set(null);
         }
     }
 
@@ -290,7 +311,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     protected void handleLifecycleMessage(LifecycleMessage m) {
         record(1, "Actor", "handleLifecycleMessage", "%s got LifecycleMessage %s", this, m);
-        if (m instanceof ExitMessage && ((ExitMessage) m).getMonitor() == null)
+        if (m instanceof ExitMessage && ((ExitMessage) m).getWatch() == null)
             throw new LifecycleException(m);
     }
 
@@ -330,15 +351,17 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     public Actor register(Object name) {
-        if(getName() != null && !name.equals(name))
-            throw new RuntimeException("Cannot register actor named " + getName() + " under a different name (" + name + ")");
-        record(1, "Actor", "register", "Registering actor %s as %s", this, name);
-        this.monitor = ActorRegistry.register(this);
-        return this;
+        if (getName() != null && !name.equals(name))
+            throw new RegistrationException("Cannot register actor named " + getName() + " under a different name (" + name + ")");
+        setName(name);
+        return register();
     }
 
     public Actor register() {
-        return register(getName());
+        record(1, "Actor", "register", "Registering actor %s as %s", this, getName());
+        ActorRegistry.register(this);
+        this.registered = true;
+        return this;
     }
 
     public Actor unregister() {
@@ -347,33 +370,32 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
             throw new IllegalArgumentException("name is null");
         ActorRegistry.unregister(getName());
         this.monitor = null;
+        this.registered = false;
         return this;
     }
 
-    private void notifyDeath(Throwable reason) {
+    private void die(Throwable reason) {
         this.deathCause = reason;
         monitorAddDeath(reason);
+        if (registered)
+            unregister();
         for (LifecycleListener listener : lifecycleListeners)
             listener.dead(this, reason);
+        lifecycleListeners.clear(); // avoid memory leak
     }
     private final LifecycleListener lifecycleListener = new LifecycleListener() {
         @Override
-        public void dead(Actor actor, Object reason) {
-            mailbox.send(new ExitMessage(actor, reason));
+        public void dead(Actor actor, Throwable cause) {
+            mailbox.send(new ExitMessage(actor, cause));
         }
     };
     //</editor-fold>
+    
     //<editor-fold defaultstate="collapsed" desc="Monitor delegates">
     /////////// Monitor delegates ///////////////////////////////////
-
     protected final void monitorAddDeath(Object reason) {
         if (monitor != null)
             monitor.addDeath(reason);
-    }
-
-    protected final void monitorAddRestart() {
-        if (monitor != null)
-            monitor.addRestart();
     }
 
     protected final void monitorAddMessage() {

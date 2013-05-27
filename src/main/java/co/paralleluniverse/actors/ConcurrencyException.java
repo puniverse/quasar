@@ -13,27 +13,24 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.strands.channels.SendChannel;
-
 /**
  *
  * @author pron
  */
-public interface Actor<Message> extends SendChannel<Message> {
-    Object getName();
+public class ConcurrencyException extends RuntimeException {
 
-    boolean isDone();
+    public ConcurrencyException() {
+    }
 
-    @Override
-    void send(Message message);
+    public ConcurrencyException(String message) {
+        super(message);
+    }
 
-    void sendSync(Message message);
+    public ConcurrencyException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
-    Actor link(Actor other);
-
-    Actor unlink(Actor other);
-
-    Object watch(Actor other);
-
-    void unwatch(Actor other, Object listener);
+    public ConcurrencyException(Throwable cause) {
+        super(cause);
+    }    
 }

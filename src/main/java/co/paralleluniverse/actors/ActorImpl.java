@@ -142,12 +142,12 @@ abstract class ActorImpl<Message> implements Actor<Message>, java.io.Serializabl
     }
 
     @Override
-    public Object monitor(Actor other1) {
+    public Object watch(Actor other1) {
         final ActorImpl other = (ActorImpl)other1;
         LifecycleListener listener = new LifecycleListener() {
             @Override
-            public void dead(Actor actor, Object reason) {
-                mailbox.send(new ExitMessage(actor, reason, this));
+            public void dead(Actor actor, Throwable cause) {
+                mailbox.send(new ExitMessage(actor, cause, this));
             }
         };
         record(1, "Actor", "monitor", "Actor %s to monitor %s (listener: %s)", this, other, listener);
@@ -160,7 +160,7 @@ abstract class ActorImpl<Message> implements Actor<Message>, java.io.Serializabl
     }
 
     @Override
-    public void demonitor(Actor other1, Object listener) {
+    public void unwatch(Actor other1, Object listener) {
         final ActorImpl other = (ActorImpl)other1;
         record(1, "Actor", "demonitor", "Actor %s to stop monitoring %s (listener: %s)", this, other, listener);
         other.removeLifecycleListener((LifecycleListener) listener);

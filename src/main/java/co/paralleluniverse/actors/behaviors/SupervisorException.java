@@ -11,29 +11,27 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors;
-
-import co.paralleluniverse.strands.channels.SendChannel;
+package co.paralleluniverse.actors.behaviors;
 
 /**
  *
  * @author pron
  */
-public interface Actor<Message> extends SendChannel<Message> {
-    Object getName();
+public class SupervisorException extends RuntimeException {
 
-    boolean isDone();
+    public SupervisorException() {
+    }
 
-    @Override
-    void send(Message message);
+    public SupervisorException(String message) {
+        super(message);
+    }
 
-    void sendSync(Message message);
+    public SupervisorException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
-    Actor link(Actor other);
-
-    Actor unlink(Actor other);
-
-    Object watch(Actor other);
-
-    void unwatch(Actor other, Object listener);
+    public SupervisorException(Throwable cause) {
+        super(cause);
+    }
+    
 }

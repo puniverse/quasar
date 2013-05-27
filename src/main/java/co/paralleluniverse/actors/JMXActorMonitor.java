@@ -72,6 +72,12 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
         this.actor = new WeakReference<LocalActor>(actor);
     }
 
+    @Override
+    public void shutdown() {
+        unregisterMBean();
+        this.actor = null;
+    }
+
     private void registerMBean() {
         try {
             MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();

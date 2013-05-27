@@ -11,51 +11,36 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors;
+package co.paralleluniverse.actors.behaviors;
 
+import co.paralleluniverse.actors.*;
 import java.util.Objects;
 
 /**
  *
  * @author pron
  */
-public class ExitMessage implements LifecycleMessage {
-    public final Actor actor;
-    public final Throwable cause;
-    public final Object watch;
+public class ShutdownMessage implements LifecycleMessage {
+    public final Actor requester; // http://english.stackexchange.com/questions/29254/whats-the-difference-between-requester-and-requestor
 
-    public ExitMessage(Actor actor, Throwable cause) {
-        this(actor, cause, null);
+
+    public ShutdownMessage(Actor requestor) {
+        this.requester = requestor;
     }
 
-    public ExitMessage(Actor actor, Throwable cause, Object monitor) {
-        this.actor = actor;
-        this.cause = cause;
-        this.watch = monitor;
-    }
-
-    public Actor getActor() {
-        return actor;
-    }
-
-    public Object getReason() {
-        return cause;
-    }
-
-    public Object getWatch() {
-        return watch;
+    public Actor getRequester() {
+        return requester;
     }
 
     @Override
     public String toString() {
-        return "ExitMessage{" + "actor=" + actor + ", reason=" + cause + '}';
+        return "ShutdownMessage{" + "requester=" + requester + '}';
     }
 
     @Override
     public int hashCode() {
         int hash = 3;
-        hash = 59 * hash + Objects.hashCode(this.actor);
-        hash = 59 * hash + Objects.hashCode(this.cause);
+        hash = 59 * hash + Objects.hashCode(this.requester);
         return hash;
     }
 
@@ -66,9 +51,7 @@ public class ExitMessage implements LifecycleMessage {
         if (getClass() != obj.getClass())
             return false;
         final ExitMessage other = (ExitMessage) obj;
-        if (!Objects.equals(this.actor, other.actor))
-            return false;
-        if (!Objects.equals(this.cause, other.cause))
+        if (!Objects.equals(this.requester, other.actor))
             return false;
         return true;
     }

@@ -334,7 +334,7 @@ public class ActorTest {
             }
         });
 
-        actor2.monitor(actor1);
+        actor2.watch(actor1);
 
         actor1.join();
         actor2.join();
