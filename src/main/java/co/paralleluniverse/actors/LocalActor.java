@@ -76,7 +76,6 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         if (getName() != null && ActorRegistry.getActor(getName()) == this)
             newInstance.register();
         return newInstance;
-
     }
 
     protected LocalActor<Message, V> reinstantiate() {
@@ -112,11 +111,11 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     @Override
     public String toString() {
-        return "Actor@" + (getName() != null ? getName() : Integer.toHexString(System.identityHashCode(this))) + "[owner: " + strand + ']';
+        return getClass().getSimpleName() + "@" + (getName() != null ? getName() : Integer.toHexString(System.identityHashCode(this))) + "[owner: " + strand + ']';
     }
 
     public ActorMonitor monitor() {
-        if(monitor != null)
+        if (monitor != null)
             return monitor;
         final String name = getName().toString().replaceAll(":", "");
         this.monitor = new JMXActorMonitor(name);
@@ -128,7 +127,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         monitor.shutdown();
         this.monitor = null;
     }
-    
+
     public ActorMonitor getMonitor() {
         return monitor;
     }
@@ -172,10 +171,9 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
             Object m = mailbox.receive();
             record(1, "Actor", "receive", "Received %s <- %s", this, m);
             monitorAddMessage();
-            if (m instanceof LifecycleMessage)
-                handleLifecycleMessage((LifecycleMessage) m);
-            else
-                return (Message) m;
+            Message msg = filterMessage(m);
+            if (msg != null)
+                return msg;
         }
     }
 
@@ -198,10 +196,9 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
                 monitorAddMessage();
             }
 
-            if (m instanceof LifecycleMessage)
-                handleLifecycleMessage((LifecycleMessage) m);
-            else
-                return (Message) m;
+            Message msg = filterMessage(m);
+            if (msg != null)
+                return msg;
 
             now = System.nanoTime();
             left = start + unit.toNanos(timeout) - now;
@@ -220,11 +217,19 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
                 return null;
             record(1, "Actor", "tryReceive", "Received %s <- %s", this, m);
             monitorAddMessage();
-            if (m instanceof LifecycleMessage)
-                handleLifecycleMessage((LifecycleMessage) m);
-            else
-                return (Message) m;
+            
+            Message msg = filterMessage(m);
+            if (msg != null)
+                return msg;
         }
+    }
+
+    protected Message filterMessage(Object m) {
+        if (m instanceof LifecycleMessage) {
+            handleLifecycleMessage((LifecycleMessage) m);
+            return null;
+        }
+        return (Message)m;
     }
     //</editor-fold>
 
@@ -270,14 +275,13 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     public boolean isDone() {
         return !strand.isAlive();
     }
-    
+
     protected void verifyInActor() {
-        if(currentActor() != this)
+        if (currentActor() != this)
             throw new ConcurrencyException("Operation not called from within the actor (" + this + ")");
     }
-    
     //</editor-fold>
-
+    
     //<editor-fold desc="Lifecycle">
     /////////// Lifecycle ///////////////////////////////////
     @Override
@@ -390,7 +394,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         }
     };
     //</editor-fold>
-    
+
     //<editor-fold defaultstate="collapsed" desc="Monitor delegates">
     /////////// Monitor delegates ///////////////////////////////////
     protected final void monitorAddDeath(Object reason) {
