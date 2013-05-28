@@ -21,7 +21,7 @@ import java.beans.ConstructorProperties;
  * @author pron
  */
 public abstract class GenFromMessage extends GenMessage implements FromMessage {
-    private final Actor<?> from;
+    private final Actor from;
 
     @ConstructorProperties("from")
     public GenFromMessage(Actor<?> from) {
@@ -29,7 +29,7 @@ public abstract class GenFromMessage extends GenMessage implements FromMessage {
     }
 
     @Override
-    public Actor<?> getFrom() {
+    public Actor getFrom() {
         return from;
     }
 

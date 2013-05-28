@@ -277,8 +277,12 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     protected void verifyInActor() {
-        if (currentActor() != this)
+        if (!isInActor())
             throw new ConcurrencyException("Operation not called from within the actor (" + this + ")");
+    }
+    
+    protected boolean isInActor() {
+        return (currentActor() != this);
     }
     //</editor-fold>
     
