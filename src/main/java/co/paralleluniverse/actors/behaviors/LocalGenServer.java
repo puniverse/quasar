@@ -7,7 +7,6 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.behaviors.GenServerHelper.GenServerRequest;
-import co.paralleluniverse.actors.behaviors.GenServerHelper.GenServerResponse;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.TimeUnit;
@@ -111,7 +110,7 @@ public class LocalGenServer<Message, V> extends LocalActor<Object, Void> impleme
     }
 
     protected final void reply(Actor to, Object id, V message) {
-        to.send(new GenServerResponse<V>(id, message));
+        to.send(new GenValueResponseMessage<V>(id, message));
     }
 
     protected final void replyError(Actor to, Object id, Throwable error) {

@@ -47,7 +47,7 @@ class GenServerHelper  {
         
         if(response instanceof GenErrorResponseMessage)
             throw Exceptions.rethrow(((GenErrorResponseMessage)response).getError());
-        final V res = ((GenServerResponse<V>)response).getResult();
+        final V res = ((GenValueResponseMessage<V>)response).getValue();
         return res;
     }
     
@@ -78,18 +78,4 @@ class GenServerHelper  {
             return message;
         }
     }
-    
-       static class GenServerResponse<V> extends GenResponseMessage {
-        private final V res;
-
-        public GenServerResponse(Object id, V res) {
-            super(id);
-            this.res = res;
-        }
-
-        public V getResult() {
-            return res;
-        }
-    }
-
 }
