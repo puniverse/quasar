@@ -19,11 +19,6 @@ import co.paralleluniverse.actors.Actor;
  *
  * @author pron
  */
-public interface Server<Message, V> {
-    void init();
-    V handleCall(Actor<V> from, Object id, Message m);
-    void handleCast(Actor<V> from, Object id, Message m);
-    void handleInfo(Object m);
-    void handleTimeout();
-    void terminate(Throwable cause);
+public interface FromMessage {
+    Actor<?> getFrom();
 }

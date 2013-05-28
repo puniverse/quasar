@@ -27,7 +27,7 @@ import java.util.concurrent.ThreadLocalRandom;
  *
  * @author pron
  */
-abstract class ActorImpl<Message> implements Actor<Message>, java.io.Serializable {
+public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Serializable {
     // TODO: This class may be redundant
     static final long serialVersionUID = 894359345L;
     private volatile Object name;

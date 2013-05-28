@@ -13,17 +13,28 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.Actor;
+import java.beans.ConstructorProperties;
 
 /**
  *
  * @author pron
  */
-public interface Server<Message, V> {
-    void init();
-    V handleCall(Actor<V> from, Object id, Message m);
-    void handleCast(Actor<V> from, Object id, Message m);
-    void handleInfo(Object m);
-    void handleTimeout();
-    void terminate(Throwable cause);
+public class GenErrorResponseMessage extends GenResponseMessage implements ErrorMessage {
+    private final Throwable error;
+    
+    @ConstructorProperties({"id", "error"})
+    public GenErrorResponseMessage(Object id, Throwable error) {
+        super(id);
+        this.error = error;
+    }
+
+    @Override
+    public Throwable getError() {
+        return error;
+    }
+
+    @Override
+    protected String contentString() {
+        return super.contentString() + " error: " + error;
+    }
 }

@@ -14,16 +14,28 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
+import java.beans.ConstructorProperties;
 
 /**
  *
  * @author pron
  */
-public interface Server<Message, V> {
-    void init();
-    V handleCall(Actor<V> from, Object id, Message m);
-    void handleCast(Actor<V> from, Object id, Message m);
-    void handleInfo(Object m);
-    void handleTimeout();
-    void terminate(Throwable cause);
+public abstract class GenRequestMessage extends GenFromMessage implements IdMessage {
+    private final Object id;
+    
+    @ConstructorProperties({"from", "id"})
+    public GenRequestMessage(Actor<?> from, Object id) {
+        super(from);
+        this.id = id;
+    }
+
+    @Override
+    public Object getId() {
+        return id;
+    }
+
+    @Override
+    protected String contentString() {
+        return super.contentString() + " id: " + id;
+    }
 }
