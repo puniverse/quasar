@@ -72,7 +72,6 @@ public class LocalGenServer<Message, V> extends LocalActor<GenServerMessage<Mess
     @Override
     protected final Void doRun() throws InterruptedException, SuspendExecution {
         try {
-            init();
             while (run) {
                 Object m1 = receive(timeout, TimeUnit.NANOSECONDS);
                 if (m1 instanceof GenServerMessage) {
@@ -112,6 +111,7 @@ public class LocalGenServer<Message, V> extends LocalActor<GenServerMessage<Mess
         run = false;
     }
 
+    @Override
     protected void init() {
         server.init();
     }

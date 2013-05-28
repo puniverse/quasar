@@ -18,6 +18,7 @@ import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ExitMessage;
 import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.LocalActor;
+import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -131,6 +132,7 @@ public class Supervisor extends LocalActor<Void, Void> {
             throw new IllegalStateException("Actor " + child.actor + " cannot be restarted because it is not dead");
 
         final LocalActor actor = child.info.builder.build();
+        LOG.info("{} restarting child {}", this, actor);
         if (actor.getMonitor() != null)
             actor.getMonitor().addRestart();
 
@@ -143,13 +145,16 @@ public class Supervisor extends LocalActor<Void, Void> {
 
     private void shutdownChild(ActorEntry child) throws InterruptedException {
         if (child.actor != null) {
+            LOG.info("{} shutting down child {}", this, child.actor);
             unwatch(child);
             ((Actor) child.actor).send(new ShutdownMessage(this));
             joinChild(child);
+            child.actor = null;
         }
     }
 
     private void shutdownChildren() throws InterruptedException {
+        LOG.info("{} shutting down all children.", this);
         for (ActorEntry child : children) {
             if (child.actor != null) {
                 unwatch(child);
@@ -285,6 +290,11 @@ public class Supervisor extends LocalActor<Void, Void> {
 
         public long getShutdownDeadline() {
             return shutdownDeadline;
+        }
+
+        @Override
+        public String toString() {
+            return "ActorInfo{" + "builder: " + builder + ", mode: " + mode + ", maxRestarts: " + maxRestarts + ", duration: " + duration + ", unit: " + unit + ", shutdownDeadline: " + shutdownDeadline + '}';
         }
     }
 
