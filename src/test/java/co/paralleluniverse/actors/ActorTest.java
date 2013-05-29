@@ -16,12 +16,12 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.TimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import jsr166e.ForkJoinPool;
 import org.junit.After;
@@ -48,7 +48,6 @@ public class ActorTest {
     private <Message, V> LocalActor<Message, V> spawnActor(LocalActor<Message, V> actor) {
         Fiber fiber = new Fiber("actor", fjPool, actor);
         fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
-
             @Override
             public void uncaughtException(Fiber lwt, Throwable e) {
                 e.printStackTrace();
@@ -271,10 +270,7 @@ public class ActorTest {
 
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
-                try {
-                    Fiber.sleep(100);
-                } catch (TimeoutException e) {
-                }
+                Fiber.sleep(100);
                 return null;
             }
         });
@@ -288,8 +284,6 @@ public class ActorTest {
                     for (;;) {
                         receive();
                     }
-                } catch (TimeoutException e) {
-                    fail();
                 } catch (LifecycleException e) {
                 }
                 return null;
@@ -303,16 +297,13 @@ public class ActorTest {
     }
 
     @Test
-    public void testMonitor() throws Exception {
+    public void testWatch() throws Exception {
         LocalActor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
             int counter;
 
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
-                try {
-                    Fiber.sleep(100);
-                } catch (TimeoutException e) {
-                }
+                Fiber.sleep(100);
                 return null;
             }
         });

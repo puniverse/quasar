@@ -14,9 +14,9 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.TimeoutException;
 import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
@@ -55,11 +55,11 @@ public abstract class BasicActor<Message, V> extends LocalActor<Message, V> {
      * @throws TimeoutException
      * @throws LwtInterruptedException
      */
-    public Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
+    public Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws TimeoutException, SuspendExecution, InterruptedException {
         return helper.receive(timeout, unit, proc);
     }
 
     public Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
-        return receive(0, null, proc);
+        return helper.receive(proc);
     }
 }

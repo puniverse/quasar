@@ -83,7 +83,7 @@ public abstract class OwnedSynchronizer {
         @Override
         public void verifyOwner() {
             // assert owner == Thread.currentThread() : "This method has been called by a different strand (thread or fiber) than that owning this object";
-            if(owner != Thread.currentThread())
+            if (owner != Thread.currentThread())
                 throw new RuntimeException("This method has been called by a different strand (thread or fiber) than that owning this object");
         }
 
@@ -130,6 +130,7 @@ public abstract class OwnedSynchronizer {
 
     private static class FiberOwnedSynchronizer extends OwnedSynchronizer {
         private final Fiber owner;
+        private volatile boolean signalled;
 
         public FiberOwnedSynchronizer(Fiber owner) {
             this.owner = owner;
@@ -143,7 +144,7 @@ public abstract class OwnedSynchronizer {
         @Override
         public void verifyOwner() {
 //            assert owner == Fiber.currentFiber() : "This method has been called by a different strand (thread or fiber) than that owning this object";
-            if(owner != Fiber.currentFiber())
+            if (owner != Fiber.currentFiber())
                 throw new RuntimeException("This method has been called by a different strand (thread or fiber) than that owning this object");
         }
 
@@ -163,23 +164,58 @@ public abstract class OwnedSynchronizer {
         }
 
         @Override
-        public void await() throws SuspendExecution {
+        public void await() throws SuspendExecution, InterruptedException {
+            // while park does detect and throw (sneakily!) an InterruptedException, it doesn't check for interruption *before* it parks
+            if (Fiber.interrupted())
+                throw new InterruptedException();
             Fiber.park(this);
         }
 
         @Override
-        public void await(long timeout, TimeUnit unit) throws SuspendExecution {
+        public void await(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+            // while park does detect and throw (sneakily!) an InterruptedException, it doesn't check for interruption *before* it parks
+            if (Fiber.interrupted())
+                throw new InterruptedException();
             Fiber.park(this, timeout, unit);
         }
 
+//        @Override
+//        public void await() throws SuspendExecution, InterruptedException {
+//            while (!signalled) {
+//                if (Fiber.interrupted())
+//                    throw new InterruptedException();
+//                Fiber.park(this);
+//            }
+//            signalled = false;
+//        }
+//        
+//        @Override
+//        public void await(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+//            final long start = System.nanoTime();
+//            long left = unit.toNanos(timeout);
+//            
+//            while (!signalled) {
+//                if (Fiber.interrupted())
+//                    throw new InterruptedException();
+//                if (left <= 0)
+//                    return;
+//                Fiber.park(this, left, TimeUnit.NANOSECONDS);
+//                left = start + unit.toNanos(timeout) - System.nanoTime();
+//            }
+//
+//            signalled = false;
+//        }
+        
         @Override
         public void signal() {
+            signalled = true;
             if (owner.getBlocker() == this)
                 owner.unpark();
         }
 
         @Override
         public void signalAndTryToExecNow() {
+            signalled = true;
             if (!owner.exec(this))
                 signal();
         }

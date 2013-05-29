@@ -43,7 +43,7 @@ package co.paralleluniverse.fibers;
  * 
  * @author Matthias Mann
  */
-public final class SuspendExecution extends InterruptedException {
+public final class SuspendExecution extends Exception { // InterruptedException {
 
     static final SuspendExecution instance = new SuspendExecution();
     

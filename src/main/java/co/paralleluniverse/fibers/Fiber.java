@@ -40,6 +40,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import jsr166e.ForkJoinPool;
+import jsr166e.ForkJoinTask;
 import jsr166e.ForkJoinWorkerThread;
 import sun.misc.Unsafe;
 
@@ -405,8 +406,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     public Fiber(Fiber fiber, ForkJoinPool fjPool, SuspendableRunnable target) {
         this(fiber.name, fjPool, fiber.initialStackSize, target);
     }
-
     //</editor-fold>
+    
     /**
      * Returns the active Fiber on this thread or NULL if no Fiber is running.
      *
@@ -462,7 +463,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         verifySuspend().yield1();
     }
 
-    public static void sleep(long millis) throws SuspendExecution {
+    public static void sleep(long millis) throws InterruptedException, SuspendExecution {
         verifySuspend().sleep1(millis);
     }
 
@@ -477,13 +478,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     /**
      * Returns {@code true} iff we've been suspended and then resumed.
      * (The return value in the Java code is actually ignored. It is generated and injected in InstrumentMethod.accept())
-     *
+     * <p/>
+     * <b>Can sneakily throw an InterruptedException</b>
+     * 
      * @param blocker
      * @param postParkActions
      * @param timeout
      * @param unit
      * @return
      * @throws SuspendExecution
+     * @throw InterruptedException 
      */
     private boolean park1(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
         record(1, "Fiber", "park", "Parking %s", this);
@@ -541,10 +545,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
                 ppa.run(this);
 
             return false;
-        } catch (FiberInterruptedException e) {
-            state = State.TERMINATED;
-            record(1, "Fiber", "exec1", "FiberInterruptedException: %s %s", state, this);
-            return true;
         } catch (InterruptedException e) {
             state = State.TERMINATED;
             record(1, "Fiber", "exec1", "InterruptedException: %s, %s", state, this);
@@ -649,12 +649,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     protected void onParked() {
     }
 
-    protected void onResume() {
+    protected void onResume() throws InterruptedException {
         record(1, "Fiber", "onResume", "Resuming %s", this);
         if (recordsLevel(2))
             record(2, "Fiber", "onResume", "Resuming %s at: %s", this, Arrays.toString(getStackTrace()));
         if (interrupted)
-            throw new FiberInterruptedException();
+            throw new InterruptedException();
     }
 
     protected void onCompletion() {
@@ -719,9 +719,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
      * @return {@code true} if the task has been executed by this method; {@code false} otherwise.
      */
     public final boolean exec(Object blocker) {
+        if (ForkJoinTask.getPool() != fjPool)
+            return false;
         for (int i = 0; i < 30; i++) {
             if (getBlocker() == blocker && fjTask.tryUnpark()) {
-                fjTask.exec();
+                if(fjTask.exec())
+                    fjTask.quietlyComplete();
                 return true;
             }
         }
@@ -763,7 +766,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         return state == State.TERMINATED;
     }
 
-    private void sleep1(long millis) throws SuspendExecution {
+    private void sleep1(long millis) throws InterruptedException, SuspendExecution {
         // this class's methods aren't instrumented, so we can't rely on the stack. This method will be called again when unparked
         try {
             for (;;) {
@@ -1036,6 +1039,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
 // for tests only!
     @VisibleForTesting
     final boolean exec() {
+        if(!Debug.isUnitTest())
+            throw new AssertionError("This method can only be called by unit tests");
         return fjTask.exec();
     }
 

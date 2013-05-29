@@ -169,7 +169,7 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
         queue.deq(n);
         return m;
     }
-
+    
     @Override
     public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         final Object n = receiveNode(timeout, unit);
@@ -178,6 +178,22 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
         final Message m = queue.value(n);
         queue.deq(n);
         return m;
+    }
+
+    public Message receiveFromThread() throws InterruptedException {
+        try {
+            return receive();
+        } catch (SuspendExecution ex) {
+            throw new AssertionError(ex);
+        }
+    }
+
+    public Message receiveFromThread(long timeout, TimeUnit unit) throws InterruptedException {
+        try {
+            return receive(timeout, unit);
+        } catch (SuspendExecution ex) {
+            throw new AssertionError(ex);
+        }
     }
 
     private void verifySync() {

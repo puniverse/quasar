@@ -5,8 +5,8 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.TimeoutException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
@@ -17,6 +17,8 @@ public class SelectiveReceiveHelper<Message> {
     private Message currentMessage; // this works because channel is single-consumer
 
     public SelectiveReceiveHelper(LocalActor<Message, ?> actor) {
+        if (actor == null)
+            throw new NullPointerException("actor is null");
         this.actor = actor;
     }
 
@@ -28,15 +30,16 @@ public class SelectiveReceiveHelper<Message> {
      * @throws TimeoutException
      * @throws LwtInterruptedException
      */
-    public Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
-        assert LocalActor.currentActor() == actor;
-        
+    public Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws TimeoutException, SuspendExecution, InterruptedException {
+        assert LocalActor.currentActor() == null || LocalActor.currentActor() == actor;
+
         actor.checkThrownIn();
         actor.mailbox.maybeSetCurrentStrandAsOwner();
 
         final long start = timeout > 0 ? System.nanoTime() : 0;
         long now;
         long left = unit != null ? unit.toNanos(timeout) : 0;
+        final long deadline = start + left;
 
         actor.monitorResetSkippedMessages();
         Object n = null;
@@ -54,7 +57,9 @@ public class SelectiveReceiveHelper<Message> {
                     actor.mailbox.del(n);
                     continue;
                 }
-
+                
+                System.out.println("==== " + m);
+                
                 actor.record(1, "Actor", "receive", "Received %s <- %s", this, m);
                 actor.monitorAddMessage();
                 try {
@@ -80,12 +85,15 @@ public class SelectiveReceiveHelper<Message> {
             } else {
                 try {
                     if (timeout > 0) {
+                        System.out.println("www: " + deadline);
                         actor.mailbox.await(left, TimeUnit.NANOSECONDS);
 
                         now = System.nanoTime();
-                        left = start + unit.toNanos(timeout) - now;
+                        left = deadline - now;
+                        System.out.println("zzzz: " + left);
                         if (left <= 0) {
                             actor.record(1, "Actor", "receive", "%s timed out.", this);
+                            System.out.println("EEEEEEEEE");
                             throw new TimeoutException();
                         }
                     } else
@@ -98,6 +106,10 @@ public class SelectiveReceiveHelper<Message> {
     }
 
     public Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
-        return receive(0, null, proc);
+        try {
+            return receive(0, null, proc);
+        } catch (TimeoutException e) {
+            throw new AssertionError(e);
+        }
     }
 }

@@ -14,46 +14,34 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.ActorImpl;
 import co.paralleluniverse.actors.LocalActor;
-import co.paralleluniverse.actors.MessageProcessor;
-import co.paralleluniverse.actors.SelectiveReceiveHelper;
-import co.paralleluniverse.common.util.Exceptions;
+import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.from;
+import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.makeId;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
  * @author pron
  */
-class GenServerHelper  {
-
+class GenServerHelper {
     public static <Message, V> V call(Actor server, Message m) throws InterruptedException, SuspendExecution {
-        return call(server, m, 0, null);
+        try {
+            return call(server, m, 0, null);
+        } catch (TimeoutException ex) {
+            throw new AssertionError(ex);
+        }
     }
-    
-    public static <Message, V> V call(Actor server, Message m, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
-        final SelectiveReceiveHelper<Object> helper = new SelectiveReceiveHelper<>(LocalActor.currentActor());
-        final Object id = ActorImpl.randtag();
-        
-        server.sendSync(new GenServerRequest<Message>(LocalActor.currentActor(), id, MessageType.CALL, m));
-        final GenResponseMessage response = (GenResponseMessage)helper.receive(timeout, unit, new MessageProcessor<Object>() {
 
-            @Override
-            public boolean process(Object m) throws SuspendExecution, InterruptedException {
-                return (m instanceof GenResponseMessage && id.equals(((GenResponseMessage)m).getId()));
-            }
-        });
-        
-        if(response instanceof GenErrorResponseMessage)
-            throw Exceptions.rethrow(((GenErrorResponseMessage)response).getError());
-        final V res = ((GenValueResponseMessage<V>)response).getValue();
+    public static <Message, V> V call(Actor server, Message m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
+        final GenResponseMessage response = RequestReplyHelper.call(server, new GenServerRequest<Message>(from(), makeId(), MessageType.CALL, m), timeout, unit);
+        final V res = ((GenValueResponseMessage<V>) response).getValue();
         return res;
     }
-    
+
     public static <Message> void cast(Actor server, Message m) {
-        final Object id = ActorImpl.randtag();
-        server.send(new GenServerRequest<Message>(LocalActor.currentActor(), id, MessageType.CAST, m));
+        server.send(new GenServerRequest<Message>(LocalActor.currentActor(), makeId(), MessageType.CAST, m));
     }
 
     enum MessageType {

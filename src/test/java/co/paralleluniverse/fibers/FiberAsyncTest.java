@@ -83,7 +83,7 @@ public class FiberAsyncTest {
         }
     };
 
-    static String callService(final Service service) throws SuspendExecution {
+    static String callService(final Service service) throws SuspendExecution, InterruptedException {
         return new MyFiberAsync() {
             @Override
             protected void requestAsync(Fiber current, MyCallback callback) {
@@ -114,7 +114,7 @@ public class FiberAsyncTest {
     public void testSyncCallback() throws Exception {
         final Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
             @Override
-            public void run() throws SuspendExecution {
+            public void run() throws SuspendExecution, InterruptedException {
                 String res = callService(syncService);
                 assertThat(res, equalTo("sync result!"));
             }
@@ -144,7 +144,7 @@ public class FiberAsyncTest {
     public void testAsyncCallback() throws Exception {
         final Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
             @Override
-            public void run() throws SuspendExecution {
+            public void run() throws SuspendExecution, InterruptedException {
                 String res = callService(asyncService);
                 assertThat(res, equalTo("async result!"));
             }

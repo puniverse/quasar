@@ -175,8 +175,7 @@ public class JavaAgent {
         }
 
         @Override
-        public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
-                ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+        public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
             if (MethodDatabase.isJavaCore(className))
                 return null;
             if (className.startsWith("org/objectweb/asm/"))

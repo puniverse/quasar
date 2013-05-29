@@ -20,7 +20,7 @@ package co.paralleluniverse.actors.behaviors;
 public abstract class GenMessage {
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "@[" + contentString() + "]";
+        return getClass().getSimpleName() + "[" + contentString() + "]";
     }
 
     protected String contentString() {

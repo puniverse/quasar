@@ -282,7 +282,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
     
     protected boolean isInActor() {
-        return (currentActor() != this);
+        return (currentActor() == this);
     }
     //</editor-fold>
     
@@ -312,7 +312,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         }
     }
 
-    protected void init() {
+    protected void init() throws InterruptedException, SuspendExecution {
     }
 
     protected abstract V doRun() throws InterruptedException, SuspendExecution;

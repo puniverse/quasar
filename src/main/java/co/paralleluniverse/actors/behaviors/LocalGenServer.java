@@ -1,15 +1,27 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
+ * 
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *  
+ *   or (per the licensee's choosing)
+ *  
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.LocalActor;
+import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.actors.behaviors.GenServerHelper.GenServerRequest;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
@@ -23,7 +35,7 @@ public class LocalGenServer<Message, V> extends LocalActor<Object, Void> impleme
     public LocalGenServer(String name, Server<Message, V> server, long timeout, TimeUnit unit, Strand strand, int mailboxSize) {
         super(strand, name, mailboxSize);
         this.server = server;
-        this.timeout = unit.toNanos(timeout);
+        this.timeout = unit != null ? unit.toNanos(timeout) : -1;
         this.run = true;
     }
 
@@ -59,18 +71,22 @@ public class LocalGenServer<Message, V> extends LocalActor<Object, Void> impleme
         this(null, null, -1, null, null, -1);
     }
 
+    public static <Message, V> LocalGenServer<Message, V> currentGenServer() {
+        return (LocalGenServer<Message, V>) currentActor();
+    }
+
     @Override
-    public V call(Message m) throws InterruptedException, SuspendExecution {
+    public final V call(Message m) throws InterruptedException, SuspendExecution {
         return GenServerHelper.call(this, m);
     }
 
     @Override
-    public V call(Message m, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
+    public final V call(Message m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
         return GenServerHelper.call(this, m, timeout, unit);
     }
 
     @Override
-    public void cast(Message m) {
+    public final void cast(Message m) {
         GenServerHelper.cast(this, m);
     }
 
@@ -103,50 +119,82 @@ public class LocalGenServer<Message, V> extends LocalActor<Object, Void> impleme
             }
             terminate(null);
             return null;
+        } catch (InterruptedException e) {
+            if (run == false) {
+                terminate(null);
+                return null;
+            } else {
+                terminate(e);
+                throw e;
+            }
         } catch (Throwable e) {
             terminate(e);
             throw e;
         }
     }
 
-    protected final void reply(Actor to, Object id, V message) {
+    @Override
+    protected void handleLifecycleMessage(LifecycleMessage m) {
+        if (m instanceof ShutdownMessage) {
+            stop();
+            Strand.currentStrand().interrupt();
+        } else
+            super.handleLifecycleMessage(m);
+    }
+
+    @Override
+    public void shutdown() {
+        send(new ShutdownMessage(null));
+    }
+    
+    public final void reply(Actor to, Object id, V message) {
+        verifyInActor();
         to.send(new GenValueResponseMessage<V>(id, message));
     }
 
-    protected final void replyError(Actor to, Object id, Throwable error) {
+    public final void replyError(Actor to, Object id, Throwable error) {
+        verifyInActor();
         to.send(new GenErrorResponseMessage(id, error));
     }
 
-    protected final void setTimeout(long timeout, TimeUnit unit) {
-        this.timeout = unit.toNanos(timeout);
+    public final void setTimeout(long timeout, TimeUnit unit) {
+        verifyInActor();
+        this.timeout = (unit != null ? unit.toNanos(timeout) : -1);
     }
 
-    protected final void stop() {
+    public final void stop() {
+        verifyInActor();
         run = false;
     }
 
     @Override
-    protected void init() {
+    protected void init() throws SuspendExecution {
         server.init();
     }
 
-    protected V handleCall(Actor<V> from, Object id, Message m) {
-        return server.handleCall(from, id, m);
+    protected V handleCall(Actor<V> from, Object id, Message m) throws SuspendExecution {
+        if (server != null)
+            return server.handleCall(from, id, m);
+        throw new UnsupportedOperationException(m.toString());
     }
 
-    protected void handleCast(Actor<V> from, Object id, Message m) {
-        server.handleCast(from, id, m);
+    protected void handleCast(Actor<V> from, Object id, Message m) throws SuspendExecution {
+        if (server != null)
+            server.handleCast(from, id, m);
     }
 
-    protected void handleInfo(Object m) {
-        server.handleInfo(m);
+    protected void handleInfo(Object m) throws SuspendExecution {
+        if (server != null)
+            server.handleInfo(m);
     }
 
-    protected void handleTimeout() {
-        server.handleTimeout();
+    protected void handleTimeout() throws SuspendExecution {
+        if (server != null)
+            server.handleTimeout();
     }
 
-    protected void terminate(Throwable cause) {
-        server.terminate(cause);
+    protected void terminate(Throwable cause) throws SuspendExecution {
+        if (server != null)
+            server.terminate(cause);
     }
 }

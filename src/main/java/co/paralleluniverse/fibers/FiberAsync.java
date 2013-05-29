@@ -23,7 +23,7 @@ package co.paralleluniverse.fibers;
  */
 public abstract class FiberAsync<V, Callback, E extends Throwable> implements Fiber.PostParkActions {
     @SuppressWarnings("empty-statement")
-    public V run() throws E, SuspendExecution {
+    public V run() throws E, SuspendExecution, InterruptedException {
         while (!Fiber.park(this, this)) // make sure we actually park and run PostParkActions
             ;
         while (!isCompleted())

@@ -54,7 +54,9 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
         return name;
     }
 
-    void setName(Object name) {
+    public void setName(Object name) {
+        if(this.name != null)
+            throw new IllegalStateException("Actor " + this + " already has a name: " + this.name);
         this.name = name;
     }
 

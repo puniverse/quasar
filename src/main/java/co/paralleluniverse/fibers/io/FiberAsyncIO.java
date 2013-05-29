@@ -15,6 +15,7 @@ package co.paralleluniverse.fibers.io;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberAsync;
+import co.paralleluniverse.fibers.SuspendExecution;
 import java.io.IOException;
 import java.nio.channels.CompletionHandler;
 
@@ -32,4 +33,13 @@ abstract class FiberAsyncIO<V> extends FiberAsync<V, CompletionHandler<V, Fiber>
     public void failed(Throwable exc, Fiber lwthread) {
         super.failed(exc, lwthread);
     }
+
+    @Override
+    public V run() throws IOException, SuspendExecution {
+        try {
+        return super.run();
+        } catch(InterruptedException e) {
+            throw new IOException(e);
+        }
+    }   
 }

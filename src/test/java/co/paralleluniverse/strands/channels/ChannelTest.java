@@ -224,7 +224,7 @@ public class ChannelTest {
             @Override
             public void run() {
                 try {
-                    ch.receive();
+                    ch.receiveFromThread();
                 } catch (InterruptedException ex) {
                     throw new AssertionError(ex);
                 }

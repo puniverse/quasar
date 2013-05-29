@@ -23,7 +23,9 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -38,62 +40,104 @@ public class Supervisor extends LocalActor<Object, Void> {
     private static final Logger LOG = LoggerFactory.getLogger(Supervisor.class);
     private final RestartStrategy restartStrategy;
     private final List<ActorEntry> children = new ArrayList<ActorEntry>();
+    private final Map<Object, ActorEntry> childrenByName = new HashMap<Object, ActorEntry>();
 
     public Supervisor(Strand strand, String name, int mailboxSize, RestartStrategy restartStrategy, List<ActorInfo> childrenSpecs) {
         super(strand, name, mailboxSize);
         this.restartStrategy = restartStrategy;
         for (ActorInfo childSpec : childrenSpecs)
-            children.add(new ActorEntry(childSpec, childSpec.builder instanceof Actor ? (LocalActor) childSpec.builder : null));
+            addChild1(childSpec, null);
     }
 
     @Override
     protected final Void doRun() throws InterruptedException, SuspendExecution {
-        for (ActorEntry child : children) {
-            if (child.actor == null)
-                restart(child);
-        }
+        for (ActorEntry child : children)
+            start(child);
 
         try {
             for (;;) {
                 final Object m1 = receive(); // we care only about lifecycle messages
                 if (m1 instanceof ShutdownMessage)
                     break;
-                if (m1 instanceof AddChildMessage) {
-                    final AddChildMessage m = (AddChildMessage) m1;
-
+                else if (m1 instanceof GenRequestMessage) {
+                    final GenRequestMessage req = (GenRequestMessage) m1;
                     try {
-                        final Actor child = addChild(m.info, m.actor);
-                        m.getFrom().send(new GenValueResponseMessage<Actor>(m.getId(), child));
+                        if (m1 instanceof AddChildMessage) {
+                            final AddChildMessage m = (AddChildMessage) m1;
+                            RequestReplyHelper.reply(m, addChild(m.info, m.actor));
+                        }
                     } catch (Exception e) {
-                        m.getFrom().send(new GenErrorResponseMessage(m.getId(), e));
+                        req.getFrom().send(new GenErrorResponseMessage(req.getId(), e));
                     }
                 }
             }
         } catch (InterruptedException e) {
         } finally {
-            for (ActorEntry child : children)
-                child.actor = null; // avoid memory leaks
+            shutdownChildren();
+            
+            childrenByName.clear();
+            children.clear();
         }
 
         return null;
     }
 
-    public Actor addChild(ActorInfo info, LocalActor actor) throws InterruptedException {
+    private ActorEntry addChild1(ActorInfo info, LocalActor actor) {
+        if (actor == null && info.builder instanceof LocalActor)
+            actor = (LocalActor) info.builder;
+        if (actor != null && findEntry(actor) != null)
+            throw new SupervisorException("Supervisor " + this + " already supervises actor " + actor);
+        Object name = info.getName();
+        if (name == null && actor != null)
+            name = actor.getName();
+        if (findEntryByName(name) != null)
+            throw new SupervisorException("Supervisor " + this + " already supervises an actor by the name " + name);
+        final ActorEntry child = new ActorEntry(info, actor);
+        children.add(child);
+        if (name != null)
+            childrenByName.put(name, child);
+        return child;
+    }
+
+    public Actor addChild(ActorInfo info, LocalActor actor) throws SuspendExecution, InterruptedException {
         if (isInActor()) {
-            if (actor == null && info.builder instanceof LocalActor)
-                actor = (LocalActor) info.builder;
-            if (actor != null && findEntry(actor) != null)
-                throw new SupervisorException("Supervisor " + this + " already supervises actor " + actor);
-            final ActorEntry entry = new ActorEntry(info, actor);
+            final ActorEntry child = addChild1(info, actor);
 
             if (actor == null)
-                actor = restart(entry);
-            entry.watch = watch(actor);
-            children.add(entry);
+                start(child);
+            else {
+                child.actor = actor;
+                child.watch = watch(actor);
+            }
             return actor;
         } else {
-            final GenResponseMessage res = RequestReplyHelper.call(this, new AddChildMessage(currentActor(), randtag(), info));
-            return ((GenValueResponseMessage<Actor>)res).getValue();
+            final GenResponseMessage res = RequestReplyHelper.call(this, new AddChildMessage(currentActor(), randtag(), info, actor));
+            return ((GenValueResponseMessage<Actor>) res).getValue();
+        }
+    }
+
+    public boolean removeChild(Object name, boolean terminate) throws SuspendExecution, InterruptedException {
+        if (isInActor()) {
+            final ActorEntry child = findEntryByName(name);
+            if (child == null)
+                return false;
+
+            if (child.actor != null) {
+                unwatch(child);
+
+                if (terminate)
+                    shutdownChild(child);
+                else
+                    unwatch(child);
+            }
+
+            childrenByName.remove(name);
+            children.remove(child);
+
+            return true;
+        } else {
+            final GenResponseMessage res = RequestReplyHelper.call(this, new RemoveChildMessage(currentActor(), randtag(), name, terminate));
+            return ((GenValueResponseMessage<Boolean>) res).getValue();
         }
     }
 
@@ -140,7 +184,7 @@ public class Supervisor extends LocalActor<Object, Void> {
                     LOG.warn(this + ": too many restarts for child {}", actor);
                     return false;
                 }
-                restart(child);
+                start(child);
                 return true;
             case TEMPORARY:
                 return true;
@@ -149,12 +193,15 @@ public class Supervisor extends LocalActor<Object, Void> {
         }
     }
 
-    private LocalActor restart(ActorEntry child) {
+    private LocalActor start(ActorEntry child) {
         assert child.actor == null || child.actor.isDone();
         if (child.actor != null && !child.actor.isDone())
             throw new IllegalStateException("Actor " + child.actor + " cannot be restarted because it is not dead");
 
         final LocalActor actor = child.info.builder.build();
+        if (actor.getName() != null && child.info.name != null)
+            actor.setName(child.info.name);
+
         LOG.info("{} restarting child {}", this, actor);
         if (actor.getMonitor() != null)
             actor.getMonitor().addRestart();
@@ -213,8 +260,10 @@ public class Supervisor extends LocalActor<Object, Void> {
     }
 
     private void unwatch(ActorEntry child) {
-        unwatch(child.actor, child.watch);
-        child.watch = null;
+        if (child.actor != null && child.watch != null) {
+            unwatch(child.actor, child.watch);
+            child.watch = null;
+        }
     }
 
     private Strand createStrandForActor(Strand oldStrand, LocalActor actor) {
@@ -228,11 +277,20 @@ public class Supervisor extends LocalActor<Object, Void> {
     }
 
     private ActorEntry findEntry(LocalActor actor) {
+        if (actor.getName() != null) {
+            ActorEntry child = findEntryByName(actor.getName());
+            if (child != null)
+                return child;
+        }
         for (ActorEntry child : children) {
             if (child.actor == actor)
                 return child;
         }
         return null;
+    }
+
+    private ActorEntry findEntryByName(Object name) {
+        return childrenByName.get(name);
     }
 
     private long now() {
@@ -279,7 +337,7 @@ public class Supervisor extends LocalActor<Object, Void> {
         abstract boolean onChildDeath(Supervisor supervisor, ActorEntry child, Throwable cause) throws InterruptedException;
     }
 
-    public static class AddChildMessage extends GenRequestMessage {
+    private static class AddChildMessage extends GenRequestMessage {
         final ActorInfo info;
         final LocalActor actor;
 
@@ -294,7 +352,19 @@ public class Supervisor extends LocalActor<Object, Void> {
         }
     }
 
+    private static class RemoveChildMessage extends GenRequestMessage {
+        final Object name;
+        final boolean terminate;
+
+        public RemoveChildMessage(Actor from, Object id, Object name, boolean terminate) {
+            super(from, id);
+            this.name = name;
+            this.terminate = terminate;
+        }
+    }
+
     public static class ActorInfo {
+        final Object name;
         final ActorBuilder<?, ?> builder;
         final ActorMode mode;
         final int maxRestarts;
@@ -302,13 +372,22 @@ public class Supervisor extends LocalActor<Object, Void> {
         final TimeUnit unit;
         final long shutdownDeadline;
 
-        public ActorInfo(ActorBuilder<?, ?> builder, ActorMode mode, int maxRestarts, long duration, TimeUnit unit, long shutdownDeadline) {
+        public ActorInfo(Object name, ActorBuilder<?, ?> builder, ActorMode mode, int maxRestarts, long duration, TimeUnit unit, long shutdownDeadline) {
+            this.name = name;
             this.builder = builder;
             this.mode = mode;
             this.maxRestarts = maxRestarts;
             this.duration = duration;
             this.unit = unit;
             this.shutdownDeadline = shutdownDeadline;
+        }
+
+        public Object getName() {
+            return name;
+        }
+
+        public ActorBuilder<?, ?> getBuilder() {
+            return builder;
         }
 
         public ActorMode getMode() {

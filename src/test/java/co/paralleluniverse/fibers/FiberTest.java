@@ -14,7 +14,9 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;
 import org.junit.After;
@@ -66,6 +68,35 @@ public class FiberTest {
     }
 
     @Test
+    public void testJoinFromFiber() throws Exception {
+        final Fiber<Integer> fiber1 = new Fiber<Integer>(fjPool, new SuspendableCallable<Integer>() {
+            @Override
+            public Integer run() throws SuspendExecution {
+                Fiber.park(100, TimeUnit.MILLISECONDS);
+                return 123;
+            }
+        }).start();
+
+        final Fiber<Integer> fiber2 = new Fiber<Integer>(fjPool, new SuspendableCallable<Integer>() {
+            @Override
+            public Integer run() throws SuspendExecution, InterruptedException {
+                try {
+                    int res = fiber1.get();
+                    return res;
+                } catch (ExecutionException e) {
+                    throw Exceptions.rethrow(e.getCause());
+                }
+            }
+        }).start();
+
+
+        int res = fiber2.get();
+        
+        assertThat(res, is(123));
+        assertThat(fiber1.get(), is(123));
+    }
+
+    @Test
     public void testInterrupt() throws Exception {
         Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
             @Override
@@ -73,7 +104,7 @@ public class FiberTest {
                 try {
                     Fiber.sleep(100);
                     fail("InterruptedException not thrown");
-                } catch (FiberInterruptedException e) {
+                } catch (InterruptedException e) {
                 }
             }
         });
@@ -94,7 +125,7 @@ public class FiberTest {
 
         Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
             @Override
-            public void run() throws SuspendExecution {
+            public void run() throws SuspendExecution, InterruptedException {
                 assertThat(tl1.get(), is(nullValue()));
                 assertThat(tl2.get(), is("bar"));
 
@@ -112,7 +143,7 @@ public class FiberTest {
         });
         fiber.start();
         fiber.join();
-        
+
         assertThat(tl1.get(), is("foo"));
         assertThat(tl2.get(), is("bar"));
     }

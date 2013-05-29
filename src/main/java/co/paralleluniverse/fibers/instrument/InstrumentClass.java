@@ -125,13 +125,12 @@ public class InstrumentClass extends ClassVisitor {
                 for (MethodNode mn : methods)
                     mn.accept(makeOutMV(mn));
             } else {
-                if (!alreadyInstrumented)
+                if (!alreadyInstrumented) {
                     super.visitAnnotation(ALREADY_INSTRUMENTED_NAME, true);
+                    classEntry.setInstrumented(true);
+                }
 
                 for (MethodNode mn : methods) {
-//                    if (requiresInstrumentation)
-//                        System.out.println("TRANSFORM: " + className + "." + mn.name + mn.desc);
-
                     MethodVisitor outMV = makeOutMV(mn);
                     try {
                         InstrumentMethod im = new InstrumentMethod(db, className, mn);
@@ -146,6 +145,15 @@ public class InstrumentClass extends ClassVisitor {
                         ex.printStackTrace();
                         throw new InternalError(ex.getMessage());
                     }
+                }
+            }
+        } else {
+            // if we don't have any suspendable methods, but our superclass is instrumented, we mark this class as instrumented, too.
+            if(!alreadyInstrumented && classEntry.superName != null) {
+                ClassEntry superClass = db.getClassEntry(classEntry.superName);
+                if(superClass != null && superClass.isInstrumented()) {
+                    super.visitAnnotation(ALREADY_INSTRUMENTED_NAME, true);
+                    classEntry.setInstrumented(true);
                 }
             }
         }

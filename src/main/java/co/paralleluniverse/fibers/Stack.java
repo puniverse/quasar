@@ -134,7 +134,7 @@ public final class Stack implements Serializable {
         return dataObject[curMethodSP + idx];
     }
 
-    public final void postRestore() {
+    public final void postRestore() throws InterruptedException {
         fiber.onResume();
     }
 

@@ -396,6 +396,7 @@ public class MethodDatabase implements Log {
         private final HashMap<String, Boolean> methods;
         private String[] interfaces;
         final String superName;
+        private boolean instrumented;
         private volatile boolean requiresInstrumentation;
 
         public ClassEntry(String superName) {
@@ -449,6 +450,14 @@ public class MethodDatabase implements Log {
 
         private static String key(String methodName, String methodDesc) {
             return methodName.concat(methodDesc);
+        }
+
+        public boolean isInstrumented() {
+            return instrumented;
+        }
+
+        public void setInstrumented(boolean instrumented) {
+            this.instrumented = instrumented;
         }
     }
 
