@@ -58,8 +58,6 @@ public class SelectiveReceiveHelper<Message> {
                     continue;
                 }
                 
-                System.out.println("==== " + m);
-                
                 actor.record(1, "Actor", "receive", "Received %s <- %s", this, m);
                 actor.monitorAddMessage();
                 try {
@@ -85,15 +83,12 @@ public class SelectiveReceiveHelper<Message> {
             } else {
                 try {
                     if (timeout > 0) {
-                        System.out.println("www: " + deadline);
                         actor.mailbox.await(left, TimeUnit.NANOSECONDS);
 
                         now = System.nanoTime();
                         left = deadline - now;
-                        System.out.println("zzzz: " + left);
                         if (left <= 0) {
                             actor.record(1, "Actor", "receive", "%s timed out.", this);
-                            System.out.println("EEEEEEEEE");
                             throw new TimeoutException();
                         }
                     } else
