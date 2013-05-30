@@ -2,6 +2,7 @@
 /artifacts
 /nbproject/private/
 /.nb-gradle
+/*.properties
 build/
 .DS_Store
 .gradle/
