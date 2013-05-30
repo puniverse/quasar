@@ -129,10 +129,8 @@ public class SupervisorTest {
             a.send(1);
         a.send(new ShutdownMessage(null));
         assertThat(a.get(), is(3));
-        
     }
 
-    @Ignore
     @Test
     public void whenChildDiesThenRestart() throws Exception {
         final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,

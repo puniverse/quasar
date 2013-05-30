@@ -237,7 +237,7 @@ public class GenServerTest {
             }
         });
 
-        gs.join(200, TimeUnit.MILLISECONDS); // 200 ms should be enough
+        gs.join(500, TimeUnit.MILLISECONDS); // should be enough
         assertThat(counter.get(), is(5));
     }
 
