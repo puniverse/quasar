@@ -105,13 +105,24 @@ tasks.withType(Test) {
     jvmArgs "-javaagent:${jar.archivePath}", "-Djava.util.logging.config.file=./jul.properties" // =v
     doLast() {
         println "file://" + testReportDir + "/index.html"    
-    }    
+    }  
 }
 
 task run(type: JavaExec, dependsOn:[testClasses]) {
     main = mainClass
     systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
     jvmArgs "-javaagent:${jar.archivePath}" // =v
+}
+
+test {
+    afterTest { desc, result -> 
+        if(result.resultType == TestResult.ResultType.FAILURE) {
+            println "Failed test ${desc.name} [${desc.className}] with exception: ${result.exception}"
+            if(result.exception != null) {
+                result.exception.printStackTrace()
+            }
+        }
+    }
 }
 
 tasks.withType(JavaExec) { 
