@@ -27,31 +27,31 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class LocalGenServer<Message, V> extends LocalActor<Object, Void> implements GenServer<Message, V> {
-    private final Server<Message, V> server;
+public class LocalGenServer<CallMessage, V, CastMessage> extends LocalActor<Object, Void> implements GenServer<CallMessage, V, CastMessage> {
+    private final Server<CallMessage, V, CastMessage> server;
     private long timeout; // nanos
     private boolean run;
 
-    public LocalGenServer(String name, Server<Message, V> server, long timeout, TimeUnit unit, Strand strand, int mailboxSize) {
+    public LocalGenServer(String name, Server<CallMessage, V, CastMessage> server, long timeout, TimeUnit unit, Strand strand, int mailboxSize) {
         super(strand, name, mailboxSize);
         this.server = server;
         this.timeout = unit != null ? unit.toNanos(timeout) : -1;
         this.run = true;
     }
 
-    public LocalGenServer(String name, Server<Message, V> server, int mailboxSize) {
+    public LocalGenServer(String name, Server<CallMessage, V, CastMessage> server, int mailboxSize) {
         this(name, server, -1, null, null, mailboxSize);
     }
 
-    public LocalGenServer(String name, Server<Message, V> server) {
+    public LocalGenServer(String name, Server<CallMessage, V, CastMessage> server) {
         this(name, server, -1, null, null, -1);
     }
 
-    public LocalGenServer(Server<Message, V> server, int mailboxSize) {
+    public LocalGenServer(Server<CallMessage, V, CastMessage> server, int mailboxSize) {
         this(null, server, -1, null, null, mailboxSize);
     }
 
-    public LocalGenServer(Server<Message, V> server) {
+    public LocalGenServer(Server<CallMessage, V, CastMessage> server) {
         this(null, server, -1, null, null, -1);
     }
 
@@ -71,22 +71,22 @@ public class LocalGenServer<Message, V> extends LocalActor<Object, Void> impleme
         this(null, null, -1, null, null, -1);
     }
 
-    public static <Message, V> LocalGenServer<Message, V> currentGenServer() {
-        return (LocalGenServer<Message, V>) currentActor();
+    public static <CallMessage, V, CastMessage> LocalGenServer<CallMessage, V, CastMessage> currentGenServer() {
+        return (LocalGenServer<CallMessage, V, CastMessage>) currentActor();
     }
 
     @Override
-    public final V call(Message m) throws InterruptedException, SuspendExecution {
+    public final V call(CallMessage m) throws InterruptedException, SuspendExecution {
         return GenServerHelper.call(this, m);
     }
 
     @Override
-    public final V call(Message m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
+    public final V call(CallMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
         return GenServerHelper.call(this, m, timeout, unit);
     }
 
     @Override
-    public final void cast(Message m) {
+    public final void cast(CastMessage m) {
         GenServerHelper.cast(this, m);
     }
 
@@ -96,11 +96,11 @@ public class LocalGenServer<Message, V> extends LocalActor<Object, Void> impleme
             while (run) {
                 Object m1 = receive(timeout, TimeUnit.NANOSECONDS);
                 if (m1 instanceof GenServerRequest) {
-                    GenServerRequest<Message> m = (GenServerRequest<Message>) m1;
+                    GenServerRequest m = (GenServerRequest) m1;
                     switch (m.getType()) {
                         case CALL:
                             try {
-                                final V res = handleCall((Actor<V>) m.getFrom(), m.getId(), m.getMessage());
+                                final V res = handleCall((Actor<V>) m.getFrom(), m.getId(), (CallMessage) m.getMessage());
                                 if (res != null)
                                     reply((Actor<V>) m.getFrom(), m.getId(), res);
                             } catch (Exception e) {
@@ -109,7 +109,7 @@ public class LocalGenServer<Message, V> extends LocalActor<Object, Void> impleme
                             break;
 
                         case CAST:
-                            handleCast((Actor<V>) m.getFrom(), m.getId(), m.getMessage());
+                            handleCast((Actor<V>) m.getFrom(), m.getId(), (CastMessage) m.getMessage());
                             break;
                     }
                 } else if (m1 == null)
@@ -146,7 +146,7 @@ public class LocalGenServer<Message, V> extends LocalActor<Object, Void> impleme
     public void shutdown() {
         send(new ShutdownMessage(null));
     }
-    
+
     public final void reply(Actor to, Object id, V message) {
         verifyInActor();
         to.send(new GenValueResponseMessage<V>(id, message));
@@ -172,13 +172,13 @@ public class LocalGenServer<Message, V> extends LocalActor<Object, Void> impleme
         server.init();
     }
 
-    protected V handleCall(Actor<V> from, Object id, Message m) throws SuspendExecution {
+    protected V handleCall(Actor<V> from, Object id, CallMessage m) throws Exception, SuspendExecution {
         if (server != null)
             return server.handleCall(from, id, m);
         throw new UnsupportedOperationException(m.toString());
     }
 
-    protected void handleCast(Actor<V> from, Object id, Message m) throws SuspendExecution {
+    protected void handleCast(Actor<V> from, Object id, CastMessage m) throws SuspendExecution {
         if (server != null)
             server.handleCast(from, id, m);
     }

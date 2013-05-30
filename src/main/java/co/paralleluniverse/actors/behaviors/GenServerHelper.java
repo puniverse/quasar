@@ -34,25 +34,25 @@ class GenServerHelper {
         }
     }
 
-    public static <Message, V> V call(Actor server, Message m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
-        final GenResponseMessage response = RequestReplyHelper.call(server, new GenServerRequest<Message>(from(), makeId(), MessageType.CALL, m), timeout, unit);
+    public static <V> V call(Actor server, Object m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
+        final GenResponseMessage response = RequestReplyHelper.call(server, new GenServerRequest(from(), makeId(), MessageType.CALL, m), timeout, unit);
         final V res = ((GenValueResponseMessage<V>) response).getValue();
         return res;
     }
 
-    public static <Message> void cast(Actor server, Message m) {
-        server.send(new GenServerRequest<Message>(LocalActor.currentActor(), makeId(), MessageType.CAST, m));
+    public static void cast(Actor server, Object m) {
+        server.send(new GenServerRequest(LocalActor.currentActor(), makeId(), MessageType.CAST, m));
     }
 
     enum MessageType {
         CALL, CAST
     };
 
-    static class GenServerRequest<Message> extends GenRequestMessage {
+    static class GenServerRequest extends GenRequestMessage {
         private final MessageType type;
-        private final Message message;
+        private final Object message;
 
-        public GenServerRequest(Actor sender, Object id, MessageType type, Message message) {
+        public GenServerRequest(Actor sender, Object id, MessageType type, Object message) {
             super(sender, id);
             this.type = type;
             this.message = message;
@@ -62,7 +62,7 @@ class GenServerHelper {
             return type;
         }
 
-        public Message getMessage() {
+        public Object getMessage() {
             return message;
         }
     }

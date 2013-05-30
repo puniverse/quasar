@@ -20,10 +20,10 @@ import co.paralleluniverse.fibers.SuspendExecution;
  *
  * @author pron
  */
-public interface Server<Message, V> {
+public interface Server<CallMessage, V, CastMessage> {
     void init() throws SuspendExecution;
-    V handleCall(Actor<V> from, Object id, Message m) throws SuspendExecution;
-    void handleCast(Actor<V> from, Object id, Message m) throws SuspendExecution;
+    V handleCall(Actor<V> from, Object id, CallMessage m) throws Exception, SuspendExecution;
+    void handleCast(Actor<V> from, Object id, CastMessage m) throws SuspendExecution;
     void handleInfo(Object m) throws SuspendExecution;
     void handleTimeout() throws SuspendExecution;
     void terminate(Throwable cause) throws SuspendExecution;

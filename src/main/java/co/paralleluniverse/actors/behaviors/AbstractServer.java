@@ -20,27 +20,26 @@ import co.paralleluniverse.fibers.SuspendExecution;
  *
  * @author pron
  */
-public class AbstractServer<Message, V> implements Server<Message, V> {
-
+public class AbstractServer<CallMessage, V, CastMessage> implements Server<CallMessage, V, CastMessage> {
     @Override
-    public void init()  throws SuspendExecution {
+    public void init() throws SuspendExecution {
     }
 
     @Override
-    public V handleCall(Actor<V> from, Object id, Message m)  throws SuspendExecution {
+    public V handleCall(Actor<V> from, Object id, CallMessage m) throws SuspendExecution {
         throw new UnsupportedOperationException(m.toString());
     }
 
     @Override
-    public void handleCast(Actor<V> from, Object id, Message m)  throws SuspendExecution {
+    public void handleCast(Actor<V> from, Object id, CastMessage m) throws SuspendExecution {
     }
 
     @Override
-    public void handleInfo(Object m)  throws SuspendExecution {
+    public void handleInfo(Object m) throws SuspendExecution {
     }
 
     @Override
-    public void handleTimeout()  throws SuspendExecution {
+    public void handleTimeout() throws SuspendExecution {
     }
 
     @Override

@@ -21,9 +21,6 @@ import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.ShutdownMessage;
-import co.paralleluniverse.actors.behaviors.Supervisor.ActorInfo;
-import co.paralleluniverse.actors.behaviors.Supervisor.ActorMode;
-import co.paralleluniverse.actors.behaviors.Supervisor.RestartStrategy;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -59,12 +56,12 @@ public class GenServerTest {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
     }
 
-    private LocalGenServer<Message, Integer> spawnGenServer(Server<Message, Integer> server) {
+    private LocalGenServer<Message, Integer, Message> spawnGenServer(Server<Message, Integer, Message> server) {
         return spawnGenServer(new LocalGenServer<>("server", server));
     }
 
-    private LocalGenServer<Message, Integer> spawnGenServer(LocalGenServer<Message, Integer> genServer) {
-        return (LocalGenServer<Message, Integer>) spawnActor(genServer);
+    private LocalGenServer<Message, Integer, Message> spawnGenServer(LocalGenServer<Message, Integer, Message> genServer) {
+        return (LocalGenServer<Message, Integer, Message>) spawnActor(genServer);
     }
 
     private <Message, V> LocalActor<Message, V> spawnActor(LocalActor<Message, V> actor) {
@@ -84,7 +81,7 @@ public class GenServerTest {
     public void whenGenServerStartsThenInitIsCalled() throws Exception {
         final AtomicBoolean called = new AtomicBoolean(false);
 
-        LocalGenServer<Message, Integer> gs = spawnGenServer(new AbstractServer<Message, Integer>() {
+        LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new AbstractServer<Message, Integer, Message>() {
             @Override
             public void init() {
                 called.set(true);
@@ -101,7 +98,7 @@ public class GenServerTest {
 
     @Test
     public void whenStopIsCalledInInitThenServerStops() throws Exception {
-        LocalGenServer<Message, Integer> gs = spawnGenServer(new AbstractServer<Message, Integer>() {
+        LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new AbstractServer<Message, Integer, Message>() {
             @Override
             public void init() {
                 LocalGenServer.currentGenServer().stop();
@@ -113,7 +110,7 @@ public class GenServerTest {
 
     @Test
     public void whenCalledThenResultIsReturned() throws Exception {
-        final LocalGenServer<Message, Integer> gs = spawnGenServer(new AbstractServer<Message, Integer>() {
+        final LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new AbstractServer<Message, Integer, Message>() {
             @Override
             public Integer handleCall(Actor<Integer> from, Object id, Message m) {
                 LocalGenServer.currentGenServer().stop();
@@ -135,7 +132,7 @@ public class GenServerTest {
 
     @Test
     public void whenCalledFromThreadThenResultIsReturned() throws Exception {
-        LocalGenServer<Message, Integer> gs = spawnGenServer(new AbstractServer<Message, Integer>() {
+        LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new AbstractServer<Message, Integer, Message>() {
             @Override
             public Integer handleCall(Actor<Integer> from, Object id, Message m) {
                 LocalGenServer.currentGenServer().stop();
@@ -151,7 +148,7 @@ public class GenServerTest {
 
     @Test
     public void whenCalledAndTimeoutThenThrowTimeout() throws Exception {
-        LocalGenServer<Message, Integer> gs = spawnGenServer(new AbstractServer<Message, Integer>() {
+        LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new AbstractServer<Message, Integer, Message>() {
             @Override
             public Integer handleCall(Actor<Integer> from, Object id, Message m) throws SuspendExecution {
                 try {
@@ -176,7 +173,7 @@ public class GenServerTest {
 
     @Test
     public void whenHandleCallThrowsExceptionThenItPropagatesToCaller() throws Exception {
-        final LocalGenServer<Message, Integer> gs = spawnGenServer(new AbstractServer<Message, Integer>() {
+        final LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new AbstractServer<Message, Integer, Message>() {
             @Override
             public Integer handleCall(Actor<Integer> from, Object id, Message m) {
                 throw new RuntimeException("my exception");
@@ -205,7 +202,7 @@ public class GenServerTest {
 
     @Test
     public void whenHandleCallThrowsExceptionThenItPropagatesToThreadCaller() throws Exception {
-        LocalGenServer<Message, Integer> gs = spawnGenServer(new AbstractServer<Message, Integer>() {
+        LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new AbstractServer<Message, Integer, Message>() {
             @Override
             public Integer handleCall(Actor<Integer> from, Object id, Message m) {
                 throw new RuntimeException("my exception");
@@ -230,7 +227,7 @@ public class GenServerTest {
     public void whenTimeoutThenHandleTimeoutIsCalled() throws Exception {
         final AtomicInteger counter = new AtomicInteger(0);
 
-        LocalGenServer<Message, Integer> gs = spawnGenServer(new LocalGenServer<Message, Integer>() {
+        LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new LocalGenServer<Message, Integer, Message>() {
             @Override
             protected void init() {
                 setTimeout(20, TimeUnit.MILLISECONDS);
@@ -250,7 +247,7 @@ public class GenServerTest {
 
     @Test
     public void whenCalledThenDeferredResultIsReturned() throws Exception {
-        final LocalGenServer<Message, Integer> gs = spawnGenServer(new LocalGenServer<Message, Integer>() {
+        final LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new LocalGenServer<Message, Integer, Message>() {
             private int a, b;
             private Actor<Integer> from;
             private Object id;
@@ -295,7 +292,7 @@ public class GenServerTest {
 
     @Test
     public void whenCalledFromThreadThenDeferredResultIsReturned() throws Exception {
-        final LocalGenServer<Message, Integer> gs = spawnGenServer(new LocalGenServer<Message, Integer>() {
+        final LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new LocalGenServer<Message, Integer, Message>() {
             private int a, b;
             private Actor<Integer> from;
             private Object id;
@@ -336,7 +333,7 @@ public class GenServerTest {
     public void whenCastThenHandleCastIsCalled() throws Exception {
         final AtomicInteger result = new AtomicInteger();
 
-        LocalGenServer<Message, Integer> gs = spawnGenServer(new AbstractServer<Message, Integer>() {
+        LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new AbstractServer<Message, Integer, Message>() {
             @Override
             public void handleCast(Actor<Integer> from, Object id, Message m) {
                 LocalGenServer.currentGenServer().stop();
@@ -354,7 +351,7 @@ public class GenServerTest {
     public void whenSentMessageHandleInfoIsCalled() throws Exception {
         final AtomicReference<Object> result = new AtomicReference<Object>();
 
-        LocalGenServer<Message, Integer> gs = spawnGenServer(new AbstractServer<Message, Integer>() {
+        LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new AbstractServer<Message, Integer, Message>() {
             @Override
             public void handleInfo(Object m) {
                 LocalGenServer.currentGenServer().stop();
@@ -372,7 +369,7 @@ public class GenServerTest {
     public void whenSentShutdownThenTerminateIsCalledAndServerStopped() throws Exception {
         final AtomicBoolean called = new AtomicBoolean(false);
 
-        LocalGenServer<Message, Integer> gs = spawnGenServer(new AbstractServer<Message, Integer>() {
+        LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new AbstractServer<Message, Integer, Message>() {
             @Override
             public void terminate(Throwable cause) throws SuspendExecution {
                 called.set(true);
@@ -390,7 +387,7 @@ public class GenServerTest {
     public void whenHandleInfoThrowsExceptionThenTerminateIsCalled() throws Exception {
         final AtomicBoolean called = new AtomicBoolean(false);
 
-        LocalGenServer<Message, Integer> gs = spawnGenServer(new AbstractServer<Message, Integer>() {
+        LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new AbstractServer<Message, Integer, Message>() {
             @Override
             public void handleInfo(Object m) {
                 throw new RuntimeException("my exception");
