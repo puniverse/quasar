@@ -132,6 +132,7 @@ public class SupervisorTest {
         
     }
 
+    @Ignore
     @Test
     public void whenChildDiesThenRestart() throws Exception {
         final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
