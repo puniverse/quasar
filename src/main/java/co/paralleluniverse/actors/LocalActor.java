@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -111,7 +112,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "@" + (getName() != null ? getName() : Integer.toHexString(System.identityHashCode(this))) + "[owner: " + strand + ']';
+        return getClass().getSimpleName() + "@" + (getName() != null ? getName() : Integer.toHexString(System.identityHashCode(this))) + "[owner: " + Objects.systemToString(strand) + ']';
     }
 
     public ActorMonitor monitor() {
@@ -390,11 +391,14 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     public Actor unregister() {
+        if (!registered)
+            return this;
         record(1, "Actor", "unregister", "Unregistering actor %s (name: %s)", getName());
         if (getName() == null)
             throw new IllegalArgumentException("name is null");
         ActorRegistry.unregister(getName());
-        this.monitor.setActor(null);
+        if (monitor != null)
+            this.monitor.setActor(null);
         this.registered = false;
         return this;
     }

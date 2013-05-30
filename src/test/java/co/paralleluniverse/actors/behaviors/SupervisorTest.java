@@ -110,13 +110,12 @@ public class SupervisorTest {
         final long start = System.nanoTime();
         while ((a = sup.getChild(name)) == null || a.isDone()) {
             if (System.nanoTime() > start + TimeUnit.MILLISECONDS.toNanos(timeout))
-                throw new RuntimeException("child actor not found");
+                throw new RuntimeException("child actor not found ");
             Thread.sleep(10);
         }
         return a;
     }
 
-    @Ignore
     @Test
     public void startChildren() throws Exception {
         final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
@@ -129,6 +128,9 @@ public class SupervisorTest {
             a.send(1);
         a.send(new ShutdownMessage(null));
         assertThat(a.get(), is(3));
+        
+        sup.shutdown();
+        sup.join();
     }
 
     @Test
@@ -144,11 +146,13 @@ public class SupervisorTest {
         a.send(new ShutdownMessage(null));
         assertThat(a.get(), is(3));
 
+        
         a = getChild(sup, "actor1", 1000);
         for (int i = 0; i < 5; i++)
             a.send(1);
         a.send(new ShutdownMessage(null));
         assertThat(a.get(), is(5));
+        
         
         sup.shutdown();
         sup.join();

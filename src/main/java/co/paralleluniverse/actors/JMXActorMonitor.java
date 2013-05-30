@@ -34,12 +34,15 @@ import javax.management.NotificationEmitter;
 import javax.management.NotificationListener;
 import javax.management.ObjectName;
 import javax.management.StandardEmitterMBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author pron
  */
 public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonitor, ActorMXBean, NotificationListener, NotificationEmitter {
+    private static final Logger LOG = LoggerFactory.getLogger(JMXActorMonitor.class);
     /*
      * For the time being, we're not worried about data races. Messages counters are all updated by the actor, so there's no problem there.
      * For the JMX thread to see the messages counter, it should really be volatile, but as an approximation, we keep it a regular int.
@@ -62,6 +65,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
     public JMXActorMonitor(String name) {
         super(ActorMXBean.class, true, new NotificationBroadcasterSupport());
         this.name = "co.paralleluniverse:type=quasar,monitor=actor,name=" + name;
+        LOG.info("Starting monitor {}: {}", name, this.name);
         lastCollectTime = nanoTime();
         collectAndResetCounters();
         registerMBean();
@@ -69,12 +73,16 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
 
     @Override
     public void setActor(LocalActor actor) {
+        if(actor == null && this.actor == null)
+            return;
+        LOG.info("Setting actor {} for monitor {}", actor, name);
         reset();
         this.actor = (actor != null ? new WeakReference<LocalActor>(actor) : null);
     }
 
     @Override
     public void shutdown() {
+        LOG.info("Stopping monitor {}", name);
         unregisterMBean();
         this.actor = null;
     }

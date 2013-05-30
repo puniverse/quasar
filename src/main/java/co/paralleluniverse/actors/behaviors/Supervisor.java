@@ -109,8 +109,8 @@ public class Supervisor extends LocalActor<Object, Void> {
             }
         } catch (InterruptedException e) {
         } finally {
+            LOG.info("Supervisor {} shutting down.", this);
             shutdownChildren();
-
             childrenByName.clear();
             children.clear();
         }
@@ -197,8 +197,6 @@ public class Supervisor extends LocalActor<Object, Void> {
                     }
                 }
             } else if (m instanceof ShutdownMessage) {
-                LOG.info("Supervisor {} shutting down.", this);
-                shutdownChildren();
                 handled = true;
                 getStrand().interrupt();
             }
@@ -260,9 +258,11 @@ public class Supervisor extends LocalActor<Object, Void> {
 
     private void shutdownChild(ActorEntry child, boolean beforeRestart) throws InterruptedException {
         if (child.actor != null) {
-            LOG.info("{} shutting down child {}", this, child.actor);
             unwatch(child);
-            ((Actor) child.actor).send(new ShutdownMessage(this));
+            if (!child.actor.isDone()) {
+                LOG.info("{} shutting down child {}", this, child.actor);
+                ((Actor) child.actor).send(new ShutdownMessage(this));
+            }
             try {
                 joinChild(child);
             } finally {
@@ -286,6 +286,7 @@ public class Supervisor extends LocalActor<Object, Void> {
         for (ActorEntry child : children) {
             if (child.actor != null) {
                 try {
+                    child.actor.stopMonitor();
                     joinChild(child);
                 } finally {
                     child.actor = null;
@@ -303,10 +304,26 @@ public class Supervisor extends LocalActor<Object, Void> {
                 LOG.info(this + ": child {} died with exception {}", child.actor, ex.getCause());
                 return true;
             } catch (TimeoutException ex) {
-                LOG.warn(this + ": child {} shutdown timeout", child.actor);
+                LOG.warn(this + ": child {} shutdown timeout. Interrupting...", child.actor);
                 // is this the best we can do?
                 child.actor.getStrand().interrupt();
-                return false;
+
+                try {
+                    child.actor.join(child.info.shutdownDeadline, TimeUnit.MILLISECONDS);
+                    return true;
+                } catch (ExecutionException e) {
+                    LOG.info(this + ": child {} died with exception {}", child.actor, ex.getCause());
+                    return true;
+                } catch (TimeoutException e) {
+                    LOG.warn(this + ": child {} could not shut down...", child.actor);
+                    
+                    child.actor.stopMonitor();
+                    child.actor.unregister();
+                    child.actor = null;
+                    
+                    return false;
+                }
+
             }
         } else
             return true;
