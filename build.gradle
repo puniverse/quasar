@@ -54,7 +54,11 @@ dependencies {
     compile "org.ow2.asm:asm-util:4.1"
     compile "ant:ant:1.7.0"
     compile "com.google.guava:guava:11.0.1"
-    runtime "org.slf4j:slf4j-jdk14:1.6.4"
+//  runtime "org.slf4j:slf4j-jdk14:1.6.4"
+    runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0-beta6"
+    runtime "org.apache.logging.log4j:log4j-api:2.0-beta6"
+    runtime "org.apache.logging.log4j:log4j-core:2.0-beta6"
+    runtime "com.lmax:disruptor:3.0.1" // required for log4j
     testCompile 'junit:junit:4.10'
     testCompile 'org.hamcrest:hamcrest-all:1.3'
     testCompile 'org.mockito:mockito-all:1.9.0'
@@ -102,7 +106,10 @@ jar {
 tasks.withType(Test) { 
     useJUnit()
     systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
-    jvmArgs "-javaagent:${jar.archivePath}", "-Djava.util.logging.config.file=./jul.properties" // =v
+//  systemProperty "java.util.logging.config.file", "jul.properties"
+    systemProperty "log4j.configurationFile", "log4j.xml"
+    systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
+    jvmArgs "-javaagent:${jar.archivePath}" // =v
     doLast() {
         println "file://" + testReportDir + "/index.html"    
     }  

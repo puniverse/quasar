@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration status="WARN">
+  <appenders>
+    <Console name="Console" target="SYSTEM_ERR">
+      <PatternLayout pattern="%highlight{%d{HH:mm:ss.SSS} [%t] %30logger{2} [%-5level]} %msg%n"/>
+    </Console>
+  </appenders>
+  <loggers>
+    <root level="WARN">
+      <appender-ref ref="Console"/>
+    </root>
+    <logger name="co.paralleluniverse.actors" level="DEBUG"/>
+  </loggers>
+</configuration>
