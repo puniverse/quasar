@@ -55,7 +55,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     public static <T extends LocalActor<Message, V>, Message, V> T newActor(Class<T> clazz, Object... params) {
-        return newActor(new ActorSpec<T, Message, V>(clazz, params));
+        return newActor(ActorSpec.of(clazz, params));
     }
 
     public static <T extends LocalActor<Message, V>, Message, V> T newActor(ActorSpec<T, Message, V> spec) {
@@ -71,7 +71,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
         newInstance.setName(this.getName());
         newInstance.strand = null;
-        newInstance.monitor = this.monitor;
+        newInstance.setMonitor(this.monitor);
         monitor.setActor(newInstance);
         if (getName() != null && ActorRegistry.getActor(getName()) == this)
             newInstance.register();
@@ -123,9 +123,20 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         return monitor;
     }
 
+    public void setMonitor(ActorMonitor monitor) {
+        if (this.monitor == monitor)
+            return;
+        if (this.monitor != null)
+            throw new RuntimeException("actor already has a monitor");
+        this.monitor = monitor;
+        monitor.setActor(this);
+    }
+
     public void stopMonitor() {
-        monitor.shutdown();
-        this.monitor = null;
+        if (monitor != null) {
+            monitor.shutdown();
+            this.monitor = null;
+        }
     }
 
     public ActorMonitor getMonitor() {
@@ -144,6 +155,8 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     @Override
     public final void setStrand(Strand strand) {
+        if (strand == this.strand)
+            return;
         if (this.strand != null)
             throw new IllegalStateException("Strand already set to " + strand);
         this.strand = strand;
@@ -217,7 +230,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
                 return null;
             record(1, "Actor", "tryReceive", "Received %s <- %s", this, m);
             monitorAddMessage();
-            
+
             Message msg = filterMessage(m);
             if (msg != null)
                 return msg;
@@ -229,7 +242,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
             handleLifecycleMessage((LifecycleMessage) m);
             return null;
         }
-        return (Message)m;
+        return (Message) m;
     }
     //</editor-fold>
 
@@ -280,12 +293,12 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         if (!isInActor())
             throw new ConcurrencyException("Operation not called from within the actor (" + this + ")");
     }
-    
+
     protected boolean isInActor() {
         return (currentActor() == this);
     }
     //</editor-fold>
-    
+
     //<editor-fold desc="Lifecycle">
     /////////// Lifecycle ///////////////////////////////////
     @Override
@@ -343,6 +356,10 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         return deathCause;
     }
 
+    public boolean isRegistered() {
+        return registered;
+    }
+
     @Override
     public void throwIn(RuntimeException e) {
         record(1, "Actor", "throwIn", "Exception %s thrown into actor %s", e, this);
@@ -377,7 +394,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         if (getName() == null)
             throw new IllegalArgumentException("name is null");
         ActorRegistry.unregister(getName());
-        this.monitor = null;
+        this.monitor.setActor(null);
         this.registered = false;
         return this;
     }

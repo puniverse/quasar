@@ -34,6 +34,10 @@ public abstract class BasicActor<Message, V> extends LocalActor<Message, V> {
         this((String) null, mailboxSize);
     }
 
+    public BasicActor(String name) {
+        this(name, -1);
+    }
+
     public BasicActor() {
         this((String) null, -1);
     }

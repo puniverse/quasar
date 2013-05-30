@@ -137,7 +137,7 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends LocalActor<Obje
     protected void handleLifecycleMessage(LifecycleMessage m) {
         if (m instanceof ShutdownMessage) {
             stop();
-            Strand.currentStrand().interrupt();
+            getStrand().interrupt();
         } else
             super.handleLifecycleMessage(m);
     }

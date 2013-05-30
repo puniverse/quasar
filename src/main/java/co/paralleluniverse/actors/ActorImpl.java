@@ -64,8 +64,8 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
         return new BigInteger(80, ThreadLocalRandom.current());
     }
 
-    public static Actor getActor(Object name) {
-        return ActorRegistry.getActor(name);
+    public static <Message, V> LocalActor<Message, V> getActor(Object name) {
+        return (LocalActor<Message, V>)ActorRegistry.getActor(name);
     }
 
     //<editor-fold desc="Mailbox methods">

@@ -22,5 +22,5 @@ public interface ActorMXBean {
     int getTotalReceivedMessages();
     int getQueueLength();
     int getTotalRestarts();
-    String[] getLastDeathReasons();
+    String[] getLastDeathCauses();
 }

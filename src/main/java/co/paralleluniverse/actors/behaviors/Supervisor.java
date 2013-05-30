@@ -23,12 +23,13 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import jsr166e.ConcurrentHashMapV8;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,13 +41,48 @@ public class Supervisor extends LocalActor<Object, Void> {
     private static final Logger LOG = LoggerFactory.getLogger(Supervisor.class);
     private final RestartStrategy restartStrategy;
     private final List<ActorEntry> children = new ArrayList<ActorEntry>();
-    private final Map<Object, ActorEntry> childrenByName = new HashMap<Object, ActorEntry>();
+    private final ConcurrentMap<Object, ActorEntry> childrenByName = new ConcurrentHashMapV8<Object, ActorEntry>();
 
-    public Supervisor(Strand strand, String name, int mailboxSize, RestartStrategy restartStrategy, List<ActorInfo> childrenSpecs) {
+    public Supervisor(Strand strand, String name, int mailboxSize, RestartStrategy restartStrategy, List<ActorInfo> childSpec) {
         super(strand, name, mailboxSize);
         this.restartStrategy = restartStrategy;
-        for (ActorInfo childSpec : childrenSpecs)
-            addChild1(childSpec, null);
+        for (ActorInfo cs : childSpec)
+            addChild1(cs, null);
+    }
+
+    public Supervisor(String name, int mailboxSize, RestartStrategy restartStrategy, List<ActorInfo> childSpec) {
+        this(null, name, mailboxSize, restartStrategy, childSpec);
+    }
+
+    public Supervisor(String name, int mailboxSize, RestartStrategy restartStrategy, ActorInfo... childSpec) {
+        this(name, mailboxSize, restartStrategy, Arrays.asList(childSpec));
+    }
+
+    public Supervisor(String name, RestartStrategy restartStrategy, List<ActorInfo> childSpec) {
+        this(null, name, -1, restartStrategy, childSpec);
+    }
+
+    public Supervisor(String name, RestartStrategy restartStrategy, ActorInfo... childSpec) {
+        this(name, -1, restartStrategy, Arrays.asList(childSpec));
+    }
+
+    public Supervisor(RestartStrategy restartStrategy, List<ActorInfo> childSpec) {
+        this(null, null, -1, restartStrategy, childSpec);
+    }
+
+    public Supervisor(RestartStrategy restartStrategy, ActorInfo... childSpec) {
+        this(restartStrategy, Arrays.asList(childSpec));
+    }
+
+    public <Message, V> LocalActor<Message, V> getChild(Object name) {
+        final ActorEntry child = findEntryByName(name);
+        if (child == null)
+            return null;
+        return (LocalActor<Message, V>) child.actor;
+    }
+
+    public void shutdown() {
+        send(new ShutdownMessage(null));
     }
 
     @Override
@@ -74,7 +110,7 @@ public class Supervisor extends LocalActor<Object, Void> {
         } catch (InterruptedException e) {
         } finally {
             shutdownChildren();
-            
+
             childrenByName.clear();
             children.clear();
         }
@@ -126,7 +162,7 @@ public class Supervisor extends LocalActor<Object, Void> {
                 unwatch(child);
 
                 if (terminate)
-                    shutdownChild(child);
+                    shutdownChild(child, false);
                 else
                     unwatch(child);
             }
@@ -152,36 +188,41 @@ public class Supervisor extends LocalActor<Object, Void> {
                     final ActorEntry child = findEntry(actor);
 
                     if (child != null) {
-                        restartStrategy.onChildDeath(this, child, death.cause);
+                        LOG.info(this + " detected child death: " + child + ". (casue: {})", death.cause);
+                        if (!restartStrategy.onChildDeath(this, child, death.cause)) {
+                            LOG.info("Supervisor {} giving up.", this);
+                            getStrand().interrupt();
+                        }
                         handled = true;
                     }
                 }
             } else if (m instanceof ShutdownMessage) {
+                LOG.info("Supervisor {} shutting down.", this);
                 shutdownChildren();
                 handled = true;
-                Strand.currentStrand().interrupt();
+                getStrand().interrupt();
             }
             if (!handled)
                 super.handleLifecycleMessage(m);
         } catch (InterruptedException e) {
-            Strand.currentStrand().interrupt();
+            getStrand().interrupt();
         }
     }
 
     private boolean tryRestart(ActorEntry child, Throwable cause, long now) throws InterruptedException {
+        LOG.info("Supervisor trying to restart child {}. (casue: {})", child, cause);
         verifyInActor();
         switch (child.info.mode) {
             case TRANSIENT:
-                if (cause != null)
+                if (cause == null)
                     return true;
             // fall through
             case PERMANENT:
                 final Actor actor = child.actor;
-                if (actor != null)
-                    shutdownChild(child);
+                shutdownChild(child, true);
                 child.restartHistory.addRestart(now);
                 if (child.restartHistory.numRestarts(now - child.info.unit.toMillis(child.info.duration)) > child.info.maxRestarts) {
-                    LOG.warn(this + ": too many restarts for child {}", actor);
+                    LOG.warn(this + ": too many restarts for child {}. Giving up.", actor);
                     return false;
                 }
                 start(child);
@@ -194,15 +235,18 @@ public class Supervisor extends LocalActor<Object, Void> {
     }
 
     private LocalActor start(ActorEntry child) {
-        assert child.actor == null || child.actor.isDone();
-        if (child.actor != null && !child.actor.isDone())
+        final LocalActor old = child.actor;
+        if (old != null && !old.isDone())
             throw new IllegalStateException("Actor " + child.actor + " cannot be restarted because it is not dead");
 
         final LocalActor actor = child.info.builder.build();
-        if (actor.getName() != null && child.info.name != null)
+        if (actor.getName() == null && child.info.name != null)
             actor.setName(child.info.name);
 
-        LOG.info("{} restarting child {}", this, actor);
+        LOG.info("{} starting child {}", this, actor);
+
+        if (old != null && actor.getMonitor() == null && old.getMonitor() != null)
+            actor.setMonitor(old.getMonitor());
         if (actor.getMonitor() != null)
             actor.getMonitor().addRestart();
 
@@ -214,13 +258,19 @@ public class Supervisor extends LocalActor<Object, Void> {
         return actor;
     }
 
-    private void shutdownChild(ActorEntry child) throws InterruptedException {
+    private void shutdownChild(ActorEntry child, boolean beforeRestart) throws InterruptedException {
         if (child.actor != null) {
             LOG.info("{} shutting down child {}", this, child.actor);
             unwatch(child);
             ((Actor) child.actor).send(new ShutdownMessage(this));
-            joinChild(child);
-            child.actor = null;
+            try {
+                joinChild(child);
+            } finally {
+                if (!beforeRestart) {
+                    child.actor.stopMonitor();
+                    child.actor = null;
+                }
+            }
         }
     }
 
@@ -234,8 +284,13 @@ public class Supervisor extends LocalActor<Object, Void> {
         }
 
         for (ActorEntry child : children) {
-            if (child.actor != null)
-                joinChild(child);
+            if (child.actor != null) {
+                try {
+                    joinChild(child);
+                } finally {
+                    child.actor = null;
+                }
+            }
         }
     }
 
@@ -252,8 +307,6 @@ public class Supervisor extends LocalActor<Object, Void> {
                 // is this the best we can do?
                 child.actor.getStrand().interrupt();
                 return false;
-            } finally {
-                child.actor = null;
             }
         } else
             return true;
@@ -420,7 +473,7 @@ public class Supervisor extends LocalActor<Object, Void> {
         final ActorInfo info;
         final RestartHistory restartHistory;
         Object watch;
-        LocalActor<?, ?> actor;
+        volatile LocalActor<?, ?> actor;
 
         public ActorEntry(ActorInfo info) {
             this(info, null);
@@ -431,6 +484,11 @@ public class Supervisor extends LocalActor<Object, Void> {
             this.restartHistory = new RestartHistory(info.maxRestarts);
 
             this.actor = actor;
+        }
+
+        @Override
+        public String toString() {
+            return "ActorEntry{" + "info=" + info + " actor=" + actor + '}';
         }
     }
 

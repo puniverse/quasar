@@ -53,7 +53,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
     private int messageCounter;
     private int skippedMessageCounter;
     private final Counter restartCounter = new Counter();
-    private final Queue<String> deathReasons = new ConcurrentLinkedQueue<>();
+    private final Queue<String> deathCauses = new ConcurrentLinkedQueue<>();
     // These hold counter values for the previous window
     private long messages;
     private long skippedMessages;
@@ -69,7 +69,8 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
 
     @Override
     public void setActor(LocalActor actor) {
-        this.actor = new WeakReference<LocalActor>(actor);
+        reset();
+        this.actor = (actor != null ? new WeakReference<LocalActor>(actor) : null);
     }
 
     @Override
@@ -158,12 +159,12 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
     }
 
     @Override
-    public void addDeath(Object reason) {
-        if(reason == null)
-            reason = "normal";
-        while (deathReasons.size() > 20)
-            deathReasons.poll();
-        deathReasons.add(reason.toString());
+    public void addDeath(Object cause) {
+        if(cause == null)
+            cause = "normal";
+        while (deathCauses.size() > 20)
+            deathCauses.poll();
+        deathCauses.add(cause.toString());
     }
 
     @Override
@@ -192,10 +193,8 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
         if (this.actor == null)
             return 0;
         final LocalActor a = this.actor.get();
-        if (a == null) {
-            unregisterMBean();
+        if (a == null)
             return 0;
-        }
         return a.getQueueLength();
     }
 
@@ -210,7 +209,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
     }
 
     @Override
-    public String[] getLastDeathReasons() {
-        return deathReasons.toArray(new String[0]);
+    public String[] getLastDeathCauses() {
+        return deathCauses.toArray(new String[0]);
     }
 }

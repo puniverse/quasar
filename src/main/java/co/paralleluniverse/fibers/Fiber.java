@@ -687,7 +687,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
      */
     @Override
     public final boolean isAlive() {
-        return state != State.NEW && !fjTask.isDone();
+        return !fjTask.isDone();
     }
 
     @Override

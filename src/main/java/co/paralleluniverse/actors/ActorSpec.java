@@ -22,17 +22,23 @@ import java.util.Arrays;
  * @author pron
  */
 public class ActorSpec<T extends LocalActor<Message, V>, Message, V> implements ActorBuilder<Message, V> {
+    public static <Message, V, T extends LocalActor<Message, V>> ActorSpec<T, Message, V> of(Class<T> type, Object... params) {
+        return new ActorSpec<>(type, params);
+    }
+    
     final Constructor<T> ctor;
     final Object[] params;
 
     public ActorSpec(Class<T> type, Object[] params) {
         this.ctor = ReflectionUtil.getMatchingConstructor(type, ReflectionUtil.getTypes(params));
         this.params = Arrays.copyOf(params, params.length);
+        ctor.setAccessible(true);
     }
 
     public ActorSpec(Constructor<T> ctor, Object[] params) {
         this.ctor = ctor;
         this.params = Arrays.copyOf(params, params.length);
+        ctor.setAccessible(true);
     }
 
     @Override

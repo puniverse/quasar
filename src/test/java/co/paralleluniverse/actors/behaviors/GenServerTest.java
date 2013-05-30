@@ -57,14 +57,10 @@ public class GenServerTest {
     }
 
     private LocalGenServer<Message, Integer, Message> spawnGenServer(Server<Message, Integer, Message> server) {
-        return spawnGenServer(new LocalGenServer<>("server", server));
+        return spawnActor(new LocalGenServer<>("server", server));
     }
 
-    private LocalGenServer<Message, Integer, Message> spawnGenServer(LocalGenServer<Message, Integer, Message> genServer) {
-        return (LocalGenServer<Message, Integer, Message>) spawnActor(genServer);
-    }
-
-    private <Message, V> LocalActor<Message, V> spawnActor(LocalActor<Message, V> actor) {
+    private <T extends LocalActor<Message, V>, Message, V> T spawnActor(T actor) {
         Fiber fiber = new Fiber(fjPool, actor);
         fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
             @Override
@@ -227,7 +223,7 @@ public class GenServerTest {
     public void whenTimeoutThenHandleTimeoutIsCalled() throws Exception {
         final AtomicInteger counter = new AtomicInteger(0);
 
-        LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new LocalGenServer<Message, Integer, Message>() {
+        LocalGenServer<Message, Integer, Message> gs = spawnActor(new LocalGenServer<Message, Integer, Message>() {
             @Override
             protected void init() {
                 setTimeout(20, TimeUnit.MILLISECONDS);
@@ -247,7 +243,7 @@ public class GenServerTest {
 
     @Test
     public void whenCalledThenDeferredResultIsReturned() throws Exception {
-        final LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new LocalGenServer<Message, Integer, Message>() {
+        final LocalGenServer<Message, Integer, Message> gs = spawnActor(new LocalGenServer<Message, Integer, Message>() {
             private int a, b;
             private Actor<Integer> from;
             private Object id;
@@ -292,7 +288,7 @@ public class GenServerTest {
 
     @Test
     public void whenCalledFromThreadThenDeferredResultIsReturned() throws Exception {
-        final LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new LocalGenServer<Message, Integer, Message>() {
+        final LocalGenServer<Message, Integer, Message> gs = spawnActor(new LocalGenServer<Message, Integer, Message>() {
             private int a, b;
             private Actor<Integer> from;
             private Object id;
