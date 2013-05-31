@@ -46,7 +46,7 @@ public class RequestReplyHelper {
             if (m.getFrom() instanceof TempActor)
                 currentActor = (LocalActor) ((TempActor) m.getFrom()).actor.get();
             else
-                currentActor = LocalActor.currentActor();
+                currentActor = LocalActor.self();
 
             assert currentActor != null;
             final SelectiveReceiveHelper<Object> helper = new SelectiveReceiveHelper<Object>(currentActor);
@@ -81,7 +81,7 @@ public class RequestReplyHelper {
     }
 
     private static LocalActor getCurrentActor() {
-        LocalActor actor = LocalActor.currentActor();
+        LocalActor actor = LocalActor.self();
         if (actor == null) {
             // create a "dummy actor" on the current strand
             actor = new LocalActor(Strand.currentStrand(), null, 5) {

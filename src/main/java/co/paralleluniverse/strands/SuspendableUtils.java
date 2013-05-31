@@ -13,7 +13,9 @@
  */
 package co.paralleluniverse.strands;
 
+import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.SuspendExecution;
+import java.util.concurrent.Callable;
 
 /**
  *
@@ -41,4 +43,30 @@ public class SuspendableUtils {
             return runnable;
         }
     }
+    
+    public static SuspendableRunnable asSuspendable(final Runnable runnable) {
+        return new SuspendableRunnable() {
+
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                runnable.run();
+            }
+        };
+    }
+    
+    public static <V> SuspendableCallable<V> asSuspendable(final Callable<V> callable) {
+        return new SuspendableCallable<V>() {
+
+            @Override
+            public V run() throws SuspendExecution, InterruptedException {
+                try {
+                return callable.call();
+                } catch(Exception e) {
+                    throw Exceptions.rethrow(e);
+                }
+            }
+        };
+    }
+    
+    
 }

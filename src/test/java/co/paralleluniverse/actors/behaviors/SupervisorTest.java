@@ -23,7 +23,7 @@ import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.ShutdownMessage;
-import co.paralleluniverse.actors.behaviors.Supervisor.ActorInfo;
+import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
 import co.paralleluniverse.actors.behaviors.Supervisor.ActorMode;
 import co.paralleluniverse.actors.behaviors.Supervisor.RestartStrategy;
 import co.paralleluniverse.common.util.Exceptions;
@@ -119,7 +119,7 @@ public class SupervisorTest {
     @Test
     public void startChildren() throws Exception {
         final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
-                new ActorInfo("actor1", ActorSpec.of(Actor1.class, "actor1"), ActorMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3)));
+                new ChildSpec("actor1", ActorSpec.of(Actor1.class, "actor1"), ActorMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3)));
 
         LocalActor<Object, Integer> a;
 
@@ -136,7 +136,7 @@ public class SupervisorTest {
     @Test
     public void whenChildDiesThenRestart() throws Exception {
         final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
-                new ActorInfo("actor1", ActorSpec.of(Actor1.class, "actor1"), ActorMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3)));
+                new ChildSpec("actor1", ActorSpec.of(Actor1.class, "actor1"), ActorMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3)));
 
         LocalActor<Object, Integer> a;
 

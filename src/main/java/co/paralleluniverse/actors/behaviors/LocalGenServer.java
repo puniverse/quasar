@@ -72,7 +72,7 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends LocalActor<Obje
     }
 
     public static <CallMessage, V, CastMessage> LocalGenServer<CallMessage, V, CastMessage> currentGenServer() {
-        return (LocalGenServer<CallMessage, V, CastMessage>) currentActor();
+        return (LocalGenServer<CallMessage, V, CastMessage>) self();
     }
 
     @Override
@@ -93,6 +93,7 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends LocalActor<Obje
     @Override
     protected final Void doRun() throws InterruptedException, SuspendExecution {
         try {
+            init();
             while (run) {
                 Object m1 = receive(timeout, TimeUnit.NANOSECONDS);
                 if (m1 instanceof GenServerRequest) {
@@ -167,7 +168,6 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends LocalActor<Obje
         run = false;
     }
 
-    @Override
     protected void init() throws SuspendExecution {
         server.init();
     }

@@ -31,7 +31,7 @@ public class SelectiveReceiveHelper<Message> {
      * @throws LwtInterruptedException
      */
     public Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws TimeoutException, SuspendExecution, InterruptedException {
-        assert LocalActor.currentActor() == null || LocalActor.currentActor() == actor;
+        assert LocalActor.self() == null || LocalActor.self() == actor;
 
         actor.checkThrownIn();
         actor.mailbox.maybeSetCurrentStrandAsOwner();

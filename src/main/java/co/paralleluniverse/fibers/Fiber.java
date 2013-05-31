@@ -407,7 +407,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         this(fiber.name, fjPool, fiber.initialStackSize, target);
     }
     //</editor-fold>
-    
+
     /**
      * Returns the active Fiber on this thread or NULL if no Fiber is running.
      *
@@ -480,14 +480,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
      * (The return value in the Java code is actually ignored. It is generated and injected in InstrumentMethod.accept())
      * <p/>
      * <b>Can sneakily throw an InterruptedException</b>
-     * 
+     *
      * @param blocker
      * @param postParkActions
      * @param timeout
      * @param unit
      * @return
      * @throws SuspendExecution
-     * @throw InterruptedException 
+     * @throw InterruptedException
      */
     private boolean park1(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
         record(1, "Fiber", "park", "Parking %s", this);
@@ -723,7 +723,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
             return false;
         for (int i = 0; i < 30; i++) {
             if (getBlocker() == blocker && fjTask.tryUnpark()) {
-                if(fjTask.exec())
+                if (fjTask.exec())
                     fjTask.quietlyComplete();
                 return true;
             }
@@ -1039,7 +1039,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
 // for tests only!
     @VisibleForTesting
     final boolean exec() {
-        if(!Debug.isUnitTest())
+        if (!Debug.isUnitTest())
             throw new AssertionError("This method can only be called by unit tests");
         return fjTask.exec();
     }

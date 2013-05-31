@@ -41,7 +41,7 @@ class GenServerHelper {
     }
 
     public static void cast(Actor server, Object m) {
-        server.send(new GenServerRequest(LocalActor.currentActor(), makeId(), MessageType.CAST, m));
+        server.send(new GenServerRequest(LocalActor.self(), makeId(), MessageType.CAST, m));
     }
 
     enum MessageType {

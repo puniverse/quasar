@@ -28,13 +28,6 @@ import java.util.Map;
  * @author pron
  */
 class ReflectionUtil {
-    public static Class<?>[] getTypes(Object... vals) {
-        Class<?>[] types = new Class[vals.length];
-        for (int i = 0; i < vals.length; i++)
-            types[i] = vals[i].getClass();
-        return types;
-    }
-
     public static boolean isAssignable(Class<?>[] classArray, Class<?>[] toClassArray, final boolean autoboxing) {
         if (classArray.length != toClassArray.length)
             return false;

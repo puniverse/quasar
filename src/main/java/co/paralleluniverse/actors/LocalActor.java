@@ -144,7 +144,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         return monitor;
     }
 
-    public static LocalActor currentActor() {
+    public static LocalActor self() {
         final Fiber currentFiber = Fiber.currentFiber();
         if (currentFiber == null)
             return currentActor.get();
@@ -296,7 +296,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     protected boolean isInActor() {
-        return (currentActor() == this);
+        return (self() == this);
     }
     //</editor-fold>
 
@@ -309,7 +309,6 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         if (!(strand instanceof Fiber))
             currentActor.set(this);
         try {
-            init();
             result = doRun();
             die(null);
             return result;
@@ -324,9 +323,6 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
             if (!(strand instanceof Fiber))
                 currentActor.set(null);
         }
-    }
-
-    protected void init() throws InterruptedException, SuspendExecution {
     }
 
     protected abstract V doRun() throws InterruptedException, SuspendExecution;

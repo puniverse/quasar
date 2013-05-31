@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands;
 
+import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.ExecutionException;
@@ -179,6 +180,8 @@ public abstract class Strand {
                 } catch (SuspendExecution ex) {
                     throw new AssertionError(ex);
                 } catch (InterruptedException ex) {
+                } catch(Exception e) {
+                    throw Exceptions.rethrow(e);
                 }
             }
         };
