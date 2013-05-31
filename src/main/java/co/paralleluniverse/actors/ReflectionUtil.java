@@ -28,6 +28,14 @@ import java.util.Map;
  * @author pron
  */
 class ReflectionUtil {
+    public static Class<?>[] getTypes(Object... vals) {
+        Class<?>[] types = new Class[vals.length];
+        for (int i = 0; i < vals.length; i++)
+            types[i] = vals[i].getClass();
+
+        return types;
+    }
+
     public static boolean isAssignable(Class<?>[] classArray, Class<?>[] toClassArray, final boolean autoboxing) {
         if (classArray.length != toClassArray.length)
             return false;
@@ -137,7 +145,7 @@ class ReflectionUtil {
         }
         return cost;
     }
-    
+
     public static boolean isAssignable(Class<?> cls, final Class<?> toClass, final boolean autoboxing) {
         if (toClass == null) {
             return false;
@@ -245,7 +253,6 @@ class ReflectionUtil {
             }
         }
     }
-    
-    private static final Class<?>[] ORDERED_PRIMITIVE_TYPES = { Byte.TYPE, Short.TYPE,
-            Character.TYPE, Integer.TYPE, Long.TYPE, Float.TYPE, Double.TYPE };
+    private static final Class<?>[] ORDERED_PRIMITIVE_TYPES = {Byte.TYPE, Short.TYPE,
+        Character.TYPE, Integer.TYPE, Long.TYPE, Float.TYPE, Double.TYPE};
 }
