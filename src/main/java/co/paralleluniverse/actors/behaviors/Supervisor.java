@@ -16,6 +16,7 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ExitMessage;
+import co.paralleluniverse.actors.LazyVal;
 import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.ShutdownMessage;
@@ -37,7 +38,18 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 /**
- *
+ * An actor that supervises, and if necessary, restarts other actors.
+ * 
+ * 
+ * <p/>
+ * If an actor needs to know the identity of its siblings, it should add them to the supervisor manually. For that, it needs to know the identity
+ * of its supervisor. To do that, pass {@link LocalActor#self self()} to that actor's constructor in the {@link #Supervisor(String, RestartStrategy, SuspendableCallable) initializer} 
+ * or the {@link #init() init} method (or use a {@link LazyVal} that calls {@link LocalActor#self self()} in the actor spec). Alternatively, simply
+ * call {@link LocalActor#self self()} in the actor's constructor.
+ * 
+ * This works because the children are constructed from specs (provided they have not been constructed by the caller) during the supervisor's run,
+ * so calling {@link LocalActor#self self()} anywhere in the construction process would return the supervisor.
+ * 
  * @author pron
  */
 public class Supervisor extends LocalActor<Object, Void> {
