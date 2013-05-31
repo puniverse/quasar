@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableRunnable;
@@ -22,6 +23,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import static org.junit.Assume.*;
 import static org.hamcrest.CoreMatchers.*;
 import org.junit.Ignore;
 
@@ -136,6 +138,7 @@ public class ChannelTest {
 
     @Test
     public void whenReceiveNotCalledFromOwnerThenThrowException1() throws Exception {
+        assumeTrue(Debug.isAssertionsEnabled());
         final Channel<String> ch = ObjectChannel.<String>create(mailboxSize);
 
         Fiber fib1 = new Fiber("fiber", fjPool, new SuspendableRunnable() {
@@ -156,7 +159,7 @@ public class ChannelTest {
                 try {
                     ch.receive();
                     fail();
-                } catch (Exception e) {
+                } catch (Throwable e) {
                 }
             }
         }).start();
@@ -167,6 +170,7 @@ public class ChannelTest {
 
     @Test
     public void whenReceiveNotCalledFromOwnerThenThrowException2() throws Exception {
+        assumeTrue(Debug.isAssertionsEnabled());
         final Channel<String> ch = ObjectChannel.<String>create(mailboxSize);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
@@ -184,7 +188,7 @@ public class ChannelTest {
         try {
             ch.receive();
             fail();
-        } catch (Exception e) {
+        } catch (Throwable e) {
         }
 
         fib.join();
@@ -192,6 +196,7 @@ public class ChannelTest {
 
     @Test
     public void whenReceiveNotCalledFromOwnerThenThrowException3() throws Exception {
+        assumeTrue(Debug.isAssertionsEnabled());
         final Channel<String> ch = ObjectChannel.<String>create(mailboxSize);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
@@ -204,7 +209,7 @@ public class ChannelTest {
                 try {
                     ch.receive();
                     fail();
-                } catch (Exception e) {
+                } catch (Throwable e) {
                 }
             }
         }).start();
@@ -218,6 +223,7 @@ public class ChannelTest {
 
     @Test
     public void whenReceiveNotCalledFromOwnerThenThrowException4() throws Exception {
+        assumeTrue(Debug.isAssertionsEnabled());
         final Channel<String> ch = ObjectChannel.<String>create(mailboxSize);
 
         Thread thread = new Thread(new Runnable() {
@@ -238,7 +244,7 @@ public class ChannelTest {
         try {
             ch.receive();
             fail();
-        } catch (Exception e) {
+        } catch (Throwable e) {
         }
         
         thread.join();
