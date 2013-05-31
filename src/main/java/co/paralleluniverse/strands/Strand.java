@@ -41,7 +41,7 @@ public abstract class Strand {
     public static Strand create(Fiber fiber) {
         return fiber;
     }
-    
+
     public static enum State {
         NEW, STARTED, RUNNING, WAITING, TERMINATED
     };
@@ -51,12 +51,12 @@ public abstract class Strand {
     public abstract String getName();
 
     public abstract boolean isAlive();
-    
+
     public abstract boolean isTerminated();
 
     /**
-     * 
-     * @return 
+     *
+     * @return
      * @throws IllegalThreadStateException if the strand has already been started
      */
     public abstract Strand start();
@@ -72,7 +72,7 @@ public abstract class Strand {
     public abstract void unpark();
 
     public abstract Object getBlocker();
-    
+
     public abstract State getState();
 
     public abstract StackTraceElement[] getStackTrace();
@@ -111,34 +111,47 @@ public abstract class Strand {
             Thread.sleep(millis);
     }
 
-    public static void park() throws SuspendExecution, InterruptedException {
+    public static void park() throws SuspendExecution {
         if (Fiber.currentFiber() != null)
             Fiber.park();
         else
             LockSupport.park();
     }
 
-    public static void park(Object blocker) throws SuspendExecution, InterruptedException {
+    public static void park(Object blocker) throws SuspendExecution {
         if (Fiber.currentFiber() != null)
             Fiber.park(blocker);
         else
             LockSupport.park(blocker);
     }
 
-    public static void parkNanos(long nanos) throws SuspendExecution, InterruptedException {
+    public static void parkNanos(long nanos) throws SuspendExecution {
         if (Fiber.currentFiber() != null)
             Fiber.park(nanos, TimeUnit.NANOSECONDS);
         else
             LockSupport.parkNanos(nanos);
     }
 
-    public static void parkNanos(Object blocker, long nanos) throws SuspendExecution, InterruptedException {
+    public static void parkNanos(Object blocker, long nanos) throws SuspendExecution {
         if (Fiber.currentFiber() != null)
             Fiber.park(blocker, nanos, TimeUnit.NANOSECONDS);
         else
             LockSupport.parkNanos(blocker, nanos);
     }
 
+    public static void parkUntil(Object blocker, long deadline) throws SuspendExecution {
+        if (Fiber.currentFiber() != null) {
+            final long delay = deadline - System.currentTimeMillis();
+            if (delay > 0)
+                Fiber.park(blocker, delay, TimeUnit.MILLISECONDS);
+        } else
+            LockSupport.parkUntil(blocker, deadline);
+    }
+
+    public static void unpark(Strand strand) {
+        strand.unpark();
+    }
+    
     public static void dumpStack() {
         if (Fiber.currentFiber() != null)
             Fiber.dumpStack();
@@ -147,29 +160,29 @@ public abstract class Strand {
     }
 
     public static Strand clone(Strand strand, final SuspendableCallable<?> target) {
-        if(strand.isAlive())
+        if (strand.isAlive())
             throw new IllegalStateException("A strand can only be cloned after death. " + strand + " isn't dead.");
-        if(strand instanceof FiberStrand)
-            return clone((Fiber)strand.getUnderlying(), target);
-        
-        if(strand instanceof Fiber)
-            return new Fiber((Fiber)strand, target);
+        if (strand instanceof FiberStrand)
+            return clone((Fiber) strand.getUnderlying(), target);
+
+        if (strand instanceof Fiber)
+            return new Fiber((Fiber) strand, target);
         else
-            return new ThreadStrand(cloneThread((Thread)strand.getUnderlying(), toRunnable(target)));
+            return new ThreadStrand(cloneThread((Thread) strand.getUnderlying(), toRunnable(target)));
     }
-    
+
     public static Strand clone(Strand strand, final SuspendableRunnable target) {
-        if(strand.isAlive())
+        if (strand.isAlive())
             throw new IllegalStateException("A strand can only be cloned after death. " + strand + " isn't dead.");
-        if(strand instanceof FiberStrand)
-            return clone((Fiber)strand.getUnderlying(), target);
-        
-        if(strand instanceof Fiber)
-            return new Fiber((Fiber)strand, target);
+        if (strand instanceof FiberStrand)
+            return clone((Fiber) strand.getUnderlying(), target);
+
+        if (strand instanceof Fiber)
+            return new Fiber((Fiber) strand, target);
         else
-            return new ThreadStrand(cloneThread((Thread)strand.getUnderlying(), toRunnable(target)));
+            return new ThreadStrand(cloneThread((Thread) strand.getUnderlying(), toRunnable(target)));
     }
-    
+
     public static Runnable toRunnable(final SuspendableRunnable runnable) {
         return new Runnable() {
             @Override
@@ -193,17 +206,19 @@ public abstract class Strand {
                 } catch (SuspendExecution ex) {
                     throw new AssertionError(ex);
                 } catch (InterruptedException ex) {
-                } catch(Exception e) {
+                } catch (Exception e) {
                     throw Exceptions.rethrow(e);
                 }
             }
         };
     }
+
     private static Thread cloneThread(Thread thread, Runnable target) {
         Thread t = new Thread(thread.getThreadGroup(), target, thread.getName());
         t.setDaemon(thread.isDaemon());
         return t;
     }
+
     private static class ThreadStrand extends Strand {
         private final Thread thread;
 
@@ -230,11 +245,11 @@ public abstract class Strand {
         public boolean isTerminated() {
             return thread.getState() == Thread.State.TERMINATED;
         }
-        
+
         @Override
         public State getState() {
             final Thread.State state = thread.getState();
-            switch(state) {
+            switch (state) {
                 case NEW:
                     return State.NEW;
                 case RUNNABLE:
@@ -327,12 +342,12 @@ public abstract class Strand {
         public boolean isTerminated() {
             return fiber.isTerminated();
         }
-        
+
         @Override
         public State getState() {
             return fiber.getState();
         }
-        
+
         @Override
         public Strand start() {
             fiber.start();

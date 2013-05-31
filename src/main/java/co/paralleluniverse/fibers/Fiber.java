@@ -476,7 +476,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
      * Returns {@code true} iff we've been suspended and then resumed.
      * (The return value in the Java code is actually ignored. It is generated and injected in InstrumentMethod.accept())
      * <p/>
-     * <b>Can sneakily throw an InterruptedException</b>
      *
      * @param blocker
      * @param postParkActions
@@ -484,7 +483,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
      * @param unit
      * @return
      * @throws SuspendExecution
-     * @throw InterruptedException
      */
     private boolean park1(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
         record(1, "Fiber", "park", "Parking %s", this);
@@ -650,8 +648,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         record(1, "Fiber", "onResume", "Resuming %s", this);
         if (recordsLevel(2))
             record(2, "Fiber", "onResume", "Resuming %s at: %s", this, Arrays.toString(getStackTrace()));
-        if (interrupted)
-            throw new InterruptedException();
     }
 
     protected void onCompletion() {
@@ -774,7 +770,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         // this class's methods aren't instrumented, so we can't rely on the stack. This method will be called again when unparked
         try {
             for (;;) {
-                onResume();
+                if(interrupted)
+                    throw new InterruptedException();
                 final long now = System.nanoTime();
                 if (sleepStart == 0)
                     this.sleepStart = now;

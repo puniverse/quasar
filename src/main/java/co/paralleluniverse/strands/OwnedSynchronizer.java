@@ -171,6 +171,8 @@ public abstract class OwnedSynchronizer {
             if (Fiber.interrupted())
                 throw new InterruptedException();
             Fiber.park(this);
+            if (Fiber.interrupted())
+                throw new InterruptedException();
         }
 
         @Override
@@ -179,6 +181,8 @@ public abstract class OwnedSynchronizer {
             if (Fiber.interrupted())
                 throw new InterruptedException();
             Fiber.park(this, timeout, unit);
+            if (Fiber.interrupted())
+                throw new InterruptedException();
         }
 
 //        @Override

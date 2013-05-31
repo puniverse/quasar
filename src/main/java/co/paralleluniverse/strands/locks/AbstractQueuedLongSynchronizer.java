@@ -1,17 +1,42 @@
 /*
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
+ * 
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *  
+ *   or (per the licensee's choosing)
+ *  
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
+ */
+/*
+ * Based on code:
+ */
+/* 
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+/*
+ * Adaptations:
+ *   trhead -> strand
+ *   Strand -> Strand
+ *   Strand -> Strand
+ * 
+ *   throws SuspendExceution
+ */
+
 package co.paralleluniverse.strands.locks;
 
+import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.LockSupport;
 import sun.misc.Unsafe;
 
 /**
@@ -57,16 +82,16 @@ public abstract class AbstractQueuedLongSynchronizer
      * Hagersten) lock queue. CLH locks are normally used for
      * spinlocks.  We instead use them for blocking synchronizers, but
      * use the same basic tactic of holding some of the control
-     * information about a thread in the predecessor of its node.  A
-     * "status" field in each node keeps track of whether a thread
+     * information about a strand in the predecessor of its node.  A
+     * "status" field in each node keeps track of whether a strand
      * should block.  A node is signalled when its predecessor
      * releases.  Each node of the queue otherwise serves as a
      * specific-notification-style monitor holding a single waiting
-     * thread. The status field does NOT control whether threads are
-     * granted locks etc though.  A thread may try to acquire if it is
+     * strand. The status field does NOT control whether strands are
+     * granted locks etc though.  A strand may try to acquire if it is
      * first in the queue. But being first does not guarantee success;
      * it only gives the right to contend.  So the currently released
-     * contender thread may need to rewait.
+     * contender strand may need to rewait.
      *
      * <p>To enqueue into a CLH lock, you atomically splice it in as new
      * tail. To dequeue, you just set the head field.
@@ -92,9 +117,9 @@ public abstract class AbstractQueuedLongSynchronizer
      * http://www.cs.rochester.edu/u/scott/synchronization/
      *
      * <p>We also use "next" links to implement blocking mechanics.
-     * The thread id for each node is kept in its own node, so a
+     * The strand id for each node is kept in its own node, so a
      * predecessor signals the next node to wake up by traversing
-     * next link to determine which thread it is.  Determination of
+     * next link to determine which strand it is.  Determination of
      * successor must avoid races with newly queued nodes to set
      * the "next" fields of their predecessors.  This is solved
      * when necessary by checking backwards from the atomically
@@ -116,7 +141,7 @@ public abstract class AbstractQueuedLongSynchronizer
      * is constructed and head and tail pointers are set upon first
      * contention.
      *
-     * <p>Threads waiting on Conditions use the same nodes, but
+     * <p>Strands waiting on Conditions use the same nodes, but
      * use an additional link. Conditions only need to link nodes
      * in simple (non-concurrent) linked queues because they are
      * only accessed when exclusively held.  Upon await, a node is
@@ -135,11 +160,11 @@ public abstract class AbstractQueuedLongSynchronizer
         /** Marker to indicate a node is waiting in exclusive mode */
         static final Node EXCLUSIVE = null;
 
-        /** waitStatus value to indicate thread has cancelled */
+        /** waitStatus value to indicate strand has cancelled */
         static final int CANCELLED =  1;
-        /** waitStatus value to indicate successor's thread needs unparking */
+        /** waitStatus value to indicate successor's strand needs unparking */
         static final int SIGNAL    = -1;
-        /** waitStatus value to indicate thread is waiting on condition */
+        /** waitStatus value to indicate strand is waiting on condition */
         static final int CONDITION = -2;
         /**
          * waitStatus value to indicate the next acquireShared should
@@ -158,7 +183,7 @@ public abstract class AbstractQueuedLongSynchronizer
          *               on failure, block.
          *   CANCELLED:  This node is cancelled due to timeout or interrupt.
          *               Nodes never leave this state. In particular,
-         *               a thread with cancelled node never again blocks.
+         *               a strand with cancelled node never again blocks.
          *   CONDITION:  This node is currently on a condition queue.
          *               It will not be used as a sync queue node
          *               until transferred, at which time the status
@@ -184,20 +209,20 @@ public abstract class AbstractQueuedLongSynchronizer
         volatile int waitStatus;
 
         /**
-         * Link to predecessor node that current node/thread relies on
+         * Link to predecessor node that current node/strand relies on
          * for checking waitStatus. Assigned during enqueuing, and nulled
          * out (for sake of GC) only upon dequeuing.  Also, upon
          * cancellation of a predecessor, we short-circuit while
          * finding a non-cancelled one, which will always exist
          * because the head node is never cancelled: A node becomes
          * head only as a result of successful acquire. A
-         * cancelled thread never succeeds in acquiring, and a thread only
+         * cancelled strand never succeeds in acquiring, and a strand only
          * cancels itself, not any other node.
          */
         volatile Node prev;
 
         /**
-         * Link to the successor node that the current node/thread
+         * Link to the successor node that the current node/strand
          * unparks upon release. Assigned during enqueuing, adjusted
          * when bypassing cancelled predecessors, and nulled out (for
          * sake of GC) when dequeued.  The enq operation does not
@@ -212,10 +237,10 @@ public abstract class AbstractQueuedLongSynchronizer
         volatile Node next;
 
         /**
-         * The thread that enqueued this node.  Initialized on
+         * The strand that enqueued this node.  Initialized on
          * construction and nulled out after use.
          */
-        volatile Thread thread;
+        volatile Strand strand;
 
         /**
          * Link to next node waiting on condition, or the special
@@ -254,14 +279,14 @@ public abstract class AbstractQueuedLongSynchronizer
         Node() {    // Used to establish initial head or SHARED marker
         }
 
-        Node(Thread thread, Node mode) {     // Used by addWaiter
+        Node(Strand strand, Node mode) {     // Used by addWaiter
             this.nextWaiter = mode;
-            this.thread = thread;
+            this.strand = strand;
         }
 
-        Node(Thread thread, int waitStatus) { // Used by Condition
+        Node(Strand strand, int waitStatus) { // Used by Condition
             this.waitStatus = waitStatus;
-            this.thread = thread;
+            this.strand = strand;
         }
     }
 
@@ -349,13 +374,13 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Creates and enqueues node for current thread and given mode.
+     * Creates and enqueues node for current strand and given mode.
      *
      * @param mode Node.EXCLUSIVE for exclusive, Node.SHARED for shared
      * @return the new node
      */
     private Node addWaiter(Node mode) {
-        Node node = new Node(Thread.currentThread(), mode);
+        Node node = new Node(Strand.currentStrand(), mode);
         // Try the fast path of enq; backup to full enq on failure
         Node pred = tail;
         if (pred != null) {
@@ -378,7 +403,7 @@ public abstract class AbstractQueuedLongSynchronizer
      */
     private void setHead(Node node) {
         head = node;
-        node.thread = null;
+        node.strand = null;
         node.prev = null;
     }
 
@@ -391,14 +416,14 @@ public abstract class AbstractQueuedLongSynchronizer
         /*
          * If status is negative (i.e., possibly needing signal) try
          * to clear in anticipation of signalling.  It is OK if this
-         * fails or if status is changed by waiting thread.
+         * fails or if status is changed by waiting strand.
          */
         int ws = node.waitStatus;
         if (ws < 0)
             compareAndSetWaitStatus(node, ws, 0);
 
         /*
-         * Thread to unpark is held in successor, which is normally
+         * Strand to unpark is held in successor, which is normally
          * just the next node.  But if cancelled or apparently null,
          * traverse backwards from tail to find the actual
          * non-cancelled successor.
@@ -411,7 +436,7 @@ public abstract class AbstractQueuedLongSynchronizer
                     s = t;
         }
         if (s != null)
-            LockSupport.unpark(s.thread);
+            Strand.unpark(s.strand);
     }
 
     /**
@@ -494,7 +519,7 @@ public abstract class AbstractQueuedLongSynchronizer
         if (node == null)
             return;
 
-        node.thread = null;
+        node.strand = null;
 
         // Skip cancelled predecessors
         Node pred = node.prev;
@@ -508,7 +533,7 @@ public abstract class AbstractQueuedLongSynchronizer
 
         // Can use unconditional write instead of CAS here.
         // After this atomic step, other Nodes can skip past us.
-        // Before, we are free of interference from other threads.
+        // Before, we are free of interference from other strands.
         node.waitStatus = Node.CANCELLED;
 
         // If we are the tail, remove ourselves.
@@ -521,7 +546,7 @@ public abstract class AbstractQueuedLongSynchronizer
             if (pred != head &&
                 ((ws = pred.waitStatus) == Node.SIGNAL ||
                  (ws <= 0 && compareAndSetWaitStatus(pred, ws, Node.SIGNAL))) &&
-                pred.thread != null) {
+                pred.strand != null) {
                 Node next = node.next;
                 if (next != null && next.waitStatus <= 0)
                     compareAndSetNext(pred, predNext, next);
@@ -535,12 +560,12 @@ public abstract class AbstractQueuedLongSynchronizer
 
     /**
      * Checks and updates status for a node that failed to acquire.
-     * Returns true if thread should block. This is the main signal
+     * Returns true if strand should block. This is the main signal
      * control in all acquire loops.  Requires that pred == node.prev.
      *
      * @param pred node's predecessor holding status
      * @param node the node
-     * @return {@code true} if thread should block
+     * @return {@code true} if strand should block
      */
     private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
         int ws = pred.waitStatus;
@@ -571,10 +596,10 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Convenience method to interrupt current thread.
+     * Convenience method to interrupt current strand.
      */
     static void selfInterrupt() {
-        Thread.currentThread().interrupt();
+        Strand.currentStrand().interrupt();
     }
 
     /**
@@ -582,9 +607,9 @@ public abstract class AbstractQueuedLongSynchronizer
      *
      * @return {@code true} if interrupted
      */
-    private final boolean parkAndCheckInterrupt() {
-        LockSupport.park(this);
-        return Thread.interrupted();
+    private final boolean parkAndCheckInterrupt() throws SuspendExecution {
+        Strand.park(this);
+        return Strand.interrupted();
     }
 
     /*
@@ -597,14 +622,14 @@ public abstract class AbstractQueuedLongSynchronizer
      */
 
     /**
-     * Acquires in exclusive uninterruptible mode for thread already in
+     * Acquires in exclusive uninterruptible mode for strand already in
      * queue. Used by condition wait methods as well as acquire.
      *
      * @param node the node
      * @param arg the acquire argument
      * @return {@code true} if interrupted while waiting
      */
-    final boolean acquireQueued(final Node node, long arg) {
+    final boolean acquireQueued(final Node node, long arg) throws SuspendExecution {
         boolean failed = true;
         try {
             boolean interrupted = false;
@@ -631,7 +656,7 @@ public abstract class AbstractQueuedLongSynchronizer
      * @param arg the acquire argument
      */
     private void doAcquireInterruptibly(long arg)
-        throws InterruptedException {
+        throws InterruptedException, SuspendExecution {
         final Node node = addWaiter(Node.EXCLUSIVE);
         boolean failed = true;
         try {
@@ -661,7 +686,7 @@ public abstract class AbstractQueuedLongSynchronizer
      * @return {@code true} if acquired
      */
     private boolean doAcquireNanos(long arg, long nanosTimeout)
-            throws InterruptedException {
+            throws InterruptedException, SuspendExecution {
         if (nanosTimeout <= 0L)
             return false;
         final long deadline = System.nanoTime() + nanosTimeout;
@@ -681,8 +706,8 @@ public abstract class AbstractQueuedLongSynchronizer
                     return false;
                 if (shouldParkAfterFailedAcquire(p, node) &&
                     nanosTimeout > spinForTimeoutThreshold)
-                    LockSupport.parkNanos(this, nanosTimeout);
-                if (Thread.interrupted())
+                    Strand.parkNanos(this, nanosTimeout);
+                if (Strand.interrupted())
                     throw new InterruptedException();
             }
         } finally {
@@ -695,7 +720,7 @@ public abstract class AbstractQueuedLongSynchronizer
      * Acquires in shared uninterruptible mode.
      * @param arg the acquire argument
      */
-    private void doAcquireShared(long arg) {
+    private void doAcquireShared(long arg) throws SuspendExecution {
         final Node node = addWaiter(Node.SHARED);
         boolean failed = true;
         try {
@@ -728,7 +753,7 @@ public abstract class AbstractQueuedLongSynchronizer
      * @param arg the acquire argument
      */
     private void doAcquireSharedInterruptibly(long arg)
-        throws InterruptedException {
+        throws InterruptedException, SuspendExecution {
         final Node node = addWaiter(Node.SHARED);
         boolean failed = true;
         try {
@@ -761,7 +786,7 @@ public abstract class AbstractQueuedLongSynchronizer
      * @return {@code true} if acquired
      */
     private boolean doAcquireSharedNanos(long arg, long nanosTimeout)
-            throws InterruptedException {
+            throws InterruptedException, SuspendExecution {
         if (nanosTimeout <= 0L)
             return false;
         final long deadline = System.nanoTime() + nanosTimeout;
@@ -784,8 +809,8 @@ public abstract class AbstractQueuedLongSynchronizer
                     return false;
                 if (shouldParkAfterFailedAcquire(p, node) &&
                     nanosTimeout > spinForTimeoutThreshold)
-                    LockSupport.parkNanos(this, nanosTimeout);
-                if (Thread.interrupted())
+                    Strand.parkNanos(this, nanosTimeout);
+                if (Strand.interrupted())
                     throw new InterruptedException();
             }
         } finally {
@@ -801,10 +826,10 @@ public abstract class AbstractQueuedLongSynchronizer
      * if the state of the object permits it to be acquired in the
      * exclusive mode, and if so to acquire it.
      *
-     * <p>This method is always invoked by the thread performing
+     * <p>This method is always invoked by the strand performing
      * acquire.  If this method reports failure, the acquire method
-     * may queue the thread, if it is not already queued, until it is
-     * signalled by a release from some other thread. This can be used
+     * may queue the strand, if it is not already queued, until it is
+     * signalled by a release from some other strand. This can be used
      * to implement method {@link Lock#tryLock()}.
      *
      * <p>The default
@@ -830,7 +855,7 @@ public abstract class AbstractQueuedLongSynchronizer
      * Attempts to set the state to reflect a release in exclusive
      * mode.
      *
-     * <p>This method is always invoked by the thread performing release.
+     * <p>This method is always invoked by the strand performing release.
      *
      * <p>The default implementation throws
      * {@link UnsupportedOperationException}.
@@ -840,7 +865,7 @@ public abstract class AbstractQueuedLongSynchronizer
      *        entry to a condition wait.  The value is otherwise
      *        uninterpreted and can represent anything you like.
      * @return {@code true} if this object is now in a fully released
-     *         state, so that any waiting threads may attempt to acquire;
+     *         state, so that any waiting strands may attempt to acquire;
      *         and {@code false} otherwise.
      * @throws IllegalMonitorStateException if releasing would place this
      *         synchronizer in an illegal state. This exception must be
@@ -857,10 +882,10 @@ public abstract class AbstractQueuedLongSynchronizer
      * the state of the object permits it to be acquired in the shared
      * mode, and if so to acquire it.
      *
-     * <p>This method is always invoked by the thread performing
+     * <p>This method is always invoked by the strand performing
      * acquire.  If this method reports failure, the acquire method
-     * may queue the thread, if it is not already queued, until it is
-     * signalled by a release from some other thread.
+     * may queue the strand, if it is not already queued, until it is
+     * signalled by a release from some other strand.
      *
      * <p>The default implementation throws {@link
      * UnsupportedOperationException}.
@@ -873,7 +898,7 @@ public abstract class AbstractQueuedLongSynchronizer
      *         mode succeeded but no subsequent shared-mode acquire can
      *         succeed; and a positive value if acquisition in shared
      *         mode succeeded and subsequent shared-mode acquires might
-     *         also succeed, in which case a subsequent waiting thread
+     *         also succeed, in which case a subsequent waiting strand
      *         must check availability. (Support for three different
      *         return values enables this method to be used in contexts
      *         where acquires only sometimes act exclusively.)  Upon
@@ -891,7 +916,7 @@ public abstract class AbstractQueuedLongSynchronizer
     /**
      * Attempts to set the state to reflect a release in shared mode.
      *
-     * <p>This method is always invoked by the thread performing release.
+     * <p>This method is always invoked by the strand performing release.
      *
      * <p>The default implementation throws
      * {@link UnsupportedOperationException}.
@@ -915,7 +940,7 @@ public abstract class AbstractQueuedLongSynchronizer
 
     /**
      * Returns {@code true} if synchronization is held exclusively with
-     * respect to the current (calling) thread.  This method is invoked
+     * respect to the current (calling) strand.  This method is invoked
      * upon each call to a non-waiting {@link ConditionObject} method.
      * (Waiting methods instead invoke {@link #release}.)
      *
@@ -935,7 +960,7 @@ public abstract class AbstractQueuedLongSynchronizer
     /**
      * Acquires in exclusive mode, ignoring interrupts.  Implemented
      * by invoking at least once {@link #tryAcquire},
-     * returning on success.  Otherwise the thread is queued, possibly
+     * returning on success.  Otherwise the strand is queued, possibly
      * repeatedly blocking and unblocking, invoking {@link
      * #tryAcquire} until success.  This method can be used
      * to implement method {@link Lock#lock}.
@@ -944,7 +969,7 @@ public abstract class AbstractQueuedLongSynchronizer
      *        {@link #tryAcquire} but is otherwise uninterpreted and
      *        can represent anything you like.
      */
-    public final void acquire(long arg) {
+    public final void acquire(long arg) throws SuspendExecution {
         if (!tryAcquire(arg) &&
             acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
             selfInterrupt();
@@ -954,19 +979,19 @@ public abstract class AbstractQueuedLongSynchronizer
      * Acquires in exclusive mode, aborting if interrupted.
      * Implemented by first checking interrupt status, then invoking
      * at least once {@link #tryAcquire}, returning on
-     * success.  Otherwise the thread is queued, possibly repeatedly
+     * success.  Otherwise the strand is queued, possibly repeatedly
      * blocking and unblocking, invoking {@link #tryAcquire}
-     * until success or the thread is interrupted.  This method can be
+     * until success or the strand is interrupted.  This method can be
      * used to implement method {@link Lock#lockInterruptibly}.
      *
      * @param arg the acquire argument.  This value is conveyed to
      *        {@link #tryAcquire} but is otherwise uninterpreted and
      *        can represent anything you like.
-     * @throws InterruptedException if the current thread is interrupted
+     * @throws InterruptedException if the current strand is interrupted
      */
     public final void acquireInterruptibly(long arg)
-            throws InterruptedException {
-        if (Thread.interrupted())
+            throws InterruptedException, SuspendExecution {
+        if (Strand.interrupted())
             throw new InterruptedException();
         if (!tryAcquire(arg))
             doAcquireInterruptibly(arg);
@@ -976,9 +1001,9 @@ public abstract class AbstractQueuedLongSynchronizer
      * Attempts to acquire in exclusive mode, aborting if interrupted,
      * and failing if the given timeout elapses.  Implemented by first
      * checking interrupt status, then invoking at least once {@link
-     * #tryAcquire}, returning on success.  Otherwise, the thread is
+     * #tryAcquire}, returning on success.  Otherwise, the strand is
      * queued, possibly repeatedly blocking and unblocking, invoking
-     * {@link #tryAcquire} until success or the thread is interrupted
+     * {@link #tryAcquire} until success or the strand is interrupted
      * or the timeout elapses.  This method can be used to implement
      * method {@link Lock#tryLock(long, TimeUnit)}.
      *
@@ -987,11 +1012,11 @@ public abstract class AbstractQueuedLongSynchronizer
      *        can represent anything you like.
      * @param nanosTimeout the maximum number of nanoseconds to wait
      * @return {@code true} if acquired; {@code false} if timed out
-     * @throws InterruptedException if the current thread is interrupted
+     * @throws InterruptedException if the current strand is interrupted
      */
     public final boolean tryAcquireNanos(long arg, long nanosTimeout)
-            throws InterruptedException {
-        if (Thread.interrupted())
+            throws InterruptedException, SuspendExecution {
+        if (Strand.interrupted())
             throw new InterruptedException();
         return tryAcquire(arg) ||
             doAcquireNanos(arg, nanosTimeout);
@@ -999,7 +1024,7 @@ public abstract class AbstractQueuedLongSynchronizer
 
     /**
      * Releases in exclusive mode.  Implemented by unblocking one or
-     * more threads if {@link #tryRelease} returns true.
+     * more strands if {@link #tryRelease} returns true.
      * This method can be used to implement method {@link Lock#unlock}.
      *
      * @param arg the release argument.  This value is conveyed to
@@ -1020,7 +1045,7 @@ public abstract class AbstractQueuedLongSynchronizer
     /**
      * Acquires in shared mode, ignoring interrupts.  Implemented by
      * first invoking at least once {@link #tryAcquireShared},
-     * returning on success.  Otherwise the thread is queued, possibly
+     * returning on success.  Otherwise the strand is queued, possibly
      * repeatedly blocking and unblocking, invoking {@link
      * #tryAcquireShared} until success.
      *
@@ -1028,7 +1053,7 @@ public abstract class AbstractQueuedLongSynchronizer
      *        {@link #tryAcquireShared} but is otherwise uninterpreted
      *        and can represent anything you like.
      */
-    public final void acquireShared(long arg) {
+    public final void acquireShared(long arg) throws SuspendExecution {
         if (tryAcquireShared(arg) < 0)
             doAcquireShared(arg);
     }
@@ -1037,18 +1062,18 @@ public abstract class AbstractQueuedLongSynchronizer
      * Acquires in shared mode, aborting if interrupted.  Implemented
      * by first checking interrupt status, then invoking at least once
      * {@link #tryAcquireShared}, returning on success.  Otherwise the
-     * thread is queued, possibly repeatedly blocking and unblocking,
-     * invoking {@link #tryAcquireShared} until success or the thread
+     * strand is queued, possibly repeatedly blocking and unblocking,
+     * invoking {@link #tryAcquireShared} until success or the strand
      * is interrupted.
      * @param arg the acquire argument.
      * This value is conveyed to {@link #tryAcquireShared} but is
      * otherwise uninterpreted and can represent anything
      * you like.
-     * @throws InterruptedException if the current thread is interrupted
+     * @throws InterruptedException if the current strand is interrupted
      */
     public final void acquireSharedInterruptibly(long arg)
-            throws InterruptedException {
-        if (Thread.interrupted())
+            throws InterruptedException, SuspendExecution {
+        if (Strand.interrupted())
             throw new InterruptedException();
         if (tryAcquireShared(arg) < 0)
             doAcquireSharedInterruptibly(arg);
@@ -1059,8 +1084,8 @@ public abstract class AbstractQueuedLongSynchronizer
      * failing if the given timeout elapses.  Implemented by first
      * checking interrupt status, then invoking at least once {@link
      * #tryAcquireShared}, returning on success.  Otherwise, the
-     * thread is queued, possibly repeatedly blocking and unblocking,
-     * invoking {@link #tryAcquireShared} until success or the thread
+     * strand is queued, possibly repeatedly blocking and unblocking,
+     * invoking {@link #tryAcquireShared} until success or the strand
      * is interrupted or the timeout elapses.
      *
      * @param arg the acquire argument.  This value is conveyed to
@@ -1068,11 +1093,11 @@ public abstract class AbstractQueuedLongSynchronizer
      *        and can represent anything you like.
      * @param nanosTimeout the maximum number of nanoseconds to wait
      * @return {@code true} if acquired; {@code false} if timed out
-     * @throws InterruptedException if the current thread is interrupted
+     * @throws InterruptedException if the current strand is interrupted
      */
     public final boolean tryAcquireSharedNanos(long arg, long nanosTimeout)
-            throws InterruptedException {
-        if (Thread.interrupted())
+            throws InterruptedException, SuspendExecution {
+        if (Strand.interrupted())
             throw new InterruptedException();
         return tryAcquireShared(arg) >= 0 ||
             doAcquireSharedNanos(arg, nanosTimeout);
@@ -1080,7 +1105,7 @@ public abstract class AbstractQueuedLongSynchronizer
 
     /**
      * Releases in shared mode.  Implemented by unblocking one or more
-     * threads if {@link #tryReleaseShared} returns true.
+     * strands if {@link #tryReleaseShared} returns true.
      *
      * @param arg the release argument.  This value is conveyed to
      *        {@link #tryReleaseShared} but is otherwise uninterpreted
@@ -1098,22 +1123,22 @@ public abstract class AbstractQueuedLongSynchronizer
     // Queue inspection methods
 
     /**
-     * Queries whether any threads are waiting to acquire. Note that
+     * Queries whether any strands are waiting to acquire. Note that
      * because cancellations due to interrupts and timeouts may occur
      * at any time, a {@code true} return does not guarantee that any
-     * other thread will ever acquire.
+     * other strand will ever acquire.
      *
      * <p>In this implementation, this operation returns in
      * constant time.
      *
-     * @return {@code true} if there may be other threads waiting to acquire
+     * @return {@code true} if there may be other strands waiting to acquire
      */
-    public final boolean hasQueuedThreads() {
+    public final boolean hasQueuedStrands() {
         return head != tail;
     }
 
     /**
-     * Queries whether any threads have ever contended to acquire this
+     * Queries whether any strands have ever contended to acquire this
      * synchronizer; that is if an acquire method has ever blocked.
      *
      * <p>In this implementation, this operation returns in
@@ -1126,39 +1151,39 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Returns the first (longest-waiting) thread in the queue, or
-     * {@code null} if no threads are currently queued.
+     * Returns the first (longest-waiting) strand in the queue, or
+     * {@code null} if no strands are currently queued.
      *
      * <p>In this implementation, this operation normally returns in
-     * constant time, but may iterate upon contention if other threads are
+     * constant time, but may iterate upon contention if other strands are
      * concurrently modifying the queue.
      *
-     * @return the first (longest-waiting) thread in the queue, or
-     *         {@code null} if no threads are currently queued
+     * @return the first (longest-waiting) strand in the queue, or
+     *         {@code null} if no strands are currently queued
      */
-    public final Thread getFirstQueuedThread() {
+    public final Strand getFirstQueuedStrand() {
         // handle only fast path, else relay
-        return (head == tail) ? null : fullGetFirstQueuedThread();
+        return (head == tail) ? null : fullGetFirstQueuedStrand();
     }
 
     /**
-     * Version of getFirstQueuedThread called when fastpath fails
+     * Version of getFirstQueuedStrand called when fastpath fails
      */
-    private Thread fullGetFirstQueuedThread() {
+    private Strand fullGetFirstQueuedStrand() {
         /*
          * The first node is normally head.next. Try to get its
-         * thread field, ensuring consistent reads: If thread
+         * strand field, ensuring consistent reads: If strand
          * field is nulled out or s.prev is no longer head, then
-         * some other thread(s) concurrently performed setHead in
+         * some other strand(s) concurrently performed setHead in
          * between some of our reads. We try this twice before
          * resorting to traversal.
          */
         Node h, s;
-        Thread st;
+        Strand st;
         if (((h = head) != null && (s = h.next) != null &&
-             s.prev == head && (st = s.thread) != null) ||
+             s.prev == head && (st = s.strand) != null) ||
             ((h = head) != null && (s = h.next) != null &&
-             s.prev == head && (st = s.thread) != null))
+             s.prev == head && (st = s.strand) != null))
             return st;
 
         /*
@@ -1170,42 +1195,42 @@ public abstract class AbstractQueuedLongSynchronizer
          */
 
         Node t = tail;
-        Thread firstThread = null;
+        Strand firstStrand = null;
         while (t != null && t != head) {
-            Thread tt = t.thread;
+            Strand tt = t.strand;
             if (tt != null)
-                firstThread = tt;
+                firstStrand = tt;
             t = t.prev;
         }
-        return firstThread;
+        return firstStrand;
     }
 
     /**
-     * Returns true if the given thread is currently queued.
+     * Returns true if the given strand is currently queued.
      *
      * <p>This implementation traverses the queue to determine
-     * presence of the given thread.
+     * presence of the given strand.
      *
-     * @param thread the thread
-     * @return {@code true} if the given thread is on the queue
-     * @throws NullPointerException if the thread is null
+     * @param strand the strand
+     * @return {@code true} if the given strand is on the queue
+     * @throws NullPointerException if the strand is null
      */
-    public final boolean isQueued(Thread thread) {
-        if (thread == null)
+    public final boolean isQueued(Strand strand) {
+        if (strand == null)
             throw new NullPointerException();
         for (Node p = tail; p != null; p = p.prev)
-            if (p.thread == thread)
+            if (p.strand == strand)
                 return true;
         return false;
     }
 
     /**
-     * Returns {@code true} if the apparent first queued thread, if one
+     * Returns {@code true} if the apparent first queued strand, if one
      * exists, is waiting in exclusive mode.  If this method returns
-     * {@code true}, and the current thread is attempting to acquire in
+     * {@code true}, and the current strand is attempting to acquire in
      * shared mode (that is, this method is invoked from {@link
-     * #tryAcquireShared}) then it is guaranteed that the current thread
-     * is not the first queued thread.  Used only as a heuristic in
+     * #tryAcquireShared}) then it is guaranteed that the current strand
+     * is not the first queued strand.  Used only as a heuristic in
      * ReentrantReadWriteLock.
      */
     final boolean apparentlyFirstQueuedIsExclusive() {
@@ -1213,23 +1238,23 @@ public abstract class AbstractQueuedLongSynchronizer
         return (h = head) != null &&
             (s = h.next)  != null &&
             !s.isShared()         &&
-            s.thread != null;
+            s.strand != null;
     }
 
     /**
-     * Queries whether any threads have been waiting to acquire longer
-     * than the current thread.
+     * Queries whether any strands have been waiting to acquire longer
+     * than the current strand.
      *
      * <p>An invocation of this method is equivalent to (but may be
      * more efficient than):
      *  <pre> {@code
-     * getFirstQueuedThread() != Thread.currentThread() &&
-     * hasQueuedThreads()}</pre>
+     * getFirstQueuedStrand() != Strand.currentStrand() &&
+     * hasQueuedStrands()}</pre>
      *
      * <p>Note that because cancellations due to interrupts and
      * timeouts may occur at any time, a {@code true} return does not
-     * guarantee that some other thread will acquire before the current
-     * thread.  Likewise, it is possible for another thread to win a
+     * guarantee that some other strand will acquire before the current
+     * strand.  Likewise, it is possible for another strand to win a
      * race to enqueue after this method has returned {@code false},
      * due to the queue being empty.
      *
@@ -1254,59 +1279,59 @@ public abstract class AbstractQueuedLongSynchronizer
      *   }
      * }}</pre>
      *
-     * @return {@code true} if there is a queued thread preceding the
-     *         current thread, and {@code false} if the current thread
+     * @return {@code true} if there is a queued strand preceding the
+     *         current strand, and {@code false} if the current strand
      *         is at the head of the queue or the queue is empty
      * @since 1.7
      */
     public final boolean hasQueuedPredecessors() {
         // The correctness of this depends on head being initialized
         // before tail and on head.next being accurate if the current
-        // thread is first in queue.
+        // strand is first in queue.
         Node t = tail; // Read fields in reverse initialization order
         Node h = head;
         Node s;
         return h != t &&
-            ((s = h.next) == null || s.thread != Thread.currentThread());
+            ((s = h.next) == null || s.strand != Strand.currentStrand());
     }
 
 
     // Instrumentation and monitoring methods
 
     /**
-     * Returns an estimate of the number of threads waiting to
+     * Returns an estimate of the number of strands waiting to
      * acquire.  The value is only an estimate because the number of
-     * threads may change dynamically while this method traverses
+     * strands may change dynamically while this method traverses
      * internal data structures.  This method is designed for use in
      * monitoring system state, not for synchronization
      * control.
      *
-     * @return the estimated number of threads waiting to acquire
+     * @return the estimated number of strands waiting to acquire
      */
     public final int getQueueLength() {
         int n = 0;
         for (Node p = tail; p != null; p = p.prev) {
-            if (p.thread != null)
+            if (p.strand != null)
                 ++n;
         }
         return n;
     }
 
     /**
-     * Returns a collection containing threads that may be waiting to
-     * acquire.  Because the actual set of threads may change
+     * Returns a collection containing strands that may be waiting to
+     * acquire.  Because the actual set of strands may change
      * dynamically while constructing this result, the returned
      * collection is only a best-effort estimate.  The elements of the
      * returned collection are in no particular order.  This method is
      * designed to facilitate construction of subclasses that provide
      * more extensive monitoring facilities.
      *
-     * @return the collection of threads
+     * @return the collection of strands
      */
-    public final Collection<Thread> getQueuedThreads() {
-        ArrayList<Thread> list = new ArrayList<Thread>();
+    public final Collection<Strand> getQueuedStrands() {
+        ArrayList<Strand> list = new ArrayList<Strand>();
         for (Node p = tail; p != null; p = p.prev) {
-            Thread t = p.thread;
+            Strand t = p.strand;
             if (t != null)
                 list.add(t);
         }
@@ -1314,18 +1339,18 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Returns a collection containing threads that may be waiting to
+     * Returns a collection containing strands that may be waiting to
      * acquire in exclusive mode. This has the same properties
-     * as {@link #getQueuedThreads} except that it only returns
-     * those threads waiting due to an exclusive acquire.
+     * as {@link #getQueuedStrands} except that it only returns
+     * those strands waiting due to an exclusive acquire.
      *
-     * @return the collection of threads
+     * @return the collection of strands
      */
-    public final Collection<Thread> getExclusiveQueuedThreads() {
-        ArrayList<Thread> list = new ArrayList<Thread>();
+    public final Collection<Strand> getExclusiveQueuedStrands() {
+        ArrayList<Strand> list = new ArrayList<Strand>();
         for (Node p = tail; p != null; p = p.prev) {
             if (!p.isShared()) {
-                Thread t = p.thread;
+                Strand t = p.strand;
                 if (t != null)
                     list.add(t);
             }
@@ -1334,18 +1359,18 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Returns a collection containing threads that may be waiting to
+     * Returns a collection containing strands that may be waiting to
      * acquire in shared mode. This has the same properties
-     * as {@link #getQueuedThreads} except that it only returns
-     * those threads waiting due to a shared acquire.
+     * as {@link #getQueuedStrands} except that it only returns
+     * those strands waiting due to a shared acquire.
      *
-     * @return the collection of threads
+     * @return the collection of strands
      */
-    public final Collection<Thread> getSharedQueuedThreads() {
-        ArrayList<Thread> list = new ArrayList<Thread>();
+    public final Collection<Strand> getSharedQueuedStrands() {
+        ArrayList<Strand> list = new ArrayList<Strand>();
         for (Node p = tail; p != null; p = p.prev) {
             if (p.isShared()) {
-                Thread t = p.thread;
+                Strand t = p.strand;
                 if (t != null)
                     list.add(t);
             }
@@ -1364,7 +1389,7 @@ public abstract class AbstractQueuedLongSynchronizer
      */
     public String toString() {
         long s = getState();
-        String q  = hasQueuedThreads() ? "non" : "";
+        String q  = hasQueuedStrands() ? "non" : "";
         return super.toString() +
             "[State = " + s + ", " + q + "empty queue]";
     }
@@ -1426,25 +1451,25 @@ public abstract class AbstractQueuedLongSynchronizer
 
         /*
          * Splice onto queue and try to set waitStatus of predecessor to
-         * indicate that thread is (probably) waiting. If cancelled or
+         * indicate that strand is (probably) waiting. If cancelled or
          * attempt to set waitStatus fails, wake up to resync (in which
          * case the waitStatus can be transiently and harmlessly wrong).
          */
         Node p = enq(node);
         int ws = p.waitStatus;
         if (ws > 0 || !compareAndSetWaitStatus(p, ws, Node.SIGNAL))
-            LockSupport.unpark(node.thread);
+            Strand.unpark(node.strand);
         return true;
     }
 
     /**
      * Transfers node, if necessary, to sync queue after a cancelled wait.
-     * Returns true if thread was cancelled before being signalled.
+     * Returns true if strand was cancelled before being signalled.
      *
      * @param node the node
      * @return true if cancelled before the node was signalled
      */
-    final boolean transferAfterCancelledWait(Node node) {
+    final boolean transferAfterCancelledWait(Node node) throws SuspendExecution {
         if (compareAndSetWaitStatus(node, Node.CONDITION, 0)) {
             enq(node);
             return true;
@@ -1456,7 +1481,7 @@ public abstract class AbstractQueuedLongSynchronizer
          * spin.
          */
         while (!isOnSyncQueue(node))
-            Thread.yield();
+            Strand.yield();
         return false;
     }
 
@@ -1497,15 +1522,15 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Queries whether any threads are waiting on the given condition
+     * Queries whether any strands are waiting on the given condition
      * associated with this synchronizer. Note that because timeouts
      * and interrupts may occur at any time, a {@code true} return
      * does not guarantee that a future {@code signal} will awaken
-     * any threads.  This method is designed primarily for use in
+     * any strands.  This method is designed primarily for use in
      * monitoring of the system state.
      *
      * @param condition the condition
-     * @return {@code true} if there are any waiting threads
+     * @return {@code true} if there are any waiting strands
      * @throws IllegalMonitorStateException if exclusive synchronization
      *         is not held
      * @throws IllegalArgumentException if the given condition is
@@ -1519,7 +1544,7 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Returns an estimate of the number of threads waiting on the
+     * Returns an estimate of the number of strands waiting on the
      * given condition associated with this synchronizer. Note that
      * because timeouts and interrupts may occur at any time, the
      * estimate serves only as an upper bound on the actual number of
@@ -1527,7 +1552,7 @@ public abstract class AbstractQueuedLongSynchronizer
      * system state, not for synchronization control.
      *
      * @param condition the condition
-     * @return the estimated number of waiting threads
+     * @return the estimated number of waiting strands
      * @throws IllegalMonitorStateException if exclusive synchronization
      *         is not held
      * @throws IllegalArgumentException if the given condition is
@@ -1541,25 +1566,25 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Returns a collection containing those threads that may be
+     * Returns a collection containing those strands that may be
      * waiting on the given condition associated with this
-     * synchronizer.  Because the actual set of threads may change
+     * synchronizer.  Because the actual set of strands may change
      * dynamically while constructing this result, the returned
      * collection is only a best-effort estimate. The elements of the
      * returned collection are in no particular order.
      *
      * @param condition the condition
-     * @return the collection of threads
+     * @return the collection of strands
      * @throws IllegalMonitorStateException if exclusive synchronization
      *         is not held
      * @throws IllegalArgumentException if the given condition is
      *         not associated with this synchronizer
      * @throws NullPointerException if the condition is null
      */
-    public final Collection<Thread> getWaitingThreads(ConditionObject condition) {
+    public final Collection<Strand> getWaitingStrands(ConditionObject condition) {
         if (!owns(condition))
             throw new IllegalArgumentException("Not owner");
-        return condition.getWaitingThreads();
+        return condition.getWaitingStrands();
     }
 
     /**
@@ -1604,7 +1629,7 @@ public abstract class AbstractQueuedLongSynchronizer
                 unlinkCancelledWaiters();
                 t = lastWaiter;
             }
-            Node node = new Node(Thread.currentThread(), Node.CONDITION);
+            Node node = new Node(Strand.currentStrand(), Node.CONDITION);
             if (t == null)
                 firstWaiter = node;
             else
@@ -1679,7 +1704,7 @@ public abstract class AbstractQueuedLongSynchronizer
         // public methods
 
         /**
-         * Moves the longest-waiting thread, if one exists, from the
+         * Moves the longest-waiting strand, if one exists, from the
          * wait queue for this condition to the wait queue for the
          * owning lock.
          *
@@ -1695,7 +1720,7 @@ public abstract class AbstractQueuedLongSynchronizer
         }
 
         /**
-         * Moves all threads from the wait queue for this condition to
+         * Moves all strands from the wait queue for this condition to
          * the wait queue for the owning lock.
          *
          * @throws IllegalMonitorStateException if {@link #isHeldExclusively}
@@ -1720,13 +1745,13 @@ public abstract class AbstractQueuedLongSynchronizer
          *      {@link #acquire} with saved state as argument.
          * </ol>
          */
-        public final void awaitUninterruptibly() {
+        public final void awaitUninterruptibly() throws SuspendExecution {
             Node node = addConditionWaiter();
             long savedState = fullyRelease(node);
             boolean interrupted = false;
             while (!isOnSyncQueue(node)) {
-                LockSupport.park(this);
-                if (Thread.interrupted())
+                Strand.park(this);
+                if (Strand.interrupted())
                     interrupted = true;
             }
             if (acquireQueued(node, savedState) || interrupted)
@@ -1736,7 +1761,7 @@ public abstract class AbstractQueuedLongSynchronizer
         /*
          * For interruptible waits, we need to track whether to throw
          * InterruptedException, if interrupted while blocked on
-         * condition, versus reinterrupt current thread, if
+         * condition, versus reinterrupt current strand, if
          * interrupted while blocked waiting to re-acquire.
          */
 
@@ -1750,14 +1775,14 @@ public abstract class AbstractQueuedLongSynchronizer
          * before signalled, REINTERRUPT if after signalled, or
          * 0 if not interrupted.
          */
-        private int checkInterruptWhileWaiting(Node node) {
-            return Thread.interrupted() ?
+        private int checkInterruptWhileWaiting(Node node) throws SuspendExecution {
+            return Strand.interrupted() ?
                 (transferAfterCancelledWait(node) ? THROW_IE : REINTERRUPT) :
                 0;
         }
 
         /**
-         * Throws InterruptedException, reinterrupts current thread, or
+         * Throws InterruptedException, reinterrupts current strand, or
          * does nothing, depending on mode.
          */
         private void reportInterruptAfterWait(int interruptMode)
@@ -1771,7 +1796,7 @@ public abstract class AbstractQueuedLongSynchronizer
         /**
          * Implements interruptible condition wait.
          * <ol>
-         * <li> If current thread is interrupted, throw InterruptedException.
+         * <li> If current strand is interrupted, throw InterruptedException.
          * <li> Save lock state returned by {@link #getState}.
          * <li> Invoke {@link #release} with saved state as argument,
          *      throwing IllegalMonitorStateException if it fails.
@@ -1781,14 +1806,14 @@ public abstract class AbstractQueuedLongSynchronizer
          * <li> If interrupted while blocked in step 4, throw InterruptedException.
          * </ol>
          */
-        public final void await() throws InterruptedException {
-            if (Thread.interrupted())
+        public final void await() throws InterruptedException, SuspendExecution {
+            if (Strand.interrupted())
                 throw new InterruptedException();
             Node node = addConditionWaiter();
             long savedState = fullyRelease(node);
             int interruptMode = 0;
             while (!isOnSyncQueue(node)) {
-                LockSupport.park(this);
+                Strand.park(this);
                 if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
                     break;
             }
@@ -1803,7 +1828,7 @@ public abstract class AbstractQueuedLongSynchronizer
         /**
          * Implements timed condition wait.
          * <ol>
-         * <li> If current thread is interrupted, throw InterruptedException.
+         * <li> If current strand is interrupted, throw InterruptedException.
          * <li> Save lock state returned by {@link #getState}.
          * <li> Invoke {@link #release} with saved state as argument,
          *      throwing IllegalMonitorStateException if it fails.
@@ -1814,8 +1839,8 @@ public abstract class AbstractQueuedLongSynchronizer
          * </ol>
          */
         public final long awaitNanos(long nanosTimeout)
-                throws InterruptedException {
-            if (Thread.interrupted())
+                throws InterruptedException, SuspendExecution {
+            if (Strand.interrupted())
                 throw new InterruptedException();
             Node node = addConditionWaiter();
             long savedState = fullyRelease(node);
@@ -1827,7 +1852,7 @@ public abstract class AbstractQueuedLongSynchronizer
                     break;
                 }
                 if (nanosTimeout >= spinForTimeoutThreshold)
-                    LockSupport.parkNanos(this, nanosTimeout);
+                    Strand.parkNanos(this, nanosTimeout);
                 if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
                     break;
                 nanosTimeout = deadline - System.nanoTime();
@@ -1844,7 +1869,7 @@ public abstract class AbstractQueuedLongSynchronizer
         /**
          * Implements absolute timed condition wait.
          * <ol>
-         * <li> If current thread is interrupted, throw InterruptedException.
+         * <li> If current strand is interrupted, throw InterruptedException.
          * <li> Save lock state returned by {@link #getState}.
          * <li> Invoke {@link #release} with saved state as argument,
          *      throwing IllegalMonitorStateException if it fails.
@@ -1856,9 +1881,9 @@ public abstract class AbstractQueuedLongSynchronizer
          * </ol>
          */
         public final boolean awaitUntil(Date deadline)
-                throws InterruptedException {
+                throws InterruptedException, SuspendExecution {
             long abstime = deadline.getTime();
-            if (Thread.interrupted())
+            if (Strand.interrupted())
                 throw new InterruptedException();
             Node node = addConditionWaiter();
             long savedState = fullyRelease(node);
@@ -1869,7 +1894,7 @@ public abstract class AbstractQueuedLongSynchronizer
                     timedout = transferAfterCancelledWait(node);
                     break;
                 }
-                LockSupport.parkUntil(this, abstime);
+                Strand.parkUntil(this, abstime);
                 if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
                     break;
             }
@@ -1885,7 +1910,7 @@ public abstract class AbstractQueuedLongSynchronizer
         /**
          * Implements timed condition wait.
          * <ol>
-         * <li> If current thread is interrupted, throw InterruptedException.
+         * <li> If current strand is interrupted, throw InterruptedException.
          * <li> Save lock state returned by {@link #getState}.
          * <li> Invoke {@link #release} with saved state as argument,
          *      throwing IllegalMonitorStateException if it fails.
@@ -1897,9 +1922,9 @@ public abstract class AbstractQueuedLongSynchronizer
          * </ol>
          */
         public final boolean await(long time, TimeUnit unit)
-                throws InterruptedException {
+                throws InterruptedException, SuspendExecution {
             long nanosTimeout = unit.toNanos(time);
-            if (Thread.interrupted())
+            if (Strand.interrupted())
                 throw new InterruptedException();
             Node node = addConditionWaiter();
             long savedState = fullyRelease(node);
@@ -1912,7 +1937,7 @@ public abstract class AbstractQueuedLongSynchronizer
                     break;
                 }
                 if (nanosTimeout >= spinForTimeoutThreshold)
-                    LockSupport.parkNanos(this, nanosTimeout);
+                    Strand.parkNanos(this, nanosTimeout);
                 if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
                     break;
                 nanosTimeout = deadline - System.nanoTime();
@@ -1939,10 +1964,10 @@ public abstract class AbstractQueuedLongSynchronizer
         }
 
         /**
-         * Queries whether any threads are waiting on this condition.
+         * Queries whether any strands are waiting on this condition.
          * Implements {@link AbstractQueuedLongSynchronizer#hasWaiters(ConditionObject)}.
          *
-         * @return {@code true} if there are any waiting threads
+         * @return {@code true} if there are any waiting strands
          * @throws IllegalMonitorStateException if {@link #isHeldExclusively}
          *         returns {@code false}
          */
@@ -1957,11 +1982,11 @@ public abstract class AbstractQueuedLongSynchronizer
         }
 
         /**
-         * Returns an estimate of the number of threads waiting on
+         * Returns an estimate of the number of strands waiting on
          * this condition.
          * Implements {@link AbstractQueuedLongSynchronizer#getWaitQueueLength(ConditionObject)}.
          *
-         * @return the estimated number of waiting threads
+         * @return the estimated number of waiting strands
          * @throws IllegalMonitorStateException if {@link #isHeldExclusively}
          *         returns {@code false}
          */
@@ -1977,21 +2002,21 @@ public abstract class AbstractQueuedLongSynchronizer
         }
 
         /**
-         * Returns a collection containing those threads that may be
+         * Returns a collection containing those strands that may be
          * waiting on this Condition.
-         * Implements {@link AbstractQueuedLongSynchronizer#getWaitingThreads(ConditionObject)}.
+         * Implements {@link AbstractQueuedLongSynchronizer#getWaitingStrands(ConditionObject)}.
          *
-         * @return the collection of threads
+         * @return the collection of strands
          * @throws IllegalMonitorStateException if {@link #isHeldExclusively}
          *         returns {@code false}
          */
-        protected final Collection<Thread> getWaitingThreads() {
+        protected final Collection<Strand> getWaitingStrands() {
             if (!isHeldExclusively())
                 throw new IllegalMonitorStateException();
-            ArrayList<Thread> list = new ArrayList<Thread>();
+            ArrayList<Strand> list = new ArrayList<Strand>();
             for (Node w = firstWaiter; w != null; w = w.nextWaiter) {
                 if (w.waitStatus == Node.CONDITION) {
-                    Thread t = w.thread;
+                    Strand t = w.strand;
                     if (t != null)
                         list.add(t);
                 }

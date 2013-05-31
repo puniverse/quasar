@@ -114,9 +114,13 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     public String toString() {
         return getClass().getSimpleName() + "@" 
                 + (getName() != null ? getName() : Integer.toHexString(System.identityHashCode(this))) 
-                + "[owner: " + (strand == null ? "null" : strand.getClass().getSimpleName() + "@" + Objects.systemObjectId(strand)) + ']';
+                + "[owner: " + systemToStringWithSimpleName(strand) + ']';
     }
 
+    private static String systemToStringWithSimpleName(Object obj) {
+        return (obj == null ? "null" : obj.getClass().getSimpleName() + "@" + Objects.systemObjectId(obj));
+    }
+    
     public ActorMonitor monitor() {
         if (monitor != null)
             return monitor;
