@@ -41,13 +41,24 @@ public abstract class Strand {
     public static Strand create(Fiber fiber) {
         return fiber;
     }
+    
+    public static enum State {
+        NEW, STARTED, RUNNING, WAITING, TERMINATED
+    };
 
     public abstract Object getUnderlying();
 
     public abstract String getName();
 
     public abstract boolean isAlive();
+    
+    public abstract boolean isTerminated();
 
+    /**
+     * 
+     * @return 
+     * @throws IllegalThreadStateException if the strand has already been started
+     */
     public abstract Strand start();
 
     public abstract void join() throws ExecutionException, InterruptedException;
@@ -61,6 +72,8 @@ public abstract class Strand {
     public abstract void unpark();
 
     public abstract Object getBlocker();
+    
+    public abstract State getState();
 
     public abstract StackTraceElement[] getStackTrace();
 
@@ -214,6 +227,30 @@ public abstract class Strand {
         }
 
         @Override
+        public boolean isTerminated() {
+            return thread.getState() == Thread.State.TERMINATED;
+        }
+        
+        @Override
+        public State getState() {
+            final Thread.State state = thread.getState();
+            switch(state) {
+                case NEW:
+                    return State.NEW;
+                case RUNNABLE:
+                    return State.STARTED;
+                case BLOCKED:
+                case WAITING:
+                case TIMED_WAITING:
+                    return State.WAITING;
+                case TERMINATED:
+                    return State.TERMINATED;
+                default:
+                    throw new AssertionError("Unknown thread state: " + state);
+            }
+        }
+
+        @Override
         public Strand start() {
             thread.start();
             return this;
@@ -286,6 +323,16 @@ public abstract class Strand {
             return fiber.isAlive();
         }
 
+        @Override
+        public boolean isTerminated() {
+            return fiber.isTerminated();
+        }
+        
+        @Override
+        public State getState() {
+            return fiber.getState();
+        }
+        
         @Override
         public Strand start() {
             fiber.start();

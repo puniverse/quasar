@@ -38,16 +38,16 @@ import org.slf4j.MDC;
 
 /**
  * An actor that supervises, and if necessary, restarts other actors.
- * 
- * 
+ *
+ *
  * <p/>
  * If an actor needs to know the identity of its siblings, it should add them to the supervisor manually. For that, it needs to know the identity
- * of its supervisor. To do that, pass {@link LocalActor#self self()} to that actor's constructor in the {@link #Supervisor(String, RestartStrategy, SuspendableCallable) initializer} 
+ * of its supervisor. To do that, pass {@link LocalActor#self self()} to that actor's constructor in the {@link #Supervisor(String, RestartStrategy, SuspendableCallable) initializer}
  * or the {@link #init() init} method. Alternatively, simply call {@link LocalActor#self self()} in the actor's constructor.
- * 
+ *
  * This works because the children are constructed from specs (provided they have not been constructed by the caller) during the supervisor's run,
  * so calling {@link LocalActor#self self()} anywhere in the construction process would return the supervisor.
- * 
+ *
  * @author pron
  */
 public class Supervisor extends LocalActor<Object, Void> {
@@ -72,6 +72,10 @@ public class Supervisor extends LocalActor<Object, Void> {
 
         this.initializer = null;
         this.childSpec = childSpec;
+    }
+
+    public Supervisor(Strand strand, String name, int mailboxSize, RestartStrategy restartStrategy, ChildSpec... childSpec) {
+        this(strand, name, mailboxSize, restartStrategy, Arrays.asList(childSpec));
     }
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
@@ -106,7 +110,7 @@ public class Supervisor extends LocalActor<Object, Void> {
     }
 
     public Supervisor(String name, int mailboxSize, RestartStrategy restartStrategy, ChildSpec... childSpec) {
-        this(name, mailboxSize, restartStrategy, Arrays.asList(childSpec));
+        this(null, name, mailboxSize, restartStrategy, childSpec);
     }
 
     public Supervisor(String name, RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
@@ -114,7 +118,7 @@ public class Supervisor extends LocalActor<Object, Void> {
     }
 
     public Supervisor(String name, RestartStrategy restartStrategy, ChildSpec... childSpec) {
-        this(name, -1, restartStrategy, Arrays.asList(childSpec));
+        this(null, name, -1, restartStrategy, childSpec);
     }
 
     public Supervisor(RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
@@ -122,7 +126,7 @@ public class Supervisor extends LocalActor<Object, Void> {
     }
 
     public Supervisor(RestartStrategy restartStrategy, ChildSpec... childSpec) {
-        this(restartStrategy, Arrays.asList(childSpec));
+        this(null, null, -1, restartStrategy, childSpec);
     }
     //</editor-fold>
 
@@ -160,7 +164,7 @@ public class Supervisor extends LocalActor<Object, Void> {
         final List<ChildSpec> _childSpec = init0();
         if (_childSpec != null) {
             for (ChildSpec cs : _childSpec)
-                addChild1(cs, null);
+                addChild1(cs);
         }
     }
 
@@ -187,7 +191,7 @@ public class Supervisor extends LocalActor<Object, Void> {
                     try {
                         if (m1 instanceof AddChildMessage) {
                             final AddChildMessage m = (AddChildMessage) m1;
-                            RequestReplyHelper.reply(m, addChild(m.info, m.actor));
+                            RequestReplyHelper.reply(m, addChild(m.info));
                         }
                     } catch (Exception e) {
                         req.getFrom().send(new GenErrorResponseMessage(req.getId(), e));
@@ -212,11 +216,13 @@ public class Supervisor extends LocalActor<Object, Void> {
         return null;
     }
 
-    private ActorEntry addChild1(ChildSpec info, LocalActor actor) {
-        if (actor == null && info.builder instanceof LocalActor)
+    private ActorEntry addChild1(ChildSpec info) {
+        LocalActor actor = null;
+        if (info.builder instanceof LocalActor) {
             actor = (LocalActor) info.builder;
-        if (actor != null && findEntry(actor) != null)
-            throw new SupervisorException("Supervisor " + this + " already supervises actor " + actor);
+            if (findEntry(actor) != null)
+                throw new SupervisorException("Supervisor " + this + " already supervises actor " + actor);
+        }
         Object name = info.getName();
         if (name == null && actor != null)
             name = actor.getName();
@@ -229,20 +235,20 @@ public class Supervisor extends LocalActor<Object, Void> {
         return child;
     }
 
-    public final Actor addChild(ChildSpec info, LocalActor actor) throws SuspendExecution, InterruptedException {
+    public final Actor addChild(ChildSpec info) throws SuspendExecution, InterruptedException {
         if (isInActor()) {
-            LOG.debug("Adding child {} {}", info, actor);
-            final ActorEntry child = addChild1(info, actor);
+            LOG.debug("Adding child {}", info);
+            final ActorEntry child = addChild1(info);
 
+            final LocalActor actor = info.builder instanceof LocalActor ? (LocalActor) info.builder : null;
             if (actor == null)
                 start(child);
-            else {
-                child.actor = actor;
-                child.watch = watch(actor);
-            }
+            else
+                start(child, actor);
+
             return actor;
         } else {
-            final GenResponseMessage res = RequestReplyHelper.call(this, new AddChildMessage(self(), randtag(), info, actor));
+            final GenResponseMessage res = RequestReplyHelper.call(this, new AddChildMessage(self(), randtag(), info));
             return ((GenValueResponseMessage<Actor>) res).getValue();
         }
     }
@@ -344,11 +350,24 @@ public class Supervisor extends LocalActor<Object, Void> {
         if (actor.getMonitor() != null)
             actor.getMonitor().addRestart();
 
-        Strand strand = createStrandForActor(child.actor != null ? child.actor.getStrand() : null, actor);
+        return start(child, actor);
+    }
+
+    private LocalActor start(ActorEntry child, LocalActor actor) {
+        final Strand strand;
+        if (actor.getStrand() != null)
+            strand = actor.getStrand();
+        else
+            strand = createStrandForActor(child.actor != null ? child.actor.getStrand() : null, actor);
 
         child.actor = actor;
         child.watch = watch(actor);
-        strand.start();
+        
+        try {
+            strand.start();
+        } catch (IllegalThreadStateException e) {
+            // strand has already been started
+        }
         return actor;
     }
 
@@ -505,16 +524,10 @@ public class Supervisor extends LocalActor<Object, Void> {
 
     private static class AddChildMessage extends GenRequestMessage {
         final ChildSpec info;
-        final LocalActor actor;
-
-        public AddChildMessage(Actor from, Object id, ChildSpec info, LocalActor actor) {
-            super(from, id);
-            this.info = info;
-            this.actor = actor;
-        }
 
         public AddChildMessage(Actor from, Object id, ChildSpec info) {
-            this(from, id, info, null);
+            super(from, id);
+            this.info = info;
         }
     }
 

@@ -112,7 +112,9 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "@" + (getName() != null ? getName() : Integer.toHexString(System.identityHashCode(this))) + "[owner: " + Objects.systemToString(strand) + ']';
+        return getClass().getSimpleName() + "@" 
+                + (getName() != null ? getName() : Integer.toHexString(System.identityHashCode(this))) 
+                + "[owner: " + (strand == null ? "null" : strand.getClass().getSimpleName() + "@" + Objects.systemObjectId(strand)) + ']';
     }
 
     public ActorMonitor monitor() {
@@ -287,7 +289,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     @Override
     public boolean isDone() {
-        return !strand.isAlive();
+        return strand.isTerminated();
     }
 
     protected void verifyInActor() {

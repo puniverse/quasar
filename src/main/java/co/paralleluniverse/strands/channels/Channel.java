@@ -68,7 +68,7 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
         else {
             if (sync != mySync)
                 sync = mySync;
-            sync.verifyOwner();
+            assert sync.verifyOwner() : "This method has been called by a different strand (thread or fiber) than that owning this object";
         }
     }
 
@@ -87,12 +87,12 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
     }
 
     protected void signal() {
-        if (sync != null && sync.isOwnerAlive())
+        if (sync != null)
             sync.signal();
     }
 
     protected void signalAndTryToExecNow() {
-        if (sync != null && sync.isOwnerAlive())
+        if (sync != null)
             sync.signalAndTryToExecNow();
     }
 

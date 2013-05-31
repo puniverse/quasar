@@ -71,7 +71,7 @@ public class ChannelGroup<Message> implements ReceiveChannel<Message>, Stranded 
         if (owner == null)
             setStrand(Strand.currentStrand());
         else
-            sync.verifyOwner();
+            assert sync.verifyOwner() : "This method has been called by a different strand (thread or fiber) than that owning this object";
         setSync();
     }
 

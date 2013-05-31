@@ -79,9 +79,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         return true;
     }
 
-    public static enum State {
-        NEW, STARTED, RUNNING, WAITING, TERMINATED
-    };
     private static final ScheduledExecutorService timeoutService = Executors.newSingleThreadScheduledExecutor(new NamingThreadFactory("fiber-timeout"));
     private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler;
     //
@@ -641,7 +638,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     @Override
     public Fiber start() {
         if (!casState(State.NEW, State.STARTED))
-            throw new IllegalStateException("Fiber has already been started or has died");
+            throw new IllegalThreadStateException("Fiber has already been started or has died");
         fjTask.submit();
         return this;
     }
@@ -687,9 +684,20 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
      */
     @Override
     public final boolean isAlive() {
-        return !fjTask.isDone();
+        return state != State.NEW && !fjTask.isDone();
     }
 
+    @Override
+    public final State getState() {
+        return state;
+    }
+
+    @Override
+    public boolean isTerminated() {
+        return state == State.TERMINATED;
+    }
+        
+        
     @Override
     public final Object getBlocker() {
         return fjTask.getBlocker();
@@ -697,10 +705,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
 
     public final void setBlocker(Object blocker) {
         fjTask.setBlocker(blocker);
-    }
-
-    public final State getState() {
-        return state;
     }
 
     public Fiber getParent() {

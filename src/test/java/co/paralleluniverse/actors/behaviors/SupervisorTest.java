@@ -117,7 +117,7 @@ public class SupervisorTest {
     }
 
     @Test
-    public void startChildren() throws Exception {
+    public void startChild() throws Exception {
         final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
                 new ChildSpec("actor1", ActorSpec.of(Actor1.class, "actor1"), ActorMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3)));
 
@@ -132,6 +132,23 @@ public class SupervisorTest {
         sup.shutdown();
         sup.join();
     }
+
+//    @Test
+//    public void startChild2() throws Exception {
+//        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE));
+//
+//        sup.addChild(new ChildSpec("actor1", ActorSpec.of(Actor1.class, "actor1"), ActorMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3), null);
+//        LocalActor<Object, Integer> a;
+//
+//        a = getChild(sup, "actor1", 1000);
+//        for (int i = 0; i < 3; i++)
+//            a.send(1);
+//        a.send(new ShutdownMessage(null));
+//        assertThat(a.get(), is(3));
+//        
+//        sup.shutdown();
+//        sup.join();
+//    }
 
     @Test
     public void whenChildDiesThenRestart() throws Exception {
