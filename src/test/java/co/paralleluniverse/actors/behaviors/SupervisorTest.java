@@ -24,7 +24,7 @@ import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
-import co.paralleluniverse.actors.behaviors.Supervisor.ActorMode;
+import co.paralleluniverse.actors.behaviors.Supervisor.ChildMode;
 import co.paralleluniverse.actors.behaviors.Supervisor.RestartStrategy;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
@@ -133,7 +133,7 @@ public class SupervisorTest {
     @Test
     public void startChild() throws Exception {
         final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
-                new ChildSpec("actor1", ActorSpec.of(Actor1.class, "actor1"), ActorMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3)));
+                new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor1.class, "actor1"))));
 
         LocalActor<Object, Integer> a;
 
@@ -166,7 +166,7 @@ public class SupervisorTest {
     @Test
     public void whenChildDiesThenRestart() throws Exception {
         final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
-                new ChildSpec("actor1", ActorSpec.of(Actor1.class, "actor1"), ActorMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3)));
+                new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor1.class, "actor1"))));
 
         LocalActor<Object, Integer> a;
 
@@ -191,7 +191,7 @@ public class SupervisorTest {
     @Test
     public void whenChildDiesTooManyTimesThenGiveUpAndDie() throws Exception {
         final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
-                new ChildSpec("actor1", ActorSpec.of(BadActor1.class, "actor1"), ActorMode.PERMANENT, 3, 1, TimeUnit.SECONDS, 3)));
+                new ChildSpec("actor1", ChildMode.PERMANENT, 3, 1, TimeUnit.SECONDS, 3, ActorSpec.of(BadActor1.class, "actor1"))));
 
         LocalActor<Object, Integer> a, prevA = null;
 
@@ -216,7 +216,7 @@ public class SupervisorTest {
     @Test
     public void dontRestartTemporaryChildDeadOfNaturalCause() throws Exception {
         final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
-                new ChildSpec("actor1", ActorSpec.of(Actor1.class, "actor1"), ActorMode.TEMPORARY, 5, 1, TimeUnit.SECONDS, 3)));
+                new ChildSpec("actor1", ChildMode.TEMPORARY, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor1.class, "actor1"))));
 
         LocalActor<Object, Integer> a;
 
@@ -238,7 +238,7 @@ public class SupervisorTest {
     @Test
     public void dontRestartTemporaryChildDeadOfUnnaturalCause() throws Exception {
         final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
-                new ChildSpec("actor1", ActorSpec.of(BadActor1.class, "actor1"), ActorMode.TEMPORARY, 5, 1, TimeUnit.SECONDS, 3)));
+                new ChildSpec("actor1", ChildMode.TEMPORARY, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(BadActor1.class, "actor1"))));
 
         LocalActor<Object, Integer> a;
 
@@ -262,7 +262,7 @@ public class SupervisorTest {
     @Test
     public void dontRestartTransientChildDeadOfNaturalCause() throws Exception {
         final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
-                new ChildSpec("actor1", ActorSpec.of(Actor1.class, "actor1"), ActorMode.TRANSIENT, 5, 1, TimeUnit.SECONDS, 3)));
+                new ChildSpec("actor1", ChildMode.TRANSIENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor1.class, "actor1"))));
 
         LocalActor<Object, Integer> a;
 
@@ -284,7 +284,7 @@ public class SupervisorTest {
     @Test
     public void restartTransientChildDeadOfUnnaturalCause() throws Exception {
         final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
-                new ChildSpec("actor1", ActorSpec.of(BadActor1.class, "actor1"), ActorMode.TRANSIENT, 5, 1, TimeUnit.SECONDS, 3)));
+                new ChildSpec("actor1", ChildMode.TRANSIENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(BadActor1.class, "actor1"))));
 
         LocalActor<Object, Integer> a;
 
