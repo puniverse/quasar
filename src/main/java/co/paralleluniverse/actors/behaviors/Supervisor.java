@@ -50,7 +50,7 @@ import org.slf4j.MDC;
  *
  * @author pron
  */
-public class Supervisor extends LocalActor<Object, Void> {
+public class Supervisor extends LocalActor<Object, Void> implements GenBehavior {
     private static final Logger LOG = LoggerFactory.getLogger(Supervisor.class);
     private final RestartStrategy restartStrategy;
     private final SuspendableCallable<List<ChildSpec>> initializer;
@@ -137,8 +137,9 @@ public class Supervisor extends LocalActor<Object, Void> {
         return (LocalActor<Message, V>) child.actor;
     }
 
+    @Override
     public void shutdown() {
-        send(new ShutdownMessage(null));
+        send(new ShutdownMessage(LocalActor.self()));
     }
 
     private List<ChildSpec> init0() throws SuspendExecution, InterruptedException {

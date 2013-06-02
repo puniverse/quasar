@@ -145,7 +145,7 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends LocalActor<Obje
 
     @Override
     public void shutdown() {
-        send(new ShutdownMessage(null));
+        send(new ShutdownMessage(LocalActor.self()));
     }
 
     public final void reply(Actor to, Object id, V message) {
