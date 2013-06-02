@@ -55,13 +55,6 @@ public class SupervisorTest {
 
     private <T extends LocalActor<Message, V>, Message, V> T spawnActor(T actor) {
         Fiber fiber = new Fiber(fjPool, actor);
-        fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Fiber lwt, Throwable e) {
-                e.printStackTrace();
-                throw Exceptions.rethrow(e);
-            }
-        });
         fiber.start();
         return actor;
     }
@@ -94,12 +87,33 @@ public class SupervisorTest {
         }
     }
 
+    private static class BadActor1 extends BasicActor<Object, Integer> {
+        public BadActor1(String name) {
+            super(name);
+        }
+
+        @Override
+        protected Integer doRun() throws SuspendExecution, InterruptedException {
+            register();
+            int i = 0;
+            try {
+                for (;;) {
+                    Object m = receive();
+                    i++;
+                    throw new RuntimeException("Ha!");
+                }
+            } catch (InterruptedException e) {
+                return i;
+            }
+        }
+    }
+
     private <Message, V> LocalActor<Message, V> getRegisteredActor(String name, long timeout) throws InterruptedException {
         LocalActor<Message, V> a;
         final long start = System.nanoTime();
         while ((a = LocalActor.getActor(name)) == null || a.isDone()) {
             if (System.nanoTime() > start + TimeUnit.MILLISECONDS.toNanos(timeout))
-                throw new RuntimeException("registered actor not found");
+                return null;
             Thread.sleep(10);
         }
         return a;
@@ -110,7 +124,7 @@ public class SupervisorTest {
         final long start = System.nanoTime();
         while ((a = sup.getChild(name)) == null || a.isDone()) {
             if (System.nanoTime() > start + TimeUnit.MILLISECONDS.toNanos(timeout))
-                throw new RuntimeException("child actor not found ");
+                return null;
             Thread.sleep(10);
         }
         return a;
@@ -128,7 +142,7 @@ public class SupervisorTest {
             a.send(1);
         a.send(new ShutdownMessage(null));
         assertThat(a.get(), is(3));
-        
+
         sup.shutdown();
         sup.join();
     }
@@ -149,7 +163,6 @@ public class SupervisorTest {
 //        sup.shutdown();
 //        sup.join();
 //    }
-
     @Test
     public void whenChildDiesThenRestart() throws Exception {
         final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
@@ -163,14 +176,133 @@ public class SupervisorTest {
         a.send(new ShutdownMessage(null));
         assertThat(a.get(), is(3));
 
-        
+
         a = getChild(sup, "actor1", 1000);
         for (int i = 0; i < 5; i++)
             a.send(1);
         a.send(new ShutdownMessage(null));
         assertThat(a.get(), is(5));
-        
-        
+
+
+        sup.shutdown();
+        sup.join();
+    }
+
+    @Test
+    public void whenChildDiesTooManyTimesThenGiveUpAndDie() throws Exception {
+        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
+                new ChildSpec("actor1", ActorSpec.of(BadActor1.class, "actor1"), ActorMode.PERMANENT, 3, 1, TimeUnit.SECONDS, 3)));
+
+        LocalActor<Object, Integer> a, prevA = null;
+
+        for (int k = 0; k < 4; k++) {
+            a = getChild(sup, "actor1", 1000);
+            assertThat(a, not(prevA));
+
+            a.send(1);
+
+            try {
+                a.join();
+                fail();
+            } catch (ExecutionException e) {
+            }
+
+            prevA = a;
+        }
+
+        sup.join(20, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
+    public void dontRestartTemporaryChildDeadOfNaturalCause() throws Exception {
+        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
+                new ChildSpec("actor1", ActorSpec.of(Actor1.class, "actor1"), ActorMode.TEMPORARY, 5, 1, TimeUnit.SECONDS, 3)));
+
+        LocalActor<Object, Integer> a;
+
+        a = getChild(sup, "actor1", 1000);
+        for (int i = 0; i < 3; i++)
+            a.send(1);
+        a.send(new ShutdownMessage(null));
+        assertThat(a.get(), is(3));
+
+
+        a = getChild(sup, "actor1", 200);
+        assertThat(a, nullValue());
+
+
+        sup.shutdown();
+        sup.join();
+    }
+
+    @Test
+    public void dontRestartTemporaryChildDeadOfUnnaturalCause() throws Exception {
+        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
+                new ChildSpec("actor1", ActorSpec.of(BadActor1.class, "actor1"), ActorMode.TEMPORARY, 5, 1, TimeUnit.SECONDS, 3)));
+
+        LocalActor<Object, Integer> a;
+
+        a = getChild(sup, "actor1", 1000);
+        for (int i = 0; i < 3; i++)
+            a.send(1);
+        a.send(new ShutdownMessage(null));
+        try {
+            a.join();
+            fail();
+        } catch (ExecutionException e) {
+        }
+
+        a = getChild(sup, "actor1", 200);
+        assertThat(a, nullValue());
+
+        sup.shutdown();
+        sup.join();
+    }
+
+    @Test
+    public void dontRestartTransientChildDeadOfNaturalCause() throws Exception {
+        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
+                new ChildSpec("actor1", ActorSpec.of(Actor1.class, "actor1"), ActorMode.TRANSIENT, 5, 1, TimeUnit.SECONDS, 3)));
+
+        LocalActor<Object, Integer> a;
+
+        a = getChild(sup, "actor1", 1000);
+        for (int i = 0; i < 3; i++)
+            a.send(1);
+        a.send(new ShutdownMessage(null));
+        assertThat(a.get(), is(3));
+
+
+        a = getChild(sup, "actor1", 200);
+        assertThat(a, nullValue());
+
+
+        sup.shutdown();
+        sup.join();
+    }
+
+    @Test
+    public void restartTransientChildDeadOfUnnaturalCause() throws Exception {
+        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
+                new ChildSpec("actor1", ActorSpec.of(BadActor1.class, "actor1"), ActorMode.TRANSIENT, 5, 1, TimeUnit.SECONDS, 3)));
+
+        LocalActor<Object, Integer> a;
+
+        a = getChild(sup, "actor1", 1000);
+        for (int i = 0; i < 3; i++)
+            a.send(1);
+        a.send(new ShutdownMessage(null));
+        try {
+            a.join();
+            fail();
+        } catch (ExecutionException e) {
+        }
+
+
+        LocalActor<Object, Integer> b = getChild(sup, "actor1", 200);
+        assertThat(b, not(nullValue()));
+        assertThat(b, not(a));
+
         sup.shutdown();
         sup.join();
     }

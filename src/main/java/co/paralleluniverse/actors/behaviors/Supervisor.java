@@ -362,7 +362,7 @@ public class Supervisor extends LocalActor<Object, Void> {
 
         child.actor = actor;
         child.watch = watch(actor);
-        
+
         try {
             strand.start();
         } catch (IllegalThreadStateException e) {
@@ -401,8 +401,8 @@ public class Supervisor extends LocalActor<Object, Void> {
         for (ActorEntry child : children) {
             if (child.actor != null) {
                 try {
-                    child.actor.stopMonitor();
                     joinChild(child);
+                    child.actor.stopMonitor(); // must be done after join to avoid a race with the actor
                 } finally {
                     child.actor = null;
                 }
@@ -479,7 +479,7 @@ public class Supervisor extends LocalActor<Object, Void> {
     }
 
     private long now() {
-        return System.currentTimeMillis() / 1000000;
+        return System.nanoTime() / 1000000;
     }
 
     public enum ActorMode {
@@ -607,7 +607,7 @@ public class Supervisor extends LocalActor<Object, Void> {
 
         public ActorEntry(ChildSpec info, LocalActor<?, ?> actor) {
             this.info = info;
-            this.restartHistory = new RestartHistory(info.maxRestarts);
+            this.restartHistory = new RestartHistory(info.maxRestarts + 1);
 
             this.actor = actor;
         }
@@ -639,6 +639,8 @@ public class Supervisor extends LocalActor<Object, Void> {
                     break;
                 count++;
             }
+            if (restarts[index] >= since) // || restarts[i] == 0L is implied
+                count++;
             return count;
         }
 
