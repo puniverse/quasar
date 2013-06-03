@@ -3,7 +3,7 @@
   <appenders>
     <Console name="Console" target="SYSTEM_ERR">
       <!-- ThreadContext: %x = stack, %X = map-->
-      <PatternLayout pattern="%highlight{%d{HH:mm:ss.SSS} [%t] %30logger{2} [%-5level]} %X %msg %throwable{3}%n"/>
+      <PatternLayout pattern="%d{HH:mm:ss.SSS} %highlight{[%t] %30logger{2} [%-5level]} %X %msg %throwable{3}%n"/>
     </Console>
   </appenders>
   <loggers>

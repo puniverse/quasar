@@ -290,7 +290,7 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
                     final ChildEntry child = findEntry(actor);
 
                     if (child != null) {
-                        LOG.info(this + " detected child death: " + child + ". cause: ", death.cause);
+                        LOG.info("Detected child death: " + child + ". cause: ", death.cause);
                         if (!restartStrategy.onChildDeath(this, child, death.cause)) {
                             LOG.info("Supervisor {} giving up.", this);
                             getStrand().interrupt();
@@ -321,7 +321,10 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
                 final Actor actor = child.actor;
                 shutdownChild(child, true);
                 child.restartHistory.addRestart(now);
-                if (child.restartHistory.numRestarts(now - child.info.unit.toMillis(child.info.duration)) > child.info.maxRestarts) {
+                final int numRestarts = child.restartHistory.numRestarts(now - child.info.unit.toMillis(child.info.duration));
+                if (LOG.isDebugEnabled())
+                    LOG.debug("Child {} has been restarted {} times in the last {} {}s", child, numRestarts, child.info.duration, child.info.unit);
+                if (numRestarts > child.info.maxRestarts) {
                     LOG.info(this + ": too many restarts for child {}. Giving up.", actor);
                     return false;
                 }
@@ -416,10 +419,10 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
                 child.actor.join(child.info.shutdownDeadline, TimeUnit.MILLISECONDS);
                 return true;
             } catch (ExecutionException ex) {
-                LOG.info(this + ": child {} died with exception {}", child.actor, ex.getCause());
+                LOG.info("Child {} died with exception {}", child.actor, ex.getCause());
                 return true;
             } catch (TimeoutException ex) {
-                LOG.warn(this + ": child {} shutdown timeout. Interrupting...", child.actor);
+                LOG.warn("Child {} shutdown timeout. Interrupting...", child.actor);
                 // is this the best we can do?
                 child.actor.getStrand().interrupt();
 
@@ -427,10 +430,10 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
                     child.actor.join(child.info.shutdownDeadline, TimeUnit.MILLISECONDS);
                     return true;
                 } catch (ExecutionException e) {
-                    LOG.info(this + ": child {} died with exception {}", child.actor, ex.getCause());
+                    LOG.info("Child {} died with exception {}", child.actor, ex.getCause());
                     return true;
                 } catch (TimeoutException e) {
-                    LOG.warn(this + ": child {} could not shut down...", child.actor);
+                    LOG.warn("Child {} could not shut down...", child.actor);
 
                     child.actor.stopMonitor();
                     child.actor.unregister();
@@ -438,7 +441,6 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
 
                     return false;
                 }
-
             }
         } else
             return true;
