@@ -97,6 +97,24 @@ public abstract class Strand {
             return Thread.interrupted();
     }
 
+    public static void join(Object strand) throws ExecutionException, InterruptedException {
+        if(strand instanceof Strand)
+            ((Strand)strand).join();
+        else if(strand instanceof Thread)
+            ((Thread)strand).join();
+        else
+            throw new IllegalArgumentException("Can't join an object of type " + strand.getClass());
+    }
+
+    public static void join(Object strand, long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+        if(strand instanceof Strand)
+            ((Strand)strand).join(timeout, unit);
+        else if(strand instanceof Thread)
+            join(Strand.create(strand), timeout, unit);
+        else
+            throw new IllegalArgumentException("Can't join an object of type " + strand.getClass());
+    }
+
     public static void yield() throws SuspendExecution {
         if (Fiber.currentFiber() != null)
             Fiber.yield();
@@ -151,7 +169,7 @@ public abstract class Strand {
     public static void unpark(Strand strand) {
         strand.unpark();
     }
-    
+
     public static void dumpStack() {
         if (Fiber.currentFiber() != null)
             Fiber.dumpStack();

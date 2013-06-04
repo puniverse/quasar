@@ -70,7 +70,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
 
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
-    final Mailbox<Object> mailbox() {
+    Mailbox<Object> mailbox() {
         return mailbox;
     }
 
