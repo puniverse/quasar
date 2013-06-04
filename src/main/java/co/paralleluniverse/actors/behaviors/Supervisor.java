@@ -419,7 +419,8 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
             if (child.actor != null) {
                 try {
                     joinChild(child);
-                    child.actor.stopMonitor(); // must be done after join to avoid a race with the actor
+                    if (child.actor != null)
+                        child.actor.stopMonitor(); // must be done after join to avoid a race with the actor
                 } finally {
                     child.actor = null;
                 }
