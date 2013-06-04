@@ -29,8 +29,9 @@
 package co.paralleluniverse.fibers.instrument;
 
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
-import static co.paralleluniverse.fibers.instrument.Classes.STACK_CLASS;
+import static co.paralleluniverse.fibers.instrument.Classes.STACK_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_CLASS;
+import static co.paralleluniverse.fibers.instrument.Classes.isAllowedToBlock;
 import static co.paralleluniverse.fibers.instrument.Classes.isBlockingCall;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
 import java.util.List;
@@ -61,7 +62,6 @@ import org.objectweb.asm.tree.analysis.Value;
  */
 class InstrumentMethod {
     private static final String INTERRUPTED_EXCEPTION_NAME = Type.getInternalName(InterruptedException.class);
-    private static final String STACK_NAME = Type.getInternalName(STACK_CLASS);
     private static final boolean DUAL = true; // true if suspendable methods can be called from regular threads in addition to fibers
     private final MethodDatabase db;
     private final String className;
@@ -112,7 +112,7 @@ class InstrumentMethod {
                     } else {
                         db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
                         int blockingId = isBlockingCall(min);
-                        if (blockingId >= 0) {
+                        if (blockingId >= 0 && !isAllowedToBlock(className, mn.name)) {
                             int mask = 1 << blockingId;
                             if (!db.isAllowBlocking()) {
                                 throw new UnableToInstrumentException("blocking call to "

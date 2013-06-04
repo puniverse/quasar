@@ -180,6 +180,8 @@ public class JavaAgent {
                 return null;
             if (className.startsWith("org/objectweb/asm/"))
                 return null;
+            if (className.startsWith(Classes.COROUTINE_NAME))
+                return null;
 
             db.log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
 
