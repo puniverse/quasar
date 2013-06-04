@@ -25,46 +25,40 @@ import java.util.concurrent.TimeoutException;
  */
 public class DelayedVal<V> implements Future<V> {
     private V value;
-    private volatile boolean set; // this field is probably redundant. we can probably rely on the sync field alone.
     private volatile SimpleConditionSynchronizer sync = new SimpleConditionSynchronizer() {
-
         @Override
         protected boolean isCondition() {
-            return set;
-        }  
+            return sync == null;
+        }
     };
-    
+
     public final void set(V value) {
-        if(set)
+        if (sync == null)
             throw new IllegalStateException("Value has already been set (and can only be set once)");
         this.value = value;
-        set = true; // must be done before signal
-        sync.signalAll();
-        sync = null;
+        final SimpleConditionSynchronizer s = sync;
+        sync = null; // must be done before signal
+        s.signalAll();
     }
-    
+
     @Override
     public boolean isDone() {
-        return set;
+        return sync == null;
     }
 
     @Override
     public V get() throws InterruptedException, SuspendExecution {
-        while(!set) {
-            final SimpleConditionSynchronizer s = sync;
-            if(s != null)
-                s.await();
-        }
+        SimpleConditionSynchronizer s;
+        if ((s = sync) != null)
+            s.await();
         return value;
     }
 
     @Override
     public V get(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, SuspendExecution {
-        while(!set) {
-            final SimpleConditionSynchronizer s = sync;
-            if(s != null)
-                s.await(timeout, unit);
-        }
+        SimpleConditionSynchronizer s;
+        if ((s = sync) != null)
+            s.await(timeout, unit);
         return value;
     }
 
