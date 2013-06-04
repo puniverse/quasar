@@ -144,7 +144,7 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends LocalActor<Obje
     }
 
     @Override
-    public void shutdown() {
+    public final void shutdown() {
         send(new ShutdownMessage(LocalActor.self()));
     }
 
@@ -181,6 +181,7 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends LocalActor<Obje
     protected void handleCast(Actor<V> from, Object id, CastMessage m) throws SuspendExecution {
         if (server != null)
             server.handleCast(from, id, m);
+        throw new UnsupportedOperationException(m.toString());
     }
 
     protected void handleInfo(Object m) throws SuspendExecution {

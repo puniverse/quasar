@@ -26,6 +26,7 @@ import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
@@ -229,7 +230,7 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
         Object id = spec.getId();
         if (id == null && actor != null)
             id = actor.getName();
-        if (findEntryById(id) != null)
+        if (id != null && findEntryById(id) != null)
             throw new SupervisorException("Supervisor " + this + " already supervises an actor by the name " + id);
         final ChildEntry child = new ChildEntry(spec, actor);
         children.add(child);
@@ -254,11 +255,13 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
         }
     }
 
-    public final boolean removeChild(Object name, boolean terminate) throws SuspendExecution, InterruptedException {
+    public final boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException {
         if (isInActor()) {
-            final ChildEntry child = findEntryById(name);
-            if (child == null)
+            final ChildEntry child = findEntryById(id);
+            if (child == null) {
+                LOG.warn("Child {} not found", id);
                 return false;
+            }
 
             LOG.debug("Removing child {}", child);
             if (child.actor != null) {
@@ -270,14 +273,22 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
                     unwatch(child);
             }
 
-            childrenById.remove(name);
-            children.remove(child);
+            removeChild(child, null);
 
             return true;
         } else {
-            final GenResponseMessage res = RequestReplyHelper.call(this, new RemoveChildMessage(RequestReplyHelper.from(), randtag(), name, terminate));
+            final GenResponseMessage res = RequestReplyHelper.call(this, new RemoveChildMessage(RequestReplyHelper.from(), randtag(), id, terminate));
             return ((GenValueResponseMessage<Boolean>) res).getValue();
         }
+    }
+
+    private void removeChild(ChildEntry child, Iterator<ChildEntry> iter) {
+        if (child.info.getId() != null)
+            childrenById.remove(child.info.getId());
+        if (iter != null)
+            iter.remove();
+        else
+            children.remove(child);
     }
 
     @Override
@@ -310,7 +321,7 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
         }
     }
 
-    private boolean tryRestart(ChildEntry child, Throwable cause, long now) throws InterruptedException {
+    private boolean tryRestart(ChildEntry child, Throwable cause, long now, Iterator<ChildEntry> it) throws InterruptedException {
         LOG.info("Supervisor trying to restart child {}. (cause: {})", child, cause);
         verifyInActor();
         switch (child.info.mode) {
@@ -332,6 +343,8 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
                 start(child);
                 return true;
             case TEMPORARY:
+                shutdownChild(child, false);
+                removeChild(child, it);
                 return true;
             default:
                 throw new AssertionError();
@@ -493,15 +506,16 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
         ONE_FOR_ONE {
             @Override
             boolean onChildDeath(Supervisor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
-                return supervisor.tryRestart(child, cause, supervisor.now());
+                return supervisor.tryRestart(child, cause, supervisor.now(), null);
             }
         },
         ALL_FOR_ONE {
             @Override
             boolean onChildDeath(Supervisor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
                 supervisor.shutdownChildren();
-                for (ChildEntry c : supervisor.children) {
-                    if (!supervisor.tryRestart(c, cause, supervisor.now()))
+                for (Iterator<ChildEntry> it = supervisor.children.iterator(); it.hasNext();) {
+                    final ChildEntry c = it.next();
+                    if (!supervisor.tryRestart(c, cause, supervisor.now(), it))
                         return false;
                 }
                 return true;
@@ -511,11 +525,12 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
             @Override
             boolean onChildDeath(Supervisor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
                 boolean found = false;
-                for (ChildEntry c : supervisor.children) {
+                for (Iterator<ChildEntry> it = supervisor.children.iterator(); it.hasNext();) {
+                    final ChildEntry c = it.next();
                     if (c == child)
                         found = true;
 
-                    if (found && !supervisor.tryRestart(c, cause, supervisor.now()))
+                    if (found && !supervisor.tryRestart(c, cause, supervisor.now(), it))
                         return false;
                 }
                 return true;

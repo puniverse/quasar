@@ -33,6 +33,7 @@ import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import jsr166e.ForkJoinPool;
 import org.junit.Test;
 import static org.hamcrest.CoreMatchers.*;
@@ -46,14 +47,14 @@ import org.junit.Ignore;
  */
 public class SupervisorTest {
     static final int mailboxSize = 10;
-    private ForkJoinPool fjPool;
+    private static ForkJoinPool fjPool;
 
     public SupervisorTest() throws Exception {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
         java.util.logging.LogManager.getLogManager().readConfiguration(); // gradle messes with the configurations
     }
 
-    private <T extends LocalActor<Message, V>, Message, V> T spawnActor(T actor) {
+    private static <T extends LocalActor<Message, V>, Message, V> T spawnActor(T actor) {
         Fiber fiber = new Fiber(fjPool, actor);
         fiber.start();
         return actor;
@@ -333,18 +334,18 @@ public class SupervisorTest {
         LocalActor<Object, Integer> a;
 
         a = getChild(sup, "actor1", 1);
-        
+
         assertThat(a, is(a1));
-        
+
         for (int i = 0; i < 3; i++)
             a.send(1);
         a.send(new ShutdownMessage(null));
         assertThat(a.get(), is(3));
 
         a = getChild(sup, "actor1", 1000);
-        
+
         assertThat(a, is(not(a1)));
-        
+
         for (int i = 0; i < 5; i++)
             a.send(1);
         a.send(new ShutdownMessage(null));
@@ -352,5 +353,105 @@ public class SupervisorTest {
 
         sup.shutdown();
         sup.join();
+    }
+
+    ///////////////// Complex example ///////////////////////////////////////////
+    private static class Actor3 extends BasicActor<Integer, Integer> {
+        private final Supervisor mySup;
+        private final AtomicInteger started;
+        private final AtomicInteger terminated;
+
+        public Actor3(String name, AtomicInteger started, AtomicInteger terminated) {
+            super(name);
+            mySup = (Supervisor) LocalActor.self();
+            this.started = started;
+            this.terminated = terminated;
+        }
+
+        @Override
+        protected Integer doRun() throws SuspendExecution, InterruptedException {
+            final LocalGenServer<Message1, Integer, Void> adder = spawnActor(new LocalGenServer<Message1, Integer, Void>() {
+                @Override
+                protected void init() throws SuspendExecution {
+                    started.incrementAndGet();
+                }
+
+                @Override
+                protected void terminate(Throwable cause) throws SuspendExecution {
+                    terminated.incrementAndGet();
+                }
+
+                @Override
+                protected Integer handleCall(Actor<Integer> from, Object id, Message1 m) throws Exception, SuspendExecution {
+                    int res = m.a + m.b;
+                    if (res > 100)
+                        throw new RuntimeException("oops!");
+                    return res;
+                }
+            });
+
+            link(adder);
+            mySup.addChild(new ChildSpec(null, ChildMode.TEMPORARY, 10, 1, TimeUnit.SECONDS, 1, adder));
+
+            int a = receive();
+            int b = receive();
+
+            int res = adder.call(new Message1(a, b));
+            return res;
+        }
+
+        @Override
+        protected LocalActor<Integer, Integer> reinstantiate() {
+            return new Actor3(getName(), started, terminated);
+        }
+    }
+
+    @Test
+    public void testComplex1() throws Exception {
+        AtomicInteger started = new AtomicInteger();
+        AtomicInteger terminated = new AtomicInteger();
+
+        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ALL_FOR_ONE,
+                new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor3.class, "actor1", started, terminated))));
+
+        LocalActor<Integer, Integer> a;
+
+        a = getChild(sup, "actor1", 1000);
+        a.send(3);
+        a.send(4);
+
+        assertThat(a.get(), is(7));
+
+        a = getChild(sup, "actor1", 1000);
+        a.send(70);
+        a.send(80);
+
+        try {
+            a.get();
+            fail();
+        } catch (ExecutionException e) {
+        }
+
+        a = getChild(sup, "actor1", 1000);
+        a.send(7);
+        a.send(8);
+
+        assertThat(a.get(), is(15));
+
+        sup.shutdown();
+        sup.join();
+
+        assertThat(started.get(), is(4));
+        assertThat(terminated.get(), is(4));
+    }
+
+    static class Message1 {
+        final int a;
+        final int b;
+
+        public Message1(int a, int b) {
+            this.a = a;
+            this.b = b;
+        }
     }
 }
