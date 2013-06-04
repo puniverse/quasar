@@ -199,6 +199,10 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
         return unsafe.compareAndSwapObject(this, headOffset, null, update);
     }
 
+    void orderedSetHead(Node value) {
+        unsafe.putOrderedObject(this, headOffset, value);
+    }
+
     boolean compareAndSetTail(Node expect, Node update) {
         return unsafe.compareAndSwapObject(this, tailOffset, expect, update);
     }

@@ -66,19 +66,19 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
         clearValue(node);
 
         if (DUMMY_NODE_ALGORITHM) {
-            head = node;
+            orderedSetHead(node); // head = node;
             node.prev = null;
         } else {
             Node h = node.next;
             if (h == null) {
-                head = null; // Based on John M. Mellor-Crummey, "Concurrent Queues: Practical Fetch-and-phi Algorithms", 1987
+                orderedSetHead(null); // head = null; // Based on John M. Mellor-Crummey, "Concurrent Queues: Practical Fetch-and-phi Algorithms", 1987
                 if (tail == node && compareAndSetTail(node, null)) { // a concurrent enq would either cause this to fail and wait for node.next, or have this succeed and then set tail and head
                     node.next = null;
                     return;
                 }
                 while ((h = node.next) == null);
             }
-            head = h;
+            orderedSetHead(h); // head = h;
             h.prev = null;
 
             // clearNext(node); - we don't clear next so that iterator would work
@@ -214,6 +214,14 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
      */
     boolean compareAndSetHead(Node update) {
         return unsafe.compareAndSwapObject(this, headOffset, null, update);
+    }
+
+    void orderedSetHead(Node value) {
+        unsafe.putOrderedObject(this, headOffset, value);
+    }
+
+    void volatileSetHead(Node value) {
+        unsafe.putObjectVolatile(this, headOffset, value);
     }
 
     /**

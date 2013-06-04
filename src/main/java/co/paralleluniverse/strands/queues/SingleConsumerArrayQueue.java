@@ -80,7 +80,7 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
             w = t - capacity; // "wrap point"
 
             if (cachedHead <= w) {
-                cachedHead = head; // only time a producer reads head
+                cachedHead = head; // only time a producer reads head. for this, head needs to be volatile. can we do better?
                 if (cachedHead <= w)
                     return -1;
             }
