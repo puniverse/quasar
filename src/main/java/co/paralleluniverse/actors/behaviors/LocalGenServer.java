@@ -175,13 +175,15 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends LocalActor<Obje
     protected V handleCall(Actor<V> from, Object id, CallMessage m) throws Exception, SuspendExecution {
         if (server != null)
             return server.handleCall(from, id, m);
-        throw new UnsupportedOperationException(m.toString());
+        else
+            throw new UnsupportedOperationException(m.toString());
     }
 
     protected void handleCast(Actor<V> from, Object id, CastMessage m) throws SuspendExecution {
         if (server != null)
             server.handleCast(from, id, m);
-        throw new UnsupportedOperationException(m.toString());
+        else
+            throw new UnsupportedOperationException(m.toString());
     }
 
     protected void handleInfo(Object m) throws SuspendExecution {
