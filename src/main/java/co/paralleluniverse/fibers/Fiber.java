@@ -174,6 +174,17 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         return target;
     }
 
+    @Override
+    public final int hashCode() {
+        return System.identityHashCode(this);
+    }
+
+    @Override
+    public final boolean equals(Object obj) {
+        return this == obj;
+    }
+    
+
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
     /**
