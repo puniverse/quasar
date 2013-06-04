@@ -59,11 +59,16 @@ public abstract class BasicActor<Message, V> extends LocalActor<Message, V> {
      * @throws TimeoutException
      * @throws LwtInterruptedException
      */
-    public Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws TimeoutException, SuspendExecution, InterruptedException {
+    public final Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws TimeoutException, SuspendExecution, InterruptedException {
         return helper.receive(timeout, unit, proc);
     }
 
-    public Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
+    public final Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
         return helper.receive(proc);
+    }
+
+    @Override
+    public final String getName() {
+        return (String)super.getName();
     }
 }

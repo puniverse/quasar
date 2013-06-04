@@ -35,7 +35,7 @@ public class RequestReplyHelper {
     }
 
     public static <Message> Actor<Message> from() {
-        return new TempActor<Message>(getCurrentActor());
+        return getCurrentActor(); // new TempActor<Message>(getCurrentActor());
     }
 
     public static GenResponseMessage call(Actor actor, GenRequestMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
@@ -80,8 +80,8 @@ public class RequestReplyHelper {
         req.getFrom().send(new GenValueResponseMessage<V>(req.getId(), result));
     }
 
-    private static LocalActor getCurrentActor() {
-        LocalActor actor = LocalActor.self();
+    private static Actor getCurrentActor() {
+        Actor actor = LocalActor.self();
         if (actor == null) {
             // create a "dummy actor" on the current strand
             actor = new LocalActor(Strand.currentStrand(), null, 5) {
@@ -90,6 +90,7 @@ public class RequestReplyHelper {
                     throw new AssertionError();
                 }
             };
+            actor = new TempActor(actor);
         }
         return actor;
     }

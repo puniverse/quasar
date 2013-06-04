@@ -201,6 +201,7 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
             }
         } catch (InterruptedException e) {
         } catch (Exception e) {
+            LOG.info("Exception!", e);
             throw Exceptions.rethrow(e);
         } finally {
             LOG.info("Supervisor {} shutting down.", this);
@@ -248,7 +249,7 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
 
             return actor;
         } else {
-            final GenResponseMessage res = RequestReplyHelper.call(this, new AddChildMessage(self(), randtag(), spec));
+            final GenResponseMessage res = RequestReplyHelper.call(this, new AddChildMessage(RequestReplyHelper.from(), randtag(), spec));
             return ((GenValueResponseMessage<Actor>) res).getValue();
         }
     }
@@ -274,7 +275,7 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
 
             return true;
         } else {
-            final GenResponseMessage res = RequestReplyHelper.call(this, new RemoveChildMessage(self(), randtag(), name, terminate));
+            final GenResponseMessage res = RequestReplyHelper.call(this, new RemoveChildMessage(RequestReplyHelper.from(), randtag(), name, terminate));
             return ((GenValueResponseMessage<Boolean>) res).getValue();
         }
     }

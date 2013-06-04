@@ -147,22 +147,6 @@ public class SupervisorTest {
         sup.join();
     }
 
-//    @Test
-//    public void startChild2() throws Exception {
-//        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE));
-//
-//        sup.addChild(new ChildSpec("actor1", ActorSpec.of(Actor1.class, "actor1"), ActorMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3), null);
-//        LocalActor<Object, Integer> a;
-//
-//        a = getChild(sup, "actor1", 1000);
-//        for (int i = 0; i < 3; i++)
-//            a.send(1);
-//        a.send(new ShutdownMessage(null));
-//        assertThat(a.get(), is(3));
-//        
-//        sup.shutdown();
-//        sup.join();
-//    }
     @Test
     public void whenChildDiesThenRestart() throws Exception {
         final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
@@ -302,6 +286,69 @@ public class SupervisorTest {
         LocalActor<Object, Integer> b = getChild(sup, "actor1", 200);
         assertThat(b, not(nullValue()));
         assertThat(b, not(a));
+
+        sup.shutdown();
+        sup.join();
+    }
+
+    private static class Actor2 extends BasicActor<Object, Integer> {
+        public Actor2(String name) {
+            super(name);
+        }
+
+        @Override
+        protected Integer doRun() throws SuspendExecution, InterruptedException {
+            register();
+            int i = 0;
+            try {
+                for (;;) {
+                    Object m = receive();
+                    i++;
+                }
+            } catch (InterruptedException e) {
+                return i;
+            }
+        }
+
+        @Override
+        protected void handleLifecycleMessage(LifecycleMessage m) {
+            if (m instanceof ShutdownMessage)
+                Strand.currentStrand().interrupt();
+            else
+                super.handleLifecycleMessage(m);
+        }
+
+        @Override
+        protected LocalActor<Object, Integer> reinstantiate() {
+            return new Actor2(getName());
+        }
+    }
+
+    @Test
+    public void restartPreInstantiatedChild() throws Exception {
+        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE));
+
+        final LocalActor a1 = new Actor2("actor1");
+        sup.addChild(new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, a1));
+        LocalActor<Object, Integer> a;
+
+        a = getChild(sup, "actor1", 1);
+        
+        assertThat(a, is(a1));
+        
+        for (int i = 0; i < 3; i++)
+            a.send(1);
+        a.send(new ShutdownMessage(null));
+        assertThat(a.get(), is(3));
+
+        a = getChild(sup, "actor1", 1000);
+        
+        assertThat(a, is(not(a1)));
+        
+        for (int i = 0; i < 5; i++)
+            a.send(1);
+        a.send(new ShutdownMessage(null));
+        assertThat(a.get(), is(5));
 
         sup.shutdown();
         sup.join();

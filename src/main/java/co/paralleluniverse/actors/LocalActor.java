@@ -45,7 +45,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     private ActorMonitor monitor;
     private ActorSpec<?, Message, V> spec;
 
-    public LocalActor(String name, int mailboxSize) {
+    public LocalActor(Object name, int mailboxSize) {
         super(name, Mailbox.create(mailboxSize));
     }
 
@@ -70,7 +70,8 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
         final LocalActor newInstance = reinstantiate();
 
-        newInstance.setName(this.getName());
+        if (newInstance.getName() == null)
+            newInstance.setName(this.getName());
         newInstance.strand = null;
         newInstance.setMonitor(this.monitor);
         monitor.setActor(newInstance);
@@ -79,15 +80,22 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         return newInstance;
     }
 
+    /**
+     * '
+     * Returns a "clone" of this actor, used by a {@link co.paralleluniverse.actors.behaviors.Supervisor supervisor} to restart this actor if it dies.
+     * <p/>
+     * If this actor is supervised by a {@link co.paralleluniverse.actors.behaviors.Supervisor supervisor} and was not created with the
+     * {@link #newActor(co.paralleluniverse.actors.ActorSpec) newActor} factory method, then this method should be overridden.
+     *
+     * @return A new LocalActor instance that's a clone of this.
+     */
     protected LocalActor<Message, V> reinstantiate() {
-        final LocalActor<Message, V> newInstance;
         if (spec != null)
-            newInstance = newActor(spec);
+            return newActor(spec);
         else if (getClass().isAnonymousClass() && getClass().getSuperclass().equals(LocalActor.class))
-            newInstance = newActor(createSpecForAnonymousClass());
+            return newActor(createSpecForAnonymousClass());
         else
             throw new RuntimeException("Actor " + this + " cannot be reinstantiated");
-        return newInstance;
     }
 
     private ActorSpec<LocalActor<Message, V>, Message, V> createSpecForAnonymousClass() {
@@ -112,16 +120,16 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "@" 
-                + (getName() != null ? getName() : Integer.toHexString(System.identityHashCode(this))) 
+        return getClass().getSimpleName() + "@"
+                + (getName() != null ? getName() : Integer.toHexString(System.identityHashCode(this)))
                 + "[owner: " + systemToStringWithSimpleName(strand) + ']';
     }
 
     private static String systemToStringWithSimpleName(Object obj) {
         return (obj == null ? "null" : obj.getClass().getSimpleName() + "@" + Objects.systemObjectId(obj));
     }
-    
-    public ActorMonitor monitor() {
+
+    public final ActorMonitor monitor() {
         if (monitor != null)
             return monitor;
         final String name = getName().toString().replaceAll(":", "");
@@ -130,7 +138,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         return monitor;
     }
 
-    public void setMonitor(ActorMonitor monitor) {
+    public final void setMonitor(ActorMonitor monitor) {
         if (this.monitor == monitor)
             return;
         if (this.monitor != null)
@@ -139,14 +147,14 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         monitor.setActor(this);
     }
 
-    public void stopMonitor() {
+    public final void stopMonitor() {
         if (monitor != null) {
             monitor.shutdown();
             this.monitor = null;
         }
     }
 
-    public ActorMonitor getMonitor() {
+    public final ActorMonitor getMonitor() {
         return monitor;
     }
 
@@ -173,18 +181,18 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
-    public Strand getStrand() {
+    public final Strand getStrand() {
         return strand;
     }
 
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
-    public int getQueueLength() {
+    public final int getQueueLength() {
         return mailbox().getQueueLength();
     }
 
     @Override
-    public Message receive() throws SuspendExecution, InterruptedException {
+    public final Message receive() throws SuspendExecution, InterruptedException {
         for (;;) {
             checkThrownIn();
             record(1, "Actor", "receive", "%s waiting for a message", this);
@@ -198,7 +206,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
-    public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public final Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         if (timeout <= 0 || unit == null)
             return receive();
 
@@ -229,7 +237,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         }
     }
 
-    protected Message tryReceive() {
+    protected final Message tryReceive() {
         for (;;) {
             checkThrownIn();
             Object m = mailbox.tryReceive();
@@ -255,14 +263,14 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     //<editor-fold desc="Strand helpers">
     /////////// Strand helpers ///////////////////////////////////
-    public LocalActor<Message, V> start() {
+    public final LocalActor<Message, V> start() {
         record(1, "Actor", "start", "Starting actor %s", this);
         strand.start();
         return this;
     }
 
     @Override
-    public V get() throws InterruptedException, ExecutionException {
+    public final V get() throws InterruptedException, ExecutionException {
         if (strand instanceof Fiber)
             return ((Fiber<V>) strand).get();
         else {
@@ -272,7 +280,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
-    public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public final V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         if (strand instanceof Fiber)
             return ((Fiber<V>) strand).get(timeout, unit);
         else {
@@ -282,26 +290,26 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
-    public void join() throws ExecutionException, InterruptedException {
+    public final void join() throws ExecutionException, InterruptedException {
         strand.join();
     }
 
     @Override
-    public void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+    public final void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
         strand.join(timeout, unit);
     }
 
     @Override
-    public boolean isDone() {
+    public final boolean isDone() {
         return strand.isTerminated();
     }
 
-    protected void verifyInActor() {
+    protected final void verifyInActor() {
         if (!isInActor())
             throw new ConcurrencyException("Operation not called from within the actor (" + this + ")");
     }
 
-    protected boolean isInActor() {
+    protected final boolean isInActor() {
         return (self() == this);
     }
     //</editor-fold>
@@ -345,32 +353,32 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
-    void addLifecycleListener(LifecycleListener listener) {
+    final void addLifecycleListener(LifecycleListener listener) {
         lifecycleListeners.add(listener);
     }
 
     @Override
-    void removeLifecycleListener(LifecycleListener listener) {
+    final void removeLifecycleListener(LifecycleListener listener) {
         lifecycleListeners.remove(listener);
     }
 
     @Override
-    Throwable getDeathCause() {
+    final Throwable getDeathCause() {
         return deathCause;
     }
 
-    public boolean isRegistered() {
+    public final boolean isRegistered() {
         return registered;
     }
 
     @Override
-    public void throwIn(RuntimeException e) {
+    public final void throwIn(RuntimeException e) {
         record(1, "Actor", "throwIn", "Exception %s thrown into actor %s", e, this);
         this.exception = e; // last exception thrown in wins
         strand.interrupt();
     }
 
-    void checkThrownIn() {
+    final void checkThrownIn() {
         if (exception != null) {
             record(1, "Actor", "checkThrownIn", "%s detected thrown in exception %s", this, exception);
             exception.setStackTrace(new Throwable().getStackTrace());
@@ -378,21 +386,21 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         }
     }
 
-    public Actor register(Object name) {
+    public final Actor register(Object name) {
         if (getName() != null && !name.equals(name))
             throw new RegistrationException("Cannot register actor named " + getName() + " under a different name (" + name + ")");
         setName(name);
         return register();
     }
 
-    public Actor register() {
+    public final Actor register() {
         record(1, "Actor", "register", "Registering actor %s as %s", this, getName());
         ActorRegistry.register(this);
         this.registered = true;
         return this;
     }
 
-    public Actor unregister() {
+    public final Actor unregister() {
         if (!registered)
             return this;
         record(1, "Actor", "unregister", "Unregistering actor %s (name: %s)", getName());

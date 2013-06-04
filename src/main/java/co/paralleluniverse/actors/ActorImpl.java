@@ -54,7 +54,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
         return name;
     }
 
-    public void setName(Object name) {
+    public final void setName(Object name) {
         if(this.name != null)
             throw new IllegalStateException("Actor " + this + " already has a name: " + this.name);
         this.name = name;
@@ -70,16 +70,16 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
 
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
-    Mailbox<Object> mailbox() {
+    final Mailbox<Object> mailbox() {
         return mailbox;
     }
 
-    public SendChannel<Message> getMailbox() {
+    public final SendChannel<Message> getMailbox() {
         return (Channel<Message>) mailbox;
     }
 
     @Override
-    public void send(Message message) {
+    public final void send(Message message) {
         try {
             record(1, "Actor", "send", "Sending %s -> %s", message, this);
             if (mailbox.isOwnerAlive())
@@ -92,7 +92,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
     }
 
     @Override
-    public void sendSync(Message message) {
+    public final void sendSync(Message message) {
         try {
             record(1, "Actor", "sendSync", "Sending sync %s -> %s", message, this);
             if (mailbox.isOwnerAlive())
@@ -118,7 +118,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
     abstract Throwable getDeathCause();
 
     @Override
-    public Actor link(Actor other1) {
+    public final Actor link(Actor other1) {
         final ActorImpl other = (ActorImpl)other1;
         record(1, "Actor", "link", "Linking actors %s, %s", this, other);
         if (!this.isDone() || !other.isDone()) {
@@ -135,7 +135,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
     }
 
     @Override
-    public Actor unlink(Actor other1) {
+    public final Actor unlink(Actor other1) {
         final ActorImpl other = (ActorImpl)other1;
         record(1, "Actor", "unlink", "Uninking actors %s, %s", this, other);
         removeLifecycleListener(other.getLifecycleListener());
@@ -144,7 +144,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
     }
 
     @Override
-    public Object watch(Actor other1) {
+    public final Object watch(Actor other1) {
         final ActorImpl other = (ActorImpl)other1;
         LifecycleListener listener = new LifecycleListener() {
             @Override
@@ -162,7 +162,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
     }
 
     @Override
-    public void unwatch(Actor other1, Object listener) {
+    public final void unwatch(Actor other1, Object listener) {
         final ActorImpl other = (ActorImpl)other1;
         record(1, "Actor", "demonitor", "Actor %s to stop monitoring %s (listener: %s)", this, other, listener);
         other.removeLifecycleListener((LifecycleListener) listener);
@@ -172,7 +172,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
     //<editor-fold desc="Serialization">
     /////////// Serialization ///////////////////////////////////
     // If using Kryo, see what needs to be done: https://code.google.com/p/kryo/
-    protected Object writeReplace() throws java.io.ObjectStreamException {
+    protected final Object writeReplace() throws java.io.ObjectStreamException {
         //return new SerializedActor(this);
         throw new UnsupportedOperationException();
     }
