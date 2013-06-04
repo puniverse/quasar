@@ -42,21 +42,19 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
     public int capacity() {
         return -1;
     }
-    
+
     abstract Node newNode();
-    
+
     boolean enq(final Node<E> node) {
-        for (;;) {
-            final Node t = tail;
+        Node t;
+        do {
+            t = tail;
             node.prev = t;
-            if (compareAndSetTail(t, node)) {
-                if (t == null) // can't happen when DUMMY_NODE_ALGORITHM
-                    head = node;
-                else
-                    t.next = node;
-                break;
-            }
-        }
+        } while (!compareAndSetTail(t, node));
+        if (t == null) // can't happen when DUMMY_NODE_ALGORITHM
+            head = node;
+        else
+            t.next = node;
         return true;
     }
 
@@ -116,7 +114,7 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
             return pk();
         if (tail == node)
             return null; // an enq following this will test the lock again
-        
+
         Node succ;
         while ((succ = node.next) == null); // wait for next
         return succ;

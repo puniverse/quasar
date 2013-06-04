@@ -48,7 +48,7 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
     public int capacity() {
         return capacity();
     }
-    
+
     @Override
     public boolean allowRetainPointers() {
         return false;
@@ -75,7 +75,7 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
 
     final long preEnq() {
         long t, w;
-        for (;;) {
+        do {
             t = tail;
             w = t - capacity; // "wrap point"
 
@@ -84,10 +84,8 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
                 if (cachedHead <= w)
                     return -1;
             }
-
-            if (compareAndSetTail(t, t + 1))
-                return t;
-        }
+        } while (!compareAndSetTail(t, t + 1));
+        return t;
     }
 
     @Override
@@ -127,7 +125,7 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
             final Integer pk = pk();
             return pk != null ? pk : -1;
         }
-        long n = intToLongIndex((int)(index + 1) & mask);
+        long n = intToLongIndex((int) (index + 1) & mask);
         if (n >= cachedMaxReadIndex) {
             cachedMaxReadIndex = maxReadIndex();
             if (n >= cachedMaxReadIndex)
@@ -157,7 +155,7 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
         }
 
         final long h = head;
-        for (;i != h; i--)
+        for (; i != h; i--)
             copyValue((int) i & mask, (int) (i - 1) & mask);
 
         orderedSetHead(h + 1);
