@@ -39,6 +39,8 @@ import org.junit.Test;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import org.junit.Ignore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * These tests are also good tests for sendSync, as they test sendSync (and receive) from both fibers and threads.
@@ -46,6 +48,7 @@ import org.junit.Ignore;
  * @author pron
  */
 public class SupervisorTest {
+    private static final Logger LOG = LoggerFactory.getLogger(Supervisor.class);
     static final int mailboxSize = 10;
     private static ForkJoinPool fjPool;
 
@@ -438,11 +441,13 @@ public class SupervisorTest {
 
         assertThat(a.get(), is(15));
 
+        Thread.sleep(100); // give the actor time to start the GenServer
+        
         sup.shutdown();
         sup.join();
 
         assertThat(started.get(), is(4));
-        assertThat(terminated.get(), is(3));
+        assertThat(terminated.get(), is(4));
     }
 
     static class Message1 {

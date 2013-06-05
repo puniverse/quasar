@@ -429,12 +429,14 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
     }
 
     private boolean joinChild(ChildEntry child) throws InterruptedException {
+        LOG.debug("Joining child {}", child);
         if (child.actor != null) {
             try {
                 child.actor.join(child.info.shutdownDeadline, TimeUnit.MILLISECONDS);
+                LOG.debug("Child {} terminated normally", child.actor);
                 return true;
             } catch (ExecutionException ex) {
-                LOG.info("Child {} died with exception {}", child.actor, ex.getCause());
+                LOG.info("Child {} terminated with exception {}", child.actor, ex.getCause());
                 return true;
             } catch (TimeoutException ex) {
                 LOG.warn("Child {} shutdown timeout. Interrupting...", child.actor);
@@ -445,7 +447,7 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
                     child.actor.join(child.info.shutdownDeadline, TimeUnit.MILLISECONDS);
                     return true;
                 } catch (ExecutionException e) {
-                    LOG.info("Child {} died with exception {}", child.actor, ex.getCause());
+                    LOG.info("Child {} terminated with exception {}", child.actor, ex.getCause());
                     return true;
                 } catch (TimeoutException e) {
                     LOG.warn("Child {} could not shut down...", child.actor);

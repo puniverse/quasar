@@ -48,4 +48,10 @@ public class ActorSpec<T extends LocalActor<Message, V>, Message, V> implements 
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public String toString() {
+        final String ps = Arrays.toString(params);
+        return "ActorSpec{" + ctor.getName() + '(' + ps.substring(1, ps.length() - 1) + ")}";
+    }
 }

@@ -120,7 +120,10 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "@"
+        String className = getClass().getSimpleName();
+        if(className.isEmpty())
+            className = getClass().getName().substring(getClass().getPackage().getName().length() + 1);
+        return className + "@"
                 + (getName() != null ? getName() : Integer.toHexString(System.identityHashCode(this)))
                 + "[owner: " + systemToStringWithSimpleName(strand) + ']';
     }
