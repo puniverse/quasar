@@ -390,7 +390,7 @@ public class SupervisorTest {
                 }
             });
 
-            link(adder);
+            //link(adder);
             mySup.addChild(new ChildSpec(null, ChildMode.TEMPORARY, 10, 1, TimeUnit.SECONDS, 1, adder));
 
             int a = receive();
@@ -442,7 +442,7 @@ public class SupervisorTest {
         sup.join();
 
         assertThat(started.get(), is(4));
-        assertThat(terminated.get(), is(4));
+        assertThat(terminated.get(), is(3));
     }
 
     static class Message1 {
