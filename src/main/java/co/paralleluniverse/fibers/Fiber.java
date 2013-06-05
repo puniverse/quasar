@@ -36,6 +36,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -59,7 +60,7 @@ import sun.misc.Unsafe;
  *
  * @author Ron Pressler
  */
-public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
+public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.lwthreads.verifyInstrumentation", "false"));
     public static final int DEFAULT_STACK_SIZE = 16;
     private static final long serialVersionUID = 2783452871536981L;
@@ -183,7 +184,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     public final boolean equals(Object obj) {
         return this == obj;
     }
-    
+
+    ForkJoinTask<V> getForkJoinTask() {
+        return fjTask;
+    }
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
@@ -777,6 +781,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
         return state == State.TERMINATED;
     }
 
+    @Override
+    public boolean cancel(boolean mayInterruptIfRunning) {
+        return false;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return false;
+    }
+    
     private void sleep1(long millis) throws InterruptedException, SuspendExecution {
         // this class's methods aren't instrumented, so we can't rely on the stack. This method will be called again when unparked
         try {
@@ -871,7 +885,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable {
     }
 
     ////////
-    static final class FiberForkJoinTask<V> extends ParkableForkJoinTask<V> {
+    static private final class FiberForkJoinTask<V> extends ParkableForkJoinTask<V> {
         private final Fiber<V> fiber;
 
         public FiberForkJoinTask(Fiber<V> fiber) {
