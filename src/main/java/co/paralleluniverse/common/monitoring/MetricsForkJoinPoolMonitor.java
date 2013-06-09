@@ -12,8 +12,8 @@
  */
 package co.paralleluniverse.common.monitoring;
 
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.Histogram;
+import com.codahale.metrics.Histogram;
+import static com.codahale.metrics.MetricRegistry.name;
 import java.util.Map;
 import jsr166e.ForkJoinPool;
 
@@ -27,7 +27,7 @@ public class MetricsForkJoinPoolMonitor extends JMXForkJoinPoolMonitor {
     public MetricsForkJoinPoolMonitor(String name, ForkJoinPool fjPool, Map<?, Integer> highContentionObjects) {
         super(name, fjPool, highContentionObjects);
         
-        this.runsPerTask = Metrics.newHistogram(MetricsForkJoinPoolMonitor.class, "runsPerTask", name, true);
+        this.runsPerTask = Metrics.histogram(name(MetricsForkJoinPoolMonitor.class, "runsPerTask", name));
     }
 
     @Override

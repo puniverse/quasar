@@ -48,7 +48,7 @@ repositories {
 
 dependencies {
     compile ":jsr166e"
-    compile "com.yammer.metrics:metrics-core:2.0.2" 
+    compile "com.codahale.metrics:metrics-core:3.0.0-RC1" 
     compile "org.ow2.asm:asm:4.1" 
     compile "org.ow2.asm:asm-analysis:4.1"
     compile "org.ow2.asm:asm-util:4.1"
@@ -181,10 +181,11 @@ uploadArchives {
             beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
             repository(
-                url: "https://oss.sonatype.org/content/repositories/snapshots") {
-                // url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
-                // User and Password are taken from ~/.gradle/gradle.properties
-                authentication(userName: sonatypeUsername, password: sonatypePassword)
+                url: (isReleaseVersion ? 
+                        "https://oss.sonatype.org/service/local/staging/deploy/maven2" : 
+                        "https://oss.sonatype.org/content/repositories/snapshots")) {
+                    // User and Password are taken from ~/.gradle/gradle.properties
+                    authentication(userName: sonatypeUsername, password: sonatypePassword)
             } 
             pom.whenConfigured { pom -> pom.dependencies = pom.dependencies.findAll { 
                     dep -> !dep.artifactId.startsWith('jsr166e') } 
