@@ -25,12 +25,7 @@ import java.util.concurrent.TimeoutException;
  */
 public class DelayedVal<V> implements Future<V> {
     private V value;
-    private volatile SimpleConditionSynchronizer sync = new SimpleConditionSynchronizer() {
-        @Override
-        protected boolean isCondition() {
-            return sync == null;
-        }
-    };
+    private volatile SimpleConditionSynchronizer sync = new SimpleConditionSynchronizer();
 
     public final void set(V value) {
         if (sync == null)
@@ -49,7 +44,7 @@ public class DelayedVal<V> implements Future<V> {
     @Override
     public V get() throws InterruptedException, SuspendExecution {
         SimpleConditionSynchronizer s;
-        if ((s = sync) != null)
+        while ((s = sync) != null)
             s.await();
         return value;
     }
@@ -57,7 +52,7 @@ public class DelayedVal<V> implements Future<V> {
     @Override
     public V get(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, SuspendExecution {
         SimpleConditionSynchronizer s;
-        if ((s = sync) != null)
+        while ((s = sync) != null)
             s.await(timeout, unit);
         return value;
     }
