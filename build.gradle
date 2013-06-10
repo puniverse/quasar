@@ -52,14 +52,14 @@ dependencies {
     compile "org.ow2.asm:asm:4.1" 
     compile "org.ow2.asm:asm-analysis:4.1"
     compile "org.ow2.asm:asm-util:4.1"
-    compile "ant:ant:1.7.0"
+    compile "org.apache.ant:ant:1.7.0"
     compile "com.google.guava:guava:14.0.1"
     compile "org.slf4j:slf4j-api:1.7.5"
 //  runtime "org.slf4j:slf4j-jdk14:1.6.4"
     runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0-beta6"
     runtime "org.apache.logging.log4j:log4j-api:2.0-beta6"
     runtime "org.apache.logging.log4j:log4j-core:2.0-beta6"
-    runtime "com.lmax:disruptor:3.0.1" // required for log4j
+    compile "com.lmax:disruptor:3.0.1" // required for log4j
     testCompile 'junit:junit:4.10'
     testCompile 'org.hamcrest:hamcrest-all:1.3'
     testCompile 'org.mockito:mockito-all:1.9.0'
