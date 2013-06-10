@@ -14,6 +14,7 @@ package co.paralleluniverse.common.monitoring;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
+import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
@@ -26,6 +27,12 @@ import com.codahale.metrics.Timer;
  */
 public class Metrics {
     private static final MetricRegistry metrics = new MetricRegistry();
+    private static final JmxReporter reporter;
+    
+    static {
+        reporter = JmxReporter.forRegistry(metrics).build();
+        reporter.start();
+    }
 
     public static <T extends Metric> T register(String name, T metric) throws IllegalArgumentException {
         return metrics.register(name, metric);
