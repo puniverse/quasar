@@ -53,7 +53,7 @@ public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean 
     }
 
     public ThreadRecorder init(int size, int level) {
-        if(!recording)
+        if (!recording)
             return null;
         ThreadRecorder recorder = recorders.get(Thread.currentThread()); // threadRecorder.get();
         if (recorder != null) {
@@ -77,11 +77,15 @@ public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean 
     }
 
     public void record(int level, Object payload) {
-        get().record(level, payload);
+        final ThreadRecorder recorder = get();
+        if(recorder != null)
+            recorder.record(level, payload);
     }
 
     public void record(int level, Object... payload) {
-        get().record(level, payload);
+        final ThreadRecorder recorder = get();
+        if(recorder != null)
+            recorder.record(level, payload);
     }
     //////////////////////////////////////////////
 
@@ -112,7 +116,7 @@ public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean 
             //startTime = System.currentTimeMillis();
 //        recording = true;
         }
-        
+
         public boolean recordsLevel(int level) {
             return level <= this.level;
         }
@@ -337,14 +341,14 @@ public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean 
     @Override
     public synchronized void dump(String fileName) {
         stop();
-        fileName = fileName.replace("~",System.getProperty("user.home"));
+        fileName = fileName.replace("~", System.getProperty("user.home"));
         fileName += ".gz";
         System.err.println("DUMPING FLIGHT LOG TO " + fileName + "...");
         System.err.println("AVAILABLE RECORDERS");
         System.err.println("====================");
         for (Map.Entry<Thread, ThreadRecorder> entry : recorders.entrySet())
             System.err.println("THREAD " + entry.getKey() + " TOTAL RECORDED: " + entry.getValue().getTotalRecs() + " AVAILABLE: " + entry.getValue().numOfElements());
-        
+
         try {
             FileOutputStream fos = null;
             GZIPOutputStream gos = null;

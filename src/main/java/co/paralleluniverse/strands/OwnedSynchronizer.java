@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands;
 
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.TimeUnit;
@@ -127,6 +128,11 @@ public abstract class OwnedSynchronizer {
         public void signalAndTryToExecNow() {
             signal();
         }
+
+        @Override
+        public String toString() {
+            return "ThreadOwnedSynchronizer{" + "owner: " + owner + ", lock: " + lock + ", condition: " + condition + '}';
+        }
     }
 
     private static class FiberOwnedSynchronizer extends OwnedSynchronizer {
@@ -224,6 +230,11 @@ public abstract class OwnedSynchronizer {
 //          signalled = true;
             if (!owner.exec(this))
                 signal();
+        }
+
+        @Override
+        public String toString() {
+            return "FiberOwnedSynchronizer{" + "owner: " + owner + '}';
         }
     }
 }

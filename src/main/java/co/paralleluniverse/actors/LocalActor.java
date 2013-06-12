@@ -121,7 +121,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     @Override
     public String toString() {
         String className = getClass().getSimpleName();
-        if(className.isEmpty())
+        if (className.isEmpty())
             className = getClass().getName().substring(getClass().getPackage().getName().length() + 1);
         return className + "@"
                 + (getName() != null ? getName() : Integer.toHexString(System.identityHashCode(this)))
@@ -337,6 +337,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
             die(t);
             throw t;
         } finally {
+            record(1, "Actor", "die", "Actor %s is now dead of %s", this, deathCause);
             if (!(strand instanceof Fiber))
                 currentActor.set(null);
         }
@@ -406,7 +407,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     public final Actor unregister() {
         if (!registered)
             return this;
-        record(1, "Actor", "unregister", "Unregistering actor %s (name: %s)", getName());
+        record(1, "Actor", "unregister", "Unregistering actor %s (name: %s)", this, getName());
         if (getName() == null)
             throw new IllegalArgumentException("name is null");
         ActorRegistry.unregister(getName());
@@ -416,19 +417,32 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         return this;
     }
 
-    private void die(Throwable reason) {
-        this.deathCause = reason;
-        monitorAddDeath(reason);
+    private void die(Throwable cause) {
+        record(1, "Actor", "die", "Actor %s is dying of cause %s", this, cause);
+        this.deathCause = cause;
+        monitorAddDeath(cause);
         if (registered)
             unregister();
-        for (LifecycleListener listener : lifecycleListeners)
-            listener.dead(this, reason);
+        for (LifecycleListener listener : lifecycleListeners) {
+            record(1, "Actor", "die", "Actor %s notifying listener %s of death.", this, listener);
+            try {
+                listener.dead(this, cause);
+            } catch (Exception e) {
+                record(1, "Actor", "die", "Actor %s notifying listener %s of death failed with excetpion %s", this, listener, e);
+            }
+        }
         lifecycleListeners.clear(); // avoid memory leak
     }
     private final LifecycleListener lifecycleListener = new LifecycleListener() {
         @Override
         public void dead(Actor actor, Throwable cause) {
-            mailbox.send(new ExitMessage(actor, cause));
+            if (mailbox.isOwnerAlive())
+                mailbox.send(new ExitMessage(actor, cause));
+        }
+
+        @Override
+        public String toString() {
+            return "LifecycleListener{actor: " + LocalActor.this + '}';
         }
     };
     //</editor-fold>

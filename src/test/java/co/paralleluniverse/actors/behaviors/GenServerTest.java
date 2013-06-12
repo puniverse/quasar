@@ -21,6 +21,7 @@ import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.ShutdownMessage;
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -42,6 +43,11 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
+import org.junit.Rule;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 /**
  * These tests are also good tests for sendSync, as they test sendSync (and receive) from both fibers and threads.
@@ -49,6 +55,33 @@ import static org.junit.Assert.*;
  * @author pron
  */
 public class GenServerTest {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = new TestWatcher() {
+        @Override
+        protected void starting(Description desc) {
+            if (Debug.isDebug()) {
+                System.out.println("STARTING TEST " + desc.getMethodName());
+                Debug.record(0, "STARTING TEST " + desc.getMethodName());
+            }
+        }
+
+        @Override
+        public void failed(Throwable e, Description desc) {
+            System.out.println("FAILED TEST " + desc.getMethodName() + ": " + e.getMessage());
+            e.printStackTrace(System.err);
+            if (Debug.isDebug() && !(e instanceof OutOfMemoryError)) {
+                Debug.record(0, "EXCEPTION IN THREAD " + Thread.currentThread().getName() + ": " + e + " - " + Arrays.toString(e.getStackTrace()));
+                Debug.dumpRecorder("~/quasar.dump");
+            }
+        }
+
+        @Override
+        protected void succeeded(Description desc) {
+            Debug.record(0, "DONE TEST " + desc.getMethodName());
+        }
+    };
     static final int mailboxSize = 10;
     private ForkJoinPool fjPool;
 
@@ -139,6 +172,7 @@ public class GenServerTest {
         int res = gs.call(new Message(3, 4));
 
         assertThat(res, is(7));
+
         gs.join(100, TimeUnit.MILLISECONDS);
     }
 
@@ -216,6 +250,30 @@ public class GenServerTest {
             gs.join(100, TimeUnit.MILLISECONDS);
             fail("actor died");
         } catch (TimeoutException e) {
+        }
+    }
+
+    @Test
+    public void whenActorDiesThenCausePropagatesToThreadCaller() throws Exception {
+        LocalGenServer<Message, Integer, Message> gs = spawnGenServer(new AbstractServer<Message, Integer, Message>() {
+            @Override
+            public void init() throws SuspendExecution {
+                throw new RuntimeException("my exception");
+            }
+        });
+
+        try {
+            int res = gs.call(new Message(3, 4));
+            fail();
+        } catch (RuntimeException e) {
+            assertThat(e.getMessage(), equalTo("my exception"));
+        }
+
+        try {
+            gs.join(100, TimeUnit.MILLISECONDS);
+            fail();
+        } catch (ExecutionException e) {
+            assertThat(e.getCause().getMessage(), equalTo("my exception"));
         }
     }
 
@@ -323,6 +381,44 @@ public class GenServerTest {
 
         assertThat(res, is(7));
         gs.join(100, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
+    public void whenActorDiesDuringDeferredHandlingThenCausePropagatesToThreadCaller() throws Exception {
+        final LocalGenServer<Message, Integer, Message> gs = spawnActor(new LocalGenServer<Message, Integer, Message>() {
+            private boolean received;
+
+            @Override
+            public void init() throws SuspendExecution {
+                setTimeout(50, TimeUnit.MILLISECONDS);
+            }
+
+            @Override
+            public Integer handleCall(Actor<Integer> from, Object id, Message m) {
+                this.received = true;
+                return null;
+            }
+
+            @Override
+            protected void handleTimeout() throws SuspendExecution {
+                if (received)
+                    throw new RuntimeException("my exception");
+            }
+        });
+
+        try {
+            int res = gs.call(new Message(3, 4));
+            fail();
+        } catch (RuntimeException e) {
+            assertThat(e.getMessage(), equalTo("my exception"));
+        }
+
+        try {
+            gs.join(100, TimeUnit.MILLISECONDS);
+            fail();
+        } catch (ExecutionException e) {
+            assertThat(e.getCause().getMessage(), equalTo("my exception"));
+        }
     }
 
     @Test

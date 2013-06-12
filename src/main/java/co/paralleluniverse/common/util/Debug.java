@@ -94,6 +94,22 @@ public class Debug {
         }
     }
 
+    public static void record(int level, Object payload) {
+        if (!isDebug())
+            return;
+        if (getGlobalFlightRecorder() == null)
+            return;
+        getGlobalFlightRecorder().record(level, payload);
+    }
+
+    public static void record(int level, Object... payload) {
+        if (!isDebug())
+            return;
+        if (getGlobalFlightRecorder() == null)
+            return;
+        getGlobalFlightRecorder().record(level, payload);
+    }
+
     public static void dumpRecorder() {
         if (isDebug()) {
             final String fileName = getDumpFile();
@@ -115,7 +131,7 @@ public class Debug {
     }
 
     public static void dumpAfter(final long millis, final String filename) {
-        if(!debugMode)
+        if (!debugMode)
             return;
         new Thread(new Runnable() {
             @Override

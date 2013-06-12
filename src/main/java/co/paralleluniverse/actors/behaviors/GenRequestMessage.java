@@ -21,11 +21,25 @@ import java.beans.ConstructorProperties;
  * @author pron
  */
 public abstract class GenRequestMessage extends GenFromMessage implements IdMessage {
-    private final Object id;
+    private Object id;
     
     @ConstructorProperties({"from", "id"})
     public GenRequestMessage(Actor<?> from, Object id) {
         super(from);
+        this.id = id;
+    }
+
+    @ConstructorProperties({"from", "id"})
+    public GenRequestMessage(Actor<?> from) {
+        super(from);
+        this.id = null;
+    }
+    
+    /**
+     * Called only by RequestReplyHelper
+     * @param id 
+     */
+    void setId(Object id) {
         this.id = id;
     }
 

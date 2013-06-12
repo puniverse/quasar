@@ -55,17 +55,22 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
     }
 
     public final void setName(Object name) {
-        if(this.name != null)
+        if (this.name != null)
             throw new IllegalStateException("Actor " + this + " already has a name: " + this.name);
         this.name = name;
     }
 
     public static Object randtag() {
-        return new BigInteger(80, ThreadLocalRandom.current());
+        return new BigInteger(80, ThreadLocalRandom.current()) {
+            @Override
+            public String toString() {
+                return toString(16);
+            }
+        };
     }
 
     public static <Message, V> LocalActor<Message, V> getActor(Object name) {
-        return (LocalActor<Message, V>)ActorRegistry.getActor(name);
+        return (LocalActor<Message, V>) ActorRegistry.getActor(name);
     }
 
     //<editor-fold desc="Mailbox methods">
@@ -119,7 +124,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
 
     @Override
     public final Actor link(Actor other1) {
-        final ActorImpl other = (ActorImpl)other1;
+        final ActorImpl other = (ActorImpl) other1;
         record(1, "Actor", "link", "Linking actors %s, %s", this, other);
         if (!this.isDone() || !other.isDone()) {
             if (this.isDone())
@@ -136,7 +141,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
 
     @Override
     public final Actor unlink(Actor other1) {
-        final ActorImpl other = (ActorImpl)other1;
+        final ActorImpl other = (ActorImpl) other1;
         record(1, "Actor", "unlink", "Uninking actors %s, %s", this, other);
         removeLifecycleListener(other.getLifecycleListener());
         other.removeLifecycleListener(getLifecycleListener());
@@ -145,14 +150,25 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
 
     @Override
     public final Object watch(Actor other1) {
-        final ActorImpl other = (ActorImpl)other1;
+        final ActorImpl other = (ActorImpl) other1;
         LifecycleListener listener = new LifecycleListener() {
             @Override
             public void dead(Actor actor, Throwable cause) {
-                mailbox.send(new ExitMessage(actor, cause, this));
+                record(1, "Actor", "watch", "1111111 Actor %s received death event from %s (listener: %s)", ActorImpl.this, actor, this);
+                try {
+                    if (mailbox.isOwnerAlive()) {
+                        record(1, "Actor", "watch", "XXXXXXX");
+                        mailbox.send(new ExitMessage(actor, cause, this));
+                        record(1, "Actor", "watch", "YYYYYYY");
+                    }
+                    record(1, "Actor", "watch", "2222222 Actor %s received death event from %s (listener: %s)", ActorImpl.this, actor, this);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    record(1, "Actor", "watch", "333333 Actor %s received death event from %s (listener: %s) %s", ActorImpl.this, actor, this, e);
+                }
             }
         };
-        record(1, "Actor", "monitor", "Actor %s to monitor %s (listener: %s)", this, other, listener);
+        record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other, listener);
 
         if (other.isDone())
             listener.dead(other, other.getDeathCause());
@@ -163,8 +179,8 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
 
     @Override
     public final void unwatch(Actor other1, Object listener) {
-        final ActorImpl other = (ActorImpl)other1;
-        record(1, "Actor", "demonitor", "Actor %s to stop monitoring %s (listener: %s)", this, other, listener);
+        final ActorImpl other = (ActorImpl) other1;
+        record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other, listener);
         other.removeLifecycleListener((LifecycleListener) listener);
     }
     //</editor-fold>

@@ -110,7 +110,13 @@ tasks.withType(Test) {
 //  systemProperty "java.util.logging.config.file", "jul.properties"
     systemProperty "log4j.configurationFile", "log4j.xml"
     systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
+    
+//  systemProperty "co.paralleluniverse.debugMode", "true"
+//  systemProperty "co.paralleluniverse.globalFlightRecorder", "true"
+//  systemProperty "co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log"
+    
     jvmArgs "-javaagent:${jar.archivePath}" // =v, =d
+    
     doLast() {
         println "file://" + testReportDir + "/index.html"    
     }  

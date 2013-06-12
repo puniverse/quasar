@@ -35,7 +35,7 @@ class GenServerHelper {
     }
 
     public static <V> V call(Actor server, Object m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
-        final GenResponseMessage response = RequestReplyHelper.call(server, new GenServerRequest(from(), makeId(), MessageType.CALL, m), timeout, unit);
+        final GenResponseMessage response = RequestReplyHelper.call(server, new GenServerRequest(from(), null, MessageType.CALL, m), timeout, unit);
         final V res = ((GenValueResponseMessage<V>) response).getValue();
         return res;
     }

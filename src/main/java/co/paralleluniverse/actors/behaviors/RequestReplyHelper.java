@@ -15,13 +15,17 @@ package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorImpl;
+import co.paralleluniverse.actors.ExitMessage;
+import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MessageProcessor;
 import co.paralleluniverse.actors.SelectiveReceiveHelper;
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.lang.ref.WeakReference;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -38,19 +42,35 @@ public class RequestReplyHelper {
         return getCurrentActor(); // new TempActor<Message>(getCurrentActor());
     }
 
-    public static GenResponseMessage call(Actor actor, GenRequestMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
+    public static GenResponseMessage call(final Actor actor, GenRequestMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
 
+        final LocalActor currentActor;
+        if (m.getFrom() instanceof TempActor)
+            currentActor = (LocalActor) ((TempActor) m.getFrom()).actor.get();
+        else
+            currentActor = LocalActor.self();
+
+        assert currentActor != null;
+
+        final Object watch = currentActor.watch(actor);
+        
+        if(m.getId() == null)
+            m.setId(watch);
+        
+        final Object id = m.getId();
+
+        final SelectiveReceiveHelper<Object> helper = new SelectiveReceiveHelper<Object>(currentActor) {
+            @Override
+            protected void handleLifecycleMessage(LifecycleMessage m) {
+                if (m instanceof ExitMessage) {
+                    final ExitMessage exit = (ExitMessage) m;
+                    if (Objects.equals(exit.getActor(), actor) && exit.getWatch() == watch)
+                        throw Exceptions.rethrow(exit.getCause());
+                }
+                super.handleLifecycleMessage(m);
+            }
+        };
         try {
-            final Object id = m.getId();
-            final LocalActor currentActor;
-            if (m.getFrom() instanceof TempActor)
-                currentActor = (LocalActor) ((TempActor) m.getFrom()).actor.get();
-            else
-                currentActor = LocalActor.self();
-
-            assert currentActor != null;
-            final SelectiveReceiveHelper<Object> helper = new SelectiveReceiveHelper<Object>(currentActor);
-
             actor.sendSync(m);
             final GenResponseMessage response = (GenResponseMessage) helper.receive(timeout, unit, new MessageProcessor<Object>() {
                 @Override
@@ -58,7 +78,8 @@ public class RequestReplyHelper {
                     return (m instanceof GenResponseMessage && id.equals(((GenResponseMessage) m).getId()));
                 }
             });
-
+            currentActor.unwatch(actor, watch); // no need to unwatch in case of receiver death, so not doen in finally block
+            
             if (response instanceof GenErrorResponseMessage)
                 throw Exceptions.rethrow(((GenErrorResponseMessage) response).getError());
             return response;

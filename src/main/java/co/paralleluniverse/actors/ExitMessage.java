@@ -38,7 +38,7 @@ public class ExitMessage implements LifecycleMessage {
         return actor;
     }
 
-    public Object getReason() {
+    public Throwable getCause() {
         return cause;
     }
 

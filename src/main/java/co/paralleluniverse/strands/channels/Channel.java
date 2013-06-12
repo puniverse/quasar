@@ -13,6 +13,8 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.util.Debug;
+import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.OwnedSynchronizer;
 import co.paralleluniverse.strands.Strand;
@@ -203,5 +205,10 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
 
     public int getQueueLength() {
         return queue.size();
+    }
+
+    @Override
+    public String toString() {
+        return "Channel{" + "owner: " + owner + ", sync: " + sync + (mySync != sync ? ", mySync: " + mySync : "") + ", queue: " + Objects.systemToString(queue) + '}';
     }
 }

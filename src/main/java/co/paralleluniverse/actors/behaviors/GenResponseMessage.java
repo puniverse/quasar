@@ -34,6 +34,6 @@ public abstract class GenResponseMessage extends GenMessage implements IdMessage
 
     @Override
     protected String contentString() {
-        return super.contentString() + " id: " + id;
+        return super.contentString() + "id: " + id;
     }
 }

@@ -4,6 +4,7 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -30,7 +31,7 @@ public class SelectiveReceiveHelper<Message> {
      * @throws TimeoutException
      * @throws LwtInterruptedException
      */
-    public Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws TimeoutException, SuspendExecution, InterruptedException {
+    public final Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws TimeoutException, SuspendExecution, InterruptedException {
         assert LocalActor.self() == null || LocalActor.self() == actor;
 
         actor.checkThrownIn();
@@ -57,20 +58,26 @@ public class SelectiveReceiveHelper<Message> {
                     actor.mailbox.del(n);
                     continue;
                 }
-                
+
                 actor.record(1, "Actor", "receive", "Received %s <- %s", this, m);
                 actor.monitorAddMessage();
                 try {
                     if (m instanceof LifecycleMessage) {
-                        actor.handleLifecycleMessage((LifecycleMessage) m);
                         actor.mailbox.del(n);
+                        handleLifecycleMessage((LifecycleMessage) m);
                     } else {
                         final Message msg = (Message) m;
                         currentMessage = msg;
-                        if (proc.process(msg)) {
+                        try {
+                            if (proc.process(msg)) {
+                                if (actor.mailbox.value(n) == msg) // another call to receive from within the processor may have deleted n
+                                    actor.mailbox.del(n);
+                                return msg;
+                            }
+                        } catch (Exception e) {
                             if (actor.mailbox.value(n) == msg) // another call to receive from within the processor may have deleted n
                                 actor.mailbox.del(n);
-                            return msg;
+                            throw e;
                         }
                         actor.monitorSkippedMessage();
                     }
@@ -91,8 +98,9 @@ public class SelectiveReceiveHelper<Message> {
                             actor.record(1, "Actor", "receive", "%s timed out.", this);
                             throw new TimeoutException();
                         }
-                    } else
+                    } else {
                         actor.mailbox.await();
+                    }
                 } finally {
                     actor.mailbox.unlock();
                 }
@@ -100,11 +108,15 @@ public class SelectiveReceiveHelper<Message> {
         }
     }
 
-    public Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
+    public final Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
         try {
             return receive(0, null, proc);
         } catch (TimeoutException e) {
             throw new AssertionError(e);
         }
+    }
+
+    protected void handleLifecycleMessage(LifecycleMessage m) {
+        actor.handleLifecycleMessage(m);
     }
 }
