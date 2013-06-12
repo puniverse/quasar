@@ -189,6 +189,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return fjTask;
     }
 
+    ForkJoinPool getFjPool() {
+        return fjPool;
+    }
+
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
     /**
@@ -728,7 +732,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     /**
-     * Executes LWT on this thread, after waiting until the given blocker is indeed the LWT's blocker, and that the LWT is not being run concurrently.
+     * Executes fiber on this thread, after waiting until the given blocker is indeed the fiber's blocker, and that the fiber is not being run concurrently.
      *
      * @param blocker
      * @return {@code true} if the task has been executed by this method; {@code false} otherwise.

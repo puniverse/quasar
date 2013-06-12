@@ -22,6 +22,16 @@ package co.paralleluniverse.fibers;
  * @param <E> An exception class that could be thrown by the async request
  */
 public abstract class FiberAsync<V, Callback, E extends Throwable> implements Fiber.PostParkActions {
+    private final boolean immediateExec;
+
+    public FiberAsync(boolean immediateExec) {
+        this.immediateExec = immediateExec;
+    }
+
+    public FiberAsync() {
+        this(false);
+    }
+
     @SuppressWarnings("empty-statement")
     public V run() throws E, SuspendExecution, InterruptedException {
         while (!Fiber.park(this, this)) // make sure we actually park and run PostParkActions
@@ -34,31 +44,45 @@ public abstract class FiberAsync<V, Callback, E extends Throwable> implements Fi
     /**
      * Calls the asynchronous request and registers the callback.
      * This method may not use any ThreadLocals.
-     * 
+     *
      * @param current
      * @param callback
      */
     protected abstract void requestAsync(Fiber current, Callback callback);
-
     private volatile boolean completed;
     private Throwable exception;
     private V result;
 
-    protected void completed(V result, Fiber lwthread) {
+    protected void completed(V result, Fiber fiber) {
         this.result = result;
         completed = true;
-        lwthread.unpark();
+        fire(fiber);
     }
 
-    protected void failed(Throwable exc, Fiber lwthread) {
+    protected void failed(Throwable exc, Fiber fiber) {
         this.exception = exc;
         completed = true;
-        lwthread.unpark();
+        fire(fiber);
+    }
+
+    private void fire(Fiber fiber) {
+        if (immediateExec) {
+            if(!fiber.exec(this)) {
+                final RuntimeException ex = new RuntimeException("Failed to exec fiber " + fiber + " in thread " + Thread.currentThread());
+                
+                this.exception = ex;
+                fiber.unpark();
+                
+                throw ex;
+            }
+        } else
+            fiber.unpark();
     }
 
     /**
      * Internal method, do not call. Called by Fiber immediately after park.
-     * This method may not use any ThreadLocals as they have been rest by the time the method is called. 
+     * This method may not use any ThreadLocals as they have been rest by the time the method is called.
+     *
      * @param current
      */
     @Override

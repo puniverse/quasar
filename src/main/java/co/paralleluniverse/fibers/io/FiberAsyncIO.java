@@ -25,21 +25,21 @@ import java.nio.channels.CompletionHandler;
  */
 abstract class FiberAsyncIO<V> extends FiberAsync<V, CompletionHandler<V, Fiber>, IOException> implements CompletionHandler<V, Fiber> {
     @Override
-    public void completed(V result, Fiber lwthread) {
-        super.completed(result, lwthread);
+    public void completed(V result, Fiber fiber) {
+        super.completed(result, fiber);
     }
 
     @Override
-    public void failed(Throwable exc, Fiber lwthread) {
-        super.failed(exc, lwthread);
+    public void failed(Throwable exc, Fiber fiber) {
+        super.failed(exc, fiber);
     }
 
     @Override
     public V run() throws IOException, SuspendExecution {
         try {
-        return super.run();
-        } catch(InterruptedException e) {
+            return super.run();
+        } catch (InterruptedException e) {
             throw new IOException(e);
         }
-    }   
+    }
 }
