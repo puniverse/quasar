@@ -48,16 +48,7 @@ public class SimpleConditionSynchronizer {
     }
 
     public void await(long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution, TimeoutException {
-        waiters.add(Strand.currentStrand());
-
-        final long start = System.nanoTime();
-        final long timeoutNanos = unit.toNanos(timeout);
-        final long deadline = start + timeoutNanos;
-
-        Strand.parkNanos(this, timeoutNanos);
-        if (Strand.interrupted())
-            throw new InterruptedException();
-        if (System.nanoTime() > deadline)
+        if (awaitNanos(unit.toNanos(timeout)) <= 0)
             throw new TimeoutException();
     }
 
