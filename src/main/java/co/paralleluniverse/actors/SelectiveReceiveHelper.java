@@ -4,7 +4,6 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
