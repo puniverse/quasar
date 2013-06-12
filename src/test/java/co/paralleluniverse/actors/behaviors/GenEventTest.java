@@ -114,6 +114,7 @@ public class GenEventTest {
         final Initializer init = mock(Initializer.class);
         LocalGenEvent<String> ge = spawnGenEvent(init);
 
+        Thread.sleep(100);
         verify(init).init();
 
         ge.shutdown();
