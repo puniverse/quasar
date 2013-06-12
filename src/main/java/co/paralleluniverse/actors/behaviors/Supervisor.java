@@ -506,6 +506,12 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
     };
 
     public enum RestartStrategy {
+        ALWAYS_ESCALATE {
+            @Override
+            boolean onChildDeath(Supervisor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
+                return false;
+            }
+        },
         ONE_FOR_ONE {
             @Override
             boolean onChildDeath(Supervisor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
