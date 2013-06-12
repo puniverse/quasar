@@ -250,7 +250,7 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
 
             return actor;
         } else {
-            final GenResponseMessage res = RequestReplyHelper.call(this, new AddChildMessage(RequestReplyHelper.from(), randtag(), spec));
+            final GenResponseMessage res = RequestReplyHelper.call(this, new AddChildMessage(RequestReplyHelper.from(), null, spec));
             return ((GenValueResponseMessage<Actor>) res).getValue();
         }
     }
@@ -277,7 +277,7 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
 
             return true;
         } else {
-            final GenResponseMessage res = RequestReplyHelper.call(this, new RemoveChildMessage(RequestReplyHelper.from(), randtag(), id, terminate));
+            final GenResponseMessage res = RequestReplyHelper.call(this, new RemoveChildMessage(RequestReplyHelper.from(), null, id, terminate));
             return ((GenValueResponseMessage<Boolean>) res).getValue();
         }
     }
