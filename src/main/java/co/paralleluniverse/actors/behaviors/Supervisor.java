@@ -19,7 +19,9 @@ import co.paralleluniverse.actors.ExitMessage;
 import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.ShutdownMessage;
-import co.paralleluniverse.common.util.Exceptions;
+import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
+import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
+import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.replyError;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -51,27 +53,22 @@ import org.slf4j.MDC;
  *
  * @author pron
  */
-public class Supervisor extends LocalActor<Object, Void> implements GenBehavior {
+public class Supervisor extends BasicGenBehavior {
     private static final Logger LOG = LoggerFactory.getLogger(Supervisor.class);
     private final RestartStrategy restartStrategy;
-    private final SuspendableCallable<List<ChildSpec>> initializer;
     private List<ChildSpec> childSpec;
     private final List<ChildEntry> children = new ArrayList<ChildEntry>();
     private final ConcurrentMap<Object, ChildEntry> childrenById = new ConcurrentHashMapV8<Object, ChildEntry>();
 
-    public Supervisor(Strand strand, String name, int mailboxSize, RestartStrategy restartStrategy, SuspendableCallable<List<ChildSpec>> initializer) {
-        super(strand, name, mailboxSize);
+    public Supervisor(Strand strand, String name, int mailboxSize, RestartStrategy restartStrategy, Initializer initializer) {
+        super(name, initializer, strand, mailboxSize);
         this.restartStrategy = restartStrategy;
-
-        this.initializer = initializer;
         this.childSpec = null;
     }
 
     public Supervisor(Strand strand, String name, int mailboxSize, RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
-        super(strand, name, mailboxSize);
+        super(name, null, strand, mailboxSize);
         this.restartStrategy = restartStrategy;
-
-        this.initializer = null;
         this.childSpec = childSpec;
     }
 
@@ -82,27 +79,27 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
     public Supervisor(Strand strand, String name, int mailboxSize, RestartStrategy restartStrategy) {
-        this(strand, name, mailboxSize, restartStrategy, (SuspendableCallable) null);
+        this(strand, name, mailboxSize, restartStrategy, (Initializer) null);
     }
 
     public Supervisor(String name, int mailboxSize, RestartStrategy restartStrategy) {
-        this(null, name, mailboxSize, restartStrategy, (SuspendableCallable) null);
+        this(null, name, mailboxSize, restartStrategy, (Initializer) null);
     }
 
     public Supervisor(String name, RestartStrategy restartStrategy) {
-        this(null, name, -1, restartStrategy, (SuspendableCallable) null);
+        this(null, name, -1, restartStrategy, (Initializer) null);
     }
 
-    public Supervisor(String name, int mailboxSize, RestartStrategy restartStrategy, SuspendableCallable<List<ChildSpec>> initializer) {
+    public Supervisor(String name, int mailboxSize, RestartStrategy restartStrategy, Initializer initializer) {
         this(null, name, mailboxSize, restartStrategy, initializer);
     }
 
-    public Supervisor(String name, RestartStrategy restartStrategy, SuspendableCallable<List<ChildSpec>> initializer) {
+    public Supervisor(String name, RestartStrategy restartStrategy, Initializer initializer) {
         this(null, name, -1, restartStrategy, initializer);
     }
 
     public Supervisor(RestartStrategy restartStrategy) {
-        this(null, null, -1, restartStrategy, (SuspendableCallable) null);
+        this(null, null, -1, restartStrategy, (Initializer) null);
     }
 
     ///
@@ -139,84 +136,68 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
     }
 
     @Override
-    public void shutdown() {
-        send(new ShutdownMessage(LocalActor.self()));
+    protected Logger log() {
+        return LOG;
     }
 
-    private List<ChildSpec> init0() throws SuspendExecution, InterruptedException {
-        if (childSpec != null) {
-            if (initializer != null)
-                throw new IllegalStateException("Cannot provide a supervisor with both a child-spec list as well as an initializer");
-            if (!Supervisor.class.equals(this.getClass()))
-                throw new IllegalStateException("Cannot provide a subclassed supervisor with a child-spec list");
-            final List<ChildSpec> cs = this.childSpec;
-            this.childSpec = null;
-            return cs;
-        }
-        return init();
-    }
+    @Override
+    protected void init() throws SuspendExecution {
+        if (getInitializer() != null)
+            getInitializer().init();
+        else {
+            if (childSpec != null) {
+                try {
+                    if (getInitializer() != null)
+                        throw new IllegalStateException("Cannot provide a supervisor with both a child-spec list as well as an initializer");
+                    if (!Supervisor.class.equals(this.getClass()))
+                        throw new IllegalStateException("Cannot provide a subclassed supervisor with a child-spec list");
 
-    protected List<ChildSpec> init() throws SuspendExecution, InterruptedException {
-        if (initializer != null)
-            return initializer.run();
-        return null;
-    }
-
-    protected void createChildren() throws SuspendExecution, InterruptedException {
-        final List<ChildSpec> _childSpec = init0();
-        if (_childSpec != null) {
-            for (ChildSpec cs : _childSpec)
-                addChild1(cs);
+                    for (ChildSpec cs : childSpec)
+                        addChild(cs);
+                    this.childSpec = null;
+                } catch (InterruptedException e) {
+                    throw new AssertionError(e);
+                }
+            }
         }
     }
 
     @Override
-    protected final Void doRun() throws InterruptedException, SuspendExecution {
+    protected void onStart() throws InterruptedException, SuspendExecution {
         if (LOG.isInfoEnabled()) {
             //org.apache.logging.log4j.ThreadContext.push(this.toString());
             MDC.put("self", this.toString());
         }
+        super.onStart();
+    }
 
-        try {
-            createChildren();
-
-            // start children
-            for (ChildEntry child : children)
-                start(child);
-
-            for (;;) {
-                final Object m1 = receive(); // we care only about lifecycle messages
-                if (m1 instanceof ShutdownMessage)
-                    break;
-                else if (m1 instanceof GenRequestMessage) {
-                    final GenRequestMessage req = (GenRequestMessage) m1;
-                    try {
-                        if (m1 instanceof AddChildMessage) {
-                            final AddChildMessage m = (AddChildMessage) m1;
-                            RequestReplyHelper.reply(m, addChild(m.info));
-                        }
-                    } catch (Exception e) {
-                        req.getFrom().send(new GenErrorResponseMessage(req.getId(), e));
-                    }
+    @Override
+    protected final void handleMessage(Object m1) throws InterruptedException, SuspendExecution {
+        if (m1 instanceof GenRequestMessage) {
+            final GenRequestMessage req = (GenRequestMessage) m1;
+            try {
+                if (m1 instanceof AddChildMessage) {
+                    final AddChildMessage m = (AddChildMessage) m1;
+                    reply(m, addChild(m.info));
                 }
-            }
-        } catch (InterruptedException e) {
-        } catch (Exception e) {
-            LOG.info("Exception!", e);
-            throw Exceptions.rethrow(e);
-        } finally {
-            LOG.info("Supervisor {} shutting down.", this);
-            shutdownChildren();
-            childrenById.clear();
-            children.clear();
-
-            if (LOG.isInfoEnabled()) {
-                //org.apache.logging.log4j.ThreadContext.pop();
-                MDC.remove("self");
+            } catch (Exception e) {
+                replyError(req, e);
             }
         }
+    }
 
-        return null;
+    @Override
+    protected void onTerminate(Throwable cause) throws SuspendExecution, InterruptedException {
+        super.onTerminate(cause);
+
+        shutdownChildren();
+        childrenById.clear();
+        children.clear();
+
+        if (LOG.isInfoEnabled()) {
+            //org.apache.logging.log4j.ThreadContext.pop();
+            MDC.remove("self");
+        }
     }
 
     private ChildEntry addChild1(ChildSpec spec) {
@@ -242,6 +223,7 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
     public final Actor addChild(ChildSpec spec) throws SuspendExecution, InterruptedException {
         if (isInActor()) {
             final ChildEntry child = addChild1(spec);
+
             final LocalActor actor = spec.builder instanceof LocalActor ? (LocalActor) spec.builder : null;
             if (actor == null)
                 start(child);
@@ -250,7 +232,7 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
 
             return actor;
         } else {
-            final GenResponseMessage res = RequestReplyHelper.call(this, new AddChildMessage(RequestReplyHelper.from(), null, spec));
+            final GenResponseMessage res = call(this, new AddChildMessage(RequestReplyHelper.from(), null, spec));
             return ((GenValueResponseMessage<Actor>) res).getValue();
         }
     }
@@ -277,7 +259,7 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
 
             return true;
         } else {
-            final GenResponseMessage res = RequestReplyHelper.call(this, new RemoveChildMessage(RequestReplyHelper.from(), null, id, terminate));
+            final GenResponseMessage res = call(this, new RemoveChildMessage(RequestReplyHelper.from(), null, id, terminate));
             return ((GenValueResponseMessage<Boolean>) res).getValue();
         }
     }
@@ -305,20 +287,17 @@ public class Supervisor extends LocalActor<Object, Void> implements GenBehavior 
                         LOG.info("Detected child death: " + child + ". cause: ", death.cause);
                         if (!restartStrategy.onChildDeath(this, child, death.cause)) {
                             LOG.info("Supervisor {} giving up.", this);
-                            getStrand().interrupt();
+                            shutdown();
                         }
                         handled = true;
                     }
                 }
-            } else if (m instanceof ShutdownMessage) {
-                handled = true;
-                getStrand().interrupt();
             }
-            if (!handled)
-                super.handleLifecycleMessage(m);
         } catch (InterruptedException e) {
             getStrand().interrupt();
         }
+        if (!handled)
+            super.handleLifecycleMessage(m);
     }
 
     private boolean tryRestart(ChildEntry child, Throwable cause, long now, Iterator<ChildEntry> it) throws InterruptedException {

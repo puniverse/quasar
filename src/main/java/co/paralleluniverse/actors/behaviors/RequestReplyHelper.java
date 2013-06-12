@@ -52,10 +52,10 @@ public class RequestReplyHelper {
         assert currentActor != null;
 
         final Object watch = currentActor.watch(actor);
-        
-        if(m.getId() == null)
+
+        if (m.getId() == null)
             m.setId(watch);
-        
+
         final Object id = m.getId();
 
         final SelectiveReceiveHelper<Object> helper = new SelectiveReceiveHelper<Object>(currentActor) {
@@ -78,7 +78,7 @@ public class RequestReplyHelper {
                 }
             });
             currentActor.unwatch(actor, watch); // no need to unwatch in case of receiver death, so not doen in finally block
-            
+
             if (response instanceof GenErrorResponseMessage)
                 throw Exceptions.rethrow(((GenErrorResponseMessage) response).getError());
             return response;
@@ -96,8 +96,12 @@ public class RequestReplyHelper {
         }
     }
 
-    public static <V> void reply(GenRequestMessage req, V result) throws InterruptedException, SuspendExecution {
+    public static <V> void reply(GenRequestMessage req, V result) {
         req.getFrom().send(new GenValueResponseMessage<V>(req.getId(), result));
+    }
+
+    public static <V> void replyError(GenRequestMessage req, Throwable e) {
+        req.getFrom().send(new GenErrorResponseMessage(req.getId(), e));
     }
 
     private static Actor getCurrentActor() {

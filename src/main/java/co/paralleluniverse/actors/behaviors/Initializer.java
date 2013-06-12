@@ -13,16 +13,13 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.fibers.SuspendExecution;
 
 /**
  *
  * @author pron
  */
-public interface Server<CallMessage, V, CastMessage> extends Initializer {
-    V handleCall(Actor<V> from, Object id, CallMessage m) throws Exception, SuspendExecution;
-    void handleCast(Actor<V> from, Object id, CastMessage m) throws SuspendExecution;
-    void handleInfo(Object m) throws SuspendExecution;
-    void handleTimeout() throws SuspendExecution;
+public interface Initializer {
+    void init() throws SuspendExecution;
+    void terminate(Throwable cause) throws SuspendExecution;
 }

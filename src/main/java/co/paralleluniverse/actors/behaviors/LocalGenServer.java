@@ -14,31 +14,29 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.LifecycleMessage;
-import co.paralleluniverse.actors.LocalActor;
-import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.actors.behaviors.GenServerHelper.GenServerRequest;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author pron
  */
-public class LocalGenServer<CallMessage, V, CastMessage> extends LocalActor<Object, Void> implements GenServer<CallMessage, V, CastMessage> {
-    private final Server<CallMessage, V, CastMessage> server;
+public class LocalGenServer<CallMessage, V, CastMessage> extends BasicGenBehavior implements GenServer<CallMessage, V, CastMessage> {
+    private static final Logger LOG = LoggerFactory.getLogger(LocalGenServer.class);
     private long timeout; // nanos
-    private boolean run;
 
     public LocalGenServer(String name, Server<CallMessage, V, CastMessage> server, long timeout, TimeUnit unit, Strand strand, int mailboxSize) {
-        super(strand, name, mailboxSize);
-        this.server = server;
+        super(name, server, strand, mailboxSize);
         this.timeout = unit != null ? unit.toNanos(timeout) : -1;
-        this.run = true;
     }
 
+    //<editor-fold defaultstate="collapsed" desc="Constructors">
+    /////////// Constructors ///////////////////////////////////
     public LocalGenServer(String name, Server<CallMessage, V, CastMessage> server, int mailboxSize) {
         this(name, server, -1, null, null, mailboxSize);
     }
@@ -70,6 +68,16 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends LocalActor<Obje
     public LocalGenServer() {
         this(null, null, -1, null, null, -1);
     }
+    //</editor-fold>
+
+    protected Server<CallMessage, V, CastMessage> server() {
+        return (Server<CallMessage, V, CastMessage>) getInitializer();
+    }
+
+    @Override
+    protected Logger log() {
+        return LOG;
+    }
 
     public static <CallMessage, V, CastMessage> LocalGenServer<CallMessage, V, CastMessage> currentGenServer() {
         return (LocalGenServer<CallMessage, V, CastMessage>) self();
@@ -91,61 +99,37 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends LocalActor<Obje
     }
 
     @Override
-    protected final Void doRun() throws InterruptedException, SuspendExecution {
-        try {
-            init();
-            while (run) {
-                Object m1 = receive(timeout, TimeUnit.NANOSECONDS);
-                if (m1 instanceof GenServerRequest) {
-                    GenServerRequest m = (GenServerRequest) m1;
-                    switch (m.getType()) {
-                        case CALL:
-                            try {
-                                final V res = handleCall((Actor<V>) m.getFrom(), m.getId(), (CallMessage) m.getMessage());
-                                if (res != null)
-                                    reply((Actor<V>) m.getFrom(), m.getId(), res);
-                            } catch (Exception e) {
-                                replyError((Actor<V>) m.getFrom(), m.getId(), e);
-                            }
-                            break;
-
-                        case CAST:
-                            handleCast((Actor<V>) m.getFrom(), m.getId(), (CastMessage) m.getMessage());
-                            break;
-                    }
-                } else if (m1 == null)
-                    handleTimeout();
-                else
-                    handleInfo(m1);
-            }
-            terminate(null);
-            return null;
-        } catch (InterruptedException e) {
-            if (run == false) {
-                terminate(null);
-                return null;
-            } else {
-                terminate(e);
-                throw e;
-            }
-        } catch (Throwable e) {
-            terminate(e);
-            throw e;
+    protected final void behavior() throws InterruptedException, SuspendExecution {
+        while (isRunning()) {
+            Object m1 = receive(timeout, TimeUnit.NANOSECONDS);
+            if (m1 == null)
+                handleTimeout();
+            else
+                handleMessage(m1);
         }
     }
 
     @Override
-    protected void handleLifecycleMessage(LifecycleMessage m) {
-        if (m instanceof ShutdownMessage) {
-            stop();
-            getStrand().interrupt();
-        } else
-            super.handleLifecycleMessage(m);
-    }
+    protected void handleMessage(Object m1) throws InterruptedException, SuspendExecution {
+        if (m1 instanceof GenServerRequest) {
+            GenServerRequest m = (GenServerRequest) m1;
+            switch (m.getType()) {
+                case CALL:
+                    try {
+                        final V res = handleCall((Actor<V>) m.getFrom(), m.getId(), (CallMessage) m.getMessage());
+                        if (res != null)
+                            reply((Actor<V>) m.getFrom(), m.getId(), res);
+                    } catch (Exception e) {
+                        replyError((Actor<V>) m.getFrom(), m.getId(), e);
+                    }
+                    break;
 
-    @Override
-    public final void shutdown() {
-        send(new ShutdownMessage(LocalActor.self()));
+                case CAST:
+                    handleCast((Actor<V>) m.getFrom(), m.getId(), (CastMessage) m.getMessage());
+                    break;
+            }
+        } else
+            handleInfo(m1);
     }
 
     public final void reply(Actor to, Object id, V message) {
@@ -163,41 +147,27 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends LocalActor<Obje
         this.timeout = (unit != null ? unit.toNanos(timeout) : -1);
     }
 
-    public final void stop() {
-        verifyInActor();
-        run = false;
-    }
-
-    protected void init() throws SuspendExecution {
-        server.init();
-    }
-
     protected V handleCall(Actor<V> from, Object id, CallMessage m) throws Exception, SuspendExecution {
-        if (server != null)
-            return server.handleCall(from, id, m);
+        if (server() != null)
+            return server().handleCall(from, id, m);
         else
             throw new UnsupportedOperationException(m.toString());
     }
 
     protected void handleCast(Actor<V> from, Object id, CastMessage m) throws SuspendExecution {
-        if (server != null)
-            server.handleCast(from, id, m);
+        if (server() != null)
+            server().handleCast(from, id, m);
         else
             throw new UnsupportedOperationException(m.toString());
     }
 
     protected void handleInfo(Object m) throws SuspendExecution {
-        if (server != null)
-            server.handleInfo(m);
+        if (server() != null)
+            server().handleInfo(m);
     }
 
     protected void handleTimeout() throws SuspendExecution {
-        if (server != null)
-            server.handleTimeout();
-    }
-
-    protected void terminate(Throwable cause) throws SuspendExecution {
-        if (server != null)
-            server.terminate(cause);
+        if (server() != null)
+            server().handleTimeout();
     }
 }

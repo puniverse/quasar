@@ -14,10 +14,9 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.LifecycleMessage;
-import co.paralleluniverse.actors.LocalActor;
-import co.paralleluniverse.actors.ShutdownMessage;
-import co.paralleluniverse.common.util.Exceptions;
+import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
+import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
+import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.replyError;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.ArrayList;
@@ -29,28 +28,52 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
-public class LocalGenEvent<Event> extends LocalActor<Object, Void> implements GenEvent<Event> {
+public class LocalGenEvent<Event> extends BasicGenBehavior implements GenEvent<Event> {
     private static final Logger LOG = LoggerFactory.getLogger(LocalGenEvent.class);
     private final List<EventHandler<Event>> handlers = new ArrayList<>();
 
-    public LocalGenEvent(String name, Strand strand, int mailboxSize) {
-        super(strand, name, mailboxSize);
+    public LocalGenEvent(String name, Initializer initializer, Strand strand, int mailboxSize) {
+        super(name, initializer, strand, mailboxSize);
+    }
+
+    //<editor-fold defaultstate="collapsed" desc="Constructors">
+    /////////// Constructors ///////////////////////////////////
+    public LocalGenEvent(String name, Initializer initializer, int mailboxSize) {
+        this(name, initializer, null, mailboxSize);
+    }
+
+    public LocalGenEvent(String name, Initializer initializer) {
+        this(name, initializer, null, -1);
+    }
+
+    public LocalGenEvent(Initializer initializer, int mailboxSize) {
+        this(null, initializer, null, mailboxSize);
+    }
+
+    public LocalGenEvent(Initializer initializer) {
+        this(null, initializer, null, -1);
     }
 
     public LocalGenEvent(String name, int mailboxSize) {
-        this(name, null, mailboxSize);
+        this(name, null, null, mailboxSize);
     }
 
     public LocalGenEvent(String name) {
-        this(name, null, -1);
+        this(name, null, null, -1);
     }
 
     public LocalGenEvent(int mailboxSize) {
-        this(null, null, mailboxSize);
+        this(null, null, null, mailboxSize);
     }
 
     public LocalGenEvent() {
-        this(null, null, -1);
+        this(null, null, null, -1);
+    }
+    //</editor-fold>
+    
+    @Override
+    protected Logger log() {
+        return LOG;
     }
 
     @Override
@@ -59,7 +82,7 @@ public class LocalGenEvent<Event> extends LocalActor<Object, Void> implements Ge
             LOG.info("{} adding handler {}", this, handler);
             return handlers.add(handler);
         } else {
-            final GenResponseMessage res = RequestReplyHelper.call(this, new HandlerMessage(RequestReplyHelper.from(), null, handler, true));
+            final GenResponseMessage res = call(this, new HandlerMessage(RequestReplyHelper.from(), null, handler, true));
             return ((GenValueResponseMessage<Boolean>) res).getValue();
         }
     }
@@ -70,7 +93,7 @@ public class LocalGenEvent<Event> extends LocalActor<Object, Void> implements Ge
             LOG.info("{} removing handler {}", this, handler);
             return handlers.remove(handler);
         } else {
-            final GenResponseMessage res = RequestReplyHelper.call(this, new HandlerMessage(RequestReplyHelper.from(), null, handler, false));
+            final GenResponseMessage res = call(this, new HandlerMessage(RequestReplyHelper.from(), null, handler, false));
             return ((GenValueResponseMessage<Boolean>) res).getValue();
         }
     }
@@ -81,59 +104,36 @@ public class LocalGenEvent<Event> extends LocalActor<Object, Void> implements Ge
     }
 
     @Override
-    public void shutdown() {
-        send(new ShutdownMessage(LocalActor.self()));
-    }
-
-    @Override
-    protected void handleLifecycleMessage(LifecycleMessage m) {
-        if (m instanceof ShutdownMessage) {
-            getStrand().interrupt();
-        } else
-            super.handleLifecycleMessage(m);
-    }
-
-    @Override
-    protected Void doRun() throws InterruptedException, SuspendExecution {
-        try {
-            for (;;) {
-                final Object m1 = receive(); // we care only about lifecycle messages
-                if (m1 instanceof ShutdownMessage)
-                    break;
-                else if (m1 instanceof GenRequestMessage) {
-                    final GenRequestMessage req = (GenRequestMessage) m1;
-                    try {
-                        if (m1 instanceof HandlerMessage) {
-                            final HandlerMessage m = (HandlerMessage) m1;
-                            if(m.add)
-                                RequestReplyHelper.reply(m, addHandler(m.handler));
-                            else
-                                RequestReplyHelper.reply(m, removeHandler(m.handler));
-                        }
-                    } catch (Exception e) {
-                        req.getFrom().send(new GenErrorResponseMessage(req.getId(), e));
-                    }
-                } else
-                    notifyHandlers((Event)m1);
+    protected final void handleMessage(Object m1) throws InterruptedException, SuspendExecution {
+        if (m1 instanceof GenRequestMessage) {
+            final GenRequestMessage req = (GenRequestMessage) m1;
+            try {
+                if (m1 instanceof HandlerMessage) {
+                    final HandlerMessage m = (HandlerMessage) m1;
+                    if (m.add)
+                        reply(req, addHandler(m.handler));
+                    else
+                        reply(req, removeHandler(m.handler));
+                }
+            } catch (Exception e) {
+                replyError(req, e);
             }
-        } catch (InterruptedException e) {
-        } catch (Exception e) {
-            LOG.info("Exception!", e);
-            throw Exceptions.rethrow(e);
-        } finally {
-            LOG.info("GenEvent {} shutting down.", this);
-            handlers.clear();
-        }
+        } else
+            notifyHandlers((Event) m1);
+    }
 
-        return null;
+    @Override
+    protected void onTerminate(Throwable cause) throws SuspendExecution, InterruptedException {
+        super.onTerminate(cause);
+        handlers.clear();
     }
 
     private void notifyHandlers(Event event) {
         LOG.debug("{} Got event {}", this, event);
-        for(EventHandler<Event> handler : handlers)
+        for (EventHandler<Event> handler : handlers)
             handler.handleEvent(event);
     }
-    
+
     private static class HandlerMessage<Event> extends GenRequestMessage {
         final EventHandler<Event> handler;
         final boolean add;

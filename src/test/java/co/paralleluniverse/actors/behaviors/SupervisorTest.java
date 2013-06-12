@@ -26,10 +26,12 @@ import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildMode;
 import co.paralleluniverse.actors.behaviors.Supervisor.RestartStrategy;
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -39,6 +41,11 @@ import org.junit.Test;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +55,33 @@ import org.slf4j.LoggerFactory;
  * @author pron
  */
 public class SupervisorTest {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = new TestWatcher() {
+        @Override
+        protected void starting(Description desc) {
+            if (Debug.isDebug()) {
+                System.out.println("STARTING TEST " + desc.getMethodName());
+                Debug.record(0, "STARTING TEST " + desc.getMethodName());
+            }
+        }
+
+        @Override
+        public void failed(Throwable e, Description desc) {
+            System.out.println("FAILED TEST " + desc.getMethodName() + ": " + e.getMessage());
+            e.printStackTrace(System.err);
+            if (Debug.isDebug() && !(e instanceof OutOfMemoryError)) {
+                Debug.record(0, "EXCEPTION IN THREAD " + Thread.currentThread().getName() + ": " + e + " - " + Arrays.toString(e.getStackTrace()));
+                Debug.dumpRecorder("~/quasar.dump");
+            }
+        }
+
+        @Override
+        protected void succeeded(Description desc) {
+            Debug.record(0, "DONE TEST " + desc.getMethodName());
+        }
+    };
     private static final Logger LOG = LoggerFactory.getLogger(Supervisor.class);
     static final int mailboxSize = 10;
     private static ForkJoinPool fjPool;
@@ -442,7 +476,7 @@ public class SupervisorTest {
         assertThat(a.get(), is(15));
 
         Thread.sleep(100); // give the actor time to start the GenServer
-        
+
         sup.shutdown();
         sup.join();
 
