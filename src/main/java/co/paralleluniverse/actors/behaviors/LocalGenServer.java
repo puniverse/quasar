@@ -75,7 +75,7 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends BasicGenBehavio
     }
 
     @Override
-    protected Logger log() {
+    public Logger log() {
         return LOG;
     }
 

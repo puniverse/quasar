@@ -136,7 +136,7 @@ public class Supervisor extends BasicGenBehavior {
     }
 
     @Override
-    protected Logger log() {
+    public Logger log() {
         return LOG;
     }
 
@@ -301,7 +301,6 @@ public class Supervisor extends BasicGenBehavior {
     }
 
     private boolean tryRestart(ChildEntry child, Throwable cause, long now, Iterator<ChildEntry> it) throws InterruptedException {
-        LOG.info("Supervisor trying to restart child {}. (cause: {})", child, cause);
         verifyInActor();
         switch (child.info.mode) {
             case TRANSIENT:
@@ -309,6 +308,7 @@ public class Supervisor extends BasicGenBehavior {
                     return true;
             // fall through
             case PERMANENT:
+                LOG.info("Supervisor trying to restart child {}. (cause: {})", child, cause);
                 final Actor actor = child.actor;
                 shutdownChild(child, true);
                 child.restartHistory.addRestart(now);
@@ -362,7 +362,7 @@ public class Supervisor extends BasicGenBehavior {
         try {
             strand.start();
         } catch (IllegalThreadStateException e) {
-            // strand has already been started
+            LOG.info("Child {} has already been started.", actor);
         }
         return actor;
     }

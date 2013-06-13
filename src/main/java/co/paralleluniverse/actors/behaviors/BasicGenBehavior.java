@@ -73,6 +73,7 @@ public abstract class BasicGenBehavior extends LocalActor<Object, Void> implemen
     @Override
     public void shutdown() {
         if (isInActor()) {
+            log().debug("Shutdown requested.");
             run = false;
             getStrand().interrupt();
         } else
@@ -102,7 +103,7 @@ public abstract class BasicGenBehavior extends LocalActor<Object, Void> implemen
             initializer.terminate(cause);
     }
 
-    protected abstract Logger log();
+    public abstract Logger log();
 
     protected void behavior() throws InterruptedException, SuspendExecution {
         while (isRunning()) {

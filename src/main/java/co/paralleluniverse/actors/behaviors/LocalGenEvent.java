@@ -72,7 +72,7 @@ public class LocalGenEvent<Event> extends BasicGenBehavior implements GenEvent<E
     //</editor-fold>
     
     @Override
-    protected Logger log() {
+    public Logger log() {
         return LOG;
     }
 
