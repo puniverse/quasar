@@ -92,7 +92,7 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
         attachment = requestAsync(current, (Callback) this);
     }
 
-    protected Object getAttachment() {
+    protected A getAttachment() {
         return attachment;
     }
     
