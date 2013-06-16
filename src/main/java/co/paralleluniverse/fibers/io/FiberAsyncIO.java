@@ -23,7 +23,7 @@ import java.nio.channels.CompletionHandler;
  *
  * @author pron
  */
-abstract class FiberAsyncIO<V> extends FiberAsync<V, CompletionHandler<V, Fiber>, IOException> implements CompletionHandler<V, Fiber> {
+abstract class FiberAsyncIO<V> extends FiberAsync<V, CompletionHandler<V, Fiber>, Void, IOException> implements CompletionHandler<V, Fiber> {
     @Override
     public void completed(V result, Fiber fiber) {
         super.completed(result, fiber);

@@ -58,8 +58,9 @@ public class FiberFileChannel implements FiberByteChannel {
     public int read(final ByteBuffer dst, final long position) throws IOException, SuspendExecution {
         return new FiberAsyncIO<Integer>() {
             @Override
-            protected void requestAsync(Fiber current, CompletionHandler<Integer, Fiber> completionHandler) {
+            protected Void requestAsync(Fiber current, CompletionHandler<Integer, Fiber> completionHandler) {
                 ac.read(dst, position, current, completionHandler);
+                return null;
             }
         }.run();
     }
@@ -67,8 +68,9 @@ public class FiberFileChannel implements FiberByteChannel {
     public int write(final ByteBuffer src, final long position) throws IOException, SuspendExecution {
         return new FiberAsyncIO<Integer>() {
             @Override
-            protected void requestAsync(Fiber current, CompletionHandler<Integer, Fiber> completionHandler) {
+            protected Void requestAsync(Fiber current, CompletionHandler<Integer, Fiber> completionHandler) {
                 ac.write(src, position, current, completionHandler);
+                return null;
             }
         }.run();
     }
@@ -121,8 +123,9 @@ public class FiberFileChannel implements FiberByteChannel {
     public final FileLock lock() throws IOException, SuspendExecution {
         return new FiberAsyncIO<FileLock>() {
             @Override
-            protected void requestAsync(Fiber current, CompletionHandler<FileLock, Fiber> completionHandler) {
+            protected Void requestAsync(Fiber current, CompletionHandler<FileLock, Fiber> completionHandler) {
                 ac.lock(current, completionHandler);
+                return null;
             }
         }.run();
     }
@@ -130,8 +133,9 @@ public class FiberFileChannel implements FiberByteChannel {
     public FileLock lock(final long position, final long size, final boolean shared) throws IOException, SuspendExecution {
         return new FiberAsyncIO<FileLock>() {
             @Override
-            protected void requestAsync(Fiber current, CompletionHandler<FileLock, Fiber> completionHandler) {
+            protected Void requestAsync(Fiber current, CompletionHandler<FileLock, Fiber> completionHandler) {
                 ac.lock(position, size, shared, current, completionHandler);
+                return null;
             }
         }.run();
     }

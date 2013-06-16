@@ -61,8 +61,9 @@ public class FiberSocketChannel implements FiberByteChannel, NetworkChannel {
     public void connect(final SocketAddress remote) throws IOException, SuspendExecution {
         new FiberAsyncIO<Void>() {
             @Override
-            protected void requestAsync(Fiber current, CompletionHandler<Void, Fiber> completionHandler) {
+            protected Void requestAsync(Fiber current, CompletionHandler<Void, Fiber> completionHandler) {
                 ac.connect(remote, current, completionHandler);
+                return null;
             }
         }.run();
     }
@@ -70,8 +71,9 @@ public class FiberSocketChannel implements FiberByteChannel, NetworkChannel {
     public long read(final ByteBuffer[] dsts, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
         return new FiberAsyncIO<Long>() {
             @Override
-            protected void requestAsync(Fiber current, CompletionHandler<Long, Fiber> completionHandler) {
+            protected Void requestAsync(Fiber current, CompletionHandler<Long, Fiber> completionHandler) {
                 ac.read(dsts, offset, length, timeout, unit, current, completionHandler);
+                return null;
             }
         }.run();
     }
@@ -79,8 +81,9 @@ public class FiberSocketChannel implements FiberByteChannel, NetworkChannel {
     public int read(final ByteBuffer dst, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
         return new FiberAsyncIO<Integer>() {
             @Override
-            protected void requestAsync(Fiber current, CompletionHandler<Integer, Fiber> completionHandler) {
+            protected Void requestAsync(Fiber current, CompletionHandler<Integer, Fiber> completionHandler) {
                 ac.read(dst, timeout, unit, current, completionHandler);
+                return null;
             }
         }.run();
     }
@@ -88,8 +91,9 @@ public class FiberSocketChannel implements FiberByteChannel, NetworkChannel {
     public long write(final ByteBuffer[] srcs, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
         return new FiberAsyncIO<Long>() {
             @Override
-            protected void requestAsync(Fiber current, CompletionHandler<Long, Fiber> completionHandler) {
+            protected Void requestAsync(Fiber current, CompletionHandler<Long, Fiber> completionHandler) {
                 ac.write(srcs, offset, length, timeout, unit, current, completionHandler);
+                return null;
             }
         }.run();
     }
@@ -97,8 +101,9 @@ public class FiberSocketChannel implements FiberByteChannel, NetworkChannel {
     public int write(final ByteBuffer src, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
         return new FiberAsyncIO<Integer>() {
             @Override
-            protected void requestAsync(Fiber current, CompletionHandler<Integer, Fiber> completionHandler) {
+            protected Void requestAsync(Fiber current, CompletionHandler<Integer, Fiber> completionHandler) {
                 ac.write(src, timeout, unit, current, completionHandler);
+                return null;
             }
         }.run();
     }

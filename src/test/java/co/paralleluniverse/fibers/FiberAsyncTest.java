@@ -86,13 +86,14 @@ public class FiberAsyncTest {
     static String callService(final Service service) throws SuspendExecution, InterruptedException {
         return new MyFiberAsync() {
             @Override
-            protected void requestAsync(Fiber current, MyCallback callback) {
+            protected Void requestAsync(Fiber current, MyCallback callback) {
                 service.registerCallback(callback);
+                return null;
             }
         }.run();
     }
 
-    static abstract class MyFiberAsync extends FiberAsync<String, MyCallback, RuntimeException> implements MyCallback {
+    static abstract class MyFiberAsync extends FiberAsync<String, MyCallback, Void, RuntimeException> implements MyCallback {
         private final Fiber fiber;
 
         public MyFiberAsync() {

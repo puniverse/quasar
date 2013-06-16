@@ -21,7 +21,7 @@ package co.paralleluniverse.fibers;
  * @param <Callback> The interface of the async callback.
  * @param <E> An exception class that could be thrown by the async request
  */
-public abstract class FiberAsync<V, Callback, E extends Throwable> implements Fiber.PostParkActions {
+public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements Fiber.PostParkActions {
     private final boolean immediateExec;
 
     public FiberAsync(boolean immediateExec) {
@@ -48,10 +48,12 @@ public abstract class FiberAsync<V, Callback, E extends Throwable> implements Fi
      * @param current
      * @param callback
      */
-    protected abstract void requestAsync(Fiber current, Callback callback);
+    protected abstract A requestAsync(Fiber current, Callback callback);
+    //
     private volatile boolean completed;
     private Throwable exception;
     private V result;
+    private A attachment;
 
     protected void completed(V result, Fiber fiber) {
         this.result = result;
@@ -87,9 +89,13 @@ public abstract class FiberAsync<V, Callback, E extends Throwable> implements Fi
      */
     @Override
     public final void run(Fiber current) {
-        requestAsync(current, (Callback) this);
+        attachment = requestAsync(current, (Callback) this);
     }
 
+    protected Object getAttachment() {
+        return attachment;
+    }
+    
     public boolean isCompleted() {
         return completed;
     }

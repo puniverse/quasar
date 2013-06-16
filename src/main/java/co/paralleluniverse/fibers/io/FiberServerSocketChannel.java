@@ -47,8 +47,9 @@ public class FiberServerSocketChannel implements NetworkChannel {
     public FiberSocketChannel accept() throws IOException, SuspendExecution {
         return new FiberSocketChannel(new FiberAsyncIO<AsynchronousSocketChannel>() {
             @Override
-            protected void requestAsync(Fiber current, CompletionHandler<AsynchronousSocketChannel, Fiber> completionHandler) {
+            protected Void requestAsync(Fiber current, CompletionHandler<AsynchronousSocketChannel, Fiber> completionHandler) {
                 ac.accept(current, completionHandler);
+                return null;
             }
         }.run());
     }
