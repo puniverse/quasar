@@ -9,7 +9,7 @@ import jsr166e.ForkJoinPool;
 public class RingBenchmark {
     static final int N = 1000;
     static final int M = 1000;
-    static final int mailboxSize = 10;
+    static final MailboxConfig mailboxConfig = new MailboxConfig(10, MailboxConfig.OverflowPolicy.KILL);
     static ForkJoinPool fjPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
     public static void main(String args[]) throws Exception {
@@ -31,7 +31,7 @@ public class RingBenchmark {
     void run() throws ExecutionException, InterruptedException {
         final long start = System.nanoTime();
 
-        LocalActor<Integer, Integer> manager = spawnActor(new BasicActor<Integer, Integer>(mailboxSize) {
+        LocalActor<Integer, Integer> manager = spawnActor(new BasicActor<Integer, Integer>(mailboxConfig) {
             @Override
             protected Integer doRun() throws InterruptedException, SuspendExecution {
                 LocalActor<Integer, ?> a = this;
@@ -56,7 +56,7 @@ public class RingBenchmark {
     }
 
     private LocalActor<Integer,?> createRelayActor(final LocalActor<Integer, ?> prev) {
-        return spawnActor(new BasicActor<Integer, Void>(mailboxSize) {
+        return spawnActor(new BasicActor<Integer, Void>(mailboxConfig) {
             @Override
             protected Void doRun() throws InterruptedException, SuspendExecution {
                 for (;;) {

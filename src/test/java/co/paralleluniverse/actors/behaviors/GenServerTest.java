@@ -20,6 +20,7 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.LocalActor;
+import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
@@ -85,7 +86,7 @@ public class GenServerTest {
             Debug.record(0, "DONE TEST " + desc.getMethodName());
         }
     };
-    static final int mailboxSize = 10;
+    static final MailboxConfig mailboxConfig = new MailboxConfig(10, MailboxConfig.OverflowPolicy.KILL);
     private ForkJoinPool fjPool;
 
     public GenServerTest() {
@@ -145,7 +146,7 @@ public class GenServerTest {
             }
         });
 
-        LocalActor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxSize) {
+        LocalActor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
             protected Integer doRun() throws SuspendExecution, InterruptedException {
                 return gs.call(new Message(3, 4));
             }
@@ -206,7 +207,7 @@ public class GenServerTest {
 
         final LocalGenServer<Message, Integer, Message> gs = spawnGenServer(server);
 
-        LocalActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxSize) {
+        LocalActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 try {
                     int res = gs.call(new Message(3, 4));
@@ -324,7 +325,7 @@ public class GenServerTest {
             }
         });
 
-        LocalActor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxSize) {
+        LocalActor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
             protected Integer doRun() throws SuspendExecution, InterruptedException {
                 return gs.call(new Message(3, 4));
             }

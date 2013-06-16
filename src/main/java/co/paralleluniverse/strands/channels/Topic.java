@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.Collection;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -36,7 +37,7 @@ public class Topic<Message> implements SendChannel<Message> {
     }
 
     @Override
-    public void send(Message message) {
+    public void send(Message message) throws SuspendExecution {
         for (SendChannel<? super Message> sub : subscribers)
             sub.send(message);
     }

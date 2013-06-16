@@ -14,6 +14,7 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.behaviors.GenServerHelper.GenServerRequest;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -30,43 +31,43 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends BasicGenBehavio
     private static final Logger LOG = LoggerFactory.getLogger(LocalGenServer.class);
     private long timeout; // nanos
 
-    public LocalGenServer(String name, Server<CallMessage, V, CastMessage> server, long timeout, TimeUnit unit, Strand strand, int mailboxSize) {
-        super(name, server, strand, mailboxSize);
+    public LocalGenServer(String name, Server<CallMessage, V, CastMessage> server, long timeout, TimeUnit unit, Strand strand, MailboxConfig mailboxConfig) {
+        super(name, server, strand, mailboxConfig);
         this.timeout = unit != null ? unit.toNanos(timeout) : -1;
     }
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-    public LocalGenServer(String name, Server<CallMessage, V, CastMessage> server, int mailboxSize) {
-        this(name, server, -1, null, null, mailboxSize);
+    public LocalGenServer(String name, Server<CallMessage, V, CastMessage> server, MailboxConfig mailboxConfig) {
+        this(name, server, -1, null, null, mailboxConfig);
     }
 
     public LocalGenServer(String name, Server<CallMessage, V, CastMessage> server) {
-        this(name, server, -1, null, null, -1);
+        this(name, server, -1, null, null, null);
     }
 
-    public LocalGenServer(Server<CallMessage, V, CastMessage> server, int mailboxSize) {
-        this(null, server, -1, null, null, mailboxSize);
+    public LocalGenServer(Server<CallMessage, V, CastMessage> server, MailboxConfig mailboxConfig) {
+        this(null, server, -1, null, null, mailboxConfig);
     }
 
     public LocalGenServer(Server<CallMessage, V, CastMessage> server) {
-        this(null, server, -1, null, null, -1);
+        this(null, server, -1, null, null, null);
     }
 
-    public LocalGenServer(String name, int mailboxSize) {
-        this(name, null, -1, null, null, mailboxSize);
+    public LocalGenServer(String name, MailboxConfig mailboxConfig) {
+        this(name, null, -1, null, null, mailboxConfig);
     }
 
     public LocalGenServer(String name) {
-        this(name, null, -1, null, null, -1);
+        this(name, null, -1, null, null, null);
     }
 
-    public LocalGenServer(int mailboxSize) {
-        this(null, null, -1, null, null, mailboxSize);
+    public LocalGenServer(MailboxConfig mailboxConfig) {
+        this(null, null, -1, null, null, mailboxConfig);
     }
 
     public LocalGenServer() {
-        this(null, null, -1, null, null, -1);
+        this(null, null, -1, null, null, null);
     }
     //</editor-fold>
 
@@ -94,7 +95,7 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends BasicGenBehavio
     }
 
     @Override
-    public final void cast(CastMessage m) {
+    public final void cast(CastMessage m) throws SuspendExecution {
         GenServerHelper.cast(this, m);
     }
 
@@ -132,12 +133,12 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends BasicGenBehavio
             handleInfo(m1);
     }
 
-    public final void reply(Actor to, Object id, V message) {
+    public final void reply(Actor to, Object id, V message) throws SuspendExecution {
         verifyInActor();
         to.send(new GenValueResponseMessage<V>(id, message));
     }
 
-    public final void replyError(Actor to, Object id, Throwable error) {
+    public final void replyError(Actor to, Object id, Throwable error) throws SuspendExecution {
         verifyInActor();
         to.send(new GenErrorResponseMessage(id, error));
     }

@@ -45,12 +45,14 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     private ActorMonitor monitor;
     private ActorSpec<?, Message, V> spec;
 
-    public LocalActor(Object name, int mailboxSize) {
-        super(name, Mailbox.create(mailboxSize));
+    public LocalActor(Object name, MailboxConfig mailboxConfig) {
+        super(name, 
+                Mailbox.create(mailboxConfig != null ? mailboxConfig.getMailboxSize() : -1), 
+                mailboxConfig != null && mailboxConfig.getPolicy() == MailboxConfig.OverflowPolicy.BACKPRESSURE);
     }
 
-    public LocalActor(Strand strand, String name, int mailboxSize) {
-        this(name, mailboxSize);
+    public LocalActor(Strand strand, String name, MailboxConfig mailboxConfig) {
+        this(name, mailboxConfig);
         if (strand != null)
             setStrand(strand);
     }
@@ -132,6 +134,11 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         return (obj == null ? "null" : obj.getClass().getSimpleName() + "@" + Objects.systemObjectId(obj));
     }
 
+    @Override
+    public void interrupt() {
+        getStrand().interrupt();
+    }
+    
     public final ActorMonitor monitor() {
         if (monitor != null)
             return monitor;

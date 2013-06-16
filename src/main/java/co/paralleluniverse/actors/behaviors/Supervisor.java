@@ -15,9 +15,11 @@ package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorBuilder;
+import co.paralleluniverse.actors.ActorImpl;
 import co.paralleluniverse.actors.ExitMessage;
 import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.LocalActor;
+import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.ShutdownMessage;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
@@ -60,71 +62,71 @@ public class Supervisor extends BasicGenBehavior {
     private final List<ChildEntry> children = new ArrayList<ChildEntry>();
     private final ConcurrentMap<Object, ChildEntry> childrenById = new ConcurrentHashMapV8<Object, ChildEntry>();
 
-    public Supervisor(Strand strand, String name, int mailboxSize, RestartStrategy restartStrategy, Initializer initializer) {
-        super(name, initializer, strand, mailboxSize);
+    public Supervisor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, Initializer initializer) {
+        super(name, initializer, strand, mailboxConfig);
         this.restartStrategy = restartStrategy;
         this.childSpec = null;
     }
 
-    public Supervisor(Strand strand, String name, int mailboxSize, RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
-        super(name, null, strand, mailboxSize);
+    public Supervisor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
+        super(name, null, strand, mailboxConfig);
         this.restartStrategy = restartStrategy;
         this.childSpec = childSpec;
     }
 
-    public Supervisor(Strand strand, String name, int mailboxSize, RestartStrategy restartStrategy, ChildSpec... childSpec) {
-        this(strand, name, mailboxSize, restartStrategy, Arrays.asList(childSpec));
+    public Supervisor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, ChildSpec... childSpec) {
+        this(strand, name, mailboxConfig, restartStrategy, Arrays.asList(childSpec));
     }
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-    public Supervisor(Strand strand, String name, int mailboxSize, RestartStrategy restartStrategy) {
-        this(strand, name, mailboxSize, restartStrategy, (Initializer) null);
+    public Supervisor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy) {
+        this(strand, name, mailboxConfig, restartStrategy, (Initializer) null);
     }
 
-    public Supervisor(String name, int mailboxSize, RestartStrategy restartStrategy) {
-        this(null, name, mailboxSize, restartStrategy, (Initializer) null);
+    public Supervisor(String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy) {
+        this(null, name, mailboxConfig, restartStrategy, (Initializer) null);
     }
 
     public Supervisor(String name, RestartStrategy restartStrategy) {
-        this(null, name, -1, restartStrategy, (Initializer) null);
+        this(null, name, null, restartStrategy, (Initializer) null);
     }
 
-    public Supervisor(String name, int mailboxSize, RestartStrategy restartStrategy, Initializer initializer) {
-        this(null, name, mailboxSize, restartStrategy, initializer);
+    public Supervisor(String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, Initializer initializer) {
+        this(null, name, mailboxConfig, restartStrategy, initializer);
     }
 
     public Supervisor(String name, RestartStrategy restartStrategy, Initializer initializer) {
-        this(null, name, -1, restartStrategy, initializer);
+        this(null, name, null, restartStrategy, initializer);
     }
 
     public Supervisor(RestartStrategy restartStrategy) {
-        this(null, null, -1, restartStrategy, (Initializer) null);
+        this(null, null, null, restartStrategy, (Initializer) null);
     }
 
     ///
-    public Supervisor(String name, int mailboxSize, RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
-        this(null, name, mailboxSize, restartStrategy, childSpec);
+    public Supervisor(String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
+        this(null, name, mailboxConfig, restartStrategy, childSpec);
     }
 
-    public Supervisor(String name, int mailboxSize, RestartStrategy restartStrategy, ChildSpec... childSpec) {
-        this(null, name, mailboxSize, restartStrategy, childSpec);
+    public Supervisor(String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, ChildSpec... childSpec) {
+        this(null, name, mailboxConfig, restartStrategy, childSpec);
     }
 
     public Supervisor(String name, RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
-        this(null, name, -1, restartStrategy, childSpec);
+        this(null, name, null, restartStrategy, childSpec);
     }
 
     public Supervisor(String name, RestartStrategy restartStrategy, ChildSpec... childSpec) {
-        this(null, name, -1, restartStrategy, childSpec);
+        this(null, name, null, restartStrategy, childSpec);
     }
 
     public Supervisor(RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
-        this(null, null, -1, restartStrategy, childSpec);
+        this(null, null, null, restartStrategy, childSpec);
     }
 
     public Supervisor(RestartStrategy restartStrategy, ChildSpec... childSpec) {
-        this(null, null, -1, restartStrategy, childSpec);
+        this(null, null, null, restartStrategy, childSpec);
     }
     //</editor-fold>
 
@@ -372,7 +374,7 @@ public class Supervisor extends BasicGenBehavior {
             unwatch(child);
             if (!child.actor.isDone()) {
                 LOG.info("{} shutting down child {}", this, child.actor);
-                ((Actor) child.actor).send(new ShutdownMessage(this));
+                ((ActorImpl) child.actor).sendOrInterrupt(new ShutdownMessage(this));
             }
             try {
                 joinChild(child);
@@ -390,7 +392,7 @@ public class Supervisor extends BasicGenBehavior {
         for (ChildEntry child : children) {
             if (child.actor != null) {
                 unwatch(child);
-                ((Actor) child.actor).send(new ShutdownMessage(this));
+                ((ActorImpl) child.actor).sendOrInterrupt(new ShutdownMessage(this));
             }
         }
 

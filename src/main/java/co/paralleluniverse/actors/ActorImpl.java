@@ -16,6 +16,8 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
+import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Mailbox;
 import co.paralleluniverse.strands.channels.SendChannel;
@@ -30,18 +32,21 @@ import java.util.concurrent.ThreadLocalRandom;
 public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Serializable {
     // TODO: This class may be redundant
     static final long serialVersionUID = 894359345L;
+    private static final int MAX_SEND_RETRIES = 10;
     private volatile Object name;
     final Mailbox<Object> mailbox;
     protected final FlightRecorder flightRecorder;
+    private final boolean backpressure;
 
     @Override
     public String toString() {
         return "Actor@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this)));
     }
 
-    protected ActorImpl(Object name, Mailbox<Object> mailbox) {
+    protected ActorImpl(Object name, Mailbox<Object> mailbox, boolean backpressure) {
         this.name = name;
         this.mailbox = mailbox;
+        this.backpressure = backpressure;
 
         if (Debug.isDebug())
             this.flightRecorder = Debug.getGlobalFlightRecorder();
@@ -75,7 +80,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
 
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
-    Mailbox<Object> mailbox() {
+    protected Mailbox<Object> mailbox() {
         return mailbox;
     }
 
@@ -84,7 +89,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
     }
 
     @Override
-    public final void send(Message message) {
+    public final void send(Message message) throws SuspendExecution {
         try {
             record(1, "Actor", "send", "Sending %s -> %s", message, this);
             if (mailbox.isOwnerAlive())
@@ -92,12 +97,12 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
             else
                 record(1, "Actor", "send", "Message dropped. Owner not alive.");
         } catch (QueueCapacityExceededException e) {
-            throwIn(e);
+            onMailboxFull(message, e);
         }
     }
 
     @Override
-    public final void sendSync(Message message) {
+    public final void sendSync(Message message) throws SuspendExecution {
         try {
             record(1, "Actor", "sendSync", "Sending sync %s -> %s", message, this);
             if (mailbox.isOwnerAlive())
@@ -105,6 +110,51 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
             else
                 record(1, "Actor", "sendSync", "Message dropped. Owner not alive.");
         } catch (QueueCapacityExceededException e) {
+            onMailboxFull(message, e);
+        }
+    }
+
+    public void sendOrInterrupt(Object message) {
+        try {
+            record(1, "Actor", "send", "Sending %s -> %s", message, this);
+            if (mailbox.isOwnerAlive())
+                mailbox.send(message);
+            else
+                record(1, "Actor", "send", "Message dropped. Owner not alive.");
+        } catch (QueueCapacityExceededException e) {
+            interrupt();
+        }
+    }
+
+    /**
+     * This method is called <i>on the sender's strand</i> when the mailbox is full.
+     *
+     * @param e
+     */
+    protected void onMailboxFull(Message message, QueueCapacityExceededException e) throws SuspendExecution {
+        if (backpressure) {
+            long sleepMillis = 1;
+            for (int count = 1;; count++) {
+                try {
+                    mailbox.send(message);
+                    break;
+                } catch (QueueCapacityExceededException ex) {
+                    try {
+                        if (count > MAX_SEND_RETRIES) {
+                            throwIn(e);
+                            break;
+                        } else if (count > 5) {
+                            Strand.sleep(sleepMillis);
+                            sleepMillis *= 5;
+                        } else if (count > 4) {
+                            Strand.yield();
+                        }
+                    } catch (InterruptedException ie) {
+                        Strand.currentStrand().interrupt();
+                    }
+                }
+            }
+        } else {
             throwIn(e);
         }
     }

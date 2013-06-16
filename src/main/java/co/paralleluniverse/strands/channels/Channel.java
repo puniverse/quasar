@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.OwnedSynchronizer;

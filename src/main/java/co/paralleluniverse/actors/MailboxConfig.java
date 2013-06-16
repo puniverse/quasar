@@ -13,30 +13,31 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.channels.SendChannel;
-
 /**
  *
  * @author pron
  */
-public interface Actor<Message> extends SendChannel<Message> {
-    Object getName();
+public class MailboxConfig {
+    public enum OverflowPolicy {
+        KILL, BACKPRESSURE
+    };
+    private final int mailboxSize;
+    private final OverflowPolicy policy;
 
-    boolean isDone();
+    public MailboxConfig(int mailboxSize, OverflowPolicy policy) {
+        this.mailboxSize = mailboxSize;
+        this.policy = policy;
+    }
 
-    @Override
-    void send(Message message) throws SuspendExecution;
+    public MailboxConfig() {
+        this(-1, null);
+    }
 
-    void sendSync(Message message) throws SuspendExecution;
+    public int getMailboxSize() {
+        return mailboxSize;
+    }
 
-    Actor link(Actor other);
-
-    Actor unlink(Actor other);
-
-    Object watch(Actor other);
-
-    void unwatch(Actor other, Object listener);
-
-    void interrupt();
+    public OverflowPolicy getPolicy() {
+        return policy;
+    }
 }

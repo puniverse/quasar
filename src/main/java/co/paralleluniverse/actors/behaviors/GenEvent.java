@@ -22,5 +22,5 @@ import co.paralleluniverse.fibers.SuspendExecution;
 public interface GenEvent<Event> extends GenBehavior {
     boolean addHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException;
     boolean removeHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException;
-    void notify(Event event);
+    void notify(Event event) throws SuspendExecution;
 }

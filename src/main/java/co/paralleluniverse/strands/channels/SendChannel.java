@@ -13,10 +13,12 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.fibers.SuspendExecution;
+
 /**
  *
  * @author pron
  */
 public interface SendChannel<Message> {
-    void send(Message message);
+    void send(Message message) throws SuspendExecution;
 }

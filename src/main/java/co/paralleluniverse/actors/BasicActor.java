@@ -25,30 +25,30 @@ import java.util.concurrent.TimeoutException;
 public abstract class BasicActor<Message, V> extends LocalActor<Message, V> {
     private final SelectiveReceiveHelper<Message> helper;
 
-    public BasicActor(String name, int mailboxSize) {
-        super(name, mailboxSize);
+    public BasicActor(String name, MailboxConfig mailboxConfig) {
+        super(name, mailboxConfig);
         this.helper = new SelectiveReceiveHelper<>(this);
     }
 
-    public BasicActor(int mailboxSize) {
-        this((String) null, mailboxSize);
+    public BasicActor(MailboxConfig mailboxConfig) {
+        this((String) null, mailboxConfig);
     }
 
     public BasicActor(String name) {
-        this(name, -1);
+        this(name, null);
     }
 
     public BasicActor() {
-        this((String) null, -1);
+        this((String) null, null);
     }
 
-    public BasicActor(Strand strand, String name, int mailboxSize) {
-        super(strand, name, mailboxSize);
+    public BasicActor(Strand strand, String name, MailboxConfig mailboxConfig) {
+        super(strand, name, mailboxConfig);
         this.helper = new SelectiveReceiveHelper<>(this);
     }
 
-    public BasicActor(Strand strand, int mailboxSize) {
-        this(strand, (String) null, mailboxSize);
+    public BasicActor(Strand strand, MailboxConfig mailboxConfig) {
+        this(strand, (String) null, mailboxConfig);
     }
 
     /**

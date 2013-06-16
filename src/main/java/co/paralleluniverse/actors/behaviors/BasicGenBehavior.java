@@ -13,12 +13,15 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
+import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.LocalActor;
+import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import org.slf4j.Logger;
 
 /**
@@ -29,56 +32,69 @@ public abstract class BasicGenBehavior extends LocalActor<Object, Void> implemen
     private final Initializer initializer;
     private boolean run;
 
-    public BasicGenBehavior(String name, Initializer initializer, Strand strand, int mailboxSize) {
-        super(strand, name, mailboxSize);
+    public BasicGenBehavior(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
+        super(strand, name, mailboxConfig);
         this.initializer = initializer;
         this.run = true;
     }
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-    public BasicGenBehavior(String name, Initializer initializer, int mailboxSize) {
-        this(name, initializer, null, mailboxSize);
+    public BasicGenBehavior(String name, Initializer initializer, MailboxConfig mailboxConfig) {
+        this(name, initializer, null, mailboxConfig);
     }
 
     public BasicGenBehavior(String name, Initializer initializer) {
-        this(name, initializer, null, -1);
+        this(name, initializer, null, null);
     }
 
-    public BasicGenBehavior(Initializer initializer, int mailboxSize) {
-        this(null, initializer, null, mailboxSize);
+    public BasicGenBehavior(Initializer initializer, MailboxConfig mailboxConfig) {
+        this(null, initializer, null, mailboxConfig);
     }
 
     public BasicGenBehavior(Initializer initializer) {
-        this(null, initializer, null, -1);
+        this(null, initializer, null, null);
     }
 
-    public BasicGenBehavior(String name, int mailboxSize) {
-        this(name, null, null, mailboxSize);
+    public BasicGenBehavior(String name, MailboxConfig mailboxConfig) {
+        this(name, null, null, mailboxConfig);
     }
 
     public BasicGenBehavior(String name) {
-        this(name, null, null, -1);
+        this(name, null, null, null);
     }
 
-    public BasicGenBehavior(int mailboxSize) {
-        this(null, null, null, mailboxSize);
+    public BasicGenBehavior(MailboxConfig mailboxConfig) {
+        this(null, null, null, mailboxConfig);
     }
 
     public BasicGenBehavior() {
-        this(null, null, null, -1);
+        this(null, null, null, null);
     }
     //</editor-fold>
-    
+
     @Override
     public void shutdown() {
         if (isInActor()) {
             log().debug("Shutdown requested.");
             run = false;
             getStrand().interrupt();
-        } else
-            send(new ShutdownMessage(LocalActor.self()));
+        } else {
+            try {
+                final ShutdownMessage message = new ShutdownMessage(LocalActor.self());
+                record(1, "Actor", "send", "Sending %s -> %s", message, this);
+                if (mailbox().isOwnerAlive())
+                    mailbox().send(message);
+                else
+                    record(1, "Actor", "send", "Message dropped. Owner not alive.");
+            } catch (QueueCapacityExceededException e) {
+                final Strand strand = getStrand();
+                if (strand != null)
+                    strand.interrupt();
+            }
+        }
     }
+
 
     protected Initializer getInitializer() {
         return initializer;

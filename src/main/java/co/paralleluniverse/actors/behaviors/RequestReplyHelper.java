@@ -18,6 +18,7 @@ import co.paralleluniverse.actors.ActorImpl;
 import co.paralleluniverse.actors.ExitMessage;
 import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.LocalActor;
+import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.MessageProcessor;
 import co.paralleluniverse.actors.SelectiveReceiveHelper;
 import co.paralleluniverse.common.util.Exceptions;
@@ -96,11 +97,11 @@ public class RequestReplyHelper {
         }
     }
 
-    public static <V> void reply(GenRequestMessage req, V result) {
+    public static <V> void reply(GenRequestMessage req, V result) throws SuspendExecution {
         req.getFrom().send(new GenValueResponseMessage<V>(req.getId(), result));
     }
 
-    public static <V> void replyError(GenRequestMessage req, Throwable e) {
+    public static <V> void replyError(GenRequestMessage req, Throwable e) throws SuspendExecution {
         req.getFrom().send(new GenErrorResponseMessage(req.getId(), e));
     }
 
@@ -108,7 +109,7 @@ public class RequestReplyHelper {
         Actor actor = LocalActor.self();
         if (actor == null) {
             // create a "dummy actor" on the current strand
-            actor = new LocalActor(Strand.currentStrand(), null, 5) {
+            actor = new LocalActor(Strand.currentStrand(), null, new MailboxConfig(5, MailboxConfig.OverflowPolicy.KILL)) {
                 @Override
                 protected Object doRun() throws InterruptedException, SuspendExecution {
                     throw new AssertionError();
@@ -140,7 +141,7 @@ public class RequestReplyHelper {
         }
 
         private Actor actor() {
-            Actor a = getActor();
+            final Actor a = getActor();
             if (a == null)
                 throw new RuntimeException("Temporary actor is out of scope");
             return a;
@@ -157,14 +158,21 @@ public class RequestReplyHelper {
         }
 
         @Override
-        public void send(Message message) {
+        public void interrupt() {
+            final Actor a = getActor();
+            if (a != null)
+                a.interrupt();
+        }
+        
+        @Override
+        public void send(Message message) throws SuspendExecution {
             final Actor a = getActor();
             if (a != null)
                 a.send(message);
         }
 
         @Override
-        public void sendSync(Message message) {
+        public void sendSync(Message message) throws SuspendExecution {
             final Actor a = getActor();
             if (a != null)
                 a.sendSync(message);

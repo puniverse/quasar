@@ -24,5 +24,5 @@ import java.util.concurrent.TimeoutException;
 public interface GenServer<CallMessage, V, CastMessage> extends GenBehavior {
     V call(CallMessage m) throws InterruptedException, SuspendExecution;
     V call(CallMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution;
-    void cast(CastMessage m);
+    void cast(CastMessage m) throws SuspendExecution;
 }

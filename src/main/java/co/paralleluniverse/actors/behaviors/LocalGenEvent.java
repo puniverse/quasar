@@ -14,6 +14,7 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.MailboxConfig;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.replyError;
@@ -32,42 +33,42 @@ public class LocalGenEvent<Event> extends BasicGenBehavior implements GenEvent<E
     private static final Logger LOG = LoggerFactory.getLogger(LocalGenEvent.class);
     private final List<EventHandler<Event>> handlers = new ArrayList<>();
 
-    public LocalGenEvent(String name, Initializer initializer, Strand strand, int mailboxSize) {
-        super(name, initializer, strand, mailboxSize);
+    public LocalGenEvent(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
+        super(name, initializer, strand, mailboxConfig);
     }
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-    public LocalGenEvent(String name, Initializer initializer, int mailboxSize) {
-        this(name, initializer, null, mailboxSize);
+    public LocalGenEvent(String name, Initializer initializer, MailboxConfig mailboxConfig) {
+        this(name, initializer, null, mailboxConfig);
     }
 
     public LocalGenEvent(String name, Initializer initializer) {
-        this(name, initializer, null, -1);
+        this(name, initializer, null, null);
     }
 
-    public LocalGenEvent(Initializer initializer, int mailboxSize) {
-        this(null, initializer, null, mailboxSize);
+    public LocalGenEvent(Initializer initializer, MailboxConfig mailboxConfig) {
+        this(null, initializer, null, mailboxConfig);
     }
 
     public LocalGenEvent(Initializer initializer) {
-        this(null, initializer, null, -1);
+        this(null, initializer, null, null);
     }
 
-    public LocalGenEvent(String name, int mailboxSize) {
-        this(name, null, null, mailboxSize);
+    public LocalGenEvent(String name, MailboxConfig mailboxConfig) {
+        this(name, null, null, mailboxConfig);
     }
 
     public LocalGenEvent(String name) {
-        this(name, null, null, -1);
+        this(name, null, null, null);
     }
 
-    public LocalGenEvent(int mailboxSize) {
-        this(null, null, null, mailboxSize);
+    public LocalGenEvent(MailboxConfig mailboxConfig) {
+        this(null, null, null, mailboxConfig);
     }
 
     public LocalGenEvent() {
-        this(null, null, null, -1);
+        this(null, null, null, null);
     }
     //</editor-fold>
     
@@ -99,7 +100,7 @@ public class LocalGenEvent<Event> extends BasicGenBehavior implements GenEvent<E
     }
 
     @Override
-    public void notify(Event event) {
+    public void notify(Event event) throws SuspendExecution {
         send(event);
     }
 

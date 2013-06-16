@@ -40,7 +40,7 @@ class GenServerHelper {
         return res;
     }
 
-    public static void cast(Actor server, Object m) {
+    public static void cast(Actor server, Object m) throws SuspendExecution {
         server.send(new GenServerRequest(LocalActor.self(), makeId(), MessageType.CAST, m));
     }
 
