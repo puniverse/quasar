@@ -103,7 +103,9 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     }
 
     protected void doPark(boolean yield) {
-        if (!yield)
+        if (yield)
+            submit();
+        else
             this.state = PARKED;
         onParked(yield);
     }
@@ -146,7 +148,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     }
 
     public void unpark() {
-        if(isDone())
+        if (isDone())
             return;
         int newState;
         for (;;) {
@@ -184,7 +186,6 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     protected void yield1() throws Exception {
         parking(true);
-        submit();
         onParked(true);
         throwPark(true);
     }

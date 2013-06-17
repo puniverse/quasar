@@ -541,7 +541,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             record(1, "Fiber", "exec1", "finished %s %s res: %s", state, this, this.result);
             return true;
         } catch (SuspendExecution ex) {
-            assert ex == SuspendExecution.instance;
+            assert ex == SuspendExecution.PARK || ex == SuspendExecution.YIELD;
             //stack.dump();
             stack.resumeStack();
             state = State.WAITING;
@@ -553,8 +553,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             setCurrentFiber(oldFiber);
 
             record(1, "Fiber", "exec1", "parked %s %s", state, this);
-            fjTask.doPark(false); // now we can complete parking
+            fjTask.doPark(ex == SuspendExecution.YIELD); // now we can complete parking
 
+            assert ppa == null || ex == SuspendExecution.PARK; // can't have postParkActions on yield
             if (ppa != null)
                 ppa.run(this);
 
@@ -957,7 +958,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         @Override
         protected void throwPark(boolean yield) throws SuspendExecution {
-            throw SuspendExecution.instance;
+            throw yield ? SuspendExecution.YIELD : SuspendExecution.PARK;
         }
 
         @Override
