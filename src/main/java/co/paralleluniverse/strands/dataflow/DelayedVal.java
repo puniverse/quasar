@@ -43,17 +43,35 @@ public class DelayedVal<V> implements Future<V> {
 
     @Override
     public V get() throws InterruptedException, SuspendExecution {
-        SimpleConditionSynchronizer s;
-        while ((s = sync) != null)
-            s.await();
+        final SimpleConditionSynchronizer s = sync;
+        if (s != null) {
+            s.lock();
+            try {
+                while (sync != null)
+                    s.await();
+            } finally {
+                s.unlock();
+            }
+        }
         return value;
     }
 
     @Override
     public V get(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, SuspendExecution {
-        SimpleConditionSynchronizer s;
-        while ((s = sync) != null)
-            s.await(timeout, unit);
+        final SimpleConditionSynchronizer s = sync;
+        if (s != null) {
+            s.lock();
+            try {
+                long left = unit.toNanos(timeout);
+                while (sync != null) {
+                    left = s.awaitNanos(left);
+                    if (left <= 0)
+                        throw new TimeoutException();
+                }
+            } finally {
+                s.unlock();
+            }
+        }
         return value;
     }
 

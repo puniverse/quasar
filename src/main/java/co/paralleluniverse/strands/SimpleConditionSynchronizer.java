@@ -28,16 +28,23 @@ import jsr166e.ConcurrentHashMapV8;
 public class SimpleConditionSynchronizer {
     private final Collection<Strand> waiters = Collections.newSetFromMap(new ConcurrentHashMapV8<Strand, Boolean>()); // new ConcurrentLinkedQueue<Strand>(); 
 
+    public void lock() {
+        final Strand currentStrand = Strand.currentStrand();
+        waiters.add(currentStrand);
+    }
+
+    public void unlock() {
+        final Strand currentStrand = Strand.currentStrand();
+        waiters.remove(currentStrand);
+    }
+
     public void await() throws InterruptedException, SuspendExecution {
-        waiters.add(Strand.currentStrand());
         Strand.park(this);
         if (Strand.interrupted())
             throw new InterruptedException();
     }
 
     public long awaitNanos(long timeoutNanos) throws InterruptedException, SuspendExecution {
-        waiters.add(Strand.currentStrand());
-
         final long start = System.nanoTime();
         final long deadline = start + timeoutNanos;
 
@@ -56,8 +63,8 @@ public class SimpleConditionSynchronizer {
         while (!waiters.isEmpty()) {
             for (Iterator<Strand> it = waiters.iterator(); it.hasNext();) {
                 final Strand s = it.next();
-                Strand.unpark(s);
                 it.remove();
+                Strand.unpark(s);
             }
         }
     }
