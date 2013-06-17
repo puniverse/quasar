@@ -34,6 +34,10 @@ public class Metrics {
         reporter.start();
     }
 
+    public static MetricRegistry registry() {
+        return metrics;
+    }
+    
     public static <T extends Metric> T register(String name, T metric) throws IllegalArgumentException {
         return metrics.register(name, metric);
     }
