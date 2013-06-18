@@ -204,18 +204,8 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
         LifecycleListener listener = new LifecycleListener() {
             @Override
             public void dead(Actor actor, Throwable cause) {
-                record(1, "Actor", "watch", "1111111 Actor %s received death event from %s (listener: %s)", ActorImpl.this, actor, this);
-                try {
-                    if (mailbox.isOwnerAlive()) {
-                        record(1, "Actor", "watch", "XXXXXXX");
-                        mailbox.send(new ExitMessage(actor, cause, this));
-                        record(1, "Actor", "watch", "YYYYYYY");
-                    }
-                    record(1, "Actor", "watch", "2222222 Actor %s received death event from %s (listener: %s)", ActorImpl.this, actor, this);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    record(1, "Actor", "watch", "333333 Actor %s received death event from %s (listener: %s) %s", ActorImpl.this, actor, this, e);
-                }
+                if (mailbox.isOwnerAlive())
+                    mailbox.send(new ExitMessage(actor, cause, this));
             }
         };
         record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other, listener);

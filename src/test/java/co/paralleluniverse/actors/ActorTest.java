@@ -96,8 +96,6 @@ public class ActorTest {
     @Test
     public void testReceive() throws Exception {
         LocalActor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
-            int counter;
-
             @Override
             protected Integer doRun() throws SuspendExecution, InterruptedException {
                 Message m = receive();
@@ -141,12 +139,12 @@ public class ActorTest {
                         public boolean process(ComplexMessage m) throws SuspendExecution, InterruptedException {
                             switch (m.type) {
                                 case FOO:
-                                    list.add(1);
+                                    list.add(m.num);
                                     receive(new MessageProcessor<ComplexMessage>() {
                                         public boolean process(ComplexMessage m) throws SuspendExecution, InterruptedException {
                                             switch (m.type) {
                                                 case BAZ:
-                                                    list.add(3);
+                                                    list.add(m.num);
                                                     return true;
                                                 default:
                                                     return false;
@@ -155,7 +153,7 @@ public class ActorTest {
                                     });
                                     return true;
                                 case BAR:
-                                    list.add(2);
+                                    list.add(m.num);
                                     return true;
                                 case BAZ:
                                     fail();

@@ -107,13 +107,11 @@ public class FiberTest {
                 } catch (InterruptedException e) {
                 }
             }
-        });
-        fiber.start();
+        }).start();
 
         Thread.sleep(20);
         fiber.interrupt();
-
-        fiber.join();
+        fiber.join(5, TimeUnit.MILLISECONDS);
     }
 
     @Test
