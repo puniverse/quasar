@@ -94,7 +94,7 @@ public class SingleConsumerNonblockingProducerDelayQueueTest {
         DelayedValue dv;
 
         final long start = System.nanoTime();
-        
+
         dv = q.take();
         assertThat(dv.getValue(), is(1));
         dv = q.take();
@@ -103,7 +103,28 @@ public class SingleConsumerNonblockingProducerDelayQueueTest {
         assertThat(dv.getValue(), is(3));
 
         final long elapsedMillis = TimeUnit.MILLISECONDS.convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
-        
+
         assertTrue("elapsed: " + elapsedMillis, elapsedMillis > 140 && elapsedMillis < 170);
+    }
+
+    @Test
+    public void testTimedPollWithSurpriseInsertions() throws Exception {
+        DelayedValue dv;
+
+        dv = q.poll(30, TimeUnit.MILLISECONDS);
+        assertThat(dv, is(nullValue()));
+
+        q.offer(new DelayedValue(2, 200));
+
+        dv = q.poll(30, TimeUnit.MILLISECONDS);
+        assertThat(dv, is(nullValue()));
+
+        q.offer(new DelayedValue(1, 20));
+
+        dv = q.poll(30, TimeUnit.MILLISECONDS);
+        assertThat(dv.getValue(), is(1));
+
+        dv = q.poll(150, TimeUnit.MILLISECONDS);
+        assertThat(dv.getValue(), is(2));
     }
 }
