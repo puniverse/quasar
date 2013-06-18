@@ -72,7 +72,7 @@ public class DelayQueueBenchmark {
                     final ThreadLocalRandom rand = ThreadLocalRandom.current();
                     int i = REPETITIONS / NUM_PRODUCERS;
                     do {
-                        while (!queue.offer(new DelayedValue(TEST_VALUE, TimeUnit.MILLISECONDS.toNanos(rand.nextInt(0, 11)))))
+                        while (!queue.offer(new DelayedValue(TEST_VALUE, rand.nextInt(0, 11))))
                             Thread.yield();
                     } while (0 != --i);
                 }

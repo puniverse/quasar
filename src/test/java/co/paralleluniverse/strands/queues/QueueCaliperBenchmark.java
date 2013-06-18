@@ -53,13 +53,14 @@ public class QueueCaliperBenchmark extends Benchmark {
     }
 
     private Integer timeQueue(final int reps, final Queue<Integer> queue) {
-        final int repetitions = (reps / numProducers) * numProducers;
+        final int repsPerProducer = Math.max(reps / numProducers, 1);
+        final int repetitions = repsPerProducer * numProducers;
 
         for (int t = 0; t < numProducers; t++) {
             producers[t] = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    int i = reps / numProducers;
+                    int i = repsPerProducer;
                     do {
                         while (!queue.offer(TEST_VALUE))
                             Thread.yield();
@@ -77,7 +78,6 @@ public class QueueCaliperBenchmark extends Benchmark {
             while (null == (result = queue.poll()))
                 Thread.yield();
         } while (0 != --i);
-
 
         return result;
     }

@@ -21,6 +21,7 @@ import co.paralleluniverse.common.util.NamingThreadFactory;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
+import co.paralleluniverse.concurrent.util.ScheduledSingleThreadExecutor;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.instrument.Retransform;
 import co.paralleluniverse.strands.Strand;
@@ -80,7 +81,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return true;
     }
 
-    private static final ScheduledExecutorService timeoutService = Executors.newSingleThreadScheduledExecutor(new NamingThreadFactory("fiber-timeout"));
+    private static final ScheduledExecutorService timeoutService = Boolean.getBoolean("co.paralleluniverse.fibers.useExperimentalTimeoutExecutor") ? 
+            new ScheduledSingleThreadExecutor(new NamingThreadFactory("fiber-timeout")) :
+            Executors.newSingleThreadScheduledExecutor(new NamingThreadFactory("fiber-timeout"));
+    
     private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler;
     //
     private final ForkJoinPool fjPool;

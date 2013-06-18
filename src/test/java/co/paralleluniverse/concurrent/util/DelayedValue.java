@@ -22,10 +22,14 @@ public class DelayedValue implements Delayed {
     private long time;
     private final int value;
 
-    DelayedValue(int value, long ns) {
-        this.time = ns;
+    DelayedValue(int value, long millis) {
+        this.time = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(millis);
         this.sequenceNumber = sequencer.getAndIncrement();
         this.value = value;
+    }
+
+    public int getValue() {
+        return value;
     }
 
     @Override

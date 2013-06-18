@@ -17,7 +17,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
@@ -28,11 +27,11 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author pron
  */
 class SingleConsumerNonblockingProducerPriorityQueue<E> implements BlockingQueue<E> {
-    private final ConcurrentSkipListSet<E> sls;
+    final ConcurrentSkipListSet<E> sls;
     //
-    private final ReentrantLock lock = new ReentrantLock();
-    private final Condition available = lock.newCondition();
-    private final AtomicBoolean consumerBlocking = new AtomicBoolean();
+    final ReentrantLock lock = new ReentrantLock();
+    final Condition available = lock.newCondition();
+    volatile boolean consumerBlocking;
 //    private final Semaphore available = new Semaphore(0);
     
     public SingleConsumerNonblockingProducerPriorityQueue() {
@@ -48,7 +47,7 @@ class SingleConsumerNonblockingProducerPriorityQueue<E> implements BlockingQueue
         final boolean res = sls.add(e);
 //        if(res)
 //            available.release();
-        if (consumerBlocking.compareAndSet(true, false)) { // if the consumer is not blocking, then it MUST check the queue again
+        if (consumerBlocking && sls.peekFirst() == e) { // if the consumer is not blocking, then it MUST check the queue again
             lock.lock();
             try {
                 available.signal();
@@ -68,16 +67,16 @@ class SingleConsumerNonblockingProducerPriorityQueue<E> implements BlockingQueue
     public E take() throws InterruptedException {
         E e = sls.pollFirst();
         if (e == null) {
-            consumerBlocking.set(true);
+            consumerBlocking = true;
             lock.lock();
             try {
                 e = sls.pollFirst();
-                while (e == null || !isValid(e)) {
+                while (e == null) {
                     available.await();
                     e = sls.pollFirst();
                 }
             } finally {
-                consumerBlocking.set(false);
+                consumerBlocking = false;
                 lock.unlock();
             }
         }
@@ -87,29 +86,24 @@ class SingleConsumerNonblockingProducerPriorityQueue<E> implements BlockingQueue
     @Override
     public E poll(long timeout, TimeUnit unit) throws InterruptedException {
         E e = sls.pollFirst();
-
         if (e == null) {
-            consumerBlocking.set(true);
+            consumerBlocking = true;
             long left = unit.toNanos(timeout);
             lock.lock();
             try {
                 e = sls.pollFirst();
-                while (e == null || !isValid(e)) {
+                while (e == null) {
                     left = available.awaitNanos(left);
-                    e = sls.pollFirst();
                     if (left < 0)
-                        return e;
+                        return null;
+                    e = sls.pollFirst();
                 }
             } finally {
-                consumerBlocking.set(false);
+                consumerBlocking = false;
                 lock.unlock();
             }
         }
         return e;
-    }
-
-    protected boolean isValid(E e) {
-        return true;
     }
 
     //////////// Boring //////////////////////////
@@ -148,9 +142,10 @@ class SingleConsumerNonblockingProducerPriorityQueue<E> implements BlockingQueue
 
     @Override
     public E peek() {
-        if(sls.isEmpty())
-            return null; 
-        return sls.first(); // remember, we're single consumer. If we weren't empty we stay non-empty as no one else can take elements.
+        return sls.peekFirst();
+//        if(sls.isEmpty())
+//            return null; 
+//        return sls.first(); // remember, we're single consumer. If we weren't empty we stay non-empty as no one else can take elements.
     }
 
     @Override
