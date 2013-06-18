@@ -1,232 +1,242 @@
-apply plugin: 'java'
+subprojects {
+	apply plugin: 'java'
 
-sourceCompatibility = '1.7'
-targetCompatibility = '1.7'
+	sourceCompatibility = '1.7'
+	targetCompatibility = '1.7'
 
-[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+	[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
-group               = "co.paralleluniverse"
-version             = "0.2-SNAPSHOT"
-status              = "integration"
-description         = "lightweight threads and actors for the JVM."
-ext.url             = "http://puniverse.github.com/quasar"
-ext.vendor          = "Parallel Universe Software Co."
-ext.licenseName1    = "The GNU Lesser General Public License, version 3"
-ext.licenseUrl1     = "http://www.gnu.org/licenses/lgpl-3.0.txt"
-ext.licenseName2    = "Eclipse Public License - v 1.0"
-ext.licenseUrl2     = "http://www.eclipse.org/legal/epl-v10.html"
-ext.scmUrl          = "https://github.com/puniverse/quasar"
-ext.scmConnection   = "https://github.com/puniverse/quasar.git"
-ext.distDir         = "$buildDir/dist"
-ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
+	group               = "co.paralleluniverse"
+	version             = "0.2-SNAPSHOT"
+	status              = "integration"
+	description         = "lightweight threads and actors for the JVM."
+	ext.url             = "http://puniverse.github.com/quasar"
+	ext.vendor          = "Parallel Universe Software Co."
+	ext.licenseName1    = "The GNU Lesser General Public License, version 3"
+	ext.licenseUrl1     = "http://www.gnu.org/licenses/lgpl-3.0.txt"
+	ext.licenseName2    = "Eclipse Public License - v 1.0"
+	ext.licenseUrl2     = "http://www.eclipse.org/legal/epl-v10.html"
+	ext.scmUrl          = "https://github.com/puniverse/quasar"
+	ext.scmConnection   = "https://github.com/puniverse/quasar.git"
+	ext.distDir         = "$buildDir/dist"
+	ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
+	ext.baselib			= "${rootProject.projectDir}/baselib"
 
-if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
-    println "sonatype username or password not set"
-    sonatypeUsername = ""
-    sonatypePassword = ""
+	if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
+	    println "sonatype username or password not set"
+	    sonatypeUsername = ""
+	    sonatypePassword = ""
+	}
+
+	// NetBeans will automatically add "run" and "debug" tasks relying on the
+	// "mainClass" property. You may however define the property prior executing
+	// tasks by passing a "-PmainClass=<QUALIFIED_CLASS_NAME>" argument.
+	//
+	// Note however, that you may define your own "run" and "debug" task if you
+	// prefer. In this case NetBeans will not add these tasks but you may rely on
+	// your own implementation.
+	if (!hasProperty('mainClass')) {
+	    ext.mainClass = ''
+	}
+	repositories {
+	    flatDir {
+    		dirs baselib
+	    }
+	    repositories {
+	        mavenCentral()
+	    }
+	}
+
+	dependencies {
+	    compile ":jsr166e"
+	    compile "com.codahale.metrics:metrics-core:3.0.0-RC1" 
+	    compile "org.ow2.asm:asm:4.1" 
+	    compile "org.ow2.asm:asm-analysis:4.1"
+	    compile "org.ow2.asm:asm-util:4.1"
+	    compile "org.apache.ant:ant:1.7.0"
+	    compile "com.google.guava:guava:14.0.1"
+	    compile "org.slf4j:slf4j-api:1.7.5"
+	//  runtime "org.slf4j:slf4j-jdk14:1.6.4"
+	    runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0-beta6"
+	    runtime "org.apache.logging.log4j:log4j-api:2.0-beta6"
+	    runtime "org.apache.logging.log4j:log4j-core:2.0-beta6"
+	    compile "com.lmax:disruptor:3.0.1" // required for log4j
+	    testCompile 'junit:junit:4.10'
+	    testCompile 'org.hamcrest:hamcrest-all:1.3'
+	    testCompile 'org.mockito:mockito-all:1.9.0'
+	    testCompile 'com.google.caliper:caliper:1.0-beta-1'
+	    testRuntime 'com.sun.jersey:jersey-core:1.11' // needed for caliper. caliper depends on jersey-client but for some reason jersey-core is not a dependency
+	}
+
+
+	task instrumentClasses(dependsOn: 'compileJava') << {
+	    //ant.logging.level = LogLevel.INFO
+	    ant.taskdef(name:'continuations', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
+	    ant.continuations(verbose:'true', check:'true', debug:'true') {
+	        fileset(dir: sourceSets.main.output.classesDir) {
+	            exclude(name: 'co/paralleluniverse/fibers/*.class')
+	            exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
+	        }
+	    }
+	}
+
+	task instrumentTestClasses(dependsOn: 'compileTestJava') << {
+	    //ant.logging.level = LogLevel.INFO
+	    ant.taskdef(name:'continuations', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
+	    ant.continuations(verbose:'true', check:'true', debug:'true') {
+	        fileset(dir: sourceSets.test.output.classesDir)
+	    }
+	}
+
+	//testClasses.dependsOn instrumentClasses, instrumentTestClasses
+
+	test.dependsOn jar
+
+	tasks.withType(Test) { 
+	    useJUnit()
+	    systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+	//  systemProperty "java.util.logging.config.file", "jul.properties"
+	    systemProperty "log4j.configurationFile", "log4j.xml"
+	    systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
+	    
+	//  systemProperty "co.paralleluniverse.debugMode", "true"
+	//  systemProperty "co.paralleluniverse.globalFlightRecorder", "true"
+	//  systemProperty "co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log"
+	    
+	    jvmArgs "-javaagent:${jar.archivePath}" // =v, =d
+	    
+	    doLast() {
+	        println "file://" + testReportDir + "/index.html"    
+	    }  
+	}
+
+	task run(type: JavaExec, dependsOn:[testClasses]) {
+	    main = mainClass
+	    systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+	    jvmArgs "-javaagent:${jar.archivePath}" // =v, =d
+	}
+
+	test {
+	    afterTest { desc, result -> 
+	        if(result.resultType == TestResult.ResultType.FAILURE) {
+	            println "Failed test ${desc.name} [${desc.className}] with exception: ${result.exception}"
+	            if(result.exception != null) {
+	                result.exception.printStackTrace()
+	            }
+	        }
+	    }
+	}
+
+	tasks.withType(JavaExec) { 
+	    classpath = sourceSets.test.runtimeClasspath   
+	}
+
+	task wrapper(type: Wrapper) {
+	    gradleVersion = '1.5-20130302103424+0000'
+	}
+
+	defaultTasks 'build'
+
+	task sourcesJar(type: Jar, dependsOn: classes) {
+	    classifier = 'sources'
+	    from sourceSets.main.allSource
+	}
+	task javadocJar(type: Jar, dependsOn: javadoc) {
+	    classifier = 'javadoc'
+	    from javadoc.destinationDir
+	} 
+
+	///////// Publish Artifacts 
+	apply plugin: 'maven'
+	apply plugin: 'signing'
+
+	artifacts {
+	    archives jar
+	    archives sourcesJar
+	    archives javadocJar
+	    //    archives distZip
+	}
+
+	signing {
+	    required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
+	    sign configurations.archives
+	}
+
+	// remove jsr166e from pom
+	configure(install.repositories.mavenInstaller) {
+	    pom.whenConfigured { pom -> pom.dependencies = pom.dependencies.findAll { 
+	            dep -> !dep.artifactId.startsWith('jsr166e') } 
+	    }
+	}
+	                
+	uploadArchives {
+	    repositories {
+	        mavenDeployer {
+	            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+	            repository(
+	                url: (isReleaseVersion ? 
+	                        "https://oss.sonatype.org/service/local/staging/deploy/maven2" : 
+	                        "https://oss.sonatype.org/content/repositories/snapshots")) {
+	                    // User and Password are taken from ~/.gradle/gradle.properties
+	                    authentication(userName: sonatypeUsername, password: sonatypePassword)
+	            } 
+	            pom.whenConfigured { pom -> pom.dependencies = pom.dependencies.findAll { 
+	                    dep -> !dep.artifactId.startsWith('jsr166e') } 
+	            }
+	            pom.project {
+	                name project.name
+	                packaging 'jar'
+	                description project.description
+	                url project.url
+	                scm {
+	                    url project.scmUrl
+	                    connection project.scmConnection
+	                    developerConnection project.scmConnection
+	                } 
+	                licenses {
+	                    license {
+	                        name project.licenseName1
+	                        url project.licenseUrl1
+	                        distribution 'repo'
+	                    }
+	                    license {
+	                        name project.licenseName2
+	                        url project.licenseUrl2
+	                        distribution 'repo'
+	                    }
+	                }
+	                developers {
+	                    developer {
+	                        id 'pron'
+	                        name 'Ron Pressler'
+	                    }
+	                }
+	            }
+	        }
+	    }
+	}	
+}
+project (':quasar-core') {
+		jar {
+
+	    from zipTree("${baselib}/jsr166e.jar")  // include non-Maven jars
+	    manifest { 
+	        attributes(
+	            "Built-By"                  :   System.getProperty("user.name"),
+	            "Implementation-Title"      :   name,
+	            "Implementation-Version"    :   version,
+	            "Implementation-Vendor"     :   vendor,
+	            "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
+	            "Can-Retransform-Classes"   :   "true",
+//	            "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',') 
+	        )
+	    }
+	}
 }
 
-// NetBeans will automatically add "run" and "debug" tasks relying on the
-// "mainClass" property. You may however define the property prior executing
-// tasks by passing a "-PmainClass=<QUALIFIED_CLASS_NAME>" argument.
-//
-// Note however, that you may define your own "run" and "debug" task if you
-// prefer. In this case NetBeans will not add these tasks but you may rely on
-// your own implementation.
-if (!hasProperty('mainClass')) {
-    ext.mainClass = ''
-}
-
-repositories {
-    flatDir {
-        dirs 'baselib'
-    }
-    repositories {
-        mavenCentral()
-    }
-}
-
-dependencies {
-    compile ":jsr166e"
-    compile "com.codahale.metrics:metrics-core:3.0.0-RC1" 
-    compile "org.ow2.asm:asm:4.1" 
-    compile "org.ow2.asm:asm-analysis:4.1"
-    compile "org.ow2.asm:asm-util:4.1"
-    compile "org.apache.ant:ant:1.7.0"
-    compile "com.google.guava:guava:14.0.1"
-    compile "org.slf4j:slf4j-api:1.7.5"
-//  runtime "org.slf4j:slf4j-jdk14:1.6.4"
-    runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0-beta6"
-    runtime "org.apache.logging.log4j:log4j-api:2.0-beta6"
-    runtime "org.apache.logging.log4j:log4j-core:2.0-beta6"
-    compile "com.lmax:disruptor:3.0.1" // required for log4j
-    testCompile 'junit:junit:4.10'
-    testCompile 'org.hamcrest:hamcrest-all:1.3'
-    testCompile 'org.mockito:mockito-all:1.9.0'
-    testCompile 'com.google.caliper:caliper:1.0-beta-1'
-    testRuntime 'com.sun.jersey:jersey-core:1.11' // needed for caliper. caliper depends on jersey-client but for some reason jersey-core is not a dependency
-}
-
-
-task instrumentClasses(dependsOn: 'compileJava') << {
-    //ant.logging.level = LogLevel.INFO
-    ant.taskdef(name:'continuations', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
-    ant.continuations(verbose:'true', check:'true', debug:'true') {
-        fileset(dir: sourceSets.main.output.classesDir) {
-            exclude(name: 'co/paralleluniverse/fibers/*.class')
-            exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
-        }
-    }
-}
-
-task instrumentTestClasses(dependsOn: 'compileTestJava') << {
-    //ant.logging.level = LogLevel.INFO
-    ant.taskdef(name:'continuations', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
-    ant.continuations(verbose:'true', check:'true', debug:'true') {
-        fileset(dir: sourceSets.test.output.classesDir)
-    }
-}
-
-//testClasses.dependsOn instrumentClasses, instrumentTestClasses
-
-test.dependsOn jar
-
-jar {
-    from zipTree('baselib/jsr166e.jar')  // include non-Maven jars
-    manifest { 
-        attributes(
-            "Built-By"                  :   System.getProperty("user.name"),
-            "Implementation-Title"      :   name,
-            "Implementation-Version"    :   version,
-            "Implementation-Vendor"     :   vendor,
-            "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
-            "Can-Retransform-Classes"   :   "true",
-            "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',') 
-        )
-    }
-}
-
-tasks.withType(Test) { 
-    useJUnit()
-    systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
-//  systemProperty "java.util.logging.config.file", "jul.properties"
-    systemProperty "log4j.configurationFile", "log4j.xml"
-    systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
-    
-//  systemProperty "co.paralleluniverse.debugMode", "true"
-//  systemProperty "co.paralleluniverse.globalFlightRecorder", "true"
-//  systemProperty "co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log"
-    
-    jvmArgs "-javaagent:${jar.archivePath}" // =v, =d
-    
-    doLast() {
-        println "file://" + testReportDir + "/index.html"    
-    }  
-}
-
-task run(type: JavaExec, dependsOn:[testClasses]) {
-    main = mainClass
-    systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
-    jvmArgs "-javaagent:${jar.archivePath}" // =v, =d
-}
-
-test {
-    afterTest { desc, result -> 
-        if(result.resultType == TestResult.ResultType.FAILURE) {
-            println "Failed test ${desc.name} [${desc.className}] with exception: ${result.exception}"
-            if(result.exception != null) {
-                result.exception.printStackTrace()
-            }
-        }
-    }
-}
-
-tasks.withType(JavaExec) { 
-    classpath = sourceSets.test.runtimeClasspath   
-}
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '1.5-20130302103424+0000'
-}
-
-defaultTasks 'build'
-
-task sourcesJar(type: Jar, dependsOn: classes) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
-}
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
-} 
-
-///////// Publish Artifacts 
-apply plugin: 'maven'
-apply plugin: 'signing'
-
-artifacts {
-    archives jar
-    archives sourcesJar
-    archives javadocJar
-    //    archives distZip
-}
-
-signing {
-    required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
-    sign configurations.archives
-}
-
-// remove jsr166e from pom
-configure(install.repositories.mavenInstaller) {
-    pom.whenConfigured { pom -> pom.dependencies = pom.dependencies.findAll { 
-            dep -> !dep.artifactId.startsWith('jsr166e') } 
-    }
-}
-                
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-
-            repository(
-                url: (isReleaseVersion ? 
-                        "https://oss.sonatype.org/service/local/staging/deploy/maven2" : 
-                        "https://oss.sonatype.org/content/repositories/snapshots")) {
-                    // User and Password are taken from ~/.gradle/gradle.properties
-                    authentication(userName: sonatypeUsername, password: sonatypePassword)
-            } 
-            pom.whenConfigured { pom -> pom.dependencies = pom.dependencies.findAll { 
-                    dep -> !dep.artifactId.startsWith('jsr166e') } 
-            }
-            pom.project {
-                name project.name
-                packaging 'jar'
-                description project.description
-                url project.url
-                scm {
-                    url project.scmUrl
-                    connection project.scmConnection
-                    developerConnection project.scmConnection
-                } 
-                licenses {
-                    license {
-                        name project.licenseName1
-                        url project.licenseUrl1
-                        distribution 'repo'
-                    }
-                    license {
-                        name project.licenseName2
-                        url project.licenseUrl2
-                        distribution 'repo'
-                    }
-                }
-                developers {
-                    developer {
-                        id 'pron'
-                        name 'Ron Pressler'
-                    }
-                }
-            }
-        }
+project (':quasar-galaxy') {
+    dependencies {
+        compile project(':quasar-core')
     }
 }
