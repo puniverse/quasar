@@ -1,6 +1,5 @@
-# Quasar: lightweight threads and actors for the JVM.
+# Quasar [![Build Status](https://travis-ci.org/puniverse/quasar.png?branch=master)](https://travis-ci.org/puniverse/quasar) <br/>Lightweight threads and actors for the JVM.
 
-[![Build Status](https://travis-ci.org/puniverse/quasar.png?branch=master)](https://travis-ci.org/puniverse/quasar)
 
 **NOTE: This is alpha software**
 
