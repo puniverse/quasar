@@ -172,7 +172,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
 
     protected abstract void addLifecycleListener(LifecycleListener listener);
 
-    protected abstract void removeLifecycleListener(LifecycleListener listener);
+    protected abstract void removeLifecycleListener(Object listener);
 
     protected abstract LifecycleListener getLifecycleListener();
 
@@ -219,7 +219,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
     public final void unwatch(Actor other1, Object listener) {
         final ActorImpl other = (ActorImpl) other1;
         record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other, listener);
-        other.removeLifecycleListener((LifecycleListener) listener);
+        other.removeLifecycleListener(listener);
     }
 
     static class ActorLifecycleListener implements LifecycleListener, java.io.Serializable {

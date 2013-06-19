@@ -370,7 +370,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
-    protected final void removeLifecycleListener(LifecycleListener listener) {
+    protected final void removeLifecycleListener(Object listener) {
         lifecycleListeners.remove(listener);
     }
 
