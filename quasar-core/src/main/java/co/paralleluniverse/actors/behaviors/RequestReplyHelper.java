@@ -177,25 +177,5 @@ public class RequestReplyHelper {
             if (a != null)
                 a.sendSync(message);
         }
-
-        @Override
-        public Actor link(Actor other) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Actor unlink(Actor other) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Object watch(Actor other) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void unwatch(Actor other, Object listener) {
-            throw new UnsupportedOperationException();
-        }
     }
 }

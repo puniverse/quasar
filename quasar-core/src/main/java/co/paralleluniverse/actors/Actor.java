@@ -30,13 +30,5 @@ public interface Actor<Message> extends SendChannel<Message> {
 
     void sendSync(Message message) throws SuspendExecution;
 
-    Actor link(Actor other);
-
-    Actor unlink(Actor other);
-
-    Object watch(Actor other);
-
-    void unwatch(Actor other, Object listener);
-
     void interrupt();
 }

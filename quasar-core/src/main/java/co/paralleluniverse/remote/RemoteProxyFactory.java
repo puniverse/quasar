@@ -11,12 +11,19 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors;
+package co.paralleluniverse.remote;
+
+import co.paralleluniverse.actors.LocalActor;
+import co.paralleluniverse.actors.RemoteActor;
+import co.paralleluniverse.strands.channels.Channel;
+import co.paralleluniverse.strands.channels.SendChannel;
 
 /**
  *
  * @author pron
  */
-public interface LifecycleListener {
-    void dead(Actor actor, Throwable cause);
+public interface RemoteProxyFactory {
+    <Message> RemoteActor<Message> create(LocalActor<Message, ?> actor);
+    
+    <Message> SendChannel<Message> create(Channel channel);
 }

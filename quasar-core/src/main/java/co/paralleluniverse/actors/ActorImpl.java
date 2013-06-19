@@ -23,6 +23,7 @@ import co.paralleluniverse.strands.channels.Mailbox;
 import co.paralleluniverse.strands.channels.SendChannel;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.math.BigInteger;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -35,8 +36,8 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
     private static final int MAX_SEND_RETRIES = 10;
     private volatile Object name;
     final Mailbox<Object> mailbox;
-    protected final FlightRecorder flightRecorder;
     private final boolean backpressure;
+    protected transient final FlightRecorder flightRecorder;
 
     @Override
     public String toString() {
@@ -91,14 +92,31 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
     @Override
     public final void send(Message message) throws SuspendExecution {
         try {
-            record(1, "Actor", "send", "Sending %s -> %s", message, this);
-            if (mailbox.isOwnerAlive())
-                mailbox.send(message);
-            else
-                record(1, "Actor", "send", "Message dropped. Owner not alive.");
+            internalSend(message);
         } catch (QueueCapacityExceededException e) {
             onMailboxFull(message, e);
         }
+    }
+
+    public void sendOrInterrupt(Object message) {
+        try {
+            internalSend(message);
+        } catch (QueueCapacityExceededException e) {
+            interrupt();
+        }
+    }
+
+    /**
+     * For internal use
+     *
+     * @param message
+     */
+    protected void internalSend(Object message) {
+        record(1, "Actor", "send", "Sending %s -> %s", message, this);
+        if (mailbox.isOwnerAlive())
+            mailbox.send(message);
+        else
+            record(1, "Actor", "send", "Message dropped. Owner not alive.");
     }
 
     @Override
@@ -111,18 +129,6 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
                 record(1, "Actor", "sendSync", "Message dropped. Owner not alive.");
         } catch (QueueCapacityExceededException e) {
             onMailboxFull(message, e);
-        }
-    }
-
-    public void sendOrInterrupt(Object message) {
-        try {
-            record(1, "Actor", "send", "Sending %s -> %s", message, this);
-            if (mailbox.isOwnerAlive())
-                mailbox.send(message);
-            else
-                record(1, "Actor", "send", "Message dropped. Owner not alive.");
-        } catch (QueueCapacityExceededException e) {
-            interrupt();
         }
     }
 
@@ -164,15 +170,14 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
     /////////// Lifecycle ///////////////////////////////////
     protected abstract void throwIn(RuntimeException e);
 
-    abstract void addLifecycleListener(LifecycleListener listener);
+    protected abstract void addLifecycleListener(LifecycleListener listener);
 
-    abstract void removeLifecycleListener(LifecycleListener listener);
+    protected abstract void removeLifecycleListener(LifecycleListener listener);
 
-    abstract LifecycleListener getLifecycleListener();
+    protected abstract LifecycleListener getLifecycleListener();
 
-    abstract Throwable getDeathCause();
+    protected abstract Throwable getDeathCause();
 
-    @Override
     public final Actor link(Actor other1) {
         final ActorImpl other = (ActorImpl) other1;
         record(1, "Actor", "link", "Linking actors %s, %s", this, other);
@@ -189,7 +194,6 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
         return this;
     }
 
-    @Override
     public final Actor unlink(Actor other1) {
         final ActorImpl other = (ActorImpl) other1;
         record(1, "Actor", "unlink", "Uninking actors %s, %s", this, other);
@@ -198,55 +202,51 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
         return this;
     }
 
-    @Override
     public final Object watch(Actor other1) {
+        final Object id = randtag();
+        
         final ActorImpl other = (ActorImpl) other1;
-        LifecycleListener listener = new LifecycleListener() {
-            @Override
-            public void dead(Actor actor, Throwable cause) {
-                if (mailbox.isOwnerAlive())
-                    mailbox.send(new ExitMessage(actor, cause, this));
-            }
-        };
+        final LifecycleListener listener = new ActorLifecycleListener(this, id);
         record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other, listener);
 
         if (other.isDone())
             listener.dead(other, other.getDeathCause());
         else
             other.addLifecycleListener(listener);
-        return listener;
+        return id;
     }
 
-    @Override
     public final void unwatch(Actor other1, Object listener) {
         final ActorImpl other = (ActorImpl) other1;
         record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other, listener);
         other.removeLifecycleListener((LifecycleListener) listener);
     }
-    //</editor-fold>
 
-    //<editor-fold desc="Serialization">
-    /////////// Serialization ///////////////////////////////////
-    // If using Kryo, see what needs to be done: https://code.google.com/p/kryo/
-    protected final Object writeReplace() throws java.io.ObjectStreamException {
-        //return new SerializedActor(this);
-        throw new UnsupportedOperationException();
-    }
+    static class ActorLifecycleListener implements LifecycleListener, java.io.Serializable {
+        private final ActorImpl observer;
+        private final Object id;
 
-    protected static class SerializedActor implements java.io.Serializable {
-        static final long serialVersionUID = 894359345L;
-        private Actor actor;
-
-        public SerializedActor(Actor actor) {
-            this.actor = actor;
+        public ActorLifecycleListener(ActorImpl observer, Object id) {
+            this.observer = observer;
+            this.id = id;
+        }
+        
+        @Override
+        public void dead(Actor actor, Throwable cause) {
+            observer.internalSend(new ExitMessage(actor, cause, id));
         }
 
-        public SerializedActor() {
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(this.id);
         }
 
-        protected Object readResolve() throws java.io.ObjectStreamException {
-            // return new Actor(...);
-            throw new UnsupportedOperationException();
+        @Override
+        public boolean equals(Object obj) {
+            if(!(obj instanceof ActorLifecycleListener))
+                return false;
+            
+            return Objects.equals(id, ((ActorLifecycleListener)obj).id);
         }
     }
     //</editor-fold>

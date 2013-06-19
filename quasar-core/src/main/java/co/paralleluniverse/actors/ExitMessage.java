@@ -28,10 +28,10 @@ public class ExitMessage implements LifecycleMessage {
         this(actor, cause, null);
     }
 
-    public ExitMessage(Actor actor, Throwable cause, Object monitor) {
+    public ExitMessage(Actor actor, Throwable cause, Object watch) {
         this.actor = actor;
         this.cause = cause;
-        this.watch = monitor;
+        this.watch = watch;
     }
 
     public Actor getActor() {

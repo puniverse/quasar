@@ -17,6 +17,7 @@ import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.remote.RemoteProxyFactoryService;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
@@ -46,8 +47,8 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     private ActorSpec<?, Message, V> spec;
 
     public LocalActor(Object name, MailboxConfig mailboxConfig) {
-        super(name, 
-                Mailbox.create(mailboxConfig != null ? mailboxConfig.getMailboxSize() : -1), 
+        super(name,
+                Mailbox.create(mailboxConfig != null ? mailboxConfig.getMailboxSize() : -1),
                 mailboxConfig != null && mailboxConfig.getPolicy() == MailboxConfig.OverflowPolicy.BACKPRESSURE);
     }
 
@@ -138,7 +139,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     public void interrupt() {
         getStrand().interrupt();
     }
-    
+
     public final ActorMonitor monitor() {
         if (monitor != null)
             return monitor;
@@ -359,22 +360,22 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
-    LifecycleListener getLifecycleListener() {
+    protected LifecycleListener getLifecycleListener() {
         return lifecycleListener;
     }
 
     @Override
-    final void addLifecycleListener(LifecycleListener listener) {
+    protected final void addLifecycleListener(LifecycleListener listener) {
         lifecycleListeners.add(listener);
     }
 
     @Override
-    final void removeLifecycleListener(LifecycleListener listener) {
+    protected final void removeLifecycleListener(LifecycleListener listener) {
         lifecycleListeners.remove(listener);
     }
 
     @Override
-    final Throwable getDeathCause() {
+    protected final Throwable getDeathCause() {
         return deathCause;
     }
 
@@ -440,18 +441,8 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         }
         lifecycleListeners.clear(); // avoid memory leak
     }
-    private final LifecycleListener lifecycleListener = new LifecycleListener() {
-        @Override
-        public void dead(Actor actor, Throwable cause) {
-            if (mailbox.isOwnerAlive())
-                mailbox.send(new ExitMessage(actor, cause));
-        }
-
-        @Override
-        public String toString() {
-            return "LifecycleListener{actor: " + LocalActor.this + '}';
-        }
-    };
+    private final LifecycleListener lifecycleListener = new ActorLifecycleListener(this, null);
+    
     //</editor-fold>
 
     //<editor-fold defaultstate="collapsed" desc="Monitor delegates">
@@ -474,6 +465,31 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     protected final void monitorResetSkippedMessages() {
         if (monitor != null)
             monitor.resetSkippedMessages();
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Serialization">
+    /////////// Serialization ///////////////////////////////////
+    // If using Kryo, see what needs to be done: https://code.google.com/p/kryo/
+    protected final Object writeReplace() throws java.io.ObjectStreamException {
+        return RemoteProxyFactoryService.create(this);
+    }
+
+    protected static class SerializedActor implements java.io.Serializable {
+        static final long serialVersionUID = 894359345L;
+        private Actor actor;
+
+        public SerializedActor(Actor actor) {
+            this.actor = actor;
+        }
+
+        public SerializedActor() {
+        }
+
+        protected Object readResolve() throws java.io.ObjectStreamException {
+            // return new Actor(...);
+            throw new UnsupportedOperationException();
+        }
     }
     //</editor-fold>
 }

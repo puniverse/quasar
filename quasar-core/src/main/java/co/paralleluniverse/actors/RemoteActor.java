@@ -13,10 +13,16 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.strands.channels.Mailbox;
+
 /**
  *
  * @author pron
  */
-public interface LifecycleListener {
-    void dead(Actor actor, Throwable cause);
+public abstract class RemoteActor<Message> extends ActorImpl<Message> {
+
+    public RemoteActor(Object name, Mailbox<Object> mailbox, boolean backpressure) {
+        super(name, mailbox, backpressure);
+    }
+    
 }
