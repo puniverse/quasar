@@ -46,6 +46,6 @@ public class ScheduledSingleThreadExecutorTest {
         Thread.sleep(2000);
         
         final int count = counter.get();
-        assertTrue("count: " + count, count > 60 && count < 75);
+        assertTrue("count: " + count, count > 30 && count < 75);
     }
 }
