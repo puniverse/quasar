@@ -44,6 +44,8 @@ subprojects {
 	    }
 	    repositories {
 	        mavenCentral()
+                maven { url "https://oss.sonatype.org/content/repositories/releases" }
+                maven { url "http://download.oracle.com/maven/" }
 	    }
 	}
 
@@ -57,6 +59,8 @@ subprojects {
 //            force "org.ow2.asm:asm-util:4.1"
             force "com.google.guava:guava:14.0.1"
             force "org.slf4j:slf4j-api:1.7.5"
+            force "log4j:log4j:1.2.16"
+            force "junit:junit:4.10"
         }
     }
 
@@ -255,5 +259,6 @@ project (':quasar-core') {
 project (':quasar-galaxy') {
     dependencies {
         compile project(':quasar-core')
+        compile "co.paralleluniverse:galaxy:1.1"
     }
 }
