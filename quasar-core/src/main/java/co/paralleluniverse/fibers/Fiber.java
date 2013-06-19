@@ -580,7 +580,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     private void installFiberLocals() {
         switchFiberAndThreadLocals();
-        fjTask.setAsCurrent(); // inherit current ParkableForkJoinTask 
     }
 
     private void restoreThreadLocals() {
@@ -986,11 +985,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         @Override
         protected void setRawResult(V v) {
             fiber.result = v;
-        }
-
-        @Override
-        protected void setAsCurrent() {
-            super.setAsCurrent();
         }
         
         @Override

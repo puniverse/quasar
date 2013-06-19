@@ -54,13 +54,6 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             current.set(previousCurrent);
         }
     }
-
-    /**
-     * For internal use! (used by Fiber)
-     */
-    protected void setAsCurrent() {
-        current.set(this);
-    }
     
     boolean doExec() {
         try {
