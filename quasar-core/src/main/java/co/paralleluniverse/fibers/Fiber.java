@@ -80,11 +80,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             System.err.println("QUASAR WARNING: Fiber is set to verify instrumentation. This may *severely* harm performance.");
         return true;
     }
-
-    private static final ScheduledExecutorService timeoutService = Boolean.getBoolean("co.paralleluniverse.fibers.useExperimentalTimeoutExecutor") ? 
-            new ScheduledSingleThreadExecutor(new NamingThreadFactory("fiber-timeout")) :
-            Executors.newSingleThreadScheduledExecutor(new NamingThreadFactory("fiber-timeout"));
-    
+    private static final ScheduledExecutorService timeoutService = Boolean.getBoolean("co.paralleluniverse.fibers.useExperimentalTimeoutExecutor")
+            ? new ScheduledSingleThreadExecutor(new NamingThreadFactory("fiber-timeout"))
+            : Executors.newSingleThreadScheduledExecutor(new NamingThreadFactory("fiber-timeout"));
     private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler;
     //
     private final ForkJoinPool fjPool;
@@ -581,6 +579,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private void installFiberLocals() {
+        switchFiberAndThreadLocals();
+        fjTask.setAsCurrent(); // inherit current ParkableForkJoinTask 
+    }
+
+    private void restoreThreadLocals() {
+        switchFiberAndThreadLocals();
+    }
+
+    private void switchFiberAndThreadLocals() {
         if (fjPool == null) // in tests
             return;
 
@@ -594,10 +601,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         this.fiberLocals = tmpThreadLocals;
         this.inheritableFiberLocals = tmpInheritableThreadLocals;
-    }
-
-    private void restoreThreadLocals() {
-        installFiberLocals();
     }
 
     private void setCurrentFiber(Fiber fiber) {
@@ -716,8 +719,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     public boolean isTerminated() {
         return state == State.TERMINATED;
     }
-        
-        
+
     @Override
     public final Object getBlocker() {
         return fjTask.getBlocker();
@@ -799,12 +801,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     public boolean isCancelled() {
         return false;
     }
-    
+
     private void sleep1(long millis) throws InterruptedException, SuspendExecution {
         // this class's methods aren't instrumented, so we can't rely on the stack. This method will be called again when unparked
         try {
             for (;;) {
-                if(interrupted)
+                if (interrupted)
                     throw new InterruptedException();
                 final long now = System.nanoTime();
                 if (sleepStart == 0)
@@ -987,6 +989,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         }
 
         @Override
+        protected void setAsCurrent() {
+            super.setAsCurrent();
+        }
+        
+        @Override
         protected int getState() {
             return super.getState();
         }
@@ -1102,10 +1109,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     //<editor-fold defaultstate="collapsed" desc="Recording">
     /////////// Recording ///////////////////////////////////
     protected final boolean recordsLevel(int level) {
-        if(!Debug.isDebug())
+        if (!Debug.isDebug())
             return false;
         final FlightRecorder.ThreadRecorder recorder = flightRecorder.get();
-        if(recorder == null)
+        if (recorder == null)
             return false;
         return recorder.recordsLevel(level);
     }
