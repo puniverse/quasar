@@ -62,8 +62,6 @@ public class ActorTest {
     public void whenActorThrowsExceptionThenGetThrowsIt() throws Exception {
 
         LocalActor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
-            int counter;
-
             @Override
             protected Integer doRun() throws SuspendExecution, InterruptedException {
                 throw new RuntimeException("foo");
@@ -82,8 +80,6 @@ public class ActorTest {
     @Test
     public void whenActorReturnsValueThenGetReturnsIt() throws Exception {
         LocalActor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
-            int counter;
-
             @Override
             protected Integer doRun() throws SuspendExecution, InterruptedException {
                 return 42;
@@ -111,8 +107,6 @@ public class ActorTest {
     @Test
     public void testReceiveAfterSleep() throws Exception {
         LocalActor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
-            int counter;
-
             @Override
             protected Integer doRun() throws SuspendExecution, InterruptedException {
                 Message m1 = receive();
@@ -177,8 +171,6 @@ public class ActorTest {
     @Test
     public void whenSimpleReceiveAndTimeoutThenReturnNull() throws Exception {
         LocalActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
-            int counter;
-
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 Message m;
@@ -228,8 +220,6 @@ public class ActorTest {
     @Test
     public void testSendSync() throws Exception {
         final LocalActor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
-            int counter;
-
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 Message m;
@@ -244,8 +234,6 @@ public class ActorTest {
         });
 
         final LocalActor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
-            int counter;
-
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 Fiber.sleep(20);
@@ -264,8 +252,6 @@ public class ActorTest {
     @Test
     public void testLink() throws Exception {
         LocalActor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
-            int counter;
-
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 Fiber.sleep(100);
@@ -274,8 +260,6 @@ public class ActorTest {
         });
 
         LocalActor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
-            int counter;
-
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 try {
@@ -297,8 +281,6 @@ public class ActorTest {
     @Test
     public void testWatch() throws Exception {
         LocalActor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
-            int counter;
-
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 Fiber.sleep(100);
@@ -342,7 +324,7 @@ public class ActorTest {
     static class ComplexMessage {
         enum Type {
             FOO, BAR, BAZ, WAT
-        };
+        }
         final Type type;
         final int num;
 
