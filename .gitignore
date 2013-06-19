@@ -1,4 +1,7 @@
 /dist/
+/out/
+.idea/
+*.iml
 /artifacts
 /nbproject/private/
 /.nb-gradle
