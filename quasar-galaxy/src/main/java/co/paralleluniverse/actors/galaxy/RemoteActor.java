@@ -29,7 +29,7 @@ public class RemoteActor<Message> extends co.paralleluniverse.actors.RemoteActor
     }
 
     @Override
-    protected void removeLifecycleListener(Object listener) {
+    protected void removeLifecycleListener(LifecycleListener listener) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 

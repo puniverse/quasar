@@ -104,7 +104,7 @@ public class SingleConsumerNonblockingProducerDelayQueueTest {
 
         final long elapsedMillis = TimeUnit.MILLISECONDS.convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
 
-        assertTrue("elapsed: " + elapsedMillis, elapsedMillis > 140 && elapsedMillis < 170);
+        assertTrue("elapsed: " + elapsedMillis, elapsedMillis > 140 && elapsedMillis < 300);
     }
 
     @Test
