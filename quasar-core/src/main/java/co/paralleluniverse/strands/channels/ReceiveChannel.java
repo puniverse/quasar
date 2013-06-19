@@ -23,5 +23,7 @@ import java.util.concurrent.TimeUnit;
 public interface ReceiveChannel<Message> {
     Message receive() throws SuspendExecution, InterruptedException;
 
+    Message tryReceive() throws SuspendExecution, InterruptedException;
+    
     Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
 }

@@ -172,7 +172,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
 
     protected abstract void addLifecycleListener(LifecycleListener listener);
 
-    protected abstract void removeLifecycleListener(Object listener);
+    protected abstract void removeLifecycleListener(LifecycleListener listener);
 
     protected abstract LifecycleListener getLifecycleListener();
 
@@ -216,8 +216,9 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
         return id;
     }
 
-    public final void unwatch(Actor other1, Object listener) {
+    public final void unwatch(Actor other1, Object watchId) {
         final ActorImpl other = (ActorImpl) other1;
+        final LifecycleListener listener = new ActorLifecycleListener(this, watchId);
         record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other, listener);
         other.removeLifecycleListener(listener);
     }
@@ -247,6 +248,11 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
                 return false;
             
             return Objects.equals(id, ((ActorLifecycleListener)obj).id);
+        }
+
+        @Override
+        public String toString() {
+            return "ActorLifecycleListener{" + "observer: " + observer + ", id: " + id + '}';
         }
     }
     //</editor-fold>

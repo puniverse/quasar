@@ -126,8 +126,10 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
     }
 
     Object receiveNode(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        if (timeout <= 0 || unit == null)
+        if(unit == null)
             return receiveNode();
+        if (timeout <= 0)
+            return tryReceiveNode();
 
         maybeSetCurrentStrandAsOwner();
         Object n;

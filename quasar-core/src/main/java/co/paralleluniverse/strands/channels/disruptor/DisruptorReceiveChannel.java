@@ -54,6 +54,11 @@ public class DisruptorReceiveChannel<Message> implements ReceiveChannel<Message>
 
     @Override
     public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        if(unit == null)
+            return receive();
+        if(timeout <= 0)
+            return tryReceive();
+        
         try {
             long nextSequence = sequence.get() + 1L;
             if (nextSequence > availableSequence) {
@@ -80,6 +85,15 @@ public class DisruptorReceiveChannel<Message> implements ReceiveChannel<Message>
         }
     }
 
+    @Override
+    public Message tryReceive() throws SuspendExecution, InterruptedException {
+        long nextSequence = sequence.get() + 1L;
+        if (nextSequence > availableSequence)
+            return null;
+        return buffer.get(nextSequence);
+    }
+
+    
     private static Sequencer getSequencer(RingBuffer<?> buffer) {
         try {
             return (Sequencer) sequencerField.get(buffer);

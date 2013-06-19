@@ -88,7 +88,9 @@ public class SelectiveReceiveHelper<Message> {
                 }
             } else {
                 try {
-                    if (timeout > 0) {
+                    if (unit == null)
+                        actor.mailbox.await();
+                    else if (timeout > 0) {
                         actor.mailbox.await(left, TimeUnit.NANOSECONDS);
 
                         now = System.nanoTime();
@@ -98,7 +100,7 @@ public class SelectiveReceiveHelper<Message> {
                             throw new TimeoutException();
                         }
                     } else {
-                        actor.mailbox.await();
+                        return null;
                     }
                 } finally {
                     actor.mailbox.unlock();
@@ -110,6 +112,14 @@ public class SelectiveReceiveHelper<Message> {
     public final Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
         try {
             return receive(0, null, proc);
+        } catch (TimeoutException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    public final Message tryReceive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
+        try {
+            return receive(0, TimeUnit.NANOSECONDS, proc);
         } catch (TimeoutException e) {
             throw new AssertionError(e);
         }

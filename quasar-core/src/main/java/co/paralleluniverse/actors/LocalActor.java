@@ -218,8 +218,10 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     @Override
     public final Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        if (timeout <= 0 || unit == null)
+        if (unit == null)
             return receive();
+        if(timeout <= 0)
+            return tryReceive();
 
         final long start = System.nanoTime();
         long now;
@@ -248,7 +250,8 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         }
     }
 
-    protected final Message tryReceive() {
+    @Override
+    public final Message tryReceive() {
         for (;;) {
             checkThrownIn();
             Object m = mailbox.tryReceive();
@@ -370,7 +373,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
-    protected final void removeLifecycleListener(Object listener) {
+    protected final void removeLifecycleListener(LifecycleListener listener) {
         lifecycleListeners.remove(listener);
     }
 
@@ -442,9 +445,8 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         lifecycleListeners.clear(); // avoid memory leak
     }
     private final LifecycleListener lifecycleListener = new ActorLifecycleListener(this, null);
-    
-    //</editor-fold>
 
+    //</editor-fold>
     //<editor-fold defaultstate="collapsed" desc="Monitor delegates">
     /////////// Monitor delegates ///////////////////////////////////
     protected final void monitorAddDeath(Object reason) {

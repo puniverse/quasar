@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A group of channels allowing receiving from all member channels at once.
+ *
  * @author pron
  */
 public class ChannelGroup<Message> implements ReceiveChannel<Message>, Stranded {
@@ -33,6 +34,7 @@ public class ChannelGroup<Message> implements ReceiveChannel<Message>, Stranded 
 
     /**
      * Creates a channel group
+     *
      * @param channels The member channels
      */
     public ChannelGroup(Channel<? extends Message>... channels) {
@@ -41,6 +43,7 @@ public class ChannelGroup<Message> implements ReceiveChannel<Message>, Stranded 
 
     /**
      * Creates a channel group
+     *
      * @param channels The member channels
      */
     public ChannelGroup(Collection<? extends Message> channels) {
@@ -49,6 +52,7 @@ public class ChannelGroup<Message> implements ReceiveChannel<Message>, Stranded 
 
     /**
      * Returns the member channels.
+     *
      * @return An unmodifiable collection of all channels in this group.
      */
     public Collection<Channel<? extends Message>> getChannels() {
@@ -97,9 +101,10 @@ public class ChannelGroup<Message> implements ReceiveChannel<Message>, Stranded 
 
     /**
      * Blocks until one of the member channels receives a message, and returns it.
+     *
      * @return A message received from one of the channels.
      * @throws SuspendExecution
-     * @throws InterruptedException 
+     * @throws InterruptedException
      */
     @Override
     public Message receive() throws SuspendExecution, InterruptedException {
@@ -119,19 +124,34 @@ public class ChannelGroup<Message> implements ReceiveChannel<Message>, Stranded 
             sync.unlock();
         }
     }
-    
+
+    public Message tryReceive() throws SuspendExecution, InterruptedException {
+        for (;;) {
+            for (Channel<? extends Message> c : channels) {
+                Message m = c.tryReceive();
+                if (m != null)
+                    return m;
+            }
+
+            return null;
+        }
+    }
+
     /**
      * Blocks up to a given timeout until one of the member channels receives a message, and returns it.
+     *
      * @param timeout
      * @param unit
      * @return A message received from one of the channels, or null if the timeout has expired.
      * @throws SuspendExecution
-     * @throws InterruptedException 
+     * @throws InterruptedException
      */
     @Override
     public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        if (timeout <= 0 || unit == null)
+        if (unit == null)
             return receive();
+        if(timeout <= 0)
+            return tryReceive();
 
         maybeSetCurrentStrandAsOwner();
 
@@ -146,7 +166,9 @@ public class ChannelGroup<Message> implements ReceiveChannel<Message>, Stranded 
                     if (m != null)
                         return m;
                 }
-                
+
+                if (left <= 0)
+                    return null;
                 sync.await(left, TimeUnit.NANOSECONDS);
                 left = start + unit.toNanos(timeout) - System.nanoTime();
                 if (left <= 0)
