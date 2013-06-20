@@ -121,9 +121,9 @@ subprojects {
         systemProperty "log4j.configurationFile", "log4j.xml"
         systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
 	    
-	//  systemProperty "co.paralleluniverse.debugMode", "true"
-	//  systemProperty "co.paralleluniverse.globalFlightRecorder", "true"
-	//  systemProperty "co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log"
+	  systemProperty "co.paralleluniverse.debugMode", "true"
+	  systemProperty "co.paralleluniverse.globalFlightRecorder", "true"
+	  systemProperty "co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log"
 	    
         jvmArgs "-javaagent:${jar.archivePath}" // =v, =d
 	    
@@ -264,6 +264,8 @@ project (':quasar-galaxy') {
         compile("com.esotericsoftware.kryo:kryo:2.21") {
             exclude group: "org.ow2.asm"
         }
-        compile "de.javakaffee:kryo-serializers:0.23"
+        compile("de.javakaffee:kryo-serializers:0.23") {
+            exclude group: "com.esotericsoftware.kryo"
+        }
     }
 }
