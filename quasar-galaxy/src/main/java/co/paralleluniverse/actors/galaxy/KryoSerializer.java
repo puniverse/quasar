@@ -24,9 +24,7 @@ import de.javakaffee.kryoserializers.KryoReflectionFactorySupport;
 import de.javakaffee.kryoserializers.SynchronizedCollectionsSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import java.io.DataInput;
-import java.io.DataInputStream;
 import java.io.DataOutput;
-import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.Externalizable;
 import java.io.IOException;
@@ -34,7 +32,6 @@ import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 
 /**
  *
@@ -158,7 +155,7 @@ public class KryoSerializer {
             for (int i = 0; i < len; i++) {
                 int v = s.charAt(i);
                 write((v >>> 8) & 0xFF);
-                write((v >>> 0) & 0xFF);
+                write(v & 0xFF);
             }
         }
 
