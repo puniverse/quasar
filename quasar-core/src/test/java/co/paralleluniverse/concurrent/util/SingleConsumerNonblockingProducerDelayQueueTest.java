@@ -9,12 +9,14 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  *
  * @author pron
  */
+@Ignore
 public class SingleConsumerNonblockingProducerDelayQueueTest {
     public SingleConsumerNonblockingProducerDelayQueueTest() {
     }

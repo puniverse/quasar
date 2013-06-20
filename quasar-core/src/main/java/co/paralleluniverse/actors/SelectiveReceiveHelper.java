@@ -5,6 +5,7 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.channels.Mailbox;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -33,8 +34,10 @@ public class SelectiveReceiveHelper<Message> {
     public final Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws TimeoutException, SuspendExecution, InterruptedException {
         assert LocalActor.self() == null || LocalActor.self() == actor;
 
+        final Mailbox<Object> mailbox = actor.mailbox();
+
         actor.checkThrownIn();
-        actor.mailbox.maybeSetCurrentStrandAsOwner();
+        mailbox.maybeSetCurrentStrandAsOwner();
 
         final long start = timeout > 0 ? System.nanoTime() : 0;
         long now;
@@ -47,14 +50,14 @@ public class SelectiveReceiveHelper<Message> {
             if (actor.flightRecorder != null)
                 actor.record(1, "Actor", "receive", "%s waiting for a message. %s", this, timeout > 0 ? "millis left: " + TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS) : "");
 
-            actor.mailbox.lock();
-            n = actor.mailbox.succ(n);
+            mailbox.lock();
+            n = mailbox.succ(n);
 
             if (n != null) {
-                actor.mailbox.unlock();
-                final Object m = actor.mailbox.value(n);
+                mailbox.unlock();
+                final Object m = mailbox.value(n);
                 if (m == currentMessage) {
-                    actor.mailbox.del(n);
+                    mailbox.del(n);
                     continue;
                 }
 
@@ -62,36 +65,36 @@ public class SelectiveReceiveHelper<Message> {
                 actor.monitorAddMessage();
                 try {
                     if (m instanceof LifecycleMessage) {
-                        actor.mailbox.del(n);
+                        mailbox.del(n);
                         handleLifecycleMessage((LifecycleMessage) m);
                     } else {
                         final Message msg = (Message) m;
                         currentMessage = msg;
                         try {
                             if (proc.process(msg)) {
-                                if (actor.mailbox.value(n) == msg) // another call to receive from within the processor may have deleted n
-                                    actor.mailbox.del(n);
+                                if (mailbox.value(n) == msg) // another call to receive from within the processor may have deleted n
+                                    mailbox.del(n);
                                 return msg;
                             }
                         } catch (Exception e) {
-                            if (actor.mailbox.value(n) == msg) // another call to receive from within the processor may have deleted n
-                                actor.mailbox.del(n);
+                            if (mailbox.value(n) == msg) // another call to receive from within the processor may have deleted n
+                                mailbox.del(n);
                             throw e;
                         }
                         actor.monitorSkippedMessage();
                     }
 
                 } catch (Exception e) {
-                    if (actor.mailbox.value(n) == m) // another call to receive from within the processor may have deleted n
-                        actor.mailbox.del(n);
+                    if (mailbox.value(n) == m) // another call to receive from within the processor may have deleted n
+                        mailbox.del(n);
                     throw e;
                 }
             } else {
                 try {
                     if (unit == null)
-                        actor.mailbox.await();
+                        mailbox.await();
                     else if (timeout > 0) {
-                        actor.mailbox.await(left, TimeUnit.NANOSECONDS);
+                        mailbox.await(left, TimeUnit.NANOSECONDS);
 
                         now = System.nanoTime();
                         left = deadline - now;
@@ -103,7 +106,7 @@ public class SelectiveReceiveHelper<Message> {
                         return null;
                     }
                 } finally {
-                    actor.mailbox.unlock();
+                    mailbox.unlock();
                 }
             }
         }

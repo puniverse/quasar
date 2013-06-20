@@ -13,16 +13,15 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.strands.channels.Mailbox;
 
 /**
  *
  * @author pron
  */
 public abstract class RemoteActor<Message> extends ActorImpl<Message> {
-
-    public RemoteActor(Object name, Mailbox<Object> mailbox, boolean backpressure) {
-        super(name, mailbox, backpressure);
+    public RemoteActor(LocalActor<Message, ?> actor, Object globalId) {
+        super(actor.getName(), actor.mailbox());
     }
+
     
 }

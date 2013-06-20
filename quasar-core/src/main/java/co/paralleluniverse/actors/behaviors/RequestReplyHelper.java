@@ -153,11 +153,6 @@ public class RequestReplyHelper {
         }
 
         @Override
-        public boolean isDone() {
-            return done || actor().isDone();
-        }
-
-        @Override
         public void interrupt() {
             final Actor a = getActor();
             if (a != null)

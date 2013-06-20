@@ -45,6 +45,7 @@ subprojects {
 	    repositories {
 	        mavenCentral()
                 maven { url "https://oss.sonatype.org/content/repositories/releases" }
+                maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
                 maven { url "http://download.oracle.com/maven/" }
 	    }
 	}
@@ -259,6 +260,6 @@ project (':quasar-core') {
 project (':quasar-galaxy') {
     dependencies {
         compile project(':quasar-core')
-        compile "co.paralleluniverse:galaxy:1.1"
+        compile "co.paralleluniverse:galaxy:1.2-SNAPSHOT"
     }
 }

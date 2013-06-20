@@ -32,7 +32,7 @@ public class ActorRegistry {
             throw new IllegalArgumentException("name is null");
 
         // atomically register
-        final Actor old = registeredActors.get(name);
+        final LocalActor old = registeredActors.get(name);
         if (old == actor)
             return;
         if (old != null && !old.isDone())

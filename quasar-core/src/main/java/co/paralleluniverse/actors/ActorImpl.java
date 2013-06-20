@@ -19,7 +19,6 @@ import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.Channel;
-import co.paralleluniverse.strands.channels.Mailbox;
 import co.paralleluniverse.strands.channels.SendChannel;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.math.BigInteger;
@@ -31,12 +30,13 @@ import java.util.concurrent.ThreadLocalRandom;
  * @author pron
  */
 public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Serializable {
-    // TODO: This class may be redundant
     static final long serialVersionUID = 894359345L;
+    //
     private static final int MAX_SEND_RETRIES = 10;
+    //
     private volatile Object name;
-    final Mailbox<Object> mailbox;
-    private final boolean backpressure;
+    private final SendChannel<Object> mailbox;
+    private final LifecycleListener lifecycleListener = new ActorLifecycleListener(this, null);
     protected transient final FlightRecorder flightRecorder;
 
     @Override
@@ -44,11 +44,10 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
         return "Actor@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this)));
     }
 
-    protected ActorImpl(Object name, Mailbox<Object> mailbox, boolean backpressure) {
+    protected ActorImpl(Object name, SendChannel<Object> mailbox) {
         this.name = name;
-        this.mailbox = mailbox;
-        this.backpressure = backpressure;
 
+        this.mailbox = mailbox;
         if (Debug.isDebug())
             this.flightRecorder = Debug.getGlobalFlightRecorder();
         else
@@ -81,12 +80,12 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
 
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
-    protected Mailbox<Object> mailbox() {
+    protected SendChannel<Object> mailbox() {
         return mailbox;
     }
 
-    public final SendChannel<Message> getMailbox() {
-        return (Channel<Message>) mailbox;
+    public SendChannel<Object> getMailbox() {
+        return mailbox;
     }
 
     @Override
@@ -111,25 +110,13 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
      *
      * @param message
      */
-    protected void internalSend(Object message) {
-        record(1, "Actor", "send", "Sending %s -> %s", message, this);
-        if (mailbox.isOwnerAlive())
-            mailbox.send(message);
-        else
-            record(1, "Actor", "send", "Message dropped. Owner not alive.");
-    }
+    protected abstract void internalSend(Object message);
+
+    protected abstract boolean isBackpressure();
 
     @Override
-    public final void sendSync(Message message) throws SuspendExecution {
-        try {
-            record(1, "Actor", "sendSync", "Sending sync %s -> %s", message, this);
-            if (mailbox.isOwnerAlive())
-                mailbox.sendSync(message);
-            else
-                record(1, "Actor", "sendSync", "Message dropped. Owner not alive.");
-        } catch (QueueCapacityExceededException e) {
-            onMailboxFull(message, e);
-        }
+    public void sendSync(Message message) throws SuspendExecution {
+        send(message);
     }
 
     /**
@@ -138,7 +125,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
      * @param e
      */
     protected void onMailboxFull(Message message, QueueCapacityExceededException e) throws SuspendExecution {
-        if (backpressure) {
+        if (isBackpressure()) {
             long sleepMillis = 1;
             for (int count = 1;; count++) {
                 try {
@@ -174,53 +161,8 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
 
     protected abstract void removeLifecycleListener(LifecycleListener listener);
 
-    protected abstract LifecycleListener getLifecycleListener();
-
-    protected abstract Throwable getDeathCause();
-
-    public final Actor link(Actor other1) {
-        final ActorImpl other = (ActorImpl) other1;
-        record(1, "Actor", "link", "Linking actors %s, %s", this, other);
-        if (!this.isDone() || !other.isDone()) {
-            if (this.isDone())
-                other.getLifecycleListener().dead(this, getDeathCause());
-            else if (other.isDone())
-                getLifecycleListener().dead(other, other.getDeathCause());
-            else {
-                addLifecycleListener(other.getLifecycleListener());
-                other.addLifecycleListener(getLifecycleListener());
-            }
-        }
-        return this;
-    }
-
-    public final Actor unlink(Actor other1) {
-        final ActorImpl other = (ActorImpl) other1;
-        record(1, "Actor", "unlink", "Uninking actors %s, %s", this, other);
-        removeLifecycleListener(other.getLifecycleListener());
-        other.removeLifecycleListener(getLifecycleListener());
-        return this;
-    }
-
-    public final Object watch(Actor other1) {
-        final Object id = randtag();
-        
-        final ActorImpl other = (ActorImpl) other1;
-        final LifecycleListener listener = new ActorLifecycleListener(this, id);
-        record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other, listener);
-
-        if (other.isDone())
-            listener.dead(other, other.getDeathCause());
-        else
-            other.addLifecycleListener(listener);
-        return id;
-    }
-
-    public final void unwatch(Actor other1, Object watchId) {
-        final ActorImpl other = (ActorImpl) other1;
-        final LifecycleListener listener = new ActorLifecycleListener(this, watchId);
-        record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other, listener);
-        other.removeLifecycleListener(listener);
+    protected LifecycleListener getLifecycleListener() {
+        return lifecycleListener;
     }
 
     static class ActorLifecycleListener implements LifecycleListener, java.io.Serializable {
@@ -231,7 +173,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
             this.observer = observer;
             this.id = id;
         }
-        
+
         @Override
         public void dead(Actor actor, Throwable cause) {
             observer.internalSend(new ExitMessage(actor, cause, id));
@@ -244,10 +186,10 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
 
         @Override
         public boolean equals(Object obj) {
-            if(!(obj instanceof ActorLifecycleListener))
+            if (!(obj instanceof ActorLifecycleListener))
                 return false;
-            
-            return Objects.equals(id, ((ActorLifecycleListener)obj).id);
+
+            return Objects.equals(id, ((ActorLifecycleListener) obj).id);
         }
 
         @Override

@@ -59,7 +59,7 @@ public class FiberTest {
 
 
         try {
-            fiber.join(2, TimeUnit.MILLISECONDS);
+            fiber.join(50, TimeUnit.MILLISECONDS);
             fail();
         } catch (java.util.concurrent.TimeoutException e) {
         }

@@ -23,6 +23,7 @@ import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.channels.Mailbox;
 import co.paralleluniverse.strands.channels.ReceiveChannel;
+import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.lang.reflect.Constructor;
 import java.util.Collections;
 import java.util.Set;
@@ -38,6 +39,7 @@ import jsr166e.ConcurrentHashMapV8;
 public abstract class LocalActor<Message, V> extends ActorImpl<Message> implements SuspendableCallable<V>, Joinable<V>, Stranded, ReceiveChannel<Message>, ActorBuilder<Message, V> {
     private static final ThreadLocal<LocalActor> currentActor = new ThreadLocal<LocalActor>();
     private Strand strand;
+    private final MailboxConfig mailboxConfig;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
     private volatile V result;
     private volatile RuntimeException exception;
@@ -48,8 +50,8 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     public LocalActor(Object name, MailboxConfig mailboxConfig) {
         super(name,
-                Mailbox.create(mailboxConfig != null ? mailboxConfig.getMailboxSize() : -1),
-                mailboxConfig != null && mailboxConfig.getPolicy() == MailboxConfig.OverflowPolicy.BACKPRESSURE);
+                Mailbox.create(mailboxConfig != null ? mailboxConfig.getMailboxSize() : -1));
+        this.mailboxConfig = mailboxConfig;
     }
 
     public LocalActor(Strand strand, String name, MailboxConfig mailboxConfig) {
@@ -110,7 +112,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
             if (String.class.equals(type))
                 params[i] = getName();
             if (Integer.TYPE.equals(type))
-                params[i] = mailbox.capacity();
+                params[i] = mailbox().capacity();
             else
                 params[i] = type.isPrimitive() ? 0 : null;
         }
@@ -188,7 +190,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         this.strand = strand;
         if (getName() == null)
             setName(strand.getName());
-        mailbox.setStrand(strand);
+        mailbox().setStrand(strand);
     }
 
     @Override
@@ -203,11 +205,43 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
+    protected Mailbox<Object> mailbox() {
+        return (Mailbox<Object>) super.mailbox();
+    }
+
+    @Override
+    protected boolean isBackpressure() {
+        return (mailboxConfig != null && mailboxConfig.getPolicy() == MailboxConfig.OverflowPolicy.BACKPRESSURE);
+    }
+
+    @Override
+    protected void internalSend(Object message) {
+        record(1, "Actor", "send", "Sending %s -> %s", message, this);
+        if (mailbox().isOwnerAlive())
+            mailbox().send(message);
+        else
+            record(1, "Actor", "send", "Message dropped. Owner not alive.");
+    }
+
+    @Override
+    public final void sendSync(Message message) throws SuspendExecution {
+        try {
+            record(1, "Actor", "sendSync", "Sending sync %s -> %s", message, this);
+            if (mailbox().isOwnerAlive())
+                mailbox().sendSync(message);
+            else
+                record(1, "Actor", "sendSync", "Message dropped. Owner not alive.");
+        } catch (QueueCapacityExceededException e) {
+            onMailboxFull(message, e);
+        }
+    }
+
+    @Override
     public final Message receive() throws SuspendExecution, InterruptedException {
         for (;;) {
             checkThrownIn();
             record(1, "Actor", "receive", "%s waiting for a message", this);
-            Object m = mailbox.receive();
+            Object m = mailbox().receive();
             record(1, "Actor", "receive", "Received %s <- %s", this, m);
             monitorAddMessage();
             Message msg = filterMessage(m);
@@ -220,7 +254,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     public final Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         if (unit == null)
             return receive();
-        if(timeout <= 0)
+        if (timeout <= 0)
             return tryReceive();
 
         final long start = System.nanoTime();
@@ -231,7 +265,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
             if (flightRecorder != null)
                 record(1, "Actor", "receive", "%s waiting for a message. millis left: ", this, TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS));
             checkThrownIn();
-            Object m = mailbox.receive(left, TimeUnit.NANOSECONDS);
+            Object m = mailbox().receive(left, TimeUnit.NANOSECONDS);
             if (m != null) {
                 record(1, "Actor", "receive", "Received %s <- %s", this, m);
                 monitorAddMessage();
@@ -254,7 +288,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     public final Message tryReceive() {
         for (;;) {
             checkThrownIn();
-            Object m = mailbox.tryReceive();
+            Object m = mailbox().tryReceive();
             if (m == null)
                 return null;
             record(1, "Actor", "tryReceive", "Received %s <- %s", this, m);
@@ -363,12 +397,9 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
-    protected LifecycleListener getLifecycleListener() {
-        return lifecycleListener;
-    }
-
-    @Override
     protected final void addLifecycleListener(LifecycleListener listener) {
+        if (isDone())
+            listener.dead(this, deathCause);
         lifecycleListeners.add(listener);
     }
 
@@ -377,7 +408,6 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         lifecycleListeners.remove(listener);
     }
 
-    @Override
     protected final Throwable getDeathCause() {
         return deathCause;
     }
@@ -399,6 +429,46 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
             exception.setStackTrace(new Throwable().getStackTrace());
             throw exception;
         }
+    }
+
+    public final Actor link(Actor other1) {
+        final ActorImpl other = (ActorImpl) other1;
+        record(1, "Actor", "link", "Linking actors %s, %s", this, other);
+        if (!this.isDone()) {
+            if (this.isDone())
+                other.getLifecycleListener().dead(this, getDeathCause());
+            else {
+                addLifecycleListener(other.getLifecycleListener());
+                other.addLifecycleListener(getLifecycleListener());
+            }
+        }
+        return this;
+    }
+
+    public final Actor unlink(Actor other1) {
+        final ActorImpl other = (ActorImpl) other1;
+        record(1, "Actor", "unlink", "Uninking actors %s, %s", this, other);
+        removeLifecycleListener(other.getLifecycleListener());
+        other.removeLifecycleListener(getLifecycleListener());
+        return this;
+    }
+
+    public final Object watch(Actor other1) {
+        final Object id = randtag();
+
+        final ActorImpl other = (ActorImpl) other1;
+        final LifecycleListener listener = new ActorLifecycleListener(this, id);
+        record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other, listener);
+
+        other.addLifecycleListener(listener);
+        return id;
+    }
+
+    public final void unwatch(Actor other1, Object watchId) {
+        final ActorImpl other = (ActorImpl) other1;
+        final LifecycleListener listener = new ActorLifecycleListener(this, watchId);
+        record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other, listener);
+        other.removeLifecycleListener(listener);
     }
 
     public final Actor register(Object name) {
@@ -444,7 +514,6 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         }
         lifecycleListeners.clear(); // avoid memory leak
     }
-    private final LifecycleListener lifecycleListener = new ActorLifecycleListener(this, null);
 
     //</editor-fold>
     //<editor-fold defaultstate="collapsed" desc="Monitor delegates">
@@ -474,7 +543,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     /////////// Serialization ///////////////////////////////////
     // If using Kryo, see what needs to be done: https://code.google.com/p/kryo/
     protected final Object writeReplace() throws java.io.ObjectStreamException {
-        return RemoteProxyFactoryService.create(this);
+        return RemoteProxyFactoryService.create(this, null);
     }
 
     protected static class SerializedActor implements java.io.Serializable {

@@ -23,7 +23,7 @@ import co.paralleluniverse.strands.channels.SendChannel;
  * @author pron
  */
 public interface RemoteProxyFactory {
-    <Message> RemoteActor<Message> create(LocalActor<Message, ?> actor);
+    <Message> RemoteActor<Message> create(LocalActor<Message, ?> actor, Object globalId);
     
-    <Message> SendChannel<Message> create(Channel channel);
+    <Message> SendChannel<Message> create(Channel channel, Object globalId);
 }

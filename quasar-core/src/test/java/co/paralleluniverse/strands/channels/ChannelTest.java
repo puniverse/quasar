@@ -292,7 +292,7 @@ public class ChannelTest {
                 String m1 = group.receive();
                 String m2 = channel2.receive();
                 String m3 = group.receive(10, TimeUnit.MILLISECONDS);
-                String m4 = group.receive(100, TimeUnit.MILLISECONDS);
+                String m4 = group.receive(200, TimeUnit.MILLISECONDS);
 
                 assertThat(m1, equalTo("hello"));
                 assertThat(m2, equalTo("world!"));

@@ -44,11 +44,11 @@ public class RemoteProxyFactoryService {
         }
     }
     
-    public static <Message> RemoteActor<Message> create(LocalActor<Message, ?> actor) {
-        return factory.create(actor);
+    public static <Message> RemoteActor<Message> create(LocalActor<Message, ?> actor, Object globalId) {
+        return factory.create(actor, globalId);
     }
     
-    public <Message> SendChannel<Message> create(Channel channel) {
-        return factory.create(channel);
+    public <Message> SendChannel<Message> create(Channel channel, Object globalId) {
+        return factory.create(channel, globalId);
     }
 }

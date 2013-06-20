@@ -23,8 +23,6 @@ import co.paralleluniverse.strands.channels.SendChannel;
 public interface Actor<Message> extends SendChannel<Message> {
     Object getName();
 
-    boolean isDone();
-
     @Override
     void send(Message message) throws SuspendExecution;
 
