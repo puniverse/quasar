@@ -9,6 +9,7 @@ import co.paralleluniverse.actors.RemoteActor;
 import co.paralleluniverse.remote.RemoteProxyFactory;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.SendChannel;
+import co.paralleluniverse.strands.channels.galaxy.RemoteChannel;
 
 /**
  *
@@ -22,6 +23,6 @@ public class GalaxyRemoteActorFactory implements RemoteProxyFactory {
 
     @Override
     public <Message> SendChannel<Message> create(Channel channel) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return new RemoteChannel<Message>(channel);
     }
 }
