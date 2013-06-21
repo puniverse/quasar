@@ -49,6 +49,11 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
      * @param callback
      */
     protected abstract A requestAsync(Fiber current, Callback callback);
+    
+    protected Callback getCallback() {
+        return (Callback)this;
+    }
+    
     //
     private volatile boolean completed;
     private Throwable exception;
@@ -89,7 +94,7 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
      */
     @Override
     public final void run(Fiber current) {
-        attachment = requestAsync(current, (Callback) this);
+        attachment = requestAsync(current, getCallback());
     }
 
     protected A getAttachment() {
