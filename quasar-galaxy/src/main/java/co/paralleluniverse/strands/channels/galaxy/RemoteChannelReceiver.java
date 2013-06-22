@@ -13,9 +13,9 @@
  */
 package co.paralleluniverse.strands.channels.galaxy;
 
-import co.paralleluniverse.actors.galaxy.Serializer;
 import co.paralleluniverse.galaxy.MessageListener;
 import co.paralleluniverse.galaxy.Messenger;
+import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.strands.channels.Channel;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
@@ -87,7 +87,7 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
 
     @Override
     public void messageReceived(short fromNode, byte[] message) {
-        Message m = (Message) Serializer.deserialize(message);
+        Message m = (Message) Serialization.read(message);
         if (filter == null || filter.shouldForwardMessage(m))
             channel.send(m);
     }

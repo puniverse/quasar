@@ -11,9 +11,11 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors.galaxy;
+package co.paralleluniverse.io.serialization;
 
 import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.Registration;
+import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import de.javakaffee.kryoserializers.ArraysAsListSerializer;
@@ -31,13 +33,14 @@ import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
+import org.objenesis.instantiator.ObjectInstantiator;
 import org.objenesis.strategy.SerializingInstantiatorStrategy;
 
 /**
  *
  * @author pron
  */
-public class KryoSerializer {
+public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
     public static final Kryo KRYO;
 
     static {
@@ -78,37 +81,72 @@ public class KryoSerializer {
         UnmodifiableCollectionsSerializer.registerSerializers(KRYO);
         SynchronizedCollectionsSerializer.registerSerializers(KRYO);
 
-        KRYO.addDefaultSerializer(Externalizable.class, new ExternalizableSerializer());
+        KRYO.addDefaultSerializer(Externalizable.class, new ExternalizableKryoSerializer());
     }
 
-    public static <T> T readKryo(InputStream is, Class<T> type) {
-        final Input input = new KryoObjectInputStream(is);
-        return KRYO.readObjectOrNull(input, type);
+    public static void register(Class type) {
+        KRYO.register(type);
     }
 
-    public static <T> T readKryo(byte[] buffer, Class<T> type) {
-        final Input input = new KryoObjectInputStream(buffer);
-        return KRYO.readObjectOrNull(input, type);
+    public void register(Class type, Serializer serializer) {
+        KRYO.register(type, serializer);
     }
-
-    public static void writeKryo(OutputStream os, Object object) {
-        final Output output = new KryoObjectOutputStream(os);
-        KRYO.writeClassAndObject(output, object);
-        output.flush();
+    
+    public void register(Class type, Serializer serializer, ObjectInstantiator instantiator) {
+        final Registration reg = KRYO.register(type, serializer);
+        reg.setInstantiator(instantiator);
     }
-
-    public static byte[] writeKryo(Object object) {
+    
+    @Override
+    public byte[] write(Object object) {
         final Output output = new KryoObjectOutputStream(512, -1);
         KRYO.writeClassAndObject(output, object);
         output.flush();
         return output.toBytes();
     }
 
-    private KryoSerializer() {
+    @Override
+    public Object read(byte[] buf) {
+        final Input input = new KryoObjectInputStream(buf);
+        return KRYO.readClassAndObject(input);
+    }
+
+    public static <T> T read(byte[] buffer, Class<T> type) {
+        final Input input = new KryoObjectInputStream(buffer);
+        return KRYO.readObjectOrNull(input, type);
+    }
+
+    @Override
+    public void write(OutputStream os, Object object) {
+        final Output output = toKryoObjectOutputStream(os);
+        KRYO.writeClassAndObject(output, object);
+        output.flush();
+    }
+
+    @Override
+    public Object read(InputStream is) throws IOException {
+        final Input input = toKryoObjectInputStream(is);
+        return KRYO.readClassAndObject(input);
+    }
+
+    public static <T> T read(InputStream is, Class<T> type) {
+        final Input input = toKryoObjectInputStream(is);
+        return KRYO.readObjectOrNull(input, type);
+    }
+
+    private static KryoObjectOutputStream toKryoObjectOutputStream(OutputStream os) {
+        if (os instanceof KryoObjectOutputStream)
+            return (KryoObjectOutputStream) os;
+        return new KryoObjectOutputStream(os);
+    }
+
+    private static KryoObjectInputStream toKryoObjectInputStream(InputStream is) {
+        if (is instanceof KryoObjectInputStream)
+            return (KryoObjectInputStream) is;
+        return new KryoObjectInputStream(is);
     }
 
     static class KryoObjectOutputStream extends Output implements DataOutput, ObjectOutput {
-
         public KryoObjectOutputStream() {
         }
 
@@ -135,7 +173,7 @@ public class KryoSerializer {
         public KryoObjectOutputStream(OutputStream outputStream, int bufferSize) {
             super(outputStream, bufferSize);
         }
-        
+
         @Override
         public void writeChar(int v) throws IOException {
             writeChar((char) v);

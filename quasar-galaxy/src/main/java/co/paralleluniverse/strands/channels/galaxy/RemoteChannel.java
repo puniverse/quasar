@@ -13,12 +13,12 @@
  */
 package co.paralleluniverse.strands.channels.galaxy;
 
-import co.paralleluniverse.actors.galaxy.Serializer;
 import co.paralleluniverse.common.io.Streamable;
 import co.paralleluniverse.galaxy.Cluster;
 import co.paralleluniverse.galaxy.Grid;
 import co.paralleluniverse.galaxy.Messenger;
 import co.paralleluniverse.galaxy.TimeoutException;
+import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.remote.RemoteException;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.SendChannel;
@@ -75,7 +75,7 @@ public class RemoteChannel<Message> implements SendChannel<Message>, Serializabl
                     else
                         getMessenger().sendToOwnerOf(ref, (Long) topic, (Streamable) message);
                 } else {
-                    final byte[] buf = Serializer.serialize(message);
+                    final byte[] buf = Serialization.write(message);
                     if (topic instanceof String)
                         getMessenger().sendToOwnerOf(ref, (String) topic, buf);
                     else
@@ -89,7 +89,7 @@ public class RemoteChannel<Message> implements SendChannel<Message>, Serializabl
                     else
                         getMessenger().send(node, (Long) topic, (Streamable) message);
                 } else {
-                    final byte[] buf = Serializer.serialize(message);
+                    final byte[] buf = Serialization.write(message);
                     if (topic instanceof String)
                         getMessenger().send(node, (String) topic, buf);
                     else
