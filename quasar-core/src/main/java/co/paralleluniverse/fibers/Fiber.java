@@ -17,7 +17,6 @@ import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
-import co.paralleluniverse.common.util.NamingThreadFactory;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
@@ -30,6 +29,7 @@ import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.SuspendableUtils.VoidSuspendableCallable;
 import static co.paralleluniverse.strands.SuspendableUtils.runnableToCallable;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -81,8 +81,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return true;
     }
     private static final ScheduledExecutorService timeoutService = Boolean.getBoolean("co.paralleluniverse.fibers.useExperimentalTimeoutExecutor")
-            ? new ScheduledSingleThreadExecutor(new NamingThreadFactory("fiber-timeout"))
-            : Executors.newSingleThreadScheduledExecutor(new NamingThreadFactory("fiber-timeout"));
+            ? new ScheduledSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("fiber-timeout-%d").setDaemon(true).build())
+            : Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("fiber-timeout-%d").setDaemon(true).build());
     private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler;
     //
     private final ForkJoinPool fjPool;
