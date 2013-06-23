@@ -20,7 +20,7 @@ public class RingBenchmark {
         System.out.println();
 
         for (int i = 0; i < 10; i++)
-            new PrimitiveChannelRingBenchmark().run();
+            new RingBenchmark().run();
     }
 
     private static <Message, V> LocalActor<Message, V> spawnActor(LocalActor<Message, V> actor) {
