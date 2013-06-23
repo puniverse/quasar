@@ -46,13 +46,16 @@ public class FiberAsyncListenableFuture<V> extends FiberAsync<V, Runnable, Void,
                         }
                     }
                 }.start().get();
-            } catch (RuntimeExecutionException e) {
-                throw new ExecutionException(e.getCause());
+            } catch (ExecutionException e) {
+                Throwable t = e.getCause();
+                if (t instanceof RuntimeExecutionException)
+                    throw new ExecutionException(t.getCause());
+                else
+                    throw e;
             }
         } else
             return future.get();
     }
-    
     private final ListenableFuture<V> fut;
     private final Runnable listener;
     private Fiber<?> fiber;

@@ -13,7 +13,10 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.strands.SuspendableCallable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import jsr166e.ForkJoinPool;
 
 /**
  *
@@ -23,6 +26,15 @@ public final class FiberUtil {
     public static <V> Future<V> toFuture(Fiber<V> fiber) {
         return fiber;
     }
+
+    public static <V> V runInFiber(SuspendableCallable<V> target) throws ExecutionException, InterruptedException {
+        return new Fiber<V>(target).start().get();
+    }
+
+    public static <V> V runInFiber(ForkJoinPool fjPool, SuspendableCallable<V> target) throws ExecutionException, InterruptedException {
+        return new Fiber<V>(fjPool, target).start().get();
+    }
+
     private FiberUtil() {
     }
 }
