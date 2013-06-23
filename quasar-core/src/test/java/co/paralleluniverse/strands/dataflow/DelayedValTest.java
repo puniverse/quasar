@@ -162,7 +162,7 @@ public class DelayedValTest {
         }));
         t1.start();
 
-        final Fiber<Void> f2 = new Fiber<Integer>(fjPool, new SuspendableRunnable() {
+        final Fiber<Integer> f2 = new Fiber<Integer>(fjPool, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 val2.set(5);
