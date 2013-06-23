@@ -15,6 +15,7 @@ package co.paralleluniverse.fibers.futures;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberAsync;
+import co.paralleluniverse.fibers.RuntimeExecutionException;
 import co.paralleluniverse.fibers.SuspendExecution;
 import com.google.common.util.concurrent.ListenableFuture;
 import java.util.concurrent.ExecutionException;
@@ -29,6 +30,26 @@ public class FiberAsyncListenableFuture<V> extends FiberAsync<V, Runnable, Void,
         if (Fiber.currentFiber() != null)
             return new FiberAsyncListenableFuture<>(future).run();
         else
+            return future.get();
+    }
+
+    public static <V> V getNoSuspend(final ListenableFuture<V> future) throws ExecutionException, InterruptedException {
+        if (Fiber.currentFiber() != null) {
+            try {
+                return new Fiber<V>() {
+                    @Override
+                    protected V run() throws SuspendExecution, InterruptedException {
+                        try {
+                            return new FiberAsyncListenableFuture<>(future).run();
+                        } catch (ExecutionException e) {
+                            throw new RuntimeExecutionException(e.getCause());
+                        }
+                    }
+                }.start().get();
+            } catch (RuntimeExecutionException e) {
+                throw new ExecutionException(e.getCause());
+            }
+        } else
             return future.get();
     }
     
@@ -65,7 +86,6 @@ public class FiberAsyncListenableFuture<V> extends FiberAsync<V, Runnable, Void,
         fut.addListener(listener, sameThreadExecutor);
         return null;
     }
-
     private static final Executor sameThreadExecutor = new Executor() {
         @Override
         public void execute(Runnable command) {
