@@ -173,7 +173,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             throw new IllegalArgumentException("Target class " + t.getClass() + " has not been instrumented.");
     }
 
-    public SuspendableCallable<V> getTarget() {
+    public final SuspendableCallable<V> getTarget() {
         return target;
     }
 
@@ -436,7 +436,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     @Override
-    public Object getUnderlying() {
+    public final Object getUnderlying() {
         return this;
     }
 
@@ -660,7 +660,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * @return {@code this}
      */
     @Override
-    public Fiber start() {
+    public final Fiber<V> start() {
         if (!casState(State.NEW, State.STARTED))
             throw new IllegalThreadStateException("Fiber has already been started or has died");
         fjTask.submit();
@@ -715,7 +715,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     @Override
-    public boolean isTerminated() {
+    public final boolean isTerminated() {
         return state == State.TERMINATED;
     }
 
@@ -728,12 +728,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         fjTask.setBlocker(blocker);
     }
 
-    public Fiber getParent() {
+    public final Fiber getParent() {
         return parent;
     }
 
     @Override
-    public String getName() {
+    public final String getName() {
         return name;
     }
 
@@ -787,17 +787,17 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     @Override
-    public boolean isDone() {
+    public final boolean isDone() {
         return state == State.TERMINATED;
     }
 
     @Override
-    public boolean cancel(boolean mayInterruptIfRunning) {
+    public final boolean cancel(boolean mayInterruptIfRunning) {
         return false;
     }
 
     @Override
-    public boolean isCancelled() {
+    public final boolean isCancelled() {
         return false;
     }
 
@@ -826,11 +826,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         }
     }
 
-    public void setUncaughtExceptionHandler(UncaughtExceptionHandler uncaughtExceptionHandler) {
+    public final void setUncaughtExceptionHandler(UncaughtExceptionHandler uncaughtExceptionHandler) {
         this.uncaughtExceptionHandler = uncaughtExceptionHandler;
     }
 
-    public UncaughtExceptionHandler getUncaughtExceptionHandler() {
+    public final UncaughtExceptionHandler getUncaughtExceptionHandler() {
         return uncaughtExceptionHandler;
     }
 
@@ -843,7 +843,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     @Override
-    public StackTraceElement[] getStackTrace() {
+    public final StackTraceElement[] getStackTrace() {
         StackTraceElement[] threadStack = Thread.currentThread().getStackTrace();
         int count = 0;
         for (int i = 1; i < threadStack.length; i++) {
@@ -890,7 +890,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     @Override
-    public String toString() {
+    public final String toString() {
         return "Fiber@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this))) + "[task: " + fjTask + ", target: " + (target instanceof co.paralleluniverse.actors.Actor ? Objects.systemToString(target) : target) + " state: " + state + ']';
     }
 
