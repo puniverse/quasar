@@ -35,7 +35,7 @@ subprojects {
     // Note however, that you may define your own "run" and "debug" task if you
     // prefer. In this case NetBeans will not add these tasks but you may rely on
     // your own implementation.
-    if (!hasProperty('mainClass')) {
+    if (!project.hasProperty('mainClass')) { // must use project.hasProperty() rather than hasProperty in subprojects (gradle bug)
         ext.mainClass = ''
     }
     repositories {
