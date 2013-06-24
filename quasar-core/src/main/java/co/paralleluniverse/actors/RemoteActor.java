@@ -13,15 +13,85 @@
  */
 package co.paralleluniverse.actors;
 
-
 /**
  *
  * @author pron
  */
 public abstract class RemoteActor<Message> extends ActorImpl<Message> {
+    private final transient LocalActor<Message, ?> actor;
+
     public RemoteActor(LocalActor<Message, ?> actor, Object globalId) {
         super(actor.getName(), actor.mailbox());
+        this.actor = actor;
     }
 
-    
+    protected void handleAdminMessage(RemoteActorAdminMessage msg) {
+        if (msg instanceof RemoteActorListenerAdminMessage) {
+            final RemoteActorListenerAdminMessage m = (RemoteActorListenerAdminMessage) msg;
+            if (m.isRegister())
+                actor.addLifecycleListener(m.getListener());
+            else
+                actor.removeLifecycleListener(m.getListener());
+        } else if (msg instanceof RemoteActorInterruptAdminMessage) {
+            actor.interrupt();
+        } else if (msg instanceof RemoteActorThrowInAdminMessage) {
+            actor.throwIn(((RemoteActorThrowInAdminMessage)msg).getException());
+        }
+    }
+
+    @Override
+    protected void addLifecycleListener(LifecycleListener listener) {
+        internalSend(new RemoteActorListenerAdminMessage((ActorLifecycleListener) listener, true));
+    }
+
+    @Override
+    protected void removeLifecycleListener(LifecycleListener listener) {
+        internalSend(new RemoteActorListenerAdminMessage((ActorLifecycleListener) listener, false));
+    }
+
+    @Override
+    protected void throwIn(RuntimeException e) {
+        internalSend(new RemoteActorThrowInAdminMessage(e));
+    }
+
+    @Override
+    public void interrupt() {
+        internalSend(new RemoteActorInterruptAdminMessage());
+    }
+
+    protected static abstract class RemoteActorAdminMessage implements java.io.Serializable {
+    }
+
+    private static class RemoteActorListenerAdminMessage extends RemoteActorAdminMessage {
+        private final ActorLifecycleListener listener;
+        private final boolean register;
+
+        public RemoteActorListenerAdminMessage(ActorLifecycleListener listener, boolean register) {
+            this.listener = listener;
+            this.register = register;
+        }
+
+        public ActorLifecycleListener getListener() {
+            return listener;
+        }
+
+        public boolean isRegister() {
+            return register;
+        }
+    }
+
+    private static class RemoteActorInterruptAdminMessage extends RemoteActorAdminMessage {
+    }
+
+    private static class RemoteActorThrowInAdminMessage extends RemoteActorAdminMessage {
+        private RuntimeException e;
+
+        public RemoteActorThrowInAdminMessage(RuntimeException e) {
+            this.e = e;
+        }
+
+        public RuntimeException getException() {
+            return e;
+        }
+    }
 }

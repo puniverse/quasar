@@ -13,33 +13,25 @@
  */
 package co.paralleluniverse.actors.galaxy;
 
-import co.paralleluniverse.actors.LifecycleListener;
 import co.paralleluniverse.actors.LocalActor;
-import co.paralleluniverse.common.io.Streamable;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.galaxy.RemoteChannel;
 import co.paralleluniverse.strands.channels.galaxy.RemoteChannelReceiver;
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
+import java.util.Objects;
 
 /**
  *
  * @author pron
  */
 public class RemoteActor<Message> extends co.paralleluniverse.actors.RemoteActor<Message> {
-    
     public RemoteActor(final LocalActor<Message, ?> actor, Object globalId) {
         super(actor, globalId);
-        final RemoteChannelReceiver<Object> receiver = RemoteChannelReceiver.getReceiver((Channel<Object>)actor.getMailbox(), globalId != null);
-        receiver.setFilter(new RemoteChannelReceiver.MessageFilter<Object> () {
-
+        final RemoteChannelReceiver<Object> receiver = RemoteChannelReceiver.getReceiver((Channel<Object>) actor.getMailbox(), globalId != null);
+        receiver.setFilter(new RemoteChannelReceiver.MessageFilter<Object>() {
             @Override
             public boolean shouldForwardMessage(Object msg) {
-                if(msg instanceof RemoteActorAdminMessage) {
-                    
-                    // call actor method
-                    
+                if (msg instanceof RemoteActorAdminMessage) {
+                    handleAdminMessage((RemoteActorAdminMessage) msg);
                     return false;
                 }
                 return true;
@@ -54,46 +46,25 @@ public class RemoteActor<Message> extends co.paralleluniverse.actors.RemoteActor
 
     @Override
     protected void internalSend(Object message) {
-        ((RemoteChannel)mailbox()).send(message);
-    }
-    
-    @Override
-    protected void addLifecycleListener(LifecycleListener listener) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        ((RemoteChannel) mailbox()).send(message);
     }
 
     @Override
-    protected void removeLifecycleListener(LifecycleListener listener) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-    
-    @Override
-    protected void throwIn(RuntimeException e) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public int hashCode() {
+        int hash = 5;
+        hash = 43 * hash + Objects.hashCode(mailbox());
+        return hash;
     }
 
     @Override
-    public void interrupt() {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public boolean equals(Object obj) {
+        if (obj == null)
+            return false;
+        if (!(obj instanceof RemoteActor))
+            return false;
+        final RemoteActor<Message> other = (RemoteActor<Message>) obj;
+        if (!Objects.equals(this.mailbox(), other.mailbox()))
+            return false;
+        return true;
     }
-    
-    private static class RemoteActorAdminMessage implements Streamable {
-
-        @Override
-        public int size() {
-            throw new UnsupportedOperationException("Not supported yet.");
-        }
-
-        @Override
-        public void write(DataOutput out) throws IOException {
-            throw new UnsupportedOperationException("Not supported yet.");
-        }
-
-        @Override
-        public void read(DataInput in) throws IOException {
-            throw new UnsupportedOperationException("Not supported yet.");
-        }
-        
-    }
-    
 }

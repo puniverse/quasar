@@ -18,7 +18,6 @@ import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.SendChannel;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.math.BigInteger;
@@ -189,7 +188,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
             if (!(obj instanceof ActorLifecycleListener))
                 return false;
 
-            return Objects.equals(id, ((ActorLifecycleListener) obj).id);
+            return Objects.equals(observer, ((ActorLifecycleListener) obj).observer) && Objects.equals(id, ((ActorLifecycleListener) obj).id);
         }
 
         @Override

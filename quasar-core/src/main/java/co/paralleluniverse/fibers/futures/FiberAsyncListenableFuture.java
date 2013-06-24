@@ -27,14 +27,14 @@ import java.util.concurrent.Executor;
  */
 public class FiberAsyncListenableFuture<V> extends FiberAsync<V, Runnable, Void, ExecutionException> {
     public static <V> V get(ListenableFuture<V> future) throws ExecutionException, InterruptedException, SuspendExecution {
-        if (Fiber.currentFiber() != null)
+        if (Fiber.currentFiber() != null && !future.isDone())
             return new FiberAsyncListenableFuture<>(future).run();
         else
             return future.get();
     }
 
     public static <V> V getNoSuspend(final ListenableFuture<V> future) throws ExecutionException, InterruptedException {
-        if (Fiber.currentFiber() != null) {
+        if (Fiber.currentFiber() != null && !future.isDone()) {
             try {
                 return new Fiber<V>() {
                     @Override
@@ -56,6 +56,8 @@ public class FiberAsyncListenableFuture<V> extends FiberAsync<V, Runnable, Void,
         } else
             return future.get();
     }
+    
+    ///////////////////////////////////////////////////////////////////////
     private final ListenableFuture<V> fut;
     private final Runnable listener;
     private Fiber<?> fiber;

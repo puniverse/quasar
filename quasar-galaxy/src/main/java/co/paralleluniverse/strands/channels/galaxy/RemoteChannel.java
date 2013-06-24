@@ -23,6 +23,7 @@ import co.paralleluniverse.remote.RemoteException;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.SendChannel;
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  *
@@ -99,5 +100,30 @@ public class RemoteChannel<Message> implements SendChannel<Message>, Serializabl
         } catch (TimeoutException e) {
             throw new RemoteException(e);
         }
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = 43 * hash + Objects.hashCode(this.topic);
+        hash = 43 * hash + (int) (this.address ^ (this.address >>> 32));
+        hash = 43 * hash + (this.global ? 1 : 0);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null)
+            return false;
+        if (!(obj instanceof RemoteChannel))
+            return false;
+        final RemoteChannel<Message> other = (RemoteChannel<Message>) obj;
+        if (!Objects.equals(this.topic, other.topic))
+            return false;
+        if (this.address != other.address)
+            return false;
+        if (this.global != other.global)
+            return false;
+        return true;
     }
 }

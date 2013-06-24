@@ -156,6 +156,7 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
         return queue.pk() != null;
     }
 
+    @Override
     public Message tryReceive() {
         final Object n = tryReceiveNode();
         if (n == null)

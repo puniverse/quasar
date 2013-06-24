@@ -17,6 +17,6 @@ package co.paralleluniverse.actors;
  *
  * @author pron
  */
-public interface LifecycleMessage {
+public interface LifecycleMessage extends java.io.Serializable {
     
 }
