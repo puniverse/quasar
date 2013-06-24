@@ -40,6 +40,8 @@ Questions and suggestions are welcome at this [forum/mailing list](https://group
 
 ## License 
 
+Quasar is free software published under the following license:
+
 ```
 Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
 
