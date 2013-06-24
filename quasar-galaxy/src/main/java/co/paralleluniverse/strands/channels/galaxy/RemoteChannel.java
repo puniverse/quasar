@@ -14,10 +14,11 @@
 package co.paralleluniverse.strands.channels.galaxy;
 
 import co.paralleluniverse.common.io.Streamable;
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.Cluster;
-import co.paralleluniverse.galaxy.Grid;
-import co.paralleluniverse.galaxy.Messenger;
 import co.paralleluniverse.galaxy.TimeoutException;
+import co.paralleluniverse.galaxy.quasar.Grid;
+import co.paralleluniverse.galaxy.quasar.Messenger;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.remote.RemoteException;
 import co.paralleluniverse.strands.channels.Channel;
@@ -34,7 +35,7 @@ public class RemoteChannel<Message> implements SendChannel<Message>, Serializabl
 
     static {
         try {
-            grid = Grid.getInstance();
+            grid = new Grid(co.paralleluniverse.galaxy.Grid.getInstance());
         } catch (InterruptedException ex) {
             throw new RuntimeException(ex);
         }
@@ -69,7 +70,7 @@ public class RemoteChannel<Message> implements SendChannel<Message>, Serializabl
     }
 
     @Override
-    public void send(Message message) {
+    public void send(Message message) throws SuspendExecution {
         try {
             if (global) {
                 final long ref = address;

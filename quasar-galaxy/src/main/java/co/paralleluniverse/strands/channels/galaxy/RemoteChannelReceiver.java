@@ -14,7 +14,7 @@
 package co.paralleluniverse.strands.channels.galaxy;
 
 import co.paralleluniverse.galaxy.MessageListener;
-import co.paralleluniverse.galaxy.Messenger;
+import co.paralleluniverse.galaxy.quasar.Messenger;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.strands.channels.Channel;
 import java.lang.ref.ReferenceQueue;

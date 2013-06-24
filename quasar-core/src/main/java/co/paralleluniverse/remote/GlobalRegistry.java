@@ -15,15 +15,16 @@ package co.paralleluniverse.remote;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.LocalActor;
+import co.paralleluniverse.fibers.SuspendExecution;
 
 /**
  *
  * @author pron
  */
 public interface GlobalRegistry {
-    Object register(LocalActor<?, ?> actor);
+    Object register(LocalActor<?, ?> actor) throws SuspendExecution;
 
-    void unregister(Object name);
+    void unregister(Object name) throws SuspendExecution;
     
-    <Message> Actor<Message> getActor(Object name);
+    <Message> Actor<Message> getActor(Object name) throws SuspendExecution;
 }

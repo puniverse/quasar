@@ -1,21 +1,15 @@
 /*
- * Galaxy
- * Copyright (C) 2012 Parallel Universe Software Co.
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
  * 
- * This file is part of Galaxy.
- *
- * Galaxy is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation, either version 3 of 
- * the License, or (at your option) any later version.
- *
- * Galaxy is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public 
- * License along with Galaxy. If not, see <http://www.gnu.org/licenses/>.
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *  
+ *   or (per the licensee's choosing)
+ *  
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.galaxy.quasar;
 
@@ -32,8 +26,6 @@ import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ListenableFuture;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -45,157 +37,140 @@ public class StoreImpl implements Store {
     public StoreImpl(co.paralleluniverse.galaxy.Store store) {
         this.store = store;
     }
-    
+
     @Override
-    public long put(byte[] data, StoreTransaction txn) throws TimeoutException {
-        return store.put(data, txn);
+    public long alloc(int count, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        return result(store.allocAsync(count, txn));
     }
 
     @Override
-    public long put(ByteBuffer data, StoreTransaction txn) throws TimeoutException {
-        return store.put(data, txn);
+    public long put(byte[] data, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        return result(store.putAsync(data, txn));
     }
 
     @Override
-    public long put(Persistable object, StoreTransaction txn) throws TimeoutException {
-        return store.put(object, txn);
+    public long put(ByteBuffer data, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        return result(store.putAsync(data, txn));
     }
 
-    public <T> T invoke(long id, InvokeOnLine<T> function) throws TimeoutException {
-        throw new UnsupportedOperationException();
+    @Override
+    public long put(Persistable object, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        return result(store.putAsync(object, txn));
     }
 
     @Override
     public byte[] get(long id) throws TimeoutException, SuspendExecution {
-        try {
-            return FiberAsyncListenableFuture.get(store.getAsync(id));
-        } catch (ExecutionException e) {
-            throw propagateException(e);
-        } catch (InterruptedException ex) {
-            Strand.currentStrand().interrupt();
-            return null;
-        }
+        return result(store.getAsync(id));
     }
 
     @Override
     public void get(long id, Persistable object) throws TimeoutException, SuspendExecution {
-        try {
-            FiberAsyncListenableFuture.get(store.getAsync(id, object));
-        } catch (ExecutionException e) {
-            throw propagateException(e);
-        } catch (InterruptedException ex) {
-            Strand.currentStrand().interrupt();
-        }
+        result(store.getAsync(id, object));
     }
 
     @Override
     public byte[] get(long id, short nodeHint) throws TimeoutException, SuspendExecution {
-        try {
-            return FiberAsyncListenableFuture.get(store.getAsync(id, nodeHint));
-        } catch (ExecutionException e) {
-            throw propagateException(e);
-        } catch (InterruptedException ex) {
-            Strand.currentStrand().interrupt();
-            return null;
-        }
+        return result(store.getAsync(id, nodeHint));
     }
 
     @Override
     public void get(long id, short nodeHint, Persistable object) throws TimeoutException, SuspendExecution {
-        try {
-            FiberAsyncListenableFuture.get(store.getAsync(id, nodeHint, object));
-        } catch (ExecutionException e) {
-            throw propagateException(e);
-        } catch (InterruptedException ex) {
-            Strand.currentStrand().interrupt();
-        }
+        result(store.getAsync(id, nodeHint, object));
     }
 
     @Override
     public byte[] getFromOwner(long id, long ownerOf) throws TimeoutException, SuspendExecution {
-        try {
-            return FiberAsyncListenableFuture.get(store.getFromOwnerAsync(id, ownerOf));
-        } catch (ExecutionException e) {
-            throw propagateException(e);
-        } catch (InterruptedException ex) {
-            Strand.currentStrand().interrupt();
-            return null;
-        }
+        return result(store.getFromOwnerAsync(id, ownerOf));
     }
 
     @Override
     public void getFromOwner(long id, long ownerOf, Persistable object) throws TimeoutException, SuspendExecution {
-        try {
-            FiberAsyncListenableFuture.get(store.getFromOwnerAsync(id, ownerOf, object));
-        } catch (ExecutionException e) {
-            throw propagateException(e);
-        } catch (InterruptedException ex) {
-            Strand.currentStrand().interrupt();
-        }
+        result(store.getFromOwnerAsync(id, ownerOf, object));
     }
 
-    public byte[] gets(long id, StoreTransaction txn) throws TimeoutException {
-        return store.gets(id, txn);
+    @Override
+    public byte[] gets(long id, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        return result(store.getsAsync(id, txn));
     }
 
-    public void gets(long id, Persistable object, StoreTransaction txn) throws TimeoutException {
-        store.gets(id, object, txn);
+    @Override
+    public void gets(long id, Persistable object, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        result(store.getsAsync(id, object, txn));
     }
 
-    public byte[] gets(long id, short nodeHint, StoreTransaction txn) throws TimeoutException {
-        return store.gets(id, nodeHint, txn);
+    @Override
+    public byte[] gets(long id, short nodeHint, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        return result(store.getsAsync(id, nodeHint, txn));
     }
 
-    public void gets(long id, short nodeHint, Persistable object, StoreTransaction txn) throws TimeoutException {
-        store.gets(id, nodeHint, object, txn);
+    @Override
+    public void gets(long id, short nodeHint, Persistable object, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        result(store.getsAsync(id, nodeHint, object, txn));
     }
 
-    public byte[] getsFromOwner(long id, long ownerOf, StoreTransaction txn) throws TimeoutException {
-        return store.getsFromOwner(id, ownerOf, txn);
+    @Override
+    public byte[] getsFromOwner(long id, long ownerOf, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        return result(store.getsFromOwnerAsync(id, ownerOf, txn));
     }
 
-    public void getsFromOwner(long id, long ownerOf, Persistable object, StoreTransaction txn) throws TimeoutException {
-        store.getsFromOwner(id, ownerOf, object, txn);
+    @Override
+    public void getsFromOwner(long id, long ownerOf, Persistable object, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        result(store.getsFromOwnerAsync(id, ownerOf, object, txn));
     }
 
-    public byte[] getx(long id, StoreTransaction txn) throws TimeoutException {
-        return store.getx(id, txn);
+    @Override
+    public byte[] getx(long id, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        return result(store.getxAsync(id, txn));
     }
 
-    public void getx(long id, Persistable object, StoreTransaction txn) throws TimeoutException {
-        store.getx(id, object, txn);
+    @Override
+    public void getx(long id, Persistable object, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        result(store.getxAsync(id, object, txn));
     }
 
-    public byte[] getx(long id, short nodeHint, StoreTransaction txn) throws TimeoutException {
-        return store.getx(id, nodeHint, txn);
+    @Override
+    public byte[] getx(long id, short nodeHint, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        return result(store.getxAsync(id, nodeHint, txn));
     }
 
-    public void getx(long id, short nodeHint, Persistable object, StoreTransaction txn) throws TimeoutException {
-        store.getx(id, nodeHint, object, txn);
+    @Override
+    public void getx(long id, short nodeHint, Persistable object, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        result(store.getxAsync(id, nodeHint, object, txn));
     }
 
-    public byte[] getxFromOwner(long id, long ownerOf, StoreTransaction txn) throws TimeoutException {
-        return store.getxFromOwner(id, ownerOf, txn);
+    @Override
+    public byte[] getxFromOwner(long id, long ownerOf, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        return result(store.getxFromOwnerAsync(id, ownerOf, txn));
     }
 
-    public void getxFromOwner(long id, long ownerOf, Persistable object, StoreTransaction txn) throws TimeoutException {
-        store.getxFromOwner(id, ownerOf, object, txn);
+    @Override
+    public void getxFromOwner(long id, long ownerOf, Persistable object, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        result(store.getxFromOwnerAsync(id, ownerOf, object, txn));
     }
 
-    public void set(long id, byte[] data, StoreTransaction txn) throws TimeoutException {
-        store.set(id, data, txn);
+    @Override
+    public void set(long id, byte[] data, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        result(store.setAsync(id, data, txn));
     }
 
-    public void set(long id, ByteBuffer data, StoreTransaction txn) throws TimeoutException {
-        store.set(id, data, txn);
+    @Override
+    public void set(long id, ByteBuffer data, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        result(store.setAsync(id, data, txn));
     }
 
-    public void set(long id, Persistable object, StoreTransaction txn) throws TimeoutException {
-        store.set(id, object, txn);
+    @Override
+    public void set(long id, Persistable object, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        result(store.setAsync(id, object, txn));
     }
 
-    public void del(long id, StoreTransaction txn) throws TimeoutException {
-        store.del(id, txn);
+    @Override
+    public <T> T invoke(long id, InvokeOnLine<T> function) throws TimeoutException, SuspendExecution {
+        return result(store.invokeAsync(id, function));
+    }
+
+    @Override
+    public void del(long id, StoreTransaction txn) throws TimeoutException, SuspendExecution {
+        result(store.delAsync(id, txn));
     }
 
     @Override
@@ -244,11 +219,6 @@ public class StoreImpl implements Store {
     }
 
     @Override
-    public long alloc(int count, StoreTransaction txn) throws TimeoutException {
-        return store.alloc(count, txn);
-    }
-
-    @Override
     public void push(long id, short... toNodes) {
         store.push(id, toNodes);
     }
@@ -268,11 +238,18 @@ public class StoreImpl implements Store {
         return store.getState(id);
     }
 
-    private RuntimeException propagateException(ExecutionException e) throws TimeoutException {
-        Throwable ex = e.getCause();
-        if (ex instanceof TimeoutException)
-            throw (TimeoutException) ex;
-        Throwables.propagateIfPossible(ex);
-        throw Throwables.propagate(ex);
+    private <V> V result(ListenableFuture<V> future) throws TimeoutException, SuspendExecution {
+        try {
+            return FiberAsyncListenableFuture.get(future);
+        } catch (ExecutionException e) {
+            Throwable ex = e.getCause();
+            if (ex instanceof TimeoutException)
+                throw (TimeoutException) ex;
+            Throwables.propagateIfPossible(ex);
+            throw Throwables.propagate(ex);
+        } catch (InterruptedException ex) {
+            Strand.currentStrand().interrupt();
+            return null;
+        }
     }
 }

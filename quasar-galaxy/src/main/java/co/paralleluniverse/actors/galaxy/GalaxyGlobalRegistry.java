@@ -15,10 +15,11 @@ package co.paralleluniverse.actors.galaxy;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.LocalActor;
-import co.paralleluniverse.galaxy.Grid;
-import co.paralleluniverse.galaxy.Store;
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.StoreTransaction;
 import co.paralleluniverse.galaxy.TimeoutException;
+import co.paralleluniverse.galaxy.quasar.Grid;
+import co.paralleluniverse.galaxy.quasar.Store;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.remote.GlobalRegistry;
 import org.slf4j.Logger;
@@ -34,14 +35,14 @@ public class GalaxyGlobalRegistry implements GlobalRegistry {
 
     public GalaxyGlobalRegistry() {
         try {
-            grid = Grid.getInstance();
+            grid = new Grid(co.paralleluniverse.galaxy.Grid.getInstance());
         } catch (InterruptedException ex) {
             throw new RuntimeException(ex);
         }
     }
 
     @Override
-    public Object register(LocalActor<?, ?> actor) {
+    public Object register(LocalActor<?, ?> actor) throws SuspendExecution {
         final String rootName = actor.getName().toString();
 
         LOG.info("Registering actor {} at root {}", actor, rootName);
@@ -69,7 +70,7 @@ public class GalaxyGlobalRegistry implements GlobalRegistry {
     }
 
     @Override
-    public void unregister(Object name) {
+    public void unregister(Object name) throws SuspendExecution {
         final String rootName = name.toString();
 
         LOG.info("Uregistering {}", name);
@@ -94,7 +95,7 @@ public class GalaxyGlobalRegistry implements GlobalRegistry {
     }
 
     @Override
-    public <Message> Actor<Message> getActor(Object name) {
+    public <Message> Actor<Message> getActor(Object name) throws SuspendExecution {
         final String rootName = name.toString();
 
         final Store store = grid.store();

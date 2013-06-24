@@ -1,6 +1,15 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
+ * 
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *  
+ *   or (per the licensee's choosing)
+ *  
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.galaxy.quasar;
 
@@ -107,7 +116,7 @@ public interface Store {
      * following elements of the array.
      * @throws TimeoutException
      */
-    long alloc(int count, StoreTransaction txn) throws TimeoutException;
+    long alloc(int count, StoreTransaction txn) throws TimeoutException, SuspendExecution;
 
     /**
      * Puts a new item into the store and returns its (newly allocated) ID.<p/>
@@ -117,7 +126,7 @@ public interface Store {
      * @return The item's (newly allocated) ID.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
-    long put(byte[] data, StoreTransaction txn) throws TimeoutException;
+    long put(byte[] data, StoreTransaction txn) throws TimeoutException, SuspendExecution;
 
     /**
      * Puts a new item into the store and returns its (newly allocated) ID.<p/>
@@ -127,7 +136,7 @@ public interface Store {
      * @return The item's (newly allocated) ID.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
-    long put(ByteBuffer data, StoreTransaction txn) throws TimeoutException;
+    long put(ByteBuffer data, StoreTransaction txn) throws TimeoutException, SuspendExecution;
 
     /**
      * Puts a new item into the store and returns its (newly allocated) ID.<p/>
@@ -137,7 +146,7 @@ public interface Store {
      * @return The item's (newly allocated) ID.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
-    long put(Persistable object, StoreTransaction txn) throws TimeoutException;
+    long put(Persistable object, StoreTransaction txn) throws TimeoutException, SuspendExecution;
 
     /**
      * Retrieves a given data item.
@@ -447,9 +456,9 @@ public interface Store {
      * @param id
      * @param txn The current transaction. May be null.
      */
-    void del(long id, StoreTransaction txn) throws TimeoutException;
+    void del(long id, StoreTransaction txn) throws TimeoutException, SuspendExecution;
 
-    <T> T invoke(long id, InvokeOnLine<T> function) throws TimeoutException;
+    <T> T invoke(long id, InvokeOnLine<T> function) throws TimeoutException, SuspendExecution;
 
     /**
      * Makes the given item available in the given nodes' cache. <br/>
