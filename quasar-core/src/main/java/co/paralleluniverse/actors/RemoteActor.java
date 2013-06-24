@@ -41,22 +41,22 @@ public abstract class RemoteActor<Message> extends ActorImpl<Message> {
 
     @Override
     protected void addLifecycleListener(LifecycleListener listener) {
-        internalSend(new RemoteActorListenerAdminMessage((ActorLifecycleListener) listener, true));
+        internalSendNonSuspendable(new RemoteActorListenerAdminMessage((ActorLifecycleListener) listener, true));
     }
 
     @Override
     protected void removeLifecycleListener(LifecycleListener listener) {
-        internalSend(new RemoteActorListenerAdminMessage((ActorLifecycleListener) listener, false));
+        internalSendNonSuspendable(new RemoteActorListenerAdminMessage((ActorLifecycleListener) listener, false));
     }
 
     @Override
     protected void throwIn(RuntimeException e) {
-        internalSend(new RemoteActorThrowInAdminMessage(e));
+        internalSendNonSuspendable(new RemoteActorThrowInAdminMessage(e));
     }
 
     @Override
     public void interrupt() {
-        internalSend(new RemoteActorInterruptAdminMessage());
+        internalSendNonSuspendable(new RemoteActorInterruptAdminMessage());
     }
 
     protected static abstract class RemoteActorAdminMessage implements java.io.Serializable {

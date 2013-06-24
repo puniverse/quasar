@@ -13,9 +13,14 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.fibers.DefaultFiberPool;
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.remote.GlobalRegistry;
 import co.paralleluniverse.remote.ServiceUtil;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import jsr166e.ConcurrentHashMapV8;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,12 +31,11 @@ import org.slf4j.LoggerFactory;
  */
 public class ActorRegistry {
     // TODO: there are probably race conditions here
-    
     private static final Logger LOG = LoggerFactory.getLogger(ActorRegistry.class);
     private static final ConcurrentMap<Object, LocalActor> registeredActors = new ConcurrentHashMapV8<Object, LocalActor>();
     private static final GlobalRegistry globalRegistry = ServiceUtil.loadSingletonServiceOrNull(GlobalRegistry.class);
 
-    static Object register(LocalActor<?, ?> actor) {
+    static Object register(final LocalActor<?, ?> actor) {
         final Object name = actor.getName();
         if (name == null)
             throw new IllegalArgumentException("name is null");
@@ -55,9 +59,20 @@ public class ActorRegistry {
         LOG.info("Registering {}: {}", name, actor);
 
         final Object globalId;
-        if (globalRegistry != null)
-            globalId = globalRegistry.register(actor);
-        else
+        if (globalRegistry != null) {
+            try {
+                globalId = new Fiber<Object>(DefaultFiberPool.getInstance()) {
+                    @Override
+                    protected Object run() throws SuspendExecution, InterruptedException {
+                        return globalRegistry.register(actor);
+                    }
+                }.start().get();
+            } catch (ExecutionException e) {
+                throw Exceptions.rethrow(e.getCause());
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        } else
             globalId = name;
 
         actor.monitor();
@@ -65,21 +80,48 @@ public class ActorRegistry {
         return globalId;
     }
 
-    static void unregister(Object name) {
+    static void unregister(final Object name) {
         LOG.info("Unregistering actor: {}", name);
-        
-        if (globalRegistry != null)
-            globalRegistry.unregister(name);
-        
+
+        if (globalRegistry != null) {
+            // TODO: will only work if called from a fiber
+            try {
+                new Fiber<Void>(DefaultFiberPool.getInstance()) {
+                    @Override
+                    protected Void run() throws SuspendExecution, InterruptedException {
+                        globalRegistry.unregister(name);
+                        return null;
+                    }
+                }.start().join();
+            } catch (ExecutionException e) {
+                throw Exceptions.rethrow(e.getCause());
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         registeredActors.remove(name);
     }
 
-    public static <Message> Actor<Message> getActor(Object name) {
+    public static <Message> Actor<Message> getActor(final Object name) {
         Actor<Message> actor = registeredActors.get(name);
-        
-        if(actor == null && globalRegistry != null)
-            actor = globalRegistry.getActor(name);
-        
+
+        if (actor == null && globalRegistry != null) {
+            // TODO: will only work if called from a fiber
+            try {
+                actor = new Fiber<Actor<Message>>(DefaultFiberPool.getInstance()) {
+                    @Override
+                    protected Actor<Message> run() throws SuspendExecution, InterruptedException {
+                        return globalRegistry.getActor(name);
+                    }
+                }.start().get();
+            } catch (ExecutionException e) {
+                throw Exceptions.rethrow(e.getCause());
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         return actor;
     }
 }

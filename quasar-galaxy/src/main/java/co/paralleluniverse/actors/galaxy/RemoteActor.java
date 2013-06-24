@@ -14,10 +14,15 @@
 package co.paralleluniverse.actors.galaxy;
 
 import co.paralleluniverse.actors.LocalActor;
+import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.fibers.DefaultFiberPool;
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.galaxy.RemoteChannel;
 import co.paralleluniverse.strands.channels.galaxy.RemoteChannelReceiver;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 
 /**
  *
@@ -45,8 +50,25 @@ public class RemoteActor<Message> extends co.paralleluniverse.actors.RemoteActor
     }
 
     @Override
-    protected void internalSend(Object message) {
+    protected void internalSend(Object message) throws SuspendExecution {
         ((RemoteChannel) mailbox()).send(message);
+    }
+
+    @Override
+    protected void internalSendNonSuspendable(final Object message) {
+        try {
+            new Fiber<Void>(DefaultFiberPool.getInstance()) {
+                @Override
+                protected Void run() throws SuspendExecution, InterruptedException {
+                    internalSend(message);
+                    return null;
+                }
+            }.start().get();
+        } catch (ExecutionException e) {
+            throw Exceptions.rethrow(e.getCause());
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

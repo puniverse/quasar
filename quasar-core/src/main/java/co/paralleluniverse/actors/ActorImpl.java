@@ -98,7 +98,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
 
     public void sendOrInterrupt(Object message) {
         try {
-            internalSend(message);
+            internalSendNonSuspendable(message);
         } catch (QueueCapacityExceededException e) {
             interrupt();
         }
@@ -109,7 +109,9 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
      *
      * @param message
      */
-    protected abstract void internalSend(Object message);
+    protected abstract void internalSend(Object message) throws SuspendExecution;
+    
+    protected abstract void internalSendNonSuspendable(Object message);
 
     protected abstract boolean isBackpressure();
 
@@ -175,7 +177,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
 
         @Override
         public void dead(Actor actor, Throwable cause) {
-            observer.internalSend(new ExitMessage(actor, cause, id));
+            observer.internalSendNonSuspendable(new ExitMessage(actor, cause, id));
         }
 
         @Override

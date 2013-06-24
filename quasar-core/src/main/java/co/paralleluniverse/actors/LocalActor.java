@@ -224,6 +224,11 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
+    protected void internalSendNonSuspendable(Object message) {
+        internalSend(message);
+    }
+
+    @Override
     public final void sendSync(Message message) throws SuspendExecution {
         try {
             record(1, "Actor", "sendSync", "Sending sync %s -> %s", message, this);
