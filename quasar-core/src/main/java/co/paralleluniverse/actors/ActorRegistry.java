@@ -13,6 +13,8 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.remote.GlobalRegistry;
+import co.paralleluniverse.remote.ServiceUtil;
 import java.util.concurrent.ConcurrentMap;
 import jsr166e.ConcurrentHashMapV8;
 import org.slf4j.Logger;
@@ -23,10 +25,13 @@ import org.slf4j.LoggerFactory;
  * @author pron
  */
 public class ActorRegistry {
+    // TODO: there are probably race conditions here
+    
     private static final Logger LOG = LoggerFactory.getLogger(ActorRegistry.class);
     private static final ConcurrentMap<Object, LocalActor> registeredActors = new ConcurrentHashMapV8<Object, LocalActor>();
+    private static final GlobalRegistry globalRegistry = ServiceUtil.loadSingletonServiceOrNull(GlobalRegistry.class);
 
-    public static void register(LocalActor<?, ?> actor) {
+    static Object register(LocalActor<?, ?> actor) {
         final Object name = actor.getName();
         if (name == null)
             throw new IllegalArgumentException("name is null");
@@ -34,7 +39,8 @@ public class ActorRegistry {
         // atomically register
         final LocalActor old = registeredActors.get(name);
         if (old == actor)
-            return;
+            return old.getGlobalId();
+
         if (old != null && !old.isDone())
             throw new RegistrationException("Actor " + old + " is not dead and is already registered under " + name);
 
@@ -48,15 +54,32 @@ public class ActorRegistry {
 
         LOG.info("Registering {}: {}", name, actor);
 
+        final Object globalId;
+        if (globalRegistry != null)
+            globalId = globalRegistry.register(actor);
+        else
+            globalId = name;
+
         actor.monitor();
+
+        return globalId;
     }
 
-    public static void unregister(Object name) {
+    static void unregister(Object name) {
         LOG.info("Unregistering actor: {}", name);
+        
+        if (globalRegistry != null)
+            globalRegistry.unregister(name);
+        
         registeredActors.remove(name);
     }
 
     public static <Message> Actor<Message> getActor(Object name) {
-        return registeredActors.get(name);
+        Actor<Message> actor = registeredActors.get(name);
+        
+        if(actor == null && globalRegistry != null)
+            actor = globalRegistry.getActor(name);
+        
+        return actor;
     }
 }

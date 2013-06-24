@@ -44,7 +44,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     private volatile V result;
     private volatile RuntimeException exception;
     private volatile Throwable deathCause;
-    private boolean registered;
+    private volatile Object globalId;
     private ActorMonitor monitor;
     private ActorSpec<?, Message, V> spec;
 
@@ -413,7 +413,11 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     public final boolean isRegistered() {
-        return registered;
+        return globalId != null;
+    }
+
+    Object getGlobalId() {
+        return globalId;
     }
 
     @Override
@@ -480,13 +484,12 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     public final Actor register() {
         record(1, "Actor", "register", "Registering actor %s as %s", this, getName());
-        ActorRegistry.register(this);
-        this.registered = true;
+        this.globalId = ActorRegistry.register(this);
         return this;
     }
 
     public final Actor unregister() {
-        if (!registered)
+        if (!isRegistered())
             return this;
         record(1, "Actor", "unregister", "Unregistering actor %s (name: %s)", this, getName());
         if (getName() == null)
@@ -494,7 +497,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         ActorRegistry.unregister(getName());
         if (monitor != null)
             this.monitor.setActor(null);
-        this.registered = false;
+        this.globalId = null;
         return this;
     }
 
@@ -502,7 +505,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         record(1, "Actor", "die", "Actor %s is dying of cause %s", this, cause);
         this.deathCause = cause;
         monitorAddDeath(cause);
-        if (registered)
+        if (isRegistered())
             unregister();
         for (LifecycleListener listener : lifecycleListeners) {
             record(1, "Actor", "die", "Actor %s notifying listener %s of death.", this, listener);
@@ -543,7 +546,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     /////////// Serialization ///////////////////////////////////
     // If using Kryo, see what needs to be done: https://code.google.com/p/kryo/
     protected final Object writeReplace() throws java.io.ObjectStreamException {
-        return RemoteProxyFactoryService.create(this, null);
+        return RemoteProxyFactoryService.create(this, globalId);
     }
 
     protected static class SerializedActor implements java.io.Serializable {

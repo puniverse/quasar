@@ -17,32 +17,13 @@ import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.RemoteActor;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.SendChannel;
-import java.util.ArrayList;
-import java.util.ServiceLoader;
 
 /**
  *
  * @author pron
  */
-public class RemoteProxyFactoryService {
-    private static final RemoteProxyFactory factory;
-    
-    static {
-        final ServiceLoader<RemoteProxyFactory> loader = ServiceLoader.load(RemoteProxyFactory.class);
-        
-        ArrayList<RemoteProxyFactory> factories = new ArrayList<>();
-        for(RemoteProxyFactory f : loader)
-            factories.add(f);
-        
-        if(factories.size() == 1)
-            factory = factories.iterator().next();
-        else {
-            if(factories.isEmpty())
-                throw new Error("No implementation of " + RemoteProxyFactory.class.getName() + " found!");
-            else
-                throw new Error("Several implementations of " + RemoteProxyFactory.class.getName() + " found: " + factories);
-        }
-    }
+public final class RemoteProxyFactoryService {
+    private static final RemoteProxyFactory factory = ServiceUtil.loadSingletonService(RemoteProxyFactory.class);
     
     public static <Message> RemoteActor<Message> create(LocalActor<Message, ?> actor, Object globalId) {
         return factory.create(actor, globalId);
@@ -50,5 +31,8 @@ public class RemoteProxyFactoryService {
     
     public <Message> SendChannel<Message> create(Channel channel, Object globalId) {
         return factory.create(channel, globalId);
+    }
+    
+    private RemoteProxyFactoryService() {
     }
 }

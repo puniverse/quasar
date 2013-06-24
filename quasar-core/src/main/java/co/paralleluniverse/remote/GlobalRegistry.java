@@ -13,24 +13,17 @@
  */
 package co.paralleluniverse.remote;
 
+import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.LocalActor;
+
 /**
  *
  * @author pron
  */
-public class RemoteException extends RuntimeException {
+public interface GlobalRegistry {
+    Object register(LocalActor<?, ?> actor);
 
-    public RemoteException() {
-    }
-
-    public RemoteException(String message) {
-        super(message);
-    }
-
-    public RemoteException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public RemoteException(Throwable cause) {
-        super(cause);
-    }    
+    void unregister(Object name);
+    
+    <Message> Actor<Message> getActor(Object name);
 }

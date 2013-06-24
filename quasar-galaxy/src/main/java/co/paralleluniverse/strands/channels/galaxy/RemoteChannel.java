@@ -30,10 +30,14 @@ import java.util.Objects;
  * @author pron
  */
 public class RemoteChannel<Message> implements SendChannel<Message>, Serializable {
-    private static volatile Grid grid;
+    private static final Grid grid;
 
-    static void setGrid(Grid grid) {
-        RemoteChannel.grid = grid;
+    static {
+        try {
+            grid = Grid.getInstance();
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     static Messenger getMessenger() {
@@ -43,7 +47,6 @@ public class RemoteChannel<Message> implements SendChannel<Message>, Serializabl
     static Cluster getCluster() {
         return grid.cluster();
     }
-    
     private final Object topic; // serializable (String or Long)
     private final long address; // either my node or my ref
     private final boolean global;
