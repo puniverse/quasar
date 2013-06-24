@@ -21,10 +21,33 @@ import jsr166e.ForkJoinPool;
  * @author pron
  */
 public class DefaultFiberPool {
-    private static final ForkJoinPool instance; 
-    
+    private static final int MAX_CAP = 0x7fff;  // max #workers - 1
+    private static final ForkJoinPool instance;
+
     static {
-        instance = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), new NamingForkJoinWorkerFactory("default-fiber-pool"), null, true);
+        int par = 0;
+        Thread.UncaughtExceptionHandler handler = null;
+        ForkJoinPool.ForkJoinWorkerThreadFactory fac = new NamingForkJoinWorkerFactory("default-fiber-pool");
+
+        try {
+            String pp = System.getProperty("co.paralleluniverse.fibers.DefaultFiberPool.parallelism");
+            String hp = System.getProperty("co.paralleluniverse.fibers.DefaultFiberPool.exceptionHandler");
+            String fp = System.getProperty("co.paralleluniverse.fibers.DefaultFiberPool.threadFactory");
+            if (fp != null)
+                fac = ((ForkJoinPool.ForkJoinWorkerThreadFactory) ClassLoader.getSystemClassLoader().loadClass(fp).newInstance());
+            if (hp != null)
+                handler = ((Thread.UncaughtExceptionHandler) ClassLoader.getSystemClassLoader().loadClass(hp).newInstance());
+            if (pp != null)
+                par = Integer.parseInt(pp);
+        } catch (Exception ignore) {
+        }
+
+        if (par <= 0)
+            par = Runtime.getRuntime().availableProcessors();
+        if (par > MAX_CAP)
+            par = MAX_CAP;
+
+        instance = new ForkJoinPool(par, fac, handler, true);
     }
 
     public static ForkJoinPool getInstance() {

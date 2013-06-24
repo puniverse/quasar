@@ -121,9 +121,9 @@ subprojects {
         systemProperty "log4j.configurationFile", "log4j.xml"
         systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
 	    
-//        systemProperty "co.paralleluniverse.debugMode", "true"
-//        systemProperty "co.paralleluniverse.globalFlightRecorder", "true"
-//        systemProperty "co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log"
+        //        systemProperty "co.paralleluniverse.debugMode", "true"
+        //        systemProperty "co.paralleluniverse.globalFlightRecorder", "true"
+        //        systemProperty "co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log"
 	    
         jvmArgs "-javaagent:${jar.archivePath}" // =v, =d
 	    
@@ -139,6 +139,10 @@ subprojects {
     }
 
     test {
+        beforeTest { desc ->
+            logger.lifecycle("Running test: " + desc)
+        }
+        
         afterTest { desc, result -> 
             if(result.resultType == TestResult.ResultType.FAILURE) {
                 println "Failed test ${desc.name} [${desc.className}] with exception: ${result.exception}"

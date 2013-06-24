@@ -14,7 +14,6 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.util.Exceptions;
-import co.paralleluniverse.fibers.DefaultFiberPool;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.remote.GlobalRegistry;
@@ -34,6 +33,10 @@ public class ActorRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(ActorRegistry.class);
     private static final ConcurrentMap<Object, LocalActor> registeredActors = new ConcurrentHashMapV8<Object, LocalActor>();
     private static final GlobalRegistry globalRegistry = ServiceUtil.loadSingletonServiceOrNull(GlobalRegistry.class);
+
+    static {
+        LOG.info("Global registry is {}", globalRegistry);
+    }
 
     static Object register(final LocalActor<?, ?> actor) {
         final Object name = actor.getName();
@@ -61,7 +64,7 @@ public class ActorRegistry {
         final Object globalId;
         if (globalRegistry != null) {
             try {
-                globalId = new Fiber<Object>(DefaultFiberPool.getInstance()) {
+                globalId = new Fiber<Object>() {
                     @Override
                     protected Object run() throws SuspendExecution, InterruptedException {
                         return globalRegistry.register(actor);
@@ -86,7 +89,7 @@ public class ActorRegistry {
         if (globalRegistry != null) {
             // TODO: will only work if called from a fiber
             try {
-                new Fiber<Void>(DefaultFiberPool.getInstance()) {
+                new Fiber<Void>() {
                     @Override
                     protected Void run() throws SuspendExecution, InterruptedException {
                         globalRegistry.unregister(name);
@@ -109,7 +112,7 @@ public class ActorRegistry {
         if (actor == null && globalRegistry != null) {
             // TODO: will only work if called from a fiber
             try {
-                actor = new Fiber<Actor<Message>>(DefaultFiberPool.getInstance()) {
+                actor = new Fiber<Actor<Message>>() {
                     @Override
                     protected Actor<Message> run() throws SuspendExecution, InterruptedException {
                         return globalRegistry.getActor(name);

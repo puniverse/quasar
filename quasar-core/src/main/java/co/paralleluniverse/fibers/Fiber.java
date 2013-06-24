@@ -88,7 +88,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private final ForkJoinPool fjPool;
     private final FiberForkJoinTask<V> fjTask;
     private final Stack stack;
-    private final Fiber<?> parent;
+    private final Strand parent;
     private final String name;
     private final int initialStackSize;
     private volatile State state;
@@ -116,7 +116,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     public Fiber(String name, ForkJoinPool fjPool, int stackSize, SuspendableCallable<V> target) {
         this.name = name;
         this.fjPool = fjPool;
-        this.parent = currentFiber();
+        this.parent = Strand.currentStrand();
         this.target = target;
         this.fjTask = new FiberForkJoinTask<V>(this);
         this.initialStackSize = stackSize;
@@ -154,7 +154,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(String name, int stackSize, SuspendableCallable<V> target) {
-        this(name, verifyParent().fjPool, stackSize, target);
+        this(name, defaultPool(), stackSize, target);
+    }
+
+    private static ForkJoinPool defaultPool() {
+        final Fiber parent = currentFiber();
+        if (parent == null)
+            return DefaultFiberPool.getInstance();
+        else
+            return parent.getFjPool();
     }
 
     private static Fiber verifyParent() {
@@ -728,7 +736,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         fjTask.setBlocker(blocker);
     }
 
-    public final Fiber getParent() {
+    public final Strand getParent() {
         return parent;
     }
 
@@ -986,7 +994,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         protected void setRawResult(V v) {
             fiber.result = v;
         }
-        
+
         @Override
         protected int getState() {
             return super.getState();
