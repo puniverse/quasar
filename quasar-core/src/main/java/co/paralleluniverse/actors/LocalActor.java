@@ -444,8 +444,17 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         }
     }
 
+    private ActorImpl getActorImpl(Actor actor) {
+        if(actor instanceof ActorImpl)
+            return (ActorImpl)actor;
+        else if(actor instanceof ActorWrapper)
+            return getActorImpl(((ActorWrapper)actor).getActor());
+        else
+            throw new ClassCastException("Actor " + actor + " is not an ActorImpl");
+    }
+    
     public final Actor link(Actor other1) {
-        final ActorImpl other = (ActorImpl) other1;
+        final ActorImpl other = getActorImpl(other1);
         record(1, "Actor", "link", "Linking actors %s, %s", this, other);
         if (this.isDone()) {
             other.getLifecycleListener().dead(this, getDeathCause());
@@ -457,7 +466,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     public final Actor unlink(Actor other1) {
-        final ActorImpl other = (ActorImpl) other1;
+        final ActorImpl other = getActorImpl(other1);
         record(1, "Actor", "unlink", "Uninking actors %s, %s", this, other);
         removeLifecycleListener(other.getLifecycleListener());
         other.removeLifecycleListener(getLifecycleListener());
@@ -467,7 +476,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     public final Object watch(Actor other1) {
         final Object id = randtag();
 
-        final ActorImpl other = (ActorImpl) other1;
+        final ActorImpl other = getActorImpl(other1);
         final LifecycleListener listener = new ActorLifecycleListener(this, id);
         record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other, listener);
 
@@ -476,7 +485,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     public final void unwatch(Actor other1, Object watchId) {
-        final ActorImpl other = (ActorImpl) other1;
+        final ActorImpl other = getActorImpl(other1);
         final LifecycleListener listener = new ActorLifecycleListener(this, watchId);
         record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other, listener);
         other.removeLifecycleListener(listener);
@@ -552,25 +561,8 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     //<editor-fold desc="Serialization">
     /////////// Serialization ///////////////////////////////////
     // If using Kryo, see what needs to be done: https://code.google.com/p/kryo/
-    protected final Object writeReplace() throws java.io.ObjectStreamException {
+    protected Object writeReplace() throws java.io.ObjectStreamException {
         return RemoteProxyFactoryService.create(this, globalId);
-    }
-
-    protected static class SerializedActor implements java.io.Serializable {
-        static final long serialVersionUID = 894359345L;
-        private Actor actor;
-
-        public SerializedActor(Actor actor) {
-            this.actor = actor;
-        }
-
-        public SerializedActor() {
-        }
-
-        protected Object readResolve() throws java.io.ObjectStreamException {
-            // return new Actor(...);
-            throw new UnsupportedOperationException();
-        }
     }
     //</editor-fold>
 }

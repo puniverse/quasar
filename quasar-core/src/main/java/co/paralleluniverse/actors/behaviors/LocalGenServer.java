@@ -15,6 +15,7 @@ package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.MailboxConfig;
+import co.paralleluniverse.actors.RemoteActor;
 import co.paralleluniverse.actors.behaviors.GenServerHelper.GenServerRequest;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -36,6 +37,11 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends BasicGenBehavio
         super(name, server, strand, mailboxConfig);
         this.timeoutUnit = timeout > 0 ? unit : null;
         this.timeout = timeout;
+    }
+
+    @Override
+    protected RemoteBasicGenBehavior getRemote(RemoteActor remote) {
+        return new RemoteGenServer(remote);
     }
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">

@@ -13,10 +13,10 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MailboxConfig;
+import co.paralleluniverse.actors.RemoteActor;
 import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -28,7 +28,7 @@ import org.slf4j.Logger;
  *
  * @author pron
  */
-public abstract class BasicGenBehavior extends LocalActor<Object, Void> implements GenBehavior {
+public abstract class BasicGenBehavior extends LocalActor<Object, Void> implements GenBehavior, java.io.Serializable {
     private final Initializer initializer;
     private boolean run;
 
@@ -37,6 +37,8 @@ public abstract class BasicGenBehavior extends LocalActor<Object, Void> implemen
         this.initializer = initializer;
         this.run = true;
     }
+    
+    protected abstract RemoteBasicGenBehavior getRemote(RemoteActor remote);
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
@@ -82,11 +84,7 @@ public abstract class BasicGenBehavior extends LocalActor<Object, Void> implemen
         } else {
             try {
                 final ShutdownMessage message = new ShutdownMessage(LocalActor.self());
-                record(1, "Actor", "send", "Sending %s -> %s", message, this);
-                if (mailbox().isOwnerAlive())
-                    mailbox().send(message);
-                else
-                    record(1, "Actor", "send", "Message dropped. Owner not alive.");
+                sendOrInterrupt(message);
             } catch (QueueCapacityExceededException e) {
                 final Strand strand = getStrand();
                 if (strand != null)
@@ -94,7 +92,6 @@ public abstract class BasicGenBehavior extends LocalActor<Object, Void> implemen
             }
         }
     }
-
 
     protected Initializer getInitializer() {
         return initializer;
@@ -164,5 +161,11 @@ public abstract class BasicGenBehavior extends LocalActor<Object, Void> implemen
             shutdown();
         } else
             super.handleLifecycleMessage(m);
+    }
+
+    @Override
+    protected Object writeReplace() throws java.io.ObjectStreamException {
+        final RemoteActor remote = (RemoteActor)super.writeReplace();
+        return getRemote(remote);
     }
 }

@@ -15,6 +15,7 @@ package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.MailboxConfig;
+import co.paralleluniverse.actors.RemoteActor;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.replyError;
@@ -35,6 +36,11 @@ public class LocalGenEvent<Event> extends BasicGenBehavior implements GenEvent<E
 
     public LocalGenEvent(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
         super(name, initializer, strand, mailboxConfig);
+    }
+
+    @Override
+    protected RemoteBasicGenBehavior getRemote(RemoteActor remote) {
+        return new RemoteGenEvent(remote);
     }
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
@@ -135,7 +141,7 @@ public class LocalGenEvent<Event> extends BasicGenBehavior implements GenEvent<E
             handler.handleEvent(event);
     }
 
-    private static class HandlerMessage<Event> extends GenRequestMessage {
+    static class HandlerMessage<Event> extends GenRequestMessage {
         final EventHandler<Event> handler;
         final boolean add;
 

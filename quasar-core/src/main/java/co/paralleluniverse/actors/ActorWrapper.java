@@ -11,12 +11,12 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors.behaviors;
+package co.paralleluniverse.actors;
 
 /**
  *
  * @author pron
  */
-public interface GenBehavior {
-    void shutdown();
+public interface ActorWrapper<Message> extends Actor<Message> {
+    ActorImpl<Message> getActor();
 }

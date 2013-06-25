@@ -25,7 +25,7 @@ import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildMode;
-import co.paralleluniverse.actors.behaviors.Supervisor.RestartStrategy;
+import co.paralleluniverse.actors.behaviors.LocalSupervisor.RestartStrategy;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
@@ -82,7 +82,7 @@ public class SupervisorTest {
             Debug.record(0, "DONE TEST " + desc.getMethodName());
         }
     };
-    private static final Logger LOG = LoggerFactory.getLogger(Supervisor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LocalSupervisor.class);
     static final int mailboxSize = 10;
     private static ForkJoinPool fjPool;
 
@@ -157,7 +157,7 @@ public class SupervisorTest {
         return a;
     }
 
-    private <Message, V> LocalActor<Message, V> getChild(Supervisor sup, String name, long timeout) throws InterruptedException {
+    private <Message, V> LocalActor<Message, V> getChild(LocalSupervisor sup, String name, long timeout) throws InterruptedException {
         LocalActor<Message, V> a;
         final long start = System.nanoTime();
         while ((a = sup.getChild(name)) == null || a.isDone()) {
@@ -170,7 +170,7 @@ public class SupervisorTest {
 
     @Test
     public void startChild() throws Exception {
-        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
+        final LocalSupervisor sup = spawnActor(new LocalSupervisor(RestartStrategy.ONE_FOR_ONE,
                 new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor1.class, "actor1"))));
 
         LocalActor<Object, Integer> a;
@@ -187,7 +187,7 @@ public class SupervisorTest {
 
     @Test
     public void whenChildDiesThenRestart() throws Exception {
-        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
+        final LocalSupervisor sup = spawnActor(new LocalSupervisor(RestartStrategy.ONE_FOR_ONE,
                 new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor1.class, "actor1"))));
 
         LocalActor<Object, Integer> a;
@@ -212,7 +212,7 @@ public class SupervisorTest {
 
     @Test
     public void whenChildDiesTooManyTimesThenGiveUpAndDie() throws Exception {
-        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
+        final LocalSupervisor sup = spawnActor(new LocalSupervisor(RestartStrategy.ONE_FOR_ONE,
                 new ChildSpec("actor1", ChildMode.PERMANENT, 3, 1, TimeUnit.SECONDS, 3, ActorSpec.of(BadActor1.class, "actor1"))));
 
         LocalActor<Object, Integer> a, prevA = null;
@@ -237,7 +237,7 @@ public class SupervisorTest {
 
     @Test
     public void dontRestartTemporaryChildDeadOfNaturalCause() throws Exception {
-        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
+        final LocalSupervisor sup = spawnActor(new LocalSupervisor(RestartStrategy.ONE_FOR_ONE,
                 new ChildSpec("actor1", ChildMode.TEMPORARY, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor1.class, "actor1"))));
 
         LocalActor<Object, Integer> a;
@@ -259,7 +259,7 @@ public class SupervisorTest {
 
     @Test
     public void dontRestartTemporaryChildDeadOfUnnaturalCause() throws Exception {
-        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
+        final LocalSupervisor sup = spawnActor(new LocalSupervisor(RestartStrategy.ONE_FOR_ONE,
                 new ChildSpec("actor1", ChildMode.TEMPORARY, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(BadActor1.class, "actor1"))));
 
         LocalActor<Object, Integer> a;
@@ -283,7 +283,7 @@ public class SupervisorTest {
 
     @Test
     public void dontRestartTransientChildDeadOfNaturalCause() throws Exception {
-        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
+        final LocalSupervisor sup = spawnActor(new LocalSupervisor(RestartStrategy.ONE_FOR_ONE,
                 new ChildSpec("actor1", ChildMode.TRANSIENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor1.class, "actor1"))));
 
         LocalActor<Object, Integer> a;
@@ -305,7 +305,7 @@ public class SupervisorTest {
 
     @Test
     public void restartTransientChildDeadOfUnnaturalCause() throws Exception {
-        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE,
+        final LocalSupervisor sup = spawnActor(new LocalSupervisor(RestartStrategy.ONE_FOR_ONE,
                 new ChildSpec("actor1", ChildMode.TRANSIENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(BadActor1.class, "actor1"))));
 
         LocalActor<Object, Integer> a;
@@ -364,7 +364,7 @@ public class SupervisorTest {
 
     @Test
     public void restartPreInstantiatedChild() throws Exception {
-        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ONE_FOR_ONE));
+        final LocalSupervisor sup = spawnActor(new LocalSupervisor(RestartStrategy.ONE_FOR_ONE));
 
         final LocalActor a1 = new Actor2("actor1");
         sup.addChild(new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, a1));
@@ -394,13 +394,13 @@ public class SupervisorTest {
 
     ///////////////// Complex example ///////////////////////////////////////////
     private static class Actor3 extends BasicActor<Integer, Integer> {
-        private final Supervisor mySup;
+        private final LocalSupervisor mySup;
         private final AtomicInteger started;
         private final AtomicInteger terminated;
 
         public Actor3(String name, AtomicInteger started, AtomicInteger terminated) {
             super(name);
-            mySup = (Supervisor) LocalActor.self();
+            mySup = (LocalSupervisor) LocalActor.self();
             this.started = started;
             this.terminated = terminated;
         }
@@ -448,7 +448,7 @@ public class SupervisorTest {
         AtomicInteger started = new AtomicInteger();
         AtomicInteger terminated = new AtomicInteger();
 
-        final Supervisor sup = spawnActor(new Supervisor(RestartStrategy.ALL_FOR_ONE,
+        final LocalSupervisor sup = spawnActor(new LocalSupervisor(RestartStrategy.ALL_FOR_ONE,
                 new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor3.class, "actor1", started, terminated))));
 
         LocalActor<Integer, Integer> a;

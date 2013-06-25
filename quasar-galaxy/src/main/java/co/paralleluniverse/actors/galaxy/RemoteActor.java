@@ -30,7 +30,7 @@ import java.util.concurrent.ExecutionException;
  */
 public class RemoteActor<Message> extends co.paralleluniverse.actors.RemoteActor<Message> {
     public RemoteActor(final LocalActor<Message, ?> actor, Object globalId) {
-        super(actor, globalId);
+        super(actor);
         final RemoteChannelReceiver<Object> receiver = RemoteChannelReceiver.getReceiver((Channel<Object>) actor.getMailbox(), globalId != null);
         receiver.setFilter(new RemoteChannelReceiver.MessageFilter<Object>() {
             @Override

@@ -13,14 +13,16 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.fibers.SuspendExecution;
+
 /**
  *
  * @author pron
  */
-public abstract class RemoteActor<Message> extends ActorImpl<Message> {
+public class RemoteActor<Message> extends ActorImpl<Message> {
     private final transient LocalActor<Message, ?> actor;
 
-    public RemoteActor(LocalActor<Message, ?> actor, Object globalId) {
+    public RemoteActor(LocalActor<Message, ?> actor) {
         super(actor.getName(), actor.mailbox());
         this.actor = actor;
     }
@@ -39,6 +41,21 @@ public abstract class RemoteActor<Message> extends ActorImpl<Message> {
         }
     }
 
+    @Override
+    protected boolean isBackpressure() {
+        return false;
+    }
+
+    @Override
+    protected void internalSend(Object message) throws SuspendExecution {
+        actor.internalSend(message);
+    }
+
+    @Override
+    protected void internalSendNonSuspendable(Object message) {
+        actor.internalSendNonSuspendable(message);
+    }
+    
     @Override
     protected void addLifecycleListener(LifecycleListener listener) {
         internalSendNonSuspendable(new RemoteActorListenerAdminMessage((ActorLifecycleListener) listener, true));
