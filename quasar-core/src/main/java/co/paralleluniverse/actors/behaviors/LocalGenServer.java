@@ -29,11 +29,13 @@ import org.slf4j.LoggerFactory;
  */
 public class LocalGenServer<CallMessage, V, CastMessage> extends BasicGenBehavior implements GenServer<CallMessage, V, CastMessage> {
     private static final Logger LOG = LoggerFactory.getLogger(LocalGenServer.class);
-    private long timeout; // nanos
+    private TimeUnit timeoutUnit;
+    private long timeout;
 
     public LocalGenServer(String name, Server<CallMessage, V, CastMessage> server, long timeout, TimeUnit unit, Strand strand, MailboxConfig mailboxConfig) {
         super(name, server, strand, mailboxConfig);
-        this.timeout = unit != null ? unit.toNanos(timeout) : -1;
+        this.timeoutUnit = timeout > 0 ? unit : null;
+        this.timeout = timeout;
     }
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
@@ -102,7 +104,7 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends BasicGenBehavio
     @Override
     protected final void behavior() throws InterruptedException, SuspendExecution {
         while (isRunning()) {
-            Object m1 = receive(timeout, TimeUnit.NANOSECONDS);
+            Object m1 = receive(timeout, timeoutUnit);
             if (m1 == null)
                 handleTimeout();
             else
@@ -145,7 +147,8 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends BasicGenBehavio
 
     public final void setTimeout(long timeout, TimeUnit unit) {
         verifyInActor();
-        this.timeout = (unit != null ? unit.toNanos(timeout) : -1);
+        this.timeoutUnit = timeout > 0 ? unit : null;
+        this.timeout = timeout;
     }
 
     protected V handleCall(Actor<V> from, Object id, CallMessage m) throws Exception, SuspendExecution {
