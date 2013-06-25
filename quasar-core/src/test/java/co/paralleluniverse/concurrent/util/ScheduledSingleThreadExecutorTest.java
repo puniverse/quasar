@@ -16,7 +16,6 @@ import org.junit.Ignore;
  *
  * @author pron
  */
-@Ignore
 public class ScheduledSingleThreadExecutorTest {
     private ScheduledSingleThreadExecutor exec;
     

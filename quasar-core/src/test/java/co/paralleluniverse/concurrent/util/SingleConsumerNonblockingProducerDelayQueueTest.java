@@ -16,7 +16,6 @@ import org.junit.Test;
  *
  * @author pron
  */
-@Ignore
 public class SingleConsumerNonblockingProducerDelayQueueTest {
     public SingleConsumerNonblockingProducerDelayQueueTest() {
     }
