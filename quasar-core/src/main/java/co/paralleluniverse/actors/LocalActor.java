@@ -403,9 +403,13 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     @Override
     protected final void addLifecycleListener(LifecycleListener listener) {
+        if (isDone()) {
+            listener.dead(this, deathCause);
+            return;
+        }
+        lifecycleListeners.add(listener);
         if (isDone())
             listener.dead(this, deathCause);
-        lifecycleListeners.add(listener);
     }
 
     @Override
@@ -443,13 +447,11 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     public final Actor link(Actor other1) {
         final ActorImpl other = (ActorImpl) other1;
         record(1, "Actor", "link", "Linking actors %s, %s", this, other);
-        if (!this.isDone()) {
-            if (this.isDone())
-                other.getLifecycleListener().dead(this, getDeathCause());
-            else {
-                addLifecycleListener(other.getLifecycleListener());
-                other.addLifecycleListener(getLifecycleListener());
-            }
+        if (this.isDone()) {
+            other.getLifecycleListener().dead(this, getDeathCause());
+        } else {
+            addLifecycleListener(other.getLifecycleListener());
+            other.addLifecycleListener(getLifecycleListener());
         }
         return this;
     }
