@@ -149,7 +149,7 @@ public class SupervisorTest {
     private <Message, V> LocalActor<Message, V> getRegisteredActor(String name, long timeout) throws InterruptedException {
         LocalActor<Message, V> a;
         final long start = System.nanoTime();
-        while ((a = LocalActor.getActor(name)) == null || a.isDone()) {
+        while ((a = (LocalActor)LocalActor.getActor(name)) == null || a.isDone()) {
             if (System.nanoTime() > start + TimeUnit.MILLISECONDS.toNanos(timeout))
                 return null;
             Thread.sleep(10);

@@ -73,8 +73,8 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
         };
     }
 
-    public static <Message, V> LocalActor<Message, V> getActor(Object name) {
-        return (LocalActor<Message, V>) ActorRegistry.getActor(name);
+    public static <Message> Actor<Message> getActor(Object name) {
+        return ActorRegistry.getActor(name);
     }
 
     //<editor-fold desc="Mailbox methods">
