@@ -65,7 +65,7 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
 
         if (DUMMY_NODE_ALGORITHM) {
             orderedSetHead(node); // head = node;
-            node.prev = null;
+            clearPrev(node);
         } else {
             Node h = node.next;
             if (h == null) {
@@ -77,7 +77,7 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
                 while ((h = node.next) == null);
             }
             orderedSetHead(h); // head = h;
-            h.prev = null;
+            clearPrev(h); // h.prev = null;
 
             // clearNext(node); - we don't clear next so that iterator would work
             clearPrev(node);

@@ -97,7 +97,7 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
         final long newHead = intToLongIndex(index) + 1;
         for (long i = head; i != newHead; i++)
             clearValue(i);
-        orderedSetHead(newHead);//head = newHead;
+        head = newHead; // orderedSetHead(newHead); //
     }
 
     @Override
@@ -158,7 +158,7 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
         for (; i != h; i--)
             copyValue((int) i & mask, (int) (i - 1) & mask);
 
-        orderedSetHead(h + 1);
+        head = h + 1; // orderedSetHead(h + 1); // 
         return index;
     }
 

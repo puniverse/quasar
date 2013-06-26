@@ -37,14 +37,21 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
     }
 
     @SuppressWarnings("empty-statement")
-    final void postEnq(Node n, int i) {
-        while (!compareAndSetMaxReadIndex(n, i, i+1))
+    final void postEnq(Node n1, int i) {
+        if (true) {
+            final PrimitiveNode n = (PrimitiveNode) n1;
+            while (n.maxReadIndex != i)
             ;
+            n.maxReadIndex = i + 1;
+        } else {
+            while (!compareAndSetMaxReadIndex(n1, i, i + 1))
+            ;
+        }
     }
 
     @Override
     boolean hasValue(Node n, int index) {
-        return index < ((PrimitiveNode)n).maxReadIndex;
+        return index < ((PrimitiveNode) n).maxReadIndex;
     }
 
     @Override

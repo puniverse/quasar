@@ -73,8 +73,8 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
                 break;
         };
 
-        if (head != n) // save the volatile write
-            head = n;
+        // if (head != n) head = n; // save the volatile write
+        orderedSetHead(n); // 
         headIndex = ep.i + 1;
     }
 

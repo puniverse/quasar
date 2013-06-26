@@ -38,8 +38,14 @@ abstract class SingleConsumerArrayPrimitiveQueue<E> extends SingleConsumerArrayQ
 
     @SuppressWarnings("empty-statement")
     final void postEnq(long i) {
-        while (!compareAndSetMaxReadIndex(i, i + 1))
+        if (true) {
+            while (maxReadIndex != i)
             ;
+            maxReadIndex = i + 1;
+        } else {
+            while (!compareAndSetMaxReadIndex(i, i + 1))
+            ;
+        }
     }
     private static final long maxReadIndexOffset;
 
