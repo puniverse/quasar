@@ -133,7 +133,7 @@ class InstrumentMethod {
     }
 
     public void accept(MethodVisitor mv) {
-        db.log(LogLevel.INFO, "Instrumenting method %s%s%s", className, mn.name, mn.desc);
+        db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
 
         mv.visitCode();
 

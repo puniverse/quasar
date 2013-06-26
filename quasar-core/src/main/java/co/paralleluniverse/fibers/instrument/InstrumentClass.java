@@ -66,9 +66,7 @@ public class InstrumentClass extends ClassVisitor {
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         this.className = name;
-        this.classEntry = db.getClassEntry(className);
-        if (classEntry == null)
-            this.classEntry = new ClassEntry(superName);
+        this.classEntry = db.getOrCreateClassEntry(className, superName);
         classEntry.setInterfaces(interfaces);
 
         forceInstrumentation |= classEntry.requiresInstrumentation();
@@ -82,7 +80,7 @@ public class InstrumentClass extends ClassVisitor {
 //            System.out.println("XX: Marking " + className + " as " + SUSPENDABLE_NAME);
 //            interfaces = add(interfaces, SUSPENDABLE_NAME);
 //        }
-        
+
         super.visit(version, access, name, signature, superName, interfaces);
     }
 
@@ -96,12 +94,18 @@ public class InstrumentClass extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        boolean suspendable = SuspendableClassifierService.isSuspendable(className, classEntry, name, desc, signature, exceptions) || classEntry.check(name, desc) == Boolean.TRUE;
+        final boolean markedSuspendable = SuspendableClassifierService.isSuspendable(className, classEntry, name, desc, signature, exceptions);
+        final Boolean setSuspendable = classEntry.check(name, desc) == Boolean.TRUE;
+
+        final boolean suspendable = markedSuspendable | setSuspendable == Boolean.TRUE;
         classEntry.set(name, desc, suspendable);
+
+        if (db.isDebug())
+            db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, suspendable, markedSuspendable, setSuspendable);
 
         if (suspendable && checkAccess(access) && !isYieldMethod(className, name)) {
             if (db.isDebug())
-                db.log(LogLevel.INFO, "Instrumenting method %s#%s", className, name);
+                db.log(LogLevel.INFO, "About to instrument method %s#%s", className, name);
 
             if (methods == null)
                 methods = new ArrayList<MethodNode>();
@@ -119,7 +123,7 @@ public class InstrumentClass extends ClassVisitor {
         final boolean requiresInstrumentation = classEntry.requiresInstrumentation();
         classEntry.setRequiresInstrumentation(false);
         db.recordSuspendableMethods(className, classEntry);
-        
+
         if (methods != null) {
             if (alreadyInstrumented && !forceInstrumentation) {
                 for (MethodNode mn : methods)
@@ -149,9 +153,9 @@ public class InstrumentClass extends ClassVisitor {
             }
         } else {
             // if we don't have any suspendable methods, but our superclass is instrumented, we mark this class as instrumented, too.
-            if(!alreadyInstrumented && classEntry.superName != null) {
-                ClassEntry superClass = db.getClassEntry(classEntry.superName);
-                if(superClass != null && superClass.isInstrumented()) {
+            if (!alreadyInstrumented && classEntry.getSuperName() != null) {
+                ClassEntry superClass = db.getClassEntry(classEntry.getSuperName());
+                if (superClass != null && superClass.isInstrumented()) {
                     super.visitAnnotation(ALREADY_INSTRUMENTED_NAME, true);
                     classEntry.setInstrumented(true);
                 }

@@ -210,7 +210,7 @@ public class MethodDatabase implements Log {
                 return suspendable;
             }
 
-            curClassName = entry.superName;
+            curClassName = entry.getSuperName();
         } while (searchSuperClass && curClassName != null);
 
         log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s", className, methodName, methodDesc);
@@ -220,12 +220,21 @@ public class MethodDatabase implements Log {
     public synchronized ClassEntry getClassEntry(String className) {
         return classes.get(className);
     }
-    
+
+    public synchronized ClassEntry getOrCreateClassEntry(String className, String superType) {
+        ClassEntry ce = classes.get(className);
+        if(ce == null) {
+            ce = new ClassEntry(superType);
+            classes.put(className, ce);
+        }
+        return ce;
+    }
+
     public synchronized Map<String, ClassEntry> getInnerClassesEntries(String className) {
         Map<String, ClassEntry> tailMap = classes.tailMap(className, true);
         HashMap<String, ClassEntry> map = new HashMap<String, ClassEntry>();
-        for(Map.Entry<String, ClassEntry> entry : tailMap.entrySet()) {
-            if(entry.getKey().equals(className) || entry.getKey().startsWith(className + '$'))
+        for (Map.Entry<String, ClassEntry> entry : tailMap.entrySet()) {
+            if (entry.getKey().equals(className) || entry.getKey().startsWith(className + '$'))
                 map.put(entry.getKey(), entry.getValue());
         }
         return Collections.unmodifiableMap(map);
@@ -362,7 +371,7 @@ public class MethodDatabase implements Log {
     protected String getDirectSuperClass(String className) {
         ClassEntry entry = getClassEntry(className);
         if (entry != null && entry != CLASS_NOT_FOUND) {
-            return entry.superName;
+            return entry.getSuperName();
         }
 
         String superClass;
@@ -395,7 +404,7 @@ public class MethodDatabase implements Log {
     public static final class ClassEntry {
         private final HashMap<String, Boolean> methods;
         private String[] interfaces;
-        final String superName;
+        private String superName;
         private boolean instrumented;
         private volatile boolean requiresInstrumentation;
 
@@ -409,8 +418,12 @@ public class MethodDatabase implements Log {
             methods.put(nameAndDesc, suspendable);
         }
 
+        public String getSuperName() {
+            return superName;
+        }
+
         public void setAll(boolean suspendable) {
-            for(Map.Entry<String, Boolean> entry : methods.entrySet())
+            for (Map.Entry<String, Boolean> entry : methods.entrySet())
                 entry.setValue(suspendable);
         }
 
@@ -424,6 +437,15 @@ public class MethodDatabase implements Log {
 
         public Boolean check(String name, String desc) {
             return methods.get(key(name, desc));
+        }
+
+        // only for instrumentation verification
+        public boolean isSuspendable(String name) {
+            for (String key : methods.keySet()) {
+                if (key.substring(0, key.indexOf('(')).equals(name))
+                    return true;
+            }
+            return false;
         }
 
         public boolean requiresInstrumentation() {

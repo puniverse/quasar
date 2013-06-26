@@ -157,14 +157,6 @@ public class JavaAgent {
         return cw.toByteArray();
     }
 
-    private static void dumpClass(String className, byte[] data) {
-        System.out.println("DUMP OF CLASS: " + className);
-        ClassReader cr = new ClassReader(data);
-        ClassVisitor cv = new TraceClassVisitor(null, new Textifier(), new PrintWriter(System.out));
-        cr.accept(cv, ClassReader.SKIP_FRAMES);
-        System.out.println("=================");
-    }
-
     private static class Transformer implements ClassFileTransformer {
         private final MethodDatabase db;
         private final boolean check;
@@ -185,10 +177,16 @@ public class JavaAgent {
 
             db.log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
 
+            Retransform.beforeTransform(className, classBeingRedefined, classfileBuffer);
+            
             classLoaders.add(new WeakReference<ClassLoader>(loader));
 
             try {
-                return instrumentClass(db, classfileBuffer, check);
+                final byte[] tranformed = instrumentClass(db, classfileBuffer, check);
+                
+                Retransform.afterTransform(className, classBeingRedefined, tranformed);
+                
+                return tranformed;
             } catch (Exception ex) {
                 db.error("Unable to instrument", ex);
                 return null;

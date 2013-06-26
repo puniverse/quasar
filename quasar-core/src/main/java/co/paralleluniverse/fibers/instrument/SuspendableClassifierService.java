@@ -26,7 +26,7 @@ class SuspendableClassifierService {
 
     public static boolean isSuspendable(String className, ClassEntry classEntry, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
         for (SuspendableClassifier sc : loader) {
-            if (sc.isSuspendable(className, classEntry.superName, classEntry.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions))
+            if (sc.isSuspendable(className, classEntry.getSuperName(), classEntry.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions))
                 return true;
         }
         if (checkExceptions(methodExceptions))

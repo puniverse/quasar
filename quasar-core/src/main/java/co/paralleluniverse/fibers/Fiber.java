@@ -77,7 +77,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     private static boolean printVerifyInstrumentationWarning() {
         if (verifyInstrumentation)
-            System.err.println("QUASAR WARNING: Fiber is set to verify instrumentation. This may *severely* harm performance.");
+            System.err.println("QUASAR WARNING: Fibers are set to verify instrumentation. This may *severely* harm performance.");
         return true;
     }
     private static final ScheduledExecutorService timeoutService = Boolean.getBoolean("co.paralleluniverse.fibers.useExperimentalTimeoutExecutor")
@@ -1064,7 +1064,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             if (ste.getClassName().equals(Thread.class.getName()) && ste.getMethodName().equals("getStackTrace"))
                 continue;
             if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')) {
-                if (!Retransform.isWaiver(ste.getClassName(), ste.getMethodName()) && !Retransform.isInstrumented(ste.getClassName())) {
+                if (!Retransform.isWaiver(ste.getClassName(), ste.getMethodName())
+                        && (!Retransform.isInstrumented(ste.getClassName()) || !isSuspendableOrUnknown(ste.getClassName(), ste.getMethodName()))) {
                     final String str = "Method " + ste.getClassName() + "." + ste.getMethodName() + " on the call-stack has not been instrumented. (trace: " + Arrays.toString(stes) + ")";
                     System.err.println("WARNING: " + str);
                     throw new IllegalStateException(str);
@@ -1073,6 +1074,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 return true;
         }
         throw new IllegalStateException("Not run through Fiber.exec(). (trace: " + Arrays.toString(stes) + ")");
+    }
+
+    private static boolean isSuspendableOrUnknown(String className, String methodName) {
+        Boolean res = Retransform.isSuspendable(className, methodName);
+        if (res == null)
+            return true;
+        return res;
     }
 
     @SuppressWarnings("unchecked")
