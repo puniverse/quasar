@@ -78,18 +78,15 @@ public abstract class SingleProducerCircularBuffer<E> {
                 if (head >= oldest) {
                     head++;
                     
-                    int i=0;
-                    while (lastWritten < head) {// wait for enq to complete 
+                    while (lastWritten < head) // wait for enq to complete 
                         ;
-                        if(i++ > 100)
-                            throw new RuntimeException("wow");
-                    }
                     return;
                 }
                 // tail has overtaken us
                 head = oldest + headStart; // < tail
-                if(attempt > 10)
+                if(attempt > 30)
                     throw new RuntimeException("Can't catch up with producer");
+                // increasing headStart diesn't work for some reason. it breaks monotonicity somehow...
 //                if ((++attempt & 0x03) == 0) { // every 4 attempts inc headStart
 //                    headStart++;
 //                    if (headStart >= capacity)
