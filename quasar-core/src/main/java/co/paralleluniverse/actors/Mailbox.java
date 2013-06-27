@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.remote.RemoteProxyFactoryService;
 import co.paralleluniverse.strands.channels.Channel;
