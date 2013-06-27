@@ -273,6 +273,11 @@ project (':quasar-core') {
 
 project (':quasar-galaxy') {
     tasks.withType(JavaExec) {
+        main = mainClass
+        systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
+        systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
+        systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+        jvmArgs "-javaagent:${quasarJar}" // =v, =d
         jvmArgs "-ea", "-XX:MaxDirectMemorySize=100M"
         systemProperty "jgroups.bind_addr", "127.0.0.1"
         doFirst {

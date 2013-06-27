@@ -7,6 +7,7 @@ package co.paralleluniverse.galaxy.example;
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.LocalActor;
+import co.paralleluniverse.actors.RemoteActor;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.Grid;
