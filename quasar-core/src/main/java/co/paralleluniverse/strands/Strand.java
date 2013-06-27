@@ -28,6 +28,8 @@ import java.util.concurrent.locks.LockSupport;
  */
 public abstract class Strand {
     public static Strand create(Object owner) {
+        if(owner instanceof Strand)
+            return (Strand)owner;
         if (owner instanceof Fiber)
             return (Fiber) owner;
         else
@@ -176,6 +178,14 @@ public abstract class Strand {
         else
             Thread.dumpStack();
     }
+    
+    public static boolean equals(Object obj1, Object obj2) {
+        if(obj1 == obj2)
+            return true;
+        if(obj1 == null | obj2 == null)
+            return false;
+        return create(obj1).equals(create(obj2));
+    }
 
     public static Strand clone(Strand strand, final SuspendableCallable<?> target) {
         if (strand.isAlive())
@@ -237,7 +247,7 @@ public abstract class Strand {
         return t;
     }
 
-    private static class ThreadStrand extends Strand {
+    private static final class ThreadStrand extends Strand {
         private final Thread thread;
 
         public ThreadStrand(Thread owner) {
@@ -331,6 +341,21 @@ public abstract class Strand {
         @Override
         public String toString() {
             return thread.toString();
+        }
+
+        @Override
+        public int hashCode() {
+            return thread.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null)
+                return false;
+            if (!(obj instanceof ThreadStrand))
+                return false;
+            final ThreadStrand other = (ThreadStrand) obj;
+            return this.thread.equals(other.thread);
         }
     }
 
