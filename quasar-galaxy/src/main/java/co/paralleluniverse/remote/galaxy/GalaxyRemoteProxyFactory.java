@@ -32,6 +32,7 @@ public class GalaxyRemoteProxyFactory implements RemoteProxyFactory {
         KryoSerializer.register(co.paralleluniverse.actors.ExitMessage.class);
         KryoSerializer.register(co.paralleluniverse.actors.ShutdownMessage.class);
     }
+
     @Override
     public <Message> RemoteActor<Message> create(LocalActor<Message, ?> actor, Object globalId) {
         return new RemoteActor<Message>(actor, globalId);
