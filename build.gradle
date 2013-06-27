@@ -145,12 +145,12 @@ subprojects {
 
     test {
         beforeTest { desc ->
-            logger.lifecycle("Running test: " + desc)
+            logger.quiet("Running test: " + desc)
         }
         
         afterTest { desc, result -> 
             if(result.resultType == TestResult.ResultType.FAILURE) {
-                println "Failed test ${desc.name} [${desc.className}] with exception: ${result.exception}"
+                logger.quiet("Failed test ${desc.name} [${desc.className}] with exception: ${result.exception}")
                 if(result.exception != null) {
                     result.exception.printStackTrace()
                 }
