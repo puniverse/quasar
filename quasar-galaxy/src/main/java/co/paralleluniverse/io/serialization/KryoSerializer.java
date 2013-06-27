@@ -33,6 +33,10 @@ import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
+import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import org.objenesis.instantiator.ObjectInstantiator;
 import org.objenesis.strategy.SerializingInstantiatorStrategy;
 
@@ -91,16 +95,16 @@ public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
     public void register(Class type, Serializer serializer) {
         KRYO.register(type, serializer);
     }
-    
+
     public void register(Class type, Serializer serializer, ObjectInstantiator instantiator) {
         final Registration reg = KRYO.register(type, serializer);
         reg.setInstantiator(instantiator);
     }
-    
+
     @Override
     public byte[] write(Object object) {
         final Output output = new KryoObjectOutputStream(512, -1);
-        KRYO.writeClassAndObject(output, object);
+        KRYO.writeClassAndObject(output, getReplacement(object));
         output.flush();
         return output.toBytes();
     }
@@ -119,7 +123,7 @@ public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
     @Override
     public void write(OutputStream os, Object object) {
         final Output output = toKryoObjectOutputStream(os);
-        KRYO.writeClassAndObject(output, object);
+        KRYO.writeClassAndObject(output, getReplacement(object));
         output.flush();
     }
 
@@ -285,6 +289,42 @@ public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
         @Override
         public Object readObject() throws ClassNotFoundException, IOException {
             return KRYO.readClassAndObject(this);
+        }
+    }
+
+    Object getReplacement(Object obj) {
+        try {
+            Class clazz = obj.getClass();
+            if (!Serializable.class.isAssignableFrom(clazz))
+                return obj;
+
+            Method m = null;
+            try {
+                m = clazz.getDeclaredMethod("writeReplace");
+            } catch (NoSuchMethodException ex) {
+                Class ancestor = clazz.getSuperclass();
+                while (ancestor != null) {
+                    if (!Serializable.class.isAssignableFrom(ancestor))
+                        return obj;
+                    try {
+                        m = ancestor.getDeclaredMethod("writeReplace");
+                        if (!Modifier.isPublic(m.getModifiers()) && !Modifier.isProtected(m.getModifiers()))
+                            return obj;
+                        break;
+                    } catch (NoSuchMethodException ex1) {
+                        ancestor = ancestor.getSuperclass();
+                    }
+                }
+            }
+            if (m == null)
+                return obj;
+            m.setAccessible(true);
+            Object replacement = m.invoke(obj);
+            return replacement;
+        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+            if (ex instanceof InvocationTargetException)
+                ((InvocationTargetException) ex).getTargetException().printStackTrace();
+            return obj;
         }
     }
 }

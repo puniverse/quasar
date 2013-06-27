@@ -15,6 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.remote.RemoteProxyFactoryService;
 import co.paralleluniverse.strands.OwnedSynchronizer;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
@@ -26,21 +27,21 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public abstract class Channel<Message> implements SendChannel<Message>, ReceiveChannel<Message>, Stranded {
+public abstract class Channel<Message> implements SendChannel<Message>, ReceiveChannel<Message>, Stranded, java.io.Serializable {
     private Object owner;
     private volatile OwnedSynchronizer sync;
-    final SingleConsumerQueue<Message, Object> queue;
+    protected final SingleConsumerQueue<Message, Object> queue;
     private OwnedSynchronizer mySync;
     private volatile boolean sendClosed;
     private boolean receiveClosed;
 
-    Channel(Object owner, SingleConsumerQueue<Message, ?> queue) {
+    protected Channel(Object owner, SingleConsumerQueue<Message, ?> queue) {
         this.queue = (SingleConsumerQueue<Message, Object>) queue;
         this.owner = owner;
         this.sync = OwnedSynchronizer.create(owner);
     }
 
-    Channel(SingleConsumerQueue<Message, ?> queue) {
+    protected Channel(SingleConsumerQueue<Message, ?> queue) {
         this.queue = (SingleConsumerQueue<Message, Object>) queue;
     }
 
@@ -269,6 +270,10 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
     @Override
     public String toString() {
         return "Channel{" + "owner: " + owner + ", sync: " + sync + (mySync != sync ? ", mySync: " + mySync : "") + ", queue: " + Objects.systemToString(queue) + '}';
+    }
+    
+    protected Object writeReplace() throws java.io.ObjectStreamException {
+        return RemoteProxyFactoryService.create(this, null);
     }
 
     public static class EOFException extends RuntimeException {

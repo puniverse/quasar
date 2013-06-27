@@ -9,3 +9,4 @@ build/
 .DS_Store
 .gradle/
 .nb-gradle-properties
+.bdb/

@@ -21,7 +21,6 @@ import co.paralleluniverse.remote.RemoteProxyFactoryService;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
-import co.paralleluniverse.strands.channels.Mailbox;
 import co.paralleluniverse.strands.channels.ReceiveChannel;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.lang.reflect.Constructor;
@@ -52,6 +51,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         super(name,
                 Mailbox.create(mailboxConfig != null ? mailboxConfig.getMailboxSize() : -1));
         this.mailboxConfig = mailboxConfig;
+        mailbox().setActor(this);
     }
 
     public LocalActor(Strand strand, String name, MailboxConfig mailboxConfig) {

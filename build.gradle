@@ -21,7 +21,7 @@ subprojects {
     ext.distDir         = "$buildDir/dist"
     ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
     ext.baselib			= "${rootProject.projectDir}/baselib"
-
+    ext.quasarJar       = project(':quasar-core').jar.archivePath
     if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
         println "sonatype username or password not set"
         sonatypeUsername = ""
@@ -67,6 +67,8 @@ subprojects {
     }
 
     dependencies {
+
+
         compile ":jsr166e"
         compile "com.codahale.metrics:metrics-core:3.0.0-RC1" 
         compile "org.ow2.asm:asm:4.1" 
@@ -119,14 +121,14 @@ subprojects {
         useJUnit()
         systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
 	//  systemProperty "java.util.logging.config.file", "jul.properties"
-        systemProperty "log4j.configurationFile", "log4j.xml"
+        systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
         systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
 	    
         //        systemProperty "co.paralleluniverse.debugMode", "true"
         //        systemProperty "co.paralleluniverse.globalFlightRecorder", "true"
         //        systemProperty "co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log"
 	    
-        jvmArgs "-javaagent:${jar.archivePath}" // =v, =d
+        jvmArgs "-javaagent:${quasarJar}" // =v, =d
 	    
         doLast() {
             println "file://" + testReportDir + "/index.html"    
@@ -135,8 +137,10 @@ subprojects {
 
     task run(type: JavaExec, dependsOn:[testClasses]) {
         main = mainClass
+        systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
+        systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
         systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
-        jvmArgs "-javaagent:${jar.archivePath}" // =v, =d
+        jvmArgs "-javaagent:${quasarJar}" // =v, =d
     }
 
     test {
@@ -158,6 +162,11 @@ subprojects {
         classpath = sourceSets.test.runtimeClasspath   
     }
 
+    
+//    tasks.withType(Debug) { 
+//        classpath = sourceSets.test.runtimeClasspath   
+//    }
+    
     task wrapper(type: Wrapper) {
         gradleVersion = '1.5-20130302103424+0000'
     }
@@ -263,9 +272,19 @@ project (':quasar-core') {
 }
 
 project (':quasar-galaxy') {
+    tasks.withType(JavaExec) {
+        jvmArgs "-ea", "-XX:MaxDirectMemorySize=100M"
+        systemProperty "jgroups.bind_addr", "127.0.0.1"
+        doFirst {
+            println commandLine.join(" ")
+        }
+    }
+    
     dependencies {
         compile project(':quasar-core')
-        compile "co.paralleluniverse:galaxy:1.2-SNAPSHOT"
+        compile ("co.paralleluniverse:galaxy:1.2-SNAPSHOT") {
+            exclude group: "org.slf4j"
+        }
         compile("com.esotericsoftware.kryo:kryo:2.21") {
             exclude group: "org.ow2.asm"
         }

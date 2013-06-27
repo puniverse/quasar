@@ -5,7 +5,6 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.channels.Mailbox;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 

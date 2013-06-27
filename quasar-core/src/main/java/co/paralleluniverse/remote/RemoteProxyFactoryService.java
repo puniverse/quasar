@@ -29,7 +29,7 @@ public final class RemoteProxyFactoryService {
         return factory.create(actor, globalId);
     }
     
-    public <Message> SendChannel<Message> create(Channel channel, Object globalId) {
+    public static <Message> SendChannel<Message> create(Channel channel, Object globalId) {
         return factory.create(channel, globalId);
     }
     

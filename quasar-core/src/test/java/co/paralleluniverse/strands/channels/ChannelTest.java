@@ -49,7 +49,7 @@ public class ChannelTest {
 
     @Test
     public void sendMessageFromFiberToFiber() throws Exception {
-        final Channel<String> ch = ObjectChannel.<String>create(mailboxSize);
+        final Channel<String> ch = ObjectChannel.create(mailboxSize);
 
         Fiber fib1 = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -74,7 +74,7 @@ public class ChannelTest {
 
     @Test
     public void sendMessageFromThreadToFiber() throws Exception {
-        final Channel<String> ch = ObjectChannel.<String>create(mailboxSize);
+        final Channel<String> ch = ObjectChannel.create(mailboxSize);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
