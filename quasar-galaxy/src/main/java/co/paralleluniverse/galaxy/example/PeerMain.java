@@ -52,30 +52,6 @@ public class PeerMain {
 
     public void start() throws InterruptedException {
         if (i == 1) {
-            Store store = grid.store();
-
-            long root = -1;
-            System.out.println("Getting root");
-            
-            while (root == -1) {
-                StoreTransaction txn = store.beginTransaction();
-                try {
-                    root = store.getRoot("root1", txn);
-                    if (store.isRootCreated(root, txn)) {
-                        System.out.println("Created root!");
-                        store.set(root, Longs.toByteArray(1000), txn);
-                    }
-                    store.commit(txn);
-                } catch (TimeoutException e) {
-                    System.out.println("OOPS. Timeout.");
-                    store.rollback(txn);
-                    store.abort(txn);
-                }
-            }
-            System.out.println("Root is " + Long.toHexString(root));
-
-
-
             new Fiber<Void>(new BasicActor<String, Void>() {
                 @Override
                 protected Void doRun() throws InterruptedException, SuspendExecution {
