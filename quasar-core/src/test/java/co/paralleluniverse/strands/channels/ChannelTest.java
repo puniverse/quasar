@@ -265,7 +265,7 @@ public class ChannelTest {
     }
 
     @Test
-    public void thestChannelClose() throws Exception {
+    public void testChannelClose() throws Exception {
         final Channel<Integer> ch = ObjectChannel.create(5);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
@@ -300,7 +300,43 @@ public class ChannelTest {
     }
 
     @Test
-    public void thestPrimitiveChannelClose() throws Exception {
+    public void testChannelCloseWithSleep() throws Exception {
+        final Channel<Integer> ch = ObjectChannel.create(5);
+
+        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                for (int i = 1; i <= 5; i++) {
+                    Integer m = ch.receive();
+
+                    assertThat(m, equalTo(i));
+                }
+
+                Integer m = ch.receive();
+
+                assertThat(m, nullValue());
+                assertTrue(ch.isClosed());
+            }
+        }).start();
+
+        Thread.sleep(50);
+        ch.send(1);
+        ch.send(2);
+        ch.send(3);
+        ch.send(4);
+        ch.send(5);
+
+        Thread.sleep(50);
+        ch.close();
+
+        ch.send(6);
+        ch.send(7);
+
+        fib.join();
+    }
+
+    @Test
+    public void testPrimitiveChannelClose() throws Exception {
         final IntChannel ch = IntChannel.create(5);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {

@@ -122,7 +122,10 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
 
     @Override
     public void close() {
-        sendClosed = true;
+        if (!sendClosed) {
+            sendClosed = true;
+            signal();
+        }
     }
 
     /**
