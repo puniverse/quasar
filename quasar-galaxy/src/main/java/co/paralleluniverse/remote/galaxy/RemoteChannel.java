@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.strands.channels.galaxy;
+package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.common.io.Streamable;
 import co.paralleluniverse.common.util.Exceptions;

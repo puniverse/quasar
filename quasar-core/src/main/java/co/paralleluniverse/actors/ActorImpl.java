@@ -172,7 +172,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendChannel<
         return lifecycleListener;
     }
 
-    static class ActorLifecycleListener implements LifecycleListener, java.io.Serializable {
+    protected static class ActorLifecycleListener implements LifecycleListener, java.io.Serializable {
         private final ActorImpl observer;
         private final Object id;
 

@@ -11,19 +11,27 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors.galaxy;
+package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.actors.LocalActor;
+import co.paralleluniverse.io.serialization.KryoSerializer;
 import co.paralleluniverse.remote.RemoteProxyFactory;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.SendChannel;
-import co.paralleluniverse.strands.channels.galaxy.RemoteChannel;
 
 /**
  *
  * @author pron
  */
 public class GalaxyRemoteProxyFactory implements RemoteProxyFactory {
+    static {
+        KryoSerializer.register(RemoteChannel.class);
+        KryoSerializer.register(RemoteActor.class);
+        KryoSerializer.register(RemoteActor.getActorLifecycleListenerClass());
+        KryoSerializer.register(RemoteChannel.CloseMessage.class);
+        KryoSerializer.register(co.paralleluniverse.actors.ExitMessage.class);
+        KryoSerializer.register(co.paralleluniverse.actors.ShutdownMessage.class);
+    }
     @Override
     public <Message> RemoteActor<Message> create(LocalActor<Message, ?> actor, Object globalId) {
         return new RemoteActor<Message>(actor, globalId);

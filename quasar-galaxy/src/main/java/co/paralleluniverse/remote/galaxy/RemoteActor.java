@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors.galaxy;
+package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.common.util.Exceptions;
@@ -19,8 +19,6 @@ import co.paralleluniverse.fibers.DefaultFiberPool;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.Channel;
-import co.paralleluniverse.strands.channels.galaxy.RemoteChannel;
-import co.paralleluniverse.strands.channels.galaxy.RemoteChannelReceiver;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
@@ -88,5 +86,9 @@ public class RemoteActor<Message> extends co.paralleluniverse.actors.RemoteActor
         if (!Objects.equals(this.mailbox(), other.mailbox()))
             return false;
         return true;
+    }
+    
+    static Class getActorLifecycleListenerClass() {
+        return ActorLifecycleListener.class;
     }
 }
