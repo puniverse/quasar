@@ -11,9 +11,12 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.strands.channels;
+package co.paralleluniverse.actors;
 
+import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.remote.RemoteProxyFactoryService;
+import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayObjectQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayObjectQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
@@ -25,20 +28,21 @@ import java.util.concurrent.TimeUnit;
  * @author pron
  */
 public final class Mailbox<Message> extends Channel<Message> {
-    public static <Message> Mailbox<Message> create(Object owner, int mailboxSize) {
-        return new Mailbox(owner, mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedArrayObjectQueue<Message>());
-    }
-
     public static <Message> Mailbox<Message> create(int mailboxSize) {
         return new Mailbox(mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedArrayObjectQueue<Message>());
+    }
+    private transient LocalActor<?, ?> actor;
+
+    private Mailbox(SingleConsumerQueue<Message, ?> queue) {
+        super(queue);
     }
 
     private Mailbox(Object owner, SingleConsumerQueue<Message, ?> queue) {
         super(owner, queue);
     }
 
-    private Mailbox(SingleConsumerQueue<Message, ?> queue) {
-        super(queue);
+    void setActor(LocalActor<?, ?> actor) {
+        this.actor = actor;
     }
 
     @Override
@@ -82,5 +86,10 @@ public final class Mailbox<Message> extends Channel<Message> {
 
     public void await(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         sync().await(timeout, unit);
+    }
+
+    @Override
+    protected Object writeReplace() throws java.io.ObjectStreamException {
+        return RemoteProxyFactoryService.create(this, actor.getGlobalId());
     }
 }
