@@ -432,4 +432,51 @@ public class ChannelTest {
         channel1.send("foo");
         fib.join();
     }
+
+    @Test
+    public void testTopic() throws Exception {
+        final Channel<String> channel1 = ObjectChannel.<String>create(mailboxSize);
+        final Channel<String> channel2 = ObjectChannel.<String>create(mailboxSize);
+        final Channel<String> channel3 = ObjectChannel.<String>create(mailboxSize);
+
+        final Topic<String> topic = new Topic<String>();
+
+        topic.subscribe(channel1);
+        topic.subscribe(channel2);
+        topic.subscribe(channel3);
+
+
+        Fiber f1 = new Fiber(fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                assertThat(channel1.receive(), equalTo("hello"));
+                assertThat(channel1.receive(), equalTo("world!"));
+            }
+        }).start();
+
+       Fiber f2 = new Fiber(fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                assertThat(channel2.receive(), equalTo("hello"));
+                assertThat(channel2.receive(), equalTo("world!"));
+            }
+        }).start();
+
+       Fiber f3 = new Fiber(fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                assertThat(channel3.receive(), equalTo("hello"));
+                assertThat(channel3.receive(), equalTo("world!"));
+            }
+        }).start();
+
+        Thread.sleep(100);
+        topic.send("hello");
+        Thread.sleep(100);
+        topic.send("world!");
+        
+        f1.join();
+        f2.join();
+        f3.join();
+    }
 }

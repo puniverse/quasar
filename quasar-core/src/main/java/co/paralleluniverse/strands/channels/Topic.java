@@ -23,6 +23,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 public class Topic<Message> implements SendChannel<Message> {
     private final Collection<SendChannel<? super Message>> subscribers;
+    private volatile boolean sendClosed;
 
     public Topic() {
         this.subscribers = new CopyOnWriteArraySet<>();
@@ -38,11 +39,14 @@ public class Topic<Message> implements SendChannel<Message> {
 
     @Override
     public void send(Message message) throws SuspendExecution {
+        if(sendClosed)
+            return;
         for (SendChannel<? super Message> sub : subscribers)
             sub.send(message);
     }
 
     @Override
     public void close() {
+        sendClosed = true;
     }
 }
