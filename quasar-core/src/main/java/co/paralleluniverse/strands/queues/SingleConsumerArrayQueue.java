@@ -46,7 +46,7 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
 
     @Override
     public int capacity() {
-        return capacity();
+        return capacity;
     }
 
     @Override
