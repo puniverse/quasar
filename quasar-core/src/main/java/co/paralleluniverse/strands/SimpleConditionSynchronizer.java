@@ -13,6 +13,9 @@
  */
 package co.paralleluniverse.strands;
 
+import co.paralleluniverse.common.monitoring.FlightRecorder;
+import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,7 +42,11 @@ public class SimpleConditionSynchronizer {
     }
 
     public void await() throws InterruptedException, SuspendExecution {
+        if (isRecording())
+            record("await", "%s parking", Strand.currentStrand());
         Strand.park(this);
+        if (isRecording())
+            record("await", "%s awoke", Strand.currentStrand());
         if (Strand.interrupted())
             throw new InterruptedException();
     }
@@ -60,12 +67,50 @@ public class SimpleConditionSynchronizer {
     }
 
     public void signalAll() {
-        while (!waiters.isEmpty()) {
-            for (Iterator<Strand> it = waiters.iterator(); it.hasNext();) {
-                final Strand s = it.next();
-                it.remove();
-                Strand.unpark(s);
-            }
+        //while (!waiters.isEmpty()) {
+        for (Iterator<Strand> it = waiters.iterator(); it.hasNext();) {
+            final Strand s = it.next();
+            record("signalAll", "signalling %s", s);
+
+            //it.remove();
+            Strand.unpark(s);
         }
+        //}
+    }
+    ////////////////////////////
+    public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
+
+    boolean isRecording() {
+        return RECORDER != null;
+    }
+
+    static void record(String method, String format) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("SimpleConditionSynchronizer", method, format, null));
+    }
+
+    static void record(String method, String format, Object arg1) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("SimpleConditionSynchronizer", method, format, new Object[]{arg1}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("SimpleConditionSynchronizer", method, format, new Object[]{arg1, arg2}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2, Object arg3) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("SimpleConditionSynchronizer", method, format, new Object[]{arg1, arg2, arg3}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("SimpleConditionSynchronizer", method, format, new Object[]{arg1, arg2, arg3, arg4}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("SimpleConditionSynchronizer", method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
     }
 }
