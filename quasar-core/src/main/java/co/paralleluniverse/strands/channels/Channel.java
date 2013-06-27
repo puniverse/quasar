@@ -275,9 +275,4 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
     protected Object writeReplace() throws java.io.ObjectStreamException {
         return RemoteProxyFactoryService.create(this, null);
     }
-
-    public static class EOFException extends RuntimeException {
-        public EOFException() {
-        }
-    }
 }

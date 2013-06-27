@@ -18,16 +18,22 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * <b>All methods of this interface must only be called by the channel's owner.</b>
+ *
  * @author pron
  */
 public interface ReceiveChannel<Message> {
     Message receive() throws SuspendExecution, InterruptedException;
 
     Message tryReceive() throws SuspendExecution, InterruptedException;
-    
+
     Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
-    
+
     void close();
-    
+
     boolean isClosed();
+
+    public static class EOFException extends RuntimeException {
+        public EOFException() {
+        }
+    }
 }
