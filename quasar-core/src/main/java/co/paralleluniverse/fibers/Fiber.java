@@ -899,7 +899,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final String toString() {
-        return "Fiber@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this))) + "[task: " + fjTask + ", target: " + (target instanceof co.paralleluniverse.actors.Actor ? Objects.systemToString(target) : target) + " state: " + state + ']';
+        return "Fiber@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this))) + "[task: " + fjTask + ", target: " + Objects.systemToStringSimpleName(target) + ']';
     }
 
     ////////

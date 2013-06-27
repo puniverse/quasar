@@ -29,6 +29,10 @@ public final class Objects {
         return obj == null ? "null" : obj.getClass().getName() + "@" + systemObjectId(obj);
     }
     
+    public static String systemToStringSimpleName(Object obj) {
+        return obj == null ? "null" : obj.getClass().getSimpleName() + "@" + systemObjectId(obj);
+    }
+    
     public static String systemObjectId(Object obj) {
         return Integer.toHexString(System.identityHashCode(obj));
     }
