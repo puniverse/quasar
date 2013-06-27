@@ -27,6 +27,8 @@
  *   LockSupport -> Strand
  * 
  *   throws SuspendExceution
+ * 
+ *  http://gee.cs.oswego.edu/dl/papers/aqs.pdf
  */
 
 package co.paralleluniverse.strands.locks;
