@@ -17,6 +17,7 @@ import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;
 import static org.hamcrest.CoreMatchers.*;
@@ -245,8 +246,95 @@ public class ChannelTest {
             fail();
         } catch (Throwable e) {
         }
-        
+
         thread.join();
+    }
+
+    @Test
+    public void whenChannelOverflowsThrowException() throws Exception {
+        final Channel<Integer> ch = ObjectChannel.create(5);
+
+        int i = 0;
+        try {
+            for (i = 0; i < 10; i++)
+                ch.send(i);
+            fail();
+        } catch (QueueCapacityExceededException e) {
+            System.out.println("i = " + i);
+        }
+    }
+
+    @Test
+    public void thestChannelClose() throws Exception {
+        final Channel<Integer> ch = ObjectChannel.create(5);
+
+        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                for (int i = 1; i <= 5; i++) {
+                    Integer m = ch.receive();
+
+                    assertThat(m, equalTo(i));
+                }
+
+                Integer m = ch.receive();
+
+                assertThat(m, nullValue());
+                assertTrue(ch.isClosed());
+            }
+        }).start();
+
+        Thread.sleep(50);
+        ch.send(1);
+        ch.send(2);
+        ch.send(3);
+        ch.send(4);
+        ch.send(5);
+
+        ch.close();
+
+        ch.send(6);
+        ch.send(7);
+
+        fib.join();
+    }
+
+    @Test
+    public void thestPrimitiveChannelClose() throws Exception {
+        final IntChannel ch = IntChannel.create(5);
+
+        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                for (int i = 1; i <= 5; i++) {
+                    int m = ch.receiveInt();
+
+                    assertThat(m, is(i));
+                }
+
+                try {
+                    int m = ch.receiveInt();
+                    fail("m = " + m);
+                } catch (Channel.EOFException e) {
+                }
+
+                assertTrue(ch.isClosed());
+            }
+        }).start();
+
+        Thread.sleep(50);
+        ch.send(1);
+        ch.send(2);
+        ch.send(3);
+        ch.send(4);
+        ch.send(5);
+
+        ch.close();
+
+        ch.send(6);
+        ch.send(7);
+
+        fib.join();
     }
 
     @Test

@@ -216,16 +216,16 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     @Override
     protected void internalSend(Object message) {
-        record(1, "Actor", "send", "Sending %s -> %s", message, this);
-        if (mailbox().isOwnerAlive())
-            mailbox().send(message);
-        else
-            record(1, "Actor", "send", "Message dropped. Owner not alive.");
+        internalSendNonSuspendable(message);
     }
 
     @Override
     protected void internalSendNonSuspendable(Object message) {
-        internalSend(message);
+        record(1, "Actor", "send", "Sending %s -> %s", message, this);
+        if (mailbox().isOwnerAlive())
+            mailbox().sendNonSuspendable(message);
+        else
+            record(1, "Actor", "send", "Message dropped. Owner not alive.");
     }
 
     @Override
@@ -311,6 +311,11 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
             return null;
         }
         return (Message) m;
+    }
+
+    @Override
+    public boolean isClosed() {
+        return mailbox().isClosed();
     }
     //</editor-fold>
 

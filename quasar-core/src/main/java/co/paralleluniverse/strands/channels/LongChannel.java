@@ -19,12 +19,13 @@ import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayLongQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLongQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
  * @author pron
  */
-public class LongChannel extends Channel<Long> {
+public class LongChannel extends PrimitiveChannel<Long> {
     public static LongChannel create(Object owner, int mailboxSize) {
         return new LongChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayLongQueue(mailboxSize) : new SingleConsumerLinkedArrayLongQueue());
     }
@@ -42,26 +43,40 @@ public class LongChannel extends Channel<Long> {
     }
 
     public long receiveLong() throws SuspendExecution, InterruptedException {
+        if (isClosed())
+            throw new EOFException();
         final Object n = receiveNode();
-        final long m = ((SingleConsumerLongQueue<Object>) queue).longValue(n);
+        final long m = queue().longValue(n);
         queue.deq(n);
         return m;
     }
 
-    public long receiveLong(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public long receiveLong(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+        if (isClosed())
+            throw new EOFException();
         final Object n = receiveNode(timeout, unit);
-        final long m = ((SingleConsumerLongQueue<Object>) queue).longValue(n);
+        if (n == null)
+            throw new TimeoutException();
+        final long m = queue().longValue(n);
         queue.deq(n);
         return m;
     }
 
     public void send(long message) {
+        if (isSendClosed())
+            return;
         queue.enq(message);
         signal();
     }
 
     public void sendSync(long message) {
+        if (isSendClosed())
+            return;
         queue.enq(message);
         signalAndTryToExecNow();
+    }
+
+    private SingleConsumerLongQueue<Object> queue() {
+        return (SingleConsumerLongQueue<Object>) queue;
     }
 }

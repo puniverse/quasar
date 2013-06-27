@@ -25,6 +25,7 @@ public class DisruptorReceiveChannel<Message> implements ReceiveChannel<Message>
     private final RingBuffer<Message> buffer;
     private final Sequence sequence = new Sequence(Sequencer.INITIAL_CURSOR_VALUE);
     private long availableSequence;
+    private volatile boolean closed;
 
     public DisruptorReceiveChannel(RingBuffer<Message> buffer, Sequence... dependentSequences) {
         this.buffer = buffer;
@@ -40,6 +41,8 @@ public class DisruptorReceiveChannel<Message> implements ReceiveChannel<Message>
 
     @Override
     public Message receive() throws SuspendExecution, InterruptedException {
+        if (closed)
+            return null;
         long nextSequence = sequence.get() + 1L;
         while (nextSequence > availableSequence) {
             try {
@@ -54,11 +57,13 @@ public class DisruptorReceiveChannel<Message> implements ReceiveChannel<Message>
 
     @Override
     public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        if(unit == null)
+        if (unit == null)
             return receive();
-        if(timeout <= 0)
+        if (timeout <= 0)
             return tryReceive();
-        
+
+        if (closed)
+            return null;
         try {
             long nextSequence = sequence.get() + 1L;
             if (nextSequence > availableSequence) {
@@ -87,13 +92,14 @@ public class DisruptorReceiveChannel<Message> implements ReceiveChannel<Message>
 
     @Override
     public Message tryReceive() throws SuspendExecution, InterruptedException {
+        if (closed)
+            return null;
         long nextSequence = sequence.get() + 1L;
         if (nextSequence > availableSequence)
             return null;
         return buffer.get(nextSequence);
     }
 
-    
     private static Sequencer getSequencer(RingBuffer<?> buffer) {
         try {
             return (Sequencer) sequencerField.get(buffer);
@@ -122,6 +128,16 @@ public class DisruptorReceiveChannel<Message> implements ReceiveChannel<Message>
         } catch (IllegalAccessException ex) {
             throw new Error(ex);
         }
+    }
+
+    @Override
+    public void close() {
+        this.closed = true;
+    }
+
+    @Override
+    public boolean isClosed() {
+        return closed;
     }
     private static final Field sequencerField;
     private static final Field cursorField;

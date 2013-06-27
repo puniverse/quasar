@@ -19,12 +19,13 @@ import co.paralleluniverse.strands.queues.SingleConsumerDoubleQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayDoubleQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
  * @author pron
  */
-public class DoubleChannel extends Channel<Double> {
+public class DoubleChannel extends PrimitiveChannel<Double> {
     public static DoubleChannel create(int mailboxSize) {
         return new DoubleChannel(mailboxSize > 0 ? new SingleConsumerArrayDoubleQueue(mailboxSize) : new SingleConsumerLinkedArrayDoubleQueue());
     }
@@ -42,26 +43,40 @@ public class DoubleChannel extends Channel<Double> {
     }
 
     public double receiveDouble() throws SuspendExecution, InterruptedException {
+        if (isClosed())
+            throw new EOFException();
         final Object n = receiveNode();
-        final double m = ((SingleConsumerDoubleQueue<Object>) queue).doubleValue(n);
+        final double m = queue().doubleValue(n);
         queue.deq(n);
         return m;
     }
 
-    public double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+        if (isClosed())
+            throw new EOFException();
         final Object n = receiveNode(timeout, unit);
-        final double m = ((SingleConsumerDoubleQueue<Object>) queue).doubleValue(n);
+        if (n == null)
+            throw new TimeoutException();
+        final double m = queue().doubleValue(n);
         queue.deq(n);
         return m;
     }
 
     public void send(double message) {
+        if (isSendClosed())
+            return;
         queue.enq(message);
         signal();
     }
 
     public void sendSync(double message) {
+        if (isSendClosed())
+            return;
         queue.enq(message);
         signalAndTryToExecNow();
+    }
+
+    private SingleConsumerDoubleQueue<Object> queue() {
+        return (SingleConsumerDoubleQueue<Object>) queue;
     }
 }

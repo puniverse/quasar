@@ -14,6 +14,9 @@
 package co.paralleluniverse.strands.channels.galaxy;
 
 import co.paralleluniverse.common.io.Streamable;
+import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.fibers.DefaultFiberPool;
+import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.Cluster;
 import co.paralleluniverse.galaxy.TimeoutException;
@@ -25,6 +28,7 @@ import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.SendChannel;
 import java.io.Serializable;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 
 /**
  *
@@ -107,6 +111,23 @@ public class RemoteChannel<Message> implements SendChannel<Message>, Serializabl
     }
 
     @Override
+    public void close() {
+        try {
+            new Fiber<Void>(DefaultFiberPool.getInstance()) {
+                @Override
+                protected Void run() throws SuspendExecution, InterruptedException {
+                    ((RemoteChannel) RemoteChannel.this).send(new CloseMessage());
+                    return null;
+                }
+            }.start().get();
+        } catch (ExecutionException e) {
+            throw Exceptions.rethrow(e.getCause());
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public int hashCode() {
         int hash = 5;
         hash = 43 * hash + Objects.hashCode(this.topic);
@@ -129,5 +150,8 @@ public class RemoteChannel<Message> implements SendChannel<Message>, Serializabl
         if (this.global != other.global)
             return false;
         return true;
+    }
+
+    static class CloseMessage implements Serializable {
     }
 }

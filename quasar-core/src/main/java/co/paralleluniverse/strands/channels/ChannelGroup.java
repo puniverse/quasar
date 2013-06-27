@@ -31,6 +31,7 @@ public class ChannelGroup<Message> implements ReceiveChannel<Message>, Stranded 
     private Object owner;
     private volatile OwnedSynchronizer sync;
     private final Channel<? extends Message>[] channels;
+    private volatile boolean closed;
 
     /**
      * Creates a channel group
@@ -110,6 +111,9 @@ public class ChannelGroup<Message> implements ReceiveChannel<Message>, Stranded 
     public Message receive() throws SuspendExecution, InterruptedException {
         maybeSetCurrentStrandAsOwner();
 
+        if (closed)
+            return null;
+
         sync.lock();
         try {
             for (;;) {
@@ -125,7 +129,10 @@ public class ChannelGroup<Message> implements ReceiveChannel<Message>, Stranded 
         }
     }
 
+    @Override
     public Message tryReceive() throws SuspendExecution, InterruptedException {
+        if (closed)
+            return null;
         for (;;) {
             for (Channel<? extends Message> c : channels) {
                 Message m = c.tryReceive();
@@ -150,11 +157,13 @@ public class ChannelGroup<Message> implements ReceiveChannel<Message>, Stranded 
     public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         if (unit == null)
             return receive();
-        if(timeout <= 0)
+        if (timeout <= 0)
             return tryReceive();
 
         maybeSetCurrentStrandAsOwner();
 
+        if (closed)
+            return null;
         final long start = System.nanoTime();
         long left = unit.toNanos(timeout);
 
@@ -177,5 +186,15 @@ public class ChannelGroup<Message> implements ReceiveChannel<Message>, Stranded 
         } finally {
             sync.unlock();
         }
+    }
+
+    @Override
+    public void close() {
+        closed = true;
+    }
+
+    @Override
+    public boolean isClosed() {
+        return closed;
     }
 }

@@ -81,4 +81,8 @@ public class RemoteBasicGenBehavior implements ActorWrapper<Object>, GenBehavior
     public void interrupt() {
         actor.interrupt();
     }
+
+    public void close() {
+        throw new UnsupportedOperationException();
+    }
 }

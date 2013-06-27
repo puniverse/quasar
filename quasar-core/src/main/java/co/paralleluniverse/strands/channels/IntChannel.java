@@ -19,12 +19,13 @@ import co.paralleluniverse.strands.queues.SingleConsumerIntQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayIntQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
  * @author pron
  */
-public class IntChannel extends Channel<Integer> {
+public class IntChannel extends PrimitiveChannel<Integer> {
     public static IntChannel create(Object owner, int mailboxSize) {
         return new IntChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayIntQueue(mailboxSize) : new SingleConsumerLinkedArrayIntQueue());
     }
@@ -33,6 +34,7 @@ public class IntChannel extends Channel<Integer> {
         return new IntChannel(mailboxSize > 0 ? new SingleConsumerArrayIntQueue(mailboxSize) : new SingleConsumerLinkedArrayIntQueue());
     }
 
+    //////////
     private IntChannel(Object owner, SingleConsumerQueue<Integer, ?> queue) {
         super(owner, queue);
     }
@@ -42,26 +44,40 @@ public class IntChannel extends Channel<Integer> {
     }
 
     public int receiveInt() throws SuspendExecution, InterruptedException {
+        if (isClosed())
+            throw new EOFException();
         final Object n = receiveNode();
-        final int m = ((SingleConsumerIntQueue<Object>) queue).intValue(n);
+        final int m = queue().intValue(n);
         queue.deq(n);
         return m;
     }
 
-    public int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+        if (isClosed())
+            throw new EOFException();
         final Object n = receiveNode(timeout, unit);
-        final int m = ((SingleConsumerIntQueue<Object>) queue).intValue(n);
+        if (n == null)
+            throw new TimeoutException();
+        final int m = queue().intValue(n);
         queue.deq(n);
         return m;
     }
 
     public void send(int message) {
-        queue.enq(message);
+        if (isSendClosed())
+            return;
+        queue().enq(message);
         signal();
     }
 
     public void sendSync(int message) {
-        queue.enq(message);
+        if (isSendClosed())
+            return;
+        queue().enq(message);
         signalAndTryToExecNow();
+    }
+
+    private SingleConsumerIntQueue<Object> queue() {
+        return (SingleConsumerIntQueue<Object>) queue;
     }
 }

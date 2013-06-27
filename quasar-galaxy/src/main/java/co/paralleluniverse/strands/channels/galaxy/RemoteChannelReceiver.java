@@ -87,7 +87,14 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
 
     @Override
     public void messageReceived(short fromNode, byte[] message) {
-        Message m = (Message) Serialization.read(message);
+        Object m1 = Serialization.read(message);
+        if(m1 instanceof RemoteChannel.CloseMessage) {
+            channel.close();
+            unsubscribe();
+            return;
+        }
+        
+        Message m = (Message) m1;
         if (filter == null || filter.shouldForwardMessage(m))
             channel.send(m);
     }

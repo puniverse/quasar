@@ -31,6 +31,8 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
     private volatile OwnedSynchronizer sync;
     final SingleConsumerQueue<Message, Object> queue;
     private OwnedSynchronizer mySync;
+    private volatile boolean sendClosed;
+    private boolean receiveClosed;
 
     Channel(Object owner, SingleConsumerQueue<Message, ?> queue) {
         this.queue = (SingleConsumerQueue<Message, Object>) queue;
@@ -99,23 +101,59 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
 
     @Override
     public void send(Message message) {
+        sendNonSuspendable(message);
+    }
+
+    public void sendNonSuspendable(Message message) throws QueueCapacityExceededException {
+        if (isSendClosed())
+            return;
         if (!queue.enq(message))
             throw new QueueCapacityExceededException();
         signal();
     }
 
     public void sendSync(Message message) {
+        if (isSendClosed())
+            return;
         if (!queue.enq(message))
             throw new QueueCapacityExceededException();
         signalAndTryToExecNow();
+    }
+
+    @Override
+    public void close() {
+        sendClosed = true;
+    }
+
+    /**
+     * This method must only be called by the channel's owner (the receiver)
+     *
+     * @return
+     */
+    @Override
+    public boolean isClosed() {
+        return receiveClosed;
+    }
+
+    boolean isSendClosed() {
+        return sendClosed;
+    }
+
+    private void setReceiveClosed() {
+        this.receiveClosed = true;
     }
 
     Object receiveNode() throws SuspendExecution, InterruptedException {
         maybeSetCurrentStrandAsOwner();
         Object n;
         sync.lock();
-        while ((n = queue.pk()) == null)
+        while ((n = queue.pk()) == null) {
+            if (sendClosed) {
+                setReceiveClosed();
+                throw new EOFException();
+            }
             sync.await();
+        }
         sync.unlock();
 
         return n;
@@ -126,7 +164,7 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
     }
 
     Object receiveNode(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        if(unit == null)
+        if (unit == null)
             return receiveNode();
         if (timeout <= 0)
             return tryReceiveNode();
@@ -140,6 +178,10 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
         sync.lock();
         try {
             while ((n = queue.pk()) == null) {
+                if (sendClosed) {
+                    setReceiveClosed();
+                    throw new EOFException();
+                }
                 sync.await(left, TimeUnit.NANOSECONDS);
 
                 left = start + unit.toNanos(timeout) - System.nanoTime();
@@ -168,20 +210,32 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
 
     @Override
     public Message receive() throws SuspendExecution, InterruptedException {
-        final Object n = receiveNode();
-        final Message m = queue.value(n);
-        queue.deq(n);
-        return m;
+        if (receiveClosed)
+            return null;
+        try {
+            final Object n = receiveNode();
+            final Message m = queue.value(n);
+            queue.deq(n);
+            return m;
+        } catch (EOFException e) {
+            return null;
+        }
     }
-    
+
     @Override
     public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        final Object n = receiveNode(timeout, unit);
-        if (n == null)
-            return null; // timeout
-        final Message m = queue.value(n);
-        queue.deq(n);
-        return m;
+        if (receiveClosed)
+            return null;
+        try {
+            final Object n = receiveNode(timeout, unit);
+            if (n == null)
+                return null; // timeout
+            final Message m = queue.value(n);
+            queue.deq(n);
+            return m;
+        } catch (EOFException e) {
+            return null;
+        }
     }
 
     public Message receiveFromThread() throws InterruptedException {
@@ -212,5 +266,10 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
     @Override
     public String toString() {
         return "Channel{" + "owner: " + owner + ", sync: " + sync + (mySync != sync ? ", mySync: " + mySync : "") + ", queue: " + Objects.systemToString(queue) + '}';
+    }
+
+    public static class EOFException extends RuntimeException {
+        public EOFException() {
+        }
     }
 }

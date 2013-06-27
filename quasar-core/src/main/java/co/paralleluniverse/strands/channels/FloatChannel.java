@@ -19,12 +19,13 @@ import co.paralleluniverse.strands.queues.SingleConsumerFloatQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayFloatQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
  * @author pron
  */
-public class FloatChannel extends Channel<Float> {
+public class FloatChannel extends PrimitiveChannel<Float> {
     public static FloatChannel create(Object owner, int mailboxSize) {
         return new FloatChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayFloatQueue(mailboxSize) : new SingleConsumerLinkedArrayFloatQueue());
     }
@@ -42,26 +43,40 @@ public class FloatChannel extends Channel<Float> {
     }
 
     public float receiveFloat() throws SuspendExecution, InterruptedException {
+        if (isClosed())
+            throw new EOFException();
         final Object n = receiveNode();
-        final float m = ((SingleConsumerFloatQueue<Object>) queue).floatValue(n);
+        final float m = queue().floatValue(n);
         queue.deq(n);
         return m;
     }
 
-    public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+        if (isClosed())
+            throw new EOFException();
         final Object n = receiveNode(timeout, unit);
-        final float m = ((SingleConsumerFloatQueue<Object>) queue).floatValue(n);
+        if (n == null)
+            throw new TimeoutException();
+        final float m = queue().floatValue(n);
         queue.deq(n);
         return m;
     }
 
     public void send(float message) {
+        if (isSendClosed())
+            return;
         queue.enq(message);
         signal();
     }
 
     public void sendSync(float message) {
+        if (isSendClosed())
+            return;
         queue.enq(message);
         signalAndTryToExecNow();
+    }
+
+    private SingleConsumerFloatQueue<Object> queue() {
+        return (SingleConsumerFloatQueue<Object>) queue;
     }
 }

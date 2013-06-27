@@ -41,4 +41,8 @@ public class Topic<Message> implements SendChannel<Message> {
         for (SendChannel<? super Message> sub : subscribers)
             sub.send(message);
     }
+
+    @Override
+    public void close() {
+    }
 }

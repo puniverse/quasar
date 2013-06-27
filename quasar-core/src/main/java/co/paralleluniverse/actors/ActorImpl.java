@@ -28,7 +28,7 @@ import java.util.concurrent.ThreadLocalRandom;
  *
  * @author pron
  */
-public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Serializable {
+public abstract class ActorImpl<Message> implements Actor<Message>, SendChannel<Message>, java.io.Serializable {
     static final long serialVersionUID = 894359345L;
     //
     private static final int MAX_SEND_RETRIES = 10;
@@ -104,21 +104,27 @@ public abstract class ActorImpl<Message> implements Actor<Message>, java.io.Seri
         }
     }
 
+    @Override
+    public void sendSync(Message message) throws SuspendExecution {
+        send(message);
+    }
+
+    @Override
+    public void close() {
+        throw new UnsupportedOperationException();
+    }
+    
+
     /**
      * For internal use
      *
      * @param message
      */
     protected abstract void internalSend(Object message) throws SuspendExecution;
-    
+
     protected abstract void internalSendNonSuspendable(Object message);
 
     protected abstract boolean isBackpressure();
-
-    @Override
-    public void sendSync(Message message) throws SuspendExecution {
-        send(message);
-    }
 
     /**
      * This method is called <i>on the sender's strand</i> when the mailbox is full.

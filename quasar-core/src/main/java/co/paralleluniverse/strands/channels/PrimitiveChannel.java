@@ -11,20 +11,22 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors;
+package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 
 /**
  *
  * @author pron
  */
-public interface Actor<Message> {
-    Object getName();
+public class PrimitiveChannel<T> extends Channel<T> {
 
-    void send(Message message) throws SuspendExecution;
+    public PrimitiveChannel(Object owner, SingleConsumerQueue<T, ?> queue) {
+        super(owner, queue);
+    }
 
-    void sendSync(Message message) throws SuspendExecution;
+    public PrimitiveChannel(SingleConsumerQueue<T, ?> queue) {
+        super(queue);
+    }
 
-    void interrupt();
 }

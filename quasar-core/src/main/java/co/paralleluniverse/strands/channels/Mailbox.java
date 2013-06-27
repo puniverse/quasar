@@ -41,6 +41,16 @@ public final class Mailbox<Message> extends Channel<Message> {
         super(queue);
     }
 
+    @Override
+    public void close() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isClosed() {
+        return false;
+    }
+
     public Object succ(Object n) {
         return queue.succ(n);
     }
