@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import static co.paralleluniverse.common.test.Matchers.*;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -20,15 +21,13 @@ import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.IntTickerChannel.TickerChannelIntConsumer;
 import co.paralleluniverse.strands.channels.TickerChannel.TickerChannelConsumer;
+import java.util.Arrays;
 import jsr166e.ForkJoinPool;
 import static org.hamcrest.CoreMatchers.*;
-import static co.paralleluniverse.common.test.Matchers.*;
-import java.util.Arrays;
 import org.junit.After;
 import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
