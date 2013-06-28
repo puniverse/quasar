@@ -37,7 +37,7 @@ import co.paralleluniverse.galaxy.core.Comm;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.ObjectChannel;
-import co.paralleluniverse.strands.channels.SendChannel;
+import co.paralleluniverse.strands.channels.SendPort;
 import com.google.common.base.Charsets;
 import com.google.common.primitives.Longs;
 import java.io.FileInputStream;

@@ -19,7 +19,6 @@ import co.paralleluniverse.remote.RemoteProxyFactoryService;
 import co.paralleluniverse.strands.OwnedSynchronizer;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
@@ -28,9 +27,9 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public abstract class Channel<Message> implements SendChannel<Message>, ReceiveChannel<Message>, Stranded, java.io.Serializable {
+public abstract class Channel<Message> implements SendPort<Message>, ReceivePort<Message>, java.io.Serializable {
     public enum OverflowPolicy {
-        THROW, BLOCK, BACKOFF
+        THROW, DROP, BLOCK, BACKOFF
     }
     private static final int MAX_SEND_RETRIES = 10;
     private Object owner;
@@ -67,7 +66,6 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
         return sync.isOwnerAlive();
     }
 
-    @Override
     public void setStrand(Strand strand) {
         if (owner != null && strand != owner)
             throw new IllegalStateException("Channel " + this + " is already owned by " + owner);
@@ -95,10 +93,10 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
         this.sync = sync;
     }
 
-    @Override
-    public Strand getStrand() {
-        return (Strand) owner;
-    }
+//    @Override
+//    public Strand getStrand() {
+//        return (Strand) owner;
+//    }
 
     protected void signal() {
         if (sync != null)
@@ -152,6 +150,8 @@ public abstract class Channel<Message> implements SendChannel<Message>, ReceiveC
 
     private void onQueueFull(int iter) throws SuspendExecution, InterruptedException {
         switch (overflowPolicy) {
+            case DROP:
+                return;
             case THROW:
                 throw new QueueCapacityExceededException();
             case BLOCK:

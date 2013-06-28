@@ -17,7 +17,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public abstract class TickerChannel<Message> implements SendChannel<Message>, ReceiveChannel<Message>, Stranded {
+public abstract class TickerChannel<Message> implements SendPort<Message>, ReceivePort<Message> {
     private Object owner;
     final SingleProducerCircularBuffer<Message> buffer;
     private final SimpleConditionSynchronizer sync;
@@ -39,13 +39,7 @@ public abstract class TickerChannel<Message> implements SendChannel<Message>, Re
         return new TickerChannelConsumer<Message>(this);
     }
 
-    @Override
-    public Strand getStrand() {
-        return (Strand) owner;
-    }
-
-    @Override
-    public void setStrand(Strand strand) {
+    private void setStrand(Strand strand) {
         if (owner != null && strand != owner)
             throw new IllegalStateException("Channel " + this + " is already owned by " + owner);
         this.owner = strand;
@@ -103,7 +97,7 @@ public abstract class TickerChannel<Message> implements SendChannel<Message>, Re
         sync.signalAll();
     }
 
-    public static class TickerChannelConsumer<Message> implements ReceiveChannel<Message> {
+    public static class TickerChannelConsumer<Message> implements ReceivePort<Message> {
         final TickerChannel<Message> channel;
         final SingleProducerCircularBuffer.Consumer consumer;
         private boolean receiveClosed;

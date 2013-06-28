@@ -21,7 +21,7 @@ import co.paralleluniverse.remote.RemoteProxyFactoryService;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
-import co.paralleluniverse.strands.channels.ReceiveChannel;
+import co.paralleluniverse.strands.channels.ReceivePort;
 import java.lang.reflect.Constructor;
 import java.util.Collections;
 import java.util.Set;
@@ -34,7 +34,7 @@ import jsr166e.ConcurrentHashMapV8;
  *
  * @author pron
  */
-public abstract class LocalActor<Message, V> extends ActorImpl<Message> implements SuspendableCallable<V>, Joinable<V>, Stranded, ReceiveChannel<Message>, ActorBuilder<Message, V> {
+public abstract class LocalActor<Message, V> extends ActorImpl<Message> implements SuspendableCallable<V>, Joinable<V>, Stranded, ReceivePort<Message>, ActorBuilder<Message, V> {
     private static final ThreadLocal<LocalActor> currentActor = new ThreadLocal<LocalActor>();
     private Strand strand;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());

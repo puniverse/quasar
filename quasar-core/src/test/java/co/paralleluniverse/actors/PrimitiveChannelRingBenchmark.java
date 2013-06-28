@@ -47,7 +47,7 @@ public class PrimitiveChannelRingBenchmark {
                 return msg;
             }
         };
-        managerChannel.setStrand(manager);
+        //managerChannel.setStrand(manager);
         manager.start();
 
         int totalCount = manager.get();
@@ -64,7 +64,7 @@ public class PrimitiveChannelRingBenchmark {
                     prev.send(channel.receiveInt() + 1);
             }
         };
-        channel.setStrand(fiber);
+        //channel.setStrand(fiber);
         fiber.start();
         return channel;
     }

@@ -18,7 +18,7 @@ import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.channels.SendChannel;
+import co.paralleluniverse.strands.channels.SendPort;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.math.BigInteger;
 import java.util.Objects;
@@ -28,13 +28,13 @@ import java.util.concurrent.ThreadLocalRandom;
  *
  * @author pron
  */
-public abstract class ActorImpl<Message> implements Actor<Message>, SendChannel<Message>, java.io.Serializable {
+public abstract class ActorImpl<Message> implements Actor<Message>, SendPort<Message>, java.io.Serializable {
     static final long serialVersionUID = 894359345L;
     //
     private static final int MAX_SEND_RETRIES = 10;
     //
     private volatile Object name;
-    private final SendChannel<Object> mailbox;
+    private final SendPort<Object> mailbox;
     private final LifecycleListener lifecycleListener = new ActorLifecycleListener(this, null);
     protected transient final FlightRecorder flightRecorder;
 
@@ -43,7 +43,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendChannel<
         return "Actor@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this)));
     }
 
-    protected ActorImpl(Object name, SendChannel<Object> mailbox) {
+    protected ActorImpl(Object name, SendPort<Object> mailbox) {
         this.name = name;
 
         this.mailbox = mailbox;
@@ -79,11 +79,11 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendChannel<
 
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
-    protected SendChannel<Object> mailbox() {
+    protected SendPort<Object> mailbox() {
         return mailbox;
     }
 
-    public SendChannel<Object> getMailbox() {
+    public SendPort<Object> getMailbox() {
         return mailbox;
     }
 

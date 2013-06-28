@@ -14,11 +14,16 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
+ * <b>All methods of this interface must only be called by the channel's owner.</b>
  *
  * @author pron
  */
-public interface LongSendChannel extends SendChannel<Long> {
-    void send(long message) throws SuspendExecution;
+public interface FloatReceivePort extends ReceivePort<Float> {
+    float receiveFloat() throws SuspendExecution, InterruptedException;
+
+    float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException;
 }

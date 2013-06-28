@@ -19,6 +19,6 @@ import co.paralleluniverse.fibers.SuspendExecution;
  *
  * @author pron
  */
-public interface FloatSendChannel extends SendChannel<Float> {
-    void send(float message) throws SuspendExecution;
+public interface DoubleSendPort extends SendPort<Double> {
+    void send(double message) throws SuspendExecution;
 }

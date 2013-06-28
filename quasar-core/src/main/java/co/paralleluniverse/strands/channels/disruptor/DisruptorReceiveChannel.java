@@ -5,7 +5,7 @@
 package co.paralleluniverse.strands.channels.disruptor;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.channels.ReceiveChannel;
+import co.paralleluniverse.strands.channels.ReceivePort;
 import com.lmax.disruptor.AbstractSequencer;
 import com.lmax.disruptor.AlertException;
 import com.lmax.disruptor.RingBuffer;
@@ -20,7 +20,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class DisruptorReceiveChannel<Message> implements ReceiveChannel<Message> {
+public class DisruptorReceiveChannel<Message> implements ReceivePort<Message> {
     private final SequenceBarrier barrier;
     private final RingBuffer<Message> buffer;
     private final Sequence sequence = new Sequence(Sequencer.INITIAL_CURSOR_VALUE);

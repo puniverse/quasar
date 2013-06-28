@@ -17,7 +17,7 @@ import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.io.serialization.KryoSerializer;
 import co.paralleluniverse.remote.RemoteProxyFactory;
 import co.paralleluniverse.strands.channels.Channel;
-import co.paralleluniverse.strands.channels.SendChannel;
+import co.paralleluniverse.strands.channels.SendPort;
 
 /**
  *
@@ -39,7 +39,7 @@ public class GalaxyRemoteProxyFactory implements RemoteProxyFactory {
     }
 
     @Override
-    public <Message> SendChannel<Message> create(Channel channel, Object globalId) {
+    public <Message> SendPort<Message> create(Channel channel, Object globalId) {
         return new RemoteChannel<Message>(channel, globalId);
     }
 }

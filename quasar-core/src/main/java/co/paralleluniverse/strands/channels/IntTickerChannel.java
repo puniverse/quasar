@@ -22,7 +22,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class IntTickerChannel extends TickerChannel<Integer> implements IntSendChannel, IntReceiveChannel {
+public class IntTickerChannel extends TickerChannel<Integer> implements IntSendPort, IntReceivePort {
     public static IntTickerChannel create(Object owner, int size) {
         return new IntTickerChannel(owner, size);
     }
@@ -66,7 +66,7 @@ public class IntTickerChannel extends TickerChannel<Integer> implements IntSendC
         return (SingleProducerCircularIntBuffer) buffer;
     }
 
-    public static class TickerChannelIntConsumer extends TickerChannelConsumer<Integer> implements IntReceiveChannel {
+    public static class TickerChannelIntConsumer extends TickerChannelConsumer<Integer> implements IntReceivePort {
         public TickerChannelIntConsumer(IntTickerChannel channel) {
             super(channel);
         }

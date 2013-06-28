@@ -21,19 +21,19 @@ import java.util.concurrent.CopyOnWriteArraySet;
  *
  * @author pron
  */
-public class Topic<Message> implements SendChannel<Message> {
-    private final Collection<SendChannel<? super Message>> subscribers;
+public class Topic<Message> implements SendPort<Message> {
+    private final Collection<SendPort<? super Message>> subscribers;
     private volatile boolean sendClosed;
 
     public Topic() {
         this.subscribers = new CopyOnWriteArraySet<>();
     }
 
-    public void subscribe(SendChannel<? super Message> sub) {
+    public void subscribe(SendPort<? super Message> sub) {
         subscribers.add(sub);
     }
 
-    public void unsubscribe(SendChannel<? super Message> sub) {
+    public void unsubscribe(SendPort<? super Message> sub) {
         subscribers.remove(sub);
     }
 
@@ -41,7 +41,7 @@ public class Topic<Message> implements SendChannel<Message> {
     public void send(Message message) throws SuspendExecution {
         if(sendClosed)
             return;
-        for (SendChannel<? super Message> sub : subscribers)
+        for (SendPort<? super Message> sub : subscribers)
             sub.send(message);
     }
 

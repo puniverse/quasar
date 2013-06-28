@@ -15,15 +15,25 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * <b>All methods of this interface must only be called by the channel's owner.</b>
  *
  * @author pron
  */
-public interface IntReceiveChannel extends ReceiveChannel<Integer> {
-    int receiveInt() throws SuspendExecution, InterruptedException;
+public interface ReceivePort<Message> {
+    Message receive() throws SuspendExecution, InterruptedException;
 
-    int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException;
+    Message tryReceive() throws SuspendExecution, InterruptedException;
+
+    Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
+
+    void close();
+
+    boolean isClosed();
+
+    public static class EOFException extends RuntimeException {
+        public EOFException() {
+        }
+    }
 }

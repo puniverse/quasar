@@ -25,7 +25,7 @@ import co.paralleluniverse.galaxy.quasar.Messenger;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.remote.RemoteException;
 import co.paralleluniverse.strands.channels.Channel;
-import co.paralleluniverse.strands.channels.SendChannel;
+import co.paralleluniverse.strands.channels.SendPort;
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -34,7 +34,7 @@ import java.util.concurrent.ExecutionException;
  *
  * @author pron
  */
-public class RemoteChannel<Message> implements SendChannel<Message>, Serializable {
+public class RemoteChannel<Message> implements SendPort<Message>, Serializable {
     private static final Grid grid;
 
     static {

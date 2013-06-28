@@ -25,7 +25,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class LongChannel extends PrimitiveChannel<Long> implements LongSendChannel, LongReceiveChannel {
+public class LongChannel extends PrimitiveChannel<Long> implements LongSendPort, LongReceivePort {
     public static LongChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
         return new LongChannel(owner,
                 mailboxSize > 0

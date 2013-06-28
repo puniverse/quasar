@@ -22,7 +22,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class FloatTickerChannel extends TickerChannel<Float> implements FloatSendChannel, FloatReceiveChannel {
+public class FloatTickerChannel extends TickerChannel<Float> implements FloatSendPort, FloatReceivePort {
     public static FloatTickerChannel create(Object owner, int size) {
         return new FloatTickerChannel(owner, size);
     }
@@ -66,7 +66,7 @@ public class FloatTickerChannel extends TickerChannel<Float> implements FloatSen
         return (SingleProducerCircularFloatBuffer) buffer;
     }
 
-    public static class TickerChannelFloatConsumer extends TickerChannelConsumer<Float> implements FloatReceiveChannel {
+    public static class TickerChannelFloatConsumer extends TickerChannelConsumer<Float> implements FloatReceivePort {
         public TickerChannelFloatConsumer(FloatTickerChannel channel) {
             super(channel);
         }

@@ -22,8 +22,8 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public interface DoubleReceiveChannel extends ReceiveChannel<Double> {
-    double receiveDouble() throws SuspendExecution, InterruptedException;
+public interface IntReceivePort extends ReceivePort<Integer> {
+    int receiveInt() throws SuspendExecution, InterruptedException;
 
-    double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException;
+    int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException;
 }

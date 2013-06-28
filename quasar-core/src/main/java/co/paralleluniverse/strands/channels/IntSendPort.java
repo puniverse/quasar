@@ -19,6 +19,6 @@ import co.paralleluniverse.fibers.SuspendExecution;
  *
  * @author pron
  */
-public interface IntSendChannel extends SendChannel<Integer> {
+public interface IntSendPort extends SendPort<Integer> {
     void send(int message) throws SuspendExecution;
 }

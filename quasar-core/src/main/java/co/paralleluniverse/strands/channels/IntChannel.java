@@ -25,7 +25,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class IntChannel extends PrimitiveChannel<Integer> implements IntSendChannel, IntReceiveChannel {
+public class IntChannel extends PrimitiveChannel<Integer> implements IntSendPort, IntReceivePort {
     public static IntChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
         return new IntChannel(owner,
                 mailboxSize > 0

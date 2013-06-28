@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public class ChannelGroup<Message> implements ReceiveChannel<Message>, Stranded {
+public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
     private Object owner;
     private volatile OwnedSynchronizer sync;
     private final Channel<? extends Message>[] channels;
