@@ -16,6 +16,7 @@ package co.paralleluniverse.strands.channels;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +26,7 @@ import org.junit.After;
 import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -122,7 +124,7 @@ public class ChannelTest {
                     Thread.sleep(100);
 
                     ch.send("a message");
-                } catch (InterruptedException ex) {
+                } catch (InterruptedException | SuspendExecution ex) {
                     throw new AssertionError(ex);
                 }
             }
@@ -252,7 +254,7 @@ public class ChannelTest {
 
     @Test
     public void whenChannelOverflowsThrowException() throws Exception {
-        final Channel<Integer> ch = ObjectChannel.create(5);
+        final Channel<Integer> ch = ObjectChannel.create(5, Channel.OverflowPolicy.THROW);
 
         int i = 0;
         try {
@@ -265,10 +267,65 @@ public class ChannelTest {
     }
 
     @Test
+    public void testBlockingChannelSendingFiber() throws Exception {
+        final Channel<Integer> ch = ObjectChannel.create(5, Channel.OverflowPolicy.BLOCK);
+
+        Fiber<Integer> receiver = new Fiber<Integer>(fjPool, new SuspendableCallable<Integer>() {
+            @Override
+            public Integer run() throws SuspendExecution, InterruptedException {
+                int i = 0;
+                while (ch.receive() != null) {
+                    i++;
+                    Fiber.sleep(50);
+                }
+                return i;
+
+            }
+        }).start();
+
+        Fiber<Void> sender = new Fiber<Void>(fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                for (int i = 0; i < 10; i++)
+                    ch.send(i);
+                ch.close();
+            }
+        }).start();
+
+        assertThat(receiver.get(), is(10));
+        sender.join();
+    }
+
+    @Test
+    public void testBlockingChannelSendingThread() throws Exception {
+        final Channel<Integer> ch = ObjectChannel.create(5, Channel.OverflowPolicy.BLOCK);
+
+        Fiber<Integer> fib = new Fiber<Integer>(fjPool, new SuspendableCallable<Integer>() {
+            @Override
+            public Integer run() throws SuspendExecution, InterruptedException {
+                int i = 0;
+                while (ch.receive() != null) {
+                    i++;
+                    Fiber.sleep(50);
+                }
+                return i;
+
+            }
+        }).start();
+
+
+        for (int i = 0; i < 10; i++)
+            ch.send(i);
+        ch.close();
+
+        assertThat(fib.get(), is(10));
+    }
+
+    @Test
     public void testChannelClose() throws Exception {
         final Channel<Integer> ch = ObjectChannel.create(5);
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber(fjPool, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 for (int i = 1; i <= 5; i++) {
@@ -454,7 +511,7 @@ public class ChannelTest {
             }
         }).start();
 
-       Fiber f2 = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber f2 = new Fiber(fjPool, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 assertThat(channel2.receive(), equalTo("hello"));
@@ -462,7 +519,7 @@ public class ChannelTest {
             }
         }).start();
 
-       Fiber f3 = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber f3 = new Fiber(fjPool, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 assertThat(channel3.receive(), equalTo("hello"));
@@ -474,7 +531,7 @@ public class ChannelTest {
         topic.send("hello");
         Thread.sleep(100);
         topic.send("world!");
-        
+
         f1.join();
         f2.join();
         f3.join();

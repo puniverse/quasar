@@ -18,7 +18,6 @@ import co.paralleluniverse.remote.RemoteProxyFactoryService;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayObjectQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayObjectQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -27,19 +26,27 @@ import java.util.concurrent.TimeUnit;
  * @author pron
  */
 public final class Mailbox<Message> extends Channel<Message> {
-    public static <Message> Mailbox<Message> create(int mailboxSize) {
-        return new Mailbox(mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedArrayObjectQueue<Message>());
-    }
     private transient LocalActor<?, ?> actor;
 
-    private Mailbox(SingleConsumerQueue<Message, ?> queue) {
-        super(queue);
+    Mailbox(MailboxConfig config) {
+        this(null, config);
     }
 
-    private Mailbox(Object owner, SingleConsumerQueue<Message, ?> queue) {
-        super(owner, queue);
+    Mailbox(Object owner, MailboxConfig config) {
+        super(owner,
+                mailboxSize(config) > 0
+                ? new SingleConsumerArrayObjectQueue<Message>(config.getMailboxSize())
+                : new SingleConsumerLinkedArrayObjectQueue<Message>(),
+                overflowPolicy(config));
     }
 
+    private static int mailboxSize(MailboxConfig config) {
+        return config != null ? config.getMailboxSize() : -1;
+    }
+    private static OverflowPolicy overflowPolicy(MailboxConfig config) {
+        return config != null ? config.getPolicy() : OverflowPolicy.THROW;
+    }
+    
     void setActor(LocalActor<?, ?> actor) {
         this.actor = actor;
     }
@@ -64,6 +71,11 @@ public final class Mailbox<Message> extends Channel<Message> {
 
     public Message value(Object n) {
         return queue.value(n);
+    }
+
+    @Override
+    protected void sendSync(Message message) throws SuspendExecution {
+        super.sendSync(message);
     }
 
     @Override

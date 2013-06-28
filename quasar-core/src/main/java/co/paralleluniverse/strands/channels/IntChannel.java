@@ -26,21 +26,28 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class IntChannel extends PrimitiveChannel<Integer> {
+    public static IntChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
+        return new IntChannel(owner,
+                mailboxSize > 0
+                ? new SingleConsumerArrayIntQueue(mailboxSize)
+                : new SingleConsumerLinkedArrayIntQueue(),
+                policy);
+    }
+
     public static IntChannel create(Object owner, int mailboxSize) {
-        return new IntChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayIntQueue(mailboxSize) : new SingleConsumerLinkedArrayIntQueue());
+        return create(owner, mailboxSize, OverflowPolicy.THROW);
+    }
+
+    public static IntChannel create(int mailboxSize, OverflowPolicy policy) {
+        return create(null, mailboxSize, policy);
     }
 
     public static IntChannel create(int mailboxSize) {
-        return new IntChannel(mailboxSize > 0 ? new SingleConsumerArrayIntQueue(mailboxSize) : new SingleConsumerLinkedArrayIntQueue());
+        return create(null, mailboxSize, OverflowPolicy.THROW);
     }
 
-    //////////
-    private IntChannel(Object owner, SingleConsumerQueue<Integer, ?> queue) {
-        super(owner, queue);
-    }
-
-    private IntChannel(SingleConsumerQueue<Integer, ?> queue) {
-        super(queue);
+    private IntChannel(Object owner, SingleConsumerQueue<Integer, ?> queue, OverflowPolicy policy) {
+        super(owner, queue, policy);
     }
 
     public int receiveInt() throws SuspendExecution, InterruptedException {
@@ -49,6 +56,7 @@ public class IntChannel extends PrimitiveChannel<Integer> {
         final Object n = receiveNode();
         final int m = queue().intValue(n);
         queue.deq(n);
+        signalSenders();
         return m;
     }
 
@@ -60,6 +68,7 @@ public class IntChannel extends PrimitiveChannel<Integer> {
             throw new TimeoutException();
         final int m = queue().intValue(n);
         queue.deq(n);
+        signalSenders();
         return m;
     }
 

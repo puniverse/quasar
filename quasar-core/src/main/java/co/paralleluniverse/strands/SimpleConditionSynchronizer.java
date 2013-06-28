@@ -77,6 +77,15 @@ public class SimpleConditionSynchronizer {
         }
         //}
     }
+
+    public void signal() {
+        Iterator<Strand> it = waiters.iterator();
+        if(it.hasNext()) {
+            final Strand s =  it.next();
+            record("signal", "signalling %s", s);
+            Strand.unpark(s);
+        }
+    }
     ////////////////////////////
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 

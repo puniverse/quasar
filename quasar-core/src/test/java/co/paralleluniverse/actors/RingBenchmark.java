@@ -2,6 +2,7 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.channels.Channel;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;
@@ -9,7 +10,7 @@ import jsr166e.ForkJoinPool;
 public class RingBenchmark {
     static final int N = 1000;
     static final int M = 1000;
-    static final MailboxConfig mailboxConfig = new MailboxConfig(10, MailboxConfig.OverflowPolicy.KILL);
+    static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channel.OverflowPolicy.THROW);
     static ForkJoinPool fjPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
     public static void main(String args[]) throws Exception {

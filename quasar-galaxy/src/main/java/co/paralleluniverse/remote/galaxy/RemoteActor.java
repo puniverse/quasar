@@ -43,11 +43,6 @@ public class RemoteActor<Message> extends co.paralleluniverse.actors.RemoteActor
     }
 
     @Override
-    protected boolean isBackpressure() {
-        return false;
-    }
-
-    @Override
     protected void internalSend(Object message) throws SuspendExecution {
         ((RemoteChannel) mailbox()).send(message);
     }

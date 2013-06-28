@@ -26,20 +26,28 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class LongChannel extends PrimitiveChannel<Long> {
+    public static LongChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
+        return new LongChannel(owner,
+                mailboxSize > 0
+                ? new SingleConsumerArrayLongQueue(mailboxSize)
+                : new SingleConsumerLinkedArrayLongQueue(),
+                policy);
+    }
+
     public static LongChannel create(Object owner, int mailboxSize) {
-        return new LongChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayLongQueue(mailboxSize) : new SingleConsumerLinkedArrayLongQueue());
+        return create(owner, mailboxSize, OverflowPolicy.THROW);
+    }
+
+    public static LongChannel create(int mailboxSize, OverflowPolicy policy) {
+        return create(null, mailboxSize, policy);
     }
 
     public static LongChannel create(int mailboxSize) {
-        return new LongChannel(mailboxSize > 0 ? new SingleConsumerArrayLongQueue(mailboxSize) : new SingleConsumerLinkedArrayLongQueue());
+        return create(null, mailboxSize, OverflowPolicy.THROW);
     }
 
-    private LongChannel(Object owner, SingleConsumerQueue<Long, ?> queue) {
-        super(owner, queue);
-    }
-
-    private LongChannel(SingleConsumerQueue<Long, ?> queue) {
-        super(queue);
+    private LongChannel(Object owner, SingleConsumerQueue<Long, ?> queue, OverflowPolicy policy) {
+        super(owner, queue, policy);
     }
 
     public long receiveLong() throws SuspendExecution, InterruptedException {
@@ -48,6 +56,7 @@ public class LongChannel extends PrimitiveChannel<Long> {
         final Object n = receiveNode();
         final long m = queue().longValue(n);
         queue.deq(n);
+        signalSenders();
         return m;
     }
 
@@ -59,6 +68,7 @@ public class LongChannel extends PrimitiveChannel<Long> {
             throw new TimeoutException();
         final long m = queue().longValue(n);
         queue.deq(n);
+        signalSenders();
         return m;
     }
 

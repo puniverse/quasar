@@ -22,19 +22,27 @@ import co.paralleluniverse.strands.queues.SingleConsumerQueue;
  * @author pron
  */
 public class ObjectChannel<Message> extends Channel<Message> {
+    public static <Message> ObjectChannel<Message> create(Object owner, int mailboxSize, OverflowPolicy policy) {
+        return new ObjectChannel(owner, 
+                mailboxSize > 0 
+                ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) 
+                : new SingleConsumerLinkedArrayObjectQueue<Message>(),
+                policy);
+    }
+
     public static <Message> ObjectChannel<Message> create(Object owner, int mailboxSize) {
-        return new ObjectChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedArrayObjectQueue<Message>());
+        return create(owner, mailboxSize, OverflowPolicy.THROW);
+    }
+
+    public static <Message> ObjectChannel<Message> create(int mailboxSize, OverflowPolicy policy) {
+        return create(null, mailboxSize, policy);
     }
 
     public static <Message> ObjectChannel<Message> create(int mailboxSize) {
-        return new ObjectChannel(mailboxSize > 0 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new SingleConsumerLinkedArrayObjectQueue<Message>());
+        return create(null, mailboxSize, OverflowPolicy.THROW);
     }
 
-    private ObjectChannel(Object owner, SingleConsumerQueue<Message, ?> queue) {
-        super(owner, queue);
-    }
-
-    private ObjectChannel(SingleConsumerQueue<Message, ?> queue) {
-        super(queue);
+    private ObjectChannel(Object owner, SingleConsumerQueue<Message, ?> queue, OverflowPolicy policy) {
+        super(owner, queue, policy);
     }
 }

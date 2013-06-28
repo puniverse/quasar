@@ -26,20 +26,28 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class FloatChannel extends PrimitiveChannel<Float> {
+    public static FloatChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
+        return new FloatChannel(owner,
+                mailboxSize > 0
+                ? new SingleConsumerArrayFloatQueue(mailboxSize)
+                : new SingleConsumerLinkedArrayFloatQueue(),
+                policy);
+    }
+
     public static FloatChannel create(Object owner, int mailboxSize) {
-        return new FloatChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayFloatQueue(mailboxSize) : new SingleConsumerLinkedArrayFloatQueue());
+        return create(owner, mailboxSize, OverflowPolicy.THROW);
+    }
+
+    public static FloatChannel create(int mailboxSize, OverflowPolicy policy) {
+        return create(null, mailboxSize, policy);
     }
 
     public static FloatChannel create(int mailboxSize) {
-        return new FloatChannel(mailboxSize > 0 ? new SingleConsumerArrayFloatQueue(mailboxSize) : new SingleConsumerLinkedArrayFloatQueue());
+        return create(null, mailboxSize, OverflowPolicy.THROW);
     }
 
-    private FloatChannel(Object owner, SingleConsumerQueue<Float, ?> queue) {
-        super(owner, queue);
-    }
-
-    private FloatChannel(SingleConsumerQueue<Float, ?> queue) {
-        super(queue);
+    private FloatChannel(Object owner, SingleConsumerQueue<Float, ?> queue, OverflowPolicy policy) {
+        super(owner, queue, policy);
     }
 
     public float receiveFloat() throws SuspendExecution, InterruptedException {
@@ -48,6 +56,7 @@ public class FloatChannel extends PrimitiveChannel<Float> {
         final Object n = receiveNode();
         final float m = queue().floatValue(n);
         queue.deq(n);
+        signalSenders();
         return m;
     }
 
@@ -59,6 +68,7 @@ public class FloatChannel extends PrimitiveChannel<Float> {
             throw new TimeoutException();
         final float m = queue().floatValue(n);
         queue.deq(n);
+        signalSenders();
         return m;
     }
 

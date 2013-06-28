@@ -22,7 +22,6 @@ import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.channels.ReceiveChannel;
-import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.lang.reflect.Constructor;
 import java.util.Collections;
 import java.util.Set;
@@ -38,7 +37,6 @@ import jsr166e.ConcurrentHashMapV8;
 public abstract class LocalActor<Message, V> extends ActorImpl<Message> implements SuspendableCallable<V>, Joinable<V>, Stranded, ReceiveChannel<Message>, ActorBuilder<Message, V> {
     private static final ThreadLocal<LocalActor> currentActor = new ThreadLocal<LocalActor>();
     private Strand strand;
-    private final MailboxConfig mailboxConfig;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
     private volatile V result;
     private volatile RuntimeException exception;
@@ -48,9 +46,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     private ActorSpec<?, Message, V> spec;
 
     public LocalActor(Object name, MailboxConfig mailboxConfig) {
-        super(name,
-                Mailbox.create(mailboxConfig != null ? mailboxConfig.getMailboxSize() : -1));
-        this.mailboxConfig = mailboxConfig;
+        super(name, new Mailbox(mailboxConfig));
         mailbox().setActor(this);
     }
 
@@ -210,11 +206,6 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
-    protected boolean isBackpressure() {
-        return (mailboxConfig != null && mailboxConfig.getPolicy() == MailboxConfig.OverflowPolicy.BACKPRESSURE);
-    }
-
-    @Override
     protected void internalSend(Object message) {
         internalSendNonSuspendable(message);
     }
@@ -230,15 +221,11 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     @Override
     public final void sendSync(Message message) throws SuspendExecution {
-        try {
-            record(1, "Actor", "sendSync", "Sending sync %s -> %s", message, this);
-            if (mailbox().isOwnerAlive())
-                mailbox().sendSync(message);
-            else
-                record(1, "Actor", "sendSync", "Message dropped. Owner not alive.");
-        } catch (QueueCapacityExceededException e) {
-            onMailboxFull(message, e);
-        }
+        record(1, "Actor", "sendSync", "Sending sync %s -> %s", message, this);
+        if (mailbox().isOwnerAlive())
+            mailbox().sendSync(message);
+        else
+            record(1, "Actor", "sendSync", "Message dropped. Owner not alive.");
     }
 
     @Override
@@ -450,14 +437,14 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     private ActorImpl getActorImpl(Actor actor) {
-        if(actor instanceof ActorImpl)
-            return (ActorImpl)actor;
-        else if(actor instanceof ActorWrapper)
-            return getActorImpl(((ActorWrapper)actor).getActor());
+        if (actor instanceof ActorImpl)
+            return (ActorImpl) actor;
+        else if (actor instanceof ActorWrapper)
+            return getActorImpl(((ActorWrapper) actor).getActor());
         else
             throw new ClassCastException("Actor " + actor + " is not an ActorImpl");
     }
-    
+
     public final Actor link(Actor other1) {
         final ActorImpl other = getActorImpl(other1);
         record(1, "Actor", "link", "Linking actors %s, %s", this, other);

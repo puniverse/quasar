@@ -42,11 +42,6 @@ public class RemoteActor<Message> extends ActorImpl<Message> {
     }
 
     @Override
-    protected boolean isBackpressure() {
-        return false;
-    }
-
-    @Override
     protected void internalSend(Object message) throws SuspendExecution {
         actor.internalSend(message);
     }

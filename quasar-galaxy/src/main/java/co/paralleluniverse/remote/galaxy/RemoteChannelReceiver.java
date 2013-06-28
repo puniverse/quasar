@@ -13,9 +13,12 @@
  */
 package co.paralleluniverse.remote.galaxy;
 
+import co.paralleluniverse.fibers.FiberUtil;
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.MessageListener;
 import co.paralleluniverse.galaxy.quasar.Messenger;
 import co.paralleluniverse.io.serialization.Serialization;
+import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.Channel;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
@@ -88,15 +91,25 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
     @Override
     public void messageReceived(short fromNode, byte[] message) {
         Object m1 = Serialization.read(message);
-        if(m1 instanceof RemoteChannel.CloseMessage) {
+        if (m1 instanceof RemoteChannel.CloseMessage) {
             channel.close();
             unsubscribe();
             return;
         }
-        
-        Message m = (Message) m1;
-        if (filter == null || filter.shouldForwardMessage(m))
-            channel.send(m);
+
+        final Message m = (Message) m1;
+        if (filter == null || filter.shouldForwardMessage(m)) {
+            try {
+                FiberUtil.runInFiberRuntime(new SuspendableRunnable() {
+                    @Override
+                    public void run() throws SuspendExecution, InterruptedException {
+                        channel.send(m);
+                    }
+                });
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     private void subscribe() {

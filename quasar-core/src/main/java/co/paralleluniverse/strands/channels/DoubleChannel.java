@@ -26,20 +26,28 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class DoubleChannel extends PrimitiveChannel<Double> {
-    public static DoubleChannel create(int mailboxSize) {
-        return new DoubleChannel(mailboxSize > 0 ? new SingleConsumerArrayDoubleQueue(mailboxSize) : new SingleConsumerLinkedArrayDoubleQueue());
+    public static DoubleChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
+        return new DoubleChannel(owner,
+                mailboxSize > 0
+                ? new SingleConsumerArrayDoubleQueue(mailboxSize)
+                : new SingleConsumerLinkedArrayDoubleQueue(),
+                policy);
     }
 
     public static DoubleChannel create(Object owner, int mailboxSize) {
-        return new DoubleChannel(owner, mailboxSize > 0 ? new SingleConsumerArrayDoubleQueue(mailboxSize) : new SingleConsumerLinkedArrayDoubleQueue());
+        return create(owner, mailboxSize, OverflowPolicy.THROW);
     }
 
-    private DoubleChannel(Object owner, SingleConsumerQueue<Double, ?> queue) {
-        super(owner, queue);
+    public static DoubleChannel create(int mailboxSize, OverflowPolicy policy) {
+        return create(null, mailboxSize, policy);
     }
 
-    private DoubleChannel(SingleConsumerQueue<Double, ?> queue) {
-        super(queue);
+    public static DoubleChannel create(int mailboxSize) {
+        return create(null, mailboxSize, OverflowPolicy.THROW);
+    }
+
+    private DoubleChannel(Object owner, SingleConsumerQueue<Double, ?> queue, OverflowPolicy policy) {
+        super(owner, queue, policy);
     }
 
     public double receiveDouble() throws SuspendExecution, InterruptedException {
@@ -48,6 +56,7 @@ public class DoubleChannel extends PrimitiveChannel<Double> {
         final Object n = receiveNode();
         final double m = queue().doubleValue(n);
         queue.deq(n);
+        signalSenders();
         return m;
     }
 
@@ -59,6 +68,7 @@ public class DoubleChannel extends PrimitiveChannel<Double> {
             throw new TimeoutException();
         final double m = queue().doubleValue(n);
         queue.deq(n);
+        signalSenders();
         return m;
     }
 

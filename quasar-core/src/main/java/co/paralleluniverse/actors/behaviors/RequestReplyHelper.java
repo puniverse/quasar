@@ -24,6 +24,7 @@ import co.paralleluniverse.actors.SelectiveReceiveHelper;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.channels.Channel;
 import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -109,7 +110,7 @@ public class RequestReplyHelper {
         Actor actor = LocalActor.self();
         if (actor == null) {
             // create a "dummy actor" on the current strand
-            actor = new LocalActor(Strand.currentStrand(), null, new MailboxConfig(5, MailboxConfig.OverflowPolicy.KILL)) {
+            actor = new LocalActor(Strand.currentStrand(), null, new MailboxConfig(5, Channel.OverflowPolicy.THROW)) {
                 @Override
                 protected Object doRun() throws InterruptedException, SuspendExecution {
                     throw new AssertionError();

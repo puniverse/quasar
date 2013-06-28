@@ -92,7 +92,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendChannel<
         try {
             internalSend(message);
         } catch (QueueCapacityExceededException e) {
-            onMailboxFull(message, e);
+            throwIn(e);
         }
     }
 
@@ -123,41 +123,6 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendChannel<
     protected abstract void internalSend(Object message) throws SuspendExecution;
 
     protected abstract void internalSendNonSuspendable(Object message);
-
-    protected abstract boolean isBackpressure();
-
-    /**
-     * This method is called <i>on the sender's strand</i> when the mailbox is full.
-     *
-     * @param e
-     */
-    protected void onMailboxFull(Message message, QueueCapacityExceededException e) throws SuspendExecution {
-        if (isBackpressure()) {
-            long sleepMillis = 1;
-            for (int count = 1;; count++) {
-                try {
-                    mailbox.send(message);
-                    break;
-                } catch (QueueCapacityExceededException ex) {
-                    try {
-                        if (count > MAX_SEND_RETRIES) {
-                            throwIn(e);
-                            break;
-                        } else if (count > 5) {
-                            Strand.sleep(sleepMillis);
-                            sleepMillis *= 5;
-                        } else if (count > 4) {
-                            Strand.yield();
-                        }
-                    } catch (InterruptedException ie) {
-                        Strand.currentStrand().interrupt();
-                    }
-                }
-            }
-        } else {
-            throwIn(e);
-        }
-    }
     //</editor-fold>
 
     //<editor-fold desc="Lifecycle">
