@@ -25,7 +25,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class IntChannel extends PrimitiveChannel<Integer> {
+public class IntChannel extends PrimitiveChannel<Integer> implements IntSendChannel, IntReceiveChannel {
     public static IntChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
         return new IntChannel(owner,
                 mailboxSize > 0
@@ -50,6 +50,7 @@ public class IntChannel extends PrimitiveChannel<Integer> {
         super(owner, queue, policy);
     }
 
+    @Override
     public int receiveInt() throws SuspendExecution, InterruptedException {
         if (isClosed())
             throw new EOFException();
@@ -60,6 +61,7 @@ public class IntChannel extends PrimitiveChannel<Integer> {
         return m;
     }
 
+    @Override
     public int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
         if (isClosed())
             throw new EOFException();
@@ -72,6 +74,7 @@ public class IntChannel extends PrimitiveChannel<Integer> {
         return m;
     }
 
+    @Override
     public void send(int message) {
         if (isSendClosed())
             return;

@@ -22,7 +22,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class LongTickerChannel extends TickerChannel<Long> {
+public class LongTickerChannel extends TickerChannel<Long> implements LongSendChannel {
     public static LongTickerChannel create(Object owner, int size) {
         return new LongTickerChannel(owner, size);
     }
@@ -39,6 +39,7 @@ public class LongTickerChannel extends TickerChannel<Long> {
         super(new SingleProducerCircularLongBuffer(size));
     }
 
+    @Override
     public void send(long message) {
         if (isSendClosed())
             return;
@@ -55,17 +56,19 @@ public class LongTickerChannel extends TickerChannel<Long> {
         return (SingleProducerCircularLongBuffer) buffer;
     }
 
-    public static class TickerChannelLongConsumer extends TickerChannelConsumer<Long> {
+    public static class TickerChannelLongConsumer extends TickerChannelConsumer<Long> implements LongReceiveChannel {
         public TickerChannelLongConsumer(LongTickerChannel channel) {
             super(channel);
         }
 
+        @Override
         public long receiveLong() throws SuspendExecution, InterruptedException {
             attemptReceive();
             return consumer().getLongValue();
         }
 
-        public long receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+        @Override
+        public long receiveLong(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
             attemptReceive(timeout, unit);
             return consumer().getLongValue();
         }

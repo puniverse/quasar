@@ -22,7 +22,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class FloatTickerChannel extends TickerChannel<Float> {
+public class FloatTickerChannel extends TickerChannel<Float> implements FloatSendChannel {
     public static FloatTickerChannel create(Object owner, int size) {
         return new FloatTickerChannel(owner, size);
     }
@@ -39,6 +39,7 @@ public class FloatTickerChannel extends TickerChannel<Float> {
         super(new SingleProducerCircularFloatBuffer(size));
     }
 
+    @Override
     public void send(float message) {
         if (isSendClosed())
             return;
@@ -55,17 +56,19 @@ public class FloatTickerChannel extends TickerChannel<Float> {
         return (SingleProducerCircularFloatBuffer) buffer;
     }
 
-    public static class TickerChannelFloatConsumer extends TickerChannelConsumer<Float> {
+    public static class TickerChannelFloatConsumer extends TickerChannelConsumer<Float> implements FloatReceiveChannel {
         public TickerChannelFloatConsumer(FloatTickerChannel channel) {
             super(channel);
         }
 
-        public float receiveInt() throws SuspendExecution, InterruptedException {
+        @Override
+        public float receiveFloat() throws SuspendExecution, InterruptedException {
             attemptReceive();
             return consumer().getFloatValue();
         }
 
-        public float receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+        @Override
+        public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
             attemptReceive(timeout, unit);
             return consumer().getFloatValue();
         }

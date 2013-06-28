@@ -25,7 +25,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class DoubleChannel extends PrimitiveChannel<Double> {
+public class DoubleChannel extends PrimitiveChannel<Double> implements DoubleSendChannel, DoubleReceiveChannel {
     public static DoubleChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
         return new DoubleChannel(owner,
                 mailboxSize > 0
@@ -50,6 +50,7 @@ public class DoubleChannel extends PrimitiveChannel<Double> {
         super(owner, queue, policy);
     }
 
+    @Override
     public double receiveDouble() throws SuspendExecution, InterruptedException {
         if (isClosed())
             throw new EOFException();
@@ -60,6 +61,7 @@ public class DoubleChannel extends PrimitiveChannel<Double> {
         return m;
     }
 
+    @Override
     public double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
         if (isClosed())
             throw new EOFException();
@@ -72,6 +74,7 @@ public class DoubleChannel extends PrimitiveChannel<Double> {
         return m;
     }
 
+    @Override
     public void send(double message) {
         if (isSendClosed())
             return;

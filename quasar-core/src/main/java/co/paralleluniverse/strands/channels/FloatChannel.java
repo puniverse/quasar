@@ -25,7 +25,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class FloatChannel extends PrimitiveChannel<Float> {
+public class FloatChannel extends PrimitiveChannel<Float> implements FloatSendChannel, FloatReceiveChannel {
     public static FloatChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
         return new FloatChannel(owner,
                 mailboxSize > 0
@@ -50,6 +50,7 @@ public class FloatChannel extends PrimitiveChannel<Float> {
         super(owner, queue, policy);
     }
 
+    @Override
     public float receiveFloat() throws SuspendExecution, InterruptedException {
         if (isClosed())
             throw new EOFException();
@@ -60,6 +61,7 @@ public class FloatChannel extends PrimitiveChannel<Float> {
         return m;
     }
 
+    @Override
     public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
         if (isClosed())
             throw new EOFException();
@@ -72,6 +74,7 @@ public class FloatChannel extends PrimitiveChannel<Float> {
         return m;
     }
 
+    @Override
     public void send(float message) {
         if (isSendClosed())
             return;
