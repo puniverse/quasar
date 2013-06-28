@@ -22,7 +22,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class DoubleTickerChannel extends TickerChannel<Double> implements DoubleSendChannel {
+public class DoubleTickerChannel extends TickerChannel<Double> implements DoubleSendChannel, DoubleReceiveChannel {
     public static DoubleTickerChannel create(Object owner, int size) {
         return new DoubleTickerChannel(owner, size);
     }
@@ -45,6 +45,16 @@ public class DoubleTickerChannel extends TickerChannel<Double> implements Double
             return;
         buffer().enq(message);
         signal();
+    }
+
+    @Override
+    public double receiveDouble() throws SuspendExecution, InterruptedException {
+        return ((TickerChannelDoubleConsumer) consumer).receiveDouble();
+    }
+
+    @Override
+    public double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+        return ((TickerChannelDoubleConsumer) consumer).receiveDouble(timeout, unit);
     }
 
     @Override

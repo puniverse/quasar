@@ -17,21 +17,22 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public abstract class TickerChannel<Message> implements SendChannel<Message>, Stranded {
+public abstract class TickerChannel<Message> implements SendChannel<Message>, ReceiveChannel<Message>, Stranded {
     private Object owner;
     final SingleProducerCircularBuffer<Message> buffer;
     private final SimpleConditionSynchronizer sync;
     private boolean sendClosed;
+    final TickerChannelConsumer<Message> consumer;
 
     protected TickerChannel(Object owner, SingleProducerCircularBuffer<Message> buffer) {
         this.buffer = buffer;
         this.owner = owner;
         this.sync = new SimpleConditionSynchronizer();
+        this.consumer = newConsumer();
     }
 
     protected TickerChannel(SingleProducerCircularBuffer<Message> buffer) {
-        this.buffer = buffer;
-        this.sync = new SimpleConditionSynchronizer();
+        this(null, buffer);
     }
 
     public TickerChannelConsumer<Message> newConsumer() {
@@ -67,6 +68,26 @@ public abstract class TickerChannel<Message> implements SendChannel<Message>, St
         signal();
     }
 
+    @Override
+    public Message receive() throws SuspendExecution, InterruptedException {
+        return consumer.receive();
+    }
+
+    @Override
+    public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        return consumer.receive(timeout, unit);
+    }
+
+    @Override
+    public Message tryReceive() throws SuspendExecution, InterruptedException {
+        return consumer.tryReceive();
+    }
+
+    @Override
+    public boolean isClosed() {
+        return consumer.isClosed();
+    }
+    
     @Override
     public void close() {
         maybeSetCurrentStrandAsOwner();
