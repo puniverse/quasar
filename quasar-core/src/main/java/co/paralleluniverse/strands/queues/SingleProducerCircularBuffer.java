@@ -45,7 +45,7 @@ public abstract class SingleProducerCircularBuffer<E> {
 
     final long preEnq() {
         final long t = tail;
-        tail++;
+        orderedSetTail(t + 1); // tail++;
         return t;
     }
 
