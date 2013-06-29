@@ -14,9 +14,9 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.queues.SingleConsumerArrayFloatQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerFloatQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayFloatQueue;
+import co.paralleluniverse.strands.queues.SingleConsumerArrayDoubleQueue;
+import co.paralleluniverse.strands.queues.SingleConsumerDoubleQueue;
+import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayDoubleQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -25,57 +25,57 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class FloatChannel extends PrimitiveChannel<Float> implements FloatSendPort, FloatReceivePort {
-    public static FloatChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
-        return new FloatChannel(owner,
+public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements DoubleSendPort, DoubleReceivePort {
+    public static QueueDoubleChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
+        return new QueueDoubleChannel(owner,
                 mailboxSize > 0
-                ? new SingleConsumerArrayFloatQueue(mailboxSize)
-                : new SingleConsumerLinkedArrayFloatQueue(),
+                ? new SingleConsumerArrayDoubleQueue(mailboxSize)
+                : new SingleConsumerLinkedArrayDoubleQueue(),
                 policy);
     }
 
-    public static FloatChannel create(Object owner, int mailboxSize) {
+    public static QueueDoubleChannel create(Object owner, int mailboxSize) {
         return create(owner, mailboxSize, OverflowPolicy.THROW);
     }
 
-    public static FloatChannel create(int mailboxSize, OverflowPolicy policy) {
+    public static QueueDoubleChannel create(int mailboxSize, OverflowPolicy policy) {
         return create(null, mailboxSize, policy);
     }
 
-    public static FloatChannel create(int mailboxSize) {
+    public static QueueDoubleChannel create(int mailboxSize) {
         return create(null, mailboxSize, OverflowPolicy.THROW);
     }
 
-    private FloatChannel(Object owner, SingleConsumerQueue<Float, ?> queue, OverflowPolicy policy) {
+    private QueueDoubleChannel(Object owner, SingleConsumerQueue<Double, ?> queue, OverflowPolicy policy) {
         super(owner, queue, policy);
     }
 
     @Override
-    public float receiveFloat() throws SuspendExecution, InterruptedException {
+    public double receiveDouble() throws SuspendExecution, InterruptedException {
         if (isClosed())
             throw new EOFException();
         final Object n = receiveNode();
-        final float m = queue().floatValue(n);
+        final double m = queue().doubleValue(n);
         queue.deq(n);
         signalSenders();
         return m;
     }
 
     @Override
-    public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+    public double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
         if (isClosed())
             throw new EOFException();
         final Object n = receiveNode(timeout, unit);
         if (n == null)
             throw new TimeoutException();
-        final float m = queue().floatValue(n);
+        final double m = queue().doubleValue(n);
         queue.deq(n);
         signalSenders();
         return m;
     }
 
     @Override
-    public void send(float message) {
+    public void send(double message) {
         if (isSendClosed())
             return;
         queue().enq(message);
@@ -83,7 +83,7 @@ public class FloatChannel extends PrimitiveChannel<Float> implements FloatSendPo
     }
 
     @Override
-    public boolean trySend(float message) {
+    public boolean trySend(double message) {
         if (isSendClosed())
             return true;
         if (queue().enq(message)) {
@@ -93,14 +93,14 @@ public class FloatChannel extends PrimitiveChannel<Float> implements FloatSendPo
             return false;
     }
 
-    public void sendSync(float message) {
+    public void sendSync(double message) {
         if (isSendClosed())
             return;
         queue.enq(message);
         signalAndTryToExecNow();
     }
 
-    private SingleConsumerFloatQueue<Object> queue() {
-        return (SingleConsumerFloatQueue<Object>) queue;
+    private SingleConsumerDoubleQueue<Object> queue() {
+        return (SingleConsumerDoubleQueue<Object>) queue;
     }
 }

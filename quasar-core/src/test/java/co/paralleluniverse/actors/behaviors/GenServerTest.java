@@ -27,7 +27,7 @@ import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.channels.Channel;
+import co.paralleluniverse.strands.channels.QueueChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -87,7 +87,7 @@ public class GenServerTest {
             Debug.record(0, "DONE TEST " + desc.getMethodName());
         }
     };
-    static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channel.OverflowPolicy.THROW);
+    static final MailboxConfig mailboxConfig = new MailboxConfig(10, QueueChannel.OverflowPolicy.THROW);
     private ForkJoinPool fjPool;
 
     public GenServerTest() {

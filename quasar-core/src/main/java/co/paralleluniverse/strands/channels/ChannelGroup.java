@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
     private Object owner;
     private volatile OwnedSynchronizer sync;
-    private final Channel<? extends Message>[] channels;
+    private final QueueChannel<? extends Message>[] channels;
     private volatile boolean closed;
 
     /**
@@ -38,7 +38,7 @@ public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
      *
      * @param channels The member channels
      */
-    public ChannelGroup(Channel<? extends Message>... channels) {
+    public ChannelGroup(QueueChannel<? extends Message>... channels) {
         this.channels = channels;
     }
 
@@ -48,7 +48,7 @@ public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
      * @param channels The member channels
      */
     public ChannelGroup(Collection<? extends Message> channels) {
-        this.channels = (Channel<? extends Message>[]) channels.toArray(new Channel[channels.size()]);
+        this.channels = (QueueChannel<? extends Message>[]) channels.toArray(new QueueChannel[channels.size()]);
     }
 
     /**
@@ -56,7 +56,7 @@ public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
      *
      * @return An unmodifiable collection of all channels in this group.
      */
-    public Collection<Channel<? extends Message>> getChannels() {
+    public Collection<QueueChannel<? extends Message>> getChannels() {
         return Collections.unmodifiableList(Arrays.asList(channels));
     }
 
@@ -96,7 +96,7 @@ public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
     }
 
     private void setSync() {
-        for (Channel<?> c : channels)
+        for (QueueChannel<?> c : channels)
             c.setSync(sync);
     }
 
@@ -117,7 +117,7 @@ public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
         sync.lock();
         try {
             for (;;) {
-                for (Channel<? extends Message> c : channels) {
+                for (QueueChannel<? extends Message> c : channels) {
                     Message m = c.tryReceive();
                     if (m != null)
                         return m;
@@ -134,7 +134,7 @@ public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
         if (closed)
             return null;
         for (;;) {
-            for (Channel<? extends Message> c : channels) {
+            for (QueueChannel<? extends Message> c : channels) {
                 Message m = c.tryReceive();
                 if (m != null)
                     return m;
@@ -170,7 +170,7 @@ public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
         sync.lock();
         try {
             for (;;) {
-                for (Channel<? extends Message> c : channels) {
+                for (QueueChannel<? extends Message> c : channels) {
                     Message m = c.tryReceive();
                     if (m != null)
                         return m;

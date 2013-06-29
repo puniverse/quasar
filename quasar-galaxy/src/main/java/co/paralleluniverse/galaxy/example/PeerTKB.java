@@ -35,8 +35,8 @@ import co.paralleluniverse.galaxy.cluster.LifecycleListener;
 import co.paralleluniverse.galaxy.cluster.NodeChangeListener;
 import co.paralleluniverse.galaxy.core.Comm;
 import co.paralleluniverse.io.serialization.Serialization;
-import co.paralleluniverse.strands.channels.Channel;
-import co.paralleluniverse.strands.channels.ObjectChannel;
+import co.paralleluniverse.strands.channels.QueueChannel;
+import co.paralleluniverse.strands.channels.QueueObjectChannel;
 import co.paralleluniverse.strands.channels.SendPort;
 import com.google.common.base.Charsets;
 import com.google.common.primitives.Longs;
@@ -180,7 +180,7 @@ public class PeerTKB implements Runnable {
             System.out.println("length is "+serActor.length);
 
             while (!Thread.interrupted()) {
-                Channel<String> channel = ObjectChannel.create(100);
+                QueueChannel<String> channel = QueueObjectChannel.create(100);
                 boolean sent = false;
                 System.out.println("=========================================");
                 System.out.println("ident: " + myNodeId + " " + System.currentTimeMillis());

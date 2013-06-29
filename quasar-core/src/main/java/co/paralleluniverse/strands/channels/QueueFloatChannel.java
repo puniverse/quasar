@@ -14,9 +14,9 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.queues.SingleConsumerArrayIntQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerIntQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayIntQueue;
+import co.paralleluniverse.strands.queues.SingleConsumerArrayFloatQueue;
+import co.paralleluniverse.strands.queues.SingleConsumerFloatQueue;
+import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayFloatQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -25,57 +25,57 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class IntChannel extends PrimitiveChannel<Integer> implements IntSendPort, IntReceivePort {
-    public static IntChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
-        return new IntChannel(owner,
+public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements FloatSendPort, FloatReceivePort {
+    public static QueueFloatChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
+        return new QueueFloatChannel(owner,
                 mailboxSize > 0
-                ? new SingleConsumerArrayIntQueue(mailboxSize)
-                : new SingleConsumerLinkedArrayIntQueue(),
+                ? new SingleConsumerArrayFloatQueue(mailboxSize)
+                : new SingleConsumerLinkedArrayFloatQueue(),
                 policy);
     }
 
-    public static IntChannel create(Object owner, int mailboxSize) {
+    public static QueueFloatChannel create(Object owner, int mailboxSize) {
         return create(owner, mailboxSize, OverflowPolicy.THROW);
     }
 
-    public static IntChannel create(int mailboxSize, OverflowPolicy policy) {
+    public static QueueFloatChannel create(int mailboxSize, OverflowPolicy policy) {
         return create(null, mailboxSize, policy);
     }
 
-    public static IntChannel create(int mailboxSize) {
+    public static QueueFloatChannel create(int mailboxSize) {
         return create(null, mailboxSize, OverflowPolicy.THROW);
     }
 
-    private IntChannel(Object owner, SingleConsumerQueue<Integer, ?> queue, OverflowPolicy policy) {
+    private QueueFloatChannel(Object owner, SingleConsumerQueue<Float, ?> queue, OverflowPolicy policy) {
         super(owner, queue, policy);
     }
 
     @Override
-    public int receiveInt() throws SuspendExecution, InterruptedException {
+    public float receiveFloat() throws SuspendExecution, InterruptedException {
         if (isClosed())
             throw new EOFException();
         final Object n = receiveNode();
-        final int m = queue().intValue(n);
+        final float m = queue().floatValue(n);
         queue.deq(n);
         signalSenders();
         return m;
     }
 
     @Override
-    public int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+    public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
         if (isClosed())
             throw new EOFException();
         final Object n = receiveNode(timeout, unit);
         if (n == null)
             throw new TimeoutException();
-        final int m = queue().intValue(n);
+        final float m = queue().floatValue(n);
         queue.deq(n);
         signalSenders();
         return m;
     }
 
     @Override
-    public void send(int message) {
+    public void send(float message) {
         if (isSendClosed())
             return;
         queue().enq(message);
@@ -83,7 +83,7 @@ public class IntChannel extends PrimitiveChannel<Integer> implements IntSendPort
     }
 
     @Override
-    public boolean trySend(int message) {
+    public boolean trySend(float message) {
         if (isSendClosed())
             return true;
         if (queue().enq(message)) {
@@ -93,14 +93,14 @@ public class IntChannel extends PrimitiveChannel<Integer> implements IntSendPort
             return false;
     }
 
-    public void sendSync(int message) {
+    public void sendSync(float message) {
         if (isSendClosed())
             return;
-        queue().enq(message);
+        queue.enq(message);
         signalAndTryToExecNow();
     }
 
-    private SingleConsumerIntQueue<Object> queue() {
-        return (SingleConsumerIntQueue<Object>) queue;
+    private SingleConsumerFloatQueue<Object> queue() {
+        return (SingleConsumerFloatQueue<Object>) queue;
     }
 }

@@ -19,13 +19,13 @@ import co.paralleluniverse.strands.queues.SingleConsumerQueue;
  *
  * @author pron
  */
-public class PrimitiveChannel<T> extends Channel<T> {
+public class QueuePrimitiveChannel<T> extends QueueChannel<T> {
 
-    public PrimitiveChannel(Object owner, SingleConsumerQueue<T, ?> queue, OverflowPolicy policy) {
+    public QueuePrimitiveChannel(Object owner, SingleConsumerQueue<T, ?> queue, OverflowPolicy policy) {
         super(owner, queue, policy);
     }
 
-    public PrimitiveChannel(SingleConsumerQueue<T, ?> queue, OverflowPolicy policy) {
+    public QueuePrimitiveChannel(SingleConsumerQueue<T, ?> queue, OverflowPolicy policy) {
         super(queue, policy);
     }
 

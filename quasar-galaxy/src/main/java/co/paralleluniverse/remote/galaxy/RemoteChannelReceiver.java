@@ -19,7 +19,8 @@ import co.paralleluniverse.galaxy.MessageListener;
 import co.paralleluniverse.galaxy.quasar.Messenger;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.strands.SuspendableRunnable;
-import co.paralleluniverse.strands.channels.Channel;
+import co.paralleluniverse.strands.channels.QueueChannel;
+import co.paralleluniverse.strands.channels.SendPort;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.Iterator;
@@ -35,8 +36,8 @@ import jsr166e.ConcurrentHashMapV8;
  *
  */
 public class RemoteChannelReceiver<Message> implements MessageListener {
-    private static final ConcurrentMap<WeakReference<? extends Channel<?>>, RemoteChannelReceiver<?>> receivers = new ConcurrentHashMapV8<>();
-    private static final ReferenceQueue<Channel> refQueue = new ReferenceQueue<>();
+    private static final ConcurrentMap<WeakReference<? extends SendPort<?>>, RemoteChannelReceiver<?>> receivers = new ConcurrentHashMapV8<>();
+    private static final ReferenceQueue<QueueChannel> refQueue = new ReferenceQueue<>();
     private static final AtomicLong topicGen = new AtomicLong(1000);
 
     static {
@@ -53,8 +54,8 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
         collector.start();
     }
 
-    public static <Message> RemoteChannelReceiver<Message> getReceiver(Channel<Message> channel, boolean global) {
-        WeakReference<Channel<Message>> channelRef = new WellBehavedWeakRef<>(channel, refQueue);
+    public static <Message> RemoteChannelReceiver<Message> getReceiver(SendPort<Message> channel, boolean global) {
+        WeakReference<SendPort<Message>> channelRef = new WellBehavedWeakRef(channel, refQueue);
         RemoteChannelReceiver<Message> receiver = (RemoteChannelReceiver<Message>) receivers.get(channelRef);
         if (receiver == null) {
             receiver = createrReceiver(channel, global);
@@ -67,19 +68,19 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
         return receiver;
     }
 
-    private static <Message> RemoteChannelReceiver<Message> createrReceiver(Channel<Message> channel, boolean global) {
-        return new RemoteChannelReceiver<>(channel, global);
+    private static <Message> RemoteChannelReceiver<Message> createrReceiver(SendPort<Message> channel, boolean global) {
+        return new RemoteChannelReceiver<Message>(channel, global);
     }
 
     public interface MessageFilter<Message> {
         boolean shouldForwardMessage(Message msg);
     }
     //////////////////////////////
-    private final Channel<Message> channel;
+    private final SendPort<Message> channel;
     private final Object topic;
     private volatile MessageFilter<Message> filter;
 
-    private RemoteChannelReceiver(Channel<Message> channel, boolean isGlobal) {
+    private RemoteChannelReceiver(SendPort<Message> channel, boolean isGlobal) {
         this.channel = channel;
         this.topic = isGlobal ? UUID.randomUUID().toString() : topicGen.incrementAndGet();
     }
@@ -135,10 +136,10 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
     /////////////////////////////
     private static void collectDeadReceivers() throws InterruptedException {
         for (;;) {
-            WeakReference<Channel<?>> ref = (WeakReference<Channel<?>>) refQueue.remove();
+            WeakReference<QueueChannel<?>> ref = (WeakReference<QueueChannel<?>>) refQueue.remove();
             // we can't use map.get() b/c the map is organized by WellBehavedWeakRef's hashCode, and here we need identity
-            for (Iterator<Map.Entry<WeakReference<? extends Channel<?>>, RemoteChannelReceiver<?>>> it = receivers.entrySet().iterator(); it.hasNext();) {
-                final Map.Entry<WeakReference<? extends Channel<?>>, RemoteChannelReceiver<?>> entry = it.next();
+            for (Iterator<Map.Entry<WeakReference<? extends SendPort<?>>, RemoteChannelReceiver<?>>> it = receivers.entrySet().iterator(); it.hasNext();) {
+                final Map.Entry<WeakReference<? extends SendPort<?>>, RemoteChannelReceiver<?>> entry = it.next();
                 if (entry.getKey() == ref) { // using identity
                     final RemoteChannelReceiver<?> receiver = entry.getValue();
                     receiver.unsubscribe();

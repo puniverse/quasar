@@ -22,20 +22,20 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class IntTickerChannel extends TickerChannel<Integer> implements IntSendPort, IntReceivePort {
-    public static IntTickerChannel create(Object owner, int size) {
-        return new IntTickerChannel(owner, size);
+public class TickerIntChannel extends TickerChannel<Integer> implements IntSendPort, IntReceivePort {
+    public static TickerIntChannel create(Object owner, int size) {
+        return new TickerIntChannel(owner, size);
     }
 
-    public static IntTickerChannel create(int size) {
-        return new IntTickerChannel(size);
+    public static TickerIntChannel create(int size) {
+        return new TickerIntChannel(size);
     }
 
-    public IntTickerChannel(Object owner, int size) {
+    public TickerIntChannel(Object owner, int size) {
         super(owner, new SingleProducerCircularIntBuffer(size));
     }
 
-    private IntTickerChannel(int size) {
+    private TickerIntChannel(int size) {
         super(new SingleProducerCircularIntBuffer(size));
     }
 
@@ -73,7 +73,7 @@ public class IntTickerChannel extends TickerChannel<Integer> implements IntSendP
     }
 
     public static class TickerChannelIntConsumer extends TickerChannelConsumer<Integer> implements IntReceivePort {
-        public TickerChannelIntConsumer(IntTickerChannel channel) {
+        public TickerChannelIntConsumer(TickerIntChannel channel) {
             super(channel);
         }
 

@@ -16,7 +16,7 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.channels.Channel;
+import co.paralleluniverse.strands.channels.QueueChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -34,7 +34,7 @@ import org.junit.Test;
  * @author pron
  */
 public class ActorTest {
-    static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channel.OverflowPolicy.THROW);
+    static final MailboxConfig mailboxConfig = new MailboxConfig(10, QueueChannel.OverflowPolicy.THROW);
     private ForkJoinPool fjPool;
 
     public ActorTest() {

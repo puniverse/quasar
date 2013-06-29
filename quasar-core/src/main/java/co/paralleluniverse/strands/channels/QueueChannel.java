@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public abstract class Channel<Message> implements SendPort<Message>, ReceivePort<Message>, java.io.Serializable {
+public abstract class QueueChannel<Message> implements SendPort<Message>, ReceivePort<Message>, java.io.Serializable {
     public enum OverflowPolicy {
         THROW, DROP, BLOCK, BACKOFF
     }
@@ -41,7 +41,7 @@ public abstract class Channel<Message> implements SendPort<Message>, ReceivePort
     private volatile boolean sendClosed;
     private boolean receiveClosed;
 
-    protected Channel(Object owner, SingleConsumerQueue<Message, ?> queue, OverflowPolicy overflowPolicy) {
+    protected QueueChannel(Object owner, SingleConsumerQueue<Message, ?> queue, OverflowPolicy overflowPolicy) {
         this.queue = (SingleConsumerQueue<Message, Object>) queue;
         this.owner = owner;
         if (owner != null)
@@ -50,7 +50,7 @@ public abstract class Channel<Message> implements SendPort<Message>, ReceivePort
         this.sendersSync = overflowPolicy == OverflowPolicy.BLOCK ? new SimpleConditionSynchronizer() : null;
     }
 
-    protected Channel(SingleConsumerQueue<Message, ?> queue, OverflowPolicy overflowPolicy) {
+    protected QueueChannel(SingleConsumerQueue<Message, ?> queue, OverflowPolicy overflowPolicy) {
         this(null, queue, overflowPolicy);
     }
 

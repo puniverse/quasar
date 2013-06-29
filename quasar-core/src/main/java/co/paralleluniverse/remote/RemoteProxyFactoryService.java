@@ -15,7 +15,6 @@ package co.paralleluniverse.remote;
 
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.RemoteActor;
-import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.SendPort;
 
 /**
@@ -29,7 +28,7 @@ public final class RemoteProxyFactoryService {
         return factory.create(actor, globalId);
     }
     
-    public static <Message> SendPort<Message> create(Channel channel, Object globalId) {
+    public static <Message> SendPort<Message> create(SendPort<Message> channel, Object globalId) {
         return factory.create(channel, globalId);
     }
     

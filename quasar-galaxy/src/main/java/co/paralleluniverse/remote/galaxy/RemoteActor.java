@@ -18,7 +18,7 @@ import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.DefaultFiberPool;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.channels.Channel;
+import co.paralleluniverse.strands.channels.QueueChannel;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
@@ -29,7 +29,7 @@ import java.util.concurrent.ExecutionException;
 public class RemoteActor<Message> extends co.paralleluniverse.actors.RemoteActor<Message> {
     public RemoteActor(final LocalActor<Message, ?> actor, Object globalId) {
         super(actor);
-        final RemoteChannelReceiver<Object> receiver = RemoteChannelReceiver.getReceiver((Channel<Object>) actor.getMailbox(), globalId != null);
+        final RemoteChannelReceiver<Object> receiver = RemoteChannelReceiver.getReceiver((QueueChannel<Object>) actor.getMailbox(), globalId != null);
         receiver.setFilter(new RemoteChannelReceiver.MessageFilter<Object>() {
             @Override
             public boolean shouldForwardMessage(Object msg) {

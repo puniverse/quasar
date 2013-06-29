@@ -22,20 +22,20 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class DoubleTickerChannel extends TickerChannel<Double> implements DoubleSendPort, DoubleReceivePort {
-    public static DoubleTickerChannel create(Object owner, int size) {
-        return new DoubleTickerChannel(owner, size);
+public class TickerDoubleChannel extends TickerChannel<Double> implements DoubleSendPort, DoubleReceivePort {
+    public static TickerDoubleChannel create(Object owner, int size) {
+        return new TickerDoubleChannel(owner, size);
     }
 
-    public static DoubleTickerChannel create(int size) {
-        return new DoubleTickerChannel(size);
+    public static TickerDoubleChannel create(int size) {
+        return new TickerDoubleChannel(size);
     }
 
-    public DoubleTickerChannel(Object owner, int size) {
+    public TickerDoubleChannel(Object owner, int size) {
         super(owner, new SingleProducerCircularDoubleBuffer(size));
     }
 
-    private DoubleTickerChannel(int size) {
+    private TickerDoubleChannel(int size) {
         super(new SingleProducerCircularDoubleBuffer(size));
     }
 
@@ -73,7 +73,7 @@ public class DoubleTickerChannel extends TickerChannel<Double> implements Double
     }
 
     public static class TickerChannelDoubleConsumer extends TickerChannelConsumer<Double> implements DoubleReceivePort {
-        public TickerChannelDoubleConsumer(DoubleTickerChannel channel) {
+        public TickerChannelDoubleConsumer(TickerDoubleChannel channel) {
             super(channel);
         }
 

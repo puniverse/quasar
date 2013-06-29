@@ -23,7 +23,6 @@ import co.paralleluniverse.galaxy.quasar.Messenger;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.remote.RemoteException;
 import co.paralleluniverse.strands.SuspendableRunnable;
-import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.SendPort;
 import java.io.Serializable;
 import java.util.Objects;
@@ -59,7 +58,7 @@ public class RemoteChannel<Message> implements SendPort<Message>, Serializable {
      *
      * @param channel
      */
-    public RemoteChannel(Channel channel, Object globalId) {
+    public RemoteChannel(SendPort<Message> channel, Object globalId) {
         final RemoteChannelReceiver<Message> receiver = RemoteChannelReceiver.getReceiver(channel, globalId != null);
         this.topic = receiver.getTopic();
         if (globalId != null) {

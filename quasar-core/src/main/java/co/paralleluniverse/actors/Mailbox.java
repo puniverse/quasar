@@ -15,7 +15,7 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.remote.RemoteProxyFactoryService;
-import co.paralleluniverse.strands.channels.Channel;
+import co.paralleluniverse.strands.channels.QueueChannel;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayObjectQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayObjectQueue;
 import java.util.concurrent.TimeUnit;
@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public final class Mailbox<Message> extends Channel<Message> {
+public final class Mailbox<Message> extends QueueChannel<Message> {
     private transient LocalActor<?, ?> actor;
 
     Mailbox(MailboxConfig config) {

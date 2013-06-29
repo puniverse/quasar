@@ -19,20 +19,20 @@ import co.paralleluniverse.strands.queues.SingleProducerCircularObjectBuffer;
  *
  * @author pron
  */
-public class ObjectTickerChannel<Message> extends TickerChannel<Message> {
-    public static <Message> ObjectTickerChannel<Message> create(Object owner, int size) {
-        return new ObjectTickerChannel<Message>(owner, size);
+public class TickerObjectChannel<Message> extends TickerChannel<Message> {
+    public static <Message> TickerObjectChannel<Message> create(Object owner, int size) {
+        return new TickerObjectChannel<Message>(owner, size);
     }
 
-    public static <Message> ObjectTickerChannel<Message> create(int size) {
-        return new ObjectTickerChannel<Message>(size);
+    public static <Message> TickerObjectChannel<Message> create(int size) {
+        return new TickerObjectChannel<Message>(size);
     }
 
-    public ObjectTickerChannel(Object owner, int size) {
+    public TickerObjectChannel(Object owner, int size) {
         super(owner, new SingleProducerCircularObjectBuffer<Message>(size));
     }
 
-    private ObjectTickerChannel(int size) {
+    private TickerObjectChannel(int size) {
         super(new SingleProducerCircularObjectBuffer<Message>(size));
     }
 }

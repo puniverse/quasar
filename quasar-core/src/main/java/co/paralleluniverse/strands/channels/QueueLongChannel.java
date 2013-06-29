@@ -25,28 +25,28 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class LongChannel extends PrimitiveChannel<Long> implements LongSendPort, LongReceivePort {
-    public static LongChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
-        return new LongChannel(owner,
+public class QueueLongChannel extends QueuePrimitiveChannel<Long> implements LongSendPort, LongReceivePort {
+    public static QueueLongChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
+        return new QueueLongChannel(owner,
                 mailboxSize > 0
                 ? new SingleConsumerArrayLongQueue(mailboxSize)
                 : new SingleConsumerLinkedArrayLongQueue(),
                 policy);
     }
 
-    public static LongChannel create(Object owner, int mailboxSize) {
+    public static QueueLongChannel create(Object owner, int mailboxSize) {
         return create(owner, mailboxSize, OverflowPolicy.THROW);
     }
 
-    public static LongChannel create(int mailboxSize, OverflowPolicy policy) {
+    public static QueueLongChannel create(int mailboxSize, OverflowPolicy policy) {
         return create(null, mailboxSize, policy);
     }
 
-    public static LongChannel create(int mailboxSize) {
+    public static QueueLongChannel create(int mailboxSize) {
         return create(null, mailboxSize, OverflowPolicy.THROW);
     }
 
-    private LongChannel(Object owner, SingleConsumerQueue<Long, ?> queue, OverflowPolicy policy) {
+    private QueueLongChannel(Object owner, SingleConsumerQueue<Long, ?> queue, OverflowPolicy policy) {
         super(owner, queue, policy);
     }
 

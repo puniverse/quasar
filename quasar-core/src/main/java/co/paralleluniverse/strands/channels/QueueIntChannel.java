@@ -14,9 +14,9 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.queues.SingleConsumerArrayDoubleQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerDoubleQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayDoubleQueue;
+import co.paralleluniverse.strands.queues.SingleConsumerArrayIntQueue;
+import co.paralleluniverse.strands.queues.SingleConsumerIntQueue;
+import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayIntQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -25,57 +25,57 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class DoubleChannel extends PrimitiveChannel<Double> implements DoubleSendPort, DoubleReceivePort {
-    public static DoubleChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
-        return new DoubleChannel(owner,
+public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements IntSendPort, IntReceivePort {
+    public static QueueIntChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
+        return new QueueIntChannel(owner,
                 mailboxSize > 0
-                ? new SingleConsumerArrayDoubleQueue(mailboxSize)
-                : new SingleConsumerLinkedArrayDoubleQueue(),
+                ? new SingleConsumerArrayIntQueue(mailboxSize)
+                : new SingleConsumerLinkedArrayIntQueue(),
                 policy);
     }
 
-    public static DoubleChannel create(Object owner, int mailboxSize) {
+    public static QueueIntChannel create(Object owner, int mailboxSize) {
         return create(owner, mailboxSize, OverflowPolicy.THROW);
     }
 
-    public static DoubleChannel create(int mailboxSize, OverflowPolicy policy) {
+    public static QueueIntChannel create(int mailboxSize, OverflowPolicy policy) {
         return create(null, mailboxSize, policy);
     }
 
-    public static DoubleChannel create(int mailboxSize) {
+    public static QueueIntChannel create(int mailboxSize) {
         return create(null, mailboxSize, OverflowPolicy.THROW);
     }
 
-    private DoubleChannel(Object owner, SingleConsumerQueue<Double, ?> queue, OverflowPolicy policy) {
+    private QueueIntChannel(Object owner, SingleConsumerQueue<Integer, ?> queue, OverflowPolicy policy) {
         super(owner, queue, policy);
     }
 
     @Override
-    public double receiveDouble() throws SuspendExecution, InterruptedException {
+    public int receiveInt() throws SuspendExecution, InterruptedException {
         if (isClosed())
             throw new EOFException();
         final Object n = receiveNode();
-        final double m = queue().doubleValue(n);
+        final int m = queue().intValue(n);
         queue.deq(n);
         signalSenders();
         return m;
     }
 
     @Override
-    public double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+    public int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
         if (isClosed())
             throw new EOFException();
         final Object n = receiveNode(timeout, unit);
         if (n == null)
             throw new TimeoutException();
-        final double m = queue().doubleValue(n);
+        final int m = queue().intValue(n);
         queue.deq(n);
         signalSenders();
         return m;
     }
 
     @Override
-    public void send(double message) {
+    public void send(int message) {
         if (isSendClosed())
             return;
         queue().enq(message);
@@ -83,7 +83,7 @@ public class DoubleChannel extends PrimitiveChannel<Double> implements DoubleSen
     }
 
     @Override
-    public boolean trySend(double message) {
+    public boolean trySend(int message) {
         if (isSendClosed())
             return true;
         if (queue().enq(message)) {
@@ -93,14 +93,14 @@ public class DoubleChannel extends PrimitiveChannel<Double> implements DoubleSen
             return false;
     }
 
-    public void sendSync(double message) {
+    public void sendSync(int message) {
         if (isSendClosed())
             return;
-        queue.enq(message);
+        queue().enq(message);
         signalAndTryToExecNow();
     }
 
-    private SingleConsumerDoubleQueue<Object> queue() {
-        return (SingleConsumerDoubleQueue<Object>) queue;
+    private SingleConsumerIntQueue<Object> queue() {
+        return (SingleConsumerIntQueue<Object>) queue;
     }
 }
