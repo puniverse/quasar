@@ -20,7 +20,7 @@ import sun.misc.Unsafe;
  *
  * @author pron
  */
-public abstract class SingleProducerCircularBuffer<E> {
+public abstract class CircularBuffer<E> {
     final int capacity;
     final int mask;
     private final boolean singleProducer;
@@ -29,7 +29,7 @@ public abstract class SingleProducerCircularBuffer<E> {
     volatile long p201, p202, p203, p204, p205, p206, p207;
     volatile long lastWritten; // follows tail
 
-    SingleProducerCircularBuffer(int capacity, boolean singleProducer) {
+    CircularBuffer(int capacity, boolean singleProducer) {
         // capacity is a power of 2
         this.capacity = nextPowerOfTwo(capacity);
         this.mask = this.capacity - 1;
@@ -139,8 +139,8 @@ public abstract class SingleProducerCircularBuffer<E> {
 
     static {
         try {
-            tailOffset = unsafe.objectFieldOffset(SingleProducerCircularBuffer.class.getDeclaredField("tail"));
-            lastWrittenOffset = unsafe.objectFieldOffset(SingleProducerCircularBuffer.class.getDeclaredField("lastWritten"));
+            tailOffset = unsafe.objectFieldOffset(CircularBuffer.class.getDeclaredField("tail"));
+            lastWrittenOffset = unsafe.objectFieldOffset(CircularBuffer.class.getDeclaredField("lastWritten"));
         } catch (Exception ex) {
             throw new Error(ex);
         }

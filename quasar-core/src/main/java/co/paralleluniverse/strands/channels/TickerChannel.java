@@ -7,7 +7,7 @@ package co.paralleluniverse.strands.channels;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.queues.SingleProducerCircularBuffer;
+import co.paralleluniverse.strands.queues.CircularBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -18,19 +18,19 @@ import java.util.concurrent.TimeoutException;
  */
 public abstract class TickerChannel<Message> implements Channel<Message> {
     private Object owner;
-    final SingleProducerCircularBuffer<Message> buffer;
+    final CircularBuffer<Message> buffer;
     private final SimpleConditionSynchronizer sync;
     private boolean sendClosed;
     final TickerChannelConsumer<Message> consumer;
 
-    protected TickerChannel(Object owner, SingleProducerCircularBuffer<Message> buffer) {
+    protected TickerChannel(Object owner, CircularBuffer<Message> buffer) {
         this.buffer = buffer;
         this.owner = owner;
         this.sync = new SimpleConditionSynchronizer();
         this.consumer = newConsumer();
     }
 
-    protected TickerChannel(SingleProducerCircularBuffer<Message> buffer) {
+    protected TickerChannel(CircularBuffer<Message> buffer) {
         this(null, buffer);
     }
 
@@ -104,7 +104,7 @@ public abstract class TickerChannel<Message> implements Channel<Message> {
 
     public static class TickerChannelConsumer<Message> implements ReceivePort<Message> {
         final TickerChannel<Message> channel;
-        final SingleProducerCircularBuffer.Consumer consumer;
+        final CircularBuffer.Consumer consumer;
         private boolean receiveClosed;
 
         public TickerChannelConsumer(TickerChannel<Message> channel) {

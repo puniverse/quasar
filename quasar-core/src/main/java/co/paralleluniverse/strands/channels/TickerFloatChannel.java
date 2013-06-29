@@ -14,7 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.queues.SingleProducerCircularFloatBuffer;
+import co.paralleluniverse.strands.queues.CircularFloatBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -32,11 +32,11 @@ public class TickerFloatChannel extends TickerChannel<Float> implements FloatCha
     }
 
     public TickerFloatChannel(Object owner, int size) {
-        super(owner, new SingleProducerCircularFloatBuffer(size));
+        super(owner, new CircularFloatBuffer(size));
     }
 
     private TickerFloatChannel(int size) {
-        super(new SingleProducerCircularFloatBuffer(size));
+        super(new CircularFloatBuffer(size));
     }
 
     @Override
@@ -68,8 +68,8 @@ public class TickerFloatChannel extends TickerChannel<Float> implements FloatCha
         return new TickerChannelFloatConsumer(this);
     }
 
-    private SingleProducerCircularFloatBuffer buffer() {
-        return (SingleProducerCircularFloatBuffer) buffer;
+    private CircularFloatBuffer buffer() {
+        return (CircularFloatBuffer) buffer;
     }
 
     public static class TickerChannelFloatConsumer extends TickerChannelConsumer<Float> implements FloatReceivePort {
@@ -89,8 +89,8 @@ public class TickerFloatChannel extends TickerChannel<Float> implements FloatCha
             return consumer().getFloatValue();
         }
 
-        private SingleProducerCircularFloatBuffer.FloatConsumer consumer() {
-            return (SingleProducerCircularFloatBuffer.FloatConsumer) consumer;
+        private CircularFloatBuffer.FloatConsumer consumer() {
+            return (CircularFloatBuffer.FloatConsumer) consumer;
         }
     }
 }

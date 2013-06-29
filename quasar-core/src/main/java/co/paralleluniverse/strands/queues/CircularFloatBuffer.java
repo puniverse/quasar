@@ -17,33 +17,33 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-public class SingleProducerCircularDoubleBuffer extends SingleProducerCircularDWordBuffer<Double> {
-    public SingleProducerCircularDoubleBuffer(int size, boolean singleProducer) {
+public class CircularFloatBuffer extends CircularWordBuffer<Float> {
+    public CircularFloatBuffer(int size, boolean singleProducer) {
         super(size, singleProducer);
     }
 
     @Override
-    public void enq(Double elem) {
-        enq(elem.doubleValue());
+    public void enq(Float elem) {
+        enq(elem.floatValue());
     }
 
-    public void enq(double elem) {
-        enqRaw(Double.doubleToRawLongBits(elem));
+    public void enq(float elem) {
+        enqRaw(Float.floatToRawIntBits(elem));
     }
 
     @Override
-    public DoubleConsumer newConsumer() {
-        return new DoubleConsumer();
+    public FloatConsumer newConsumer() {
+        return new FloatConsumer();
     }
 
-    public class DoubleConsumer extends DWordConsumer<Double> {
-        public double getDoubleValue() {
-            return Double.longBitsToDouble(getRawValue());
+    public class FloatConsumer extends WordConsumer<Float> {
+        public float getFloatValue() {
+            return Float.intBitsToFloat(getRawValue());
         }
 
         @Override
-        protected Double getValue() {
-            return getDoubleValue();
+        protected Float getValue() {
+            return getFloatValue();
         }
     }
 }

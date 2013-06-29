@@ -17,10 +17,10 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-abstract class SingleProducerCircularDWordBuffer<E> extends SingleProducerCircularBuffer<E> {
+abstract class CircularDWordBuffer<E> extends CircularBuffer<E> {
     private final long[] array;
 
-    public SingleProducerCircularDWordBuffer(int size, boolean singleProducer) {
+    public CircularDWordBuffer(int size, boolean singleProducer) {
         super(size, singleProducer);
         this.array = new long[capacity];
     }

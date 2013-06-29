@@ -14,7 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.queues.SingleProducerCircularDoubleBuffer;
+import co.paralleluniverse.strands.queues.CircularDoubleBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -32,11 +32,11 @@ public class TickerDoubleChannel extends TickerChannel<Double> implements Double
     }
 
     public TickerDoubleChannel(Object owner, int size) {
-        super(owner, new SingleProducerCircularDoubleBuffer(size));
+        super(owner, new CircularDoubleBuffer(size));
     }
 
     private TickerDoubleChannel(int size) {
-        super(new SingleProducerCircularDoubleBuffer(size));
+        super(new CircularDoubleBuffer(size));
     }
 
     @Override
@@ -68,8 +68,8 @@ public class TickerDoubleChannel extends TickerChannel<Double> implements Double
         return new TickerChannelDoubleConsumer(this);
     }
 
-    private SingleProducerCircularDoubleBuffer buffer() {
-        return (SingleProducerCircularDoubleBuffer) buffer;
+    private CircularDoubleBuffer buffer() {
+        return (CircularDoubleBuffer) buffer;
     }
 
     public static class TickerChannelDoubleConsumer extends TickerChannelConsumer<Double> implements DoubleReceivePort {
@@ -89,8 +89,8 @@ public class TickerDoubleChannel extends TickerChannel<Double> implements Double
             return consumer().getDoubleValue();
         }
 
-        private SingleProducerCircularDoubleBuffer.DoubleConsumer consumer() {
-            return (SingleProducerCircularDoubleBuffer.DoubleConsumer) consumer;
+        private CircularDoubleBuffer.DoubleConsumer consumer() {
+            return (CircularDoubleBuffer.DoubleConsumer) consumer;
         }
     }
 }

@@ -14,7 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.queues.SingleProducerCircularLongBuffer;
+import co.paralleluniverse.strands.queues.CircularLongBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -32,11 +32,11 @@ public class TickerLongChannel extends TickerChannel<Long> implements LongChanne
     }
 
     public TickerLongChannel(Object owner, int size) {
-        super(owner, new SingleProducerCircularLongBuffer(size));
+        super(owner, new CircularLongBuffer(size));
     }
 
     private TickerLongChannel(int size) {
-        super(new SingleProducerCircularLongBuffer(size));
+        super(new CircularLongBuffer(size));
     }
 
     @Override
@@ -68,8 +68,8 @@ public class TickerLongChannel extends TickerChannel<Long> implements LongChanne
         return new TickerChannelLongConsumer(this);
     }
 
-    private SingleProducerCircularLongBuffer buffer() {
-        return (SingleProducerCircularLongBuffer) buffer;
+    private CircularLongBuffer buffer() {
+        return (CircularLongBuffer) buffer;
     }
 
     public static class TickerChannelLongConsumer extends TickerChannelConsumer<Long> implements LongReceivePort {
@@ -89,8 +89,8 @@ public class TickerLongChannel extends TickerChannel<Long> implements LongChanne
             return consumer().getLongValue();
         }
 
-        private SingleProducerCircularLongBuffer.LongConsumer consumer() {
-            return (SingleProducerCircularLongBuffer.LongConsumer) consumer;
+        private CircularLongBuffer.LongConsumer consumer() {
+            return (CircularLongBuffer.LongConsumer) consumer;
         }
     }
 }

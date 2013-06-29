@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.strands.queues.SingleProducerCircularObjectBuffer;
+import co.paralleluniverse.strands.queues.CircularObjectBuffer;
 
 /**
  *
@@ -29,10 +29,10 @@ public class TickerObjectChannel<Message> extends TickerChannel<Message> {
     }
 
     public TickerObjectChannel(Object owner, int size) {
-        super(owner, new SingleProducerCircularObjectBuffer<Message>(size));
+        super(owner, new CircularObjectBuffer<Message>(size));
     }
 
     private TickerObjectChannel(int size) {
-        super(new SingleProducerCircularObjectBuffer<Message>(size));
+        super(new CircularObjectBuffer<Message>(size));
     }
 }

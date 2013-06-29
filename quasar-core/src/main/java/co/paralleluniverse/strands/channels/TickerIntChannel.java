@@ -14,7 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.queues.SingleProducerCircularIntBuffer;
+import co.paralleluniverse.strands.queues.CircularIntBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -32,11 +32,11 @@ public class TickerIntChannel extends TickerChannel<Integer> implements IntChann
     }
 
     public TickerIntChannel(Object owner, int size) {
-        super(owner, new SingleProducerCircularIntBuffer(size));
+        super(owner, new CircularIntBuffer(size));
     }
 
     private TickerIntChannel(int size) {
-        super(new SingleProducerCircularIntBuffer(size));
+        super(new CircularIntBuffer(size));
     }
 
     @Override
@@ -68,8 +68,8 @@ public class TickerIntChannel extends TickerChannel<Integer> implements IntChann
         return new TickerChannelIntConsumer(this);
     }
 
-    private SingleProducerCircularIntBuffer buffer() {
-        return (SingleProducerCircularIntBuffer) buffer;
+    private CircularIntBuffer buffer() {
+        return (CircularIntBuffer) buffer;
     }
 
     public static class TickerChannelIntConsumer extends TickerChannelConsumer<Integer> implements IntReceivePort {
@@ -89,8 +89,8 @@ public class TickerIntChannel extends TickerChannel<Integer> implements IntChann
             return consumer().getIntValue();
         }
 
-        private SingleProducerCircularIntBuffer.IntConsumer consumer() {
-            return (SingleProducerCircularIntBuffer.IntConsumer) consumer;
+        private CircularIntBuffer.IntConsumer consumer() {
+            return (CircularIntBuffer.IntConsumer) consumer;
         }
     }
 }

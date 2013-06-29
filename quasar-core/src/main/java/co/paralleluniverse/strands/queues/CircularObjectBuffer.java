@@ -17,22 +17,28 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-abstract class SingleProducerCircularWordBuffer<E> extends SingleProducerCircularBuffer<E> {
-    private final int[] array;
+public class CircularObjectBuffer<E> extends CircularBuffer<E> {
+    private final Object[] array;
 
-    public SingleProducerCircularWordBuffer(int size, boolean singleProducer) {
+    public CircularObjectBuffer(int size, boolean singleProducer) {
         super(size, singleProducer);
-        this.array = new int[capacity];
+        this.array = new Object[capacity];
     }
 
-    void enqRaw(int elem) {
+    @Override
+    public void enq(E elem) {
         long index = preEnq();
         orderedSet((int) index & mask, elem); // must be orderedSet so as to not be re-ordered with tail bump in postEnq
         postEnq();
     }
 
-    abstract class WordConsumer<E> extends Consumer<E> {
-        private int value;
+    @Override
+    public Consumer<E> newConsumer() {
+        return new ObjectConsumer<E>();
+    }
+
+    private class ObjectConsumer<E> extends Consumer<E> {
+        private Object value;
 
         @Override
         protected void grabValue(int index) {
@@ -41,10 +47,12 @@ abstract class SingleProducerCircularWordBuffer<E> extends SingleProducerCircula
 
         @Override
         protected void clearValue() {
+            value = null;
         }
 
-        int getRawValue() {
-            return value;
+        @Override
+        protected E getValue() {
+            return (E) value;
         }
     }
     //////////////////////////
@@ -53,8 +61,8 @@ abstract class SingleProducerCircularWordBuffer<E> extends SingleProducerCircula
 
     static {
         try {
-            base = unsafe.arrayBaseOffset(int[].class);
-            int scale = unsafe.arrayIndexScale(int[].class);
+            base = unsafe.arrayBaseOffset(Object[].class);
+            int scale = unsafe.arrayIndexScale(Object[].class);
             if ((scale & (scale - 1)) != 0)
                 throw new Error("data type scale not a power of two");
             shift = 31 - Integer.numberOfLeadingZeros(scale);
@@ -67,7 +75,7 @@ abstract class SingleProducerCircularWordBuffer<E> extends SingleProducerCircula
         return ((long) i << shift) + base;
     }
 
-    private void orderedSet(int i, int value) {
-        unsafe.putOrderedInt(array, byteOffset(i), value);
+    private void orderedSet(int i, Object value) {
+        unsafe.putOrderedObject(array, byteOffset(i), value);
     }
 }
