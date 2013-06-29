@@ -41,6 +41,15 @@ public class DelayedVal<V> implements Future<V> {
         return sync == null;
     }
 
+    SimpleConditionSynchronizer getSync() {
+        return sync;
+    }
+
+    V getValue() {
+        return value;
+    }
+    
+    
     @Override
     public V get() throws InterruptedException, SuspendExecution {
         final SimpleConditionSynchronizer s = sync;
