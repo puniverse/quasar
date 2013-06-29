@@ -35,11 +35,11 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
 
     SingleConsumerArrayQueue(int capacity) {
         // size is a power of 2
-        this.capacity = capacity;
-        this.mask = capacity - 1;
+        this.capacity = nextPowerOfTwo(capacity);
+        this.mask = this.capacity - 1;
     }
 
-    static int nextPowerOfTwo(int v) {
+    private static int nextPowerOfTwo(int v) {
         assert v >= 0;
         return 1 << (32 - Integer.numberOfLeadingZeros(v - 1));
     }

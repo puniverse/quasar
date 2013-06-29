@@ -20,9 +20,9 @@ package co.paralleluniverse.strands.queues;
 abstract class SingleConsumerArrayWordQueue<E> extends SingleConsumerArrayPrimitiveQueue<E> {
     private final int[] array;
 
-    public SingleConsumerArrayWordQueue(int capacity) {
-        super(nextPowerOfTwo(capacity));
-        this.array = new int[nextPowerOfTwo(capacity)];
+    public SingleConsumerArrayWordQueue(int size) {
+        super(size);
+        this.array = new int[this.capacity];
     }
 
     int rawValue(int index) {

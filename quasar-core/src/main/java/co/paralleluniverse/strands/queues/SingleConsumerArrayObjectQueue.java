@@ -21,8 +21,8 @@ public class SingleConsumerArrayObjectQueue<E> extends SingleConsumerArrayQueue<
     private final Object[] array;
 
     public SingleConsumerArrayObjectQueue(int size) {
-        super(nextPowerOfTwo(size));
-        this.array = new Object[nextPowerOfTwo(size)];
+        super(size);
+        this.array = new Object[this.capacity];
     }
 
     @Override
