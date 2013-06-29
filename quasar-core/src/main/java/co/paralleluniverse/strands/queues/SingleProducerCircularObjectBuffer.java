@@ -20,9 +20,9 @@ package co.paralleluniverse.strands.queues;
 public class SingleProducerCircularObjectBuffer<E> extends SingleProducerCircularBuffer<E> {
     private final Object[] array;
 
-    public SingleProducerCircularObjectBuffer(int size) {
-        super(nextPowerOfTwo(size));
-        this.array = new Object[nextPowerOfTwo(size)];
+    public SingleProducerCircularObjectBuffer(int size, boolean singleProducer) {
+        super(size, singleProducer);
+        this.array = new Object[capacity];
     }
 
     @Override

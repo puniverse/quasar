@@ -18,8 +18,8 @@ package co.paralleluniverse.strands.queues;
  * @author pron
  */
 public class SingleProducerCircularFloatBuffer extends SingleProducerCircularWordBuffer<Float> {
-    public SingleProducerCircularFloatBuffer(int size) {
-        super(size);
+    public SingleProducerCircularFloatBuffer(int size, boolean singleProducer) {
+        super(size, singleProducer);
     }
 
     @Override

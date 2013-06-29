@@ -18,8 +18,8 @@ package co.paralleluniverse.strands.queues;
  * @author pron
  */
 public class SingleProducerCircularIntBuffer extends SingleProducerCircularWordBuffer<Integer> {
-    public SingleProducerCircularIntBuffer(int size) {
-        super(size);
+    public SingleProducerCircularIntBuffer(int size, boolean singleProducer) {
+        super(size, singleProducer);
     }
 
     @Override

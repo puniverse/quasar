@@ -23,18 +23,20 @@ import sun.misc.Unsafe;
 public abstract class SingleProducerCircularBuffer<E> {
     final int capacity;
     final int mask;
+    private final boolean singleProducer;
     volatile long p101, p102, p103, p104, p105, p106, p107;
     volatile long tail; // next element to be written
     volatile long p201, p202, p203, p204, p205, p206, p207;
     volatile long lastWritten; // follows tail
 
-    SingleProducerCircularBuffer(int capacity) {
+    SingleProducerCircularBuffer(int capacity, boolean singleProducer) {
         // capacity is a power of 2
-        this.capacity = capacity;
-        this.mask = capacity - 1;
+        this.capacity = nextPowerOfTwo(capacity);
+        this.mask = this.capacity - 1;
+        this.singleProducer = singleProducer;
     }
 
-    static int nextPowerOfTwo(int v) {
+    private static int nextPowerOfTwo(int v) {
         assert v >= 0;
         return 1 << (32 - Integer.numberOfLeadingZeros(v - 1));
     }
@@ -44,13 +46,28 @@ public abstract class SingleProducerCircularBuffer<E> {
     }
 
     final long preEnq() {
-        final long t = tail;
-        tail++; // orderedSetTail(t + 1); // 
+        long t;
+
+        if (singleProducer) {
+            t = tail;
+            tail++; // orderedSetTail(t + 1); // 
+        } else {
+            do {
+                t = tail;
+            } while (!casTail(t, t + 1));
+        }
         return t;
     }
 
     final void postEnq() {
-        lastWritten++;
+        if (singleProducer)
+            lastWritten++;
+        else {
+            long w;
+            do {
+                w = lastWritten;
+            } while (!casLastWritten(w, w + 1));
+        }
     }
 
     public abstract void enq(E elem);
@@ -77,14 +94,14 @@ public abstract class SingleProducerCircularBuffer<E> {
                 final long oldest = tail - capacity;
                 if (head >= oldest) {
                     head++;
-                    
+
                     while (lastWritten < head) // wait for enq to complete 
                         ;
                     return;
                 }
                 // tail has overtaken us
                 head = oldest + headStart; // < tail
-                if(attempt > 30)
+                if (attempt > 30)
                     throw new RuntimeException("Can't catch up with producer");
                 // increasing headStart diesn't work for some reason. it breaks monotonicity somehow...
 //                if ((++attempt & 0x03) == 0) { // every 4 attempts inc headStart
@@ -118,10 +135,12 @@ public abstract class SingleProducerCircularBuffer<E> {
     ////////////////////////////////////////////////////////////////////////
     static final Unsafe unsafe = UtilUnsafe.getUnsafe();
     private static final long tailOffset;
+    private static final long lastWrittenOffset;
 
     static {
         try {
             tailOffset = unsafe.objectFieldOffset(SingleProducerCircularBuffer.class.getDeclaredField("tail"));
+            lastWrittenOffset = unsafe.objectFieldOffset(SingleProducerCircularBuffer.class.getDeclaredField("lastWritten"));
         } catch (Exception ex) {
             throw new Error(ex);
         }
@@ -129,5 +148,13 @@ public abstract class SingleProducerCircularBuffer<E> {
 
     private void orderedSetTail(long value) {
         unsafe.putOrderedLong(this, tailOffset, value);
+    }
+
+    boolean casTail(long expected, long update) {
+        return unsafe.compareAndSwapLong(this, tailOffset, expected, update);
+    }
+
+    boolean casLastWritten(long expected, long update) {
+        return unsafe.compareAndSwapLong(this, lastWrittenOffset, expected, update);
     }
 }

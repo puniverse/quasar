@@ -18,8 +18,8 @@ package co.paralleluniverse.strands.queues;
  * @author pron
  */
 public class SingleProducerCircularLongBuffer extends SingleProducerCircularDWordBuffer<Long> {
-    public SingleProducerCircularLongBuffer(int size) {
-        super(size);
+    public SingleProducerCircularLongBuffer(int size, boolean singleProducer) {
+        super(size, singleProducer);
     }
 
     @Override

@@ -20,9 +20,9 @@ package co.paralleluniverse.strands.queues;
 abstract class SingleProducerCircularWordBuffer<E> extends SingleProducerCircularBuffer<E> {
     private final int[] array;
 
-    public SingleProducerCircularWordBuffer(int size) {
-        super(nextPowerOfTwo(size));
-        this.array = new int[nextPowerOfTwo(size)];
+    public SingleProducerCircularWordBuffer(int size, boolean singleProducer) {
+        super(size, singleProducer);
+        this.array = new int[capacity];
     }
 
     void enqRaw(int elem) {
