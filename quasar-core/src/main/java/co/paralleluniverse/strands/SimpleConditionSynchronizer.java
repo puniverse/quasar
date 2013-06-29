@@ -18,18 +18,17 @@ import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import jsr166e.ConcurrentHashMapV8;
 
 /**
  *
  * @author pron
  */
 public class SimpleConditionSynchronizer {
-    private final Collection<Strand> waiters = Collections.newSetFromMap(new ConcurrentHashMapV8<Strand, Boolean>()); // new ConcurrentLinkedQueue<Strand>(); 
+    private final Collection<Strand> waiters = new ConcurrentLinkedQueue<Strand>(); 
 
     public void lock() {
         final Strand currentStrand = Strand.currentStrand();
