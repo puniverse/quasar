@@ -14,7 +14,6 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Condition;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -25,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 public interface ReceivePort<Message> {
     Message receive() throws SuspendExecution, InterruptedException;
 
-    Message tryReceive() throws SuspendExecution, InterruptedException;
+    Message tryReceive();
 
     Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
 
