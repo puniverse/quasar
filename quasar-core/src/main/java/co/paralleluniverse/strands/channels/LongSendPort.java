@@ -21,4 +21,5 @@ import co.paralleluniverse.fibers.SuspendExecution;
  */
 public interface LongSendPort extends SendPort<Long> {
     void send(long message) throws SuspendExecution;
+    boolean trySend(long message);
 }

@@ -78,8 +78,19 @@ public class DoubleChannel extends PrimitiveChannel<Double> implements DoubleSen
     public void send(double message) {
         if (isSendClosed())
             return;
-        queue.enq(message);
-        signal();
+        queue().enq(message);
+        signalReceiver();
+    }
+
+    @Override
+    public boolean trySend(double message) {
+        if (isSendClosed())
+            return true;
+        if (queue().enq(message)) {
+            signalReceiver();
+            return true;
+        } else
+            return false;
     }
 
     public void sendSync(double message) {

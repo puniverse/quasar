@@ -14,9 +14,7 @@
 package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.common.io.Streamable;
-import co.paralleluniverse.common.util.Exceptions;
-import co.paralleluniverse.fibers.DefaultFiberPool;
-import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberUtil;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.Cluster;
 import co.paralleluniverse.galaxy.TimeoutException;
@@ -24,11 +22,11 @@ import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Messenger;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.remote.RemoteException;
+import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.SendPort;
 import java.io.Serializable;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 
 /**
  *
@@ -111,17 +109,29 @@ public class RemoteChannel<Message> implements SendPort<Message>, Serializable {
     }
 
     @Override
+    public boolean trySend(final Message message) {
+        try {
+            FiberUtil.runInFiberRuntime(new SuspendableRunnable() {
+                @Override
+                public void run() throws SuspendExecution, InterruptedException {
+                    send(message);
+                }
+            });
+            return true;
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public void close() {
         try {
-            new Fiber<Void>(DefaultFiberPool.getInstance()) {
+            FiberUtil.runInFiberRuntime(new SuspendableRunnable() {
                 @Override
-                protected Void run() throws SuspendExecution, InterruptedException {
+                public void run() throws SuspendExecution, InterruptedException {
                     ((RemoteChannel) RemoteChannel.this).send(new CloseMessage());
-                    return null;
                 }
-            }.start().get();
-        } catch (ExecutionException e) {
-            throw Exceptions.rethrow(e.getCause());
+            });
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

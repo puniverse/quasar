@@ -78,8 +78,19 @@ public class LongChannel extends PrimitiveChannel<Long> implements LongSendPort,
     public void send(long message) {
         if (isSendClosed())
             return;
-        queue.enq(message);
-        signal();
+        queue().enq(message);
+        signalReceiver();
+    }
+
+    @Override
+    public boolean trySend(long message) {
+        if (isSendClosed())
+            return true;
+        if (queue().enq(message)) {
+            signalReceiver();
+            return true;
+        } else
+            return false;
     }
 
     public void sendSync(long message) {

@@ -78,8 +78,19 @@ public class FloatChannel extends PrimitiveChannel<Float> implements FloatSendPo
     public void send(float message) {
         if (isSendClosed())
             return;
-        queue.enq(message);
-        signal();
+        queue().enq(message);
+        signalReceiver();
+    }
+
+    @Override
+    public boolean trySend(float message) {
+        if (isSendClosed())
+            return true;
+        if (queue().enq(message)) {
+            signalReceiver();
+            return true;
+        } else
+            return false;
     }
 
     public void sendSync(float message) {

@@ -21,5 +21,6 @@ import co.paralleluniverse.fibers.SuspendExecution;
  */
 public interface SendPort<Message> {
     void send(Message message) throws SuspendExecution;
+    boolean trySend(Message message);
     void close();
 }

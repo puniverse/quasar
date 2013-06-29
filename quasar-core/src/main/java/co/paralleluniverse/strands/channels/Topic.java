@@ -46,6 +46,11 @@ public class Topic<Message> implements SendPort<Message> {
     }
 
     @Override
+    public boolean trySend(Message message) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void close() {
         sendClosed = true;
     }

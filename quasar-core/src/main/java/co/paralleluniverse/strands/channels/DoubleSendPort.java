@@ -21,4 +21,5 @@ import co.paralleluniverse.fibers.SuspendExecution;
  */
 public interface DoubleSendPort extends SendPort<Double> {
     void send(double message) throws SuspendExecution;
+    boolean trySend(double message);
 }

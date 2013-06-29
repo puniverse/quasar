@@ -50,6 +50,11 @@ public class RemoteActor<Message> extends ActorImpl<Message> {
     protected void internalSendNonSuspendable(Object message) {
         actor.internalSendNonSuspendable(message);
     }
+
+    @Override
+    public boolean trySend(Message message) {
+        return actor.trySend(message);
+    }
     
     @Override
     protected void addLifecycleListener(LifecycleListener listener) {

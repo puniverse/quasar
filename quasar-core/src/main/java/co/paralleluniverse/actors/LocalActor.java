@@ -229,6 +229,21 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
+    public boolean trySend(Message message) {
+        record(1, "Actor", "trySend", "Sending %s -> %s", message, this);
+        boolean res = false;
+        if (mailbox().isOwnerAlive()) {
+            if (mailbox().trySend(message))
+                return true;
+            record(1, "Actor", "trySend", "Message not sent. Mailbox is not ready.");
+            return false;
+
+        }
+        record(1, "Actor", "trySend", "Message dropped. Owner not alive.");
+        return true;
+    }
+
+    @Override
     public final Message receive() throws SuspendExecution, InterruptedException {
         for (;;) {
             checkThrownIn();

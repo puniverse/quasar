@@ -7,7 +7,6 @@ package co.paralleluniverse.strands.channels;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.queues.SingleProducerCircularBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -60,6 +59,12 @@ public abstract class TickerChannel<Message> implements SendPort<Message>, Recei
             return;
         buffer.enq(message);
         signal();
+    }
+
+    @Override
+    public boolean trySend(Message message) {
+        send(message);
+        return true;
     }
 
     @Override

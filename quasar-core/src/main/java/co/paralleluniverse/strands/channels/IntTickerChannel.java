@@ -48,13 +48,19 @@ public class IntTickerChannel extends TickerChannel<Integer> implements IntSendP
     }
 
     @Override
+    public boolean trySend(int message) {
+        send(message);
+        return true;
+    }
+
+    @Override
     public int receiveInt() throws SuspendExecution, InterruptedException {
-        return ((TickerChannelIntConsumer)consumer).receiveInt();
+        return ((TickerChannelIntConsumer) consumer).receiveInt();
     }
 
     @Override
     public int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
-        return ((TickerChannelIntConsumer)consumer).receiveInt(timeout, unit);
+        return ((TickerChannelIntConsumer) consumer).receiveInt(timeout, unit);
     }
 
     @Override

@@ -98,7 +98,7 @@ public abstract class Channel<Message> implements SendPort<Message>, ReceivePort
 //        return (Strand) owner;
 //    }
 
-    protected void signal() {
+    protected void signalReceiver() {
         if (sync != null)
             sync.signal();
     }
@@ -113,7 +113,7 @@ public abstract class Channel<Message> implements SendPort<Message>, ReceivePort
             return;
         if (!queue.enq(message))
             throw new QueueCapacityExceededException();
-        signal();
+        signalReceiver();
     }
 
     @Override
@@ -121,6 +121,18 @@ public abstract class Channel<Message> implements SendPort<Message>, ReceivePort
         send0(message, false);
     }
 
+    @Override
+    public boolean trySend(Message message) {
+        if (isSendClosed())
+            return true;
+        if(queue.enq(message)) {
+            signalReceiver();
+            return true;
+        } else
+            return false;
+    }
+
+    
     protected void sendSync(Message message) throws SuspendExecution {
         send0(message, true);
     }
@@ -145,7 +157,7 @@ public abstract class Channel<Message> implements SendPort<Message>, ReceivePort
         if (sync)
             signalAndTryToExecNow();
         else
-            signal();
+            signalReceiver();
     }
 
     private void onQueueFull(int iter) throws SuspendExecution, InterruptedException {
@@ -171,7 +183,7 @@ public abstract class Channel<Message> implements SendPort<Message>, ReceivePort
     public void close() {
         if (!sendClosed) {
             sendClosed = true;
-            signal();
+            signalReceiver();
         }
     }
 

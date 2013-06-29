@@ -48,13 +48,19 @@ public class LongTickerChannel extends TickerChannel<Long> implements LongSendPo
     }
 
     @Override
+    public boolean trySend(long message) {
+        send(message);
+        return true;
+    }
+
+    @Override
     public long receiveLong() throws SuspendExecution, InterruptedException {
-        return ((TickerChannelLongConsumer)consumer).receiveLong();
+        return ((TickerChannelLongConsumer) consumer).receiveLong();
     }
 
     @Override
     public long receiveLong(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
-        return ((TickerChannelLongConsumer)consumer).receiveLong(timeout, unit);
+        return ((TickerChannelLongConsumer) consumer).receiveLong(timeout, unit);
     }
 
     @Override

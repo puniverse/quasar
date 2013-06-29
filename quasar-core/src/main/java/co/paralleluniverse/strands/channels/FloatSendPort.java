@@ -21,4 +21,5 @@ import co.paralleluniverse.fibers.SuspendExecution;
  */
 public interface FloatSendPort extends SendPort<Float> {
     void send(float message) throws SuspendExecution;
+    boolean trySend(float message);
 }

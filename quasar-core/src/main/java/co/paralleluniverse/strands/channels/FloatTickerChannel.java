@@ -48,13 +48,19 @@ public class FloatTickerChannel extends TickerChannel<Float> implements FloatSen
     }
 
     @Override
+    public boolean trySend(float message) {
+        send(message);
+        return true;
+    }
+
+    @Override
     public float receiveFloat() throws SuspendExecution, InterruptedException {
-        return ((TickerChannelFloatConsumer)consumer).receiveFloat();
+        return ((TickerChannelFloatConsumer) consumer).receiveFloat();
     }
 
     @Override
     public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
-        return ((TickerChannelFloatConsumer)consumer).receiveFloat(timeout, unit);
+        return ((TickerChannelFloatConsumer) consumer).receiveFloat(timeout, unit);
     }
 
     @Override

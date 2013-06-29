@@ -48,6 +48,12 @@ public class DoubleTickerChannel extends TickerChannel<Double> implements Double
     }
 
     @Override
+    public boolean trySend(double message) {
+        send(message);
+        return true;
+    }
+    
+    @Override
     public double receiveDouble() throws SuspendExecution, InterruptedException {
         return ((TickerChannelDoubleConsumer) consumer).receiveDouble();
     }

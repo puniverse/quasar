@@ -42,7 +42,7 @@ public class ObjectChannel<Message> extends Channel<Message> {
         return create(null, mailboxSize, OverflowPolicy.THROW);
     }
 
-    private ObjectChannel(Object owner, SingleConsumerQueue<Message, ?> queue, OverflowPolicy policy) {
+    public ObjectChannel(Object owner, SingleConsumerQueue<Message, ?> queue, OverflowPolicy policy) {
         super(owner, queue, policy);
     }
 }

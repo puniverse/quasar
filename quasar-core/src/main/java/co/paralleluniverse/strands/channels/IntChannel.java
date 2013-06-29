@@ -79,7 +79,18 @@ public class IntChannel extends PrimitiveChannel<Integer> implements IntSendPort
         if (isSendClosed())
             return;
         queue().enq(message);
-        signal();
+        signalReceiver();
+    }
+
+    @Override
+    public boolean trySend(int message) {
+        if (isSendClosed())
+            return true;
+        if (queue().enq(message)) {
+            signalReceiver();
+            return true;
+        } else
+            return false;
     }
 
     public void sendSync(int message) {
