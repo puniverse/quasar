@@ -25,7 +25,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements IntSendPort, IntReceivePort {
+public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements IntChannel {
     public static QueueIntChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
         return new QueueIntChannel(owner,
                 mailboxSize > 0

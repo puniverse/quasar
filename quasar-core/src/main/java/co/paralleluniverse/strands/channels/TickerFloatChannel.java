@@ -22,7 +22,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class TickerFloatChannel extends TickerChannel<Float> implements FloatSendPort, FloatReceivePort {
+public class TickerFloatChannel extends TickerChannel<Float> implements FloatChannel {
     public static TickerFloatChannel create(Object owner, int size) {
         return new TickerFloatChannel(owner, size);
     }

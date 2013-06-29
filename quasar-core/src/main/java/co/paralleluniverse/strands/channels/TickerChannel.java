@@ -16,7 +16,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public abstract class TickerChannel<Message> implements SendPort<Message>, ReceivePort<Message> {
+public abstract class TickerChannel<Message> implements Channel<Message> {
     private Object owner;
     final SingleProducerCircularBuffer<Message> buffer;
     private final SimpleConditionSynchronizer sync;

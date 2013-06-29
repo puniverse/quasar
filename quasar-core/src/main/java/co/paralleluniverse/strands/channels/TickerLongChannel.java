@@ -22,7 +22,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class TickerLongChannel extends TickerChannel<Long> implements LongSendPort, LongReceivePort {
+public class TickerLongChannel extends TickerChannel<Long> implements LongChannel {
     public static TickerLongChannel create(Object owner, int size) {
         return new TickerLongChannel(owner, size);
     }

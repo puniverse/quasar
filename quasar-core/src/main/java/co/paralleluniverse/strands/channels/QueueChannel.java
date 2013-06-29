@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public abstract class QueueChannel<Message> implements SendPort<Message>, ReceivePort<Message>, java.io.Serializable {
+public abstract class QueueChannel<Message> implements Channel<Message>, java.io.Serializable {
     public enum OverflowPolicy {
         THROW, DROP, BLOCK, BACKOFF
     }

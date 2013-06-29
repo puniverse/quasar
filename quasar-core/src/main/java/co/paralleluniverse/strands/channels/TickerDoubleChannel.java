@@ -22,7 +22,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class TickerDoubleChannel extends TickerChannel<Double> implements DoubleSendPort, DoubleReceivePort {
+public class TickerDoubleChannel extends TickerChannel<Double> implements DoubleChannel {
     public static TickerDoubleChannel create(Object owner, int size) {
         return new TickerDoubleChannel(owner, size);
     }

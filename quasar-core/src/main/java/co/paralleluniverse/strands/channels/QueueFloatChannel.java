@@ -25,7 +25,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements FloatSendPort, FloatReceivePort {
+public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements FloatChannel {
     public static QueueFloatChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
         return new QueueFloatChannel(owner,
                 mailboxSize > 0
