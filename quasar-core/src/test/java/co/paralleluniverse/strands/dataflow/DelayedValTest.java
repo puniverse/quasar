@@ -201,7 +201,7 @@ public class DelayedValTest {
             }
         }).start();
 
-        final Strand t1 = Strand.create(new Thread(Strand.toRunnable(new SuspendableRunnable() {
+        final Strand t1 = Strand.of(new Thread(Strand.toRunnable(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
                 try {

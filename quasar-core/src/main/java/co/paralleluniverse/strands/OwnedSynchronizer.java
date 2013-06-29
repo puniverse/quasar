@@ -13,227 +13,65 @@
  */
 package co.paralleluniverse.strands;
 
+import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import sun.misc.Unsafe;
 
 /**
  *
  * @author pron
  */
-public abstract class OwnedSynchronizer {
-    public static OwnedSynchronizer create(Object owner) {
-        if (owner instanceof Fiber)
-            return create((Fiber) owner);
-        else if (owner instanceof Thread)
-            return create((Thread) owner);
-        else if (owner instanceof Strand)
-            return create(((Strand) owner).getUnderlying());
-        else
-            throw new IllegalArgumentException("owner must be a Thread, a Fiber or a Strand, but is " + owner.getClass().getName());
+public class OwnedSynchronizer extends ConditionSynchronizer implements Condition {
+    private volatile Strand waiter;
+
+    @Override
+    public void register() {
+        final Strand currentStrand = Strand.currentStrand();
+        if (!casWaiter(null, currentStrand))
+            throw new IllegalMonitorStateException();
     }
 
-    public static OwnedSynchronizer create(Strand owner) {
-        return create(owner.getUnderlying());
+    @Override
+    public void unregister() {
+        if(!Strand.equals(waiter, Strand.currentStrand()))
+            throw new IllegalMonitorStateException();
+        waiter = null;
     }
 
-    public static OwnedSynchronizer create(Thread owner) {
-        return new ThreadOwnedSynchronizer(owner);
+    @Override
+    public void signalAll() {
+        signal();
     }
 
-    public static OwnedSynchronizer create(Fiber owner) {
-        return new FiberOwnedSynchronizer(owner);
+    @Override
+    public void signal() {
+        final Strand s = waiter;
+        if (s != null) {
+            record("signal", "signalling %s", s);
+            Strand.unpark(s);
+        }
     }
 
-    public abstract Object getOwner();
-
-    public abstract boolean verifyOwner();
-
-    public abstract boolean isOwnerAlive();
-
-    public abstract void lock();
-
-    public abstract void unlock();
-
-    public abstract void await() throws InterruptedException, SuspendExecution;
-
-    public abstract void await(long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution;
-
-    public abstract void signal();
-
-    public abstract void signalAndTryToExecNow();
-
-    private static class ThreadOwnedSynchronizer extends OwnedSynchronizer {
-        private final Thread owner;
-        private final Lock lock = new ReentrantLock();
-        private final Condition condition = lock.newCondition();
-
-        public ThreadOwnedSynchronizer(Thread owner) {
-            this.owner = owner;
-        }
-
-        @Override
-        public Thread getOwner() {
-            return owner;
-        }
-
-        @Override
-        public boolean verifyOwner() {
-            return owner == Thread.currentThread();
-//            assert owner == Thread.currentThread() : "This method has been called by a different strand (thread or fiber) than that owning this object";
-//            if (owner != Thread.currentThread())
-//                throw new RuntimeException("This method has been called by a different strand (thread or fiber) than that owning this object");
-        }
-
-        @Override
-        public boolean isOwnerAlive() {
-            return owner.isAlive();
-        }
-
-        @Override
-        public void lock() {
-            lock.lock();
-        }
-
-        @Override
-        public void unlock() {
-            lock.unlock();
-        }
-
-        @Override
-        public void await() throws InterruptedException {
-            condition.await();
-        }
-
-        @Override
-        public void await(long timeout, TimeUnit unit) throws InterruptedException {
-            condition.await(timeout, unit);
-        }
-
-        @Override
-        public void signal() {
-            lock.lock();
-            try {
-                condition.signalAll();
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        @Override
-        public void signalAndTryToExecNow() {
+    public void signalAndTryToExecNow() {
+        final Strand s = waiter;
+        if (s != null) {
+            if(s instanceof Fiber && ((Fiber)s).exec(this))
+                return;
             signal();
         }
+    }
+    static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    private static final long waiterOffset;
 
-        @Override
-        public String toString() {
-            return "ThreadOwnedSynchronizer{" + "owner: " + owner + ", lock: " + lock + ", condition: " + condition + '}';
+    static {
+        try {
+            waiterOffset = unsafe.objectFieldOffset(OwnedSynchronizer.class.getDeclaredField("waiter"));
+        } catch (Exception ex) {
+            throw new Error(ex);
         }
     }
 
-    private static class FiberOwnedSynchronizer extends OwnedSynchronizer {
-        private final Fiber owner;
-//      private volatile boolean signalled;
-
-        public FiberOwnedSynchronizer(Fiber owner) {
-            this.owner = owner;
-        }
-
-        @Override
-        public Fiber getOwner() {
-            return owner;
-        }
-
-        @Override
-        public boolean verifyOwner() {
-            return owner == Fiber.currentFiber();
-//            assert owner == Fiber.currentFiber() : "This method has been called by a different strand (thread or fiber) than that owning this object";
-//            if (owner != Fiber.currentFiber())
-//                throw new RuntimeException("This method has been called by a different strand (thread or fiber) than that owning this object");
-        }
-
-        @Override
-        public boolean isOwnerAlive() {
-            return owner.isAlive();
-        }
-
-        @Override
-        public void lock() {
-            owner.setBlocker(this);
-        }
-
-        @Override
-        public void unlock() {
-            owner.setBlocker(null);
-        }
-
-        @Override
-        public void await() throws SuspendExecution, InterruptedException {
-            // while park does detect and throw (sneakily!) an InterruptedException, it doesn't check for interruption *before* it parks
-            if (Fiber.interrupted())
-                throw new InterruptedException();
-            Fiber.park(this);
-            if (Fiber.interrupted())
-                throw new InterruptedException();
-        }
-
-        @Override
-        public void await(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-            // while park does detect and throw (sneakily!) an InterruptedException, it doesn't check for interruption *before* it parks
-            if (Fiber.interrupted())
-                throw new InterruptedException();
-            Fiber.park(this, timeout, unit);
-            if (Fiber.interrupted())
-                throw new InterruptedException();
-        }
-
-//        @Override
-//        public void await() throws SuspendExecution, InterruptedException {
-//            while (!signalled) {
-//                if (Fiber.interrupted())
-//                    throw new InterruptedException();
-//                Fiber.park(this);
-//            }
-//            signalled = false;
-//        }
-//        
-//        @Override
-//        public void await(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-//            final long start = System.nanoTime();
-//            long left = unit.toNanos(timeout);
-//            
-//            while (!signalled) {
-//                if (Fiber.interrupted())
-//                    throw new InterruptedException();
-//                if (left <= 0)
-//                    return;
-//                Fiber.park(this, left, TimeUnit.NANOSECONDS);
-//                left = start + unit.toNanos(timeout) - System.nanoTime();
-//            }
-//
-//            signalled = false;
-//        }
-        
-        @Override
-        public void signal() {
-//          signalled = true;
-            if (owner.getBlocker() == this)
-                owner.unpark();
-        }
-
-        @Override
-        public void signalAndTryToExecNow() {
-//          signalled = true;
-            if (!owner.exec(this))
-                signal();
-        }
-
-        @Override
-        public String toString() {
-            return "FiberOwnedSynchronizer{" + "owner: " + owner + '}';
-        }
+    private boolean casWaiter(Strand expected, Strand update) {
+        return unsafe.compareAndSwapObject(this, waiterOffset, expected, update);
     }
 }

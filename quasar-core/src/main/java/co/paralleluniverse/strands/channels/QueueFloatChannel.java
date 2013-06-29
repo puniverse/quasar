@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayFloatQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerFloatQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayFloatQueue;
@@ -26,7 +27,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements FloatChannel {
-    public static QueueFloatChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
+    public static QueueFloatChannel create(Strand owner, int mailboxSize, OverflowPolicy policy) {
         return new QueueFloatChannel(owner,
                 mailboxSize > 0
                 ? new SingleConsumerArrayFloatQueue(mailboxSize)
@@ -34,7 +35,7 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
                 policy);
     }
 
-    public static QueueFloatChannel create(Object owner, int mailboxSize) {
+    public static QueueFloatChannel create(Strand owner, int mailboxSize) {
         return create(owner, mailboxSize, OverflowPolicy.THROW);
     }
 
@@ -46,7 +47,7 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
         return create(null, mailboxSize, OverflowPolicy.THROW);
     }
 
-    private QueueFloatChannel(Object owner, SingleConsumerQueue<Float, ?> queue, OverflowPolicy policy) {
+    private QueueFloatChannel(Strand owner, SingleConsumerQueue<Float, ?> queue, OverflowPolicy policy) {
         super(owner, queue, policy);
     }
 
@@ -79,7 +80,7 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
         if (isSendClosed())
             return;
         queue().enq(message);
-        signalReceiver();
+        signalReceivers();
     }
 
     @Override
@@ -87,7 +88,7 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
         if (isSendClosed())
             return true;
         if (queue().enq(message)) {
-            signalReceiver();
+            signalReceivers();
             return true;
         } else
             return false;

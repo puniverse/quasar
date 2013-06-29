@@ -52,14 +52,14 @@ public final class StrandBlockingWaitStrategy implements WaitStrategy {
             throws AlertException, InterruptedException, SuspendExecution {
         long availableSequence;
         if ((availableSequence = cursorSequence.get()) < sequence) {
-            processorNotifyCondition.lock();
+            processorNotifyCondition.register();
             try {
                 while ((availableSequence = cursorSequence.get()) < sequence) {
                     barrier.checkAlert();
                     processorNotifyCondition.await();
                 }
             } finally {
-                processorNotifyCondition.unlock();
+                processorNotifyCondition.unregister();
             }
         }
 
@@ -78,7 +78,7 @@ public final class StrandBlockingWaitStrategy implements WaitStrategy {
             long left = unit.toNanos(timeout);
             final long deadline = start + left;
 
-            processorNotifyCondition.lock();
+            processorNotifyCondition.register();
             try {
                 while ((availableSequence = cursorSequence.get()) < sequence) {
                     barrier.checkAlert();
@@ -88,7 +88,7 @@ public final class StrandBlockingWaitStrategy implements WaitStrategy {
                         throw new TimeoutException();
                 }
             } finally {
-                processorNotifyCondition.unlock();
+                processorNotifyCondition.unregister();
             }
         }
 

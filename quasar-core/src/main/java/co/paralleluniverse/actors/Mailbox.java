@@ -15,6 +15,7 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.remote.RemoteProxyFactoryService;
+import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.QueueChannel;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayObjectQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayObjectQueue;
@@ -32,7 +33,7 @@ public final class Mailbox<Message> extends QueueChannel<Message> {
         this(null, config);
     }
 
-    Mailbox(Object owner, MailboxConfig config) {
+    Mailbox(Strand owner, MailboxConfig config) {
         super(owner,
                 mailboxSize(config) > 0
                 ? new SingleConsumerArrayObjectQueue<Message>(config.getMailboxSize())
@@ -84,11 +85,11 @@ public final class Mailbox<Message> extends QueueChannel<Message> {
     }
 
     public void lock() {
-        sync().lock();
+        sync().register();
     }
 
     public void unlock() {
-        sync().unlock();
+        sync().unregister();
     }
 
     public void await() throws SuspendExecution, InterruptedException {

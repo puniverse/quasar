@@ -45,12 +45,12 @@ public class DelayedVal<V> implements Future<V> {
     public V get() throws InterruptedException, SuspendExecution {
         final SimpleConditionSynchronizer s = sync;
         if (s != null) {
-            s.lock();
+            s.register();
             try {
                 while (sync != null)
                     s.await();
             } finally {
-                s.unlock();
+                s.unregister();
             }
         }
         return value;
@@ -60,7 +60,7 @@ public class DelayedVal<V> implements Future<V> {
     public V get(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, SuspendExecution {
         final SimpleConditionSynchronizer s = sync;
         if (s != null) {
-            s.lock();
+            s.register();
             try {
                 long left = unit.toNanos(timeout);
                 while (sync != null) {
@@ -69,7 +69,7 @@ public class DelayedVal<V> implements Future<V> {
                         throw new TimeoutException();
                 }
             } finally {
-                s.unlock();
+                s.unregister();
             }
         }
         return value;

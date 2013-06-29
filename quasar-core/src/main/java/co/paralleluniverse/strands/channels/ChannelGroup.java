@@ -14,9 +14,8 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.OwnedSynchronizer;
-import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.Stranded;
+import co.paralleluniverse.strands.Condition;
+import co.paralleluniverse.strands.ConditionSelector;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,10 +26,10 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
+public class ChannelGroup<Message> implements ReceivePort<Message> {
     private Object owner;
-    private volatile OwnedSynchronizer sync;
-    private final QueueChannel<? extends Message>[] channels;
+    private final ReceivePort<? extends Message>[] ports;
+    private final ConditionSelector selector;
     private volatile boolean closed;
 
     /**
@@ -38,8 +37,12 @@ public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
      *
      * @param channels The member channels
      */
-    public ChannelGroup(QueueChannel<? extends Message>... channels) {
-        this.channels = channels;
+    public ChannelGroup(ReceivePort<? extends Message>... ports) {
+        this.ports = ports;
+        final Condition[] conds = new Condition[ports.length];
+        for(int i=0; i<conds.length; i++) 
+            conds[i] = ((SelectableReceive)ports[i]).receiveSelector();
+        this.selector = new ConditionSelector(conds);
     }
 
     /**
@@ -48,7 +51,7 @@ public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
      * @param channels The member channels
      */
     public ChannelGroup(Collection<? extends Message> channels) {
-        this.channels = (QueueChannel<? extends Message>[]) channels.toArray(new QueueChannel[channels.size()]);
+        this((QueueChannel<? extends Message>[]) channels.toArray(new QueueChannel[channels.size()]));
     }
 
     /**
@@ -56,48 +59,12 @@ public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
      *
      * @return An unmodifiable collection of all channels in this group.
      */
-    public Collection<QueueChannel<? extends Message>> getChannels() {
-        return Collections.unmodifiableList(Arrays.asList(channels));
+    public Collection<ReceivePort<? extends Message>> getChannels() {
+        return Collections.unmodifiableList(Arrays.asList(ports));
     }
 
     public Object getOwner() {
         return owner;
-    }
-
-    @Override
-    public void setStrand(Strand strand) {
-        if (owner != null && strand != owner)
-            throw new IllegalStateException("Channel " + this + " is already owned by " + owner);
-        this.owner = strand;
-        this.sync = OwnedSynchronizer.create(owner);
-    }
-
-    protected void maybeSetCurrentStrandAsOwner() {
-        if (owner == null)
-            setStrand(Strand.currentStrand());
-        else
-            assert sync.verifyOwner() : "This method has been called by a different strand (thread or fiber) than that owning this object";
-        setSync();
-    }
-
-    protected OwnedSynchronizer sync() {
-        verifySync();
-        return sync;
-    }
-
-    @Override
-    public Strand getStrand() {
-        return (Strand) owner;
-    }
-
-    private void verifySync() {
-        if (sync == null)
-            throw new IllegalStateException("Owning strand has not been set");
-    }
-
-    private void setSync() {
-        for (QueueChannel<?> c : channels)
-            c.setSync(sync);
     }
 
     /**
@@ -109,23 +76,21 @@ public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
      */
     @Override
     public Message receive() throws SuspendExecution, InterruptedException {
-        maybeSetCurrentStrandAsOwner();
-
         if (closed)
             return null;
 
-        sync.lock();
+        selector.register();
         try {
             for (;;) {
-                for (QueueChannel<? extends Message> c : channels) {
+                for (ReceivePort<? extends Message> c : ports) {
                     Message m = c.tryReceive();
                     if (m != null)
                         return m;
                 }
-                sync.await();
+                selector.await();
             }
         } finally {
-            sync.unlock();
+            selector.unregister();
         }
     }
 
@@ -134,7 +99,7 @@ public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
         if (closed)
             return null;
         for (;;) {
-            for (QueueChannel<? extends Message> c : channels) {
+            for (ReceivePort<? extends Message> c : ports) {
                 Message m = c.tryReceive();
                 if (m != null)
                     return m;
@@ -160,17 +125,15 @@ public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
         if (timeout <= 0)
             return tryReceive();
 
-        maybeSetCurrentStrandAsOwner();
-
         if (closed)
             return null;
         final long start = System.nanoTime();
         long left = unit.toNanos(timeout);
 
-        sync.lock();
+        selector.register();
         try {
             for (;;) {
-                for (QueueChannel<? extends Message> c : channels) {
+                for (ReceivePort<? extends Message> c : ports) {
                     Message m = c.tryReceive();
                     if (m != null)
                         return m;
@@ -178,13 +141,13 @@ public class ChannelGroup<Message> implements ReceivePort<Message>, Stranded {
 
                 if (left <= 0)
                     return null;
-                sync.await(left, TimeUnit.NANOSECONDS);
+                selector.await(left, TimeUnit.NANOSECONDS);
                 left = start + unit.toNanos(timeout) - System.nanoTime();
                 if (left <= 0)
                     return null;
             }
         } finally {
-            sync.unlock();
+            selector.unregister();
         }
     }
 

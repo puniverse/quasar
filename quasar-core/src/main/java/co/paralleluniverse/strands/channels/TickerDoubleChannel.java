@@ -23,20 +23,16 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class TickerDoubleChannel extends TickerChannel<Double> implements DoubleChannel {
-    public static TickerDoubleChannel create(Object owner, int size) {
-        return new TickerDoubleChannel(owner, size);
+    public static TickerDoubleChannel create(int size, boolean singleProducer) {
+        return new TickerDoubleChannel(size, singleProducer);
     }
 
     public static TickerDoubleChannel create(int size) {
-        return new TickerDoubleChannel(size);
+        return create(size, false);
     }
 
-    public TickerDoubleChannel(Object owner, int size) {
-        super(owner, new CircularDoubleBuffer(size));
-    }
-
-    private TickerDoubleChannel(int size) {
-        super(new CircularDoubleBuffer(size));
+    private TickerDoubleChannel(int size, boolean singleProducer) {
+        super(new CircularDoubleBuffer(size, singleProducer));
     }
 
     @Override
@@ -52,7 +48,7 @@ public class TickerDoubleChannel extends TickerChannel<Double> implements Double
         send(message);
         return true;
     }
-    
+
     @Override
     public double receiveDouble() throws SuspendExecution, InterruptedException {
         return ((TickerChannelDoubleConsumer) consumer).receiveDouble();

@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayDoubleQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerDoubleQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayDoubleQueue;
@@ -26,7 +27,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements DoubleChannel {
-    public static QueueDoubleChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
+    public static QueueDoubleChannel create(Strand owner, int mailboxSize, OverflowPolicy policy) {
         return new QueueDoubleChannel(owner,
                 mailboxSize > 0
                 ? new SingleConsumerArrayDoubleQueue(mailboxSize)
@@ -34,7 +35,7 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
                 policy);
     }
 
-    public static QueueDoubleChannel create(Object owner, int mailboxSize) {
+    public static QueueDoubleChannel create(Strand owner, int mailboxSize) {
         return create(owner, mailboxSize, OverflowPolicy.THROW);
     }
 
@@ -46,7 +47,7 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
         return create(null, mailboxSize, OverflowPolicy.THROW);
     }
 
-    private QueueDoubleChannel(Object owner, SingleConsumerQueue<Double, ?> queue, OverflowPolicy policy) {
+    private QueueDoubleChannel(Strand owner, SingleConsumerQueue<Double, ?> queue, OverflowPolicy policy) {
         super(owner, queue, policy);
     }
 
@@ -79,7 +80,7 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
         if (isSendClosed())
             return;
         queue().enq(message);
-        signalReceiver();
+        signalReceivers();
     }
 
     @Override
@@ -87,7 +88,7 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
         if (isSendClosed())
             return true;
         if (queue().enq(message)) {
-            signalReceiver();
+            signalReceivers();
             return true;
         } else
             return false;

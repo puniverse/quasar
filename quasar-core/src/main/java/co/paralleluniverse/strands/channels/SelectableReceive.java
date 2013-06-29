@@ -13,17 +13,9 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Condition;
 
-/**
- *
- * @author pron
- */
-public interface SendPort<Message> {
-    void send(Message message) throws SuspendExecution;
 
-    boolean trySend(Message message);
-
-    void close();
+public interface SelectableReceive {
+    Condition receiveSelector();
 }

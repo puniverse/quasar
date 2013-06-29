@@ -36,6 +36,10 @@ public abstract class CircularBuffer<E> {
         this.singleProducer = singleProducer;
     }
 
+    public boolean isSingleProducer() {
+        return singleProducer;
+    }
+
     private static int nextPowerOfTwo(int v) {
         assert v >= 0;
         return 1 << (32 - Integer.numberOfLeadingZeros(v - 1));

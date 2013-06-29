@@ -23,20 +23,16 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class TickerIntChannel extends TickerChannel<Integer> implements IntChannel {
-    public static TickerIntChannel create(Object owner, int size) {
-        return new TickerIntChannel(owner, size);
+    public static TickerIntChannel create(int size, boolean singleProducer) {
+        return new TickerIntChannel(size, singleProducer);
     }
 
     public static TickerIntChannel create(int size) {
-        return new TickerIntChannel(size);
+        return create(size, false);
     }
 
-    public TickerIntChannel(Object owner, int size) {
-        super(owner, new CircularIntBuffer(size));
-    }
-
-    private TickerIntChannel(int size) {
-        super(new CircularIntBuffer(size));
+    private TickerIntChannel(int size, boolean singleProducer) {
+        super(new CircularIntBuffer(size, singleProducer));
     }
 
     @Override

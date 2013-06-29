@@ -27,20 +27,20 @@ import java.util.concurrent.locks.LockSupport;
  * @author pron
  */
 public abstract class Strand {
-    public static Strand create(Object owner) {
+    public static Strand of(Object owner) {
         if (owner instanceof Strand)
             return (Strand) owner;
         if (owner instanceof Fiber)
             return (Fiber) owner;
         else
-            return create((Thread) owner);
+            return of((Thread) owner);
     }
 
-    public static Strand create(Thread owner) {
+    public static Strand of(Thread owner) {
         return new ThreadStrand(owner);
     }
 
-    public static Strand create(Fiber fiber) {
+    public static Strand of(Fiber fiber) {
         return fiber;
     }
 
@@ -87,9 +87,9 @@ public abstract class Strand {
     public static Strand currentStrand() {
         final Fiber fiber = Fiber.currentFiber();
         if (fiber != null)
-            return create(fiber);
+            return of(fiber);
         else
-            return create(Thread.currentThread());
+            return of(Thread.currentThread());
     }
 
     public static boolean interrupted() {
@@ -112,7 +112,7 @@ public abstract class Strand {
         if (strand instanceof Strand)
             ((Strand) strand).join(timeout, unit);
         else if (strand instanceof Thread)
-            join(Strand.create(strand), timeout, unit);
+            join(Strand.of(strand), timeout, unit);
         else
             throw new IllegalArgumentException("Can't join an object of type " + strand.getClass());
     }
@@ -191,7 +191,7 @@ public abstract class Strand {
             return true;
         if (obj1 == null | obj2 == null)
             return false;
-        return create(obj1).equals(create(obj2));
+        return of(obj1).equals(of(obj2));
     }
 
     public static Strand clone(Strand strand, final SuspendableCallable<?> target) {

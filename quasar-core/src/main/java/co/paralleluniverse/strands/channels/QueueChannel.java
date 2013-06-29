@@ -16,6 +16,7 @@ package co.paralleluniverse.strands.channels;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.remote.RemoteProxyFactoryService;
+import co.paralleluniverse.strands.Condition;
 import co.paralleluniverse.strands.OwnedSynchronizer;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
@@ -27,25 +28,23 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public abstract class QueueChannel<Message> implements Channel<Message>, java.io.Serializable {
+public abstract class QueueChannel<Message> implements Channel<Message>, SelectableReceive, SelectableSend, java.io.Serializable {
     public enum OverflowPolicy {
         THROW, DROP, BLOCK, BACKOFF
     }
     private static final int MAX_SEND_RETRIES = 10;
-    private Object owner;
-    private volatile OwnedSynchronizer sync;
+    private Strand owner;
+    private final OwnedSynchronizer sync;
     private final SimpleConditionSynchronizer sendersSync;
     protected final SingleConsumerQueue<Message, Object> queue;
     private final OverflowPolicy overflowPolicy;
-    private OwnedSynchronizer mySync;
     private volatile boolean sendClosed;
     private boolean receiveClosed;
 
-    protected QueueChannel(Object owner, SingleConsumerQueue<Message, ?> queue, OverflowPolicy overflowPolicy) {
+    protected QueueChannel(Strand owner, SingleConsumerQueue<Message, ?> queue, OverflowPolicy overflowPolicy) {
         this.queue = (SingleConsumerQueue<Message, Object>) queue;
         this.owner = owner;
-        if (owner != null)
-            this.sync = OwnedSynchronizer.create(owner);
+        this.sync = new OwnedSynchronizer();
         this.overflowPolicy = overflowPolicy;
         this.sendersSync = overflowPolicy == OverflowPolicy.BLOCK ? new SimpleConditionSynchronizer() : null;
     }
@@ -63,24 +62,20 @@ public abstract class QueueChannel<Message> implements Channel<Message>, java.io
     }
 
     public boolean isOwnerAlive() {
-        return sync.isOwnerAlive();
+        return owner.isAlive();
     }
 
     public void setStrand(Strand strand) {
         if (owner != null && strand != owner)
             throw new IllegalStateException("Channel " + this + " is already owned by " + owner);
         this.owner = strand;
-        this.mySync = OwnedSynchronizer.create(owner);
-        this.sync = mySync;
     }
 
     protected void maybeSetCurrentStrandAsOwner() {
         if (owner == null)
             setStrand(Strand.currentStrand());
         else {
-            if (sync != mySync)
-                sync = mySync;
-            assert sync.verifyOwner() : "This method has been called by a different strand (thread or fiber) than that owning this object";
+            assert Strand.equals(owner, Strand.currentStrand()) : "This method has been called by a different strand (thread or fiber) than that owning this object";
         }
     }
 
@@ -89,16 +84,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, java.io
         return sync;
     }
 
-    void setSync(OwnedSynchronizer sync) {
-        this.sync = sync;
-    }
-
-//    @Override
-//    public Strand getStrand() {
-//        return (Strand) owner;
-//    }
-
-    protected void signalReceiver() {
+    protected void signalReceivers() {
         if (sync != null)
             sync.signal();
     }
@@ -108,12 +94,27 @@ public abstract class QueueChannel<Message> implements Channel<Message>, java.io
             sync.signalAndTryToExecNow();
     }
 
+    void signalSenders() {
+        if (overflowPolicy == OverflowPolicy.BLOCK)
+            sendersSync.signal();
+    }
+
+    @Override
+    public Condition sendSelector() {
+        return sendersSync;
+    }
+
+    @Override
+    public Condition receiveSelector() {
+        return sync;
+    }
+
     public void sendNonSuspendable(Message message) throws QueueCapacityExceededException {
         if (isSendClosed())
             return;
         if (!queue.enq(message))
             throw new QueueCapacityExceededException();
-        signalReceiver();
+        signalReceivers();
     }
 
     @Override
@@ -125,14 +126,13 @@ public abstract class QueueChannel<Message> implements Channel<Message>, java.io
     public boolean trySend(Message message) {
         if (isSendClosed())
             return true;
-        if(queue.enq(message)) {
-            signalReceiver();
+        if (queue.enq(message)) {
+            signalReceivers();
             return true;
         } else
             return false;
     }
 
-    
     protected void sendSync(Message message) throws SuspendExecution {
         send0(message, true);
     }
@@ -141,7 +141,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, java.io
         if (isSendClosed())
             return;
         if (overflowPolicy == OverflowPolicy.BLOCK)
-            sendersSync.lock();
+            sendersSync.register();
         try {
             int i = 0;
             while (!queue.enq(message)) {
@@ -152,12 +152,12 @@ public abstract class QueueChannel<Message> implements Channel<Message>, java.io
             return;
         } finally {
             if (overflowPolicy == OverflowPolicy.BLOCK)
-                sendersSync.unlock();
+                sendersSync.unregister();
         }
         if (sync)
             signalAndTryToExecNow();
         else
-            signalReceiver();
+            signalReceivers();
     }
 
     private void onQueueFull(int iter) throws SuspendExecution, InterruptedException {
@@ -183,7 +183,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, java.io
     public void close() {
         if (!sendClosed) {
             sendClosed = true;
-            signalReceiver();
+            signalReceivers();
         }
     }
 
@@ -205,15 +205,10 @@ public abstract class QueueChannel<Message> implements Channel<Message>, java.io
         this.receiveClosed = true;
     }
 
-    void signalSenders() {
-        if(overflowPolicy == OverflowPolicy.BLOCK)
-            sendersSync.signal();
-    }
-    
     Object receiveNode() throws SuspendExecution, InterruptedException {
         maybeSetCurrentStrandAsOwner();
         Object n;
-        sync.lock();
+        sync.register();
         while ((n = queue.pk()) == null) {
             if (sendClosed) {
                 setReceiveClosed();
@@ -221,7 +216,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, java.io
             }
             sync.await();
         }
-        sync.unlock();
+        sync.unregister();
 
         return n;
     }
@@ -242,7 +237,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, java.io
         final long start = System.nanoTime();
         long left = unit.toNanos(timeout);
 
-        sync.lock();
+        sync.register();
         try {
             while ((n = queue.pk()) == null) {
                 if (sendClosed) {
@@ -256,7 +251,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, java.io
                     return null;
             }
         } finally {
-            sync.unlock();
+            sync.unregister();
         }
         return n;
     }
@@ -335,7 +330,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, java.io
 
     @Override
     public String toString() {
-        return "Channel{" + "owner: " + owner + ", sync: " + sync + (mySync != sync ? ", mySync: " + mySync : "") + ", queue: " + Objects.systemToString(queue) + '}';
+        return "Channel{" + "owner: " + owner + ", sync: " + sync + ", queue: " + Objects.systemToString(queue) + '}';
     }
 
     protected Object writeReplace() throws java.io.ObjectStreamException {

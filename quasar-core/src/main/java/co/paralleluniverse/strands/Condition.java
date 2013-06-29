@@ -11,19 +11,25 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.strands.channels;
+package co.paralleluniverse.strands;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Condition;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
  * @author pron
  */
-public interface SendPort<Message> {
-    void send(Message message) throws SuspendExecution;
+public interface Condition {
+    public void register();
 
-    boolean trySend(Message message);
+    public void unregister();
 
-    void close();
+    public void await() throws InterruptedException, SuspendExecution;
+
+    public boolean await(long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution;
+
+    public void signal();
+
+    public void signalAll();
 }

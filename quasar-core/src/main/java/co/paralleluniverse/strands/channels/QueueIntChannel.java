@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayIntQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerIntQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayIntQueue;
@@ -26,7 +27,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements IntChannel {
-    public static QueueIntChannel create(Object owner, int mailboxSize, OverflowPolicy policy) {
+    public static QueueIntChannel create(Strand owner, int mailboxSize, OverflowPolicy policy) {
         return new QueueIntChannel(owner,
                 mailboxSize > 0
                 ? new SingleConsumerArrayIntQueue(mailboxSize)
@@ -34,7 +35,7 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
                 policy);
     }
 
-    public static QueueIntChannel create(Object owner, int mailboxSize) {
+    public static QueueIntChannel create(Strand owner, int mailboxSize) {
         return create(owner, mailboxSize, OverflowPolicy.THROW);
     }
 
@@ -46,7 +47,7 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
         return create(null, mailboxSize, OverflowPolicy.THROW);
     }
 
-    private QueueIntChannel(Object owner, SingleConsumerQueue<Integer, ?> queue, OverflowPolicy policy) {
+    private QueueIntChannel(Strand owner, SingleConsumerQueue<Integer, ?> queue, OverflowPolicy policy) {
         super(owner, queue, policy);
     }
 
@@ -79,7 +80,7 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
         if (isSendClosed())
             return;
         queue().enq(message);
-        signalReceiver();
+        signalReceivers();
     }
 
     @Override
@@ -87,7 +88,7 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
         if (isSendClosed())
             return true;
         if (queue().enq(message)) {
-            signalReceiver();
+            signalReceivers();
             return true;
         } else
             return false;

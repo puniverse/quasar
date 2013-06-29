@@ -23,15 +23,10 @@ public abstract class TickerChannel<Message> implements Channel<Message> {
     private boolean sendClosed;
     final TickerChannelConsumer<Message> consumer;
 
-    protected TickerChannel(Object owner, CircularBuffer<Message> buffer) {
+    protected TickerChannel(CircularBuffer<Message> buffer) {
         this.buffer = buffer;
-        this.owner = owner;
         this.sync = new SimpleConditionSynchronizer();
         this.consumer = newConsumer();
-    }
-
-    protected TickerChannel(CircularBuffer<Message> buffer) {
-        this(null, buffer);
     }
 
     public TickerChannelConsumer<Message> newConsumer() {
@@ -45,10 +40,12 @@ public abstract class TickerChannel<Message> implements Channel<Message> {
     }
 
     protected void maybeSetCurrentStrandAsOwner() {
-        if (owner == null)
-            setStrand(Strand.currentStrand());
-        else {
-            assert Strand.equals(owner, Strand.currentStrand()) : "This method has been called by a different strand (thread or fiber) than that owning this object";
+        if (buffer.isSingleProducer()) {
+            if (owner == null)
+                setStrand(Strand.currentStrand());
+            else {
+                assert Strand.equals(owner, Strand.currentStrand()) : "This method has been called by a different strand (thread or fiber) than that owning this object";
+            }
         }
     }
 
@@ -86,7 +83,7 @@ public abstract class TickerChannel<Message> implements Channel<Message> {
     public boolean isClosed() {
         return consumer.isClosed();
     }
-    
+
     @Override
     public void close() {
         maybeSetCurrentStrandAsOwner();
@@ -120,7 +117,7 @@ public abstract class TickerChannel<Message> implements Channel<Message> {
             if (isClosed())
                 throw new EOFException();
             final SimpleConditionSynchronizer sync = channel.sync;
-            sync.lock();
+            sync.register();
             try {
                 while (!consumer.hasNext()) {
                     if (channel.sendClosed) {
@@ -131,7 +128,7 @@ public abstract class TickerChannel<Message> implements Channel<Message> {
                 }
                 consumer.poll0();
             } finally {
-                sync.unlock();
+                sync.unregister();
             }
         }
 
@@ -143,7 +140,7 @@ public abstract class TickerChannel<Message> implements Channel<Message> {
             final long start = System.nanoTime();
             long left = unit.toNanos(timeout);
 
-            sync.lock();
+            sync.register();
             try {
                 while (!consumer.hasNext()) {
                     if (channel.sendClosed) {
@@ -158,7 +155,7 @@ public abstract class TickerChannel<Message> implements Channel<Message> {
                 }
                 consumer.poll0();
             } finally {
-                sync.unlock();
+                sync.unregister();
             }
         }
 
