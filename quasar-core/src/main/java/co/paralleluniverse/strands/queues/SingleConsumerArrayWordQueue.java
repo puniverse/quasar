@@ -34,9 +34,9 @@ abstract class SingleConsumerArrayWordQueue<E> extends SingleConsumerArrayPrimit
         return array.length;
     }
 
-    boolean enq(int item) {
+    public boolean enqRaw(int item) {
         final long i = preEnq();
-        if(i < 0)
+        if (i < 0)
             return false;
         array[(int) i & mask] = item; // no need for volatile semantics because postEnq does a volatile write (cas) which is then read in await value
         postEnq(i);

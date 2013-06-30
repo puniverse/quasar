@@ -23,7 +23,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class TickerFloatChannel extends TickerChannel<Float> implements FloatChannel {
-    TickerFloatChannel(int size, boolean singleProducer) {
+    public TickerFloatChannel(int size, boolean singleProducer) {
         super(new CircularFloatBuffer(size, singleProducer));
     }
 

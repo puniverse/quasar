@@ -20,8 +20,8 @@ import co.paralleluniverse.strands.Condition;
 import co.paralleluniverse.strands.OwnedSynchronizer;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.queues.BasicQueue;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
-import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -33,65 +33,38 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         THROW, DROP, BLOCK, BACKOFF, DISPLACE
     }
     private static final int MAX_SEND_RETRIES = 10;
-    private Strand owner;
-    private final OwnedSynchronizer sync;
-    private final SimpleConditionSynchronizer sendersSync;
-    protected final SingleConsumerQueue<Message, Object> queue;
+    final Condition sync;
+    private final Condition sendersSync;
+    final BasicQueue<Message> queue;
     private final OverflowPolicy overflowPolicy;
     private volatile boolean sendClosed;
     private boolean receiveClosed;
 
-    protected QueueChannel(Strand owner, SingleConsumerQueue<Message, ?> queue, OverflowPolicy overflowPolicy) {
-        this.queue = (SingleConsumerQueue<Message, Object>) queue;
-        this.owner = owner;
+    protected QueueChannel(BasicQueue<Message> queue, OverflowPolicy overflowPolicy, boolean singleConsumer) {
+        this.queue = queue;
         this.sync = new OwnedSynchronizer();
         this.overflowPolicy = overflowPolicy;
         this.sendersSync = overflowPolicy == OverflowPolicy.BLOCK ? new SimpleConditionSynchronizer() : null;
-    }
-
-    protected QueueChannel(SingleConsumerQueue<Message, ?> queue, OverflowPolicy overflowPolicy) {
-        this(null, queue, overflowPolicy);
     }
 
     public int capacity() {
         return queue.capacity();
     }
 
-    public Object getOwner() {
-        return owner;
-    }
-
-    public boolean isOwnerAlive() {
-        return owner.isAlive();
-    }
-
-    public void setStrand(Strand strand) {
-        if (owner != null && strand != owner)
-            throw new IllegalStateException("Channel " + this + " is already owned by " + owner);
-        this.owner = strand;
-    }
-
-    protected void maybeSetCurrentStrandAsOwner() {
-        if (owner == null)
-            setStrand(Strand.currentStrand());
-        else {
-            assert Strand.equals(owner, Strand.currentStrand()) : "This method has been called by a different strand (thread or fiber) from that owning this object";
-        }
-    }
-
-    protected OwnedSynchronizer sync() {
+    protected Condition sync() {
         verifySync();
         return sync;
     }
 
     protected void signalReceivers() {
-        if (sync != null)
-            sync.signal();
+        sync.signalAll();
     }
 
     protected void signalAndTryToExecNow() {
-        if (sync != null)
-            sync.signalAndTryToExecNow();
+        if (sync instanceof OwnedSynchronizer)
+            ((OwnedSynchronizer) sync).signalAndTryToExecNow();
+        else
+            sync.signalAll();
     }
 
     void signalSenders() {
@@ -201,48 +174,60 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         return sendClosed;
     }
 
-    private void setReceiveClosed() {
+    void setReceiveClosed() {
         this.receiveClosed = true;
     }
 
-    Object receiveNode() throws SuspendExecution, InterruptedException {
-        maybeSetCurrentStrandAsOwner();
-        Object n;
+    @Override
+    public Message tryReceive() {
+        if (receiveClosed)
+            return null;
+        final Message m = queue.poll();
+        if (m != null)
+            signalSenders();
+        return m;
+    }
+
+    @Override
+    public Message receive() throws SuspendExecution, InterruptedException {
+        if (receiveClosed)
+            return null;
+
+        Message m;
         sync.register();
-        while ((n = queue.pk()) == null) {
-            if (sendClosed) {
+        while ((m = queue.poll()) == null) {
+            if (isSendClosed()) {
                 setReceiveClosed();
-                throw new EOFException();
+                return null;
             }
             sync.await();
         }
         sync.unregister();
 
-        return n;
+        signalSenders();
+        return m;
     }
 
-    Object tryReceiveNode() {
-        return queue.pk();
-    }
-
-    Object receiveNode(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    @Override
+    public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        if (receiveClosed)
+            return null;
         if (unit == null)
-            return receiveNode();
+            return receive();
         if (timeout <= 0)
-            return tryReceiveNode();
+            return tryReceive();
 
-        maybeSetCurrentStrandAsOwner();
-        Object n;
+        Message m;
 
         final long start = System.nanoTime();
         long left = unit.toNanos(timeout);
 
         sync.register();
         try {
-            while ((n = queue.pk()) == null) {
-                if (sendClosed) {
+            while ((m = queue.poll()) == null) {
+                if (isSendClosed()) {
                     setReceiveClosed();
-                    throw new EOFException();
+                    return null;
                 }
                 sync.await(left, TimeUnit.NANOSECONDS);
 
@@ -253,54 +238,10 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         } finally {
             sync.unregister();
         }
-        return n;
-    }
 
-    public boolean isMessageAvailable() {
-        return queue.pk() != null;
-    }
-
-    @Override
-    public Message tryReceive() {
-        final Object n = tryReceiveNode();
-        if (n == null)
-            return null;
-        final Message m = queue.value(n);
-        queue.deq(n);
-        signalSenders();
+        if (m != null)
+            signalSenders();
         return m;
-    }
-
-    @Override
-    public Message receive() throws SuspendExecution, InterruptedException {
-        if (receiveClosed)
-            return null;
-        try {
-            final Object n = receiveNode();
-            final Message m = queue.value(n);
-            queue.deq(n);
-            signalSenders();
-            return m;
-        } catch (EOFException e) {
-            return null;
-        }
-    }
-
-    @Override
-    public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        if (receiveClosed)
-            return null;
-        try {
-            final Object n = receiveNode(timeout, unit);
-            if (n == null)
-                return null; // timeout
-            final Message m = queue.value(n);
-            queue.deq(n);
-            signalSenders();
-            return m;
-        } catch (EOFException e) {
-            return null;
-        }
     }
 
     public Message receiveFromThread() throws InterruptedException {
@@ -330,7 +271,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
     @Override
     public String toString() {
-        return "Channel{" + "owner: " + owner + ", sync: " + sync + ", queue: " + Objects.systemToString(queue) + '}';
+        return "Channel{" + ", sync: " + sync + ", queue: " + Objects.systemToString(queue) + '}';
     }
 
     protected Object writeReplace() throws java.io.ObjectStreamException {

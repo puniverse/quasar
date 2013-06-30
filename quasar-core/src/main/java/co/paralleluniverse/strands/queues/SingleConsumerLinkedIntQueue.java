@@ -20,7 +20,7 @@ package co.paralleluniverse.strands.queues;
 public class SingleConsumerLinkedIntQueue extends SingleConsumerLinkedWordQueue<Integer> implements SingleConsumerIntQueue<SingleConsumerLinkedQueue.Node<Integer>> {
     @Override
     public boolean enq(int item) {
-        return super.enq(item);
+        return enqRaw(item);
     }
 
     @Override

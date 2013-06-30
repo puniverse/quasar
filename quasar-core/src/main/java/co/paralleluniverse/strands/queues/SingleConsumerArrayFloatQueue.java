@@ -24,7 +24,7 @@ public class SingleConsumerArrayFloatQueue extends SingleConsumerArrayWordQueue<
 
     @Override
     public boolean enq(float item) {
-        return super.enq(Float.floatToRawIntBits(item));
+        return enqRaw(Float.floatToRawIntBits(item));
     }
 
     @Override

@@ -27,9 +27,10 @@ import java.util.Queue;
  *
  * @author pron
  */
-public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E> implements Iterable<E>, Queue<E> {
+public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E> implements Iterable<E>, Queue<E>, BasicQueue<E> {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
+    @Override
     public abstract boolean enq(E element);
 
     public abstract E value(Node node);

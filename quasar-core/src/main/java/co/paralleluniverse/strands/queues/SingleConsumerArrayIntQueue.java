@@ -24,7 +24,7 @@ public class SingleConsumerArrayIntQueue extends SingleConsumerArrayWordQueue<In
 
     @Override
     public boolean enq(int item) {
-        return super.enq(item);
+        return super.enqRaw(item);
     }
 
     @Override

@@ -21,7 +21,7 @@ public class SingleConsumerLinkedArrayDoubleQueue extends SingleConsumerLinkedAr
 
     @Override
     public boolean enq(double element) {
-        return super.enq(Double.doubleToRawLongBits(element));
+        return enqRaw(Double.doubleToRawLongBits(element));
     }
 
     @Override

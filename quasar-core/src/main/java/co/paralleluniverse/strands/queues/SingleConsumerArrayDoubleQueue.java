@@ -24,7 +24,7 @@ public class SingleConsumerArrayDoubleQueue extends SingleConsumerArrayDWordQueu
 
     @Override
     public boolean enq(double item) {
-        return super.enq(Double.doubleToRawLongBits(item));
+        return enqRaw(Double.doubleToRawLongBits(item));
     }
 
     @Override

@@ -23,7 +23,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class TickerDoubleChannel extends TickerChannel<Double> implements DoubleChannel {
-    TickerDoubleChannel(int size, boolean singleProducer) {
+    public TickerDoubleChannel(int size, boolean singleProducer) {
         super(new CircularDoubleBuffer(size, singleProducer));
     }
 

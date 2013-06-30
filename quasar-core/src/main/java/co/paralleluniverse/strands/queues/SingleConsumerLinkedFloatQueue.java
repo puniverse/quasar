@@ -20,7 +20,7 @@ package co.paralleluniverse.strands.queues;
 public class SingleConsumerLinkedFloatQueue extends SingleConsumerLinkedWordQueue<Float> implements SingleConsumerFloatQueue<SingleConsumerLinkedQueue.Node<Float>> {
     @Override
     public boolean enq(float item) {
-        return super.enq(Float.floatToRawIntBits(item));
+        return enqRaw(Float.floatToRawIntBits(item));
     }
 
     @Override

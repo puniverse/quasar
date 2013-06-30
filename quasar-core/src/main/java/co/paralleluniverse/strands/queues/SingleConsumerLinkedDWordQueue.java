@@ -19,13 +19,13 @@ import co.paralleluniverse.common.util.Objects;
  *
  * @author pron
  */
-abstract class SingleConsumerLinkedDWordQueue<E> extends SingleConsumerLinkedQueue<E> {
+abstract class SingleConsumerLinkedDWordQueue<E> extends SingleConsumerLinkedPrimitiveQueue<E> {
     @Override
     Node newNode() {
         return new DWordNode();
     }
 
-    boolean enq(long item) {
+    public boolean enqRaw(long item) {
         DWordNode node = new DWordNode();
         node.value = item;
         return enq(node);

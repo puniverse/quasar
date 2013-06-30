@@ -15,8 +15,7 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.remote.RemoteProxyFactoryService;
-import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.channels.QueueChannel;
+import co.paralleluniverse.strands.channels.SingleConsumerQueueChannel;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayObjectQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayObjectQueue;
 import java.util.concurrent.TimeUnit;
@@ -26,16 +25,11 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public final class Mailbox<Message> extends QueueChannel<Message> {
+public final class Mailbox<Message> extends SingleConsumerQueueChannel<Message> {
     private transient LocalActor<?, ?> actor;
 
     Mailbox(MailboxConfig config) {
-        this(null, config);
-    }
-
-    Mailbox(Strand owner, MailboxConfig config) {
-        super(owner,
-                mailboxSize(config) > 0
+        super(mailboxSize(config) > 0
                 ? new SingleConsumerArrayObjectQueue<Message>(config.getMailboxSize())
                 : new SingleConsumerLinkedArrayObjectQueue<Message>(),
                 overflowPolicy(config));
@@ -44,10 +38,11 @@ public final class Mailbox<Message> extends QueueChannel<Message> {
     private static int mailboxSize(MailboxConfig config) {
         return config != null ? config.getMailboxSize() : -1;
     }
+
     private static OverflowPolicy overflowPolicy(MailboxConfig config) {
         return config != null ? config.getPolicy() : OverflowPolicy.THROW;
     }
-    
+
     void setActor(LocalActor<?, ?> actor) {
         this.actor = actor;
     }
@@ -63,15 +58,15 @@ public final class Mailbox<Message> extends QueueChannel<Message> {
     }
 
     public Object succ(Object n) {
-        return queue.succ(n);
+        return queue().succ(n);
     }
 
     public Object del(Object n) {
-        return queue.del(n);
+        return queue().del(n);
     }
 
     public Message value(Object n) {
-        return queue.value(n);
+        return queue().value(n);
     }
 
     @Override

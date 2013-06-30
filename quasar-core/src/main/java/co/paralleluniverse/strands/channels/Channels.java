@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.QueueChannel.OverflowPolicy;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayDoubleQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayFloatQueue;
@@ -44,7 +43,7 @@ public final class Channels {
 
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
-        return new QueueObjectChannel(null,
+        return new QueueObjectChannel(
                 mailboxSize > 0
                 ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize)
                 : new SingleConsumerLinkedArrayObjectQueue<Message>(),
@@ -59,28 +58,6 @@ public final class Channels {
         return newChannel(mailboxSize, mailboxSize == 0 ? OverflowPolicy.BLOCK : defaultPolicy);
     }
 
-    public static <Message> Channel<Message> newChannel(Strand owner, int mailboxSize, OverflowPolicy policy, boolean singleProducer) {
-        if (mailboxSize == 0 && policy == OverflowPolicy.BLOCK)
-            return new TransferChannel<Message>();
-
-        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0)
-            return new TickerObjectChannel<Message>(mailboxSize, singleProducer);
-
-        return new QueueObjectChannel(owner,
-                mailboxSize > 0
-                ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize)
-                : new SingleConsumerLinkedArrayObjectQueue<Message>(),
-                policy);
-    }
-
-    public static <Message> Channel<Message> newChannel(Strand owner, int mailboxSize, OverflowPolicy policy) {
-        return newChannel(owner, mailboxSize, defaultPolicy, defaultSingleProducer);
-    }
-
-    public static <Message> Channel<Message> newChannel(Strand owner, int mailboxSize) {
-        return newChannel(owner, mailboxSize, defaultPolicy);
-    }
-
     ///
     public static IntChannel newIntChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
         if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0)
@@ -88,7 +65,7 @@ public final class Channels {
 
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
-        return new QueueIntChannel(null,
+        return new QueueIntChannel(
                 mailboxSize > 0
                 ? new SingleConsumerArrayIntQueue(mailboxSize)
                 : new SingleConsumerLinkedArrayIntQueue(),
@@ -103,25 +80,6 @@ public final class Channels {
         return newIntChannel(mailboxSize, defaultPolicy);
     }
 
-    public static IntChannel newIntChannel(Strand owner, int mailboxSize, OverflowPolicy policy, boolean singleProducer) {
-        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0)
-            return new TickerIntChannel(mailboxSize, singleProducer);
-
-        return new QueueIntChannel(owner,
-                mailboxSize > 0
-                ? new SingleConsumerArrayIntQueue(mailboxSize)
-                : new SingleConsumerLinkedArrayIntQueue(),
-                policy);
-    }
-
-    public static IntChannel newIntChannel(Strand owner, int mailboxSize, OverflowPolicy policy) {
-        return newIntChannel(owner, mailboxSize, policy, defaultSingleProducer);
-    }
-
-    public static IntChannel newIntChannel(Strand owner, int mailboxSize) {
-        return newIntChannel(owner, mailboxSize, defaultPolicy);
-    }
-
     ///
     public static LongChannel newLongChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
         if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0)
@@ -129,7 +87,7 @@ public final class Channels {
 
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
-        return new QueueLongChannel(null,
+        return new QueueLongChannel(
                 mailboxSize > 0
                 ? new SingleConsumerArrayLongQueue(mailboxSize)
                 : new SingleConsumerLinkedArrayLongQueue(),
@@ -144,25 +102,6 @@ public final class Channels {
         return newLongChannel(mailboxSize, defaultPolicy);
     }
 
-    public static LongChannel newLongChannel(Strand owner, int mailboxSize, OverflowPolicy policy, boolean singleProducer) {
-        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0)
-            return new TickerLongChannel(mailboxSize, singleProducer);
-
-        return new QueueLongChannel(owner,
-                mailboxSize > 0
-                ? new SingleConsumerArrayLongQueue(mailboxSize)
-                : new SingleConsumerLinkedArrayLongQueue(),
-                policy);
-    }
-
-    public static LongChannel newLongChannel(Strand owner, int mailboxSize, OverflowPolicy policy) {
-        return newLongChannel(owner, mailboxSize, policy, defaultSingleProducer);
-    }
-
-    public static LongChannel newLongChannel(Strand owner, int mailboxSize) {
-        return newLongChannel(owner, mailboxSize, defaultPolicy);
-    }
-
     ///
     public static FloatChannel newFloatChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
         if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0)
@@ -170,7 +109,7 @@ public final class Channels {
 
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
-        return new QueueFloatChannel(null,
+        return new QueueFloatChannel(
                 mailboxSize > 0
                 ? new SingleConsumerArrayFloatQueue(mailboxSize)
                 : new SingleConsumerLinkedArrayFloatQueue(),
@@ -185,25 +124,6 @@ public final class Channels {
         return newFloatChannel(mailboxSize, defaultPolicy);
     }
 
-    public static FloatChannel newFloatChannel(Strand owner, int mailboxSize, OverflowPolicy policy, boolean singleProducer) {
-        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0)
-            return new TickerFloatChannel(mailboxSize, singleProducer);
-
-        return new QueueFloatChannel(owner,
-                mailboxSize > 0
-                ? new SingleConsumerArrayFloatQueue(mailboxSize)
-                : new SingleConsumerLinkedArrayFloatQueue(),
-                policy);
-    }
-
-    public static FloatChannel newFloatChannel(Strand owner, int mailboxSize, OverflowPolicy policy) {
-        return newFloatChannel(owner, mailboxSize, policy, defaultSingleProducer);
-    }
-
-    public static FloatChannel newFloatChannel(Strand owner, int mailboxSize) {
-        return newFloatChannel(owner, mailboxSize, defaultPolicy);
-    }
-
     ///
     public static DoubleChannel newDoubleChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
         if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0)
@@ -211,7 +131,7 @@ public final class Channels {
 
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
-        return new QueueDoubleChannel(null,
+        return new QueueDoubleChannel(
                 mailboxSize > 0
                 ? new SingleConsumerArrayDoubleQueue(mailboxSize)
                 : new SingleConsumerLinkedArrayDoubleQueue(),
@@ -224,25 +144,6 @@ public final class Channels {
 
     public static DoubleChannel newDoubleChannel(int mailboxSize) {
         return newDoubleChannel(mailboxSize, defaultPolicy);
-    }
-
-    public static DoubleChannel newDoubleChannel(Strand owner, int mailboxSize, OverflowPolicy policy, boolean singleProducer) {
-        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0)
-            return new TickerDoubleChannel(mailboxSize, singleProducer);
-
-        return new QueueDoubleChannel(owner,
-                mailboxSize > 0
-                ? new SingleConsumerArrayDoubleQueue(mailboxSize)
-                : new SingleConsumerLinkedArrayDoubleQueue(),
-                policy);
-    }
-
-    public static DoubleChannel newDoubleChannel(Strand owner, int mailboxSize, OverflowPolicy policy) {
-        return newDoubleChannel(owner, mailboxSize, policy, defaultSingleProducer);
-    }
-
-    public static DoubleChannel newDoubleChannel(Strand owner, int mailboxSize) {
-        return newDoubleChannel(owner, mailboxSize, defaultPolicy);
     }
 
     private Channels() {

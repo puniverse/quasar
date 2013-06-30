@@ -11,16 +11,11 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.strands.channels;
-
-import co.paralleluniverse.strands.queues.BasicQueue;
+package co.paralleluniverse.strands.queues;
 
 /**
  *
  * @author pron
  */
-public class QueueObjectChannel<Message> extends QueueChannel<Message> {
-    public QueueObjectChannel(BasicQueue<Message> queue, OverflowPolicy policy, boolean singleConsumer) {
-        super(queue, policy, singleConsumer);
-    }
+abstract class SingleConsumerLinkedPrimitiveQueue<E> extends SingleConsumerLinkedQueue<E> {
 }

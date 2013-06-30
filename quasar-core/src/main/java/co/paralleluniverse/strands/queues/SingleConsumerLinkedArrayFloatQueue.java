@@ -21,7 +21,7 @@ public class SingleConsumerLinkedArrayFloatQueue extends SingleConsumerLinkedArr
 
     @Override
     public boolean enq(float element) {
-        return super.enq(Float.floatToRawIntBits(element));
+        return enqRaw(Float.floatToRawIntBits(element));
     }
 
     @Override

@@ -25,7 +25,7 @@ abstract class SingleConsumerLinkedArrayDWordQueue<E> extends SingleConsumerLink
         return BLOCK_SIZE;
     }
 
-    boolean enq(long item) {
+    public boolean enqRaw(long item) {
         ElementPointer ep = preEnq();
         ((DWordNode) ep.n).array[ep.i] = item;
         postEnq(ep.n, ep.i);

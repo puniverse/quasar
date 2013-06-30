@@ -17,7 +17,7 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-abstract class SingleConsumerArrayDWordQueue<E> extends SingleConsumerArrayPrimitiveQueue<E> {
+abstract class SingleConsumerArrayDWordQueue<E> extends SingleConsumerArrayPrimitiveQueue<E>  {
     private final long[] array;
 
     public SingleConsumerArrayDWordQueue(int size) {
@@ -34,9 +34,9 @@ abstract class SingleConsumerArrayDWordQueue<E> extends SingleConsumerArrayPrimi
         return array.length;
     }
 
-    boolean enq(long item) {
+    public boolean enqRaw(long item) {
         final long i = preEnq();
-        if(i < 0)
+        if (i < 0)
             return false;
         array[(int) i & mask] = item; // no need for volatile semantics because postEnq does a volatile write (cas) which is then read in await value
         postEnq(i);

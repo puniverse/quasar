@@ -14,7 +14,6 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.queues.SingleConsumerLongQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
@@ -25,8 +24,8 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class QueueLongChannel extends QueuePrimitiveChannel<Long> implements LongChannel {
-    QueueLongChannel(Strand owner, SingleConsumerQueue<Long, ?> queue, OverflowPolicy policy) {
-        super(owner, queue, policy);
+    public QueueLongChannel(SingleConsumerQueue<Long, ?> queue, OverflowPolicy policy) {
+        super(queue, policy);
     }
 
     @Override
@@ -34,8 +33,8 @@ public class QueueLongChannel extends QueuePrimitiveChannel<Long> implements Lon
         if (isClosed())
             throw new EOFException();
         final Object n = receiveNode();
-        final long m = queue().longValue(n);
-        queue.deq(n);
+        final long m = queue1().longValue(n);
+        queue().deq(n);
         signalSenders();
         return m;
     }
@@ -47,8 +46,8 @@ public class QueueLongChannel extends QueuePrimitiveChannel<Long> implements Lon
         final Object n = receiveNode(timeout, unit);
         if (n == null)
             throw new TimeoutException();
-        final long m = queue().longValue(n);
-        queue.deq(n);
+        final long m = queue1().longValue(n);
+        queue().deq(n);
         signalSenders();
         return m;
     }
@@ -75,11 +74,11 @@ public class QueueLongChannel extends QueuePrimitiveChannel<Long> implements Lon
     public void sendSync(long message) {
         if (isSendClosed())
             return;
-        queue.enq(message);
+        queue().enq(message);
         signalAndTryToExecNow();
     }
 
-    private SingleConsumerLongQueue<Object> queue() {
+    private SingleConsumerLongQueue<Object> queue1() {
         return (SingleConsumerLongQueue<Object>) queue;
     }
 }

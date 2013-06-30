@@ -23,7 +23,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class TickerLongChannel extends TickerChannel<Long> implements LongChannel {
-    TickerLongChannel(int size, boolean singleProducer) {
+    public TickerLongChannel(int size, boolean singleProducer) {
         super(new CircularLongBuffer(size, singleProducer));
     }
 

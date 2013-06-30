@@ -24,7 +24,7 @@ public class SingleConsumerArrayLongQueue extends SingleConsumerArrayDWordQueue<
 
     @Override
     public boolean enq(long item) {
-        return super.enq(item);
+        return enqRaw(item);
     }
 
     @Override

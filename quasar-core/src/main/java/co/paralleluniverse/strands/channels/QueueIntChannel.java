@@ -14,7 +14,6 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.queues.SingleConsumerIntQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
@@ -25,8 +24,8 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements IntChannel {
-    QueueIntChannel(Strand owner, SingleConsumerQueue<Integer, ?> queue, OverflowPolicy policy) {
-        super(owner, queue, policy);
+    public QueueIntChannel(SingleConsumerQueue<Integer, ?> queue, OverflowPolicy policy) {
+        super(queue, policy);
     }
 
     @Override
@@ -34,8 +33,8 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
         if (isClosed())
             throw new EOFException();
         final Object n = receiveNode();
-        final int m = queue().intValue(n);
-        queue.deq(n);
+        final int m = queue1().intValue(n);
+        queue().deq(n);
         signalSenders();
         return m;
     }
@@ -47,8 +46,8 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
         final Object n = receiveNode(timeout, unit);
         if (n == null)
             throw new TimeoutException();
-        final int m = queue().intValue(n);
-        queue.deq(n);
+        final int m = queue1().intValue(n);
+        queue().deq(n);
         signalSenders();
         return m;
     }
@@ -79,7 +78,7 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
         signalAndTryToExecNow();
     }
 
-    private SingleConsumerIntQueue<Object> queue() {
+    private SingleConsumerIntQueue<Object> queue1() {
         return (SingleConsumerIntQueue<Object>) queue;
     }
 }

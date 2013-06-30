@@ -21,7 +21,7 @@ public class SingleConsumerLinkedArrayIntQueue extends SingleConsumerLinkedArray
 
     @Override
     public boolean enq(int element) {
-        return super.enq(element);
+        return enqRaw(element);
     }
 
     @Override
@@ -38,5 +38,4 @@ public class SingleConsumerLinkedArrayIntQueue extends SingleConsumerLinkedArray
     public int intValue(ElementPointer node) {
         return rawValue(node.n, node.i);
     }
-    
 }

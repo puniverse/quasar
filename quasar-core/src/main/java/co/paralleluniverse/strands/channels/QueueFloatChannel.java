@@ -14,7 +14,6 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.queues.SingleConsumerFloatQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
@@ -25,8 +24,8 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements FloatChannel {
-    QueueFloatChannel(Strand owner, SingleConsumerQueue<Float, ?> queue, OverflowPolicy policy) {
-        super(owner, queue, policy);
+    public QueueFloatChannel(SingleConsumerQueue<Float, ?> queue, OverflowPolicy policy) {
+        super(queue, policy);
     }
 
     @Override
@@ -34,8 +33,8 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
         if (isClosed())
             throw new EOFException();
         final Object n = receiveNode();
-        final float m = queue().floatValue(n);
-        queue.deq(n);
+        final float m = queue1().floatValue(n);
+        queue().deq(n);
         signalSenders();
         return m;
     }
@@ -47,8 +46,8 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
         final Object n = receiveNode(timeout, unit);
         if (n == null)
             throw new TimeoutException();
-        final float m = queue().floatValue(n);
-        queue.deq(n);
+        final float m = queue1().floatValue(n);
+        queue().deq(n);
         signalSenders();
         return m;
     }
@@ -75,11 +74,11 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
     public void sendSync(float message) {
         if (isSendClosed())
             return;
-        queue.enq(message);
+        queue().enq(message);
         signalAndTryToExecNow();
     }
 
-    private SingleConsumerFloatQueue<Object> queue() {
+    private SingleConsumerFloatQueue<Object> queue1() {
         return (SingleConsumerFloatQueue<Object>) queue;
     }
 }
