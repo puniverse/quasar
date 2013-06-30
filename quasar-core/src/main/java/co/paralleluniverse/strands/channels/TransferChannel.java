@@ -24,6 +24,8 @@ package co.paralleluniverse.strands.channels;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.remote.RemoteProxyFactoryService;
+import co.paralleluniverse.strands.Condition;
+import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -31,11 +33,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
-public class TransferChannel<Message> implements Channel<Message>, java.io.Serializable {
+public class TransferChannel<Message> implements Channel<Message>, SelectableSend, SelectableReceive, java.io.Serializable {
     private final boolean async;
     private volatile boolean sendClosed;
     private boolean receiveClosed;
     private static final Object CHANNEL_CLOSED = new Object();
+    private final Condition sendSelector = new SimpleConditionSynchronizer();
+    private final Condition receiveSelector = new SimpleConditionSynchronizer();
 
     public TransferChannel() {
         this.async = false;
@@ -67,7 +71,7 @@ public class TransferChannel<Message> implements Channel<Message>, java.io.Seria
     public void close() {
         if (!sendClosed) {
             sendClosed = true;
-            signalReceivers();
+            signalReceiversOnClose();
         }
     }
 
@@ -125,15 +129,14 @@ public class TransferChannel<Message> implements Channel<Message>, java.io.Seria
         return receiveClosed;
     }
 
-    private void signalReceivers() {
+    private void signalReceiversOnClose() {
         for (Node p = head; p != null;) {
             if (!p.isMatched()) {
-                if (p.isData)
-                    return; // if there are unmatched data nodes, there can't be unmatched request nodes.
-                if(!p.isData) {
-                    if(p.casItem(null, CHANNEL_CLOSED))
-                        Strand.unpark(p.waiter);
-                }
+                if (!p.isData)
+                    if (p.casItem(null, CHANNEL_CLOSED)) // match waiting requesters with CHANNEL_CLOSED
+                        Strand.unpark(p.waiter);         // ... and wake 'em up
+//                else
+//                    return; // if there are unmatched data nodes, there can't be unmatched request nodes.
             }
             Node n = p.next;
             if (n != p)
@@ -142,6 +145,16 @@ public class TransferChannel<Message> implements Channel<Message>, java.io.Seria
                 p = head;
             }
         }
+    }
+
+    @Override
+    public Condition sendSelector() {
+        return sendSelector;
+    }
+
+    @Override
+    public Condition receiveSelector() {
+        return receiveSelector;
     }
     /////////////////////////////////////////
     private static final long serialVersionUID = -3223113410248163686L;
@@ -381,6 +394,12 @@ public class TransferChannel<Message> implements Channel<Message>, java.io.Seria
                 Node pred = tryAppend(s, haveData);
                 if (pred == null)
                     continue retry;           // lost race vs opposite mode
+                
+                if (haveData)
+                    receiveSelector.signalAll();
+                else
+                    sendSelector.signalAll();
+
                 if (how != ASYNC)
                     return awaitMatch(s, pred, e, (how == TIMED), nanos);
             }
