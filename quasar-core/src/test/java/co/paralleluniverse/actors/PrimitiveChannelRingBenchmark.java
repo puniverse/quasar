@@ -21,7 +21,10 @@ public class PrimitiveChannelRingBenchmark {
         System.out.println("PROCESSORS: " + Runtime.getRuntime().availableProcessors());
         System.out.println();
 
-        for (int i = 0; i < 10; i++)
+        System.out.println("Waiting....");
+        Thread.sleep(15000);
+        System.out.println("Running!");
+        for (int i = 0; i < 100; i++)
             new PrimitiveChannelRingBenchmark().run();
     }
 

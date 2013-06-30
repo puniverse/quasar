@@ -198,9 +198,9 @@ public class MethodDatabase implements Log {
         }
 
         if (entry == CLASS_NOT_FOUND) {
-            if (JavaAgent.isActive())
-                throw new AssertionError();
-            return true;
+//            if (JavaAgent.isActive())
+//                throw new AssertionError();
+            return null;
         }
 
         Boolean suspendable = entry.check(methodName, methodDesc);

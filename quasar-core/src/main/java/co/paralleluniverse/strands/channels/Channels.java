@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.strands.channels.QueueChannel.OverflowPolicy;
 import co.paralleluniverse.strands.queues.ArrayQueue;
 import co.paralleluniverse.strands.queues.CircularBuffer;
 import co.paralleluniverse.strands.queues.CircularObjectBuffer;
@@ -33,6 +32,9 @@ import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayObjectQueue;
  * @author pron
  */
 public final class Channels {
+    public enum OverflowPolicy {
+        THROW, DROP, BLOCK, BACKOFF, DISPLACE
+    }
     private static final OverflowPolicy defaultPolicy = OverflowPolicy.THROW;
     private static final boolean defaultSingleProducer = false;
     private static final boolean defaultSingleConsumer = true;
@@ -78,7 +80,7 @@ public final class Channels {
 
         if (policy == OverflowPolicy.BLOCK && mailboxSize == 0)
             throw new UnsupportedOperationException("Primitive transfer channel is not supported");
-        
+
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
         return new QueueIntChannel(
@@ -106,7 +108,7 @@ public final class Channels {
 
         if (policy == OverflowPolicy.BLOCK && mailboxSize == 0)
             throw new UnsupportedOperationException("Primitive transfer channel is not supported");
-        
+
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
         return new QueueLongChannel(
@@ -134,7 +136,7 @@ public final class Channels {
 
         if (policy == OverflowPolicy.BLOCK && mailboxSize == 0)
             throw new UnsupportedOperationException("Primitive transfer channel is not supported");
-        
+
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
         return new QueueFloatChannel(
@@ -162,7 +164,7 @@ public final class Channels {
 
         if (policy == OverflowPolicy.BLOCK && mailboxSize == 0)
             throw new UnsupportedOperationException("Primitive transfer channel is not supported");
-        
+
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
         return new QueueDoubleChannel(

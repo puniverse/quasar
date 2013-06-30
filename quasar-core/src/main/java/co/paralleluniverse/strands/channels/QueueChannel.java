@@ -21,6 +21,7 @@ import co.paralleluniverse.strands.DoneSynchronizer;
 import co.paralleluniverse.strands.OwnedSynchronizer;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.BasicQueue;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.concurrent.TimeUnit;
@@ -30,9 +31,6 @@ import java.util.concurrent.TimeUnit;
  * @author pron
  */
 public abstract class QueueChannel<Message> implements Channel<Message>, SelectableReceive, SelectableSend, java.io.Serializable {
-    public enum OverflowPolicy {
-        THROW, DROP, BLOCK, BACKOFF, DISPLACE
-    }
     private static final int MAX_SEND_RETRIES = 10;
     final Condition sync;
     private final Condition sendersSync;

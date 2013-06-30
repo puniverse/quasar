@@ -13,17 +13,16 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.strands.channels.QueueChannel;
-
+import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 /**
  *
  * @author pron
  */
 public class MailboxConfig {
     private final int mailboxSize;
-    private final QueueChannel.OverflowPolicy policy;
+    private final OverflowPolicy policy;
 
-    public MailboxConfig(int mailboxSize, QueueChannel.OverflowPolicy policy) {
+    public MailboxConfig(int mailboxSize, OverflowPolicy policy) {
         this.mailboxSize = mailboxSize;
         this.policy = policy;
     }
@@ -36,7 +35,7 @@ public class MailboxConfig {
         return mailboxSize;
     }
 
-    public QueueChannel.OverflowPolicy getPolicy() {
+    public OverflowPolicy getPolicy() {
         return policy;
     }
 }

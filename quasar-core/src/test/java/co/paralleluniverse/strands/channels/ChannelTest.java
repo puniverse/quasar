@@ -20,7 +20,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
-import co.paralleluniverse.strands.channels.QueueChannel.OverflowPolicy;
+import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
