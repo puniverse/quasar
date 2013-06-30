@@ -167,7 +167,7 @@ public class MethodDatabase implements Log {
         }
     }
 
-    public boolean isMethodSuspendable(String className, String methodName, String methodDesc, boolean searchSuperClass) {
+    public Boolean isMethodSuspendable(String className, String methodName, String methodDesc, int opcode) {
         if (methodName.charAt(0) == '<')
             return false;   // special methods are never suspendable
 
@@ -177,44 +177,46 @@ public class MethodDatabase implements Log {
         if (isYieldMethod(className, methodName))
             return true;
 
-        String curClassName = className;
-        do {
-            ClassEntry entry = getClassEntry(curClassName);
-            if (entry == null) {
-                entry = CLASS_NOT_FOUND;
+        ClassEntry entry = getClassEntry(className);
+        if (entry == null) {
+            entry = CLASS_NOT_FOUND;
 
-                if (cl != null) {
-                    log(LogLevel.INFO, "Trying to read class: %s to check %s", curClassName, methodName);
+            if (cl != null) {
+                log(LogLevel.INFO, "Trying to read class: %s to check %s", className, methodName);
 
-                    CheckInstrumentationVisitor civ = checkClass(curClassName);
-                    if (civ == null) {
-                        log(LogLevel.WARNING, "Class not found assuming suspendable: %s", curClassName);
-                    } else {
-                        entry = civ.getClassEntry();
-                    }
+                CheckInstrumentationVisitor civ = checkClass(className);
+                if (civ == null) {
+                    log(LogLevel.WARNING, "Class not found assuming suspendable: %s", className);
                 } else {
-                    log(LogLevel.WARNING, "Can't check class - assuming suspendable: %s", curClassName);
+                    entry = civ.getClassEntry();
                 }
-
-                recordSuspendableMethods(curClassName, entry);
+            } else {
+                log(LogLevel.WARNING, "Can't check class - assuming suspendable: %s", className);
             }
 
-            if (entry == CLASS_NOT_FOUND) {
-                if (JavaAgent.isActive())
-                    throw new AssertionError();
-                return true;
+            recordSuspendableMethods(className, entry);
+        }
+
+        if (entry == CLASS_NOT_FOUND) {
+            if (JavaAgent.isActive())
+                throw new AssertionError();
+            return true;
+        }
+
+        Boolean suspendable = entry.check(methodName, methodDesc);
+        if (suspendable == null) {
+            if (opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESTATIC)
+                return isMethodSuspendable(entry.getSuperName(), methodName, methodDesc, opcode);
+            else if (opcode == Opcodes.INVOKEINTERFACE) {
+                for (String iface : entry.getInterfaces()) {
+                    suspendable = isMethodSuspendable(iface, methodName, methodDesc, opcode);
+                    if (suspendable != null)
+                        break;
+                }
             }
+        }
 
-            Boolean suspendable = entry.check(methodName, methodDesc);
-            if (suspendable != null) {
-                return suspendable;
-            }
-
-            curClassName = entry.getSuperName();
-        } while (searchSuperClass && curClassName != null);
-
-        log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s", className, methodName, methodDesc);
-        return true;
+        return suspendable;
     }
 
     public synchronized ClassEntry getClassEntry(String className) {
@@ -223,7 +225,7 @@ public class MethodDatabase implements Log {
 
     public synchronized ClassEntry getOrCreateClassEntry(String className, String superType) {
         ClassEntry ce = classes.get(className);
-        if(ce == null) {
+        if (ce == null) {
             ce = new ClassEntry(superType);
             classes.put(className, ce);
         }
@@ -245,7 +247,7 @@ public class MethodDatabase implements Log {
         synchronized (this) {
             oldEntry = classes.put(className, entry);
         }
-        if (oldEntry != null) {
+        if (oldEntry != null && oldEntry != entry) {
             if (!oldEntry.equals(entry)) {
                 log(LogLevel.WARNING, "Duplicate class entries with different data for class: %s", className);
             }

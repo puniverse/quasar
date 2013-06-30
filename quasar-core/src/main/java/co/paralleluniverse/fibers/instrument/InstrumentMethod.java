@@ -104,8 +104,12 @@ class InstrumentMethod {
                 if (in.getType() == AbstractInsnNode.METHOD_INSN) {
                     MethodInsnNode min = (MethodInsnNode) in;
                     int opcode = min.getOpcode();
-                    if (db.isMethodSuspendable(min.owner, min.name, min.desc,
-                            opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESTATIC)) {
+                    Boolean susp = db.isMethodSuspendable(min.owner, min.name, min.desc, opcode);
+                    if(susp == null) {
+                        db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s", min.owner, min.name, min.desc);
+                        susp = true;
+                    }
+                    if (susp) {
                         db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is suspendable", i, min.owner, min.name, min.desc);
                         FrameInfo fi = addCodeBlock(f, i);
                         splitTryCatch(fi);
