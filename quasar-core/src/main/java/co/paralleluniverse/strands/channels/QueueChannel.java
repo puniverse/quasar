@@ -41,7 +41,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
     protected QueueChannel(BasicQueue<Message> queue, OverflowPolicy overflowPolicy, boolean singleConsumer) {
         this.queue = queue;
-        this.sync = new OwnedSynchronizer();
+        this.sync = singleConsumer ? new OwnedSynchronizer() : new SimpleConditionSynchronizer();
         this.overflowPolicy = overflowPolicy;
         this.sendersSync = overflowPolicy == OverflowPolicy.BLOCK ? new SimpleConditionSynchronizer() : null;
     }
