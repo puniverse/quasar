@@ -169,14 +169,15 @@ public abstract class Strand {
     }
 
     public static void unpark(Strand strand) {
-        strand.unpark();
+        if (strand != null)
+            strand.unpark();
     }
 
     public static void unpark(Object strand) {
         if (strand instanceof Strand)
-            ((Strand)strand).unpark();
+            ((Strand) strand).unpark();
         else
-            LockSupport.unpark((Thread)strand);
+            LockSupport.unpark((Thread) strand);
     }
 
     public static void dumpStack() {

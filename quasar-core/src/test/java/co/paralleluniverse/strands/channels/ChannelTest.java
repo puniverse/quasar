@@ -31,7 +31,12 @@ import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -39,31 +44,56 @@ import org.junit.runners.Parameterized;
  *
  * @author pron
  */
-//@RunWith(Parameterized.class)
+@RunWith(Parameterized.class)
 public class ChannelTest {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = new TestWatcher() {
+        @Override
+        protected void starting(Description desc) {
+            if (Debug.isDebug()) {
+                System.out.println("STARTING TEST " + desc.getMethodName());
+                Debug.record(0, "STARTING TEST " + desc.getMethodName());
+            }
+        }
+
+        @Override
+        public void failed(Throwable e, Description desc) {
+            System.out.println("FAILED TEST " + desc.getMethodName() + ": " + e.getMessage());
+            e.printStackTrace(System.err);
+            if (Debug.isDebug() && !(e instanceof OutOfMemoryError)) {
+                Debug.record(0, "EXCEPTION IN THREAD " + Thread.currentThread().getName() + ": " + e + " - " + Arrays.toString(e.getStackTrace()));
+                Debug.dumpRecorder("~/quasar.dump");
+            }
+        }
+
+        @Override
+        protected void succeeded(Description desc) {
+            Debug.record(0, "DONE TEST " + desc.getMethodName());
+        }
+    };
     final int mailboxSize;
     final OverflowPolicy policy;
     final boolean singleConsumer;
     final boolean singleProducer;
     final ForkJoinPool fjPool;
 
-    public ChannelTest() {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
-        this.mailboxSize = 0;
-        this.policy = OverflowPolicy.BLOCK;
-        this.singleConsumer = false;
-        this.singleProducer = false;
-    }
-
-//    public ChannelTest(int mailboxSize, OverflowPolicy policy, boolean singleConsumer, boolean singleProducer) {
+//    public ChannelTest() {
 //        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
-//        this.mailboxSize = mailboxSize;
-//        this.policy = policy;
-//        this.singleConsumer = singleConsumer;
-//        this.singleProducer = singleProducer;
+//        this.mailboxSize = 0;
+//        this.policy = OverflowPolicy.BLOCK;
+//        this.singleConsumer = false;
+//        this.singleProducer = false;
+//
+//        Debug.dumpAfter(20000, "channels.log");
 //    }
-    private <Message> Channel<Message> newChannel() {
-        return Channels.newChannel(mailboxSize, policy, singleProducer, singleConsumer);
+    public ChannelTest(int mailboxSize, OverflowPolicy policy, boolean singleConsumer, boolean singleProducer) {
+        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+        this.mailboxSize = mailboxSize;
+        this.policy = policy;
+        this.singleConsumer = singleConsumer;
+        this.singleProducer = singleProducer;
     }
 
     @Parameterized.Parameters
@@ -75,8 +105,11 @@ public class ChannelTest {
                     {5, OverflowPolicy.BLOCK, false, false},
                     {-1, OverflowPolicy.THROW, true, false},
                     {5, OverflowPolicy.DISPLACE, true, false},
-                    {0, OverflowPolicy.BLOCK, false, false},
-        });
+                    {0, OverflowPolicy.BLOCK, false, false},});
+    }
+
+    private <Message> Channel<Message> newChannel() {
+        return Channels.newChannel(mailboxSize, policy, singleProducer, singleConsumer);
     }
 
     @Before
@@ -451,6 +484,8 @@ public class ChannelTest {
 
     @Test
     public void testPrimitiveChannelClose() throws Exception {
+        assumeThat(mailboxSize, not(equalTo(0)));
+
         final IntChannel ch = Channels.newIntChannel(mailboxSize, policy);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
@@ -509,8 +544,10 @@ public class ChannelTest {
         Thread.sleep(100);
         channel3.send("hello");
         Thread.sleep(100);
-        channel1.send("goodbye");
-        Thread.sleep(100);
+        if (policy != OverflowPolicy.BLOCK) {
+            channel1.send("goodbye"); // TransferChannel will block here
+            Thread.sleep(100);
+        }
         channel2.send("world!");
         fib.join();
     }

@@ -76,6 +76,9 @@ public final class Channels {
             return new TickerIntChannel(mailboxSize, singleProducer);
         }
 
+        if (policy == OverflowPolicy.BLOCK && mailboxSize == 0)
+            throw new UnsupportedOperationException("Primitive transfer channel is not supported");
+        
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
         return new QueueIntChannel(
@@ -101,6 +104,9 @@ public final class Channels {
             return new TickerLongChannel(mailboxSize, singleProducer);
         }
 
+        if (policy == OverflowPolicy.BLOCK && mailboxSize == 0)
+            throw new UnsupportedOperationException("Primitive transfer channel is not supported");
+        
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
         return new QueueLongChannel(
@@ -126,6 +132,9 @@ public final class Channels {
             return new TickerFloatChannel(mailboxSize, singleProducer);
         }
 
+        if (policy == OverflowPolicy.BLOCK && mailboxSize == 0)
+            throw new UnsupportedOperationException("Primitive transfer channel is not supported");
+        
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
         return new QueueFloatChannel(
@@ -151,6 +160,9 @@ public final class Channels {
             return new TickerDoubleChannel(mailboxSize, singleProducer);
         }
 
+        if (policy == OverflowPolicy.BLOCK && mailboxSize == 0)
+            throw new UnsupportedOperationException("Primitive transfer channel is not supported");
+        
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
         return new QueueDoubleChannel(

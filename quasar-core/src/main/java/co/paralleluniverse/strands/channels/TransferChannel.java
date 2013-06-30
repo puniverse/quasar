@@ -31,27 +31,24 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.LockSupport;
 
 public class TransferChannel<Message> implements Channel<Message>, SelectableSend, SelectableReceive, java.io.Serializable {
-    private final boolean async;
     private volatile boolean sendClosed;
     private boolean receiveClosed;
     private static final Object CHANNEL_CLOSED = new Object();
+    private static final Object NO_MATCH = new Object();
     private final Condition sendSelector = new SimpleConditionSynchronizer();
     private final Condition receiveSelector = new SimpleConditionSynchronizer();
 
     public TransferChannel() {
-        this.async = false;
     }
 
     @Override
     public void send(Message message) throws SuspendExecution {
         if (isSendClosed())
             return;
-        if (xfer(message, true, async ? ASYNC : SYNC, 0) != null)
+        if (xfer1(message, true, SYNC, 0) != null)
             Strand.interrupted(); // failure possible only due to interrupt
-
     }
 
     @Override
@@ -59,12 +56,8 @@ public class TransferChannel<Message> implements Channel<Message>, SelectableSen
         if (isSendClosed())
             return true;
         boolean res;
-        try {
-            res = (xfer(message, true, async ? ASYNC : NOW, 0) == null);
-            return async ? true : res;
-        } catch (SuspendExecution ex) {
-            throw new AssertionError(ex);
-        }
+
+        return (xfer0(message, true, NOW, 0) == null);
     }
 
     @Override
@@ -76,28 +69,26 @@ public class TransferChannel<Message> implements Channel<Message>, SelectableSen
     }
 
     private void setReceiveClosed() {
-        this.receiveClosed = true;
+        if (!receiveClosed)
+            this.receiveClosed = true;
     }
 
     @Override
     public Message tryReceive() {
         if (receiveClosed)
             return null;
-        try {
-            final Object m = xfer(null, false, NOW, 0);
-            if (m == CHANNEL_CLOSED)
-                return null;
-            return (Message) m;
-        } catch (SuspendExecution ex) {
-            throw new AssertionError(ex);
-        }
+
+        final Object m = xfer0(null, false, NOW, 0);
+        if (m == CHANNEL_CLOSED)
+            return null;
+        return (Message) m;
     }
 
     @Override
     public Message receive() throws SuspendExecution, InterruptedException {
         if (receiveClosed)
             return null;
-        Object m = xfer(null, false, SYNC, 0);
+        Object m = xfer1(null, false, SYNC, 0);
         if (m != null) {
             if (m == CHANNEL_CLOSED)
                 return null;
@@ -111,7 +102,7 @@ public class TransferChannel<Message> implements Channel<Message>, SelectableSen
     public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         if (receiveClosed)
             return null;
-        Object m = xfer(null, false, TIMED, unit.toNanos(timeout));
+        Object m = xfer1(null, false, TIMED, unit.toNanos(timeout));
         if (m != null || !Strand.interrupted()) {
             if (m == CHANNEL_CLOSED)
                 return null;
@@ -349,44 +340,17 @@ public class TransferChannel<Message> implements Channel<Message>, SelectableSen
      * @return an item if matched, else e
      * @throws NullPointerException if haveData mode but e is null
      */
-    private Object xfer(Message e, boolean haveData, int how, long nanos) throws SuspendExecution {
+    private Object xfer1(Message e, boolean haveData, int how, long nanos) throws SuspendExecution {
+        assert how == SYNC || how == TIMED;
         if (haveData && (e == null))
             throw new NullPointerException();
         Node s = null;                        // the node to append, if needed
 
         retry:
         for (;;) {                            // restart on append race
-
-            for (Node h = head, p = h; p != null;) { // find & match first node
-                boolean isData = p.isData;
-                Object item = p.item;
-                if (item != p && (item != null) == isData) { // unmatched
-                    if (isData == haveData)   // can't match
-                        break;
-                    if (p.casItem(item, e)) { // match
-                        for (Node q = p; q != h;) {
-                            Node n = q.next;  // update by 2 unless singleton
-                            if (head == h && casHead(h, n == null ? q : n)) {
-                                h.forgetNext();
-                                break;
-                            }                 // advance and retry
-                            if ((h = head) == null
-                                    || (q = h.next) == null || !q.isMatched())
-                                break;        // unless slack < 2
-                        }
-                        Strand.unpark(p.waiter);
-                        return this.<Message>cast(item);
-                    }
-                }
-                Node n = p.next;
-                p = (p != n) ? n : (h = head); // Use head if p offlist
-            }
-
-            if (isSendClosed()) {
-                assert !haveData;
-                setReceiveClosed();
-                return CHANNEL_CLOSED;
-            }
+            Object item = tryMatch(e, haveData, how, nanos);
+            if (item != NO_MATCH)
+                return item;
 
             if (how != NOW) {                 // No matches available
                 if (s == null)
@@ -394,7 +358,7 @@ public class TransferChannel<Message> implements Channel<Message>, SelectableSen
                 Node pred = tryAppend(s, haveData);
                 if (pred == null)
                     continue retry;           // lost race vs opposite mode
-                
+
                 if (haveData)
                     receiveSelector.signalAll();
                 else
@@ -405,6 +369,68 @@ public class TransferChannel<Message> implements Channel<Message>, SelectableSen
             }
             return e; // not waiting
         }
+    }
+
+    private Object xfer0(Message e, boolean haveData, int how, long nanos) {
+        assert how == ASYNC || how == NOW;
+        if (haveData && (e == null))
+            throw new NullPointerException();
+        Node s = null;                        // the node to append, if needed
+
+        retry:
+        for (;;) {                            // restart on append race
+            Object item = tryMatch(e, haveData, how, nanos);
+            if (item != NO_MATCH)
+                return item;
+
+            if (how != NOW) {                 // No matches available
+                if (s == null)
+                    s = new Node(e, haveData);
+                Node pred = tryAppend(s, haveData);
+                if (pred == null)
+                    continue retry;           // lost race vs opposite mode
+
+                if (haveData)
+                    receiveSelector.signalAll();
+                else
+                    sendSelector.signalAll();
+            }
+            return e; // not waiting
+        }
+    }
+
+    private Object tryMatch(Message e, boolean haveData, int how, long nanos) {
+        for (Node h = head, p = h; p != null;) { // find & match first node
+            boolean isData = p.isData;
+            Object item = p.item;
+            if (item != p && (item != null) == isData) { // unmatched
+                if (isData == haveData)   // can't match
+                    break;
+                if (p.casItem(item, e)) { // match
+                    for (Node q = p; q != h;) {
+                        Node n = q.next;  // update by 2 unless singleton
+                        if (head == h && casHead(h, n == null ? q : n)) {
+                            h.forgetNext();
+                            break;
+                        }                 // advance and retry
+                        if ((h = head) == null
+                                || (q = h.next) == null || !q.isMatched())
+                            break;        // unless slack < 2
+                    }
+                    Strand.unpark(p.waiter);
+                    return item;
+                }
+            }
+            Node n = p.next;
+            p = (p != n) ? n : (h = head); // Use head if p offlist
+        }
+
+        if (isSendClosed()) {
+            assert !haveData;
+            setReceiveClosed();
+            return CHANNEL_CLOSED;
+        }
+        return NO_MATCH;
     }
 
     /**
@@ -461,6 +487,8 @@ public class TransferChannel<Message> implements Channel<Message>, SelectableSen
 
         for (;;) {
             Object item = s.item;
+            if (item == CHANNEL_CLOSED)
+                setReceiveClosed();
             if (item != e) {                  // matched
                 // assert item != s;
                 s.forgetContents();           // avoid garbage
@@ -484,10 +512,10 @@ public class TransferChannel<Message> implements Channel<Message>, SelectableSen
             } else if (timed) {
                 long now = System.nanoTime();
                 if ((nanos -= now - lastTime) > 0)
-                    LockSupport.parkNanos(this, nanos);
+                    Strand.parkNanos(this, nanos);
                 lastTime = now;
             } else {
-                LockSupport.park(this);
+                Strand.park(this);
             }
         }
     }
