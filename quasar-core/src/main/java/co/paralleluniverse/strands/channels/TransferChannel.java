@@ -55,9 +55,8 @@ public class TransferChannel<Message> implements Channel<Message>, SelectableSen
     public boolean trySend(Message message) {
         if (isSendClosed())
             return true;
-        boolean res;
-
-        return (xfer0(message, true, NOW, 0) == null);
+        boolean res = (xfer0(message, true, NOW, 0) == null);
+        return res;
     }
 
     @Override
