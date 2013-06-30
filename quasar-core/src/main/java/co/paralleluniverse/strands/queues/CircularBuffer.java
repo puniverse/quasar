@@ -30,7 +30,7 @@ public abstract class CircularBuffer<E> implements BasicQueue<E> {
     volatile long lastWritten; // follows tail
     volatile Object p301, p302, p303, p304, p305, p306, p307;
     final Consumer consumer;
-    
+
     CircularBuffer(int capacity, boolean singleProducer) {
         // capacity is a power of 2
         this.capacity = nextPowerOfTwo(capacity);
@@ -109,13 +109,12 @@ public abstract class CircularBuffer<E> implements BasicQueue<E> {
             int headStart = 0; // how many elements ahead of tail we'll try to read if tail progresses too fast
             int attempt = 0;
             for (;;) {
+                while (lastWritten < head) // wait for enq to complete 
+                        ;
                 grabValue((int) head & mask);
                 final long oldest = tail - capacity;
                 if (head >= oldest) {
                     head++;
-
-                    while (lastWritten < head) // wait for enq to complete 
-                        ;
                     return;
                 }
                 // tail has overtaken us
@@ -146,17 +145,15 @@ public abstract class CircularBuffer<E> implements BasicQueue<E> {
         }
 
         public int size() {
-            return (int)(tail - head);
+            return (int) (tail - head);
         }
-        
+
         protected abstract void grabValue(int index);
 
         protected abstract void clearValue();
 
         protected abstract E getValue();
     }
-
-
     ////////////////////////////////////////////////////////////////////////
     static final Unsafe unsafe = UtilUnsafe.getUnsafe();
     private static final long tailOffset;

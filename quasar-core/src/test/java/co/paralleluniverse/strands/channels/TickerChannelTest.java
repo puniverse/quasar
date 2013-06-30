@@ -390,7 +390,7 @@ public class TickerChannelTest {
 
     @Test
     public void testMultipleConsumersAlwaysAscending() throws Exception {
-        final Channel<Integer> sch = Channels.newChannel(bufferSize, OverflowPolicy.DISPLACE);
+        final Channel<Integer> sch = Channels.newChannel(bufferSize, OverflowPolicy.DISPLACE, true, true);
 
         final SuspendableRunnable run = new SuspendableRunnable() {
             @Override
