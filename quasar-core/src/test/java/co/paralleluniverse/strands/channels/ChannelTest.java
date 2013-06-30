@@ -19,6 +19,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
+import co.paralleluniverse.strands.channels.QueueChannel.OverflowPolicy;
 import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;
 import static org.hamcrest.CoreMatchers.*;
@@ -50,7 +51,7 @@ public class ChannelTest {
 
     @Test
     public void sendMessageFromFiberToFiber() throws Exception {
-        final QueueChannel<String> ch = QueueObjectChannel.create(mailboxSize);
+        final Channel<String> ch = Channels.newChannel(mailboxSize);
 
         Fiber fib1 = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -75,7 +76,7 @@ public class ChannelTest {
 
     @Test
     public void sendMessageFromThreadToFiber() throws Exception {
-        final QueueChannel<String> ch = QueueObjectChannel.create(mailboxSize);
+        final Channel<String> ch = Channels.newChannel(mailboxSize);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -94,7 +95,7 @@ public class ChannelTest {
 
     @Test
     public void sendMessageFromFiberToThread() throws Exception {
-        final QueueChannel<String> ch = QueueObjectChannel.<String>create(mailboxSize);
+        final Channel<String> ch = Channels.newChannel(mailboxSize);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -114,7 +115,7 @@ public class ChannelTest {
 
     @Test
     public void sendMessageFromThreadToThread() throws Exception {
-        final QueueChannel<String> ch = QueueObjectChannel.<String>create(mailboxSize);
+        final Channel<String> ch = Channels.newChannel(mailboxSize);
 
         Thread thread = new Thread(new Runnable() {
             @Override
@@ -140,7 +141,7 @@ public class ChannelTest {
     @Test
     public void whenReceiveNotCalledFromOwnerThenThrowException1() throws Exception {
         assumeTrue(Debug.isAssertionsEnabled());
-        final QueueChannel<String> ch = QueueObjectChannel.<String>create(mailboxSize);
+        final Channel<String> ch = Channels.newChannel(mailboxSize);
 
         Fiber fib1 = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -157,11 +158,13 @@ public class ChannelTest {
                 Fiber.sleep(50);
                 ch.send("a message");
 
+                boolean thrown = false;
                 try {
                     ch.receive();
-                    fail();
                 } catch (Throwable e) {
+                    thrown = true;
                 }
+                assertTrue(thrown);
             }
         }).start();
 
@@ -172,7 +175,7 @@ public class ChannelTest {
     @Test
     public void whenReceiveNotCalledFromOwnerThenThrowException2() throws Exception {
         assumeTrue(Debug.isAssertionsEnabled());
-        final QueueChannel<String> ch = QueueObjectChannel.<String>create(mailboxSize);
+        final Channel<String> ch = Channels.newChannel(mailboxSize);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -186,11 +189,13 @@ public class ChannelTest {
         Thread.sleep(50);
         ch.send("a message");
 
+        boolean thrown = false;
         try {
             ch.receive();
-            fail();
         } catch (Throwable e) {
+            thrown = true;
         }
+        assertTrue(thrown);
 
         fib.join();
     }
@@ -198,7 +203,7 @@ public class ChannelTest {
     @Test
     public void whenReceiveNotCalledFromOwnerThenThrowException3() throws Exception {
         assumeTrue(Debug.isAssertionsEnabled());
-        final QueueChannel<String> ch = QueueObjectChannel.<String>create(mailboxSize);
+        final Channel<String> ch = Channels.newChannel(mailboxSize);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -207,11 +212,13 @@ public class ChannelTest {
 
                 ch.send("a message");
 
+                boolean thrown = false;
                 try {
                     ch.receive();
-                    fail();
                 } catch (Throwable e) {
+                    thrown = true;
                 }
+                assertTrue(thrown);
             }
         }).start();
 
@@ -225,15 +232,17 @@ public class ChannelTest {
     @Test
     public void whenReceiveNotCalledFromOwnerThenThrowException4() throws Exception {
         assumeTrue(Debug.isAssertionsEnabled());
-        final QueueChannel<String> ch = QueueObjectChannel.<String>create(mailboxSize);
+        final Channel<String> ch = Channels.newChannel(mailboxSize);
 
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    ch.receiveFromThread();
+                    ch.receive();
                 } catch (InterruptedException ex) {
                     throw new AssertionError(ex);
+                } catch (SuspendExecution e) {
+                    throw new AssertionError(e);
                 }
             }
         });
@@ -242,18 +251,20 @@ public class ChannelTest {
         Thread.sleep(100);
         ch.send("a message");
 
+        boolean thrown = false;
         try {
             ch.receive();
-            fail();
         } catch (Throwable e) {
+            thrown = true;
         }
+        assertTrue(thrown);
 
         thread.join();
     }
 
     @Test
     public void whenChannelOverflowsThrowException() throws Exception {
-        final QueueChannel<Integer> ch = QueueObjectChannel.create(5, QueueChannel.OverflowPolicy.THROW);
+        final Channel<Integer> ch = Channels.newChannel(5, QueueChannel.OverflowPolicy.THROW);
 
         int i = 0;
         try {
@@ -267,7 +278,7 @@ public class ChannelTest {
 
     @Test
     public void testBlockingChannelSendingFiber() throws Exception {
-        final QueueChannel<Integer> ch = QueueObjectChannel.create(5, QueueChannel.OverflowPolicy.BLOCK);
+        final Channel<Integer> ch = Channels.newChannel(5, QueueChannel.OverflowPolicy.BLOCK);
 
         Fiber<Integer> receiver = new Fiber<Integer>(fjPool, new SuspendableCallable<Integer>() {
             @Override
@@ -297,7 +308,7 @@ public class ChannelTest {
 
     @Test
     public void testBlockingChannelSendingThread() throws Exception {
-        final QueueChannel<Integer> ch = QueueObjectChannel.create(5, QueueChannel.OverflowPolicy.BLOCK);
+        final Channel<Integer> ch = Channels.newChannel(5, QueueChannel.OverflowPolicy.BLOCK);
 
         Fiber<Integer> fib = new Fiber<Integer>(fjPool, new SuspendableCallable<Integer>() {
             @Override
@@ -322,7 +333,7 @@ public class ChannelTest {
 
     @Test
     public void testChannelClose() throws Exception {
-        final QueueChannel<Integer> ch = QueueObjectChannel.create(5);
+        final Channel<Integer> ch = Channels.newChannel(5);
 
         Fiber fib = new Fiber(fjPool, new SuspendableRunnable() {
             @Override
@@ -357,7 +368,7 @@ public class ChannelTest {
 
     @Test
     public void testChannelCloseWithSleep() throws Exception {
-        final QueueChannel<Integer> ch = QueueObjectChannel.create(5);
+        final Channel<Integer> ch = Channels.newChannel(5);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -393,7 +404,7 @@ public class ChannelTest {
 
     @Test
     public void testPrimitiveChannelClose() throws Exception {
-        final QueueIntChannel ch = QueueIntChannel.create(5);
+        final IntChannel ch = Channels.newIntChannel(5);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -431,9 +442,9 @@ public class ChannelTest {
 
     @Test
     public void testChannelGroupReceive() throws Exception {
-        final QueueChannel<String> channel1 = QueueObjectChannel.<String>create(mailboxSize);
-        final QueueChannel<String> channel2 = QueueObjectChannel.<String>create(mailboxSize);
-        final QueueChannel<String> channel3 = QueueObjectChannel.<String>create(mailboxSize);
+        final Channel<String> channel1 = Channels.newChannel(mailboxSize);
+        final Channel<String> channel2 = Channels.newChannel(mailboxSize);
+        final Channel<String> channel3 = Channels.newChannel(mailboxSize);
 
         final ChannelGroup<String> group = new ChannelGroup<String>(channel1, channel2, channel3);
 
@@ -459,9 +470,9 @@ public class ChannelTest {
 
     @Test
     public void testChannelGroupReceiveWithTimeout() throws Exception {
-        final QueueChannel<String> channel1 = QueueObjectChannel.<String>create(mailboxSize);
-        final QueueChannel<String> channel2 = QueueObjectChannel.<String>create(mailboxSize);
-        final QueueChannel<String> channel3 = QueueObjectChannel.<String>create(mailboxSize);
+        final Channel<String> channel1 = Channels.newChannel(mailboxSize);
+        final Channel<String> channel2 = Channels.newChannel(mailboxSize);
+        final Channel<String> channel3 = Channels.newChannel(mailboxSize);
 
         final ChannelGroup<String> group = new ChannelGroup<String>(channel1, channel2, channel3);
 
@@ -491,9 +502,9 @@ public class ChannelTest {
 
     @Test
     public void testTopic() throws Exception {
-        final QueueChannel<String> channel1 = QueueObjectChannel.<String>create(mailboxSize);
-        final QueueChannel<String> channel2 = QueueObjectChannel.<String>create(mailboxSize);
-        final QueueChannel<String> channel3 = QueueObjectChannel.<String>create(mailboxSize);
+        final Channel<String> channel1 = Channels.newChannel(mailboxSize);
+        final Channel<String> channel2 = Channels.newChannel(mailboxSize);
+        final Channel<String> channel3 = Channels.newChannel(mailboxSize);
 
         final Topic<String> topic = new Topic<String>();
 

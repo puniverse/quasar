@@ -33,6 +33,9 @@ public abstract class TickerChannel<Message> implements Channel<Message> {
         return new TickerChannelConsumer<Message>(this);
     }
 
+    public static <Message> TickerChannelConsumer<Message> newConsumer(Channel<Message> tickerChannel) {
+        return ((TickerChannel<Message>)tickerChannel).newConsumer();
+    }
     private void setStrand(Strand strand) {
         if (owner != null && strand != owner)
             throw new IllegalStateException("Channel " + this + " is already owned by " + owner);
@@ -75,7 +78,7 @@ public abstract class TickerChannel<Message> implements Channel<Message> {
     }
 
     @Override
-    public Message tryReceive() throws SuspendExecution, InterruptedException {
+    public Message tryReceive() {
         return consumer.tryReceive();
     }
 
@@ -164,7 +167,7 @@ public abstract class TickerChannel<Message> implements Channel<Message> {
         }
 
         @Override
-        public Message tryReceive() throws SuspendExecution, InterruptedException {
+        public Message tryReceive() {
             if (!consumer.hasNext())
                 return null;
             return (Message) consumer.poll();

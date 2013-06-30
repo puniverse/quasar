@@ -2,7 +2,8 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.channels.QueueIntChannel;
+import co.paralleluniverse.strands.channels.Channels;
+import co.paralleluniverse.strands.channels.IntChannel;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;
@@ -27,11 +28,11 @@ public class PrimitiveChannelRingBenchmark {
     void run() throws ExecutionException, InterruptedException {
         final long start = System.nanoTime();
 
-        final QueueIntChannel managerChannel = QueueIntChannel.create(mailboxSize);
-        QueueIntChannel a = managerChannel;
+        final IntChannel managerChannel = Channels.newIntChannel(mailboxSize);
+        IntChannel a = managerChannel;
         for (int i = 0; i < N - 1; i++)
             a = createRelayActor(a);
-        final QueueIntChannel lastChannel = a;
+        final IntChannel lastChannel = a;
         
         Fiber<Integer> manager = new Fiber<Integer>(fjPool) {
             @Override
@@ -55,8 +56,8 @@ public class PrimitiveChannelRingBenchmark {
         System.out.println("Messages: " + totalCount + " Time (ms): " + time);
     }
 
-    private QueueIntChannel createRelayActor(final QueueIntChannel prev) {
-        final QueueIntChannel channel = QueueIntChannel.create(mailboxSize);
+    private IntChannel createRelayActor(final IntChannel prev) {
+        final IntChannel channel = Channels.newIntChannel(mailboxSize);
         Fiber<Void> fiber = new Fiber<Void>(fjPool) {
             @Override
             protected Void run() throws InterruptedException, SuspendExecution {

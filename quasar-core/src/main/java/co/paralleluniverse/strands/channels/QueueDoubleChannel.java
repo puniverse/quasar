@@ -15,9 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.queues.SingleConsumerArrayDoubleQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerDoubleQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayDoubleQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -27,27 +25,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements DoubleChannel {
-    public static QueueDoubleChannel create(Strand owner, int mailboxSize, OverflowPolicy policy) {
-        return new QueueDoubleChannel(owner,
-                mailboxSize > 0
-                ? new SingleConsumerArrayDoubleQueue(mailboxSize)
-                : new SingleConsumerLinkedArrayDoubleQueue(),
-                policy);
-    }
-
-    public static QueueDoubleChannel create(Strand owner, int mailboxSize) {
-        return create(owner, mailboxSize, OverflowPolicy.THROW);
-    }
-
-    public static QueueDoubleChannel create(int mailboxSize, OverflowPolicy policy) {
-        return create(null, mailboxSize, policy);
-    }
-
-    public static QueueDoubleChannel create(int mailboxSize) {
-        return create(null, mailboxSize, OverflowPolicy.THROW);
-    }
-
-    private QueueDoubleChannel(Strand owner, SingleConsumerQueue<Double, ?> queue, OverflowPolicy policy) {
+    QueueDoubleChannel(Strand owner, SingleConsumerQueue<Double, ?> queue, OverflowPolicy policy) {
         super(owner, queue, policy);
     }
 

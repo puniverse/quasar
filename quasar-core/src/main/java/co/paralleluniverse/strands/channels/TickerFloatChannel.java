@@ -23,15 +23,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class TickerFloatChannel extends TickerChannel<Float> implements FloatChannel {
-    public static TickerFloatChannel create(int size, boolean singleProducer) {
-        return new TickerFloatChannel(size, singleProducer);
-    }
-
-    public static TickerFloatChannel create(int size) {
-        return create(size, false);
-    }
-
-    private TickerFloatChannel(int size, boolean singleProducer) {
+    TickerFloatChannel(int size, boolean singleProducer) {
         super(new CircularFloatBuffer(size, singleProducer));
     }
 
@@ -62,6 +54,10 @@ public class TickerFloatChannel extends TickerChannel<Float> implements FloatCha
     @Override
     public TickerChannelFloatConsumer newConsumer() {
         return new TickerChannelFloatConsumer(this);
+    }
+
+    public static TickerChannelFloatConsumer newConsumer(FloatChannel tickerChannel) {
+        return ((TickerFloatChannel) tickerChannel).newConsumer();
     }
 
     private CircularFloatBuffer buffer() {

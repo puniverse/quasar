@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
  */
 public abstract class QueueChannel<Message> implements Channel<Message>, SelectableReceive, SelectableSend, java.io.Serializable {
     public enum OverflowPolicy {
-        THROW, DROP, BLOCK, BACKOFF
+        THROW, DROP, BLOCK, BACKOFF, DISPLACE
     }
     private static final int MAX_SEND_RETRIES = 10;
     private Strand owner;
@@ -75,7 +75,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         if (owner == null)
             setStrand(Strand.currentStrand());
         else {
-            assert Strand.equals(owner, Strand.currentStrand()) : "This method has been called by a different strand (thread or fiber) than that owning this object";
+            assert Strand.equals(owner, Strand.currentStrand()) : "This method has been called by a different strand (thread or fiber) from that owning this object";
         }
     }
 

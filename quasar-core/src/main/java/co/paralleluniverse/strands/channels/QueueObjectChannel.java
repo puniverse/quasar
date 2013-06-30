@@ -14,7 +14,6 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.queues.SingleConsumerArrayObjectQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayObjectQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 
@@ -23,26 +22,6 @@ import co.paralleluniverse.strands.queues.SingleConsumerQueue;
  * @author pron
  */
 public class QueueObjectChannel<Message> extends QueueChannel<Message> {
-    public static <Message> QueueObjectChannel<Message> create(Strand owner, int mailboxSize, OverflowPolicy policy) {
-        return new QueueObjectChannel(owner, 
-                mailboxSize > 0 
-                ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) 
-                : new SingleConsumerLinkedArrayObjectQueue<Message>(),
-                policy);
-    }
-
-    public static <Message> QueueObjectChannel<Message> create(Strand owner, int mailboxSize) {
-        return create(owner, mailboxSize, OverflowPolicy.THROW);
-    }
-
-    public static <Message> QueueObjectChannel<Message> create(int mailboxSize, OverflowPolicy policy) {
-        return create(null, mailboxSize, policy);
-    }
-
-    public static <Message> QueueObjectChannel<Message> create(int mailboxSize) {
-        return create(null, mailboxSize, OverflowPolicy.THROW);
-    }
-
     public QueueObjectChannel(Strand owner, SingleConsumerQueue<Message, ?> queue, OverflowPolicy policy) {
         super(owner, queue, policy);
     }

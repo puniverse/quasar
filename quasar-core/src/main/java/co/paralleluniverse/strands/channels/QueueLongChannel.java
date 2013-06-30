@@ -15,8 +15,6 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.queues.SingleConsumerArrayLongQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayLongQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLongQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
@@ -27,27 +25,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class QueueLongChannel extends QueuePrimitiveChannel<Long> implements LongChannel {
-    public static QueueLongChannel create(Strand owner, int mailboxSize, OverflowPolicy policy) {
-        return new QueueLongChannel(owner,
-                mailboxSize > 0
-                ? new SingleConsumerArrayLongQueue(mailboxSize)
-                : new SingleConsumerLinkedArrayLongQueue(),
-                policy);
-    }
-
-    public static QueueLongChannel create(Strand owner, int mailboxSize) {
-        return create(owner, mailboxSize, OverflowPolicy.THROW);
-    }
-
-    public static QueueLongChannel create(int mailboxSize, OverflowPolicy policy) {
-        return create(null, mailboxSize, policy);
-    }
-
-    public static QueueLongChannel create(int mailboxSize) {
-        return create(null, mailboxSize, OverflowPolicy.THROW);
-    }
-
-    private QueueLongChannel(Strand owner, SingleConsumerQueue<Long, ?> queue, OverflowPolicy policy) {
+    QueueLongChannel(Strand owner, SingleConsumerQueue<Long, ?> queue, OverflowPolicy policy) {
         super(owner, queue, policy);
     }
 

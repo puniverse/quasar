@@ -91,7 +91,7 @@ public class DisruptorReceiveChannel<Message> implements ReceivePort<Message> {
     }
 
     @Override
-    public Message tryReceive() throws SuspendExecution, InterruptedException {
+    public Message tryReceive() {
         if (closed)
             return null;
         long nextSequence = sequence.get() + 1L;

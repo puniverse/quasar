@@ -95,7 +95,7 @@ public class ChannelGroup<Message> implements ReceivePort<Message> {
     }
 
     @Override
-    public Message tryReceive() throws SuspendExecution, InterruptedException {
+    public Message tryReceive() {
         if (closed)
             return null;
         for (;;) {

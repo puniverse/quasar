@@ -15,9 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.queues.SingleConsumerArrayFloatQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerFloatQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayFloatQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -27,27 +25,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements FloatChannel {
-    public static QueueFloatChannel create(Strand owner, int mailboxSize, OverflowPolicy policy) {
-        return new QueueFloatChannel(owner,
-                mailboxSize > 0
-                ? new SingleConsumerArrayFloatQueue(mailboxSize)
-                : new SingleConsumerLinkedArrayFloatQueue(),
-                policy);
-    }
-
-    public static QueueFloatChannel create(Strand owner, int mailboxSize) {
-        return create(owner, mailboxSize, OverflowPolicy.THROW);
-    }
-
-    public static QueueFloatChannel create(int mailboxSize, OverflowPolicy policy) {
-        return create(null, mailboxSize, policy);
-    }
-
-    public static QueueFloatChannel create(int mailboxSize) {
-        return create(null, mailboxSize, OverflowPolicy.THROW);
-    }
-
-    private QueueFloatChannel(Strand owner, SingleConsumerQueue<Float, ?> queue, OverflowPolicy policy) {
+    QueueFloatChannel(Strand owner, SingleConsumerQueue<Float, ?> queue, OverflowPolicy policy) {
         super(owner, queue, policy);
     }
 

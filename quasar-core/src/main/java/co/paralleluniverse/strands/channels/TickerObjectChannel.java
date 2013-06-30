@@ -20,15 +20,7 @@ import co.paralleluniverse.strands.queues.CircularObjectBuffer;
  * @author pron
  */
 public class TickerObjectChannel<Message> extends TickerChannel<Message> {
-    public static <Message> TickerObjectChannel<Message> create(int size, boolean singleProducer) {
-        return new TickerObjectChannel<Message>(size, singleProducer);
-    }
-
-    public static <Message> TickerObjectChannel<Message> create(int size) {
-        return create(size, false);
-    }
-
-    private TickerObjectChannel(int size, boolean singleProducer) {
+    TickerObjectChannel(int size, boolean singleProducer) {
         super(new CircularObjectBuffer<Message>(size, singleProducer));
     }
 }

@@ -15,9 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.queues.SingleConsumerArrayIntQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerIntQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayIntQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -27,27 +25,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements IntChannel {
-    public static QueueIntChannel create(Strand owner, int mailboxSize, OverflowPolicy policy) {
-        return new QueueIntChannel(owner,
-                mailboxSize > 0
-                ? new SingleConsumerArrayIntQueue(mailboxSize)
-                : new SingleConsumerLinkedArrayIntQueue(),
-                policy);
-    }
-
-    public static QueueIntChannel create(Strand owner, int mailboxSize) {
-        return create(owner, mailboxSize, OverflowPolicy.THROW);
-    }
-
-    public static QueueIntChannel create(int mailboxSize, OverflowPolicy policy) {
-        return create(null, mailboxSize, policy);
-    }
-
-    public static QueueIntChannel create(int mailboxSize) {
-        return create(null, mailboxSize, OverflowPolicy.THROW);
-    }
-
-    private QueueIntChannel(Strand owner, SingleConsumerQueue<Integer, ?> queue, OverflowPolicy policy) {
+    QueueIntChannel(Strand owner, SingleConsumerQueue<Integer, ?> queue, OverflowPolicy policy) {
         super(owner, queue, policy);
     }
 

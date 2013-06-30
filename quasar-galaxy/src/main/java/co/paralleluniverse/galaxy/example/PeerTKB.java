@@ -27,28 +27,18 @@ import co.paralleluniverse.galaxy.Cluster;
 import co.paralleluniverse.galaxy.Grid;
 import co.paralleluniverse.galaxy.MessageListener;
 import co.paralleluniverse.galaxy.Messenger;
-import co.paralleluniverse.galaxy.Server;
 import co.paralleluniverse.galaxy.Store;
-import co.paralleluniverse.galaxy.StoreTransaction;
 import co.paralleluniverse.galaxy.TimeoutException;
 import co.paralleluniverse.galaxy.cluster.LifecycleListener;
-import co.paralleluniverse.galaxy.cluster.NodeChangeListener;
 import co.paralleluniverse.galaxy.core.Comm;
 import co.paralleluniverse.io.serialization.Serialization;
-import co.paralleluniverse.strands.channels.QueueChannel;
-import co.paralleluniverse.strands.channels.QueueObjectChannel;
-import co.paralleluniverse.strands.channels.SendPort;
-import com.google.common.base.Charsets;
-import com.google.common.primitives.Longs;
+import co.paralleluniverse.strands.channels.Channel;
+import co.paralleluniverse.strands.channels.Channels;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.ByteBuffer;
 import java.util.Properties;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -180,7 +170,7 @@ public class PeerTKB implements Runnable {
             System.out.println("length is "+serActor.length);
 
             while (!Thread.interrupted()) {
-                QueueChannel<String> channel = QueueObjectChannel.create(100);
+                Channel<String> channel = Channels.newChannel(100);
                 boolean sent = false;
                 System.out.println("=========================================");
                 System.out.println("ident: " + myNodeId + " " + System.currentTimeMillis());
