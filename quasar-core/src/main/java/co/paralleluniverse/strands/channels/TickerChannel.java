@@ -5,6 +5,8 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Condition;
+import co.paralleluniverse.strands.DoneSynchronizer;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.queues.CircularBuffer;
@@ -16,7 +18,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public abstract class TickerChannel<Message> implements Channel<Message> {
+public abstract class TickerChannel<Message> implements Channel<Message>, SelectableReceive, SelectableSend {
     private Object owner;
     final CircularBuffer<Message> buffer;
     private final SimpleConditionSynchronizer sync;
@@ -26,16 +28,21 @@ public abstract class TickerChannel<Message> implements Channel<Message> {
     protected TickerChannel(CircularBuffer<Message> buffer) {
         this.buffer = buffer;
         this.sync = new SimpleConditionSynchronizer();
-        this.consumer = newConsumer();
+        this.consumer = builtinConsumer();
     }
 
     public TickerChannelConsumer<Message> newConsumer() {
         return new TickerChannelConsumer<Message>(this);
     }
 
-    public static <Message> TickerChannelConsumer<Message> newConsumer(Channel<Message> tickerChannel) {
-        return ((TickerChannel<Message>)tickerChannel).newConsumer();
+    TickerChannelConsumer<Message> builtinConsumer() {
+        return new TickerChannelConsumer<Message>(this, buffer.builtinConsumer());
     }
+    
+    public static <Message> TickerChannelConsumer<Message> newConsumer(Channel<Message> tickerChannel) {
+        return ((TickerChannel<Message>) tickerChannel).newConsumer();
+    }
+
     private void setStrand(Strand strand) {
         if (owner != null && strand != owner)
             throw new IllegalStateException("Channel " + this + " is already owned by " + owner);
@@ -83,6 +90,16 @@ public abstract class TickerChannel<Message> implements Channel<Message> {
     }
 
     @Override
+    public Condition receiveSelector() {
+        return consumer.receiveSelector();
+    }
+
+    @Override
+    public Condition sendSelector() {
+        return DoneSynchronizer.instance;
+    }
+
+    @Override
     public boolean isClosed() {
         return consumer.isClosed();
     }
@@ -102,18 +119,27 @@ public abstract class TickerChannel<Message> implements Channel<Message> {
         sync.signalAll();
     }
 
-    public static class TickerChannelConsumer<Message> implements ReceivePort<Message> {
+    public static class TickerChannelConsumer<Message> implements ReceivePort<Message>, SelectableReceive {
         final TickerChannel<Message> channel;
         final CircularBuffer.Consumer consumer;
         private boolean receiveClosed;
 
-        public TickerChannelConsumer(TickerChannel<Message> channel) {
+        TickerChannelConsumer(TickerChannel<Message> channel) {
+            this(channel, channel.buffer.newConsumer());
+        }
+
+        TickerChannelConsumer(TickerChannel<Message> channel, CircularBuffer.Consumer consumer) {
             this.channel = channel;
-            this.consumer = channel.buffer.newConsumer();
+            this.consumer = consumer;
         }
 
         void setReceiveClosed() {
             this.receiveClosed = true;
+        }
+
+        @Override
+        public Condition receiveSelector() {
+            return channel.sync;
         }
 
         void attemptReceive() throws SuspendExecution, InterruptedException {

@@ -17,6 +17,7 @@ import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.remote.RemoteProxyFactoryService;
 import co.paralleluniverse.strands.Condition;
+import co.paralleluniverse.strands.DoneSynchronizer;
 import co.paralleluniverse.strands.OwnedSynchronizer;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
@@ -74,7 +75,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
     @Override
     public Condition sendSelector() {
-        return sendersSync;
+        return sendersSync != null ? sendersSync : DoneSynchronizer.instance;
     }
 
     @Override

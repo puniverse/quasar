@@ -43,6 +43,10 @@ public abstract class CircularBuffer<E> implements BasicQueue<E> {
         return singleProducer;
     }
 
+    public Consumer builtinConsumer() {
+        return consumer;
+    }
+
     private static int nextPowerOfTwo(int v) {
         assert v >= 0;
         return 1 << (32 - Integer.numberOfLeadingZeros(v - 1));
@@ -94,7 +98,7 @@ public abstract class CircularBuffer<E> implements BasicQueue<E> {
     public abstract Consumer newConsumer();
 
     public abstract class Consumer {
-        protected long head;
+        long head;
 
         public final long lastIndexRead() {
             return head - 1;
@@ -109,7 +113,7 @@ public abstract class CircularBuffer<E> implements BasicQueue<E> {
             int headStart = 0; // how many elements ahead of tail we'll try to read if tail progresses too fast
             int attempt = 0;
             for (;;) {
-                while (lastWritten < head) // wait for enq to complete 
+                while (lastWritten <= head) // wait for enq to complete 
                         ;
                 grabValue((int) head & mask);
                 final long oldest = tail - capacity;
@@ -132,6 +136,8 @@ public abstract class CircularBuffer<E> implements BasicQueue<E> {
         }
 
         public E poll() {
+            if(!hasNext())
+                return null;
             poll0();
             final E v = getValue();
             clearValue(); // for gc

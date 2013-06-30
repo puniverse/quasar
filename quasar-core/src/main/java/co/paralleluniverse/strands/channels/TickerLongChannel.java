@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.queues.CircularBuffer.Consumer;
 import co.paralleluniverse.strands.queues.CircularLongBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -60,6 +61,11 @@ public class TickerLongChannel extends TickerChannel<Long> implements LongChanne
         return new TickerChannelLongConsumer(this);
     }
 
+    @Override
+    TickerChannelLongConsumer builtinConsumer() {
+        return new TickerChannelLongConsumer(this, buffer.builtinConsumer());
+    }
+
     public static TickerChannelLongConsumer newConsumer(LongChannel tickerChannel) {
         return ((TickerLongChannel) tickerChannel).newConsumer();
     }
@@ -71,6 +77,10 @@ public class TickerLongChannel extends TickerChannel<Long> implements LongChanne
     public static class TickerChannelLongConsumer extends TickerChannelConsumer<Long> implements LongReceivePort {
         public TickerChannelLongConsumer(TickerLongChannel channel) {
             super(channel);
+        }
+
+        public TickerChannelLongConsumer(TickerLongChannel channel, Consumer consumer) {
+            super(channel, consumer);
         }
 
         @Override

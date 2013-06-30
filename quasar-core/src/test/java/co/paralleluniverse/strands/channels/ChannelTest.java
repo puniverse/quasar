@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import static co.paralleluniverse.common.test.Matchers.*;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -20,6 +21,8 @@ import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import co.paralleluniverse.strands.channels.QueueChannel.OverflowPolicy;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;
 import static org.hamcrest.CoreMatchers.*;
@@ -29,30 +32,51 @@ import static org.junit.Assume.*;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /**
  *
  * @author pron
  */
+//@RunWith(Parameterized.class)
 public class ChannelTest {
     final int mailboxSize;
     final OverflowPolicy policy;
     final boolean singleConsumer;
     final boolean singleProducer;
-    private ForkJoinPool fjPool;
+    final ForkJoinPool fjPool;
 
     public ChannelTest() {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
-
-
-        this.mailboxSize = 5;
-        this.policy = OverflowPolicy.THROW;
-        this.singleConsumer = true;
+        this.mailboxSize = 0;
+        this.policy = OverflowPolicy.BLOCK;
+        this.singleConsumer = false;
         this.singleProducer = false;
     }
 
+//    public ChannelTest(int mailboxSize, OverflowPolicy policy, boolean singleConsumer, boolean singleProducer) {
+//        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+//        this.mailboxSize = mailboxSize;
+//        this.policy = policy;
+//        this.singleConsumer = singleConsumer;
+//        this.singleProducer = singleProducer;
+//    }
     private <Message> Channel<Message> newChannel() {
         return Channels.newChannel(mailboxSize, policy, singleProducer, singleConsumer);
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][]{
+                    {5, OverflowPolicy.THROW, true, false},
+                    {5, OverflowPolicy.THROW, false, false},
+                    {5, OverflowPolicy.BLOCK, true, false},
+                    {5, OverflowPolicy.BLOCK, false, false},
+                    {-1, OverflowPolicy.THROW, true, false},
+                    {5, OverflowPolicy.DISPLACE, true, false},
+                    {0, OverflowPolicy.BLOCK, false, false},
+        });
     }
 
     @Before
@@ -283,6 +307,7 @@ public class ChannelTest {
     @Test
     public void whenChannelOverflowsThrowException() throws Exception {
         assumeThat(policy, is(OverflowPolicy.THROW));
+        assumeThat(mailboxSize, greaterThan(0));
 
         final Channel<Integer> ch = newChannel();
 

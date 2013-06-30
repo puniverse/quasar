@@ -15,6 +15,8 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.strands.channels.QueueChannel.OverflowPolicy;
 import co.paralleluniverse.strands.queues.ArrayQueue;
+import co.paralleluniverse.strands.queues.CircularBuffer;
+import co.paralleluniverse.strands.queues.CircularObjectBuffer;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayDoubleQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayFloatQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayIntQueue;
@@ -42,12 +44,12 @@ public final class Channels {
         if (policy == OverflowPolicy.DISPLACE && mailboxSize > 0) {
             if (!singleConsumer)
                 throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
-            return new TickerObjectChannel<Message>(mailboxSize, singleProducer);
+            return new QueueObjectChannel<Message>(new CircularObjectBuffer<Message>(mailboxSize, singleProducer), policy, singleConsumer);
         }
 
-        if(policy == OverflowPolicy.BLOCK && mailboxSize == 0)
+        if (policy == OverflowPolicy.BLOCK && mailboxSize == 0)
             return new TransferChannel<Message>();
-        
+
         if (!singleConsumer && mailboxSize <= 0)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
         return new QueueObjectChannel(
@@ -167,6 +169,46 @@ public final class Channels {
     }
 
     ///
+    public static <Message> TickerChannel<Message> newTickerChannel(int bufferSize, boolean singleProducer) {
+        return new TickerObjectChannel<Message>(bufferSize, singleProducer);
+    }
+
+    public static <Message> TickerChannel<Message> newTickerChannel(int bufferSize) {
+        return new TickerObjectChannel<Message>(bufferSize, false);
+    }
+
+    public static TickerIntChannel newTickerIntChannel(int bufferSize, boolean singleProducer) {
+        return new TickerIntChannel(bufferSize, singleProducer);
+    }
+
+    public static TickerIntChannel newTickerIntChannel(int bufferSize) {
+        return new TickerIntChannel(bufferSize, false);
+    }
+
+    public static TickerLongChannel newTickerLongChannel(int bufferSize, boolean singleProducer) {
+        return new TickerLongChannel(bufferSize, singleProducer);
+    }
+
+    public static TickerLongChannel newTickerLongChannel(int bufferSize) {
+        return new TickerLongChannel(bufferSize, false);
+    }
+
+    public static TickerFloatChannel newTickerFloatChannel(int bufferSize, boolean singleProducer) {
+        return new TickerFloatChannel(bufferSize, singleProducer);
+    }
+
+    public static TickerFloatChannel newTickerFloatChannel(int bufferSize) {
+        return new TickerFloatChannel(bufferSize, false);
+    }
+
+    public static TickerDoubleChannel newTickerDoubleChannel(int bufferSize, boolean singleProducer) {
+        return new TickerDoubleChannel(bufferSize, singleProducer);
+    }
+
+    public static TickerDoubleChannel newTickerDoubleChannel(int bufferSize) {
+        return new TickerDoubleChannel(bufferSize, false);
+    }
+
     private Channels() {
     }
 }

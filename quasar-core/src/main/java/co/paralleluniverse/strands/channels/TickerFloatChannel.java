@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.queues.CircularBuffer.Consumer;
 import co.paralleluniverse.strands.queues.CircularFloatBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -60,6 +61,11 @@ public class TickerFloatChannel extends TickerChannel<Float> implements FloatCha
         return new TickerChannelFloatConsumer(this);
     }
 
+    @Override
+    TickerChannelFloatConsumer builtinConsumer() {
+        return new TickerChannelFloatConsumer(this, buffer.builtinConsumer());
+    }
+
     public static TickerChannelFloatConsumer newConsumer(FloatChannel tickerChannel) {
         return ((TickerFloatChannel) tickerChannel).newConsumer();
     }
@@ -71,6 +77,10 @@ public class TickerFloatChannel extends TickerChannel<Float> implements FloatCha
     public static class TickerChannelFloatConsumer extends TickerChannelConsumer<Float> implements FloatReceivePort {
         public TickerChannelFloatConsumer(TickerFloatChannel channel) {
             super(channel);
+        }
+
+        public TickerChannelFloatConsumer(TickerFloatChannel channel, Consumer consumer) {
+            super(channel, consumer);
         }
 
         @Override

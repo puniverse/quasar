@@ -289,7 +289,7 @@ public class TransferChannel<Message> implements Channel<Message>, SelectableSen
 
         static {
             try {
-                UNSAFE = sun.misc.Unsafe.getUnsafe();
+                UNSAFE = UtilUnsafe.getUnsafe();
                 Class k = Node.class;
                 itemOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("item"));
                 nextOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("next"));
