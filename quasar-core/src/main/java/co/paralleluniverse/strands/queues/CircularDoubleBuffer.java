@@ -23,12 +23,13 @@ public class CircularDoubleBuffer extends CircularDWordBuffer<Double> {
     }
 
     @Override
-    public void enq(Double elem) {
-        enq(elem.doubleValue());
+    public boolean enq(Double elem) {
+        return enq(elem.doubleValue());
     }
 
-    public void enq(double elem) {
+    public boolean enq(double elem) {
         enqRaw(Double.doubleToRawLongBits(elem));
+        return true;
     }
 
     @Override
@@ -36,7 +37,7 @@ public class CircularDoubleBuffer extends CircularDWordBuffer<Double> {
         return new DoubleConsumer();
     }
 
-    public class DoubleConsumer extends DWordConsumer<Double> {
+    public class DoubleConsumer extends DWordConsumer {
         public double getDoubleValue() {
             return Double.longBitsToDouble(getRawValue());
         }

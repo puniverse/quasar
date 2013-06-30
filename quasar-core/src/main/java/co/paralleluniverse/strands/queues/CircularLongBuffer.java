@@ -23,12 +23,13 @@ public class CircularLongBuffer extends CircularDWordBuffer<Long> {
     }
 
     @Override
-    public void enq(Long elem) {
-        enq(elem.longValue());
+    public boolean enq(Long elem) {
+        return enq(elem.longValue());
     }
 
-    public void enq(long elem) {
+    public boolean enq(long elem) {
         enqRaw(elem);
+        return true;
     }
 
     @Override
@@ -36,7 +37,7 @@ public class CircularLongBuffer extends CircularDWordBuffer<Long> {
         return new LongConsumer();
     }
 
-    public class LongConsumer extends DWordConsumer<Long> {
+    public class LongConsumer extends DWordConsumer {
         public long getLongValue() {
             return getRawValue();
         }

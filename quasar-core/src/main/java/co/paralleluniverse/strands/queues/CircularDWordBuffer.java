@@ -31,7 +31,7 @@ abstract class CircularDWordBuffer<E> extends CircularBuffer<E> {
         postEnq();
     }
 
-    abstract class DWordConsumer<E> extends Consumer<E> {
+    abstract class DWordConsumer extends Consumer {
         private long value;
 
         @Override

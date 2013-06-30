@@ -27,6 +27,10 @@ public class TickerFloatChannel extends TickerChannel<Float> implements FloatCha
         super(new CircularFloatBuffer(size, singleProducer));
     }
 
+    public TickerFloatChannel(int size) {
+        this(size, false);
+    }
+
     @Override
     public void send(float message) {
         if (isSendClosed())

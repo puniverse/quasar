@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.strands.channels.QueueChannel.OverflowPolicy;
+import co.paralleluniverse.strands.queues.ArrayQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayDoubleQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayFloatQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayIntQueue;
@@ -38,16 +39,23 @@ public final class Channels {
         if (mailboxSize == 0 && policy == OverflowPolicy.BLOCK)
             return new TransferChannel<Message>();
 
-        if (policy == OverflowPolicy.DISPLACE && mailboxSize > 0)
+        if (policy == OverflowPolicy.DISPLACE && mailboxSize > 0) {
+            if (!singleConsumer)
+                throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
             return new TickerObjectChannel<Message>(mailboxSize, singleProducer);
+        }
 
-        if (!singleConsumer)
+        if(policy == OverflowPolicy.BLOCK && mailboxSize == 0)
+            return new TransferChannel<Message>();
+        
+        if (!singleConsumer && mailboxSize <= 0)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
         return new QueueObjectChannel(
                 mailboxSize > 0
-                ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize)
+                ? (singleConsumer ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new ArrayQueue<Message>(mailboxSize))
                 : new SingleConsumerLinkedArrayObjectQueue<Message>(),
-                policy);
+                policy,
+                singleConsumer);
     }
 
     public static <Message> Channel<Message> newChannel(int mailboxSize, OverflowPolicy policy) {
@@ -60,8 +68,11 @@ public final class Channels {
 
     ///
     public static IntChannel newIntChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
-        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0)
+        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0) {
+            if (!singleConsumer)
+                throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
             return new TickerIntChannel(mailboxSize, singleProducer);
+        }
 
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
@@ -82,8 +93,11 @@ public final class Channels {
 
     ///
     public static LongChannel newLongChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
-        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0)
+        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0) {
+            if (!singleConsumer)
+                throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
             return new TickerLongChannel(mailboxSize, singleProducer);
+        }
 
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
@@ -104,8 +118,11 @@ public final class Channels {
 
     ///
     public static FloatChannel newFloatChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
-        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0)
+        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0) {
+            if (!singleConsumer)
+                throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
             return new TickerFloatChannel(mailboxSize, singleProducer);
+        }
 
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
@@ -126,8 +143,11 @@ public final class Channels {
 
     ///
     public static DoubleChannel newDoubleChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
-        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0)
+        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0) {
+            if (!singleConsumer)
+                throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
             return new TickerDoubleChannel(mailboxSize, singleProducer);
+        }
 
         if (!singleConsumer)
             throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
@@ -146,6 +166,7 @@ public final class Channels {
         return newDoubleChannel(mailboxSize, defaultPolicy);
     }
 
+    ///
     private Channels() {
     }
 }

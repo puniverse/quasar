@@ -23,12 +23,13 @@ public class CircularFloatBuffer extends CircularWordBuffer<Float> {
     }
 
     @Override
-    public void enq(Float elem) {
-        enq(elem.floatValue());
+    public boolean enq(Float elem) {
+        return enq(elem.floatValue());
     }
 
-    public void enq(float elem) {
+    public boolean enq(float elem) {
         enqRaw(Float.floatToRawIntBits(elem));
+        return true;
     }
 
     @Override
@@ -36,7 +37,7 @@ public class CircularFloatBuffer extends CircularWordBuffer<Float> {
         return new FloatConsumer();
     }
 
-    public class FloatConsumer extends WordConsumer<Float> {
+    public class FloatConsumer extends WordConsumer {
         public float getFloatValue() {
             return Float.intBitsToFloat(getRawValue());
         }

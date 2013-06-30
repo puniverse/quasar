@@ -27,6 +27,10 @@ public class TickerIntChannel extends TickerChannel<Integer> implements IntChann
         super(new CircularIntBuffer(size, singleProducer));
     }
 
+    public TickerIntChannel(int size) {
+        this(size, false);
+    }
+
     @Override
     public void send(int message) {
         if (isSendClosed())

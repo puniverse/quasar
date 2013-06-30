@@ -27,6 +27,10 @@ public class TickerDoubleChannel extends TickerChannel<Double> implements Double
         super(new CircularDoubleBuffer(size, singleProducer));
     }
 
+    public TickerDoubleChannel(int size) {
+        this(size, false);
+    }
+
     @Override
     public void send(double message) {
         if (isSendClosed())

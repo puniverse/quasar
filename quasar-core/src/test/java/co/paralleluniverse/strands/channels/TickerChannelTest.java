@@ -74,12 +74,12 @@ public class TickerChannelTest {
 
     @Test
     public void sendMessageFromFiberToFiber() throws Exception {
-        final Channel<String> sch = Channels.newChannel(bufferSize, OverflowPolicy.DISPLACE);
+        final TickerChannel<String> sch = new TickerObjectChannel<String>(bufferSize);
 
         Fiber fib1 = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                TickerChannelConsumer<String> ch = TickerChannel.newConsumer(sch);
+                TickerChannelConsumer<String> ch = sch.newConsumer();
                 String m = ch.receive();
 
                 assertThat(m, equalTo("a message"));
@@ -100,12 +100,12 @@ public class TickerChannelTest {
 
     @Test
     public void sendMessageFromThreadToFiber() throws Exception {
-        final Channel<String> sch = Channels.newChannel(bufferSize, OverflowPolicy.DISPLACE);
+        final TickerChannel<String> sch = new TickerObjectChannel<String>(bufferSize);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                TickerChannelConsumer<String> ch = TickerChannel.newConsumer(sch);
+                TickerChannelConsumer<String> ch = sch.newConsumer();
                 String m = ch.receive();
 
                 assertThat(m, equalTo("a message"));
@@ -168,7 +168,7 @@ public class TickerChannelTest {
     @Test
     public void whenSendNotCalledFromOwnerThenThrowException1() throws Exception {
         assumeTrue(Debug.isAssertionsEnabled());
-        final Channel<String> sch = Channels.newChannel(bufferSize, OverflowPolicy.DISPLACE, true, false);
+        final Channel<String> sch = Channels.newChannel(bufferSize, OverflowPolicy.DISPLACE, true, true);
 
         Fiber fib1 = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -199,7 +199,7 @@ public class TickerChannelTest {
     @Test
     public void whenSendNotCalledFromOwnerThenThrowException2() throws Exception {
         assumeTrue(Debug.isAssertionsEnabled());
-        final Channel<String> sch = Channels.newChannel(bufferSize, OverflowPolicy.DISPLACE, true, false);
+        final Channel<String> sch = Channels.newChannel(bufferSize, OverflowPolicy.DISPLACE, true, true);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -224,7 +224,7 @@ public class TickerChannelTest {
     @Test
     public void whenSendNotCalledFromOwnerThenThrowException3() throws Exception {
         assumeTrue(Debug.isAssertionsEnabled());
-        final Channel<String> sch = Channels.newChannel(bufferSize, OverflowPolicy.DISPLACE, true, false);
+        final Channel<String> sch = Channels.newChannel(bufferSize, OverflowPolicy.DISPLACE, true, true);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -249,7 +249,7 @@ public class TickerChannelTest {
     @Test
     public void whenSendNotCalledFromOwnerThenThrowException4() throws Exception {
         assumeTrue(Debug.isAssertionsEnabled());
-        final Channel<String> sch = Channels.newChannel(bufferSize, OverflowPolicy.DISPLACE, true, false);
+        final Channel<String> sch = Channels.newChannel(bufferSize, OverflowPolicy.DISPLACE, true, true);
 
         Thread thread = new Thread(new Runnable() {
             @Override
@@ -278,7 +278,7 @@ public class TickerChannelTest {
 
     @Test
     public void testChannelClose() throws Exception {
-        final Channel<Integer> sch = Channels.newChannel(bufferSize, OverflowPolicy.DISPLACE);
+        final Channel<Integer> sch = Channels.newChannel(bufferSize, OverflowPolicy.DISPLACE, false, true);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override

@@ -23,12 +23,13 @@ public class CircularIntBuffer extends CircularWordBuffer<Integer> {
     }
 
     @Override
-    public void enq(Integer elem) {
-        enq(elem.intValue());
+    public boolean enq(Integer elem) {
+        return enq(elem.intValue());
     }
 
-    public void enq(int elem) {
+    public boolean enq(int elem) {
         enqRaw(elem);
+        return true;
     }
 
     @Override
@@ -36,7 +37,7 @@ public class CircularIntBuffer extends CircularWordBuffer<Integer> {
         return new IntConsumer();
     }
 
-    public class IntConsumer extends WordConsumer<Integer> {
+    public class IntConsumer extends WordConsumer {
         public int getIntValue() {
             return getRawValue();
         }

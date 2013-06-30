@@ -20,7 +20,7 @@ import sun.misc.Unsafe;
  *
  * @author pron
  */
-public abstract class CircularBuffer<E> {
+public abstract class CircularBuffer<E> implements BasicQueue<E> {
     final int capacity;
     final int mask;
     private final boolean singleProducer;
@@ -28,12 +28,15 @@ public abstract class CircularBuffer<E> {
     volatile long tail; // next element to be written
     volatile long p201, p202, p203, p204, p205, p206, p207;
     volatile long lastWritten; // follows tail
-
+    volatile Object p301, p302, p303, p304, p305, p306, p307;
+    final Consumer consumer;
+    
     CircularBuffer(int capacity, boolean singleProducer) {
         // capacity is a power of 2
         this.capacity = nextPowerOfTwo(capacity);
         this.mask = this.capacity - 1;
         this.singleProducer = singleProducer;
+        this.consumer = newConsumer();
     }
 
     public boolean isSingleProducer() {
@@ -45,6 +48,7 @@ public abstract class CircularBuffer<E> {
         return 1 << (32 - Integer.numberOfLeadingZeros(v - 1));
     }
 
+    @Override
     public int capacity() {
         return capacity;
     }
@@ -74,11 +78,22 @@ public abstract class CircularBuffer<E> {
         }
     }
 
-    public abstract void enq(E elem);
+    @Override
+    public abstract boolean enq(E elem);
 
-    public abstract Consumer<E> newConsumer();
+    @Override
+    public E poll() {
+        return consumer.poll();
+    }
 
-    public abstract class Consumer<E> {
+    @Override
+    public int size() {
+        return consumer.size();
+    }
+
+    public abstract Consumer newConsumer();
+
+    public abstract class Consumer {
         protected long head;
 
         public final long lastIndexRead() {
@@ -130,12 +145,18 @@ public abstract class CircularBuffer<E> {
             return v;
         }
 
+        public int size() {
+            return (int)(tail - head);
+        }
+        
         protected abstract void grabValue(int index);
 
         protected abstract void clearValue();
 
         protected abstract E getValue();
     }
+
+
     ////////////////////////////////////////////////////////////////////////
     static final Unsafe unsafe = UtilUnsafe.getUnsafe();
     private static final long tailOffset;

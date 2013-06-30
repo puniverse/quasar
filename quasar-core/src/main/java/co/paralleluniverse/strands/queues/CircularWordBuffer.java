@@ -31,7 +31,7 @@ abstract class CircularWordBuffer<E> extends CircularBuffer<E> {
         postEnq();
     }
 
-    abstract class WordConsumer<E> extends Consumer<E> {
+    abstract class WordConsumer extends Consumer {
         private int value;
 
         @Override

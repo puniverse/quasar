@@ -27,6 +27,10 @@ public class TickerLongChannel extends TickerChannel<Long> implements LongChanne
         super(new CircularLongBuffer(size, singleProducer));
     }
 
+    public TickerLongChannel(int size) {
+        this(size, false);
+    }
+
     @Override
     public void send(long message) {
         if (isSendClosed())

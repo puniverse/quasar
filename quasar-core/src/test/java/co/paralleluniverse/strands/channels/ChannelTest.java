@@ -27,6 +27,7 @@ import org.junit.After;
 import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -34,11 +35,24 @@ import org.junit.Test;
  * @author pron
  */
 public class ChannelTest {
-    static final int mailboxSize = 10;
+    final int mailboxSize;
+    final OverflowPolicy policy;
+    final boolean singleConsumer;
+    final boolean singleProducer;
     private ForkJoinPool fjPool;
 
     public ChannelTest() {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+
+
+        this.mailboxSize = 5;
+        this.policy = OverflowPolicy.THROW;
+        this.singleConsumer = true;
+        this.singleProducer = false;
+    }
+
+    private <Message> Channel<Message> newChannel() {
+        return Channels.newChannel(mailboxSize, policy, singleProducer, singleConsumer);
     }
 
     @Before
@@ -51,7 +65,7 @@ public class ChannelTest {
 
     @Test
     public void sendMessageFromFiberToFiber() throws Exception {
-        final Channel<String> ch = Channels.newChannel(mailboxSize);
+        final Channel<String> ch = newChannel();
 
         Fiber fib1 = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -76,7 +90,7 @@ public class ChannelTest {
 
     @Test
     public void sendMessageFromThreadToFiber() throws Exception {
-        final Channel<String> ch = Channels.newChannel(mailboxSize);
+        final Channel<String> ch = newChannel();
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -95,7 +109,7 @@ public class ChannelTest {
 
     @Test
     public void sendMessageFromFiberToThread() throws Exception {
-        final Channel<String> ch = Channels.newChannel(mailboxSize);
+        final Channel<String> ch = newChannel();
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -115,7 +129,7 @@ public class ChannelTest {
 
     @Test
     public void sendMessageFromThreadToThread() throws Exception {
-        final Channel<String> ch = Channels.newChannel(mailboxSize);
+        final Channel<String> ch = newChannel();
 
         Thread thread = new Thread(new Runnable() {
             @Override
@@ -138,10 +152,11 @@ public class ChannelTest {
         thread.join();
     }
 
+    @Ignore
     @Test
     public void whenReceiveNotCalledFromOwnerThenThrowException1() throws Exception {
         assumeTrue(Debug.isAssertionsEnabled());
-        final Channel<String> ch = Channels.newChannel(mailboxSize);
+        final Channel<String> ch = newChannel();
 
         Fiber fib1 = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -172,10 +187,11 @@ public class ChannelTest {
         fib2.join();
     }
 
+    @Ignore
     @Test
     public void whenReceiveNotCalledFromOwnerThenThrowException2() throws Exception {
         assumeTrue(Debug.isAssertionsEnabled());
-        final Channel<String> ch = Channels.newChannel(mailboxSize);
+        final Channel<String> ch = newChannel();
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -200,10 +216,11 @@ public class ChannelTest {
         fib.join();
     }
 
+    @Ignore
     @Test
     public void whenReceiveNotCalledFromOwnerThenThrowException3() throws Exception {
         assumeTrue(Debug.isAssertionsEnabled());
-        final Channel<String> ch = Channels.newChannel(mailboxSize);
+        final Channel<String> ch = newChannel();
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -229,10 +246,11 @@ public class ChannelTest {
         fib.join();
     }
 
+    @Ignore
     @Test
     public void whenReceiveNotCalledFromOwnerThenThrowException4() throws Exception {
         assumeTrue(Debug.isAssertionsEnabled());
-        final Channel<String> ch = Channels.newChannel(mailboxSize);
+        final Channel<String> ch = newChannel();
 
         Thread thread = new Thread(new Runnable() {
             @Override
@@ -264,7 +282,9 @@ public class ChannelTest {
 
     @Test
     public void whenChannelOverflowsThrowException() throws Exception {
-        final Channel<Integer> ch = Channels.newChannel(5, QueueChannel.OverflowPolicy.THROW);
+        assumeThat(policy, is(OverflowPolicy.THROW));
+
+        final Channel<Integer> ch = newChannel();
 
         int i = 0;
         try {
@@ -278,7 +298,8 @@ public class ChannelTest {
 
     @Test
     public void testBlockingChannelSendingFiber() throws Exception {
-        final Channel<Integer> ch = Channels.newChannel(5, QueueChannel.OverflowPolicy.BLOCK);
+        assumeThat(policy, is(OverflowPolicy.BLOCK));
+        final Channel<Integer> ch = newChannel();
 
         Fiber<Integer> receiver = new Fiber<Integer>(fjPool, new SuspendableCallable<Integer>() {
             @Override
@@ -308,7 +329,8 @@ public class ChannelTest {
 
     @Test
     public void testBlockingChannelSendingThread() throws Exception {
-        final Channel<Integer> ch = Channels.newChannel(5, QueueChannel.OverflowPolicy.BLOCK);
+        assumeThat(policy, is(OverflowPolicy.BLOCK));
+        final Channel<Integer> ch = newChannel();
 
         Fiber<Integer> fib = new Fiber<Integer>(fjPool, new SuspendableCallable<Integer>() {
             @Override
@@ -333,7 +355,7 @@ public class ChannelTest {
 
     @Test
     public void testChannelClose() throws Exception {
-        final Channel<Integer> ch = Channels.newChannel(5);
+        final Channel<Integer> ch = newChannel();
 
         Fiber fib = new Fiber(fjPool, new SuspendableRunnable() {
             @Override
@@ -368,7 +390,7 @@ public class ChannelTest {
 
     @Test
     public void testChannelCloseWithSleep() throws Exception {
-        final Channel<Integer> ch = Channels.newChannel(5);
+        final Channel<Integer> ch = newChannel();
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -404,7 +426,7 @@ public class ChannelTest {
 
     @Test
     public void testPrimitiveChannelClose() throws Exception {
-        final IntChannel ch = Channels.newIntChannel(5);
+        final IntChannel ch = Channels.newIntChannel(mailboxSize, policy);
 
         Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
             @Override
@@ -442,9 +464,9 @@ public class ChannelTest {
 
     @Test
     public void testChannelGroupReceive() throws Exception {
-        final Channel<String> channel1 = Channels.newChannel(mailboxSize);
-        final Channel<String> channel2 = Channels.newChannel(mailboxSize);
-        final Channel<String> channel3 = Channels.newChannel(mailboxSize);
+        final Channel<String> channel1 = newChannel();
+        final Channel<String> channel2 = newChannel();
+        final Channel<String> channel3 = newChannel();
 
         final ChannelGroup<String> group = new ChannelGroup<String>(channel1, channel2, channel3);
 
@@ -470,9 +492,9 @@ public class ChannelTest {
 
     @Test
     public void testChannelGroupReceiveWithTimeout() throws Exception {
-        final Channel<String> channel1 = Channels.newChannel(mailboxSize);
-        final Channel<String> channel2 = Channels.newChannel(mailboxSize);
-        final Channel<String> channel3 = Channels.newChannel(mailboxSize);
+        final Channel<String> channel1 = newChannel();
+        final Channel<String> channel2 = newChannel();
+        final Channel<String> channel3 = newChannel();
 
         final ChannelGroup<String> group = new ChannelGroup<String>(channel1, channel2, channel3);
 
@@ -502,9 +524,9 @@ public class ChannelTest {
 
     @Test
     public void testTopic() throws Exception {
-        final Channel<String> channel1 = Channels.newChannel(mailboxSize);
-        final Channel<String> channel2 = Channels.newChannel(mailboxSize);
-        final Channel<String> channel3 = Channels.newChannel(mailboxSize);
+        final Channel<String> channel1 = newChannel();
+        final Channel<String> channel2 = newChannel();
+        final Channel<String> channel3 = newChannel();
 
         final Topic<String> topic = new Topic<String>();
 

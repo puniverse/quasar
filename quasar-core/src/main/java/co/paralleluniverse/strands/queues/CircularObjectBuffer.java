@@ -26,18 +26,19 @@ public class CircularObjectBuffer<E> extends CircularBuffer<E> {
     }
 
     @Override
-    public void enq(E elem) {
+    public boolean enq(E elem) {
         long index = preEnq();
         orderedSet((int) index & mask, elem); // must be orderedSet so as to not be re-ordered with tail bump in postEnq
         postEnq();
+        return true;
     }
 
     @Override
-    public Consumer<E> newConsumer() {
-        return new ObjectConsumer<E>();
+    public Consumer newConsumer() {
+        return new ObjectConsumer();
     }
 
-    private class ObjectConsumer<E> extends Consumer<E> {
+    private class ObjectConsumer extends Consumer {
         private Object value;
 
         @Override

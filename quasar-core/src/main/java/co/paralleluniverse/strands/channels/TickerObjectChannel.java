@@ -23,4 +23,8 @@ public class TickerObjectChannel<Message> extends TickerChannel<Message> {
     public TickerObjectChannel(int size, boolean singleProducer) {
         super(new CircularObjectBuffer<Message>(size, singleProducer));
     }
+
+    public TickerObjectChannel(int size) {
+        this(size, false);
+    }
 }
