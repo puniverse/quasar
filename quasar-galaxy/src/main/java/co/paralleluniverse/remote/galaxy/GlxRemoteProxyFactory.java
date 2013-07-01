@@ -22,23 +22,23 @@ import co.paralleluniverse.strands.channels.SendPort;
  *
  * @author pron
  */
-public class GalaxyRemoteProxyFactory implements RemoteProxyFactory {
+public class GlxRemoteProxyFactory implements RemoteProxyFactory {
     static {
-        KryoSerializer.register(RemoteChannel.class);
-        KryoSerializer.register(RemoteActor.class);
-        KryoSerializer.register(RemoteActor.getActorLifecycleListenerClass());
-        KryoSerializer.register(RemoteChannel.CloseMessage.class);
+        KryoSerializer.register(GlxRemoteChannel.class);
+        KryoSerializer.register(GlxRemoteActor.class);
+        KryoSerializer.register(GlxRemoteActor.getActorLifecycleListenerClass());
+        KryoSerializer.register(GlxRemoteChannel.CloseMessage.class);
         KryoSerializer.register(co.paralleluniverse.actors.ExitMessage.class);
         KryoSerializer.register(co.paralleluniverse.actors.ShutdownMessage.class);
     }
 
     @Override
-    public <Message> RemoteActor<Message> create(LocalActor<Message, ?> actor, Object globalId) {
-        return new RemoteActor<Message>(actor, globalId);
+    public <Message> GlxRemoteActor<Message> create(LocalActor<Message, ?> actor, Object globalId) {
+        return new GlxRemoteActor<Message>(actor, globalId);
     }
 
     @Override
     public <Message> SendPort<Message> create(SendPort<Message> channel, Object globalId) {
-        return new RemoteChannel<Message>(channel, globalId);
+        return new GlxRemoteChannel<Message>(channel, globalId);
     }
 }

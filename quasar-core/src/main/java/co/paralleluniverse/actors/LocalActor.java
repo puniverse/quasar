@@ -29,12 +29,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import jsr166e.ConcurrentHashMapV8;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author pron
  */
 public abstract class LocalActor<Message, V> extends ActorImpl<Message> implements SuspendableCallable<V>, Joinable<V>, Stranded, ReceivePort<Message>, ActorBuilder<Message, V> {
+    private static final Logger LOG = LoggerFactory.getLogger(LocalActor.class);
     private static final ThreadLocal<LocalActor> currentActor = new ThreadLocal<LocalActor>();
     private Strand strand;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
@@ -569,7 +572,10 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     /////////// Serialization ///////////////////////////////////
     // If using Kryo, see what needs to be done: https://code.google.com/p/kryo/
     protected Object writeReplace() throws java.io.ObjectStreamException {
-        return RemoteProxyFactoryService.create(this, globalId);
+        LOG.debug("writeReplace "+this);
+        final RemoteActor<Message> repl = RemoteProxyFactoryService.create(this, globalId);
+        LOG.debug("writeReplace "+repl);
+        return repl;
     }
     //</editor-fold>
 }

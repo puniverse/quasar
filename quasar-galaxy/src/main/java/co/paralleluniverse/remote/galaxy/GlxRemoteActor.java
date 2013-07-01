@@ -26,8 +26,8 @@ import java.util.concurrent.ExecutionException;
  *
  * @author pron
  */
-public class RemoteActor<Message> extends co.paralleluniverse.actors.RemoteActor<Message> {
-    public RemoteActor(final LocalActor<Message, ?> actor, Object globalId) {
+public class GlxRemoteActor<Message> extends co.paralleluniverse.actors.RemoteActor<Message> {
+    public GlxRemoteActor(final LocalActor<Message, ?> actor, Object globalId) {
         super(actor);
         final RemoteChannelReceiver<Object> receiver = RemoteChannelReceiver.getReceiver((QueueChannel<Object>) actor.getMailbox(), globalId != null);
         receiver.setFilter(new RemoteChannelReceiver.MessageFilter<Object>() {
@@ -44,7 +44,7 @@ public class RemoteActor<Message> extends co.paralleluniverse.actors.RemoteActor
 
     @Override
     protected void internalSend(Object message) throws SuspendExecution {
-        ((RemoteChannel) mailbox()).send(message);
+        ((GlxRemoteChannel) mailbox()).send(message);
     }
 
     @Override
@@ -75,9 +75,9 @@ public class RemoteActor<Message> extends co.paralleluniverse.actors.RemoteActor
     public boolean equals(Object obj) {
         if (obj == null)
             return false;
-        if (!(obj instanceof RemoteActor))
+        if (!(obj instanceof GlxRemoteActor))
             return false;
-        final RemoteActor<Message> other = (RemoteActor<Message>) obj;
+        final GlxRemoteActor<Message> other = (GlxRemoteActor<Message>) obj;
         if (!Objects.equals(this.mailbox(), other.mailbox()))
             return false;
         return true;

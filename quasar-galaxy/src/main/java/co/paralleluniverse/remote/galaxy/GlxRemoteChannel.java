@@ -31,7 +31,7 @@ import java.util.Objects;
  *
  * @author pron
  */
-public class RemoteChannel<Message> implements SendPort<Message>, Serializable {
+public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializable {
     private static final Grid grid;
 
     static {
@@ -58,7 +58,7 @@ public class RemoteChannel<Message> implements SendPort<Message>, Serializable {
      *
      * @param channel
      */
-    public RemoteChannel(SendPort<Message> channel, Object globalId) {
+    public GlxRemoteChannel(SendPort<Message> channel, Object globalId) {
         final RemoteChannelReceiver<Message> receiver = RemoteChannelReceiver.getReceiver(channel, globalId != null);
         this.topic = receiver.getTopic();
         if (globalId != null) {
@@ -128,7 +128,7 @@ public class RemoteChannel<Message> implements SendPort<Message>, Serializable {
             FiberUtil.runInFiberRuntime(new SuspendableRunnable() {
                 @Override
                 public void run() throws SuspendExecution, InterruptedException {
-                    ((RemoteChannel) RemoteChannel.this).send(new CloseMessage());
+                    ((GlxRemoteChannel) GlxRemoteChannel.this).send(new CloseMessage());
                 }
             });
         } catch (InterruptedException e) {
@@ -149,9 +149,9 @@ public class RemoteChannel<Message> implements SendPort<Message>, Serializable {
     public boolean equals(Object obj) {
         if (obj == null)
             return false;
-        if (!(obj instanceof RemoteChannel))
+        if (!(obj instanceof GlxRemoteChannel))
             return false;
-        final RemoteChannel<Message> other = (RemoteChannel<Message>) obj;
+        final GlxRemoteChannel<Message> other = (GlxRemoteChannel<Message>) obj;
         if (!Objects.equals(this.topic, other.topic))
             return false;
         if (this.address != other.address)

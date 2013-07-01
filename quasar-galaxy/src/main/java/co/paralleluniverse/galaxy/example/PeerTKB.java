@@ -32,6 +32,7 @@ import co.paralleluniverse.galaxy.TimeoutException;
 import co.paralleluniverse.galaxy.cluster.LifecycleListener;
 import co.paralleluniverse.galaxy.core.Comm;
 import co.paralleluniverse.io.serialization.Serialization;
+import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
 import java.io.FileInputStream;
@@ -53,6 +54,7 @@ public class PeerTKB implements Runnable {
     private final Random random = new Random();
     private final boolean hasServer;
     private volatile Thread myThread;
+    private final int i;
 
     public PeerTKB(String name, int i) throws InterruptedException, IOException {
         System.setProperty("co.paralleluniverse.io.useJDKSerialization", "true");
@@ -69,7 +71,7 @@ public class PeerTKB implements Runnable {
         System.out.println(props);
         grid = co.paralleluniverse.galaxy.Grid.getInstance(peerXml.getPath(), props);
         grid.goOnline();
-
+        this.i = i;
         this.cluster = grid.cluster();
         this.store = grid.store();
         this.messenger = grid.messenger();
@@ -112,100 +114,41 @@ public class PeerTKB implements Runnable {
 
     @Override
     public void run() {
-        try {
             System.out.println("MASTER: start running... " + myNodeId);
-            messenger.addMessageListener("ringping", new MessageListener() {
-                @Override
-                public void messageReceived(short fromNode, byte[] msg) {
-                    System.out.println("Got actor. writing. "+msg.length);
-                    
-                    Actor<String> act = (Actor<String>) Serialization.read(msg);
-                    try {
-                        act.send("Message from " + myNodeId);
-                    } catch (SuspendExecution ex) {
+            if (i == 1) {
+                new Fiber<Void>(new BasicActor<String, Void>() {
+                    @Override
+                    protected Void doRun() throws InterruptedException, SuspendExecution {
+                        System.out.println("registering");
+                        register("master");
+                        System.out.println("registered");
+                        Strand.sleep(2000);
+                        Actor<String> master = getActor("master");
+                        System.out.println("actor is " + master);
+                        String msg = null;
+                        while ((msg = receive()) != null) {
+                            System.out.println("got msg: " + msg);
+                        }
+                        return null;
                     }
+                }).start();
 
-                    try {
-                        if (!isSmallest())
-                            send(nextNode(), "ringping", msg);
-                    } catch (TimeoutException e) {
-                        System.out.println("OOPS. Timeout.");
-                    }
-                }
-            });
 
-//            long root = -1;
-//            System.out.println("Getting root");
-//
-//            while (root == -1) {
-//                StoreTransaction txn = store.beginTransaction();
-//                try {
-//                    root = store.getRoot("root1", txn);
-//                    if (store.isRootCreated(root, txn)) {
-//                        System.out.println("Created root!");
-//                        store.set(root, Longs.toByteArray(1000), txn);
-//                    }
-//                    store.commit(txn);
-//                } catch (TimeoutException e) {
-//                    System.out.println("OOPS. Timeout.");
-//                    store.rollback(txn);
-//                    store.abort(txn);
-//                }
-//            }
-//            System.out.println("Root is " + Long.toHexString(root));
-            long id = 0;
-            int c = 340;
-            final BasicActor<String, Void> actor = new BasicActor<String, Void>() {
-                @Override
-                protected Void doRun() throws InterruptedException, SuspendExecution {
-                    String msg = null;
-                    while ((msg = receive()) != null) {
-                        System.out.println("got msg: " + msg);
-                    }
-                    return null;
-                }
-            };
-            new Fiber(actor).start();
-            final byte[] serActor = Serialization.write(actor);
-            System.out.println("length is "+serActor.length);
-
-            while (!Thread.interrupted()) {
-                Channel<String> channel = Channels.newChannel(100);
-                boolean sent = false;
-                System.out.println("=========================================");
-                System.out.println("ident: " + myNodeId + " " + System.currentTimeMillis());
-                System.out.println("nodes: " + cluster.getNodes());
-                final int numOtherNodes = getNumPeerNodes() - 1;
-                System.out.println("numOtherNodes = " + numOtherNodes);
-                if (numOtherNodes > 0) {
-                    if (isSmallest()) {
-                        try {
-                            sent = true;
-                            final short nextNode = nextNode();
-                            byte[] buf = new byte[c];
-                            System.out.println("Starting ringping! size "+buf.length);
-                            c+=1;
-                            send(nextNode, "ringping", serActor);
-                        } catch (TimeoutException e) {
-                            System.out.println("OOPS. Timeout.");
+            } else {
+                new Fiber<Void>(new BasicActor<String, Void>() {
+                    @Override
+                    protected Void doRun() throws InterruptedException, SuspendExecution {
+                        System.out.println("getting actor");
+                        Actor<String> master = getActor("master");
+                        System.out.println("actor is " + master);
+                        while (true) {
+                            System.out.println("sending msg to master");
+                            master.send("message from actor " + i);
+                            Strand.sleep(3000);
                         }
                     }
-                }
-                System.out.println("sleeping");
-                Thread.sleep(1000);
-//                String backMsg = null;
-//                do {
-//                    try {
-//                        backMsg = channel.receive(10, TimeUnit.MILLISECONDS);
-//                        System.out.println("Got msg in channel: " + backMsg);
-//                    } catch (SuspendExecution ex) {
-//                    }
-//                } while (backMsg != null);
+                }).start();
             }
-        } catch (InterruptedException e) {
-        }
-        System.out.println("DONE!");
-//        System.exit(0);
     }
 
     boolean isSmallest() {

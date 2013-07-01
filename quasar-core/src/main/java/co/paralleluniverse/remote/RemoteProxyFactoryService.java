@@ -13,16 +13,25 @@
  */
 package co.paralleluniverse.remote;
 
+import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.RemoteActor;
+import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.SendPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author pron
  */
 public final class RemoteProxyFactoryService {
+    private static final Logger LOG = LoggerFactory.getLogger(RemoteProxyFactoryService.class);
     private static final RemoteProxyFactory factory = ServiceUtil.loadSingletonService(RemoteProxyFactory.class);
+
+    static {
+        LOG.info("RemoteProxyFactory is {}", factory);
+    }
     
     public static <Message> RemoteActor<Message> create(LocalActor<Message, ?> actor, Object globalId) {
         return factory.create(actor, globalId);
@@ -31,7 +40,7 @@ public final class RemoteProxyFactoryService {
     public static <Message> SendPort<Message> create(SendPort<Message> channel, Object globalId) {
         return factory.create(channel, globalId);
     }
-    
+
     private RemoteProxyFactoryService() {
     }
 }

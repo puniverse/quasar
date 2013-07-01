@@ -92,7 +92,7 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
     @Override
     public void messageReceived(short fromNode, byte[] message) {
         Object m1 = Serialization.read(message);
-        if (m1 instanceof RemoteChannel.CloseMessage) {
+        if(m1 instanceof GlxRemoteChannel.CloseMessage) {
             channel.close();
             unsubscribe();
             return;
@@ -114,7 +114,7 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
     }
 
     private void subscribe() {
-        final Messenger messenger = RemoteChannel.getMessenger();
+        final Messenger messenger = GlxRemoteChannel.getMessenger();
         if (topic instanceof String)
             messenger.addMessageListener((String) topic, this);
         else
@@ -122,7 +122,7 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
     }
 
     private void unsubscribe() {
-        final Messenger messenger = RemoteChannel.getMessenger();
+        final Messenger messenger = GlxRemoteChannel.getMessenger();
         if (topic instanceof String)
             messenger.removeMessageListener((String) topic, this);
         else
