@@ -40,8 +40,8 @@ public class ChannelGroup<Message> implements ReceivePort<Message> {
     public ChannelGroup(ReceivePort<? extends Message>... ports) {
         this.ports = ports;
         final Condition[] conds = new Condition[ports.length];
-        for(int i=0; i<conds.length; i++) 
-            conds[i] = ((SelectableReceive)ports[i]).receiveSelector();
+        for (int i = 0; i < conds.length; i++)
+            conds[i] = ((SelectableReceive) ports[i]).receiveSelector();
         this.selector = new ConditionSelector(conds);
     }
 
@@ -81,13 +81,13 @@ public class ChannelGroup<Message> implements ReceivePort<Message> {
 
         selector.register();
         try {
-            for (;;) {
+            for (int i = 0;; i++) {
                 for (ReceivePort<? extends Message> c : ports) {
                     Message m = c.tryReceive();
                     if (m != null)
                         return m;
                 }
-                selector.await();
+                selector.await(i);
             }
         } finally {
             selector.unregister();
@@ -132,7 +132,7 @@ public class ChannelGroup<Message> implements ReceivePort<Message> {
 
         selector.register();
         try {
-            for (;;) {
+            for (int i = 0;; i++) {
                 for (ReceivePort<? extends Message> c : ports) {
                     Message m = c.tryReceive();
                     if (m != null)
@@ -141,7 +141,7 @@ public class ChannelGroup<Message> implements ReceivePort<Message> {
 
                 if (left <= 0)
                     return null;
-                selector.await(left, TimeUnit.NANOSECONDS);
+                selector.await(i, left, TimeUnit.NANOSECONDS);
                 left = start + unit.toNanos(timeout) - System.nanoTime();
                 if (left <= 0)
                     return null;

@@ -32,6 +32,7 @@ import co.paralleluniverse.fibers.Instrumented;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;

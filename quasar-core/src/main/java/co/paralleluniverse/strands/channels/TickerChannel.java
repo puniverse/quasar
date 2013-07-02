@@ -38,7 +38,7 @@ public abstract class TickerChannel<Message> implements Channel<Message>, Select
     TickerChannelConsumer<Message> builtinConsumer() {
         return new TickerChannelConsumer<Message>(this, buffer.builtinConsumer());
     }
-    
+
     public static <Message> TickerChannelConsumer<Message> newConsumer(Channel<Message> tickerChannel) {
         return ((TickerChannel<Message>) tickerChannel).newConsumer();
     }
@@ -148,12 +148,12 @@ public abstract class TickerChannel<Message> implements Channel<Message>, Select
             final SimpleConditionSynchronizer sync = channel.sync;
             sync.register();
             try {
-                while (!consumer.hasNext()) {
+                for (int i = 0; !consumer.hasNext(); i++) {
                     if (channel.sendClosed) {
                         setReceiveClosed();
                         throw new EOFException();
                     }
-                    sync.await();
+                    sync.await(i);
                 }
                 consumer.poll0();
             } finally {
@@ -171,12 +171,12 @@ public abstract class TickerChannel<Message> implements Channel<Message>, Select
 
             sync.register();
             try {
-                while (!consumer.hasNext()) {
+                for (int i = 0; !consumer.hasNext(); i++) {
                     if (channel.sendClosed) {
                         setReceiveClosed();
                         throw new EOFException();
                     }
-                    sync.await(left, TimeUnit.NANOSECONDS);
+                    sync.await(i, left, TimeUnit.NANOSECONDS);
 
                     left = start + unit.toNanos(timeout) - System.nanoTime();
                     if (left <= 0)

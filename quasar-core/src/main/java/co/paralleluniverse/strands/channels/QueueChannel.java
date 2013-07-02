@@ -96,6 +96,8 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
     @Override
     public boolean trySend(Message message) {
+        if (message == null)
+            throw new IllegalArgumentException("message is null");
         if (isSendClosed())
             return true;
         if (queue.enq(message)) {
@@ -110,6 +112,8 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     }
 
     public void send0(Message message, boolean sync) throws SuspendExecution {
+        if (message == null)
+            throw new IllegalArgumentException("message is null");
         if (isSendClosed())
             return;
         if (overflowPolicy == OverflowPolicy.BLOCK)
@@ -139,7 +143,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
             case THROW:
                 throw new QueueCapacityExceededException();
             case BLOCK:
-                sendersSync.await();
+                sendersSync.await(iter);
                 break;
             case BACKOFF:
                 if (iter > MAX_SEND_RETRIES)
@@ -181,9 +185,12 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     public Message tryReceive() {
         if (receiveClosed)
             return null;
+        boolean closed = isSendClosed();
         final Message m = queue.poll();
         if (m != null)
             signalSenders();
+        else if (closed)
+            setReceiveClosed();
         return m;
     }
 
@@ -193,16 +200,22 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
             return null;
 
         Message m;
+        boolean closed;
         sync.register();
-        while ((m = queue.poll()) == null) {
-            if (isSendClosed()) {
+        for (int i = 0;; i++) {
+            closed = isSendClosed(); // must be read BEFORE queue.poll()
+            if ((m = queue.poll()) != null)
+                break;
+            if (closed) {
                 setReceiveClosed();
                 return null;
             }
-            sync.await();
+            
+            sync.await(i);
         }
         sync.unregister();
 
+        assert m != null;
         signalSenders();
         return m;
     }
@@ -216,19 +229,24 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         if (timeout <= 0)
             return tryReceive();
 
-        Message m;
 
         final long start = System.nanoTime();
         long left = unit.toNanos(timeout);
 
+        Message m;
+        boolean closed;
         sync.register();
         try {
-            while ((m = queue.poll()) == null) {
-                if (isSendClosed()) {
+            for (int i = 0;; i++) {
+                closed = isSendClosed(); // must be read BEFORE queue.poll()
+                if ((m = queue.poll()) != null)
+                    break;
+                if (closed) {
                     setReceiveClosed();
                     return null;
                 }
-                sync.await(left, TimeUnit.NANOSECONDS);
+                
+                sync.await(i, left, TimeUnit.NANOSECONDS);
 
                 left = start + unit.toNanos(timeout) - System.nanoTime();
                 if (left <= 0)
@@ -270,7 +288,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
     @Override
     public String toString() {
-        return "Channel{" + ", sync: " + sync + ", queue: " + Objects.systemToString(queue) + '}';
+        return "Channel{" + "sync: " + sync + ", queue: " + Objects.systemToString(queue) + '}';
     }
 
     protected Object writeReplace() throws java.io.ObjectStreamException {

@@ -177,7 +177,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (target instanceof VoidSuspendableCallable)
             t = ((VoidSuspendableCallable) target).getRunnable();
 
-        if (!isInstrumented(t.getClass()))
+        if (verifyInstrumentation && !isInstrumented(t.getClass()))
             throw new IllegalArgumentException("Target class " + t.getClass() + " has not been instrumented.");
     }
 

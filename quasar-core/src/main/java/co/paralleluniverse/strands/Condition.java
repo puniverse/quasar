@@ -25,9 +25,9 @@ public interface Condition {
 
     public void unregister();
 
-    public void await() throws InterruptedException, SuspendExecution;
+    public void await(int iter) throws InterruptedException, SuspendExecution;
 
-    public boolean await(long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution;
+    public boolean await(int iter, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution;
 
     public void signal();
 

@@ -26,7 +26,7 @@ public class ConditionSelector extends ConditionSynchronizer implements Conditio
     public ConditionSelector(Collection<Condition> conditions) {
         this.conditions = conditions;
     }
-    
+
     public ConditionSelector(Condition... conds) {
         this(Arrays.asList(conds));
     }

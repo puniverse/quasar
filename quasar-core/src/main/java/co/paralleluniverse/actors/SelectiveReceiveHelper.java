@@ -45,7 +45,7 @@ public class SelectiveReceiveHelper<Message> {
 
         actor.monitorResetSkippedMessages();
         Object n = null;
-        for (;;) {
+        for (int i = 0;; i++) {
             if (actor.flightRecorder != null)
                 actor.record(1, "Actor", "receive", "%s waiting for a message. %s", this, timeout > 0 ? "millis left: " + TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS) : "");
 
@@ -91,9 +91,9 @@ public class SelectiveReceiveHelper<Message> {
             } else {
                 try {
                     if (unit == null)
-                        mailbox.await();
+                        mailbox.await(i);
                     else if (timeout > 0) {
-                        mailbox.await(left, TimeUnit.NANOSECONDS);
+                        mailbox.await(i, left, TimeUnit.NANOSECONDS);
 
                         now = System.nanoTime();
                         left = deadline - now;

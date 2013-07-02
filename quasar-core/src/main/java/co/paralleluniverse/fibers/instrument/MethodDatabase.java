@@ -206,7 +206,7 @@ public class MethodDatabase implements Log {
         Boolean suspendable = entry.check(methodName, methodDesc);
         if (suspendable == null) {
             if (opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESTATIC)
-                return isMethodSuspendable(entry.getSuperName(), methodName, methodDesc, opcode);
+                suspendable = isMethodSuspendable(entry.getSuperName(), methodName, methodDesc, opcode);
             else if (opcode == Opcodes.INVOKEINTERFACE) {
                 for (String iface : entry.getInterfaces()) {
                     suspendable = isMethodSuspendable(iface, methodName, methodDesc, opcode);

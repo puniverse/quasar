@@ -88,12 +88,12 @@ public final class Mailbox<Message> extends SingleConsumerQueueChannel<Message> 
         sync().unregister();
     }
 
-    public void await() throws SuspendExecution, InterruptedException {
-        sync().await();
+    public void await(int iter) throws SuspendExecution, InterruptedException {
+        sync().await(iter);
     }
 
-    public void await(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        sync().await(timeout, unit);
+    public void await(int iter, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        sync().await(iter, timeout, unit);
     }
 
     @Override
