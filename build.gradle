@@ -127,9 +127,9 @@ subprojects {
 //        systemProperty "co.paralleluniverse.debugMode", "true"
 //        systemProperty "co.paralleluniverse.globalFlightRecorder", "true"
 //        systemProperty "co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log"
-	    
+//	systemProperty "co.paralleluniverse.monitoring.flightRecorderSize","200000"    
         jvmArgs "-javaagent:${quasarJar}" // =v, =d
-	    
+        jvmArgs "-Xmx2048m" // =v, =d
         doLast() {
             println "file://" + testReportDir + "/index.html"    
         }  
