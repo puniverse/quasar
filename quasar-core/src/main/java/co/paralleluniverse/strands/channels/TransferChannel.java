@@ -22,6 +22,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.remote.RemoteProxyFactoryService;
 import co.paralleluniverse.strands.Condition;
@@ -45,6 +46,8 @@ public class TransferChannel<Message> implements Channel<Message>, SelectableSen
 
     @Override
     public void send(Message message) throws SuspendExecution {
+        if (message == null)
+            throw new IllegalArgumentException("message is null");
         if (isSendClosed())
             return;
         if (xfer1(message, true, SYNC, 0) != null)
@@ -53,6 +56,8 @@ public class TransferChannel<Message> implements Channel<Message>, SelectableSen
 
     @Override
     public boolean trySend(Message message) {
+        if (message == null)
+            throw new IllegalArgumentException("message is null");
         if (isSendClosed())
             return true;
         boolean res = (xfer0(message, true, NOW, 0) == null);
@@ -399,6 +404,8 @@ public class TransferChannel<Message> implements Channel<Message>, SelectableSen
     }
 
     private Object tryMatch(Message e, boolean haveData, int how, long nanos) {
+        boolean closed = isSendClosed(); // must be read before trying to match
+
         for (Node h = head, p = h; p != null;) { // find & match first node
             boolean isData = p.isData;
             Object item = p.item;
@@ -424,7 +431,7 @@ public class TransferChannel<Message> implements Channel<Message>, SelectableSen
             p = (p != n) ? n : (h = head); // Use head if p offlist
         }
 
-        if (isSendClosed()) {
+        if (closed) {
             assert !haveData;
             setReceiveClosed();
             return CHANNEL_CLOSED;
@@ -481,13 +488,15 @@ public class TransferChannel<Message> implements Channel<Message>, SelectableSen
     private Message awaitMatch(Node s, Node pred, Message e, boolean timed, long nanos) throws SuspendExecution {
         long lastTime = timed ? System.nanoTime() : 0L;
         Strand w = Strand.currentStrand();
-        int spins = -1; // initialized after first item and cancel checks
+        int spins = (w instanceof Fiber ? 0 : -1); // no spins in fiber; otherwise, initialized after first item and cancel checks
         ThreadLocalRandom randomYields = null; // bound if needed
 
         for (;;) {
             Object item = s.item;
+
             if (item == CHANNEL_CLOSED)
                 setReceiveClosed();
+
             if (item != e) {                  // matched
                 // assert item != s;
                 s.forgetContents();           // avoid garbage
@@ -499,14 +508,19 @@ public class TransferChannel<Message> implements Channel<Message>, SelectableSen
                 return e;
             }
 
-            if (spins < 0) {                  // establish spins at/near front
-                if ((spins = spinsFor(pred, s.isData)) > 0)
-                    randomYields = ThreadLocalRandom.current();
-            } else if (spins > 0) {             // spin
-                --spins;
-                if (randomYields.nextInt(CHAINED_SPINS) == 0)
-                    Strand.yield();           // occasionally yield
-            } else if (s.waiter == null) {
+            if (spins != 0) {
+                if (spins < 0) {                  // establish spins at/near front
+                    if ((spins = spinsFor(pred, s.isData)) > 0)
+                        randomYields = ThreadLocalRandom.current();
+                } else if (spins > 0) {             // spin
+                    --spins;
+                    if (randomYields.nextInt(CHAINED_SPINS) == 0)
+                        Strand.yield();           // occasionally yield
+                }
+                continue;
+            }
+            
+            if (s.waiter == null) {
                 s.waiter = w;                 // request unpark then recheck
             } else if (timed) {
                 long now = System.nanoTime();

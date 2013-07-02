@@ -68,12 +68,12 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
         maybeSetCurrentStrandAsOwner();
         Object n;
         sync.register();
-        while ((n = queue().pk()) == null) {
+        for (int i = 0; (n = queue().pk()) == null; i++) {
             if (isSendClosed()) {
                 setReceiveClosed();
                 throw new EOFException();
             }
-            sync.await();
+            sync.await(i);
         }
         sync.unregister();
 
@@ -94,12 +94,12 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
 
         sync.register();
         try {
-            while ((n = queue().pk()) == null) {
+            for (int i = 0; (n = queue().pk()) == null; i++) {
                 if (isSendClosed()) {
                     setReceiveClosed();
                     throw new EOFException();
                 }
-                sync.await(left, TimeUnit.NANOSECONDS);
+                sync.await(i, left, TimeUnit.NANOSECONDS);
 
                 left = start + unit.toNanos(timeout) - System.nanoTime();
                 if (left <= 0)
