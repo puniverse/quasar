@@ -25,17 +25,21 @@ import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.remote.RemoteProxyFactoryService;
+import co.paralleluniverse.strands.Condition;
+import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
-public class TransferChannel<Message> implements Channel<Message>, java.io.Serializable {
+public class TransferChannel<Message> implements Channel<Message>, /*SelectableSend,*/ SelectableReceive, java.io.Serializable {
     private volatile boolean sendClosed;
     private boolean receiveClosed;
     private static final Object CHANNEL_CLOSED = new Object();
     private static final Object NO_MATCH = new Object();
+    // private final Condition sendSelector = new SimpleConditionSynchronizer();
+    private final Condition receiveSelector = new SimpleConditionSynchronizer();
 
     public TransferChannel() {
     }
@@ -107,7 +111,6 @@ public class TransferChannel<Message> implements Channel<Message>, java.io.Seria
             return null;
         
         Object m = xfer1(null, false, TIMED, unit.toNanos(timeout));
-        
         if (m != null || !Strand.interrupted()) {
             if (m == CHANNEL_CLOSED)
                 return null;
@@ -143,6 +146,15 @@ public class TransferChannel<Message> implements Channel<Message>, java.io.Seria
         }
     }
 
+//    @Override
+//    public Condition sendSelector() {
+//        return sendSelector;
+//    }
+
+    @Override
+    public Condition receiveSelector() {
+        return receiveSelector;
+    }
     /////////////////////////////////////////
     private static final long serialVersionUID = -3223113410248163686L;
     /**
@@ -355,6 +367,11 @@ public class TransferChannel<Message> implements Channel<Message>, java.io.Seria
                 if (pred == null)
                     continue retry;           // lost race vs opposite mode
 
+                if (haveData)
+                    receiveSelector.signalAll();
+//                else
+//                    sendSelector.signalAll();
+
                 if (how != ASYNC)
                     return awaitMatch(s, pred, e, (how == TIMED), nanos);
             }
@@ -380,6 +397,11 @@ public class TransferChannel<Message> implements Channel<Message>, java.io.Seria
                 Node pred = tryAppend(s, haveData);
                 if (pred == null)
                     continue retry;           // lost race vs opposite mode
+
+                if (haveData)
+                    receiveSelector.signalAll();
+//                else
+//                    sendSelector.signalAll();
             }
             return e; // not waiting
         }
