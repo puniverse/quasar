@@ -42,6 +42,7 @@ public class BoxQueue<E> implements BasicQueue<E> {
 
     @Override
     public boolean enq(E element) {
+        assert element != null;
         if (replaceOnWrite) {
             value = element;
             return true;
@@ -58,7 +59,7 @@ public class BoxQueue<E> implements BasicQueue<E> {
         } else {
             do {
                 v = value;
-            } while(!casValue(v, null));
+            } while(v != null && !casValue(v, null));
         }
         return v;
     }
