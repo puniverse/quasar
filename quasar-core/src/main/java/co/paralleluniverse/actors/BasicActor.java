@@ -17,6 +17,8 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -67,8 +69,16 @@ public abstract class BasicActor<Message, V> extends LocalActor<Message, V> {
         return helper.receive(proc);
     }
 
+    public final <T> T receive(long timeout, TimeUnit unit, final Class<T> type) throws SuspendExecution, InterruptedException, TimeoutException {
+        return helper.receive(timeout, unit, type);
+    }
+
+    public final <T> T receive(final Class<T> type) throws SuspendExecution, InterruptedException {
+        return helper.receive(type);
+    }
+
     @Override
     public final String getName() {
-        return (String)super.getName();
+        return (String) super.getName();
     }
 }

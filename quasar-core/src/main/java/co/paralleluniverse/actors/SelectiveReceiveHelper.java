@@ -127,6 +127,23 @@ public class SelectiveReceiveHelper<Message> {
         }
     }
 
+    public final <T> T receive(long timeout, TimeUnit unit, final Class<T> type) throws SuspendExecution, InterruptedException, TimeoutException {
+        return type.cast(receive(timeout, unit, new MessageProcessor<Message>() {
+            @Override
+            public boolean process(Message m) throws SuspendExecution, InterruptedException {
+                return (type.isInstance(m));
+            }
+        }));
+    }
+
+    public final <T> T receive(final Class<T> type) throws SuspendExecution, InterruptedException {
+        try {
+            return receive(0, null, type);
+        } catch (TimeoutException ex) {
+            throw new AssertionError();
+        }
+    }
+
     protected void handleLifecycleMessage(LifecycleMessage m) {
         actor.handleLifecycleMessage(m);
     }
