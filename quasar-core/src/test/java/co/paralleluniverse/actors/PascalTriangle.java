@@ -46,187 +46,77 @@ public class PascalTriangle {
     @After
     public void tearDown() {
     }
-    // TODO add test methods here.
-    // The methods must be annotated with annotation @Test. For example:
-    //
 
-    private class a {
-        int a;
-    }
-
-    private class b {
-        int b;
-    }
-    
-    @Ignore
     @Test
-    public void hello1() throws InterruptedException, ExecutionException, TimeoutException {
-        List<Fiber> list = new ArrayList<>();
-        for (int i = 0; i < 5000; i++) {
-            list.add(spawn(new BasicActor<Object, Void>() {
-                @Override
-                protected Void doRun() throws InterruptedException, SuspendExecution {
-                    try {
-                        final BasicActor<Object, Void> receiver = new BasicActor<Object, Void>() {
-                            @Override
-                            protected Void doRun() throws InterruptedException, SuspendExecution {
-                                try {
-                                    typedRecieve1(this, a.class);
-                                    typedRecieve1(this, b.class);
-                                } catch (TimeoutException ex) {
-//                                    throw new RuntimeException(ex);
-                                    System.out.println("TO");
-                                    return null;
-                                }
-                                System.out.println("finished");
-                                return null;
-                            }
-                        };
-                        Fiber spawn = spawn(receiver);
-                        receiver.send(new b());
-//                        Fiber spawn1 = spawn(new BasicActor<Object, Void>() {
-//                            @Override
-//                            protected Void doRun() throws InterruptedException, SuspendExecution {
-//                                reciever.send(new b());
-//                                return null;
-//                            }
-//                        });
+    public void testPascalSum() throws InterruptedException, ExecutionException, TimeoutException {
+        int maxLevel = 10;
+        Long get = new Fiber<Long>(new PascalNode(1, 1, true, null, maxLevel)).start().get(10, TimeUnit.SECONDS);
+        assertEquals(Math.pow(2, maxLevel - 1), get, 0);
+    }
 
-                        receiver.send(new a());
-//                        Fiber spawn2 = spawn(new BasicActor<Object, Void>() {
-//                            @Override
-//                            protected Void doRun() throws InterruptedException, SuspendExecution {
-//                                reciever.send(new a());
-//                                System.out.println("sent "+this);
-//                                return null;
-//                            }
-//                        });
-//                        System.out.println("spawn");
-//                        spawn2.join();
-                        spawn.join();
-//                        spawn1.join();
-                        return null;
-                    } catch (ExecutionException ex) {
-                        throw new RuntimeException(ex);
-                    }
-                }
-            }));
+    class RightBrother {
+        PascalNode node;
+
+        public RightBrother(PascalNode pn) {
+            this.node = pn;
         }
-        for (Fiber fiber : list) {
-            fiber.join();
-        }
-        Debug.dumpRecorder();
+        
     }
+    class Nepew {
+        PascalNode node;        
 
-    public Fiber spawn(final BasicActor<Object, Void> basicActor) {
-        return new Fiber<>(basicActor).start();
-    }
-
-    <T> T typedRecieve1(final BasicActor actor, final Class<T> type) throws SuspendExecution, InterruptedException, TimeoutException {
-        System.out.println("stat " + "begin" + " actor: " + actor);
-        return type.cast(actor.receive(500, TimeUnit.MILLISECONDS, new MessageProcessor<Object>() {
-            @Override
-            public boolean process(Object m) throws SuspendExecution, InterruptedException {
-                final boolean instance = type.isInstance(m);
-                System.out.println("stat " + instance + " actor: " + actor + " m: " + m);
-                return (instance);
-            }
-        }));
-    }
-
-    //@Test
-    public void hello() throws InterruptedException, ExecutionException, TimeoutException {
-        new Fiber<Void>(new PascalNode(1, 1, 1, true, null, 11)).start().join(10, TimeUnit.SECONDS);
-    }
-
-    class PascalResult {
-        int res;
-        PascalNode sender;
-
-        public PascalResult(int res, PascalNode sender) {
-            this.res = res;
-            this.sender = sender;
+        public Nepew(PascalNode pn) {
+            this.node = pn;
         }
     }
 
-    class PascalNode extends BasicActor<Object, Void> {
+    class PascalNode extends BasicActor<Object, Long> {
         int level;
         int pos;
-        int n;
+        long val;
         boolean isRight;
         Actor<Object> left;
         int maxLevel;
 
-        public PascalNode(int level, int pos, int n, boolean isRight, Actor<Object> left, int maxLevel) {
+        public PascalNode(int level, long val, boolean isRight, Actor<Object> left, int maxLevel) {
             this.level = level;
-            this.pos = pos;
-            this.n = n;
+            this.val = val;
             this.isRight = isRight;
             this.left = left;
             this.maxLevel = maxLevel;
         }
 
-        @Override
-        public String toString() {
-            return "PascalNode{" + "level=" + level + ", pos=" + pos + ", n=" + n + ", isRight=" + isRight + ", left=" + (left != null) + ", maxLevel=" + maxLevel + '}';
-        }
-
-        PascalResult getResFromRight() throws SuspendExecution, InterruptedException, TimeoutException {
-            if (isRight)
-                return new PascalResult(0, null);
-            return typedRecieve(PascalResult.class);
-        }
-
-        <T> T typedRecieve(final Class<T> type) throws SuspendExecution, InterruptedException, TimeoutException {
-            return type.cast(receive(500, TimeUnit.MILLISECONDS, new MessageProcessor<Object>() {
-                @Override
-                public boolean process(Object m) throws SuspendExecution, InterruptedException {
-                    final boolean instance = type.isInstance(m);
-                    if (!instance)
-                        System.out.println("ni " + PascalNode.this);
-                    return (instance);
-                }
-            }));
+        Fiber spawn() {
+            return new Fiber<>(this).start();
         }
 
         @Override
-        protected Void doRun() throws InterruptedException, SuspendExecution {
-            System.out.println("" + System.nanoTime() + " start " + this);
-            if (level == maxLevel) {
-                System.out.println("val is " + n);
-                return null;
-            }
+        protected Long doRun() throws InterruptedException, SuspendExecution {
+            if (level == maxLevel)
+                return val;
+
             PascalNode leftChild;
             if (left != null) {
-                left.send(new PascalResult(n, this));
-                System.out.println("" + System.nanoTime() + " sent res from " + this + " to " + left);
-                try {
-                    leftChild = typedRecieve(PascalNode.class);
-                } catch (TimeoutException ex) {
-                    throw new RuntimeException("lc " + this, ex);
-                }
+                left.send(new RightBrother(this));
+                leftChild = receive(Nepew.class).node;
             } else {
-                leftChild = new PascalNode(level + 1, pos, n, false, null, maxLevel);
-                new Fiber<Void>(leftChild).start();
+                leftChild = new PascalNode(level + 1, val, false, null, maxLevel);
+                leftChild.spawn();
             }
-            final PascalResult resFromRight;
+            final PascalNode rb = isRight? null: receive(RightBrother.class).node;
+            final PascalNode rightChild = new PascalNode(level + 1, val + (rb==null?0:rb.val), isRight, leftChild, maxLevel);
+            rightChild.spawn();
+            if (rb != null)
+                rb.send(new Nepew(rightChild));
+
             try {
-                resFromRight = getResFromRight();
-            } catch (TimeoutException ex) {
-                throw new RuntimeException("rv " + System.nanoTime() + this, ex);
-            }
-            final PascalNode rightChild = new PascalNode(level + 1, pos + 1, n + resFromRight.res, isRight, leftChild, maxLevel);
-            new Fiber<Void>(rightChild).start();
-            if (resFromRight.sender != null) {
-                resFromRight.sender.send(rightChild);
-            }
-            try {
-                leftChild.join();
-                rightChild.join();
+                if (left == null)
+                    return leftChild.get() + rightChild.get();
+                else
+                    return rightChild.get();
             } catch (ExecutionException ex) {
-                Logger.getLogger(PascalTriangle.class.getName()).log(Level.SEVERE, null, ex);
+                throw new RuntimeException(ex);
             }
-            return null;
         }
     }
 }
