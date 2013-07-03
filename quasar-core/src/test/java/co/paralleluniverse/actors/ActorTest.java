@@ -24,6 +24,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jsr166e.ForkJoinPool;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
@@ -119,36 +121,31 @@ public class ActorTest {
         assertThat(actor.get(), is(42));
     }
 
-    private class TypedReceiveA {};
-    private class TypedReceiveB {};
-    
-    @Ignore
+    private class TypedReceiveA {
+    };
+
+    private class TypedReceiveB {
+    };
+
     @Test
     public void testTypedReceive() throws Exception {
-        LocalActor<Object, List> actor = spawnActor(new BasicActor<Object, List>(mailboxConfig) {
+        LocalActor<Object, List<Object>> actor = spawnActor(new BasicActor<Object, List<Object>>(mailboxConfig) {
             @Override
-            protected List doRun() throws InterruptedException, SuspendExecution {
-                List list = new ArrayList<Object>();
-                System.out.println("KKK ");
-                final TypedReceiveA receive = receive(TypedReceiveA.class);
-                System.out.println("KKK "+receive);
-                final TypedReceiveB receive1 = receive(TypedReceiveB.class);
-                System.out.println("KKK "+receive+" "+receive1);
-                list.add(receive);
-                list.add(receive1);
+            protected List<Object> doRun() throws InterruptedException, SuspendExecution {
+                List<Object> list = new ArrayList<>();
+                list.add(receive(TypedReceiveA.class));
+                list.add(receive(TypedReceiveB.class));
                 return list;
-            }            
+            }
         });
         final TypedReceiveB typedReceiveB = new TypedReceiveB();
         final TypedReceiveA typedReceiveA = new TypedReceiveA();
         actor.send(typedReceiveB);
         Thread.sleep(2);
         actor.send(typedReceiveA);
-//        final List get = actor.get();        
-        final List get = actor.get(10, TimeUnit.MILLISECONDS);        
-        assertThat(get, equalTo((List)Arrays.asList(typedReceiveA,typedReceiveB)));        
+        assertThat(actor.get(500, TimeUnit.MILLISECONDS), equalTo(Arrays.asList(typedReceiveA, typedReceiveB)));
     }
-    
+
     @Test
     public void testSelectiveReceive() throws Exception {
         LocalActor<ComplexMessage, List<Integer>> actor = spawnActor(new BasicActor<ComplexMessage, List<Integer>>(mailboxConfig) {

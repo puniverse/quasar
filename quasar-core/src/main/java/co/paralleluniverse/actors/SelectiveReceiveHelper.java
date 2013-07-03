@@ -79,6 +79,8 @@ public class SelectiveReceiveHelper<Message> {
                             if (mailbox.value(n) == msg) // another call to receive from within the processor may have deleted n
                                 mailbox.del(n);
                             throw e;
+                        } finally {
+                            currentMessage = null;
                         }
                         actor.monitorSkippedMessage();
                     }
