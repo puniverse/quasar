@@ -4,54 +4,57 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
+import co.paralleluniverse.strands.channels.Channels;
+import co.paralleluniverse.strands.dataflow.DelayedVal;
+import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  *
  * @author eitan
  */
 public class PascalTriangle {
+    final MailboxConfig mailboxConfig = new MailboxConfig(4, Channels.OverflowPolicy.THROW);
+
     public PascalTriangle() {
     }
-
-    @BeforeClass
-    public static void setUpClass() {
-    }
-
-    @AfterClass
-    public static void tearDownClass() {
-    }
-
-    @Before
-    public void setUp() {
-    }
-
-    @After
-    public void tearDown() {
+    
+    @Ignore
+    @Test
+    public void testSeqPascalSum() {
+        int maxLevel = 800;
+        BigInteger[] bi = new BigInteger[1];
+        bi[0] = BigInteger.ONE;
+        BigInteger[] nbi = null;
+        for (int i = 1; i < maxLevel; i++) {
+            nbi = new BigInteger[bi.length + 1];
+            nbi[0] = BigInteger.ONE;
+            for (int j = 1; j < nbi.length-1; j++) {
+                nbi[j] = bi[j].add(bi[j - 1]);
+            }
+            nbi[nbi.length-1] = BigInteger.ONE;
+            bi = nbi;
+        }
+//        System.out.println(Arrays.toString(nbi));
+        BigInteger sum = BigInteger.ZERO;
+        for (int i = 0; i < nbi.length; i++) {
+            sum = sum.add(nbi[i]);
+        }
+        assertEquals(BigInteger.valueOf(2).pow(maxLevel - 1), sum);
     }
 
     @Test
-    public void testPascalSum() throws InterruptedException, ExecutionException, TimeoutException {
-        int maxLevel = 10;
-        Long get = new Fiber<Long>(new PascalNode(1, 1, true, null, maxLevel)).start().get(10, TimeUnit.SECONDS);
-        assertEquals(Math.pow(2, maxLevel - 1), get, 0);
+    public void testPascalSum() throws Exception {
+        int maxLevel = 20; //800
+        DelayedVal<BigInteger> res = new DelayedVal<>();
+        new Fiber<Void>(new PascalNode(res, 1, BigInteger.ONE, true, null, maxLevel)).start();
+        assertEquals(BigInteger.valueOf(2).pow(maxLevel - 1), res.get(10, TimeUnit.SECONDS));
     }
 
     class RightBrother {
@@ -60,25 +63,30 @@ public class PascalTriangle {
         public RightBrother(PascalNode pn) {
             this.node = pn;
         }
-        
     }
-    class Nepew {
-        PascalNode node;        
 
-        public Nepew(PascalNode pn) {
+    class Nephew {
+        PascalNode node;
+
+        public Nephew(PascalNode pn) {
             this.node = pn;
         }
     }
 
-    class PascalNode extends BasicActor<Object, Long> {
+    class PascalNode extends BasicActor<Object, Void> {
+        final DelayedVal<BigInteger> result;
         int level;
         int pos;
-        long val;
+        BigInteger val;
         boolean isRight;
         Actor<Object> left;
         int maxLevel;
+        DelayedVal<BigInteger> leftResult = new DelayedVal<>();
+        DelayedVal<BigInteger> rightResult = new DelayedVal<>();
 
-        public PascalNode(int level, long val, boolean isRight, Actor<Object> left, int maxLevel) {
+        public PascalNode(DelayedVal<BigInteger> result, int level, BigInteger val, boolean isRight, Actor<Object> left, int maxLevel) {
+            super(mailboxConfig);
+            this.result = result;
             this.level = level;
             this.val = val;
             this.isRight = isRight;
@@ -91,32 +99,31 @@ public class PascalTriangle {
         }
 
         @Override
-        protected Long doRun() throws InterruptedException, SuspendExecution {
-            if (level == maxLevel)
-                return val;
+        protected Void doRun() throws InterruptedException, SuspendExecution {
+            if (level == maxLevel) {
+                result.set(val);
+                return null;
+            }
 
             PascalNode leftChild;
             if (left != null) {
                 left.send(new RightBrother(this));
-                leftChild = receive(Nepew.class).node;
+                leftChild = receive(Nephew.class).node;
             } else {
-                leftChild = new PascalNode(level + 1, val, false, null, maxLevel);
+                leftChild = new PascalNode(leftResult, level + 1, val, false, null, maxLevel);
                 leftChild.spawn();
             }
-            final PascalNode rb = isRight? null: receive(RightBrother.class).node;
-            final PascalNode rightChild = new PascalNode(level + 1, val + (rb==null?0:rb.val), isRight, leftChild, maxLevel);
+            final PascalNode rb = isRight ? null : receive(RightBrother.class).node;
+            final PascalNode rightChild = new PascalNode(rightResult, level + 1, val.add(rb == null ? BigInteger.ZERO : rb.val), isRight, leftChild, maxLevel);
             rightChild.spawn();
             if (rb != null)
-                rb.send(new Nepew(rightChild));
+                rb.send(new Nephew(rightChild));
 
-            try {
-                if (left == null)
-                    return leftChild.get() + rightChild.get();
-                else
-                    return rightChild.get();
-            } catch (ExecutionException ex) {
-                throw new RuntimeException(ex);
-            }
+            if (left == null)
+                result.set(leftResult.get().add(rightResult.get()));
+            else
+                result.set(rightResult.get());
+            return null;
         }
     }
 }
