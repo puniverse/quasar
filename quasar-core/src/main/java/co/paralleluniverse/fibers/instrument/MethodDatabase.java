@@ -205,11 +205,12 @@ public class MethodDatabase implements Log {
 
         Boolean suspendable = entry.check(methodName, methodDesc);
         if (suspendable == null) {
-            if (opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESTATIC)
+            if (opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESTATIC) {
                 suspendable = isMethodSuspendable(entry.getSuperName(), methodName, methodDesc, opcode);
-            else if (opcode == Opcodes.INVOKEINTERFACE) {
+            } else if (opcode == Opcodes.INVOKEINTERFACE) {
                 for (String iface : entry.getInterfaces()) {
-                    suspendable = isMethodSuspendable(iface, methodName, methodDesc, opcode);
+                    if (!isJavaCore(iface)) // otherwise it'll return false
+                        suspendable = isMethodSuspendable(iface, methodName, methodDesc, opcode);
                     if (suspendable != null)
                         break;
                 }
