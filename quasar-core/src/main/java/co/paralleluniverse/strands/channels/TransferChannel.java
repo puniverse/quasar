@@ -33,13 +33,13 @@ import java.util.concurrent.TimeUnit;
  * @author Doug Lea
  * @author pron
  */
-public class SelectableTransferChannel<Message> implements Channel<Message>, Selectable<Message> {
+public class TransferChannel<Message> implements Channel<Message>, Selectable<Message> {
     private volatile boolean sendClosed;
     private boolean receiveClosed;
     private static final Object CHANNEL_CLOSED = new Object();
     private static final Object NO_MATCH = new Object();
 
-    public SelectableTransferChannel() {
+    public TransferChannel() {
     }
 
     @Override
@@ -60,7 +60,7 @@ public class SelectableTransferChannel<Message> implements Channel<Message>, Sel
             return true;
         if (xfer1(message, true, TIMED, unit.toNanos(timeout)) == null)
             return true;
-        if(!Strand.interrupted())
+        if (!Strand.interrupted())
             return false;
         throw new InterruptedException();
     }
@@ -118,8 +118,11 @@ public class SelectableTransferChannel<Message> implements Channel<Message>, Sel
             return;
         Node p = t.n;
         Node pred = t.pred;
-        if (p.casItem(null, p))        // cancel
-            unsplice(pred, p);
+        Object x = p.item;
+        if (!((x == p) || ((x == null) == p.isData)))  {
+            if (p.casItem(x, p))        // cancel
+                unsplice(pred, p);
+        }
     }
 
     @Override
@@ -440,7 +443,9 @@ public class SelectableTransferChannel<Message> implements Channel<Message>, Sel
         for (;;) {                            // restart on append race
             if (!e.lease())
                 return null;
-            Object item = tryMatch(e.message(), haveData);
+            Object item = null;
+            if (!receiveClosed && !(sendClosed && e.isData()))
+                item = tryMatch(e.message(), haveData);
             if (item != NO_MATCH) {
                 e.setItem(item == CHANNEL_CLOSED ? null : (Message) item);
                 e.won();
@@ -770,7 +775,7 @@ public class SelectableTransferChannel<Message> implements Channel<Message>, Sel
     static {
         try {
             UNSAFE = UtilUnsafe.getUnsafe();
-            Class k = SelectableTransferChannel.class;
+            Class k = TransferChannel.class;
             headOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("head"));
             tailOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("tail"));
             sweepVotesOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("sweepVotes"));

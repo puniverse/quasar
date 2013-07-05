@@ -22,8 +22,12 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public class TimeoutChannel<Message> extends SelectableTransferChannel<Message> {
-    public TimeoutChannel(long timeout, TimeUnit unit) {
+public class TimeoutChannel<Message> extends TransferChannel<Message> {
+    public static <Message> Channel<Message> timeout(long timeout, TimeUnit unit) {
+        return new TimeoutChannel<Message>(timeout, unit);
+    }
+
+    private TimeoutChannel(long timeout, TimeUnit unit) {
         fiberTimeoutService.schedule(new Runnable() {
             @Override
             public void run() {
@@ -31,7 +35,6 @@ public class TimeoutChannel<Message> extends SelectableTransferChannel<Message> 
             }
         }, timeout, unit);
     }
-
     private static final ScheduledExecutorService fiberTimeoutService;
 
     static {

@@ -52,7 +52,7 @@ public final class Channels {
         if (mailboxSize == 0) {
             if (policy != OverflowPolicy.BLOCK)
                 throw new IllegalArgumentException("Cannot use policy " + policy + " for channel with size 0 (only BLOCK supported");
-            return new SelectableTransferChannel<Message>();
+            return new TransferChannel<Message>();
         }
 
         final BasicQueue<Message> queue;

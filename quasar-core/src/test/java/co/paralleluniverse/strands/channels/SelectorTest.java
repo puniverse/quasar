@@ -23,6 +23,7 @@ import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import static co.paralleluniverse.strands.channels.Selector.*;
+import static co.paralleluniverse.strands.channels.TimeoutChannel.*;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
@@ -230,9 +231,6 @@ public class SelectorTest {
         Thread.sleep(200);
         channel3.close();
 
-        Thread.sleep(200);
-        channel2.close();
-
         fib.join();
     }
 
@@ -267,13 +265,12 @@ public class SelectorTest {
         }).start();
 
         channel3.close();
-        channel2.close();
 
         fib.join();
     }
 
     @Test
-    public void testSelectReceiveTimeout1() throws Exception {
+    public void testSelectReceiveTimeout() throws Exception {
         final Channel<String> channel1 = newChannel();
         final Channel<String> channel2 = newChannel();
         final Channel<String> channel3 = newChannel();
@@ -293,6 +290,41 @@ public class SelectorTest {
                 String m2 = sa2.message();
 
                 assertThat(sa1, is(nullValue()));
+                assertThat(sa2.index(), is(0));
+                assertThat(m2, equalTo("hello"));
+            }
+        }).start();
+
+        Thread.sleep(200);
+
+        channel1.send("hello");
+
+        fib.join();
+    }
+
+    @Test
+    public void testSelectReceiveWithTimeoutChannel() throws Exception {
+        final Channel<String> channel1 = newChannel();
+        final Channel<String> channel2 = newChannel();
+        final Channel<String> channel3 = newChannel();
+
+        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                SelectAction<String> sa1 = select(
+                        receive(channel1),
+                        receive(channel2),
+                        receive(channel3),
+                        receive(TimeoutChannel.<String>timeout(1, TimeUnit.MILLISECONDS)));
+
+                SelectAction<String> sa2 = select(
+                        receive(channel1),
+                        receive(channel2),
+                        receive(channel3),
+                        receive(TimeoutChannel.<String>timeout(300, TimeUnit.MILLISECONDS)));
+                String m2 = sa2.message();
+
+                assertThat(sa1.index(), is(3));
                 assertThat(sa2.index(), is(0));
                 assertThat(m2, equalTo("hello"));
             }
@@ -372,6 +404,137 @@ public class SelectorTest {
 
         String m2 = channel1.receive();
         assertThat(m2, equalTo("hi1"));
+
+        fib.join();
+    }
+
+    @Test
+    public void testSelectSendWithClose1() throws Exception {
+        final Channel<String> channel1 = newChannel();
+        final Channel<String> channel2 = newChannel();
+        final Channel<String> channel3 = newChannel();
+
+        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                SelectAction<String> sa1 = select(
+                        send(channel1, "hi1"),
+                        send(channel2, "hi2"),
+                        send(channel3, "hi3"));
+
+                SelectAction<String> sa2 = select(
+                        send(channel1, "hi1"),
+                        send(channel2, "hi2"),
+                        send(channel3, "hi3"));
+
+                assertThat(sa1.index(), is(1));
+                assertThat(sa2.index(), is(1));
+            }
+        }).start();
+
+        Thread.sleep(200);
+
+        channel2.close();
+
+        fib.join();
+    }
+
+    @Test
+    public void testSelectSendWithClose2() throws Exception {
+        final Channel<String> channel1 = newChannel();
+        final Channel<String> channel2 = newChannel();
+        final Channel<String> channel3 = newChannel();
+
+        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                Strand.sleep(200);
+                SelectAction<String> sa1 = select(
+                        send(channel1, "hi1"),
+                        send(channel2, "hi2"),
+                        send(channel3, "hi3"));
+
+                Strand.sleep(200);
+                SelectAction<String> sa2 = select(
+                        send(channel1, "hi1"),
+                        send(channel2, "hi2"),
+                        send(channel3, "hi3"));
+
+                assertThat(sa1.index(), is(1));
+                assertThat(sa2.index(), is(1));
+            }
+        }).start();
+
+
+        channel2.close();
+
+        fib.join();
+    }
+
+    @Test
+    public void testSelectSendTimeout() throws Exception {
+        final Channel<String> channel1 = newChannel();
+        final Channel<String> channel2 = newChannel();
+        final Channel<String> channel3 = newChannel();
+
+        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                SelectAction<String> sa1 = select(1, TimeUnit.MILLISECONDS,
+                        send(channel1, "hi1"),
+                        send(channel2, "hi2"),
+                        send(channel3, "hi3"));
+
+                SelectAction<String> sa2 = select(300, TimeUnit.MILLISECONDS,
+                        send(channel1, "bye1"),
+                        send(channel2, "bye2"),
+                        send(channel3, "bye3"));
+
+                assertThat(sa1, is(nullValue()));
+                assertThat(sa2.index(), is(2));
+            }
+        }).start();
+
+        Thread.sleep(200);
+
+        String m1 = channel3.receive();
+
+        assertThat(m1, equalTo("bye3")); // the first send is cancelled
+
+        fib.join();
+    }
+
+    @Test
+    public void testSelectSendWithTimeoutChannel() throws Exception {
+        final Channel<String> channel1 = newChannel();
+        final Channel<String> channel2 = newChannel();
+        final Channel<String> channel3 = newChannel();
+
+        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                SelectAction<String> sa1 = select(
+                        send(channel1, "hi1"),
+                        send(channel2, "hi2"),
+                        send(channel3, "hi3"),
+                        receive(TimeoutChannel.<String>timeout(1, TimeUnit.MILLISECONDS)));
+
+                SelectAction<String> sa2 = select(
+                        send(channel1, "bye1"),
+                        send(channel2, "bye2"),
+                        send(channel3, "bye3"),
+                        receive(TimeoutChannel.<String>timeout(300, TimeUnit.MILLISECONDS)));
+
+                assertThat(sa1.index(), is(3));
+                assertThat(sa2.index(), is(2));
+            }
+        }).start();
+
+        Thread.sleep(200);
+
+        String m1 = channel3.receive();
+
+        assertThat(m1, equalTo("bye3")); // the first send is cancelled
 
         fib.join();
     }
