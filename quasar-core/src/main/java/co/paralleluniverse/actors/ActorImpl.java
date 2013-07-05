@@ -23,6 +23,7 @@ import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.math.BigInteger;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -96,6 +97,12 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendPort<Mes
         }
     }
 
+    @Override
+    public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        send(message);
+        return true;
+    }
+    
     public void sendOrInterrupt(Object message) {
         try {
             internalSendNonSuspendable(message);

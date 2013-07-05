@@ -27,7 +27,7 @@ import java.util.Queue;
  *
  * @author pron
  */
-public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E> implements Iterable<E>, Queue<E>, BasicQueue<E> {
+public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E> implements Iterable<E>, Queue<E>, BasicSingleConsumerQueue<E> {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
     @Override
@@ -48,7 +48,13 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
     @Override
     public abstract int size();
 
+    @Override
     public abstract int capacity();
+
+    @Override
+    public boolean hasNext() {
+        return !isEmpty();
+    }
     
     @Override
     public boolean isEmpty() {

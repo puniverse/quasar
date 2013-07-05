@@ -13,19 +13,14 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-import java.util.concurrent.TimeUnit;
-
 /**
  *
  * @author pron
  */
-public interface SendPort<Message> {
-    void send(Message message) throws SuspendExecution, InterruptedException;
+interface Selectable<Message> {
+    Object register(SelectAction<Message> action);
 
-    boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
+    boolean tryNow(Object token);
 
-    boolean trySend(Message message);
-
-    void close();
+    void unregister(Object token);
 }

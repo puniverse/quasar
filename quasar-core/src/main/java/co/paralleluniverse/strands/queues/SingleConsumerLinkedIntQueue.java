@@ -17,7 +17,8 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-public class SingleConsumerLinkedIntQueue extends SingleConsumerLinkedWordQueue<Integer> implements SingleConsumerIntQueue<SingleConsumerLinkedQueue.Node<Integer>> {
+public class SingleConsumerLinkedIntQueue extends SingleConsumerLinkedWordQueue<Integer>
+        implements SingleConsumerIntQueue<SingleConsumerLinkedQueue.Node<Integer>>, BasicSingleConsumerIntQueue {
     @Override
     public boolean enq(int item) {
         return enqRaw(item);
@@ -38,5 +39,13 @@ public class SingleConsumerLinkedIntQueue extends SingleConsumerLinkedWordQueue<
     @Override
     public Integer value(Node<Integer> node) {
         return intValue(node);
+    }
+
+    @Override
+    public int pollInt() {
+        final Node n = pk();
+        final int val = intValue(n);
+        deq(n);
+        return val;
     }
 }

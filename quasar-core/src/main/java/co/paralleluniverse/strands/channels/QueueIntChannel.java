@@ -15,8 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
-import co.paralleluniverse.strands.queues.SingleConsumerIntQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerQueue;
+import co.paralleluniverse.strands.queues.BasicSingleConsumerIntQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -25,7 +24,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements IntChannel {
-    public QueueIntChannel(SingleConsumerQueue<Integer, ?> queue, OverflowPolicy policy) {
+    public QueueIntChannel(BasicSingleConsumerIntQueue queue, OverflowPolicy policy) {
         super(queue, policy);
     }
 
@@ -33,9 +32,8 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
     public int receiveInt() throws SuspendExecution, InterruptedException {
         if (isClosed())
             throw new EOFException();
-        final Object n = receiveNode();
-        final int m = queue1().intValue(n);
-        queue().deq(n);
+        awaitItem();
+        final int m = queue().pollInt();
         signalSenders();
         return m;
     }
@@ -44,21 +42,11 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
     public int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
         if (isClosed())
             throw new EOFException();
-        final Object n = receiveNode(timeout, unit);
-        if (n == null)
+        if (!awaitItem(timeout, unit))
             throw new TimeoutException();
-        final int m = queue1().intValue(n);
-        queue().deq(n);
+        final int m = queue().pollInt();
         signalSenders();
         return m;
-    }
-
-    @Override
-    public void send(int message) {
-        if (isSendClosed())
-            return;
-        queue().enq(message);
-        signalReceivers();
     }
 
     @Override
@@ -72,14 +60,28 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
             return false;
     }
 
-    public void sendSync(int message) {
+    @Override
+    public void send(int message) throws SuspendExecution, InterruptedException {
         if (isSendClosed())
             return;
-        queue().enq(message);
-        signalAndTryToExecNow();
+        if (!queue().enq(message))
+            super.send(message);
+        else
+            signalReceivers();
     }
 
-    private SingleConsumerIntQueue<Object> queue1() {
-        return (SingleConsumerIntQueue<Object>) queue;
+    @Override
+    public boolean send(int message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        if (isSendClosed())
+            return true;
+        if (!queue().enq(message))
+            return super.send(message, timeout, unit);
+        signalReceivers();
+        return true;
+    }
+
+    @Override
+    protected BasicSingleConsumerIntQueue queue() {
+        return (BasicSingleConsumerIntQueue) queue;
     }
 }

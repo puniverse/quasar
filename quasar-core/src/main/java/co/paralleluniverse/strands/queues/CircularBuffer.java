@@ -95,6 +95,10 @@ public abstract class CircularBuffer<E> implements BasicQueue<E> {
         return consumer.size();
     }
 
+    public boolean hasNext() {
+        return consumer.hasNext();
+    }
+
     public abstract Consumer newConsumer();
 
     public abstract class Consumer {
@@ -136,7 +140,7 @@ public abstract class CircularBuffer<E> implements BasicQueue<E> {
         }
 
         public E poll() {
-            if(!hasNext())
+            if (!hasNext())
                 return null;
             poll0();
             final E v = getValue();

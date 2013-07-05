@@ -17,7 +17,7 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-public class CircularFloatBuffer extends CircularWordBuffer<Float> {
+public class CircularFloatBuffer extends CircularWordBuffer<Float> implements BasicSingleConsumerFloatQueue {
     public CircularFloatBuffer(int size, boolean singleProducer) {
         super(size, singleProducer);
     }
@@ -27,9 +27,15 @@ public class CircularFloatBuffer extends CircularWordBuffer<Float> {
         return enq(elem.floatValue());
     }
 
+    @Override
     public boolean enq(float elem) {
         enqRaw(Float.floatToRawIntBits(elem));
         return true;
+    }
+
+    @Override
+    public float pollFloat() {
+        return ((FloatConsumer) consumer).pollFloat();
     }
 
     @Override
@@ -44,6 +50,11 @@ public class CircularFloatBuffer extends CircularWordBuffer<Float> {
 
         @Override
         protected Float getValue() {
+            return getFloatValue();
+        }
+
+        public float pollFloat() {
+            poll0();
             return getFloatValue();
         }
     }

@@ -137,7 +137,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
-    public void interrupt() {
+    public final void interrupt() {
         getStrand().interrupt();
     }
 
@@ -319,7 +319,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
-    public boolean isClosed() {
+    public final boolean isClosed() {
         return mailbox().isClosed();
     }
     //</editor-fold>

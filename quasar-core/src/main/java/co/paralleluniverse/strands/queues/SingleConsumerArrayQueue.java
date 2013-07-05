@@ -101,6 +101,17 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
     }
 
     @Override
+    public boolean hasNext() {
+        final long h = head;
+        if (h >= cachedMaxReadIndex) {
+            cachedMaxReadIndex = maxReadIndex();
+            if (h >= cachedMaxReadIndex)
+                return false;
+        }
+        return true;
+    }
+    
+    @Override
     @SuppressWarnings("empty-statement")
     public Integer pk() {
         final long h = head;

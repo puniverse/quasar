@@ -14,7 +14,16 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.strands.queues.ArrayQueue;
-import co.paralleluniverse.strands.queues.CircularBuffer;
+import co.paralleluniverse.strands.queues.BasicQueue;
+import co.paralleluniverse.strands.queues.BasicSingleConsumerDoubleQueue;
+import co.paralleluniverse.strands.queues.BasicSingleConsumerFloatQueue;
+import co.paralleluniverse.strands.queues.BasicSingleConsumerIntQueue;
+import co.paralleluniverse.strands.queues.BasicSingleConsumerLongQueue;
+import co.paralleluniverse.strands.queues.BoxQueue;
+import co.paralleluniverse.strands.queues.CircularDoubleBuffer;
+import co.paralleluniverse.strands.queues.CircularFloatBuffer;
+import co.paralleluniverse.strands.queues.CircularIntBuffer;
+import co.paralleluniverse.strands.queues.CircularLongBuffer;
 import co.paralleluniverse.strands.queues.CircularObjectBuffer;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayDoubleQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayFloatQueue;
@@ -40,26 +49,30 @@ public final class Channels {
     private static final boolean defaultSingleConsumer = true;
 
     public static <Message> Channel<Message> newChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
-        if (mailboxSize == 0 && policy == OverflowPolicy.BLOCK)
-            return new TransferChannel<Message>();
-
-        if (policy == OverflowPolicy.DISPLACE && mailboxSize > 0) {
-            if (!singleConsumer)
-                throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
-            return new QueueObjectChannel<Message>(new CircularObjectBuffer<Message>(mailboxSize, singleProducer), policy, singleConsumer);
+        if (mailboxSize == 0) {
+            if (policy != OverflowPolicy.BLOCK)
+                throw new IllegalArgumentException("Cannot use policy " + policy + " for channel with size 0 (only BLOCK supported");
+            return new SelectableTransferChannel<Message>();
         }
 
-        if (policy == OverflowPolicy.BLOCK && mailboxSize == 0)
-            return new TransferChannel<Message>();
+        final BasicQueue<Message> queue;
+        if (mailboxSize < 0) {
+            if (!singleConsumer)
+                throw new UnsupportedOperationException("Unbounded queue with multiple consumers is unsupported");
+            queue = new SingleConsumerLinkedArrayObjectQueue<Message>();
+        } else if (mailboxSize == 1)
+            queue = new BoxQueue<Message>(policy == OverflowPolicy.DISPLACE, singleConsumer);
+        else if (policy == OverflowPolicy.DISPLACE) {
+            if (!singleConsumer)
+                throw new UnsupportedOperationException("Channel with DISPLACE policy configuration is not supported for multiple consumers");
+            queue = new CircularObjectBuffer<Message>(mailboxSize, singleProducer);
+        } else if (singleConsumer)
+            queue = new SingleConsumerArrayObjectQueue<Message>(mailboxSize);
+        else
+            queue = new ArrayQueue<Message>(mailboxSize);
 
-        if (!singleConsumer && mailboxSize <= 0)
-            throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
-        return new QueueObjectChannel(
-                mailboxSize > 0
-                ? (singleConsumer ? new SingleConsumerArrayObjectQueue<Message>(mailboxSize) : new ArrayQueue<Message>(mailboxSize))
-                : new SingleConsumerLinkedArrayObjectQueue<Message>(),
-                policy,
-                singleConsumer);
+
+        return new QueueObjectChannel(queue, policy, singleConsumer);
     }
 
     public static <Message> Channel<Message> newChannel(int mailboxSize, OverflowPolicy policy) {
@@ -72,22 +85,18 @@ public final class Channels {
 
     ///
     public static IntChannel newIntChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
-        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0) {
-            if (!singleConsumer)
-                throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
-            return new TickerIntChannel(mailboxSize, singleProducer);
-        }
-
-        if (policy == OverflowPolicy.BLOCK && mailboxSize == 0)
-            throw new UnsupportedOperationException("Primitive transfer channel is not supported");
-
         if (!singleConsumer)
-            throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
-        return new QueueIntChannel(
-                mailboxSize > 0
-                ? new SingleConsumerArrayIntQueue(mailboxSize)
-                : new SingleConsumerLinkedArrayIntQueue(),
-                policy);
+            throw new UnsupportedOperationException("Primitive queue with multiple consumers is unsupported");
+
+        final BasicSingleConsumerIntQueue queue;
+        if (mailboxSize < 0) {
+            queue = new SingleConsumerLinkedArrayIntQueue();
+        } else if (policy == OverflowPolicy.DISPLACE) {
+            queue = new CircularIntBuffer(mailboxSize, singleProducer);
+        } else
+            queue = new SingleConsumerArrayIntQueue(mailboxSize);
+
+        return new QueueIntChannel(queue, policy);
     }
 
     public static IntChannel newIntChannel(int mailboxSize, OverflowPolicy policy) {
@@ -100,22 +109,18 @@ public final class Channels {
 
     ///
     public static LongChannel newLongChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
-        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0) {
-            if (!singleConsumer)
-                throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
-            return new TickerLongChannel(mailboxSize, singleProducer);
-        }
-
-        if (policy == OverflowPolicy.BLOCK && mailboxSize == 0)
-            throw new UnsupportedOperationException("Primitive transfer channel is not supported");
-
         if (!singleConsumer)
-            throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
-        return new QueueLongChannel(
-                mailboxSize > 0
-                ? new SingleConsumerArrayLongQueue(mailboxSize)
-                : new SingleConsumerLinkedArrayLongQueue(),
-                policy);
+            throw new UnsupportedOperationException("Primitive queue with multiple consumers is unsupported");
+
+        final BasicSingleConsumerLongQueue queue;
+        if (mailboxSize < 0) {
+            queue = new SingleConsumerLinkedArrayLongQueue();
+        } else if (policy == OverflowPolicy.DISPLACE) {
+            queue = new CircularLongBuffer(mailboxSize, singleProducer);
+        } else
+            queue = new SingleConsumerArrayLongQueue(mailboxSize);
+
+        return new QueueLongChannel(queue, policy);
     }
 
     public static LongChannel newLongChannel(int mailboxSize, OverflowPolicy policy) {
@@ -128,22 +133,18 @@ public final class Channels {
 
     ///
     public static FloatChannel newFloatChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
-        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0) {
-            if (!singleConsumer)
-                throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
-            return new TickerFloatChannel(mailboxSize, singleProducer);
-        }
-
-        if (policy == OverflowPolicy.BLOCK && mailboxSize == 0)
-            throw new UnsupportedOperationException("Primitive transfer channel is not supported");
-
         if (!singleConsumer)
-            throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
-        return new QueueFloatChannel(
-                mailboxSize > 0
-                ? new SingleConsumerArrayFloatQueue(mailboxSize)
-                : new SingleConsumerLinkedArrayFloatQueue(),
-                policy);
+            throw new UnsupportedOperationException("Primitive queue with multiple consumers is unsupported");
+
+        final BasicSingleConsumerFloatQueue queue;
+        if (mailboxSize < 0) {
+            queue = new SingleConsumerLinkedArrayFloatQueue();
+        } else if (policy == OverflowPolicy.DISPLACE) {
+            queue = new CircularFloatBuffer(mailboxSize, singleProducer);
+        } else
+            queue = new SingleConsumerArrayFloatQueue(mailboxSize);
+
+        return new QueueFloatChannel(queue, policy);
     }
 
     public static FloatChannel newFloatChannel(int mailboxSize, OverflowPolicy policy) {
@@ -156,22 +157,18 @@ public final class Channels {
 
     ///
     public static DoubleChannel newDoubleChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
-        if (policy == OverflowPolicy.DISPLACE && mailboxSize >= 0) {
-            if (!singleConsumer)
-                throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
-            return new TickerDoubleChannel(mailboxSize, singleProducer);
-        }
-
-        if (policy == OverflowPolicy.BLOCK && mailboxSize == 0)
-            throw new UnsupportedOperationException("Primitive transfer channel is not supported");
-
         if (!singleConsumer)
-            throw new UnsupportedOperationException("Channel with given configuration is not supported for multiple consumers");
-        return new QueueDoubleChannel(
-                mailboxSize > 0
-                ? new SingleConsumerArrayDoubleQueue(mailboxSize)
-                : new SingleConsumerLinkedArrayDoubleQueue(),
-                policy);
+            throw new UnsupportedOperationException("Primitive queue with multiple consumers is unsupported");
+
+        final BasicSingleConsumerDoubleQueue queue;
+        if (mailboxSize < 0) {
+            queue = new SingleConsumerLinkedArrayDoubleQueue();
+        } else if (policy == OverflowPolicy.DISPLACE) {
+            queue = new CircularDoubleBuffer(mailboxSize, singleProducer);
+        } else
+            queue = new SingleConsumerArrayDoubleQueue(mailboxSize);
+
+        return new QueueDoubleChannel(queue, policy);
     }
 
     public static DoubleChannel newDoubleChannel(int mailboxSize, OverflowPolicy policy) {
@@ -183,44 +180,24 @@ public final class Channels {
     }
 
     ///
-    public static <Message> TickerChannel<Message> newTickerChannel(int bufferSize, boolean singleProducer) {
-        return new TickerObjectChannel<Message>(bufferSize, singleProducer);
+    public static <Message> ReceivePort<Message> newTickerConsumerFor(Channel<Message> channel) {
+        return TickerChannelConsumer.newFor((QueueChannel<Message>) channel);
     }
 
-    public static <Message> TickerChannel<Message> newTickerChannel(int bufferSize) {
-        return new TickerObjectChannel<Message>(bufferSize, false);
+    public static IntReceivePort newTickerConsumerFor(IntChannel channel) {
+        return TickerChannelConsumer.newFor((QueueIntChannel) channel);
     }
 
-    public static TickerIntChannel newTickerIntChannel(int bufferSize, boolean singleProducer) {
-        return new TickerIntChannel(bufferSize, singleProducer);
+    public static LongReceivePort newTickerConsumerFor(QueueLongChannel channel) {
+        return TickerChannelConsumer.newFor((QueueLongChannel) channel);
     }
 
-    public static TickerIntChannel newTickerIntChannel(int bufferSize) {
-        return new TickerIntChannel(bufferSize, false);
+    public static FloatReceivePort newTickerConsumerFor(QueueFloatChannel channel) {
+        return TickerChannelConsumer.newFor((QueueFloatChannel) channel);
     }
 
-    public static TickerLongChannel newTickerLongChannel(int bufferSize, boolean singleProducer) {
-        return new TickerLongChannel(bufferSize, singleProducer);
-    }
-
-    public static TickerLongChannel newTickerLongChannel(int bufferSize) {
-        return new TickerLongChannel(bufferSize, false);
-    }
-
-    public static TickerFloatChannel newTickerFloatChannel(int bufferSize, boolean singleProducer) {
-        return new TickerFloatChannel(bufferSize, singleProducer);
-    }
-
-    public static TickerFloatChannel newTickerFloatChannel(int bufferSize) {
-        return new TickerFloatChannel(bufferSize, false);
-    }
-
-    public static TickerDoubleChannel newTickerDoubleChannel(int bufferSize, boolean singleProducer) {
-        return new TickerDoubleChannel(bufferSize, singleProducer);
-    }
-
-    public static TickerDoubleChannel newTickerDoubleChannel(int bufferSize) {
-        return new TickerDoubleChannel(bufferSize, false);
+    public static DoubleReceivePort newTickerConsumerFor(QueueDoubleChannel channel) {
+        return TickerChannelConsumer.newFor((QueueDoubleChannel) channel);
     }
 
     private Channels() {

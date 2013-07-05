@@ -17,7 +17,8 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-public class SingleConsumerArrayDoubleQueue extends SingleConsumerArrayDWordQueue<Double> implements SingleConsumerDoubleQueue<Integer> {
+public class SingleConsumerArrayDoubleQueue extends SingleConsumerArrayDWordQueue<Double>
+        implements SingleConsumerDoubleQueue<Integer>, BasicSingleConsumerDoubleQueue {
     public SingleConsumerArrayDoubleQueue(int capacity) {
         super(capacity);
     }
@@ -46,5 +47,13 @@ public class SingleConsumerArrayDoubleQueue extends SingleConsumerArrayDWordQueu
     @Override
     public double doubleValue(Integer node) {
         return doubleValue(node.intValue());
+    }
+
+    @Override
+    public double pollDouble() {
+        final Integer n = pk();
+        final double val = doubleValue(n);
+        deq(n);
+        return val;
     }
 }

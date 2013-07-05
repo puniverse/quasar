@@ -11,21 +11,14 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.strands.channels;
-
-import co.paralleluniverse.fibers.SuspendExecution;
-import java.util.concurrent.TimeUnit;
+package co.paralleluniverse.strands.queues;
 
 /**
  *
  * @author pron
  */
-public interface SendPort<Message> {
-    void send(Message message) throws SuspendExecution, InterruptedException;
+public interface BasicSingleConsumerDoubleQueue extends BasicSingleConsumerQueue<Double> {
+    boolean enq(double element);
 
-    boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
-
-    boolean trySend(Message message);
-
-    void close();
+    double pollDouble();
 }

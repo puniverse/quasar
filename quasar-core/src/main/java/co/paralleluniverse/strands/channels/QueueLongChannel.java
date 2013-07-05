@@ -15,8 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
-import co.paralleluniverse.strands.queues.SingleConsumerLongQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerQueue;
+import co.paralleluniverse.strands.queues.BasicSingleConsumerLongQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -25,7 +24,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class QueueLongChannel extends QueuePrimitiveChannel<Long> implements LongChannel {
-    public QueueLongChannel(SingleConsumerQueue<Long, ?> queue, OverflowPolicy policy) {
+    public QueueLongChannel(BasicSingleConsumerLongQueue queue, OverflowPolicy policy) {
         super(queue, policy);
     }
 
@@ -33,9 +32,8 @@ public class QueueLongChannel extends QueuePrimitiveChannel<Long> implements Lon
     public long receiveLong() throws SuspendExecution, InterruptedException {
         if (isClosed())
             throw new EOFException();
-        final Object n = receiveNode();
-        final long m = queue1().longValue(n);
-        queue().deq(n);
+        awaitItem();
+        final long m = queue().pollLong();
         signalSenders();
         return m;
     }
@@ -44,21 +42,11 @@ public class QueueLongChannel extends QueuePrimitiveChannel<Long> implements Lon
     public long receiveLong(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
         if (isClosed())
             throw new EOFException();
-        final Object n = receiveNode(timeout, unit);
-        if (n == null)
+        if (!awaitItem(timeout, unit))
             throw new TimeoutException();
-        final long m = queue1().longValue(n);
-        queue().deq(n);
+        final long m = queue().pollLong();
         signalSenders();
         return m;
-    }
-
-    @Override
-    public void send(long message) {
-        if (isSendClosed())
-            return;
-        queue().enq(message);
-        signalReceivers();
     }
 
     @Override
@@ -72,14 +60,28 @@ public class QueueLongChannel extends QueuePrimitiveChannel<Long> implements Lon
             return false;
     }
 
-    public void sendSync(long message) {
+    @Override
+    public void send(long message) throws SuspendExecution, InterruptedException {
         if (isSendClosed())
             return;
-        queue().enq(message);
-        signalAndTryToExecNow();
+        if (!queue().enq(message))
+            super.send(message);
+        else
+            signalReceivers();
     }
 
-    private SingleConsumerLongQueue<Object> queue1() {
-        return (SingleConsumerLongQueue<Object>) queue;
+    @Override
+    public boolean send(long message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        if (isSendClosed())
+            return true;
+        if (!queue().enq(message))
+            return super.send(message, timeout, unit);
+        signalReceivers();
+        return true;
+    }
+
+    @Override
+    protected BasicSingleConsumerLongQueue queue() {
+        return (BasicSingleConsumerLongQueue) queue;
     }
 }

@@ -17,8 +17,8 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-public class SingleConsumerLinkedArrayFloatQueue extends SingleConsumerLinkedArrayWordQueue<Float> implements SingleConsumerFloatQueue<SingleConsumerLinkedArrayQueue.ElementPointer> {
-
+public class SingleConsumerLinkedArrayFloatQueue extends SingleConsumerLinkedArrayWordQueue<Float>
+        implements SingleConsumerFloatQueue<SingleConsumerLinkedArrayQueue.ElementPointer>, BasicSingleConsumerFloatQueue {
     @Override
     public boolean enq(float element) {
         return enqRaw(Float.floatToRawIntBits(element));
@@ -37,5 +37,13 @@ public class SingleConsumerLinkedArrayFloatQueue extends SingleConsumerLinkedArr
     @Override
     public float floatValue(ElementPointer node) {
         return Float.intBitsToFloat(rawValue(node.n, node.i));
+    }
+
+    @Override
+    public float pollFloat() {
+        final ElementPointer n = pk();
+        final float val = floatValue(n);
+        deq(n);
+        return val;
     }
 }

@@ -17,7 +17,8 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-public class SingleConsumerLinkedLongQueue extends SingleConsumerLinkedDWordQueue<Long> implements SingleConsumerLongQueue<SingleConsumerLinkedQueue.Node<Long>> {
+public class SingleConsumerLinkedLongQueue extends SingleConsumerLinkedDWordQueue<Long>
+        implements SingleConsumerLongQueue<SingleConsumerLinkedQueue.Node<Long>>, BasicSingleConsumerLongQueue {
     @Override
     public boolean enq(long item) {
         return enqRaw(item);
@@ -38,5 +39,13 @@ public class SingleConsumerLinkedLongQueue extends SingleConsumerLinkedDWordQueu
     @Override
     public Long value(Node<Long> node) {
         return longValue(node);
+    }
+
+    @Override
+    public long pollLong() {
+        final Node n = pk();
+        final long val = longValue(n);
+        deq(n);
+        return val;
     }
 }

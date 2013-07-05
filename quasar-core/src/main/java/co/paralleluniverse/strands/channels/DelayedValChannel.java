@@ -11,33 +11,25 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.strands.dataflow;
+package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Condition;
-import co.paralleluniverse.strands.DoneSynchronizer;
-import co.paralleluniverse.strands.channels.ReceivePort;
-import co.paralleluniverse.strands.channels.SelectableReceive;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * An adapter that turns a DelayedVal into a ReceivePort that receives the DelayedVal's value and then closes.
+ *
  * @author pron
  */
-public class DelayedValChannel<V> implements ReceivePort<V>, SelectableReceive {
+public class DelayedValChannel<V> implements ReceivePort<V>, Selectable<V> {
     private final DelayedVal<V> dv;
     private final AtomicBoolean closed = new AtomicBoolean();
 
     public DelayedValChannel(DelayedVal<V> val) {
         this.dv = val;
-    }
-
-    @Override
-    public Condition receiveSelector() {
-        Condition sync = dv.getSync();
-        return sync != null ? sync : DoneSynchronizer.instance;
     }
 
     @Override
@@ -82,5 +74,42 @@ public class DelayedValChannel<V> implements ReceivePort<V>, SelectableReceive {
     @Override
     public boolean isClosed() {
         return closed.get();
+    }
+
+    @Override
+    public Object register(SelectAction<V> action) {
+        if (action.isData())
+            throw new UnsupportedOperationException("Send is not supported by DelayedValChanel");
+        Condition sync = dv.getSync();
+        if (sync == null) {
+            if (!action.lease())
+                return null;
+            action.setItem(dv.getValue());
+            action.won();
+            return null;
+        }
+        sync.register();
+        return action;
+    }
+
+    @Override
+    public boolean tryNow(Object token) {
+        if(!dv.isDone())
+            return false;
+        SelectAction<V> action = (SelectAction<V>)token;
+        if (!action.lease())
+            return false;
+        action.setItem(dv.getValue());
+        action.won();
+        return true;
+    }
+
+    @Override
+    public void unregister(Object token) {
+        if (token == null)
+            return;
+        Condition sync = dv.getSync();
+        if (sync != null)
+            sync.unregister();
     }
 }

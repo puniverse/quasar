@@ -19,8 +19,8 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
-import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
+import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
@@ -44,7 +44,7 @@ import org.junit.runners.Parameterized;
  *
  * @author pron
  */
-@RunWith(Parameterized.class)
+//@RunWith(Parameterized.class)
 public class ChannelTest {
     @Rule
     public TestName name = new TestName();
@@ -79,22 +79,22 @@ public class ChannelTest {
     final boolean singleProducer;
     final ForkJoinPool fjPool;
 
-//    public ChannelTest() {
-//        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
-//        this.mailboxSize = 0;
-//        this.policy = OverflowPolicy.BLOCK;
-//        this.singleConsumer = false;
-//        this.singleProducer = false;
-//
-//        Debug.dumpAfter(20000, "channels.log");
-//    }
-    public ChannelTest(int mailboxSize, OverflowPolicy policy, boolean singleConsumer, boolean singleProducer) {
+    public ChannelTest() {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
-        this.mailboxSize = mailboxSize;
-        this.policy = policy;
-        this.singleConsumer = singleConsumer;
-        this.singleProducer = singleProducer;
+        this.mailboxSize = 0;
+        this.policy = OverflowPolicy.BLOCK;
+        this.singleConsumer = false;
+        this.singleProducer = false;
+
+        Debug.dumpAfter(20000, "channels.log");
     }
+//    public ChannelTest(int mailboxSize, OverflowPolicy policy, boolean singleConsumer, boolean singleProducer) {
+//        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+//        this.mailboxSize = mailboxSize;
+//        this.policy = policy;
+//        this.singleConsumer = singleConsumer;
+//        this.singleProducer = singleProducer;
+//    }
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -103,6 +103,7 @@ public class ChannelTest {
                     {5, OverflowPolicy.THROW, false, false},
                     {5, OverflowPolicy.BLOCK, true, false},
                     {5, OverflowPolicy.BLOCK, false, false},
+                    {1, OverflowPolicy.BLOCK, false, false},
                     {-1, OverflowPolicy.THROW, true, false},
                     {5, OverflowPolicy.DISPLACE, true, false},
                     {0, OverflowPolicy.BLOCK, false, false},});
@@ -483,6 +484,29 @@ public class ChannelTest {
     }
 
     @Test
+    public void whenChannelClosedThenBlockedSendsComplete() throws Exception {
+        assumeThat(policy, is(OverflowPolicy.BLOCK));
+        final Channel<Integer> ch = newChannel();
+
+        final SuspendableRunnable r = new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                for (int i = 1; i <= 100; i++) {
+                    ch.send(i);
+                }
+            }
+        };
+        Fiber fib1 = new Fiber("fiber", fjPool, r).start();
+        Fiber fib2 = new Fiber("fiber", fjPool, r).start();
+
+        Thread.sleep(500);
+
+        ch.close();
+        fib1.join();
+        fib2.join();
+    }
+
+    @Test
     public void testPrimitiveChannelClose() throws Exception {
         assumeThat(mailboxSize, not(equalTo(0)));
 
@@ -519,68 +543,6 @@ public class ChannelTest {
         ch.send(6);
         ch.send(7);
 
-        fib.join();
-    }
-
-    @Test
-    public void testChannelGroupReceive() throws Exception {
-        final Channel<String> channel1 = newChannel();
-        final Channel<String> channel2 = newChannel();
-        final Channel<String> channel3 = newChannel();
-
-        final ChannelGroup<String> group = new ChannelGroup<String>(channel1, channel2, channel3);
-
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                String m1 = group.receive();
-                String m2 = channel2.receive();
-
-                assertThat(m1, equalTo("hello"));
-                assertThat(m2, equalTo("world!"));
-            }
-        }).start();
-
-        Thread.sleep(100);
-        channel3.send("hello");
-        Thread.sleep(100);
-        if (policy != OverflowPolicy.BLOCK) {
-            channel1.send("goodbye"); // TransferChannel will block here
-            Thread.sleep(100);
-        }
-        channel2.send("world!");
-        fib.join();
-    }
-
-    @Test
-    public void testChannelGroupReceiveWithTimeout() throws Exception {
-        final Channel<String> channel1 = newChannel();
-        final Channel<String> channel2 = newChannel();
-        final Channel<String> channel3 = newChannel();
-
-        final ChannelGroup<String> group = new ChannelGroup<String>(channel1, channel2, channel3);
-
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                String m1 = group.receive();
-                String m2 = channel2.receive();
-                String m3 = group.receive(10, TimeUnit.MILLISECONDS);
-                String m4 = group.receive(200, TimeUnit.MILLISECONDS);
-
-                assertThat(m1, equalTo("hello"));
-                assertThat(m2, equalTo("world!"));
-                assertThat(m3, nullValue());
-                assertThat(m4, equalTo("foo"));
-            }
-        }).start();
-
-        Thread.sleep(100);
-        channel3.send("hello");
-        Thread.sleep(100);
-        channel2.send("world!");
-        Thread.sleep(100);
-        channel1.send("foo");
         fib.join();
     }
 

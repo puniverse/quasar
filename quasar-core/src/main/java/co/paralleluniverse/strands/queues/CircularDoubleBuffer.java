@@ -17,7 +17,7 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-public class CircularDoubleBuffer extends CircularDWordBuffer<Double> {
+public class CircularDoubleBuffer extends CircularDWordBuffer<Double> implements BasicSingleConsumerDoubleQueue {
     public CircularDoubleBuffer(int size, boolean singleProducer) {
         super(size, singleProducer);
     }
@@ -27,9 +27,15 @@ public class CircularDoubleBuffer extends CircularDWordBuffer<Double> {
         return enq(elem.doubleValue());
     }
 
+    @Override
     public boolean enq(double elem) {
         enqRaw(Double.doubleToRawLongBits(elem));
         return true;
+    }
+
+    @Override
+    public double pollDouble() {
+        return ((DoubleConsumer) consumer).pollDouble();
     }
 
     @Override
@@ -44,6 +50,11 @@ public class CircularDoubleBuffer extends CircularDWordBuffer<Double> {
 
         @Override
         protected Double getValue() {
+            return getDoubleValue();
+        }
+
+        public double pollDouble() {
+            poll0();
             return getDoubleValue();
         }
     }

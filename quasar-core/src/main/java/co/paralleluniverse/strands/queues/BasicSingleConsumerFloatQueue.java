@@ -11,11 +11,14 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.strands.channels;
+package co.paralleluniverse.strands.queues;
 
-import co.paralleluniverse.strands.Condition;
+/**
+ *
+ * @author pron
+ */
+public interface BasicSingleConsumerFloatQueue extends BasicSingleConsumerQueue<Float> {
+    boolean enq(float element);
 
-
-public interface SelectableReceive {
-    Condition receiveSelector();
+    float pollFloat();
 }

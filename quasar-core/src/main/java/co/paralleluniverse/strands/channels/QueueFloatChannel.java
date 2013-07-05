@@ -15,8 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
-import co.paralleluniverse.strands.queues.SingleConsumerFloatQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerQueue;
+import co.paralleluniverse.strands.queues.BasicSingleConsumerFloatQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -25,7 +24,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements FloatChannel {
-    public QueueFloatChannel(SingleConsumerQueue<Float, ?> queue, OverflowPolicy policy) {
+    public QueueFloatChannel(BasicSingleConsumerFloatQueue queue, OverflowPolicy policy) {
         super(queue, policy);
     }
 
@@ -33,9 +32,8 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
     public float receiveFloat() throws SuspendExecution, InterruptedException {
         if (isClosed())
             throw new EOFException();
-        final Object n = receiveNode();
-        final float m = queue1().floatValue(n);
-        queue().deq(n);
+        awaitItem();
+        final float m = queue().pollFloat();
         signalSenders();
         return m;
     }
@@ -44,21 +42,11 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
     public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
         if (isClosed())
             throw new EOFException();
-        final Object n = receiveNode(timeout, unit);
-        if (n == null)
+        if (!awaitItem(timeout, unit))
             throw new TimeoutException();
-        final float m = queue1().floatValue(n);
-        queue().deq(n);
+        final float m = queue().pollFloat();
         signalSenders();
         return m;
-    }
-
-    @Override
-    public void send(float message) {
-        if (isSendClosed())
-            return;
-        queue().enq(message);
-        signalReceivers();
     }
 
     @Override
@@ -72,14 +60,28 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
             return false;
     }
 
-    public void sendSync(float message) {
+    @Override
+    public void send(float message) throws SuspendExecution, InterruptedException {
         if (isSendClosed())
             return;
-        queue().enq(message);
-        signalAndTryToExecNow();
+        if (!queue().enq(message))
+            super.send(message);
+        else
+            signalReceivers();
     }
 
-    private SingleConsumerFloatQueue<Object> queue1() {
-        return (SingleConsumerFloatQueue<Object>) queue;
+    @Override
+    public boolean send(float message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        if (isSendClosed())
+            return true;
+        if (!queue().enq(message))
+            return super.send(message, timeout, unit);
+        signalReceivers();
+        return true;
+    }
+
+    @Override
+    protected BasicSingleConsumerFloatQueue queue() {
+        return (BasicSingleConsumerFloatQueue) queue;
     }
 }

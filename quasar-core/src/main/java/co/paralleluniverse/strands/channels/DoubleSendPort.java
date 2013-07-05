@@ -14,12 +14,15 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
  * @author pron
  */
 public interface DoubleSendPort extends SendPort<Double> {
-    void send(double message) throws SuspendExecution;
+    void send(double message) throws SuspendExecution, InterruptedException;
+    boolean send(double message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException;
     boolean trySend(double message);
 }

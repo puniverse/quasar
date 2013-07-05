@@ -17,31 +17,36 @@ import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.remote.RemoteProxyFactoryService;
 import co.paralleluniverse.strands.Condition;
-import co.paralleluniverse.strands.DoneSynchronizer;
 import co.paralleluniverse.strands.OwnedSynchronizer;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.BasicQueue;
+import co.paralleluniverse.strands.queues.CircularBuffer;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
  * @author pron
  */
-public abstract class QueueChannel<Message> implements Channel<Message>, SelectableReceive, SelectableSend, java.io.Serializable {
+public abstract class QueueChannel<Message> implements Channel<Message>, Selectable<Message>, java.io.Serializable {
     private static final int MAX_SEND_RETRIES = 10;
     final Condition sync;
-    private final Condition sendersSync;
+    final Condition sendersSync;
     final BasicQueue<Message> queue;
-    private final OverflowPolicy overflowPolicy;
+    final OverflowPolicy overflowPolicy;
     private volatile boolean sendClosed;
     private boolean receiveClosed;
 
     protected QueueChannel(BasicQueue<Message> queue, OverflowPolicy overflowPolicy, boolean singleConsumer) {
         this.queue = queue;
-        this.sync = singleConsumer ? new OwnedSynchronizer() : new SimpleConditionSynchronizer();
+        if(!singleConsumer || queue instanceof CircularBuffer)
+            this.sync = new SimpleConditionSynchronizer();
+        else 
+            this.sync = new OwnedSynchronizer();
+
         this.overflowPolicy = overflowPolicy;
         this.sendersSync = overflowPolicy == OverflowPolicy.BLOCK ? new SimpleConditionSynchronizer() : null;
     }
@@ -72,13 +77,48 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     }
 
     @Override
-    public Condition sendSelector() {
-        return sendersSync != null ? sendersSync : DoneSynchronizer.instance;
+    public Object register(SelectAction<Message> action) {
+        if (action.isData())
+            sendersSync.register();
+        else
+            sync.register();
+        return action;
     }
 
     @Override
-    public Condition receiveSelector() {
-        return sync;
+    public boolean tryNow(Object token) {
+        SelectAction<Message> action = (SelectAction<Message>) token;
+        if (!action.lease())
+            return false;
+        boolean res;
+        if (action.isData()) {
+            res = trySend(action.message());
+            if (res)
+                action.setItem(null);
+        } else {
+            Message m = tryReceive();
+            action.setItem(m);
+            if (m == null)
+                res = isClosed();
+            else
+                res = true;
+        }
+        if (res)
+            action.won();
+        else
+            action.returnLease();
+        return res;
+    }
+
+    @Override
+    public void unregister(Object token) {
+        if (token == null)
+            return;
+        SelectAction<Message> action = (SelectAction<Message>) token;
+        if (action.isData())
+            sendersSync.unregister();
+        else
+            sync.unregister();
     }
 
     public void sendNonSuspendable(Message message) throws QueueCapacityExceededException {
@@ -90,8 +130,13 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     }
 
     @Override
-    public void send(Message message) throws SuspendExecution {
-        send0(message, false);
+    public void send(Message message) throws SuspendExecution, InterruptedException {
+        send0(message, false, false, 0);
+    }
+
+    @Override
+    public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
@@ -108,24 +153,29 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     }
 
     protected void sendSync(Message message) throws SuspendExecution {
-        send0(message, true);
+        try {
+            send0(message, true, false, 0);
+        } catch (InterruptedException e) {
+            Strand.currentStrand().interrupt();
+        }
     }
 
-    public void send0(Message message, boolean sync) throws SuspendExecution {
+    public boolean send0(Message message, boolean sync, boolean timed, long nanos) throws SuspendExecution, InterruptedException {
         if (message == null)
             throw new IllegalArgumentException("message is null");
         if (isSendClosed())
-            return;
+            return true;
         if (overflowPolicy == OverflowPolicy.BLOCK)
             sendersSync.register();
         try {
             int i = 0;
             while (!queue.enq(message)) {
-                onQueueFull(i++);
+                if (isSendClosed())
+                    return true;
+                onQueueFull(i++, false, 0);
             }
-        } catch (InterruptedException e) {
-            Strand.currentStrand().interrupt();
-            return;
+        } catch (TimeoutException e) {
+            return false;
         } finally {
             if (overflowPolicy == OverflowPolicy.BLOCK)
                 sendersSync.unregister();
@@ -134,16 +184,24 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
             signalAndTryToExecNow();
         else
             signalReceivers();
+        return true;
     }
 
-    private void onQueueFull(int iter) throws SuspendExecution, InterruptedException {
+    void onQueueFull(int iter, boolean timed, long nanos) throws SuspendExecution, InterruptedException, TimeoutException {
         switch (overflowPolicy) {
             case DROP:
                 return;
             case THROW:
                 throw new QueueCapacityExceededException();
             case BLOCK:
-                sendersSync.await(iter);
+                if (timed) {
+                    if (nanos > 0) {
+                        if (sendersSync.await(iter, nanos, TimeUnit.NANOSECONDS))
+                            return;
+                    }
+                    throw new TimeoutException();
+                } else
+                    sendersSync.await(iter);
                 break;
             case BACKOFF:
                 if (iter > MAX_SEND_RETRIES)
@@ -160,6 +218,8 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         if (!sendClosed) {
             sendClosed = true;
             signalReceivers();
+            if (sendersSync != null)
+                sendersSync.signalAll();
         }
     }
 
@@ -210,7 +270,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
                 setReceiveClosed();
                 return null;
             }
-            
+
             sync.await(i);
         }
         sync.unregister();
@@ -245,7 +305,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
                     setReceiveClosed();
                     return null;
                 }
-                
+
                 sync.await(i, left, TimeUnit.NANOSECONDS);
 
                 left = start + unit.toNanos(timeout) - System.nanoTime();

@@ -17,7 +17,8 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-public class SingleConsumerArrayLongQueue extends SingleConsumerArrayDWordQueue<Long> implements SingleConsumerLongQueue<Integer> {
+public class SingleConsumerArrayLongQueue extends SingleConsumerArrayDWordQueue<Long>
+        implements SingleConsumerLongQueue<Integer>, BasicSingleConsumerLongQueue {
     public SingleConsumerArrayLongQueue(int capacity) {
         super(capacity);
     }
@@ -46,5 +47,13 @@ public class SingleConsumerArrayLongQueue extends SingleConsumerArrayDWordQueue<
     @Override
     public long longValue(Integer node) {
         return longValue(node.intValue());
+    }
+
+    @Override
+    public long pollLong() {
+        final Integer n = pk();
+        final long val = longValue(n);
+        deq(n);
+        return val;
     }
 }

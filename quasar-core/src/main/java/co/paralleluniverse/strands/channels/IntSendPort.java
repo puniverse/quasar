@@ -14,12 +14,15 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
  * @author pron
  */
 public interface IntSendPort extends SendPort<Integer> {
-    void send(int message) throws SuspendExecution;
+    void send(int message) throws SuspendExecution, InterruptedException;
+    boolean send(int message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException;
     boolean trySend(int message);
 }

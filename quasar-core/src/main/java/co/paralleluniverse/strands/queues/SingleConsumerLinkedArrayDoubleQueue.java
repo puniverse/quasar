@@ -17,7 +17,8 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-public class SingleConsumerLinkedArrayDoubleQueue extends SingleConsumerLinkedArrayDWordQueue<Double> implements SingleConsumerDoubleQueue<SingleConsumerLinkedArrayQueue.ElementPointer> {
+public class SingleConsumerLinkedArrayDoubleQueue extends SingleConsumerLinkedArrayDWordQueue<Double> 
+implements SingleConsumerDoubleQueue<SingleConsumerLinkedArrayQueue.ElementPointer>, BasicSingleConsumerDoubleQueue {
 
     @Override
     public boolean enq(double element) {
@@ -37,5 +38,14 @@ public class SingleConsumerLinkedArrayDoubleQueue extends SingleConsumerLinkedAr
     @Override
     public double doubleValue(ElementPointer node) {
         return Double.longBitsToDouble(rawValue(node.n, node.i));
+    }
+    
+    
+    @Override
+    public double pollDouble() {
+        final ElementPointer n = pk();
+        final double val = doubleValue(n);
+        deq(n);
+        return val;
     }
 }

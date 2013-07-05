@@ -28,13 +28,13 @@ public class OwnedSynchronizer extends ConditionSynchronizer implements Conditio
     public void register() {
         final Strand currentStrand = Strand.currentStrand();
         if (!casWaiter(null, currentStrand))
-            throw new IllegalMonitorStateException();
+            throw new IllegalMonitorStateException("attempt by " + currentStrand + " but owned by " + waiter);
     }
 
     @Override
     public void unregister() {
-        if(!Strand.equals(waiter, Strand.currentStrand()))
-            throw new IllegalMonitorStateException();
+        if (!Strand.equals(waiter, Strand.currentStrand()))
+            throw new IllegalMonitorStateException("attempt by " + Strand.currentStrand() + " but owned by " + waiter);
         waiter = null;
     }
 
@@ -55,7 +55,7 @@ public class OwnedSynchronizer extends ConditionSynchronizer implements Conditio
     public void signalAndTryToExecNow() {
         final Strand s = waiter;
         if (s != null) {
-            if(s instanceof Fiber && ((Fiber)s).exec(this))
+            if (s instanceof Fiber && ((Fiber) s).exec(this))
                 return;
             signal();
         }

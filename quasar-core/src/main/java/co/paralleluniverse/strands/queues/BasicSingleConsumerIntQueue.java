@@ -11,20 +11,14 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.strands.channels;
-
-import co.paralleluniverse.strands.queues.CircularObjectBuffer;
+package co.paralleluniverse.strands.queues;
 
 /**
  *
  * @author pron
  */
-public class TickerObjectChannel<Message> extends TickerChannel<Message> {
-    public TickerObjectChannel(int size, boolean singleProducer) {
-        super(new CircularObjectBuffer<Message>(size, singleProducer));
-    }
+public interface BasicSingleConsumerIntQueue extends BasicSingleConsumerQueue<Integer> {
+    boolean enq(int element);
 
-    public TickerObjectChannel(int size) {
-        this(size, false);
-    }
+    int pollInt();
 }

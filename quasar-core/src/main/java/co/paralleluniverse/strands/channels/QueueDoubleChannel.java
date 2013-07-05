@@ -15,8 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
-import co.paralleluniverse.strands.queues.SingleConsumerDoubleQueue;
-import co.paralleluniverse.strands.queues.SingleConsumerQueue;
+import co.paralleluniverse.strands.queues.BasicSingleConsumerDoubleQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -25,7 +24,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements DoubleChannel {
-    public QueueDoubleChannel(SingleConsumerQueue<Double, ?> queue, OverflowPolicy policy) {
+    public QueueDoubleChannel(BasicSingleConsumerDoubleQueue queue, OverflowPolicy policy) {
         super(queue, policy);
     }
 
@@ -33,9 +32,8 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
     public double receiveDouble() throws SuspendExecution, InterruptedException {
         if (isClosed())
             throw new EOFException();
-        final Object n = receiveNode();
-        final double m = queue1().doubleValue(n);
-        queue().deq(n);
+        awaitItem();
+        final double m = queue().pollDouble();
         signalSenders();
         return m;
     }
@@ -44,21 +42,11 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
     public double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
         if (isClosed())
             throw new EOFException();
-        final Object n = receiveNode(timeout, unit);
-        if (n == null)
+        if (!awaitItem(timeout, unit))
             throw new TimeoutException();
-        final double m = queue1().doubleValue(n);
-        queue().deq(n);
+        final double m = queue().pollDouble();
         signalSenders();
         return m;
-    }
-
-    @Override
-    public void send(double message) {
-        if (isSendClosed())
-            return;
-        queue().enq(message);
-        signalReceivers();
     }
 
     @Override
@@ -72,15 +60,28 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
             return false;
     }
 
-    public void sendSync(double message) {
+    @Override
+    public void send(double message) throws SuspendExecution, InterruptedException {
         if (isSendClosed())
             return;
-        queue.enq(message);
-        signalAndTryToExecNow();
+        if (!queue().enq(message))
+            super.send(message);
+        else
+            signalReceivers();
     }
 
+    @Override
+    public boolean send(double message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        if (isSendClosed())
+            return true;
+        if (!queue().enq(message))
+            return super.send(message, timeout, unit);
+        signalReceivers();
+        return true;
+    }
 
-    SingleConsumerDoubleQueue<Object> queue1() {
-        return (SingleConsumerDoubleQueue<Object>) queue;
+    @Override
+    protected BasicSingleConsumerDoubleQueue queue() {
+        return (BasicSingleConsumerDoubleQueue) queue;
     }
 }
