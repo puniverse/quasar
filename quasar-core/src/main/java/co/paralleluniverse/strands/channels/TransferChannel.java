@@ -38,6 +38,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
     private boolean receiveClosed;
     private static final Object CHANNEL_CLOSED = new Object();
     private static final Object NO_MATCH = new Object();
+    private static final Object LOST = new Object();
 
     public TransferChannel() {
     }
@@ -119,7 +120,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
         Node p = t.n;
         Node pred = t.pred;
         Object x = p.item;
-        if (!((x == p) || ((x == null) == p.isData)))  {
+        if (!((x == p) || ((x == null) == p.isData))) {
             if (p.casItem(x, p))        // cancel
                 unsplice(pred, p);
         }
@@ -220,8 +221,8 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
      * ordered wrt other accesses or CASes use simple relaxed forms.
      */
     static final class Node {
-        final SelectAction sa;
         final boolean isData;   // false if this is a request node
+        volatile SelectAction sa;
         volatile Object item;   // initially non-null if isData; CASed to match
         volatile Node next;
         volatile Strand waiter; // null until waiting
@@ -242,14 +243,13 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
          */
         Node(SelectAction sa) {
             UNSAFE.putObject(this, itemOffset, sa.message()); // relaxed write
+            UNSAFE.putObject(this, saOffset, sa); // relaxed write
             this.isData = sa.isData();
-            this.sa = sa;
         }
 
         Node(Object item, boolean isData) {
             UNSAFE.putObject(this, itemOffset, item); // relaxed write
             this.isData = isData;
-            this.sa = null;
         }
 
         /**
@@ -271,6 +271,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
          */
         final void forgetContents() {
             UNSAFE.putObject(this, itemOffset, this);
+            UNSAFE.putObject(this, saOffset, null);
             UNSAFE.putObject(this, waiterOffset, null);
         }
 
@@ -327,15 +328,16 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
 
         void won() {
             if (sa != null) {
+                Object x = item;
+                sa.setItem(x == CHANNEL_CLOSED ? null : x);
                 sa.won();
-                Object t = item;
-                sa.setItem(t == CHANNEL_CLOSED ? null : t);
             }
         }
         private static final long serialVersionUID = -3375979862319811754L;
         // Unsafe mechanics
         private static final sun.misc.Unsafe UNSAFE;
         private static final long itemOffset;
+        private static final long saOffset;
         private static final long nextOffset;
         private static final long waiterOffset;
 
@@ -344,6 +346,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
                 UNSAFE = UtilUnsafe.getUnsafe();
                 Class k = Node.class;
                 itemOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("item"));
+                saOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("sa"));
                 nextOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("next"));
                 waiterOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("waiter"));
             } catch (Exception e) {
@@ -401,6 +404,15 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
         return (E) item;
     }
 
+    private Object trySendOrReceive(Message e, boolean haveData) {
+        if (haveData && (e == null))
+            throw new NullPointerException();
+        Object item = tryMatch(null, e, haveData);
+        if (item != NO_MATCH)
+            return item;
+        return e;
+    }
+
     /**
      * Implements all queuing methods. See above for explanation.
      *
@@ -420,7 +432,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
 
         retry:
         for (;;) {                            // restart on append race
-            Object item = tryMatch(e, haveData);
+            Object item = tryMatch(null, e, haveData);
             if (item != NO_MATCH)
                 return item;
 
@@ -429,7 +441,6 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
             Node pred = tryAppend(s, haveData);
             if (pred == null)
                 continue retry;           // lost race vs opposite mode
-
 
             return awaitMatch(s, pred, e, (how == TIMED), nanos);
         }
@@ -443,9 +454,17 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
         for (;;) {                            // restart on append race
             if (!e.lease())
                 return null;
-            Object item = null;
-            if (!receiveClosed && !(sendClosed && e.isData()))
-                item = tryMatch(e.message(), haveData);
+            if (receiveClosed || (sendClosed && e.isData())) {
+                e.setItem(null);
+                e.won();
+                return null;
+            }
+
+            Object item = tryMatch(e, e.message(), haveData);
+            if (item == LOST) {
+                return null;
+            }
+
             if (item != NO_MATCH) {
                 e.setItem(item == CHANNEL_CLOSED ? null : (Message) item);
                 e.won();
@@ -465,16 +484,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
         }
     }
 
-    private Object trySendOrReceive(Message e, boolean haveData) {
-        if (haveData && (e == null))
-            throw new NullPointerException();
-        Object item = tryMatch(e, haveData);
-        if (item != NO_MATCH)
-            return item;
-        return e;
-    }
-
-    private Object tryMatch(Message e, boolean haveData) {
+    private Object tryMatch(SelectAction sa, Message e, boolean haveData) {
         boolean closed = isSendClosed(); // must be read before trying to match
 
         for (Node h = head, p = h; p != null;) { // find & match first node
@@ -485,7 +495,23 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
                 if (isData == haveData) // can't match
                     break;
 
-                if (p.lease()) {
+                // avoid deadlock by orderdering lease acquisition:
+                // if p requires a lease and is of lower hashCode than sa, we return sa's lease, acquire p's, and then reacquire sa's.
+                SelectAction sa2 = p.sa;
+                boolean leasedp;
+                if (sa != null && sa2 != null
+                        && sa2.selector().id < sa.selector().id) {
+                    sa.returnLease();
+                    leasedp = sa2.lease();
+                    if (!sa.lease()) {
+                        if (leasedp)
+                            sa2.returnLease();
+                        return LOST;
+                    }
+                } else
+                    leasedp = p.lease();
+
+                if (leasedp) {
                     if (p.casItem(item, e)) { // match
                         p.won();
                         for (Node q = p; q != h;) {

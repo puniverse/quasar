@@ -47,8 +47,7 @@ import org.junit.runners.Parameterized;
  *
  * @author pron
  */
-//@RunWith(Parameterized.class)
-public class SelectorTest {
+public class TransferSelectorTest {
     @Rule
     public TestName name = new TestName();
     @Rule
@@ -82,7 +81,7 @@ public class SelectorTest {
     final boolean singleProducer;
     final ForkJoinPool fjPool;
 
-    public SelectorTest() {
+    public TransferSelectorTest() {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
         this.mailboxSize = 0;
         this.policy = OverflowPolicy.BLOCK;
@@ -90,26 +89,6 @@ public class SelectorTest {
         this.singleProducer = false;
 
         Debug.dumpAfter(20000, "channels.log");
-    }
-//    public SelectorTest(int mailboxSize, OverflowPolicy policy, boolean singleConsumer, boolean singleProducer) {
-//        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
-//        this.mailboxSize = mailboxSize;
-//        this.policy = policy;
-//        this.singleConsumer = singleConsumer;
-//        this.singleProducer = singleProducer;
-//    }
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-                    {5, OverflowPolicy.THROW, true, false},
-                    {5, OverflowPolicy.THROW, false, false},
-                    {5, OverflowPolicy.BLOCK, true, false},
-                    {5, OverflowPolicy.BLOCK, false, false},
-                    {1, OverflowPolicy.BLOCK, false, false},
-                    {-1, OverflowPolicy.THROW, true, false},
-                    {5, OverflowPolicy.DISPLACE, true, false},
-                    {0, OverflowPolicy.BLOCK, false, false},});
     }
 
     private <Message> Channel<Message> newChannel() {
@@ -178,13 +157,20 @@ public class SelectorTest {
                         receive(channel2),
                         receive(channel3));
 
-                String m1 = sa1.message();
 
                 Strand.sleep(200);
                 SelectAction<String> sa2 = select(
                         receive(channel1),
                         receive(channel2),
                         receive(channel3));
+
+                if (sa2.index() < sa1.index()) {
+                    SelectAction<String> tmp = sa1;
+                    sa1 = sa2;
+                    sa2 = tmp;
+                }
+
+                String m1 = sa1.message();
                 String m2 = sa2.message();
 
                 assertThat(sa1.index(), is(0));

@@ -42,9 +42,9 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
     protected QueueChannel(BasicQueue<Message> queue, OverflowPolicy overflowPolicy, boolean singleConsumer) {
         this.queue = queue;
-        if(!singleConsumer || queue instanceof CircularBuffer)
+        if (!singleConsumer || queue instanceof CircularBuffer)
             this.sync = new SimpleConditionSynchronizer();
-        else 
+        else
             this.sync = new OwnedSynchronizer();
 
         this.overflowPolicy = overflowPolicy;
@@ -78,9 +78,10 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
     @Override
     public Object register(SelectAction<Message> action) {
-        if (action.isData())
-            sendersSync.register();
-        else
+        if (action.isData()) {
+            if (sendersSync != null)
+                sendersSync.register();
+        } else
             sync.register();
         return action;
     }
@@ -115,9 +116,10 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         if (token == null)
             return;
         SelectAction<Message> action = (SelectAction<Message>) token;
-        if (action.isData())
-            sendersSync.unregister();
-        else
+        if (action.isData()) {
+            if (sendersSync != null)
+                sendersSync.unregister();
+        } else
             sync.unregister();
     }
 

@@ -13,12 +13,19 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.monitoring.FlightRecorder;
+import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import sun.misc.Unsafe;
 
 /**
@@ -27,19 +34,19 @@ import sun.misc.Unsafe;
  */
 public class Selector<Message> {
     public static <Message> SelectAction<Message> select(boolean priority, SelectAction<Message>... actions) throws InterruptedException, SuspendExecution {
-        return new Selector<Message>(priority, actions).select();
+        return new Selector<Message>(priority, Arrays.asList(actions)).select();
     }
 
     public static <Message> SelectAction<Message> select(boolean priority, long timeout, TimeUnit unit, SelectAction<Message>... actions) throws InterruptedException, SuspendExecution {
-        return new Selector<Message>(priority, actions).select(timeout, unit);
+        return new Selector<Message>(priority, Arrays.asList(actions)).select(timeout, unit);
     }
 
     public static <Message> SelectAction<Message> select(boolean priority, List<SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
-        return new Selector<Message>(priority, actions.toArray(new SelectAction[actions.size()])).select();
+        return new Selector<Message>(priority, actions instanceof ArrayList ? actions : new ArrayList<>(actions)).select();
     }
 
     public static <Message> SelectAction<Message> select(boolean priority, long timeout, TimeUnit unit, List<SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
-        return new Selector<Message>(priority, actions.toArray(new SelectAction[actions.size()])).select(timeout, unit);
+        return new Selector<Message>(priority, actions instanceof ArrayList ? actions : new ArrayList<>(actions)).select(timeout, unit);
     }
 
     public static <Message> SelectAction<Message> select(SelectAction<Message>... actions) throws InterruptedException, SuspendExecution {
@@ -65,34 +72,42 @@ public class Selector<Message> {
     public static <Message> SelectAction<Message> receive(ReceivePort<Message> port) {
         return new SelectAction<Message>((Selectable<Message>) port, null);
     }
-    private static final Object LEASED = new Object();
+    
+    private static final AtomicLong selectorId = new AtomicLong(); // used to break symmetry to prevent deadlock in transfer channel
+    private static final Object LEASED = new Object() {
+        @Override
+        public String toString() {
+            return "LEASED";
+        }
+    };
+    final long id;
     private volatile Object winner;
     private final Strand waiter;
-    private final SelectAction<Message>[] actions;
+    private final List<SelectAction<Message>> actions;
     private final boolean priority;
-    private int[] order;
 
-    private Selector(boolean priority, SelectAction<Message>[] actions) {
+    private Selector(boolean priority, List<SelectAction<Message>> actions) {
+        this.id = selectorId.incrementAndGet();
         this.waiter = Strand.currentStrand();
         this.actions = actions;
         this.priority = priority;
     }
 
     private void selectInit() {
-        for (int i = 0; i < actions.length; i++) {
-            SelectAction<Message> sa = actions[i];
+        for (int i = 0; i < actions.size(); i++) {
+            SelectAction<Message> sa = actions.get(i);
             sa.setSelector(this);
             sa.setIndex(i);
+            record("selectInit", "%s added %s", this, sa);
         }
         if (!priority)
-            order = randomIntArray(actions.length);
+            Collections.shuffle(actions, ThreadLocalRandom.current());
     }
 
     public SelectAction<Message> trySelect() {
         selectInit();
-        for (int i = 0; i < actions.length; i++) {
-            int ind = priority ? i : order[i];
-            SelectAction sa = actions[ind];
+        for (int i = 0; i < actions.size(); i++) {
+            SelectAction sa = actions.get(i);
 
             if (sa.isData()) {
                 if (((SendPort) sa.port).trySend(sa.message()))
@@ -119,22 +134,24 @@ public class Selector<Message> {
         long lastTime = timed ? System.nanoTime() : 0L;
         long nanos = timed ? unit.toNanos(timeout) : 0L;
 
-        final int n = actions.length;
+        final int n = actions.size();
         SelectAction<Message> res = null;
 
         // register
-        int lastRegistered = n - 1;
+        int lastRegistered = -1;
         for (int i = 0; i < n; i++) {
-            int ind = priority ? i : order[i];
-            SelectAction<Message> sa = actions[ind];
+            SelectAction<Message> sa = actions.get(i);
 
             sa.token = sa.port.register(sa);
-            assert sa.isDone() || sa.token != null;
+            lastRegistered = i;
             if (sa.isDone()) {
                 assert winner == sa;
                 res = sa;
-                lastRegistered = i;
                 break;
+            } else {
+                Object w = winner;
+                if (w != null & w != LEASED)
+                    break;
             }
         }
 
@@ -145,9 +162,8 @@ public class Selector<Message> {
                 if (timed && nanos <= 0)
                     break;
 
-                for (int i = 0; i < n; i++) {
-                    int ind = priority ? i : order[i];
-                    SelectAction<Message> sa = actions[ind];
+                for (int i = 0; i <= lastRegistered; i++) {
+                    SelectAction<Message> sa = actions.get(i);
 
                     if (sa.port.tryNow(sa.token)) {
                         res = sa;
@@ -160,37 +176,54 @@ public class Selector<Message> {
                     if ((nanos -= now - lastTime) > 0)
                         Strand.parkNanos(this, nanos);
                     lastTime = now;
-                } else {
+                } else
                     Strand.park(this);
-                    System.out.println("xxx");
-                }
             }
         }
 
         // unregister
         for (int i = 0; i <= lastRegistered; i++) {
-            int ind = priority ? i : order[i];
-            SelectAction sa = actions[ind];
+            SelectAction sa = actions.get(i);
             sa.port.unregister(sa.token);
             sa.token = null; // for GC
         }
         return res;
     }
 
+    private volatile StackTraceElement st[];
+    
     boolean lease() {
+        record("lease", "trying lease %s", this);
         Object w;
+        int i = 0;
         do {
             w = winner;
+            if (i++ > 1 << 22) {
+                System.err.println(Arrays.toString(st));
+                throw new RuntimeException("Unable to obtain selector lease: " + w);
+            }
             if (w == LEASED)
                 continue;
             else if (w != null)
                 return false;
         } while (!casWinner(null, LEASED));
+        st = Thread.currentThread().getStackTrace();
+        record("lease", "got lease %s", this);
         return true;
     }
 
     void setWinner(SelectAction<?> action) {
+        record("setWinner", "won %s", this);
+        assert winner == LEASED;
+        st = null;
         winner = action;
+    }
+
+    void returnLease() {
+        record("returnLease", "returned lease %s", this);
+        assert winner == LEASED;
+        st = null;
+        winner = null;
     }
 
     Strand getWaiter() {
@@ -199,10 +232,6 @@ public class Selector<Message> {
 
     void signal() {
         waiter.unpark();
-    }
-
-    void returnLease() {
-        winner = null;
     }
 
     public SelectAction<?> getWinner() {
@@ -219,6 +248,12 @@ public class Selector<Message> {
         }
         return a;
     }
+
+    @Override
+    public String toString() {
+        return Selector.class.getName() + '@' + Long.toHexString(id);
+    }
+    
     static final Unsafe unsafe = UtilUnsafe.getUnsafe();
     private static final long winnerOffset;
 
@@ -232,5 +267,40 @@ public class Selector<Message> {
 
     private boolean casWinner(Object expected, Object update) {
         return unsafe.compareAndSwapObject(this, winnerOffset, expected, update);
+    }
+    static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
+
+    boolean isRecording() {
+        return RECORDER != null;
+    }
+
+    static void record(String method, String format) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("Selector", method, format, null));
+    }
+
+    static void record(String method, String format, Object arg1) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("Selector", method, format, new Object[]{arg1}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("Selector", method, format, new Object[]{arg1, arg2}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2, Object arg3) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("Selector", method, format, new Object[]{arg1, arg2, arg3}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("Selector", method, format, new Object[]{arg1, arg2, arg3, arg4}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("Selector", method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
     }
 }

@@ -43,6 +43,7 @@ public final class SelectAction<Message> {
     }
 
     void setSelector(Selector selector) {
+        assert this.selector == null;
         this.selector = selector;
     }
     
@@ -91,6 +92,8 @@ public final class SelectAction<Message> {
     @Override
     public String toString() {
         return "SelectAction{" + (isData ? ("send " + item + " to") : "receive from") + " " + port
-                + " " + (isDone() ? (isData ? "done" : (" -> " + item)) : "");
+                + (isDone() ? (" " + (isData ? "done" : (" -> " + item))) : "") + '}' 
+                + " " + selector
+                ;
     }
 }

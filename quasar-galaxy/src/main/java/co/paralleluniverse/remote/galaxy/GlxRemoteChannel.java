@@ -26,6 +26,7 @@ import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.SendPort;
 import java.io.Serializable;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -105,6 +106,11 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
         } catch (TimeoutException e) {
             throw new RemoteException(e);
         }
+    }
+
+    @Override
+    public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override

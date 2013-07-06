@@ -23,7 +23,6 @@ import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;
 import static org.hamcrest.CoreMatchers.*;
 import org.junit.After;
@@ -44,7 +43,7 @@ import org.junit.runners.Parameterized;
  *
  * @author pron
  */
-//@RunWith(Parameterized.class)
+@RunWith(Parameterized.class)
 public class ChannelTest {
     @Rule
     public TestName name = new TestName();
@@ -79,22 +78,22 @@ public class ChannelTest {
     final boolean singleProducer;
     final ForkJoinPool fjPool;
 
-    public ChannelTest() {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
-        this.mailboxSize = 0;
-        this.policy = OverflowPolicy.BLOCK;
-        this.singleConsumer = false;
-        this.singleProducer = false;
-
-        Debug.dumpAfter(20000, "channels.log");
-    }
-//    public ChannelTest(int mailboxSize, OverflowPolicy policy, boolean singleConsumer, boolean singleProducer) {
+//    public ChannelTest() {
 //        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
-//        this.mailboxSize = mailboxSize;
-//        this.policy = policy;
-//        this.singleConsumer = singleConsumer;
-//        this.singleProducer = singleProducer;
+//        this.mailboxSize = 0;
+//        this.policy = OverflowPolicy.BLOCK;
+//        this.singleConsumer = false;
+//        this.singleProducer = false;
+//
+//        Debug.dumpAfter(20000, "channels.log");
 //    }
+    public ChannelTest(int mailboxSize, OverflowPolicy policy, boolean singleConsumer, boolean singleProducer) {
+        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+        this.mailboxSize = mailboxSize;
+        this.policy = policy;
+        this.singleConsumer = singleConsumer;
+        this.singleProducer = singleProducer;
+    }
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -382,8 +381,13 @@ public class ChannelTest {
             }
         }).start();
 
-        assertThat(receiver.get(), is(10));
-        sender.join();
+        try {
+            assertThat(receiver.get(), is(10));
+            sender.join();
+        } catch (Throwable t) {
+            Debug.dumpRecorder("channels.log");
+            throw t;
+        }
     }
 
     @Test
