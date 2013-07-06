@@ -7,7 +7,7 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.Channels;
-import co.paralleluniverse.strands.dataflow.DelayedVal;
+import co.paralleluniverse.strands.channels.DelayedVal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
