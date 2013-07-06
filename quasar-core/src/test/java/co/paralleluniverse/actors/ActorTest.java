@@ -198,11 +198,11 @@ public class ActorTest {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 Message m;
-                m = receive(50, TimeUnit.MILLISECONDS);
+                m = receive(100, TimeUnit.MILLISECONDS);
                 assertThat(m.num, is(1));
-                m = receive(50, TimeUnit.MILLISECONDS);
+                m = receive(100, TimeUnit.MILLISECONDS);
                 assertThat(m.num, is(2));
-                m = receive(50, TimeUnit.MILLISECONDS);
+                m = receive(100, TimeUnit.MILLISECONDS);
                 assertThat(m, is(nullValue()));
 
                 return null;
@@ -212,7 +212,7 @@ public class ActorTest {
         actor.send(new Message(1));
         Thread.sleep(20);
         actor.send(new Message(2));
-        Thread.sleep(100);
+        Thread.sleep(200);
         actor.send(new Message(3));
         actor.join();
     }
