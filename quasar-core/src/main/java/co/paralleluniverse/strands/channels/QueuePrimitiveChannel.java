@@ -19,7 +19,6 @@ import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.BasicSingleConsumerQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * Single consumer!
