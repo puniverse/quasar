@@ -44,7 +44,7 @@ public final class Channels {
     public enum OverflowPolicy {
         THROW, DROP, BLOCK, BACKOFF, DISPLACE
     }
-    private static final OverflowPolicy defaultPolicy = OverflowPolicy.THROW;
+    private static final OverflowPolicy defaultPolicy = OverflowPolicy.BLOCK;
     private static final boolean defaultSingleProducer = false;
     private static final boolean defaultSingleConsumer = true;
 
