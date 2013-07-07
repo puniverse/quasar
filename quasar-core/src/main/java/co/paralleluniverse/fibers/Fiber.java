@@ -41,6 +41,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import jsr166e.ForkJoinPool;
 import jsr166e.ForkJoinTask;
 import jsr166e.ForkJoinWorkerThread;
@@ -84,6 +85,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             ? new ScheduledSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("fiber-timeout-%d").setDaemon(true).build())
             : Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("fiber-timeout-%d").setDaemon(true).build());
     private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler;
+    private static final AtomicLong idGen = new AtomicLong();
+
+    private static long nextFiberId() {
+        return idGen.incrementAndGet();
+    }
     //
     private final ForkJoinPool fjPool;
     private final FiberForkJoinTask<V> fjTask;
@@ -91,6 +97,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private final Strand parent;
     private final String name;
     private final int initialStackSize;
+    private final long fid;
     private volatile State state;
     private volatile boolean interrupted;
     private final SuspendableCallable<V> target;
@@ -115,6 +122,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     @SuppressWarnings("LeakingThisInConstructor")
     public Fiber(String name, ForkJoinPool fjPool, int stackSize, SuspendableCallable<V> target) {
         this.name = name;
+        this.fid = nextFiberId();
         this.fjPool = fjPool;
         this.parent = Strand.currentStrand();
         this.target = target;
@@ -193,6 +201,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     @Override
     public final boolean equals(Object obj) {
         return this == obj;
+    }
+
+    @Override
+    public final String getName() {
+        return name;
+    }
+
+    @Override
+    public long getId() {
+        return fid;
     }
 
     ForkJoinTask<V> getForkJoinTask() {
@@ -740,11 +758,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return parent;
     }
 
-    @Override
-    public final String getName() {
-        return name;
-    }
-
     /**
      * Executes fiber on this thread, after waiting until the given blocker is indeed the fiber's blocker, and that the fiber is not being run concurrently.
      *
@@ -899,7 +912,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final String toString() {
-        return "Fiber@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this))) + "[task: " + fjTask + ", target: " + Objects.systemToStringSimpleName(target) + ']';
+        return "Fiber@" + Long.toHexString(fid) + (name != null ? (':' + name) : "") + "[task: " + fjTask + ", target: " + Objects.systemToStringSimpleName(target) + ']';
     }
 
     ////////

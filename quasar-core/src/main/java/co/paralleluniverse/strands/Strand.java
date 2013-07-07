@@ -79,6 +79,8 @@ public abstract class Strand {
 
     public abstract StackTraceElement[] getStackTrace();
 
+    public abstract long getId();
+    
     /**
      * Returns the current fiber, if there is one, or the current thread otherwise.
      *
@@ -273,6 +275,11 @@ public abstract class Strand {
         }
 
         @Override
+        public long getId() {
+            return thread.getId();
+        }
+        
+        @Override
         public boolean isAlive() {
             return thread.isAlive();
         }
@@ -384,6 +391,11 @@ public abstract class Strand {
             return fiber.getName();
         }
 
+        @Override
+        public long getId() {
+            return fiber.getId();
+        }
+        
         @Override
         public boolean isAlive() {
             return fiber.isAlive();

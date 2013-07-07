@@ -33,6 +33,7 @@
 
 package co.paralleluniverse.strands.locks;
 
+import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.TimeUnit;
@@ -2256,7 +2257,7 @@ public abstract class AbstractQueuedSynchronizer
      * are at it, we do the same for other CASable fields (which could
      * otherwise be done with atomic field updaters).
      */
-    private static final Unsafe unsafe = Unsafe.getUnsafe();
+    private static final Unsafe unsafe = UtilUnsafe.getUnsafe();
     private static final long stateOffset;
     private static final long headOffset;
     private static final long tailOffset;
