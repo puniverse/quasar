@@ -151,6 +151,9 @@ public class Selector<Message> {
     }
 
     SelectAction<Message> select(long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
+        if(timeout == 0 && unit != null)
+            return trySelect();
+        
         selectInit();
 
         final boolean timed = (timeout > 0 && unit != null);
