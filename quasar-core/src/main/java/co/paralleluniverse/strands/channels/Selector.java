@@ -81,12 +81,12 @@ public class Selector<Message> {
         return trySelect(false, actions);
     }
 
-    public static <Message> SelectAction<Message> send(SendPort<Message> port, Message message) {
-        return new SelectAction<Message>(port, message);
+    public static <Message> SelectAction<Message> send(SendPort<? super Message> port, Message message) {
+        return new SelectAction<Message>((SendPort)port, message);
     }
 
-    public static <Message> SelectAction<Message> receive(ReceivePort<Message> port) {
-        return new SelectAction<Message>(port, null);
+    public static <Message> SelectAction<Message> receive(ReceivePort<? extends Message> port) {
+        return new SelectAction(port, null);
     }
     private static final AtomicLong selectorId = new AtomicLong(); // used to break symmetry to prevent deadlock in transfer channel
     private static final Object LEASED = new Object() {
@@ -97,28 +97,36 @@ public class Selector<Message> {
     };
     final long id;
     private volatile Object winner;
-    private final Strand waiter;
+    private Strand waiter;
     private final List<SelectAction<Message>> actions;
     private final boolean priority;
 
-    private Selector(boolean priority, List<SelectAction<Message>> actions) {
+    Selector(boolean priority, List<SelectAction<Message>> actions) {
         this.id = selectorId.incrementAndGet();
         this.waiter = Strand.currentStrand();
         this.actions = actions;
         this.priority = priority;
-    }
-
-    private void selectInit() {
         for (int i = 0; i < actions.size(); i++) {
             SelectAction<Message> sa = actions.get(i);
             sa.setSelector(this);
             sa.setIndex(i);
-            record("selectInit", "%s added %s", this, sa);
+            record("<init>", "%s added %s", this, sa);
         }
+    }
+
+    private void selectInit() {
+        this.waiter = Strand.currentStrand();
+
         if (!priority)
             Collections.shuffle(actions, ThreadLocalRandom.current());
     }
 
+    void reset() {
+        for(SelectAction<Message> sa : actions)
+            sa.resetReceive();
+        winner = null;
+    }
+    
     public SelectAction<Message> trySelect() {
         selectInit();
         for (int i = 0; i < actions.size(); i++) {
@@ -138,11 +146,11 @@ public class Selector<Message> {
         return null;
     }
 
-    private SelectAction<Message> select() throws InterruptedException, SuspendExecution {
+    SelectAction<Message> select() throws InterruptedException, SuspendExecution {
         return select(-1, null);
     }
 
-    private SelectAction<Message> select(long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
+    SelectAction<Message> select(long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
         selectInit();
 
         final boolean timed = (timeout > 0 && unit != null);

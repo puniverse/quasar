@@ -77,6 +77,12 @@ public final class SelectAction<Message> {
         return done;
     }
 
+    void resetReceive() {
+        assert !isData;
+        item = null;
+        done = false;
+    }
+    
     boolean lease() {
         if (selector == null)
             return true;

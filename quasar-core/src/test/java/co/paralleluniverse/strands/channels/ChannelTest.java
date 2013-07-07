@@ -23,6 +23,7 @@ import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 import jsr166e.ForkJoinPool;
 import static org.hamcrest.CoreMatchers.*;
 import org.junit.After;
@@ -595,5 +596,67 @@ public class ChannelTest {
         f1.join();
         f2.join();
         f3.join();
+    }
+
+    @Test
+    public void testChannelGroupReceive() throws Exception {
+        final Channel<String> channel1 = newChannel();
+        final Channel<String> channel2 = newChannel();
+        final Channel<String> channel3 = newChannel();
+
+        final ReceivePortGroup<String> group = new ReceivePortGroup<String>(channel1, channel2, channel3);
+
+        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                String m1 = group.receive();
+                String m2 = channel2.receive();
+
+                assertThat(m1, equalTo("hello"));
+                assertThat(m2, equalTo("world!"));
+            }
+        }).start();
+
+        Thread.sleep(100);
+        channel3.send("hello");
+        Thread.sleep(100);
+        if (policy != OverflowPolicy.BLOCK) {
+            channel1.send("goodbye"); // TransferChannel will block here
+            Thread.sleep(100);
+        }
+        channel2.send("world!");
+        fib.join();
+    }
+
+    @Test
+    public void testChannelGroupReceiveWithTimeout() throws Exception {
+        final Channel<String> channel1 = newChannel();
+        final Channel<String> channel2 = newChannel();
+        final Channel<String> channel3 = newChannel();
+
+        final ReceivePortGroup<String> group = new ReceivePortGroup<String>(channel1, channel2, channel3);
+
+        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                String m1 = group.receive();
+                String m2 = channel2.receive();
+                String m3 = group.receive(10, TimeUnit.MILLISECONDS);
+                String m4 = group.receive(200, TimeUnit.MILLISECONDS);
+
+                assertThat(m1, equalTo("hello"));
+                assertThat(m2, equalTo("world!"));
+                assertThat(m3, nullValue());
+                assertThat(m4, equalTo("foo"));
+            }
+        }).start();
+
+        Thread.sleep(100);
+        channel3.send("hello");
+        Thread.sleep(100);
+        channel2.send("world!");
+        Thread.sleep(100);
+        channel1.send("foo");
+        fib.join();
     }
 }
