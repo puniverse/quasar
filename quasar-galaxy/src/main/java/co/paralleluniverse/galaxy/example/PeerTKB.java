@@ -21,6 +21,9 @@ package co.paralleluniverse.galaxy.example;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.BasicActor;
+import co.paralleluniverse.actors.LifecycleException;
+import co.paralleluniverse.actors.LifecycleMessage;
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.Cluster;
@@ -36,6 +39,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Properties;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
 
 /**
  *
@@ -53,6 +57,10 @@ public class PeerTKB implements Runnable {
     private final int i;
 
     public PeerTKB(String name, int i) throws InterruptedException, IOException {
+        System.setProperty("co.paralleluniverse.io.useJDKSerialization", "true");
+        System.setProperty("co.paralleluniverse.debugMode", "true");
+        System.setProperty("co.paralleluniverse.globalFlightRecorder", "true");
+        System.setProperty("co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log" + i);
         System.setProperty("co.paralleluniverse.io.useJDKSerialization", "true");
         System.out.println("STARTING PEER " + i);
         final URL peerXml = PeerTKB.class.getClassLoader().getResource("config/peer.xml");
@@ -110,7 +118,8 @@ public class PeerTKB implements Runnable {
 
     @Override
     public void run() {
-            System.out.println("MASTER: start running... " + myNodeId);
+        System.out.println("MASTER: start running... " + myNodeId);
+        try {
             if (i == 1) {
                 new Fiber<Void>(new BasicActor<String, Void>() {
                     @Override
@@ -118,33 +127,81 @@ public class PeerTKB implements Runnable {
                         System.out.println("registering");
                         register("master");
                         System.out.println("registered");
-                        Strand.sleep(2000);
-                        Actor<String> master = getActor("master");
-                        System.out.println("actor is " + master);
+//                        Strand.sleep(2000);
+//                        Actor<String> master = getActor("master");
+//                        System.out.println("actor is " + master);
                         String msg = null;
-                        while ((msg = receive()) != null) {
+                        int count = 5;
+                        while (--count > 0 && (msg = receive()) != null) {
                             System.out.println("got msg: " + msg);
                         }
+                        System.out.println("I'm here1");
+                        System.exit(0);
                         return null;
                     }
-                }).start();
+                }).start().join();
+                System.out.println("I'm here2");
 
 
             } else {
                 new Fiber<Void>(new BasicActor<String, Void>() {
+                    private boolean masterIsAlive;
+
                     @Override
                     protected Void doRun() throws InterruptedException, SuspendExecution {
                         System.out.println("getting actor");
                         Actor<String> master = getActor("master");
+                        masterIsAlive = true;
                         System.out.println("actor is " + master);
-                        while (true) {
+                        watch(master);
+                        int c = 15;
+                        while (masterIsAlive) {
                             System.out.println("sending msg to master");
                             master.send("message from actor " + i);
                             Strand.sleep(3000);
+                            String tryReceive = tryReceive();
+                            System.out.println("tryReceive " + tryReceive);
                         }
+                        System.out.println("master is Alive = " + masterIsAlive);
+                        return null;
                     }
-                }).start();
+
+                    @Override
+                    protected void handleLifecycleMessage(LifecycleMessage m) {
+                        masterIsAlive = false;
+                    }
+                }).start().join();
+                System.out.println("starting second actor");
+                new Fiber<Void>(new BasicActor<String, Void>() {
+                    private boolean masterIsAlive;
+
+                    @Override
+                    protected Void doRun() throws InterruptedException, SuspendExecution {
+                        System.out.println("getting actor");
+                        Actor<String> master = getActor("master");
+                        masterIsAlive = true;
+                        watch(master);
+                        tryReceive();
+                        while (masterIsAlive) {
+                            System.out.println("waiting for dead meassage");
+                            Strand.sleep(3000);
+                            tryReceive();
+                        }
+                        System.out.println("master is Alive = " + masterIsAlive);
+                        return null;
+                    }
+
+                    @Override
+                    protected void handleLifecycleMessage(LifecycleMessage m) {
+                        masterIsAlive = false;
+                    }
+                }).start().join();
             }
+        } catch (ExecutionException | InterruptedException ex) {
+        }
+        Debug.dumpRecorder();
+
+        System.exit(0);
     }
 
     boolean isSmallest() {

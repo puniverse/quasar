@@ -21,18 +21,23 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.QueueChannel;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author pron
  */
 public class GlxRemoteActor<Message> extends co.paralleluniverse.actors.RemoteActor<Message> {
+    private static final Logger LOG = LoggerFactory.getLogger(GlxRemoteActor.class);
+
     public GlxRemoteActor(final LocalActor<Message, ?> actor, Object globalId) {
         super(actor);
         final RemoteChannelReceiver<Object> receiver = RemoteChannelReceiver.getReceiver((QueueChannel<Object>) actor.getMailbox(), globalId != null);
         receiver.setFilter(new RemoteChannelReceiver.MessageFilter<Object>() {
             @Override
             public boolean shouldForwardMessage(Object msg) {
+                LOG.debug("checking msg {}", msg);
                 if (msg instanceof RemoteActorAdminMessage) {
                     handleAdminMessage((RemoteActorAdminMessage) msg);
                     return false;
@@ -42,8 +47,13 @@ public class GlxRemoteActor<Message> extends co.paralleluniverse.actors.RemoteAc
         });
     }
 
+    short getOwnerNodeId() {
+        return ((GlxRemoteChannel) getMailbox()).getOwnerNodeId();
+    }
+
     @Override
     protected void internalSend(Object message) throws SuspendExecution {
+        LOG.debug("Sending msg {}", message);
         ((GlxRemoteChannel) mailbox()).send(message);
     }
 
@@ -82,7 +92,7 @@ public class GlxRemoteActor<Message> extends co.paralleluniverse.actors.RemoteAc
             return false;
         return true;
     }
-    
+
     static Class getActorLifecycleListenerClass() {
         return ActorLifecycleListener.class;
     }

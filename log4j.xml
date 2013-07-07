@@ -14,5 +14,7 @@
     <!--<logger name="co.paralleluniverse.galaxy.core.Cache" level="ALL"/>-->
     <!--<logger name="co.paralleluniverse.galaxy.netty.UDPComm" level="ALL"/>-->
     <!--<logger name="co.paralleluniverse.actors" level="DEBUG"/>-->
+    <!--<logger name="co.paralleluniverse.remote.galaxy.GlxRemoteActor" level="DEBUG"/>-->
+    
   </loggers>
 </configuration>

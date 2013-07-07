@@ -53,6 +53,7 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
     private final Object topic; // serializable (String or Long)
     private final long address; // either my node or my ref
     private final boolean global;
+    private final short ownerNodeId;
 
     /**
      * Used on the creating (receiving) side
@@ -62,13 +63,18 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
     public GlxRemoteChannel(SendPort<Message> channel, Object globalId) {
         final RemoteChannelReceiver<Message> receiver = RemoteChannelReceiver.getReceiver(channel, globalId != null);
         this.topic = receiver.getTopic();
+        this.ownerNodeId = getCluster().getMyNodeId();
         if (globalId != null) {
             this.address = (Long) globalId;
             this.global = true;
         } else {
-            this.address = getCluster().getMyNodeId();
+            this.address = ownerNodeId;
             this.global = false;
         }
+    }
+
+    public short getOwnerNodeId() {
+        return ownerNodeId;
     }
 
     @Override

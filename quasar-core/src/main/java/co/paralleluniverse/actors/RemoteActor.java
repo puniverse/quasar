@@ -14,12 +14,14 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.remote.ServiceUtil;
 
 /**
  *
  * @author pron
  */
 public class RemoteActor<Message> extends ActorImpl<Message> {
+    private static LifecycleListenerProxy lifecycleListenerProxy = ServiceUtil.loadSingletonService(LifecycleListenerProxy.class);
     private final transient LocalActor<Message, ?> actor;
 
     public RemoteActor(LocalActor<Message, ?> actor) {
@@ -37,7 +39,7 @@ public class RemoteActor<Message> extends ActorImpl<Message> {
         } else if (msg instanceof RemoteActorInterruptAdminMessage) {
             actor.interrupt();
         } else if (msg instanceof RemoteActorThrowInAdminMessage) {
-            actor.throwIn(((RemoteActorThrowInAdminMessage)msg).getException());
+            actor.throwIn(((RemoteActorThrowInAdminMessage) msg).getException());
         }
     }
 
@@ -55,15 +57,15 @@ public class RemoteActor<Message> extends ActorImpl<Message> {
     public boolean trySend(Message message) {
         return actor.trySend(message);
     }
-    
+
     @Override
     protected void addLifecycleListener(LifecycleListener listener) {
-        internalSendNonSuspendable(new RemoteActorListenerAdminMessage((ActorLifecycleListener) listener, true));
+        lifecycleListenerProxy.addLifecycleListener(this, listener);
     }
 
     @Override
     protected void removeLifecycleListener(LifecycleListener listener) {
-        internalSendNonSuspendable(new RemoteActorListenerAdminMessage((ActorLifecycleListener) listener, false));
+        lifecycleListenerProxy.removeLifecycleListener(this, listener);
     }
 
     @Override
@@ -79,7 +81,7 @@ public class RemoteActor<Message> extends ActorImpl<Message> {
     protected static abstract class RemoteActorAdminMessage implements java.io.Serializable {
     }
 
-    private static class RemoteActorListenerAdminMessage extends RemoteActorAdminMessage {
+    static class RemoteActorListenerAdminMessage extends RemoteActorAdminMessage {
         private final ActorLifecycleListener listener;
         private final boolean register;
 
