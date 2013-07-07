@@ -13,20 +13,9 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-import java.util.concurrent.TimeUnit;
-
 /**
  *
  * @author pron
  */
-public interface SendPort<Message> extends Port<Message>, AutoCloseable {
-    void send(Message message) throws SuspendExecution, InterruptedException;
-
-    boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
-
-    boolean trySend(Message message);
-
-    @Override
-    void close();
+public interface Port<Message> {
 }

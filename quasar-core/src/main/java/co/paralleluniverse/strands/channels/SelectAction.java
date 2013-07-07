@@ -26,15 +26,15 @@ public final class SelectAction<Message> {
     private volatile boolean done;
     Object token;
 
-    SelectAction(Selector selector, int index, Selectable<Message> port, Message message) {
+    SelectAction(Selector selector, int index, Port<Message> port, Message message) {
         this.selector = selector;
         this.index = index;
-        this.port = port;
+        this.port = (Selectable<Message>)port;
         this.item = message;
         this.isData = message != null;
     }
 
-    SelectAction(Selectable<Message> port, Message message) {
+    SelectAction(Port<Message> port, Message message) {
         this(null, -1, port, message);
     }
 
@@ -58,6 +58,10 @@ public final class SelectAction<Message> {
     
     public int index() {
         return index;
+    }
+
+    public Port<Message> port() {
+        return (Port<Message>)port;
     }
 
     boolean isData() {

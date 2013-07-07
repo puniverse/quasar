@@ -65,14 +65,29 @@ public class Selector<Message> {
         return select(false, timeout, unit, actions);
     }
 
+    public static <Message> SelectAction<Message> trySelect(boolean priority, SelectAction<Message>... actions) throws InterruptedException, SuspendExecution {
+        return new Selector<Message>(priority, Arrays.asList(actions)).trySelect();
+    }
+
+    public static <Message> SelectAction<Message> trySelect(boolean priority, List<SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
+        return new Selector<Message>(priority, actions instanceof ArrayList ? actions : new ArrayList<>(actions)).trySelect();
+    }
+
+    public static <Message> SelectAction<Message> trySelect(SelectAction<Message>... actions) throws InterruptedException, SuspendExecution {
+        return trySelect(false, actions);
+    }
+
+    public static <Message> SelectAction<Message> trySelect(List<SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
+        return trySelect(false, actions);
+    }
+
     public static <Message> SelectAction<Message> send(SendPort<Message> port, Message message) {
-        return new SelectAction<Message>((Selectable<Message>) port, message);
+        return new SelectAction<Message>(port, message);
     }
 
     public static <Message> SelectAction<Message> receive(ReceivePort<Message> port) {
-        return new SelectAction<Message>((Selectable<Message>) port, null);
+        return new SelectAction<Message>(port, null);
     }
-    
     private static final AtomicLong selectorId = new AtomicLong(); // used to break symmetry to prevent deadlock in transfer channel
     private static final Object LEASED = new Object() {
         @Override
@@ -189,9 +204,8 @@ public class Selector<Message> {
         }
         return res;
     }
-
     private volatile StackTraceElement st[];
-    
+
     boolean lease() {
         record("lease", "trying lease %s", this);
         Object w;
@@ -253,7 +267,6 @@ public class Selector<Message> {
     public String toString() {
         return Selector.class.getName() + '@' + Long.toHexString(id);
     }
-    
     static final Unsafe unsafe = UtilUnsafe.getUnsafe();
     private static final long winnerOffset;
 

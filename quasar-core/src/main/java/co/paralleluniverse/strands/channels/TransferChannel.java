@@ -593,7 +593,10 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
         Strand w = Strand.currentStrand();
         int spins = (w instanceof Fiber ? 0 : -1); // no spins in fiber; otherwise, initialized after first item and cancel checks
         ThreadLocalRandom randomYields = null; // bound if needed
-
+        
+        if(spins == 0)
+            s.waiter = w;
+        
         for (;;) {
             Object item = s.item;
 
@@ -611,19 +614,14 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
                 return e;
             }
 
-            if (spins != 0) {
-                if (spins < 0) {                  // establish spins at/near front
-                    if ((spins = spinsFor(pred, s.isData)) > 0)
-                        randomYields = ThreadLocalRandom.current();
-                } else if (spins > 0) {             // spin
-                    --spins;
-                    if (randomYields.nextInt(CHAINED_SPINS) == 0)
-                        Strand.yield();           // occasionally yield
-                }
-                continue;
-            }
-
-            if (s.waiter == null) {
+            if (spins < 0) {                  // establish spins at/near front
+                if ((spins = spinsFor(pred, s.isData)) > 0)
+                    randomYields = ThreadLocalRandom.current();
+            } else if (spins > 0) {             // spin
+                --spins;
+                if (randomYields.nextInt(CHAINED_SPINS) == 0)
+                    Strand.yield();           // occasionally yield
+            } else if (s.waiter == null) {
                 s.waiter = w;                 // request unpark then recheck
             } else if (timed) {
                 long now = System.nanoTime();

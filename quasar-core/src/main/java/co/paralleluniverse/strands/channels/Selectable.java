@@ -17,7 +17,7 @@ package co.paralleluniverse.strands.channels;
  *
  * @author pron
  */
-interface Selectable<Message> {
+interface Selectable<Message> extends Port<Message> {
     Object register(SelectAction<Message> action);
 
     boolean tryNow(Object token);

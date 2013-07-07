@@ -188,15 +188,15 @@ public final class Channels {
         return TickerChannelConsumer.newFor((QueueIntChannel) channel);
     }
 
-    public static LongReceivePort newTickerConsumerFor(QueueLongChannel channel) {
+    public static LongReceivePort newTickerConsumerFor(LongChannel channel) {
         return TickerChannelConsumer.newFor((QueueLongChannel) channel);
     }
 
-    public static FloatReceivePort newTickerConsumerFor(QueueFloatChannel channel) {
+    public static FloatReceivePort newTickerConsumerFor(FloatChannel channel) {
         return TickerChannelConsumer.newFor((QueueFloatChannel) channel);
     }
 
-    public static DoubleReceivePort newTickerConsumerFor(QueueDoubleChannel channel) {
+    public static DoubleReceivePort newTickerConsumerFor(DoubleChannel channel) {
         return TickerChannelConsumer.newFor((QueueDoubleChannel) channel);
     }
 

@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public interface ReceivePort<Message> {
+public interface ReceivePort<Message> extends Port<Message> {
     Message receive() throws SuspendExecution, InterruptedException;
 
     Message tryReceive();
