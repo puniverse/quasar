@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.remote.galaxy;
 
+import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.FiberUtil;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.MessageListener;
@@ -30,12 +31,15 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import jsr166e.ConcurrentHashMapV8;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class listens to messages received from remote ends of a channel, and forwards them to the right channel.
  *
  */
 public class RemoteChannelReceiver<Message> implements MessageListener {
+    private static final Logger LOG = LoggerFactory.getLogger(RemoteChannelReceiver.class);
     private static final ConcurrentMap<WeakReference<? extends SendPort<?>>, RemoteChannelReceiver<?>> receivers = new ConcurrentHashMapV8<>();
     private static final ReferenceQueue<QueueChannel> refQueue = new ReferenceQueue<>();
     private static final AtomicLong topicGen = new AtomicLong(1000);
@@ -92,6 +96,7 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
     @Override
     public void messageReceived(short fromNode, byte[] message) {
         Object m1 = Serialization.read(message);
+        LOG.debug("Received: "+m1);
         if(m1 instanceof GlxRemoteChannel.CloseMessage) {
             channel.close();
             unsubscribe();
@@ -149,7 +154,7 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
         }
     }
 
-    private static class WellBehavedWeakRef<T> extends WeakReference<T> {
+    public static class WellBehavedWeakRef<T> extends WeakReference<T> {
         public WellBehavedWeakRef(T referent) {
             super(referent);
         }

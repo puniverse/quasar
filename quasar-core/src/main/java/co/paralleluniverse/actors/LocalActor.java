@@ -24,6 +24,7 @@ import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import java.lang.reflect.Constructor;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -423,8 +424,14 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
-    protected final void removeLifecycleListener(LifecycleListener listener) {
-        lifecycleListeners.remove(listener);
+    protected final void removeLifecycleListener(Object watchId) {
+        for (Iterator<LifecycleListener> it = lifecycleListeners.iterator(); it.hasNext();) {
+            LifecycleListener lifecycleListener = it.next();
+            if (lifecycleListener.getId()==watchId) {
+                it.remove();
+                break;
+            }
+        }
     }
 
     protected final Throwable getDeathCause() {
@@ -498,7 +505,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         final ActorImpl other = getActorImpl(other1);
         final LifecycleListener listener = new ActorLifecycleListener(this, watchId);
         record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other, listener);
-        other.removeLifecycleListener(listener);
+        other.removeLifecycleListener(watchId);
     }
 
     public final Actor register(Object name) {
@@ -572,9 +579,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     /////////// Serialization ///////////////////////////////////
     // If using Kryo, see what needs to be done: https://code.google.com/p/kryo/
     protected Object writeReplace() throws java.io.ObjectStreamException {
-        LOG.debug("writeReplace "+this);
         final RemoteActor<Message> repl = RemoteProxyFactoryService.create(this, globalId);
-        LOG.debug("writeReplace "+repl);
         return repl;
     }
     //</editor-fold>

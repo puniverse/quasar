@@ -20,6 +20,7 @@
 package co.paralleluniverse.galaxy.example;
 
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.LifecycleException;
 import co.paralleluniverse.actors.LifecycleMessage;
@@ -34,12 +35,16 @@ import co.paralleluniverse.galaxy.TimeoutException;
 import co.paralleluniverse.galaxy.cluster.LifecycleListener;
 import co.paralleluniverse.galaxy.core.Comm;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.SuspendableRunnable;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -58,10 +63,10 @@ public class PeerTKB implements Runnable {
 
     public PeerTKB(String name, int i) throws InterruptedException, IOException {
         System.setProperty("co.paralleluniverse.io.useJDKSerialization", "true");
-        System.setProperty("co.paralleluniverse.debugMode", "true");
-        System.setProperty("co.paralleluniverse.globalFlightRecorder", "true");
-        System.setProperty("co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log" + i);
-        System.setProperty("co.paralleluniverse.io.useJDKSerialization", "true");
+//        System.setProperty("co.paralleluniverse.debugMode", "true");
+//        System.setProperty("co.paralleluniverse.globalFlightRecorder", "true");
+//        System.setProperty("co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log" + i);
+//        System.setProperty("co.paralleluniverse.io.useJDKSerialization", "true");
         System.out.println("STARTING PEER " + i);
         final URL peerXml = PeerTKB.class.getClassLoader().getResource("config/peer.xml");
         final URL serverProps = PeerTKB.class.getClassLoader().getResource("config/server.properties");
@@ -144,6 +149,30 @@ public class PeerTKB implements Runnable {
 
 
             } else {
+//                final Actor actor = ActorRegistry.getActor("master");
+//                final AtomicInteger ai = new AtomicInteger();
+//                for (int j = 0; j < 10; j++) {
+//                    new Fiber<>(new BasicActor<Void, Void>() {
+//                        @Override
+//                        protected Void doRun() throws InterruptedException, SuspendExecution {
+//                            ai.incrementAndGet();
+//                            Object watch = watch(actor);
+////                            unwatch(actor, watch);
+//                            return null;
+//                        }
+//                    }).start().join();
+////                    int val = ai.get();
+////                    if (val % 1000 == 0)
+////                        System.out.println("Till now actors " + val);
+//                    try {
+//                        Strand.sleep(5);
+//                    } catch (SuspendExecution | InterruptedException ex) {
+//                        Logger.getLogger(PeerTKB.class.getName()).log(Level.SEVERE, null, ex);
+//                    }
+//                }
+//                System.gc();
+//                Thread.sleep(50000);
+//                System.out.println("ai is" + ai.get());
                 new Fiber<Void>(new BasicActor<String, Void>() {
                     private boolean masterIsAlive;
 

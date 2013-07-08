@@ -13,7 +13,8 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.actors.RemoteActor.RemoteActorListenerAdminMessage;
+import co.paralleluniverse.actors.RemoteActor.RemoteActorRegisterListenerAdminMessage;
+import co.paralleluniverse.actors.RemoteActor.RemoteActorUnregisterListenerAdminMessage;
 
 /**
  *
@@ -21,9 +22,10 @@ import co.paralleluniverse.actors.RemoteActor.RemoteActorListenerAdminMessage;
  */
 abstract public class LifecycleListenerProxy {
     public void addLifecycleListener(RemoteActor actor, LifecycleListener listener) {
-        actor.internalSendNonSuspendable(new RemoteActorListenerAdminMessage((ActorImpl.ActorLifecycleListener) listener, true));
+        actor.internalSendNonSuspendable(new RemoteActorRegisterListenerAdminMessage((ActorImpl.ActorLifecycleListener) listener));
     }
-    public void removeLifecycleListener(RemoteActor actor, LifecycleListener listener) {
-        actor.internalSendNonSuspendable(new RemoteActorListenerAdminMessage((ActorImpl.ActorLifecycleListener) listener, false));
+    public void removeLifecycleListener(RemoteActor actor, Object watchId) {
+        assert watchId!=null;
+        actor.internalSendNonSuspendable(new RemoteActorUnregisterListenerAdminMessage(watchId));
     }
 }

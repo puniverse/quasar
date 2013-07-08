@@ -27,12 +27,15 @@ import co.paralleluniverse.strands.channels.SendPort;
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author pron
  */
 public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializable {
+    private static final Logger LOG = LoggerFactory.getLogger(GlxRemoteChannel.class);
     private static final Grid grid;
 
     static {
@@ -79,6 +82,7 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
 
     @Override
     public void send(Message message) throws SuspendExecution {
+        LOG.debug("sending: "+message);
         try {
             if (global) {
                 final long ref = address;

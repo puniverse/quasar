@@ -32,8 +32,8 @@
         <property name="minDelayMicrosecs" value="500"/>
         <property name="maxDelayMicrosecs" value="2000"/>
         <property name="maxQueueSize" value="10"/>
-        <property name="maxPacketSize" value="2048"/>
-        <property name="maxRequestOnlyPacketSize" value="400"/>
+        <property name="maxPacketSize" value="4096"/>
+        <property name="maxRequestOnlyPacketSize" value="2048"/>
         <property name="workerExecutor">
             <bean class="co.paralleluniverse.galaxy.core.ConfigurableThreadPool">
                 <constructor-arg name="corePoolSize" value="2"/>

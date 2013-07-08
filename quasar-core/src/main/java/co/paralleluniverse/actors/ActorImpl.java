@@ -138,7 +138,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendPort<Mes
 
     protected abstract void addLifecycleListener(LifecycleListener listener);
 
-    protected abstract void removeLifecycleListener(LifecycleListener listener);
+    protected abstract void removeLifecycleListener(Object watchId);
 
     protected LifecycleListener getLifecycleListener() {
         return lifecycleListener;
@@ -174,6 +174,11 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendPort<Mes
         @Override
         public String toString() {
             return "ActorLifecycleListener{" + "observer: " + observer + ", id: " + id + '}';
+        }
+
+        @Override
+        public Object getId() {
+            return id;
         }
     }
     //</editor-fold>

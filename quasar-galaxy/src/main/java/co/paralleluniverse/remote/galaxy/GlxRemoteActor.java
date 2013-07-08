@@ -37,7 +37,6 @@ public class GlxRemoteActor<Message> extends co.paralleluniverse.actors.RemoteAc
         receiver.setFilter(new RemoteChannelReceiver.MessageFilter<Object>() {
             @Override
             public boolean shouldForwardMessage(Object msg) {
-                LOG.debug("checking msg {}", msg);
                 if (msg instanceof RemoteActorAdminMessage) {
                     handleAdminMessage((RemoteActorAdminMessage) msg);
                     return false;
@@ -53,7 +52,6 @@ public class GlxRemoteActor<Message> extends co.paralleluniverse.actors.RemoteAc
 
     @Override
     protected void internalSend(Object message) throws SuspendExecution {
-        LOG.debug("Sending msg {}", message);
         ((GlxRemoteChannel) mailbox()).send(message);
     }
 
