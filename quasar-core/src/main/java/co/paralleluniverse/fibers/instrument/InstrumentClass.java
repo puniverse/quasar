@@ -121,7 +121,6 @@ public class InstrumentClass extends ClassVisitor {
     @Override
     @SuppressWarnings("CallToThreadDumpStack")
     public void visitEnd() {
-        final boolean requiresInstrumentation = classEntry.requiresInstrumentation();
         classEntry.setRequiresInstrumentation(false);
         db.recordSuspendableMethods(className, classEntry);
 

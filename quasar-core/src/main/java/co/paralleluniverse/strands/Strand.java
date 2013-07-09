@@ -182,6 +182,7 @@ public abstract class Strand {
             LockSupport.unpark((Thread) strand);
     }
 
+    @SuppressWarnings("CallToThreadDumpStack")
     public static void dumpStack() {
         if (Fiber.currentFiber() != null)
             Fiber.dumpStack();
