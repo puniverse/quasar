@@ -17,6 +17,7 @@ import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.Channels;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -335,6 +336,35 @@ public class ActorTest {
         actor2.join();
 
         assertThat(handlerCalled.get(), is(true));
+    }
+
+    @Test
+    public void testWatchGC() throws Exception {
+        final LocalActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+            @Override
+            protected Void doRun() throws SuspendExecution, InterruptedException {
+                Fiber.sleep(120000);
+                return null;
+            }
+        });
+        System.out.println("actor1 is " + actor);
+        WeakReference wrActor2 = new WeakReference(spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+            @Override
+            protected Void doRun() throws SuspendExecution, InterruptedException {
+                Fiber.sleep(10);
+                final Object watch = watch(actor);
+//                unwatch(actor, watch);
+                return null;
+            }
+        }));
+        System.out.println("actor2 is " + wrActor2.get());
+        for (int i = 0; i < 10; i++) {
+            Thread.sleep(10);
+            System.gc();
+        }
+        Thread.sleep(2000);
+
+        assertEquals(null, wrActor2.get());
     }
 
     static class Message {

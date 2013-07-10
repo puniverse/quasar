@@ -56,7 +56,7 @@ public class GlxGlobalRegistry implements GlobalRegistry {
                 store.set(root, Serialization.write(actor), txn);
                 LOG.debug("commit Registering actor {} at rootId  {}", actor, root);
                 store.commit(txn);
-
+                RemoteChannelReceiver.getReceiver(actor.getMailbox(), true).handleRefMessage(new GlxRemoteChannel.RefMessage(true, grid.cluster().getMyNodeId()));
                 return root; // root is the global id
             } catch (TimeoutException e) {
                 LOG.error("Registering actor {} at root {} failed due to timeout", actor, rootName);
@@ -70,10 +70,10 @@ public class GlxGlobalRegistry implements GlobalRegistry {
     }
 
     @Override
-    public void unregister(Object name) throws SuspendExecution {
-        final String rootName = name.toString();
+    public void unregister(LocalActor<?, ?> actor) throws SuspendExecution {
+        final String rootName = actor.getName().toString();
 
-        LOG.info("Uregistering {}", name);
+        LOG.info("Uregistering {}", rootName);
 
         final Store store = grid.store();
 
@@ -83,6 +83,7 @@ public class GlxGlobalRegistry implements GlobalRegistry {
                 final long root = store.getRoot(rootName, txn);
                 store.set(root, (byte[]) null, txn);
                 store.commit(txn);
+                RemoteChannelReceiver.getReceiver(actor.getMailbox(), true).handleRefMessage(new GlxRemoteChannel.RefMessage(false, grid.cluster().getMyNodeId()));
             } catch (TimeoutException e) {
                 LOG.error("Unregistering {} failed due to timeout", rootName);
                 store.rollback(txn);

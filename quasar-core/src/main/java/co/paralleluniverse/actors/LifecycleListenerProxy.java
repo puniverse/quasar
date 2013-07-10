@@ -24,8 +24,12 @@ abstract public class LifecycleListenerProxy {
     public void addLifecycleListener(RemoteActor actor, LifecycleListener listener) {
         actor.internalSendNonSuspendable(new RemoteActorRegisterListenerAdminMessage((ActorImpl.ActorLifecycleListener) listener));
     }
-    public void removeLifecycleListener(RemoteActor actor, Object watchId) {
-        assert watchId!=null;
-        actor.internalSendNonSuspendable(new RemoteActorUnregisterListenerAdminMessage(watchId));
+
+    public void removeLifecycleListener(RemoteActor actor, LifecycleListener listener) {
+        actor.internalSendNonSuspendable(new RemoteActorUnregisterListenerAdminMessage(listener));
+    }
+
+    public void removeLifecycleListeners(RemoteActor actor, ActorImpl observer) {
+        actor.internalSendNonSuspendable(new RemoteActorUnregisterListenerAdminMessage(observer));
     }
 }

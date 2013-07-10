@@ -24,7 +24,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 public interface GlobalRegistry {
     Object register(LocalActor<?, ?> actor) throws SuspendExecution;
 
-    void unregister(Object name) throws SuspendExecution;
+    void unregister(LocalActor<?, ?> actor) throws SuspendExecution;
     
     <Message> Actor<Message> getActor(Object name) throws SuspendExecution;
 }

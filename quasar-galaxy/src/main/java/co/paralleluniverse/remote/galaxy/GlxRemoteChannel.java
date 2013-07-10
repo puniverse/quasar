@@ -13,6 +13,9 @@
  */
 package co.paralleluniverse.remote.galaxy;
 
+import co.paralleluniverse.actors.LifecycleListener;
+import co.paralleluniverse.actors.LifecycleListenerProxy;
+import co.paralleluniverse.actors.RemoteActor;
 import co.paralleluniverse.common.io.Streamable;
 import co.paralleluniverse.fibers.FiberUtil;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -22,11 +25,23 @@ import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Messenger;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.remote.RemoteException;
+import co.paralleluniverse.remote.ServiceUtil;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.SendPort;
 import java.io.Serializable;
+import java.lang.ref.PhantomReference;
+import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.WeakReference;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,7 +97,11 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
 
     @Override
     public void send(Message message) throws SuspendExecution {
-        LOG.debug("sending: "+message);
+        staticSend(message, global, address, topic);
+    }
+
+    private static void staticSend(Object message, final boolean global, final long address, final Object topic) throws SuspendExecution {
+        LOG.debug("sending: " + message);
         try {
             if (global) {
                 final long ref = address;
@@ -177,6 +196,100 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
         return true;
     }
 
+    protected Object readResolve() throws java.io.ObjectStreamException, SuspendExecution {
+        new RCPhantomReference(this).register();
+        return this;
+    }
+
+    private static void registerRemoteRef(final short myNodeId, final boolean global, final long address, final Object topic) throws SuspendExecution {
+        staticSend(new RefMessage(true, myNodeId), global, address, topic);
+    }
+
+    private static void unregisterRemoteRef(final short myNodeId, final boolean global, final long address, final Object topic) throws SuspendExecution {
+        staticSend(new RefMessage(false, myNodeId), global, address, topic);
+    }
+
+    private short getNodeId() {
+        return getCluster().getMyNodeId();
+    }
+
     static class CloseMessage implements Serializable {
+    }
+
+    static class RefMessage implements Serializable {
+        final boolean add;
+        final short nodeId;
+
+        public boolean isAdd() {
+            return add;
+        }
+
+        public short getNodeId() {
+            return nodeId;
+        }
+
+        public RefMessage(boolean add, short nodeId) {
+            this.add = add;
+            this.nodeId = nodeId;
+        }
+
+        @Override
+        public String toString() {
+            return "RefMessage{" + "add=" + add + ", nodeId=" + nodeId + '}';
+        }
+    }
+
+    static class RCPhantomReference extends PhantomReference<GlxRemoteChannel> {
+        private final static Set<RCPhantomReference> rcs = Collections.newSetFromMap(new ConcurrentHashMap<RCPhantomReference, Boolean>());
+        private final static ReferenceQueue<GlxRemoteChannel> q = new ReferenceQueue<>();
+        final short myNodeId;
+        final public boolean globalCopy;
+        final public long addressCopy;
+        final public Object topicCopy;
+
+        public RCPhantomReference(GlxRemoteChannel referent) {
+            super(referent, q);
+            this.topicCopy = referent.topic;
+            this.addressCopy = referent.address;
+            this.globalCopy = referent.global;
+            this.myNodeId = referent.getNodeId();
+        }
+
+        public void unregister() throws SuspendExecution {
+            GlxRemoteChannel.unregisterRemoteRef(myNodeId, globalCopy, addressCopy, topicCopy);
+            rcs.remove(this);
+        }
+
+        public void register() throws SuspendExecution {
+            rcs.add(this);
+            GlxRemoteChannel.registerRemoteRef(myNodeId, globalCopy, addressCopy, topicCopy);
+        }
+
+        static {
+            Thread collector = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        while (!Thread.interrupted()) {
+                            try {
+                                final RCPhantomReference ref = (RCPhantomReference) q.remove();
+                                FiberUtil.runInFiber(new SuspendableRunnable() {
+                                    @Override
+                                    public void run() throws SuspendExecution, InterruptedException {
+                                        ref.unregister();
+                                    }
+                                });
+                            } catch (ExecutionException e) {
+                                LOG.error(e.toString());
+                            }
+                        }
+                    } catch (InterruptedException e) {
+                        LOG.info(this.toString()+ " has been interrupted");
+                    }
+                }
+            }, "remote-references-collector");
+            collector.setDaemon(true);
+            collector.start();
+        }
     }
 }

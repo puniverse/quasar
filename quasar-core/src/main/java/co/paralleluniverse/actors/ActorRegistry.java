@@ -92,7 +92,7 @@ public class ActorRegistry {
                 new Fiber<Void>() {
                     @Override
                     protected Void run() throws SuspendExecution, InterruptedException {
-                        globalRegistry.unregister(name);
+                        globalRegistry.unregister(registeredActors.get(name));
                         return null;
                     }
                 }.start().join();

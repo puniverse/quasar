@@ -17,6 +17,8 @@ import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.FiberUtil;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.MessageListener;
+import co.paralleluniverse.galaxy.cluster.NodeChangeListener;
+import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Messenger;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.strands.SuspendableRunnable;
@@ -28,8 +30,10 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 import jsr166e.ConcurrentHashMapV8;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,6 +80,12 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
         return new RemoteChannelReceiver<Message>(channel, global);
     }
 
+    void shutdown() {
+        LOG.debug("shutdown of receiver due to zero references" + this);
+        unsubscribe();
+        receivers.remove(new WellBehavedWeakRef<>(this.channel));
+    }
+
     public interface MessageFilter<Message> {
         boolean shouldForwardMessage(Message msg);
     }
@@ -83,10 +93,33 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
     private final SendPort<Message> channel;
     private final Object topic;
     private volatile MessageFilter<Message> filter;
+    private final Map<Short, Integer> references = new ConcurrentHashMap<>();
 
     private RemoteChannelReceiver(SendPort<Message> channel, boolean isGlobal) {
         this.channel = channel;
         this.topic = isGlobal ? UUID.randomUUID().toString() : topicGen.incrementAndGet();
+        try {
+            new Grid(co.paralleluniverse.galaxy.Grid.getInstance()).cluster().addNodeChangeListener(new NodeChangeListener() {
+                @Override
+                public void nodeAdded(short id) {
+                }
+
+                @Override
+                public void nodeSwitched(short id) {
+                }
+
+                @Override
+                public void nodeRemoved(short id) {
+                    LOG.debug("decrease RefCount for {} from node {}",this,id);
+                    references.remove(id);
+                    if (references.isEmpty())
+                        shutdown();
+                }
+            });
+        } catch (InterruptedException ex) {
+            LOG.error(ex.toString());
+        }
+
     }
 
     public void setFilter(MessageFilter<Message> filter) {
@@ -96,10 +129,13 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
     @Override
     public void messageReceived(short fromNode, byte[] message) {
         Object m1 = Serialization.read(message);
-        LOG.debug("Received: "+m1);
-        if(m1 instanceof GlxRemoteChannel.CloseMessage) {
+        LOG.debug("Received: " + m1);
+        if (m1 instanceof GlxRemoteChannel.CloseMessage) {
             channel.close();
             unsubscribe();
+            return;
+        } else if (m1 instanceof GlxRemoteChannel.RefMessage) {
+            handleRefMessage((GlxRemoteChannel.RefMessage) m1);
             return;
         }
 
@@ -136,6 +172,31 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
 
     public Object getTopic() {
         return topic;
+    }
+
+    void handleRefMessage(GlxRemoteChannel.RefMessage msg) throws RuntimeException {
+        LOG.debug("handling: " + msg);
+        if (msg.isAdd()) {
+            Integer refCount = references.get(msg.getNodeId());
+            if (refCount == null) {
+                references.put(msg.getNodeId(), 1);
+            } else
+                references.put(msg.getNodeId(), refCount + 1);
+        } else {
+            Integer refCount = references.get(msg.getNodeId());
+            if (refCount == null) {
+                throw new RuntimeException("decrease reference counter message received for unknown cluster node");
+            } else {
+                if (--refCount > 0)
+                    references.put(msg.getNodeId(), refCount);
+                else {
+                    references.remove(msg.getNodeId());
+                    if (references.isEmpty()) {
+                        shutdown();
+                    }
+                }
+            }
+        }
     }
 
     /////////////////////////////

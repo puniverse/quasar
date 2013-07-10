@@ -37,7 +37,11 @@ public class RemoteActor<Message> extends ActorImpl<Message> {
             final RemoteActorRegisterListenerAdminMessage m = (RemoteActorRegisterListenerAdminMessage) msg;
             actor.addLifecycleListener(((RemoteActorRegisterListenerAdminMessage) msg).getListener());
         } else if (msg instanceof RemoteActorUnregisterListenerAdminMessage) {
-            actor.removeLifecycleListener(((RemoteActorUnregisterListenerAdminMessage) msg).getWatchId());
+            RemoteActorUnregisterListenerAdminMessage unreg = (RemoteActorUnregisterListenerAdminMessage) msg;
+            if (unreg.getObserver()!= null)
+                actor.removeObserverListeners(unreg.getObserver());
+            else
+                actor.removeLifecycleListener(unreg.getListener());
         } else if (msg instanceof RemoteActorInterruptAdminMessage) {
             actor.interrupt();
         } else if (msg instanceof RemoteActorThrowInAdminMessage) {
@@ -66,8 +70,13 @@ public class RemoteActor<Message> extends ActorImpl<Message> {
     }
 
     @Override
-    protected void removeLifecycleListener(Object id) {
-        lifecycleListenerProxy.removeLifecycleListener(this, id);
+    protected void removeLifecycleListener(LifecycleListener listener) {
+        lifecycleListenerProxy.removeLifecycleListener(this,listener);
+    }
+
+    @Override
+    protected void removeObserverListeners(ActorImpl actor) {
+        lifecycleListenerProxy.removeLifecycleListeners(this, actor);
     }
 
     @Override
@@ -101,19 +110,25 @@ public class RemoteActor<Message> extends ActorImpl<Message> {
     }
 
     static class RemoteActorUnregisterListenerAdminMessage extends RemoteActorAdminMessage {
-        private final Object watchId;
+        private final ActorImpl observer;
+        private final LifecycleListener listener;
 
-        public RemoteActorUnregisterListenerAdminMessage(Object watchId) {
-            this.watchId = watchId;
+        public RemoteActorUnregisterListenerAdminMessage(ActorImpl observer) {
+            this.observer = observer;
+            this.listener = null;
         }
 
-        @Override
-        public String toString() {
-            return "RemoteActorUnregisterListenerAdminMessage{" + "watchId=" + watchId + '}';
+        public RemoteActorUnregisterListenerAdminMessage(LifecycleListener listener) {
+            this.listener = listener;
+            this.observer = null;
         }
 
-        public Object getWatchId() {
-            return watchId;
+        public ActorImpl getObserver() {
+            return observer;
+        }
+
+        public LifecycleListener getListener() {
+            return listener;
         }
     }
 

@@ -42,6 +42,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     private static final ThreadLocal<LocalActor> currentActor = new ThreadLocal<LocalActor>();
     private Strand strand;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
+    private final Set<ActorImpl> observed = Collections.newSetFromMap(new ConcurrentHashMapV8<ActorImpl, Boolean>());
     private volatile V result;
     private volatile RuntimeException exception;
     private volatile Throwable deathCause;
@@ -408,8 +409,12 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     protected void handleLifecycleMessage(LifecycleMessage m) {
         record(1, "Actor", "handleLifecycleMessage", "%s got LifecycleMessage %s", this, m);
-        if (m instanceof ExitMessage && ((ExitMessage) m).getWatch() == null)
-            throw new LifecycleException(m);
+        if (m instanceof ExitMessage ) {
+            ExitMessage exit = (ExitMessage) m;
+            removeObserverListeners(getActorImpl(exit.getActor()));
+            if (exit.getWatch()==null)
+                throw new LifecycleException(m);
+        }
     }
 
     @Override
@@ -424,13 +429,17 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     }
 
     @Override
-    protected final void removeLifecycleListener(Object watchId) {
+    protected void removeLifecycleListener(LifecycleListener listener) {
+        lifecycleListeners.remove(listener);
+    }   
+
+    @Override
+    protected void removeObserverListeners(ActorImpl actor) {
         for (Iterator<LifecycleListener> it = lifecycleListeners.iterator(); it.hasNext();) {
             LifecycleListener lifecycleListener = it.next();
-            if (lifecycleListener.getId()==watchId) {
-                it.remove();
-                break;
-            }
+            if (lifecycleListener instanceof ActorLifecycleListener)
+                if (((ActorLifecycleListener) lifecycleListener).getObserver().equals(actor))
+                    it.remove();
         }
     }
 
@@ -498,6 +507,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other, listener);
 
         other.addLifecycleListener(listener);
+        observed.add(getActorImpl(other1));
         return id;
     }
 
@@ -505,7 +515,8 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         final ActorImpl other = getActorImpl(other1);
         final LifecycleListener listener = new ActorLifecycleListener(this, watchId);
         record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other, listener);
-        other.removeLifecycleListener(watchId);
+        other.removeLifecycleListener(listener);
+        observed.remove(getActorImpl(other1));
     }
 
     public final Actor register(Object name) {
@@ -547,8 +558,20 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
             } catch (Exception e) {
                 record(1, "Actor", "die", "Actor %s notifying listener %s of death failed with excetpion %s", this, listener, e);
             }
+            
+            // avoid memory leak in links:
+            if(listener instanceof ActorLifecycleListener) {
+                ActorLifecycleListener l = (ActorLifecycleListener)listener;
+                if(l.getId() == null) // link
+                    l.getObserver().removeObserverListeners(this);
+            }
         }
-        lifecycleListeners.clear(); // avoid memory leak
+        
+        // avoid memory leaks:
+        lifecycleListeners.clear(); 
+        for (ActorImpl a : observed)
+            a.removeObserverListeners(this);
+        observed.clear();
     }
 
     //</editor-fold>
