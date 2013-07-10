@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.remote.galaxy;
 
-import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.FiberUtil;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.MessageListener;
@@ -25,15 +24,11 @@ import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.QueueChannel;
 import co.paralleluniverse.strands.channels.SendPort;
 import java.lang.ref.ReferenceQueue;
-import java.lang.ref.WeakReference;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Level;
 import jsr166e.ConcurrentHashMapV8;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,30 +39,15 @@ import org.slf4j.LoggerFactory;
  */
 public class RemoteChannelReceiver<Message> implements MessageListener {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteChannelReceiver.class);
-    private static final ConcurrentMap<WeakReference<? extends SendPort<?>>, RemoteChannelReceiver<?>> receivers = new ConcurrentHashMapV8<>();
+    private static final ConcurrentMap<SendPort<?>, RemoteChannelReceiver<?>> receivers = new ConcurrentHashMapV8<>();
     private static final ReferenceQueue<QueueChannel> refQueue = new ReferenceQueue<>();
     private static final AtomicLong topicGen = new AtomicLong(1000);
 
-    static {
-        Thread collector = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    collectDeadReceivers();
-                } catch (InterruptedException e) {
-                }
-            }
-        }, "remote-channel-receiver-collector");
-        collector.setDaemon(true);
-        collector.start();
-    }
-
     public static <Message> RemoteChannelReceiver<Message> getReceiver(SendPort<Message> channel, boolean global) {
-        WeakReference<SendPort<Message>> channelRef = new WellBehavedWeakRef(channel, refQueue);
-        RemoteChannelReceiver<Message> receiver = (RemoteChannelReceiver<Message>) receivers.get(channelRef);
+        RemoteChannelReceiver<Message> receiver = (RemoteChannelReceiver<Message>) receivers.get(channel);
         if (receiver == null) {
             receiver = createrReceiver(channel, global);
-            RemoteChannelReceiver<Message> tmp = (RemoteChannelReceiver<Message>) receivers.putIfAbsent(channelRef, receiver);
+            RemoteChannelReceiver<Message> tmp = (RemoteChannelReceiver<Message>) receivers.putIfAbsent(channel, receiver);
             if (tmp == null) {
                 receiver.subscribe();
             } else
@@ -83,7 +63,7 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
     void shutdown() {
         LOG.debug("shutdown of receiver due to zero references" + this);
         unsubscribe();
-        receivers.remove(new WellBehavedWeakRef<>(this.channel));
+        receivers.remove(this.channel);
     }
 
     public interface MessageFilter<Message> {
@@ -110,7 +90,7 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
 
                 @Override
                 public void nodeRemoved(short id) {
-                    LOG.debug("decrease RefCount for {} from node {}",this,id);
+                    LOG.debug("decrease RefCount for {} from node {}", this, id);
                     references.remove(id);
                     if (references.isEmpty())
                         shutdown();
@@ -196,44 +176,6 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
                     }
                 }
             }
-        }
-    }
-
-    /////////////////////////////
-    private static void collectDeadReceivers() throws InterruptedException {
-        for (;;) {
-            WeakReference<QueueChannel<?>> ref = (WeakReference<QueueChannel<?>>) refQueue.remove();
-            // we can't use map.get() b/c the map is organized by WellBehavedWeakRef's hashCode, and here we need identity
-            for (Iterator<Map.Entry<WeakReference<? extends SendPort<?>>, RemoteChannelReceiver<?>>> it = receivers.entrySet().iterator(); it.hasNext();) {
-                final Map.Entry<WeakReference<? extends SendPort<?>>, RemoteChannelReceiver<?>> entry = it.next();
-                if (entry.getKey() == ref) { // using identity
-                    final RemoteChannelReceiver<?> receiver = entry.getValue();
-                    receiver.unsubscribe();
-                    it.remove();
-                }
-            }
-        }
-    }
-
-    public static class WellBehavedWeakRef<T> extends WeakReference<T> {
-        public WellBehavedWeakRef(T referent) {
-            super(referent);
-        }
-
-        public WellBehavedWeakRef(T referent, ReferenceQueue<? super T> q) {
-            super(referent, q);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(get());
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (!(obj instanceof WellBehavedWeakRef))
-                return false;
-            return Objects.equals(get(), ((WellBehavedWeakRef) obj).get());
         }
     }
 }
