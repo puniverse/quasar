@@ -17,7 +17,7 @@ package co.paralleluniverse.actors.behaviors;
  *
  * @author pron
  */
-public abstract class GenMessage {
+public abstract class GenMessage implements java.io.Serializable {
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" + contentString() + "]";

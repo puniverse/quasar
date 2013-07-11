@@ -25,7 +25,7 @@ import java.util.Objects;
  *
  * @author pron
  */
-public class RemoteBasicGenBehavior implements ActorWrapper<Object>, GenBehavior {
+public class RemoteBasicGenBehavior implements ActorWrapper<Object>, GenBehavior, java.io.Serializable {
     protected final RemoteActor<Object> actor;
 
     public RemoteBasicGenBehavior(RemoteActor<Object> actor) {

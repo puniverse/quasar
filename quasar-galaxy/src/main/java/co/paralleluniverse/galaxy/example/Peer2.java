@@ -6,6 +6,6 @@ package co.paralleluniverse.galaxy.example;
  */
 public class Peer2 {
     public static void main(String[] args) throws Exception {
-        new PeerTKB("grid1", 2).start();
+        new PeerTKB("grid1", 2).run();
     }
 }

@@ -22,7 +22,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class RemoteGenServer<CallMessage, V, CastMessage> extends RemoteBasicGenBehavior implements GenServer<CallMessage, V, CastMessage> {
+class RemoteGenServer<CallMessage, V, CastMessage> extends RemoteBasicGenBehavior implements GenServer<CallMessage, V, CastMessage> {
     public RemoteGenServer(RemoteActor<Object> actor) {
         super(actor);
     }

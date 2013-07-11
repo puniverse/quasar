@@ -77,7 +77,7 @@ public class LocalGenEvent<Event> extends BasicGenBehavior implements GenEvent<E
         this(null, null, null, null);
     }
     //</editor-fold>
-    
+
     @Override
     public Logger log() {
         return LOG;
@@ -133,6 +133,10 @@ public class LocalGenEvent<Event> extends BasicGenBehavior implements GenEvent<E
     protected void onTerminate(Throwable cause) throws SuspendExecution, InterruptedException {
         super.onTerminate(cause);
         handlers.clear();
+    }
+
+    public static <Event> LocalGenEvent<Event> currentGenEvent() {
+        return (LocalGenEvent<Event>) self();
     }
 
     private void notifyHandlers(Event event) {

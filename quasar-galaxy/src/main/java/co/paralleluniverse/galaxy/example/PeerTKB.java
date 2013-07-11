@@ -20,46 +20,38 @@
 package co.paralleluniverse.galaxy.example;
 
 import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.BasicActor;
-import co.paralleluniverse.actors.LifecycleException;
 import co.paralleluniverse.actors.LifecycleMessage;
-import co.paralleluniverse.common.util.Debug;
+import co.paralleluniverse.actors.LocalActor;
+import co.paralleluniverse.actors.MailboxConfig;
+import co.paralleluniverse.actors.behaviors.AbstractServer;
+import co.paralleluniverse.actors.behaviors.EventHandler;
+import co.paralleluniverse.actors.behaviors.GenEvent;
+import co.paralleluniverse.actors.behaviors.GenServer;
+import co.paralleluniverse.actors.behaviors.Initializer;
+import co.paralleluniverse.actors.behaviors.LocalGenEvent;
+import co.paralleluniverse.actors.behaviors.LocalGenServer;
+import co.paralleluniverse.actors.behaviors.Server;
+import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.galaxy.Cluster;
-import co.paralleluniverse.galaxy.Grid;
-import co.paralleluniverse.galaxy.Messenger;
-import co.paralleluniverse.galaxy.Store;
-import co.paralleluniverse.galaxy.TimeoutException;
-import co.paralleluniverse.galaxy.cluster.LifecycleListener;
-import co.paralleluniverse.galaxy.core.Comm;
-import co.paralleluniverse.remote.galaxy.GlxRemoteChannel;
 import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.SuspendableRunnable;
+import co.paralleluniverse.strands.channels.Channels;
+import co.paralleluniverse.strands.channels.DelayedVal;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Properties;
-import java.util.Random;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jsr166e.ForkJoinPool;
 
 /**
  *
  * @author pron
  */
-public class PeerTKB implements Runnable {
-    private final Grid grid;
-    private final Cluster cluster;
-    private final Store store;
-    private final Messenger messenger;
-    private final short myNodeId;
-    private final Random random = new Random();
-    private final boolean hasServer;
-    private volatile Thread myThread;
+public class PeerTKB {
     private final int i;
 
     public PeerTKB(String name, int i) throws InterruptedException, IOException {
@@ -79,202 +71,195 @@ public class PeerTKB implements Runnable {
         props.setProperty("galaxy.multicast.address", "225.0.0.1");
         props.setProperty("galaxy.multicast.port", Integer.toString(7050));
         System.out.println(props);
-        grid = co.paralleluniverse.galaxy.Grid.getInstance(peerXml.getPath(), props);
-        grid.goOnline();
+        co.paralleluniverse.galaxy.Grid.getInstance(peerXml.getPath(), props).goOnline();
         this.i = i;
-        this.cluster = grid.cluster();
-        this.store = grid.store();
-        this.messenger = grid.messenger();
-        this.myNodeId = cluster.getMyNodeId();
-        this.hasServer = cluster.hasServer();
     }
 
-    public void start() throws InterruptedException {
-        cluster.addLifecycleListener(new LifecycleListener() {
-            @Override
-            public void joinedCluster() {
-            }
-
-            @Override
-            public void online(boolean master) {
-                if (master) {
-                    myThread = new Thread(PeerTKB.this);
-                    myThread.start();
-                }
-            }
-
-            @Override
-            public void switchToMaster() {
-                myThread = new Thread(PeerTKB.this);
-                myThread.start();
-            }
-
-            @Override
-            public void offline() {
-                myThread.interrupt();
-            }
-        });
-
-        if (cluster.isMaster()) {
-            myThread = Thread.currentThread();
-            run();
-        } else
-            System.out.println("SLAVE. Waiting...");
-    }
-
-    @Override
-    public void run() {
-        System.out.println("MASTER: start running... " + myNodeId);
-        try {
-            if (i == 1) {
-                new Fiber<Void>(new BasicActor<String, Void>() {
-                    @Override
-                    protected Void doRun() throws InterruptedException, SuspendExecution {
-                        try {
+    public void run() throws ExecutionException, InterruptedException {
+        switch (SCENARIO.testGenEvent) {
+            case test1:
+                if (i == 1) {
+                    spawnActor(new BasicActor<String, Void>() {
+                        @Override
+                        protected Void doRun() throws InterruptedException, SuspendExecution {
                             System.out.println("registering");
                             register("master");
                             System.out.println("registered");
-//                        Strand.sleep(2000);
-//                        Actor<String> master = getActor("master");
-//                        System.out.println("actor is " + master);
                             String msg = null;
                             int count = 5;
                             while (--count > 0 && (msg = receive()) != null) {
                                 System.out.println("got msg: " + msg);
                                 unregister();
                             }
-                        } catch (ClassCastException ex) {
-                            System.out.println(ex);
+                            System.out.println("I'm here1");
+                            System.exit(0);
+                            return null;
                         }
-                        System.out.println("I'm here1");
-                        System.exit(0);
-                        return null;
-                    }
-                    @Override
-                    protected void handleLifecycleMessage(LifecycleMessage m) {
-                        System.out.println("hlm "+m);
-                    }
-                }).start().join();
-                System.out.println("I'm here2");
 
+                        @Override
+                        protected void handleLifecycleMessage(LifecycleMessage m) {
+                            System.out.println("hlm " + m);
+                        }
+                    }).start().join();
+                    System.out.println("I'm here2");
+                } else {
+                    spawnActor(new BasicActor<String, Void>() {
+                        @Override
+                        protected Void doRun() throws InterruptedException, SuspendExecution {
+                            System.out.println("getting actor");
+                            Actor<String> master = getActor("master");
+                            System.out.println("actor is " + master);
+                            link(master);
+                            unlink(master);
+                            Strand.sleep(2000);
+                            return null;
+                        }
 
-            } else {
-//                Actor actor = ActorRegistry.getActor("master");
-//                
-//                System.out.println("exiting");
-//                this.cluster.goOffline();
-//                System.exit(0);
-//                System.out.println("after exiting");
-////                final AtomicInteger ai = new AtomicInteger();
-////                for (int j = 0; j < 5; j++) {
-////                    new Fiber<>(new BasicActor<Void, Void>() {
-////                        @Override
-////                        protected Void doRun() throws InterruptedException, SuspendExecution {
-//////                            actor.send(new GlxRemoteChannel.RefMessage(true, myNodeId));
-//////                            unwatch(actor, watch);
-////                            return null;
-////                        }
-////                    }).start().join();
-////                }
-////                for (int j = 0; j < 5; j++) {
-////                    new Fiber<>(new BasicActor<Void, Void>() {
-////                        @Override
-////                        protected Void doRun() throws InterruptedException, SuspendExecution {
-//////                            actor.send(new GlxRemoteChannel.RefMessage(false, myNodeId));
-//////                            unwatch(actor, watch);
-////                            return null;
-////                        }
-////                    }).start().join();
-////                }
-//                actor = null;
-//                System.gc();
-//                Thread.sleep(300);
-////                System.out.println("ai is" + ai.get());
-                new Fiber<Void>(new BasicActor<String, Void>() {
-                    private boolean masterIsAlive;
+                        @Override
+                        protected void handleLifecycleMessage(LifecycleMessage m) {
+                            System.out.println("hlm " + m);
+                        }
+                    }).start().join();
+                }
+                break;
 
-                    @Override
-                    protected Void doRun() throws InterruptedException, SuspendExecution {
-                        System.out.println("getting actor");
-                        Actor<String> master = getActor("master");
-                        masterIsAlive = true;
-                        System.out.println("actor is " + master);
-                        link(master);
-                        unlink(master);
-//                        int c = 15;
-//                        while (masterIsAlive) {
-//                            System.out.println("sending msg to master");
-//                            master.send("message from actor " + i);
-//                            Strand.sleep(3000);
-//                            String tryReceive = tryReceive();
-//                            System.out.println("tryReceive " + tryReceive);
-//                        }
-//                        System.out.println("master is Alive = " + masterIsAlive);
-                        Strand.sleep(2000);
-                       
-                        return null;
+            case testGenServer:
+                if (i == 1) {
+                    spawnGenServer(new AbstractServer<Message, Integer, Message>() {
+                        @Override
+                        public void init() throws SuspendExecution {
+                            super.init();
+                            LocalGenServer.currentGenServer().register("myServer");
+                        }
+
+                        @Override
+                        public Integer handleCall(Actor<Integer> from, Object id, Message m) {
+                            return m.a + m.b;
+                        }
+                    }).join();
+                } else {
+                    Integer get = spawnActor(new BasicActor<Message, Integer>(new MailboxConfig(10, Channels.OverflowPolicy.THROW)) {
+                        protected Integer doRun() throws SuspendExecution, InterruptedException {
+                            final GenServer<Message, Integer, Message> gs = (GenServer) getActor("myServer");
+                            return gs.call(new Message(3, 4));
+                        }
+                    }).get();
+                    System.out.println("value is " + get);
+                    assert get == 7;
+
+                }
+                break;
+            case testGenEvent:
+                if (i == 1) {
+                    final DelayedVal<String> dv = new DelayedVal<>();
+                    spawnGenEvent(new Initializer() {
+                        @Override
+                        public void init() throws SuspendExecution {
+                            LocalGenEvent.currentGenEvent().register("myEventServer");
+                            try {
+                                LocalGenEvent<String> ge = LocalGenEvent.currentGenEvent();
+                                ge.addHandler(new EventHandler<String>() {
+                                    @Override
+                                    public void handleEvent(String event) {
+                                        dv.set(event);
+                                        System.out.println("sout "+event);
+                                        LocalGenEvent.currentGenEvent().shutdown();
+                                    }
+                                });
+                            } catch (InterruptedException ex) {
+                                System.out.println(ex);
+                            }
+                        }
+
+                        @Override
+                        public void terminate(Throwable cause) throws SuspendExecution {
+                            System.out.println("terminated");
+                        }
+                    });
+                    try {
+                        String get = dv.get();
+                        System.out.println("got msg "+get);
+                        assert get.equals("hello world");
+                    } catch (SuspendExecution ex) {
                     }
+                } else {
+                    spawnActor(new BasicActor<Message, Void>() {
+                        protected Void doRun() throws SuspendExecution, InterruptedException {
+                            final GenEvent<String> ge = (GenEvent) getActor("myEventServer");
+                            ge.notify("hello world");
+                            return null;
+                        }
+                    }).join();
+                }
+                break;
 
-                    @Override
-                    protected void handleLifecycleMessage(LifecycleMessage m) {
-                        System.out.println("hlm "+m);
-                    }
-                }).start().join();
-                System.out.println("finished actor");
-//                new Fiber<Void>(new BasicActor<String, Void>() {
-//                    private boolean masterIsAlive;
-//
-//                    @Override
-//                    protected Void doRun() throws InterruptedException, SuspendExecution {
-//                        System.out.println("getting actor");
-//                        Actor<String> master = getActor("master");
-//                        masterIsAlive = true;
-//                        watch(master);
-//                        tryReceive();
-//                        while (masterIsAlive) {
-//                            System.out.println("waiting for dead meassage");
-//                            Strand.sleep(3000);
-//                            tryReceive();
-//                        }
-//                        System.out.println("master is Alive = " + masterIsAlive);
-//                        return null;
-//                    }
-//
-//                    @Override
-//                    protected void handleLifecycleMessage(LifecycleMessage m) {
-//                        masterIsAlive = false;
-//                    }
-//                }).start().join();
-            }
-        } catch (ExecutionException | InterruptedException ex) {
+            default:
         }
-        Debug.dumpRecorder();
-
+        System.out.println("finished actor");
         System.exit(0);
+
+
     }
 
-    boolean isSmallest() {
-        for (short node : cluster.getNodes())
-            if (node > 0 && node < myNodeId)
+    enum SCENARIO {
+        test1,
+        testGenServer,
+        testGenEvent
+    }
+
+    private LocalGenServer<Message, Integer, Message> spawnGenServer(Server<Message, Integer, Message> server) {
+        return spawnActor(new LocalGenServer<>(server));
+    }
+
+    private LocalGenEvent<String> spawnGenEvent(Initializer initializer) {
+        return spawnActor(new LocalGenEvent<String>(initializer));
+    }
+    static private ForkJoinPool fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+
+    private <T extends LocalActor<Message, V>, Message, V> T spawnActor(T actor) {
+        Fiber fiber = new Fiber(fjPool, actor);
+        fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Fiber lwt, Throwable e) {
+                e.printStackTrace();
+                throw Exceptions.rethrow(e);
+            }
+        });
+        fiber.start();
+        return actor;
+
+
+    }
+
+    static class Message implements java.io.Serializable {
+        final int a;
+        final int b;
+
+        public Message(int a, int b) {
+            this.a = a;
+            this.b = b;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 3;
+            hash = 43 * hash + this.a;
+            hash = 43 * hash + this.b;
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null)
                 return false;
-        return true;
-    }
-
-    short nextNode() {
-        final int numNodes = getNumPeerNodes();
-        if (numNodes > 1) {
-            int mod = (myNodeId + 1) % numNodes;
-            return (short) (mod != 0 ? mod : numNodes);
-        } else
-            return -1;
-    }
-
-    void send(short node, String topic, byte[] msg) throws TimeoutException {
-        if (node > 0)
-            messenger.send(node, topic, msg);
-    }
-
-    private int getNumPeerNodes() {
-        return cluster.getNodes().size() - (cluster.getNodes().contains(Comm.SERVER) ? 1 : 0) + 1;
+            if (getClass() != obj.getClass())
+                return false;
+            final Message other = (Message) obj;
+            if (this.a != other.a)
+                return false;
+            if (this.b != other.b)
+                return false;
+            return true;
+        }
     }
 }
