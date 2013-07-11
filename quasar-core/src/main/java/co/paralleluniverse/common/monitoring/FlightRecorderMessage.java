@@ -1,6 +1,5 @@
 /*
- * Quasar: lightweight threads and actors for the JVM.
- * Copyright (C) 2011-2013, Parallel Universe Software Co. All rights reserved.
+ * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -88,14 +87,15 @@ public class FlightRecorderMessage {
 
     public Object recordingDouble(Object obj) {
         try {
+            // Use of Guava classes has caused problems with conflicting Guava versions
             if (obj instanceof RecordingDouble)
                 return ((RecordingDouble) obj).getRecordingDouble();
             if (obj instanceof java.util.Map)
-                return com.google.common.collect.ImmutableMap.copyOf((java.util.Map) obj);
+                return new java.util.HashMap((java.util.Map) obj); // com.google.common.collect.ImmutableMap.copyOf((java.util.Map) obj);
             if (obj instanceof java.util.Set)
-                return com.google.common.collect.ImmutableSet.copyOf((java.util.Set) obj);
+                return new java.util.HashSet((java.util.Set) obj); // com.google.common.collect.ImmutableSet.copyOf((java.util.Set) obj);
             if (obj instanceof java.util.List)
-                return com.google.common.collect.ImmutableList.copyOf((java.util.List) obj);
+                return new java.util.ArrayList((java.util.List) obj); // com.google.common.collect.ImmutableList.copyOf((java.util.List) obj);
             return obj;
         } catch (Exception e) {
             return "<ERROR: " + e.getMessage() + '>';
