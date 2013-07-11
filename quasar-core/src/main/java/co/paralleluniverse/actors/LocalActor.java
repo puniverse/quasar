@@ -49,6 +49,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     private volatile Object globalId;
     private ActorMonitor monitor;
     private ActorSpec<?, Message, V> spec;
+    private Object aux;
 
     public LocalActor(Object name, MailboxConfig mailboxConfig) {
         super(name, new Mailbox(mailboxConfig));
@@ -122,6 +123,15 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
 
     void setSpec(ActorSpec<?, Message, V> spec) {
         this.spec = spec;
+    }
+
+    Object getAux() {
+        return aux;
+    }
+
+    void setAux(Object aux) {
+        verifyInActor();
+        this.aux = aux;
     }
 
     @Override
