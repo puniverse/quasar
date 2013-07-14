@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.remote.galaxy;
 
-import co.paralleluniverse.fibers.FiberUtil;
+import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.MessageListener;
 import co.paralleluniverse.galaxy.cluster.NodeChangeListener;
@@ -121,16 +121,12 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
 
         final Message m = (Message) m1;
         if (filter == null || filter.shouldForwardMessage(m)) {
-            try {
-                FiberUtil.runInFiberRuntime(new SuspendableRunnable() {
-                    @Override
-                    public void run() throws SuspendExecution, InterruptedException {
-                        channel.send(m);
-                    }
-                });
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+            new Fiber(new SuspendableRunnable() {
+                @Override
+                public void run() throws SuspendExecution, InterruptedException {
+                    channel.send(m);
+                }
+            }).start();
         }
     }
 

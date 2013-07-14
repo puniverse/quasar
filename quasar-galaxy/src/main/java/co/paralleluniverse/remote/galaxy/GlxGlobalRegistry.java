@@ -22,6 +22,8 @@ import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Store;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.remote.GlobalRegistry;
+import co.paralleluniverse.strands.locks.ReentrantLock;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +33,7 @@ import org.slf4j.LoggerFactory;
  */
 public class GlxGlobalRegistry implements GlobalRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(GlxGlobalRegistry.class);
+    private static final ConcurrentHashMap<String, co.paralleluniverse.strands.locks.ReentrantLock> rootLocks = new ConcurrentHashMap<>();
     private final Grid grid;
 
     public GlxGlobalRegistry() {
@@ -46,25 +49,30 @@ public class GlxGlobalRegistry implements GlobalRegistry {
         final String rootName = actor.getName().toString();
 
         LOG.info("Registering actor {} at root {}", actor, rootName);
+        ReentrantLock rootLock = getOrCreateLock(rootName);
 
         final Store store = grid.store();
         StoreTransaction txn = store.beginTransaction();
         try {
             try {
+                rootLock.lock();
                 final long root = store.getRoot(rootName, txn);
                 store.getx(root, txn);
                 store.set(root, Serialization.write(actor), txn);
                 LOG.debug("commit Registering actor {} at rootId  {}", actor, root);
                 store.commit(txn);
+                rootLock.unlock();
                 RemoteChannelReceiver.getReceiver(actor.getMailbox(), true).handleRefMessage(new GlxRemoteChannel.RefMessage(true, grid.cluster().getMyNodeId()));
                 return root; // root is the global id
             } catch (TimeoutException e) {
                 LOG.error("Registering actor {} at root {} failed due to timeout", actor, rootName);
                 store.rollback(txn);
                 store.abort(txn);
+                rootLock.unlock();
                 throw new RuntimeException("Actor registration failed");
             }
         } catch (InterruptedException e) {
+            rootLock.unlock();
             throw new RuntimeException(e);
         }
     }
@@ -98,13 +106,16 @@ public class GlxGlobalRegistry implements GlobalRegistry {
     @Override
     public <Message> Actor<Message> getActor(Object name) throws SuspendExecution {
         final String rootName = name.toString();
+        ReentrantLock rootLock = getOrCreateLock(rootName);
 
         final Store store = grid.store();
         StoreTransaction txn = store.beginTransaction();
         try {
             try {
+                rootLock.lock();
                 final long root = store.getRoot(rootName, txn);
                 byte[] buf = store.get(root);
+                rootLock.unlock();
                 if (buf == null)
                     return null;
 
@@ -121,10 +132,23 @@ public class GlxGlobalRegistry implements GlobalRegistry {
                 LOG.error("Getting actor {} failed due to timeout", rootName);
                 store.rollback(txn);
                 store.abort(txn);
+                rootLock.unlock();
                 throw new RuntimeException("Actor discovery failed");
             }
         } catch (InterruptedException e) {
+            rootLock.unlock();
             throw new RuntimeException(e);
         }
+    }
+
+    private ReentrantLock getOrCreateLock(final String rootName) {
+        co.paralleluniverse.strands.locks.ReentrantLock rootLock = rootLocks.get(rootName);
+        if (rootLock == null) {
+            final co.paralleluniverse.strands.locks.ReentrantLock newLock = new ReentrantLock();
+            rootLock = rootLocks.putIfAbsent(rootName, newLock);
+            if (rootLock == null)
+                rootLock = newLock;
+        }
+        return rootLock;
     }
 }
