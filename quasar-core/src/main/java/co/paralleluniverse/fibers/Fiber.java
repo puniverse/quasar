@@ -536,7 +536,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (recordsLevel(2))
             record(2, "Fiber", "park", "Parking %s at %s", this, Arrays.toString(getStackTrace()));
         this.postParkActions = postParkActions;
-        if (timeout > 0 & unit != null) {
+        if (timeout > 0 && unit != null) {
             timeoutService.schedule(new Runnable() {
                 @Override
                 public void run() {
