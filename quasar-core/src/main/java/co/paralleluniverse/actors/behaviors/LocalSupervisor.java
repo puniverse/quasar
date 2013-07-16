@@ -490,7 +490,7 @@ public class LocalSupervisor extends BasicGenBehavior implements Supervisor {
     }
 
     public enum RestartStrategy {
-        ALWAYS_ESCALATE {
+        ESCALATE {
             @Override
             boolean onChildDeath(LocalSupervisor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
                 return false;
