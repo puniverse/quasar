@@ -13,8 +13,6 @@
 package co.paralleluniverse.common.monitoring;
 
 import java.lang.management.ManagementFactory;
-import java.util.HashMap;
-import java.util.Map;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanRegistrationException;
@@ -31,13 +29,11 @@ import jsr166e.ForkJoinPool;
 public class JMXForkJoinPoolMonitor extends ForkJoinPoolMonitor implements ForkJoinPoolMXBean {
     private final String mbeanName;
     private boolean registered;
-    private Map<?, Integer> highContentionObjects;
 
-    public JMXForkJoinPoolMonitor(String name, ForkJoinPool fjPool, Map<?, Integer> highContentionObjects) {
+    public JMXForkJoinPoolMonitor(String name, ForkJoinPool fjPool) {
         super(name, fjPool);
-        this.highContentionObjects = highContentionObjects;
         //super(ForkJoinPoolMXBean.class, true, new NotificationBroadcasterSupport());
-        this.mbeanName = "co.paralleluniverse:type=SpaceBase,name=" + name + ",monitor=forkJoinPool";
+        this.mbeanName = "co.paralleluniverse:type=ForkJoinPool,name=" + name + ",monitor=forkJoinPool";
         registerMBean();
     }
 
@@ -58,7 +54,8 @@ public class JMXForkJoinPoolMonitor extends ForkJoinPoolMonitor implements ForkJ
         }
     }
 
-    public void unregisterMBean() {
+    @Override
+    public void unregister() {
         try {
             if (registered)
                 ManagementFactory.getPlatformMBeanServer().unregisterMBean(new ObjectName(mbeanName));
@@ -72,32 +69,28 @@ public class JMXForkJoinPoolMonitor extends ForkJoinPoolMonitor implements ForkJ
         }
     }
 
-    public static enum Status {
-        ACTIVE, QUIESCENT, SHUTDOWN, TERMINATING, TERMINATED
-    }
-
     @Override
     protected ForkJoinPool fjPool() {
         final ForkJoinPool fjPool = super.fjPool();
         if (fjPool == null) {
-            unregisterMBean();
+            unregister();
             throw new RuntimeException("Pool collected");
         }
         return fjPool;
     }
 
     @Override
-    public Status getStatus() {
+    public ForkJoinPoolMXBean.Status getStatus() {
         final ForkJoinPool fjPool = fjPool();
         if (fjPool.isTerminated()) // Returns true if all tasks have completed following shut down.
-            return Status.TERMINATED;
+            return ForkJoinPoolMXBean.Status.TERMINATED;
         if (fjPool.isTerminating()) // Returns true if the process of termination has commenced but not yet completed.
-            return Status.TERMINATING;
+            return ForkJoinPoolMXBean.Status.TERMINATING;
         if (fjPool.isShutdown()) // Returns true if this pool has been shut down.
-            return Status.SHUTDOWN;
+            return ForkJoinPoolMXBean.Status.SHUTDOWN;
         if (fjPool.isQuiescent()) // Returns true if all worker threads are currently idle.
-            return Status.QUIESCENT;
-        return Status.ACTIVE;
+            return ForkJoinPoolMXBean.Status.QUIESCENT;
+        return ForkJoinPoolMXBean.Status.ACTIVE;
     }
 
     @Override
@@ -113,6 +106,31 @@ public class JMXForkJoinPoolMonitor extends ForkJoinPoolMonitor implements ForkJ
     @Override
     public int getPoolSize() {
         return fjPool().getPoolSize(); // Returns the number of worker threads that have started but not yet terminated.
+    }
+
+    @Override
+    public int getActiveThreadCount() {
+        return fjPool().getActiveThreadCount();
+    }
+
+    @Override
+    public int getRunningThreadCount() {
+        return fjPool().getRunningThreadCount();
+    }
+
+    @Override
+    public int getQueuedSubmissionCount() {
+        return fjPool().getQueuedSubmissionCount();
+    }
+
+    @Override
+    public long getQueuedTaskCount() {
+        return fjPool().getQueuedTaskCount();
+    }
+
+    @Override
+    public long getStealCount() {
+        return fjPool().getStealCount();
     }
 
     @Override
@@ -135,19 +153,5 @@ public class JMXForkJoinPoolMonitor extends ForkJoinPoolMonitor implements ForkJ
     @Override
     public void shutdownNow() {
         fjPool().shutdownNow();
-    }
-
-    @Override
-    public Map<String, Integer> getHighContentionLocks() {
-        if(highContentionObjects == null)
-            return null;
-        final Map<String, Integer> map = new HashMap<String, Integer>();
-        for(Map.Entry<?, Integer> entry : highContentionObjects.entrySet())
-            map.put(entry.getKey().toString(), entry.getValue());
-        return map;
-    }
-    
-    @Override
-    public void doneTask(int runs) {
     }
 }

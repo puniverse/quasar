@@ -13,6 +13,9 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitor;
+import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitorFactory;
+import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
 import co.paralleluniverse.concurrent.util.NamingForkJoinWorkerFactory;
 import jsr166e.ForkJoinPool;
 
@@ -47,7 +50,12 @@ public class DefaultFiberPool {
         if (par > MAX_CAP)
             par = MAX_CAP;
 
-        instance = new ForkJoinPool(par, fac, handler, true);
+        instance = new MonitoredForkJoinPool("default-fiber-pool", new ForkJoinPoolMonitorFactory() {
+            @Override
+            public ForkJoinPoolMonitor newMonitor(String name, ForkJoinPool fjPool) {
+                return new JMXFibersForkJoinPoolMonitor(name, fjPool);
+            }
+        }, par, fac, handler, true);
     }
 
     public static ForkJoinPool getInstance() {

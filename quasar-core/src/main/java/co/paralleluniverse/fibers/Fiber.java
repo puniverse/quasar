@@ -15,10 +15,12 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
+import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitor;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.common.util.VisibleForTesting;
+import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
 import co.paralleluniverse.concurrent.util.ScheduledSingleThreadExecutor;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
@@ -557,7 +559,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (fjTask.isDone() | state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
 
+        final JMXFibersForkJoinPoolMonitor monitor = getMonitor();
+
         record(1, "Fiber", "exec1", "running %s %s", state, this);
+        if (monitor != null && state == State.STARTED)
+            monitor.fiberStarted();
         final Fiber oldFiber = getCurrentFiber(); // a fiber can directly call exec on another fiber, e.g.: Channel.sendSync
         setCurrentFiber(this);
         installFiberLocals();
@@ -567,6 +573,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             this.result = run1(); // we jump into the continuation
             state = State.TERMINATED;
             record(1, "Fiber", "exec1", "finished %s %s res: %s", state, this, this.result);
+            if (monitor != null)
+                monitor.fiberTerminated();
             return true;
         } catch (SuspendExecution ex) {
             assert ex == SuspendExecution.PARK || ex == SuspendExecution.YIELD;
@@ -587,14 +595,20 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             if (ppa != null)
                 ppa.run(this);
 
+            if (monitor != null)
+                monitor.fiberSuspended();
             return false;
         } catch (InterruptedException e) {
             state = State.TERMINATED;
             record(1, "Fiber", "exec1", "InterruptedException: %s, %s", state, this);
+            if (monitor != null)
+                monitor.fiberTerminated();
             throw new RuntimeException(e);
         } catch (Throwable t) {
             state = State.TERMINATED;
             record(1, "Fiber", "exec1", "Exception in %s %s: %s", state, this, t);
+            if (monitor != null)
+                monitor.fiberTerminated();
             throw t;
         } finally {
             if (state != State.WAITING) {
@@ -602,6 +616,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 setCurrentFiber(oldFiber);
             }
         }
+    }
+
+    private JMXFibersForkJoinPoolMonitor getMonitor() {
+        if (fjPool instanceof MonitoredForkJoinPool) {
+            ForkJoinPoolMonitor mon = ((MonitoredForkJoinPool) fjPool).getMonitor();
+            if (mon instanceof JMXFibersForkJoinPoolMonitor)
+                return (JMXFibersForkJoinPoolMonitor) mon;
+        }
+        return null;
     }
 
     private void installFiberLocals() {
@@ -933,6 +956,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         @Override
         protected void submit() {
+            final JMXFibersForkJoinPoolMonitor monitor = fiber.getMonitor();
+            if (monitor != null)
+                monitor.fiberSubmitted(fiber.getState() == State.STARTED);
             if (getPool() == fiber.fjPool)
                 fork();
             else

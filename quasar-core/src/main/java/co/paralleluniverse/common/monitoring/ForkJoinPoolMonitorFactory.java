@@ -12,36 +12,12 @@
  */
 package co.paralleluniverse.common.monitoring;
 
+import jsr166e.ForkJoinPool;
+
 /**
  *
  * @author pron
  */
-public interface ForkJoinPoolMXBean {
-    public static enum Status {
-        ACTIVE, QUIESCENT, SHUTDOWN, TERMINATING, TERMINATED
-    }
-
-    boolean getAsyncMode();
-
-    int getParalellism();
-
-    int getPoolSize();
-
-    Status getStatus();
-
-    int getActiveThreadCount();
-
-    int getRunningThreadCount();
-
-    int getQueuedSubmissionCount();
-
-    long getQueuedTaskCount();
-
-    long getStealCount();
-
-    ForkJoinInfo getInfo();
-
-    void shutdown();
-
-    void shutdownNow();
+public interface ForkJoinPoolMonitorFactory {
+    ForkJoinPoolMonitor newMonitor(String name, ForkJoinPool fjPool);
 }

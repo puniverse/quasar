@@ -11,7 +11,7 @@ public class RingBenchmark {
     static final int N = 1000;
     static final int M = 1000;
     static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channels.OverflowPolicy.THROW);
-    static ForkJoinPool fjPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+    //static ForkJoinPool fjPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
     public static void main(String args[]) throws Exception {
         System.out.println("COMPILER: " + System.getProperty("java.vm.name"));
@@ -25,7 +25,7 @@ public class RingBenchmark {
     }
 
     private static <Message, V> LocalActor<Message, V> spawnActor(LocalActor<Message, V> actor) {
-        new Fiber(fjPool, actor).start();
+        new Fiber(actor).start();
         return actor;
     }
 
