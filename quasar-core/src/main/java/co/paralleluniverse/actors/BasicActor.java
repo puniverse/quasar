@@ -67,11 +67,11 @@ public abstract class BasicActor<Message, V> extends LocalActor<Message, V> {
         return helper.receive(proc);
     }
 
-    public final <T> T receive(long timeout, TimeUnit unit, final Class<T> type) throws SuspendExecution, InterruptedException, TimeoutException {
+    public final <T extends Message> T receive(long timeout, TimeUnit unit, final Class<T> type) throws SuspendExecution, InterruptedException, TimeoutException {
         return helper.receive(timeout, unit, type);
     }
 
-    public final <T> T receive(final Class<T> type) throws SuspendExecution, InterruptedException {
+    public final <T extends Message> T receive(final Class<T> type) throws SuspendExecution, InterruptedException {
         return helper.receive(type);
     }
 

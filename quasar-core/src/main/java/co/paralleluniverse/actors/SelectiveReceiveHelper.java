@@ -129,16 +129,20 @@ public class SelectiveReceiveHelper<Message> {
         }
     }
 
-    public final <T> T receive(long timeout, TimeUnit unit, final Class<T> type) throws SuspendExecution, InterruptedException, TimeoutException {
-        return type.cast(receive(timeout, unit, new MessageProcessor<Message>() {
+    public static <Message, T> MessageProcessor<Message> ofType(final Class<T> type) {
+        return new MessageProcessor<Message>() {
             @Override
             public boolean process(Message m) throws SuspendExecution, InterruptedException {
                 return (type.isInstance(m));
             }
-        }));
+        };
+    }
+    
+    public final <T extends Message> T receive(long timeout, TimeUnit unit, final Class<T> type) throws SuspendExecution, InterruptedException, TimeoutException {
+        return type.cast(receive(timeout, unit, (MessageProcessor<Message>)ofType(type)));
     }
 
-    public final <T> T receive(final Class<T> type) throws SuspendExecution, InterruptedException {
+    public final <T extends Message> T receive(final Class<T> type) throws SuspendExecution, InterruptedException {
         try {
             return receive(0, null, type);
         } catch (TimeoutException ex) {
