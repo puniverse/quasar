@@ -37,6 +37,9 @@ import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import org.objenesis.instantiator.ObjectInstantiator;
 import org.objenesis.strategy.SerializingInstantiatorStrategy;
 
@@ -45,6 +48,8 @@ import org.objenesis.strategy.SerializingInstantiatorStrategy;
  * @author pron
  */
 public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
+    private static Queue<Class> registrations = new ConcurrentLinkedQueue<Class>();
+    
     public final Kryo kryo;
 
     public KryoSerializer() {
@@ -85,20 +90,15 @@ public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
         UnmodifiableCollectionsSerializer.registerSerializers(kryo);
         SynchronizedCollectionsSerializer.registerSerializers(kryo);
         kryo.addDefaultSerializer(Externalizable.class, new ExternalizableKryoSerializer());
+        
+        for (Class clazz : registrations)
+            kryo.register(clazz);
     }
 
-    public void register(Class type) {
-        kryo.register(type);
+    public static void register(Class type) {
+        registrations.add(type);
     }
-
-    public void register(Class type, Serializer serializer) {
-        kryo.register(type, serializer);
-    }
-
-    public void register(Class type, Serializer serializer, ObjectInstantiator instantiator) {
-        final Registration reg = kryo.register(type, serializer);
-        reg.setInstantiator(instantiator);
-    }
+    
 
     @Override
     public byte[] write(Object object) {

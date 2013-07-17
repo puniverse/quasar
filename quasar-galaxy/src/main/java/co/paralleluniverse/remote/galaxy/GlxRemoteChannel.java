@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializable {
     private static final Logger LOG = LoggerFactory.getLogger(GlxRemoteChannel.class);
     private static final Grid grid;
-    private static final ExecutorService sendThreadPool = Executors.newCachedThreadPool();
+    private static final ExecutorService sendThreadPool = Executors.newSingleThreadExecutor(); //Executors.newCachedThreadPool();
 
     static {
         try {
@@ -167,12 +167,13 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
     }
 
     private static void submitSend(final Object message, final boolean global, final long address, final Object topic) throws SuspendExecution {
+        LOG.debug("sending: " + message);
         sendThreadPool.submit(new Runnable() {
             @Override
             public void run() {
                 try {
                     staticSend(message, global, address, topic);
-                    LOG.debug("sent "+message);
+                    LOG.debug("sent {}", message);
                 } catch (SuspendExecution e) {
                     throw new AssertionError(e);
                 }
@@ -181,7 +182,6 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
     }
 
     private static void staticSend(Object message, final boolean global, final long address, final Object topic) throws SuspendExecution {
-        LOG.debug("sending: " + message);
         try {
             if (global) {
                 final long ref = address;

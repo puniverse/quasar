@@ -21,13 +21,13 @@ import co.paralleluniverse.io.serialization.KryoSerializer;
  */
 public final class RemoteInit {
     static {
-//        KryoSerializer.register(GlxRemoteChannel.class);
-//        KryoSerializer.register(GlxRemoteActor.class);
-//        KryoSerializer.register(GlxRemoteActor.getActorLifecycleListenerClass());
-//        KryoSerializer.register(GlxRemoteChannel.CloseMessage.class);
-//        KryoSerializer.register(co.paralleluniverse.actors.ExitMessage.class);
-//        KryoSerializer.register(co.paralleluniverse.actors.ShutdownMessage.class);
-//        KryoSerializer.register(GlxRemoteChannel.RefMessage.class);
+        KryoSerializer.register(GlxRemoteChannel.class);
+        KryoSerializer.register(GlxRemoteActor.class);
+        KryoSerializer.register(GlxRemoteActor.getActorLifecycleListenerClass());
+        KryoSerializer.register(GlxRemoteChannel.CloseMessage.class);
+        KryoSerializer.register(co.paralleluniverse.actors.ExitMessage.class);
+        KryoSerializer.register(co.paralleluniverse.actors.ShutdownMessage.class);
+        KryoSerializer.register(GlxRemoteChannel.RefMessage.class);
     }
     
     public static void init() {

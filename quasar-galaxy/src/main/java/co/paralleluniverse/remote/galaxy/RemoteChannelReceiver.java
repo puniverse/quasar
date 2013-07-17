@@ -121,12 +121,13 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
 
         final Message m = (Message) m1;
         if (filter == null || filter.shouldForwardMessage(m)) {
-            new Fiber(new SuspendableRunnable() {
-                @Override
-                public void run() throws SuspendExecution, InterruptedException {
-                    channel.send(m);
-                }
-            }).start();
+            try {
+                channel.send(m); // TODO: this may potentially block the whole messenger thread!!!
+            } catch (SuspendExecution e) {
+                throw new AssertionError(e);
+            } catch(InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 

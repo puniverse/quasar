@@ -33,6 +33,7 @@ import co.paralleluniverse.actors.behaviors.LocalGenEvent;
 import co.paralleluniverse.actors.behaviors.LocalGenServer;
 import co.paralleluniverse.actors.behaviors.Server;
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.concurrent.util.ThreadUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -77,7 +78,7 @@ public class PeerTKB {
     }
 
     public void run() throws ExecutionException, InterruptedException {
-        switch (SCENARIO.testMultiGetActor) {
+        switch (SCENARIO.testOrdering) {
             case test1:
                 if (i == 1) {
                     spawnActor(new BasicActor<String, Void>() {
@@ -86,7 +87,7 @@ public class PeerTKB {
                             System.out.println("registering");
                             register("master");
                             System.out.println("registered");
-                            System.out.println("master is "+ getActor("master"));
+                            System.out.println("master is " + getActor("master"));
                             String msg = null;
                             int count = 5;
                             while (--count > 0 && (msg = receive()) != null) {
@@ -202,7 +203,7 @@ public class PeerTKB {
                         @Override
                         public void init() throws SuspendExecution {
                             LocalGenEvent.currentGenEvent().register("myEventServer");
-                            System.out.println("kkkvb "+LocalGenEvent.getActor("myEventServer"));
+                            System.out.println("kkkvb " + LocalGenEvent.getActor("myEventServer"));
                             try {
                                 LocalGenEvent<String> ge = LocalGenEvent.currentGenEvent();
                                 ge.addHandler(new EventHandler<String>() {
@@ -245,11 +246,67 @@ public class PeerTKB {
 
                 }
                 break;
+            case testOrdering:
+                if (i == 1) {
+                    spawnGenEvent(new Initializer() {
+                        AtomicInteger ai = new AtomicInteger();
+
+                        @Override
+                        public void init() throws SuspendExecution {
+                            LocalGenEvent.currentGenEvent().register("myEventServer");
+                            try {
+                                LocalGenEvent<String> ge = LocalGenEvent.currentGenEvent();
+                                ge.addHandler(new EventHandler<String>() {
+                                    @Override
+                                    public void handleEvent(String event) {
+                                        System.out.println("msg no " + ai.incrementAndGet() + ": " + event);
+                                    }
+                                });
+                            } catch (InterruptedException ex) {
+                                System.out.println(ex);
+                            }
+                        }
+
+                        @Override
+                        public void terminate(Throwable cause) throws SuspendExecution {
+                            System.out.println("terminated");
+                        }
+                    }).join();
+                } else {
+                    Queue<LocalActor> queue = new LinkedList<>();
+                    for (int j = 0; j < 1; j++) {
+                        final BasicActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>("actor-" + j) {
+                            protected Void doRun() throws SuspendExecution, InterruptedException {
+                                try {
+                                    final GenEvent<String> ge = (GenEvent) getActor("myEventServer");
+                                    for (int k = 0; k < 3000; k++)
+                                        ge.notify("hw " + k + " f" + getName());
+                                } catch (Exception e) {
+                                    System.out.println("error in " + getName());
+                                    throw e;
+                                }
+                                return null;
+                            }
+                        });
+                        queue.add(actor);
+//                        actor.join();
+                    }
+                    for (LocalActor localActor : queue)
+                        localActor.join();
+                    Thread.sleep(5000);
+
+                }
+                break;
 
             default:
         }
         System.out.println("finished");
         System.exit(0);
+        while (true) {
+            System.out.println("==================");
+            ThreadUtil.dumpThreads();
+            Thread.sleep(5000);
+        }
 
 
     }
@@ -258,8 +315,8 @@ public class PeerTKB {
         test1,
         testGenServer,
         testGenEvent,
-        testMultiGetActor
-    }
+        testMultiGetActor,
+        testOrdering,}
 
     private LocalGenServer<Message, Integer, Message> spawnGenServer(Server<Message, Integer, Message> server) {
         return spawnActor(new LocalGenServer<>(server));
