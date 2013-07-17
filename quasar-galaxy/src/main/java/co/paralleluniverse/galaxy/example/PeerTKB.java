@@ -57,23 +57,15 @@ public class PeerTKB {
     private final int i;
 
     public PeerTKB(String name, int i) throws InterruptedException, IOException {
-//        System.setProperty("co.paralleluniverse.io.useJDKSerialization", "true");
-//        System.setProperty("co.paralleluniverse.debugMode", "true");
-//        System.setProperty("co.paralleluniverse.globalFlightRecorder", "true");
-//        System.setProperty("co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log" + i);
-//        System.setProperty("co.paralleluniverse.io.useJDKSerialization", "true");
         System.out.println("STARTING PEER " + i);
         final URL peerXml = PeerTKB.class.getClassLoader().getResource("config/peer.xml");
-        final URL serverProps = PeerTKB.class.getClassLoader().getResource("config/server.properties");
-        Properties props = new Properties();
-        props.load(new FileInputStream(serverProps.getPath()));
-        props.setProperty("galaxy.nodeId", Integer.toString(i));
-        props.setProperty("galaxy.port", Integer.toString(7050 + i));
-        props.setProperty("galaxy.slave_port", Integer.toString(8050 + i));
-        props.setProperty("galaxy.multicast.address", "225.0.0.1");
-        props.setProperty("galaxy.multicast.port", Integer.toString(7050));
-        System.out.println(props);
-        co.paralleluniverse.galaxy.Grid.getInstance(peerXml.getPath(), props).goOnline();
+        System.setProperty("galaxy.nodeId", Integer.toString(i));
+        System.setProperty("galaxy.port", Integer.toString(7050 + i));
+        System.setProperty("galaxy.slave_port", Integer.toString(8050 + i));
+        System.setProperty("galaxy.multicast.address", "225.0.0.1");
+        System.setProperty("galaxy.multicast.port", Integer.toString(7050));
+        System.setProperty("co.paralleluniverse.galaxy.configFile", peerXml.getPath());
+        System.setProperty("co.paralleluniverse.galaxy.autoGoOnline", "true");
         this.i = i;
     }
 
@@ -316,7 +308,8 @@ public class PeerTKB {
         testGenServer,
         testGenEvent,
         testMultiGetActor,
-        testOrdering,}
+        testOrdering,
+    }
 
     private LocalGenServer<Message, Integer, Message> spawnGenServer(Server<Message, Integer, Message> server) {
         return spawnActor(new LocalGenServer<>(server));
