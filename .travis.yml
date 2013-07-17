@@ -1,5 +1,5 @@
 language: java
 install: gradle -q assemble
-script: gradle -q check
+script: gradle -i check
 jdk:
   - oraclejdk7
