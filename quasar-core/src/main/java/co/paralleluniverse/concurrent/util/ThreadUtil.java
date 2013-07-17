@@ -24,7 +24,7 @@ public final class ThreadUtil {
     public static void dumpThreads() {
         final Map<Thread, StackTraceElement[]> threads = Thread.getAllStackTraces();
         for(Thread thread : threads.keySet())
-            System.out.println(thread.getName() + "\t" + (thread.isDaemon() ? "DAEMON" : ""));
+            System.out.println((thread.isDaemon() ? "DAEMON  " : "        ") + thread.getName());
         
         // final ThreadInfo[] threads = ManagementFactory.getThreadMXBean().dumpAllThreads(false, false);
 //        for(ThreadInfo thread : threads) {
