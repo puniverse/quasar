@@ -1,5 +1,5 @@
 language: java
 install: gradle -q assemble
-script: gradle -i check
+script: gradle -i check |  | perl -pe 's/\e\[?.*?[\@-~]//g'
 jdk:
   - oraclejdk7
