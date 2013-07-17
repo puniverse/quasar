@@ -23,14 +23,6 @@ import co.paralleluniverse.strands.channels.SendPort;
  * @author pron
  */
 public class GlxRemoteProxyFactory implements RemoteProxyFactory {
-    static {
-        KryoSerializer.register(GlxRemoteChannel.class);
-        KryoSerializer.register(GlxRemoteActor.class);
-        KryoSerializer.register(GlxRemoteActor.getActorLifecycleListenerClass());
-        KryoSerializer.register(GlxRemoteChannel.CloseMessage.class);
-        KryoSerializer.register(co.paralleluniverse.actors.ExitMessage.class);
-        KryoSerializer.register(co.paralleluniverse.actors.ShutdownMessage.class);
-    }
 
     @Override
     public <Message> GlxRemoteActor<Message> create(LocalActor<Message, ?> actor, Object globalId) {

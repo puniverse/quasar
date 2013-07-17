@@ -13,8 +13,8 @@
     <!--<logger name="co.paralleluniverse.galaxy.core.StringRootManager" level="ALL"/>-->
     <!--<logger name="co.paralleluniverse.galaxy.core.Cache" level="ALL"/>-->
     <!--<logger name="co.paralleluniverse.galaxy.netty.UDPComm" level="DEBUG"/>-->
-    <logger name="co.paralleluniverse.actors" level="DEBUG"/>
-    <logger name="co.paralleluniverse.remote.galaxy" level="DEBUG"/>
+    <!--<logger name="co.paralleluniverse.actors" level="DEBUG"/>-->
+    <!--<logger name="co.paralleluniverse.remote.galaxy" level="DEBUG"/>-->
     
   </loggers>
 </configuration>

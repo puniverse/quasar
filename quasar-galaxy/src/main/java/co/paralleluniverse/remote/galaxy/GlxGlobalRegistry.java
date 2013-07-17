@@ -16,6 +16,7 @@ package co.paralleluniverse.remote.galaxy;
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.galaxy.CacheListener;
 import co.paralleluniverse.galaxy.StoreTransaction;
 import co.paralleluniverse.galaxy.TimeoutException;
 import co.paralleluniverse.galaxy.quasar.Grid;
@@ -23,6 +24,7 @@ import co.paralleluniverse.galaxy.quasar.Store;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.remote.GlobalRegistry;
 import co.paralleluniverse.strands.locks.ReentrantLock;
+import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,8 +34,10 @@ import org.slf4j.LoggerFactory;
  * @author pron
  */
 public class GlxGlobalRegistry implements GlobalRegistry {
+    private static final ConcurrentHashMap<String, Actor> rootCache = new ConcurrentHashMap<>();
     private static final Logger LOG = LoggerFactory.getLogger(GlxGlobalRegistry.class);
-    private static final ConcurrentHashMap<String, co.paralleluniverse.strands.locks.ReentrantLock> rootLocks = new ConcurrentHashMap<>();
+    private static final Serialization ser = Serialization.getInstance();
+    private static final co.paralleluniverse.strands.locks.ReentrantLock serlock = new ReentrantLock();
     private final Grid grid;
 
     public GlxGlobalRegistry() {
@@ -49,31 +53,29 @@ public class GlxGlobalRegistry implements GlobalRegistry {
         final String rootName = actor.getName().toString();
 
         LOG.info("Registering actor {} at root {}", actor, rootName);
-        ReentrantLock rootLock = getOrCreateLock(rootName);
 
         final Store store = grid.store();
         StoreTransaction txn = store.beginTransaction();
+        serlock.lock();
         try {
             try {
-                rootLock.lock();
                 final long root = store.getRoot(rootName, txn);
                 store.getx(root, txn);
-                store.set(root, Serialization.write(actor), txn);
+                store.set(root, ser.write(actor), txn);
                 LOG.debug("commit Registering actor {} at rootId  {}", actor, root);
                 store.commit(txn);
-                rootLock.unlock();
                 RemoteChannelReceiver.getReceiver(actor.getMailbox(), true).handleRefMessage(new GlxRemoteChannel.RefMessage(true, grid.cluster().getMyNodeId()));
                 return root; // root is the global id
             } catch (TimeoutException e) {
                 LOG.error("Registering actor {} at root {} failed due to timeout", actor, rootName);
                 store.rollback(txn);
                 store.abort(txn);
-                rootLock.unlock();
                 throw new RuntimeException("Actor registration failed");
             }
         } catch (InterruptedException e) {
-            rootLock.unlock();
             throw new RuntimeException(e);
+        } finally {
+            serlock.unlock();
         }
     }
 
@@ -106,49 +108,65 @@ public class GlxGlobalRegistry implements GlobalRegistry {
     @Override
     public <Message> Actor<Message> getActor(Object name) throws SuspendExecution {
         final String rootName = name.toString();
-        ReentrantLock rootLock = getOrCreateLock(rootName);
+        Actor cacheValue = rootCache.get(rootName);
+        if (cacheValue != null)
+            return cacheValue;
+        serlock.lock();
+        try {
+            cacheValue = rootCache.get(rootName);
+            if (cacheValue != null)
+                return cacheValue;
+            return getRootFromStoreAndUpdateCache(rootName);
+        } finally {
+            serlock.unlock();
+        }
+    }
 
+    private <Message> Actor<Message> getRootFromStoreAndUpdateCache(final String rootName) throws SuspendExecution, RuntimeException {
         final Store store = grid.store();
+
         StoreTransaction txn = store.beginTransaction();
         try {
             try {
-                rootLock.lock();
                 final long root = store.getRoot(rootName, txn);
                 byte[] buf = store.get(root);
-                rootLock.unlock();
+                store.setListener(root, new CacheListener() {
+                    @Override
+                    public void invalidated(long id) {
+                        evicted(id);
+                    }
+
+                    @Override
+                    public void received(long id, long version, ByteBuffer data) {
+                    }
+
+                    @Override
+                    public void evicted(long id) {
+                        rootCache.remove(rootName);
+                        store.setListener(id, null);
+                    }
+                });
                 if (buf == null)
                     return null;
 
                 final Actor<Message> actor;
                 try {
-                    actor = (Actor<Message>) Serialization.read(buf);
+                    actor = (Actor<Message>) ser.read(buf);
                 } catch (Exception e) {
                     LOG.info("Deserializing actor at root " + rootName + " has failed with exception", e);
                     return null;
+                } finally {
                 }
-
+                rootCache.put(rootName, actor);
                 return actor;
             } catch (TimeoutException e) {
                 LOG.error("Getting actor {} failed due to timeout", rootName);
                 store.rollback(txn);
                 store.abort(txn);
-                rootLock.unlock();
                 throw new RuntimeException("Actor discovery failed");
             }
         } catch (InterruptedException e) {
-            rootLock.unlock();
             throw new RuntimeException(e);
         }
-    }
-
-    private ReentrantLock getOrCreateLock(final String rootName) {
-        co.paralleluniverse.strands.locks.ReentrantLock rootLock = rootLocks.get(rootName);
-        if (rootLock == null) {
-            final co.paralleluniverse.strands.locks.ReentrantLock newLock = new ReentrantLock();
-            rootLock = rootLocks.putIfAbsent(rootName, newLock);
-            if (rootLock == null)
-                rootLock = newLock;
-        }
-        return rootLock;
     }
 }

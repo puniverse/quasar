@@ -45,66 +45,65 @@ import org.objenesis.strategy.SerializingInstantiatorStrategy;
  * @author pron
  */
 public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
-    public static final Kryo KRYO;
+    public final Kryo kryo;
 
-    static {
-        KRYO = new KryoReflectionFactorySupport();
+    public KryoSerializer() {
+        this.kryo = new ReplaceableObjectKryo();
 
-        KRYO.setRegistrationRequired(false);
-        KRYO.setInstantiatorStrategy(new SerializingInstantiatorStrategy());
+        kryo.setRegistrationRequired(false);
+        kryo.setInstantiatorStrategy(new SerializingInstantiatorStrategy());
 
-        KRYO.register(boolean[].class);
-        KRYO.register(byte[].class);
-        KRYO.register(short[].class);
-        KRYO.register(char[].class);
-        KRYO.register(int[].class);
-        KRYO.register(float[].class);
-        KRYO.register(long[].class);
-        KRYO.register(double[].class);
-        KRYO.register(String[].class);
-        KRYO.register(int[][].class);
-        KRYO.register(java.util.ArrayList.class);
-        KRYO.register(java.util.LinkedList.class);
-        KRYO.register(java.util.HashMap.class);
-        KRYO.register(java.util.LinkedHashMap.class);
-        KRYO.register(java.util.TreeMap.class);
-        KRYO.register(java.util.EnumMap.class);
-        KRYO.register(java.util.HashSet.class);
-        KRYO.register(java.util.TreeSet.class);
-        KRYO.register(java.util.EnumSet.class);
+        kryo.register(boolean[].class);
+        kryo.register(byte[].class);
+        kryo.register(short[].class);
+        kryo.register(char[].class);
+        kryo.register(int[].class);
+        kryo.register(float[].class);
+        kryo.register(long[].class);
+        kryo.register(double[].class);
+        kryo.register(String[].class);
+        kryo.register(int[][].class);
+        kryo.register(java.util.ArrayList.class);
+        kryo.register(java.util.LinkedList.class);
+        kryo.register(java.util.HashMap.class);
+        kryo.register(java.util.LinkedHashMap.class);
+        kryo.register(java.util.TreeMap.class);
+        kryo.register(java.util.EnumMap.class);
+        kryo.register(java.util.HashSet.class);
+        kryo.register(java.util.TreeSet.class);
+        kryo.register(java.util.EnumSet.class);
 
-        KRYO.register(java.util.Arrays.asList("").getClass(), new ArraysAsListSerializer());
-//        KRYO.register(java.util.Collections.EMPTY_LIST.getClass(), new CollectionsEmptyListSerializer());
-//        KRYO.register(java.util.Collections.EMPTY_MAP.getClass(), new CollectionsEmptyMapSerializer());
-//        KRYO.register(java.util.Collections.EMPTY_SET.getClass(), new CollectionsEmptySetSerializer());
-//        KRYO.register(java.util.Collections.singletonList("").getClass(), new CollectionsSingletonListSerializer());
-//        KRYO.register(java.util.Collections.singleton("").getClass(), new CollectionsSingletonSetSerializer());
-//        KRYO.register(java.util.Collections.singletonMap("", "").getClass(), new CollectionsSingletonMapSerializer());
-        KRYO.register(java.util.GregorianCalendar.class, new GregorianCalendarSerializer());
-        KRYO.register(java.lang.reflect.InvocationHandler.class, new JdkProxySerializer());
-        UnmodifiableCollectionsSerializer.registerSerializers(KRYO);
-        SynchronizedCollectionsSerializer.registerSerializers(KRYO);
-
-        KRYO.addDefaultSerializer(Externalizable.class, new ExternalizableKryoSerializer());
+        kryo.register(java.util.Arrays.asList("").getClass(), new ArraysAsListSerializer());
+//        kryo.register(java.util.Collections.EMPTY_LIST.getClass(), new CollectionsEmptyListSerializer());
+//        kryo.register(java.util.Collections.EMPTY_MAP.getClass(), new CollectionsEmptyMapSerializer());
+//        kryo.register(java.util.Collections.EMPTY_SET.getClass(), new CollectionsEmptySetSerializer());
+//        kryo.register(java.util.Collections.singletonList("").getClass(), new CollectionsSingletonListSerializer());
+//        kryo.register(java.util.Collections.singleton("").getClass(), new CollectionsSingletonSetSerializer());
+//        kryo.register(java.util.Collections.singletonMap("", "").getClass(), new CollectionsSingletonMapSerializer());
+        kryo.register(java.util.GregorianCalendar.class, new GregorianCalendarSerializer());
+        kryo.register(java.lang.reflect.InvocationHandler.class, new JdkProxySerializer());
+        UnmodifiableCollectionsSerializer.registerSerializers(kryo);
+        SynchronizedCollectionsSerializer.registerSerializers(kryo);
+        kryo.addDefaultSerializer(Externalizable.class, new ExternalizableKryoSerializer());
     }
 
-    public static void register(Class type) {
-        KRYO.register(type);
+    public void register(Class type) {
+        kryo.register(type);
     }
 
     public void register(Class type, Serializer serializer) {
-        KRYO.register(type, serializer);
+        kryo.register(type, serializer);
     }
 
     public void register(Class type, Serializer serializer, ObjectInstantiator instantiator) {
-        final Registration reg = KRYO.register(type, serializer);
+        final Registration reg = kryo.register(type, serializer);
         reg.setInstantiator(instantiator);
     }
 
     @Override
     public byte[] write(Object object) {
         final Output output = new KryoObjectOutputStream(512, -1);
-        KRYO.writeClassAndObject(output, getReplacement(object));
+        kryo.writeClassAndObject(output, object);
         output.flush();
         return output.toBytes();
     }
@@ -112,45 +111,45 @@ public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
     @Override
     public Object read(byte[] buf) {
         final Input input = new KryoObjectInputStream(buf);
-        return KRYO.readClassAndObject(input);
+        return kryo.readClassAndObject(input);
     }
 
-    public static <T> T read(byte[] buffer, Class<T> type) {
+    public <T> T read(byte[] buffer, Class<T> type) {
         final Input input = new KryoObjectInputStream(buffer);
-        return KRYO.readObjectOrNull(input, type);
+        return kryo.readObjectOrNull(input, type);
     }
 
     @Override
     public void write(OutputStream os, Object object) {
         final Output output = toKryoObjectOutputStream(os);
-        KRYO.writeClassAndObject(output, getReplacement(object));
+        kryo.writeClassAndObject(output, object);
         output.flush();
     }
 
     @Override
     public Object read(InputStream is) throws IOException {
         final Input input = toKryoObjectInputStream(is);
-        return KRYO.readClassAndObject(input);
+        return kryo.readClassAndObject(input);
     }
 
-    public static <T> T read(InputStream is, Class<T> type) {
+    public <T> T read(InputStream is, Class<T> type) {
         final Input input = toKryoObjectInputStream(is);
-        return KRYO.readObjectOrNull(input, type);
+        return kryo.readObjectOrNull(input, type);
     }
 
-    private static KryoObjectOutputStream toKryoObjectOutputStream(OutputStream os) {
+    private KryoObjectOutputStream toKryoObjectOutputStream(OutputStream os) {
         if (os instanceof KryoObjectOutputStream)
             return (KryoObjectOutputStream) os;
         return new KryoObjectOutputStream(os);
     }
 
-    private static KryoObjectInputStream toKryoObjectInputStream(InputStream is) {
+    private KryoObjectInputStream toKryoObjectInputStream(InputStream is) {
         if (is instanceof KryoObjectInputStream)
             return (KryoObjectInputStream) is;
         return new KryoObjectInputStream(is);
     }
 
-    static class KryoObjectOutputStream extends Output implements DataOutput, ObjectOutput {
+    class KryoObjectOutputStream extends Output implements DataOutput, ObjectOutput {
         public KryoObjectOutputStream() {
         }
 
@@ -208,11 +207,11 @@ public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
 
         @Override
         public void writeObject(Object obj) throws IOException {
-            KRYO.writeClassAndObject(this, obj);
+            kryo.writeClassAndObject(this, obj);
         }
     }
 
-    static class KryoObjectInputStream extends Input implements DataInput, ObjectInput {
+    class KryoObjectInputStream extends Input implements DataInput, ObjectInput {
         public KryoObjectInputStream() {
         }
 
@@ -288,43 +287,7 @@ public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
 
         @Override
         public Object readObject() throws ClassNotFoundException, IOException {
-            return KRYO.readClassAndObject(this);
-        }
-    }
-
-    Object getReplacement(Object obj) {
-        try {
-            Class clazz = obj.getClass();
-            if (!Serializable.class.isAssignableFrom(clazz))
-                return obj;
-
-            Method m = null;
-            try {
-                m = clazz.getDeclaredMethod("writeReplace");
-            } catch (NoSuchMethodException ex) {
-                Class ancestor = clazz.getSuperclass();
-                while (ancestor != null) {
-                    if (!Serializable.class.isAssignableFrom(ancestor))
-                        return obj;
-                    try {
-                        m = ancestor.getDeclaredMethod("writeReplace");
-                        if (!Modifier.isPublic(m.getModifiers()) && !Modifier.isProtected(m.getModifiers()))
-                            return obj;
-                        break;
-                    } catch (NoSuchMethodException ex1) {
-                        ancestor = ancestor.getSuperclass();
-                    }
-                }
-            }
-            if (m == null)
-                return obj;
-            m.setAccessible(true);
-            Object replacement = m.invoke(obj);
-            return replacement;
-        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
-            if (ex instanceof InvocationTargetException)
-                ((InvocationTargetException) ex).getTargetException().printStackTrace();
-            return obj;
+            return kryo.readClassAndObject(this);
         }
     }
 }

@@ -56,7 +56,7 @@ public class PeerTKB {
     private final int i;
 
     public PeerTKB(String name, int i) throws InterruptedException, IOException {
-        System.setProperty("co.paralleluniverse.io.useJDKSerialization", "true");
+//        System.setProperty("co.paralleluniverse.io.useJDKSerialization", "true");
 //        System.setProperty("co.paralleluniverse.debugMode", "true");
 //        System.setProperty("co.paralleluniverse.globalFlightRecorder", "true");
 //        System.setProperty("co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log" + i);
@@ -86,6 +86,7 @@ public class PeerTKB {
                             System.out.println("registering");
                             register("master");
                             System.out.println("registered");
+                            System.out.println("master is "+ getActor("master"));
                             String msg = null;
                             int count = 5;
                             while (--count > 0 && (msg = receive()) != null) {
@@ -201,6 +202,7 @@ public class PeerTKB {
                         @Override
                         public void init() throws SuspendExecution {
                             LocalGenEvent.currentGenEvent().register("myEventServer");
+                            System.out.println("kkkvb "+LocalGenEvent.getActor("myEventServer"));
                             try {
                                 LocalGenEvent<String> ge = LocalGenEvent.currentGenEvent();
                                 ge.addHandler(new EventHandler<String>() {
@@ -221,19 +223,21 @@ public class PeerTKB {
                     }).join();
                 } else {
                     Queue<LocalActor> queue = new LinkedList<>();
-                    for (int j = 0; j < 100; j++) {
-                        queue.add(spawnActor(new BasicActor<Message, Void>("actor-" + j) {
+                    for (int j = 0; j < 1000; j++) {
+                        final BasicActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>("actor-" + j) {
                             protected Void doRun() throws SuspendExecution, InterruptedException {
                                 try {
                                     final GenEvent<String> ge = (GenEvent) getActor("myEventServer");
                                     ge.notify("hwf " + getName());
                                 } catch (Exception e) {
-                                    System.out.println("error in "+getName());
+                                    System.out.println("error in " + getName());
                                     throw e;
                                 }
                                 return null;
                             }
-                        }));
+                        });
+                        queue.add(actor);
+//                        actor.join();
                     }
                     for (LocalActor localActor : queue)
                         localActor.join();

@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.io.serialization;
 
-import static co.paralleluniverse.io.serialization.KryoSerializer.KRYO;
 import co.paralleluniverse.io.serialization.KryoSerializer.KryoObjectInputStream;
 import co.paralleluniverse.io.serialization.KryoSerializer.KryoObjectOutputStream;
 import com.esotericsoftware.kryo.Kryo;
@@ -27,6 +26,8 @@ import java.io.IOException;
  * @author pron
  */
 public class ExternalizableKryoSerializer<T extends Externalizable> extends com.esotericsoftware.kryo.Serializer<T> {
+    private static final KryoSerializer ks = new KryoSerializer();
+    
     @Override
     public void write(Kryo kryo, Output output, T obj) {
         try {
@@ -41,7 +42,7 @@ public class ExternalizableKryoSerializer<T extends Externalizable> extends com.
     public T read(Kryo kryo, Input input, Class<T> type) {
         try {
             KryoObjectInputStream ois = (KryoObjectInputStream)input;
-            T obj = KRYO.newInstance(type);
+            T obj = ks.kryo.newInstance(type);
             obj.readExternal(ois);
             return obj;
         } catch (IOException e) {

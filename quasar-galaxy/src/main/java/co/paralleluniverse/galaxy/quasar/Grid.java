@@ -14,6 +14,7 @@
 package co.paralleluniverse.galaxy.quasar;
 
 import co.paralleluniverse.galaxy.Cluster;
+import co.paralleluniverse.remote.galaxy.RemoteInit;
 
 /**
  *
@@ -23,7 +24,11 @@ public class Grid {
     private final co.paralleluniverse.galaxy.Grid grid;
     private final Store store;
     private final Messenger messenger;
-    
+
+    static {
+        RemoteInit.init();
+    }
+
     public Grid(co.paralleluniverse.galaxy.Grid grid) {
         this.grid = grid;
         this.store = new StoreImpl(grid.store());

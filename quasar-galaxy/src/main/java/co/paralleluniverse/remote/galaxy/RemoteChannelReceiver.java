@@ -108,7 +108,7 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
 
     @Override
     public void messageReceived(short fromNode, byte[] message) {
-        Object m1 = Serialization.read(message);
+        Object m1 = Serialization.getInstance().read(message);
         LOG.debug("Received: " + m1);
         if (m1 instanceof GlxRemoteChannel.CloseMessage) {
             channel.close();
