@@ -37,7 +37,9 @@ public class JMXFibersForkJoinPoolMonitor extends JMXForkJoinPoolMonitor impleme
 
     public void fiberSubmitted(boolean start) {
         //runnableCount.increment();
-        if (!start)
+        if (start)
+            activeCount.increment();
+        else
             waitingCount.decrement();
     }
 

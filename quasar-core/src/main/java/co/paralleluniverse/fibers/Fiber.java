@@ -562,8 +562,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         final JMXFibersForkJoinPoolMonitor monitor = getMonitor();
 
         record(1, "Fiber", "exec1", "running %s %s", state, this);
-        if (monitor != null && state == State.STARTED)
-            monitor.fiberStarted();
+        // if (monitor != null && state == State.STARTED)
+        //    monitor.fiberStarted(); - done elsewhere
         final Fiber oldFiber = getCurrentFiber(); // a fiber can directly call exec on another fiber, e.g.: Channel.sendSync
         setCurrentFiber(this);
         installFiberLocals();
