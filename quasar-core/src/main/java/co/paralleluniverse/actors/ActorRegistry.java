@@ -127,4 +127,8 @@ public class ActorRegistry {
 
         return actor;
     }
+    
+    public static boolean hasGlobalRegistry() {
+        return globalRegistry != null;
+    }
 }
