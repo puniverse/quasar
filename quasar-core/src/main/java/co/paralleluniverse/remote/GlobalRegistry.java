@@ -26,5 +26,5 @@ public interface GlobalRegistry {
 
     void unregister(LocalActor<?, ?> actor) throws SuspendExecution;
     
-    <Message> Actor<Message> getActor(Object name) throws SuspendExecution;
+    <Message> Actor<Message> getActor(String name) throws SuspendExecution;
 }

@@ -50,7 +50,7 @@ public class GlxGlobalRegistry implements GlobalRegistry {
 
     @Override
     public Object register(LocalActor<?, ?> actor) throws SuspendExecution {
-        final String rootName = actor.getName().toString();
+        final String rootName = actor.getName();
 
         LOG.info("Registering actor {} at root {}", actor, rootName);
 
@@ -81,7 +81,7 @@ public class GlxGlobalRegistry implements GlobalRegistry {
 
     @Override
     public void unregister(LocalActor<?, ?> actor) throws SuspendExecution {
-        final String rootName = actor.getName().toString();
+        final String rootName = actor.getName();
 
         LOG.info("Uregistering {}", rootName);
 
@@ -106,8 +106,8 @@ public class GlxGlobalRegistry implements GlobalRegistry {
     }
 
     @Override
-    public <Message> Actor<Message> getActor(Object name) throws SuspendExecution {
-        final String rootName = name.toString();
+    public <Message> Actor<Message> getActor(String name) throws SuspendExecution {
+        final String rootName = name;
         Actor cacheValue = rootCache.get(rootName);
         if (cacheValue != null)
             return cacheValue;
