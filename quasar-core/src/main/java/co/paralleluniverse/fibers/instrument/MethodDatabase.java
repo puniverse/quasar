@@ -42,6 +42,7 @@ import java.util.TreeMap;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
+import org.omg.CORBA.UNKNOWN;
 
 /**
  * <p>Collects information about classes and their suspendable methods.</p>
@@ -166,16 +167,37 @@ public class MethodDatabase implements Log {
             error(f.getPath(), ex);
         }
     }
+    private static final int UNKNOWN = 0;
+    private static final int MAYBE_CORE = 1;
+    private static final int NONSUSPENDABLE = 2;
+    private static final int SUSPENDABLE = 3;
 
     public Boolean isMethodSuspendable(String className, String methodName, String methodDesc, int opcode) {
+        int res = isMethodSuspendable0(className, methodName, methodDesc, opcode);
+        switch (res) {
+            case UNKNOWN:
+                return null;
+            case MAYBE_CORE:
+                if (!className.startsWith("java/"))
+                    log(LogLevel.INFO, "Method: %s#%s presumed non-suspendable: probably java core", className, methodName);
+            case NONSUSPENDABLE:
+                return false;
+            case SUSPENDABLE:
+                return true;
+            default:
+                throw new AssertionError();
+        }
+    }
+
+    private int isMethodSuspendable0(String className, String methodName, String methodDesc, int opcode) {
         if (methodName.charAt(0) == '<')
-            return false;   // special methods are never suspendable
+            return NONSUSPENDABLE;   // special methods are never suspendable
 
         if (isJavaCore(className))
-            return false;
+            return MAYBE_CORE;
 
         if (isYieldMethod(className, methodName))
-            return true;
+            return SUSPENDABLE;
 
         ClassEntry entry = getClassEntry(className);
         if (entry == null) {
@@ -200,18 +222,29 @@ public class MethodDatabase implements Log {
         if (entry == CLASS_NOT_FOUND) {
             if (JavaAgent.isActive())
                 throw new AssertionError();
-            return null;
+            return UNKNOWN;
         }
 
-        Boolean suspendable = entry.check(methodName, methodDesc);
-        if (suspendable == null) {
+        Boolean susp1 = entry.check(methodName, methodDesc);
+
+        int suspendable = UNKNOWN;
+        if (susp1 == null)
+            suspendable = UNKNOWN;
+        else if (susp1 == true)
+            suspendable = SUSPENDABLE;
+        else if (susp1 == false)
+            suspendable = NONSUSPENDABLE;
+
+        if (suspendable == UNKNOWN) {
             if (opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESTATIC || opcode == Opcodes.INVOKESPECIAL) {
-                suspendable = isMethodSuspendable(entry.getSuperName(), methodName, methodDesc, opcode);
+                suspendable = isMethodSuspendable0(entry.getSuperName(), methodName, methodDesc, opcode);
             } else if (opcode == Opcodes.INVOKEINTERFACE) {
+                boolean maybeJavaCore = false;
                 for (String iface : entry.getInterfaces()) {
-                    if (!isJavaCore(iface)) // otherwise it'll return false
-                        suspendable = isMethodSuspendable(iface, methodName, methodDesc, opcode);
-                    if (suspendable != null)
+                    int s = isMethodSuspendable0(iface, methodName, methodDesc, opcode);
+                    if (s > suspendable)
+                        suspendable = s;
+                    if (suspendable > MAYBE_CORE)
                         break;
                 }
             }
