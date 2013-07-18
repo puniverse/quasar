@@ -238,7 +238,7 @@ public class Selector<Message> {
     }
 
     void setWinner(SelectAction<?> action) {
-        record("setWinner", "won %s", this);
+        record("setWinner", "won %s: %s", this, action);
         assert winner == LEASED;
         st = null;
         winner = action;
