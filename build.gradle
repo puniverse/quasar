@@ -287,14 +287,12 @@ project (':quasar-galaxy') {
     
     dependencies {
         compile project(':quasar-core')
-        compile ("co.paralleluniverse:galaxy:1.2-SNAPSHOT") {
-            exclude group: "org.slf4j"
-        }
+        compile ("co.paralleluniverse:galaxy:1.2-SNAPSHOT") 
         compile("com.esotericsoftware.kryo:kryo:2.21") {
-            exclude group: "org.ow2.asm"
+            exclude group: "org.ow2.asm", module: '*'
         }
         compile("de.javakaffee:kryo-serializers:0.23") {
-            exclude group: "com.esotericsoftware.kryo"
+            exclude group: "com.esotericsoftware.kryo", module: '*'
         }
     }
 }
