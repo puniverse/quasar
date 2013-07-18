@@ -70,7 +70,7 @@ subprojects {
 
 
         compile ":jsr166e"
-        compile "com.codahale.metrics:metrics-core:3.0.0-RC1" 
+        compile "com.codahale.metrics:metrics-core:3.0.0" 
         compile "org.ow2.asm:asm:4.1" 
         compile "org.ow2.asm:asm-analysis:4.1"
         compile "org.ow2.asm:asm-util:4.1"
