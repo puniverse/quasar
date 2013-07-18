@@ -149,7 +149,7 @@ public class RequestReplyHelper {
         }
 
         @Override
-        public Object getName() {
+        public String getName() {
             return actor().getName();
         }
 

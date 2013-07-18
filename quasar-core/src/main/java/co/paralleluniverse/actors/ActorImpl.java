@@ -34,7 +34,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendPort<Mes
     //
     private static final int MAX_SEND_RETRIES = 10;
     //
-    private volatile Object name;
+    private volatile String name;
     private final SendPort<Object> mailbox;
     private final LifecycleListener lifecycleListener = new ActorLifecycleListener(this, null);
     protected transient final FlightRecorder flightRecorder;
@@ -44,7 +44,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendPort<Mes
         return "Actor@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this)));
     }
 
-    protected ActorImpl(Object name, SendPort<Object> mailbox) {
+    protected ActorImpl(String name, SendPort<Object> mailbox) {
         this.name = name;
 
         this.mailbox = mailbox;
@@ -55,11 +55,11 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendPort<Mes
     }
 
     @Override
-    public Object getName() {
+    public String getName() {
         return name;
     }
 
-    public final void setName(Object name) {
+    public final void setName(String name) {
         if (this.name != null)
             throw new IllegalStateException("Actor " + this + " already has a name: " + this.name);
         this.name = name;
@@ -74,7 +74,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendPort<Mes
         };
     }
 
-    public static <Message> Actor<Message> getActor(Object name) {
+    public static <Message> Actor<Message> getActor(String name) {
         return ActorRegistry.getActor(name);
     }
 

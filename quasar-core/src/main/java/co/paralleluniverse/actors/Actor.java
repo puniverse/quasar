@@ -20,7 +20,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
  * @author pron
  */
 public interface Actor<Message> {
-    Object getName();
+    String getName();
 
     void send(Message message) throws SuspendExecution;
 

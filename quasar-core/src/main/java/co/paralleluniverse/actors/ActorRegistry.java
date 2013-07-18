@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 public class ActorRegistry {
     // TODO: there are probably race conditions here
     private static final Logger LOG = LoggerFactory.getLogger(ActorRegistry.class);
-    private static final ConcurrentMap<Object, LocalActor> registeredActors = new ConcurrentHashMapV8<Object, LocalActor>();
+    private static final ConcurrentMap<String, LocalActor> registeredActors = new ConcurrentHashMapV8<String, LocalActor>();
     private static final GlobalRegistry globalRegistry = ServiceUtil.loadSingletonServiceOrNull(GlobalRegistry.class);
 
     static {
@@ -39,7 +39,7 @@ public class ActorRegistry {
     }
 
     static Object register(final LocalActor<?, ?> actor) {
-        final Object name = actor.getName();
+        final String name = actor.getName();
         if (name == null)
             throw new IllegalArgumentException("name is null");
 
@@ -83,7 +83,7 @@ public class ActorRegistry {
         return globalId;
     }
 
-    static void unregister(final Object name) {
+    static void unregister(final String name) {
         LOG.info("Unregistering actor: {}", name);
 
         if (globalRegistry != null) {
@@ -106,7 +106,7 @@ public class ActorRegistry {
         registeredActors.remove(name);
     }
 
-    public static <Message> Actor<Message> getActor(final Object name) {
+    public static <Message> Actor<Message> getActor(final String name) {
         Actor<Message> actor = registeredActors.get(name);
 
         if (actor == null && globalRegistry != null) {

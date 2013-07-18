@@ -51,7 +51,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
     private ActorSpec<?, Message, V> spec;
     private Object aux;
 
-    public LocalActor(Object name, MailboxConfig mailboxConfig) {
+    public LocalActor(String name, MailboxConfig mailboxConfig) {
         super(name, new Mailbox(mailboxConfig));
         mailbox().setActor(this);
     }
@@ -529,7 +529,7 @@ public abstract class LocalActor<Message, V> extends ActorImpl<Message> implemen
         observed.remove(getActorImpl(other1));
     }
 
-    public final Actor register(Object name) {
+    public final Actor register(String name) {
         if (getName() != null && !name.equals(name))
             throw new RegistrationException("Cannot register actor named " + getName() + " under a different name (" + name + ")");
         setName(name);

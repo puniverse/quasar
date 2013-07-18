@@ -23,7 +23,7 @@ public interface Supervisor extends GenBehavior {
     };
 
     public static class ChildSpec {
-        final Object id;
+        final String id;
         final ActorBuilder<?, ?> builder;
         final LocalSupervisor.ChildMode mode;
         final int maxRestarts;
@@ -31,7 +31,7 @@ public interface Supervisor extends GenBehavior {
         final TimeUnit unit;
         final long shutdownDeadline;
 
-        public ChildSpec(Object id, ChildMode mode, int maxRestarts, long duration, TimeUnit unit, long shutdownDeadline, ActorBuilder<?, ?> builder) {
+        public ChildSpec(String id, ChildMode mode, int maxRestarts, long duration, TimeUnit unit, long shutdownDeadline, ActorBuilder<?, ?> builder) {
             this.id = id;
             this.builder = builder;
             this.mode = mode;

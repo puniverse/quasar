@@ -63,7 +63,7 @@ public class RemoteBasicGenBehavior implements ActorWrapper<Object>, GenBehavior
     }
 
     @Override
-    public Object getName() {
+    public String getName() {
         return actor.getName();
     }
 
