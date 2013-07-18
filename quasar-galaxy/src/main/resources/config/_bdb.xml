@@ -14,7 +14,7 @@
 
     
     <bean id="store" class="co.paralleluniverse.galaxy.berkeleydb.BerkeleyDB">
-        <constructor-arg name="envHome" value="../.bdb"/>
+        <constructor-arg name="envHome" value="/tmp/.bdb"/>
         <property name="truncate" value="false"/>
     </bean> 
     
