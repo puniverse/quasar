@@ -89,11 +89,11 @@ public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
     }
 
     public static void register(Class type) {
-        register(type, null, -1);
+        register(type, NULL_SERIALIZER, -1);
     }
     
     public static void register(Class type, int id) {
-        register(type, null, id);
+        register(type, NULL_SERIALIZER, id);
     }
     
     public static void register(Class type, Serializer ser) {
@@ -104,12 +104,25 @@ public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
         registrations.add(new Registration(type, ser, id));
     }
     
+    private static Serializer NULL_SERIALIZER = new Serializer<Object>() {
+
+        @Override
+        public void write(Kryo kryo, Output output, Object object) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Object read(Kryo kryo, Input input, Class<Object> type) {
+            throw new UnsupportedOperationException();
+        }
+    };
+    
     private void register(Registration r) {
-        if(r.getId() < 0 && r.getSerializer() == null)
+        if(r.getId() < 0 && r.getSerializer() == NULL_SERIALIZER)
             kryo.register(r.getType());
         else if(r.getId() < 0)
             kryo.register(r.getType(), r.getSerializer());
-        else if(r.getSerializer() == null)
+        else if(r.getSerializer() == NULL_SERIALIZER)
             kryo.register(r.getType(), r.getId());
         else
             kryo.register(r.getType(), r.getSerializer(), r.getId());
