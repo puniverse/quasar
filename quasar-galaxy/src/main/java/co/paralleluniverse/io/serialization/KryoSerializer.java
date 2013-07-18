@@ -21,7 +21,6 @@ import com.esotericsoftware.kryo.io.Output;
 import de.javakaffee.kryoserializers.ArraysAsListSerializer;
 import de.javakaffee.kryoserializers.GregorianCalendarSerializer;
 import de.javakaffee.kryoserializers.JdkProxySerializer;
-import de.javakaffee.kryoserializers.KryoReflectionFactorySupport;
 import de.javakaffee.kryoserializers.SynchronizedCollectionsSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import java.io.DataInput;
@@ -33,14 +32,8 @@ import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
-import java.io.Serializable;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import org.objenesis.instantiator.ObjectInstantiator;
 import org.objenesis.strategy.SerializingInstantiatorStrategy;
 
 /**
@@ -48,7 +41,7 @@ import org.objenesis.strategy.SerializingInstantiatorStrategy;
  * @author pron
  */
 public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
-    private static Queue<Class> registrations = new ConcurrentLinkedQueue<Class>();
+    private static Queue<Registration> registrations = new ConcurrentLinkedQueue<Registration>();
     
     public final Kryo kryo;
 
@@ -91,14 +84,36 @@ public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
         SynchronizedCollectionsSerializer.registerSerializers(kryo);
         kryo.addDefaultSerializer(Externalizable.class, new ExternalizableKryoSerializer());
         
-        for (Class clazz : registrations)
-            kryo.register(clazz);
+        for (Registration r : registrations)
+            register(r);
     }
 
     public static void register(Class type) {
-        registrations.add(type);
+        register(type, null, -1);
     }
     
+    public static void register(Class type, int id) {
+        register(type, null, id);
+    }
+    
+    public static void register(Class type, Serializer ser) {
+        register(type, ser, -1);
+    }
+    
+    public static void register(Class type, Serializer ser, int id) {
+        registrations.add(new Registration(type, ser, id));
+    }
+    
+    private void register(Registration r) {
+        if(r.getId() < 0 && r.getSerializer() == null)
+            kryo.register(r.getType());
+        else if(r.getId() < 0)
+            kryo.register(r.getType(), r.getSerializer());
+        else if(r.getSerializer() == null)
+            kryo.register(r.getType(), r.getId());
+        else
+            kryo.register(r.getType(), r.getSerializer(), r.getId());
+    } 
 
     @Override
     public byte[] write(Object object) {
