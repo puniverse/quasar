@@ -66,7 +66,7 @@ public final class MonitoringServices implements MonitoringServicesMXBean {
     private void registerMBean() {
         try {
             MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-            ObjectName mxbeanName = new ObjectName("co.paralleluniverse:type=SpaceBase,name=MonitoringServices");
+            ObjectName mxbeanName = new ObjectName("co.paralleluniverse:name=MonitoringServices");
             mbs.registerMBean(this, mxbeanName);
         } catch (InstanceAlreadyExistsException ex) {
             throw new RuntimeException(ex);
