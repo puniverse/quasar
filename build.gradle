@@ -85,11 +85,11 @@ subprojects {
         testCompile 'junit:junit:4.10'
         testCompile 'org.hamcrest:hamcrest-all:1.3'
         testCompile("org.mockito:mockito-all:1.9.0") {
-            exclude group: "org.ow2.asm"
+            exclude group: "org.ow2.asm", module: '*'
         }
         testCompile("com.google.caliper:caliper:1.0-beta-1") {
-            exclude group: "asm"
-            exclude group: "org.ow2.asm"
+            exclude group: "asm", module: '*'
+            exclude group: "org.ow2.asm", module: '*'
         }
         testRuntime 'com.sun.jersey:jersey-core:1.11' // needed for caliper. caliper depends on jersey-client but for some reason jersey-core is not a dependency
     }

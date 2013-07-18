@@ -41,6 +41,7 @@ import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.DelayedVal;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.URL;
 import java.util.LinkedList;
 import java.util.Properties;
@@ -70,51 +71,40 @@ public class PeerTKB {
     }
 
     public void run() throws ExecutionException, InterruptedException {
-        switch (SCENARIO.testOrdering) {
-            case test1:
+        switch (SCENARIO.pingPong) {
+            case pingPong:
                 if (i == 1) {
-                    spawnActor(new BasicActor<String, Void>() {
+                    spawnActor(new BasicActor<RepliableMessage<String>, Void>() {
                         @Override
                         protected Void doRun() throws InterruptedException, SuspendExecution {
-                            System.out.println("registering");
-                            register("master");
-                            System.out.println("registered");
-                            System.out.println("master is " + getActor("master"));
-                            String msg = null;
-                            int count = 5;
-                            while (--count > 0 && (msg = receive()) != null) {
-                                System.out.println("got msg: " + msg);
-                                unregister();
+                            register("pong");
+                            while (true) {
+                                RepliableMessage<String> msg = receive();
+                                if (msg.data.equals("finished"))
+                                    break;
+                                if (msg.data.equals("ping")) 
+                                    msg.sender.send(new RepliableMessage("pong",this));                                
                             }
-                            System.out.println("I'm here1");
-                            System.exit(0);
                             return null;
                         }
-
-                        @Override
-                        protected void handleLifecycleMessage(LifecycleMessage m) {
-                            System.out.println("hlm " + m);
-                        }
-                    }).start().join();
-                    System.out.println("I'm here2");
+                    }).join();
+                    System.out.println("pong finished");
                 } else {
-                    spawnActor(new BasicActor<String, Void>() {
+                    spawnActor(new BasicActor<RepliableMessage<String>, Void>() {
+                        int i=3;
                         @Override
                         protected Void doRun() throws InterruptedException, SuspendExecution {
-                            System.out.println("getting actor");
-                            Actor<String> master = getActor("master");
-                            System.out.println("actor is " + master);
-                            link(master);
-                            unlink(master);
-                            Strand.sleep(2000);
+                            Actor pong = getActor("pong");
+                            System.out.println("pong is "+pong);
+                            while (i-- > 0) {
+                                pong.send(new RepliableMessage("ping",this));
+                                RepliableMessage<String> msg = receive();
+                                System.out.println("ping received "+msg.data);
+                            }
+                            pong.send(new RepliableMessage("finished",null));
                             return null;
                         }
-
-                        @Override
-                        protected void handleLifecycleMessage(LifecycleMessage m) {
-                            System.out.println("hlm " + m);
-                        }
-                    }).start().join();
+                    }).join();
                 }
                 break;
 
@@ -304,7 +294,7 @@ public class PeerTKB {
     }
 
     enum SCENARIO {
-        test1,
+        pingPong,
         testGenServer,
         testGenEvent,
         testMultiGetActor,
@@ -333,6 +323,16 @@ public class PeerTKB {
         return actor;
 
 
+    }
+    
+    static class RepliableMessage<T> implements Serializable{
+        T data;
+        Actor sender;
+
+        public RepliableMessage(T data, Actor sender) {
+            this.data = data;
+            this.sender = sender;
+        }        
     }
 
     static class Message implements java.io.Serializable {
