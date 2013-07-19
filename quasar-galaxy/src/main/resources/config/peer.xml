@@ -14,8 +14,7 @@
     
     See "Getting Started" in the docs for details.
 -->
-
-    <import resource="_with_server.xml"/>   
+  
     <import resource="_with_no_server.xml"/>   
     <import resource="_jgroups.xml"/>  
     <!-- <import resource="_sql.xml"/> -->
