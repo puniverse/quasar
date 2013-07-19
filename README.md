@@ -11,7 +11,7 @@ In Maven:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar</artifactId>
-    <version>0.2</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
