@@ -127,6 +127,7 @@ public class GlxGlobalRegistry implements GlobalRegistry {
 
         StoreTransaction txn = store.beginTransaction();
         try {
+            boolean error = false;
             try {
                 final long root = store.getRoot(rootName, txn);
                 byte[] buf = store.get(root);
@@ -149,22 +150,30 @@ public class GlxGlobalRegistry implements GlobalRegistry {
                 if (buf == null)
                     return null;
 
+                if (buf.length == 0)
+                    return null; // TODO: Galaxy should return null
+
                 final Actor<Message> actor;
                 try {
                     actor = (Actor<Message>) ser.read(buf);
                 } catch (Exception e) {
                     LOG.info("Deserializing actor at root " + rootName + " has failed with exception", e);
                     return null;
-                } finally {
                 }
+
                 rootCache.put(rootName, actor);
                 return actor;
             } catch (TimeoutException e) {
+                error = true;
                 LOG.error("Getting actor {} failed due to timeout", rootName);
                 store.rollback(txn);
                 store.abort(txn);
                 throw new RuntimeException("Actor discovery failed");
+            } finally {
+                if(!error)
+                    store.commit(txn);
             }
+
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
