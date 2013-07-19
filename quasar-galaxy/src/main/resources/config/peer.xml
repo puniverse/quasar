@@ -16,6 +16,7 @@
 -->
 
     <import resource="_with_server.xml"/>   
+    <import resource="_with_no_server.xml"/>   
     <import resource="_jgroups.xml"/>  
     <!-- <import resource="_sql.xml"/> -->
 </beans>
