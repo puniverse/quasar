@@ -7,7 +7,7 @@ subprojects {
     [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
     group               = "co.paralleluniverse"
-    version             = "0.2-SNAPSHOT"
+    version             = "0.2"
     status              = "integration"
     description         = "lightweight threads and actors for the JVM."
     ext.url             = "http://puniverse.github.com/quasar"
@@ -287,7 +287,7 @@ project (':quasar-galaxy') {
     
     dependencies {
         compile project(':quasar-core')
-        compile ("co.paralleluniverse:galaxy:1.2-SNAPSHOT") 
+        compile ("co.paralleluniverse:galaxy:1.2") 
         compile("com.esotericsoftware.kryo:kryo:2.21") {
             exclude group: "org.ow2.asm", module: '*'
         }
