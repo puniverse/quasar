@@ -10,7 +10,17 @@ In Maven:
 ```xml
 <dependency>
     <groupId>co.paralleluniverse</groupId>
-    <artifactId>quasar</artifactId>
+    <artifactId>quasar-core</artifactId>
+    <version>0.2.0</version>
+</dependency>
+```
+
+For clustering support add:
+
+```xml
+<dependency>
+    <groupId>co.paralleluniverse</groupId>
+    <artifactId>quasar-galaxy</artifactId>
     <version>0.2.0</version>
 </dependency>
 ```
