@@ -1,0 +1,148 @@
+@import url(//fonts.googleapis.com/css?family=Open+Sans:300,300italic,600,800|Source+Code+Pro);
+
+@media (min-width: 980px) {
+  body {
+    padding-top: 60px;
+  }
+}
+@media (min-width: 1200px) {
+  .codescreenshot {
+    display: block !important;
+  }
+}
+
+body {
+  font-family: "Open Sans",Helvetica,Arial,sans-serif;
+  padding-bottom: 40px;
+}
+code, pre {
+  font-family: "Source Code Pro",Monaco,Menlo,Consolas,"Courier New",monospace;
+}
+/* Help catch template errors. */
+.error {
+  border: 3px solid red;
+  background-color: rgba(255,0,0,0.3);
+  padding: 5px;
+}
+.brand {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+}
+iframe[seamless] {
+  border: none;
+}
+figcaption {
+  text-align: center;
+  font-style: italic;
+  padding: 10px;
+}
+footer {
+  font-size: smaller;
+}
+footer div:first-of-type {
+  float: left;
+}
+
+.nav li.icon:hover img {
+  opacity: 1;
+}
+.nav li.icon img {
+  opacity: 0.5;
+  margin-right: 5px;
+  height: 16px;
+  width: 16px;
+  margin-top: -3px;
+}
+.nav li.bug img {
+  height: 18px;
+  width: 20px;
+}
+.nav li.source img {
+  height: 16px;
+  width: 18px;
+}
+
+/* Bootstrap overrides ------------------------------------------------------ */
+.lead {
+  margin-bottom: 30px;
+}
+.brand {
+  /* background: url(/images/icons/loading_icon.svg) no-repeat 16px 50%; */
+  background-size: 22px;
+  padding-left: 40px !important;
+}
+.sidebar-nav.affix, .navbar-fixed-top {
+  -webkit-transform: translateZ(0);
+  -moz-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+  -o-transform: translateZ(0);
+  transform: translateZ(0);
+}
+.navbar-inner {
+  border-color: #bbb;
+  background-image: -moz-linear-gradient(top, #ffffff, #ccc);
+  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#ffffff), to(#ccc));
+  background-image: -webkit-linear-gradient(top, #ffffff, #ccc);
+  background-image: -o-linear-gradient(top, #ffffff, #ccc);
+  background-image: linear-gradient(to bottom, #ffffff, #ccc);
+}
+
+/*
+.span3 {
+  position: fixed;
+}
+*/
+/* -------------------------------------------------------------------------- */
+
+/* Remove empty p generated from markdown conversion. */
+p:empty {
+  display: none;
+}
+a[disabled] {
+  pointer-events: none;
+  color: #ccc;
+}
+#content-container {
+  position: relative;
+}
+.edit-on-github {
+  /*position: absolute;
+  top: 0;
+  right: 0;*/
+  float: right;
+  font-size: smaller;
+}
+
+#content {
+  min-height: 400px;
+}
+#content img {
+  border-radius: 7px;
+}
+#logo-row {
+  width: 110px;
+  text-align: right;
+  -webkit-filter: grayscale(0.8);
+  -moz-filter: grayscale(0.8);
+  -ms-filter: grayscale(0.8);
+  -o-filter: grayscale(0.8);
+  filter: grayscale(0.8);
+  float: right;
+}
+#logo-row img {
+  height: 25px;
+  width: auto;
+  margin: 0 2px;
+}
+
+#architecture-diagram iframe {
+  height: 435px;
+  width: 100%;
+  border: none;
+}
+.centered {
+  text-align: center;
+}

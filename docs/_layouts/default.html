@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html itemscope itemtype="http://schema.org/Organization">
+<head>
+{% include head.html %}
+</head>
+<body>
+
+{% include top-nav.html %}
+
+<div class="container-fluid">
+  <div class="row-fluid">
+    {% include left-nav.html %}
+    <div class="span8" id="content-container">
+
+      {% include edit_on_github.html %}
+
+      {% if page.title %}
+      <div class="page-header">
+        <h1>{{page.title}}
+          {% if page.subtitle %}
+            <small>{{page.subtitle}}</small>
+          {% endif %}
+        </h1>
+      </div>
+      {% endif %}
+
+      <div id="content">{{content}}</div>
+
+      <hr>
+
+      <footer>
+        <div>
+          <div>&copy; {{site.copyright}}</div>
+        </div>
+      </footer>
+
+    </div>
+  </div>
+</div>
+
+{% include footer.html %}
+
+</body>
+</html>

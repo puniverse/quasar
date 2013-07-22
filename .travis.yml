@@ -3,3 +3,15 @@ install: gradle -q assemble
 script: gradle -i check | sed 's/\e\[?.*?[\@-~]//g'
 jdk:
   - oraclejdk7
+
+branches:
+  except:
+    - gh-pages
+env:
+  global:
+    - secure: "eRpg/alQ+1OTdhr1lcVSJyVU4eJ66ShffLDpnLV7+YZq9J29jwhgXdUHWALS\nsGQCNnty61Y1BvtRVQ46PCWHdXsk5pwgQidFPzVLQrcmnboEdKoM1fQzvery\ns2wYndL62jMhm3FachXTfHzpoNUcwU3dxr/To+U5E+q7r2Ua/Wk="
+    - GEN_APIDOCS="gradle javadoc"
+
+after_success:
+  - chmod a+x travis/post_build.sh
+  - ./travis/post_build.sh

@@ -1,0 +1,30 @@
+.highlight pre {
+  font-family: "Inconsolata", Monaco, Courier, monospace;
+  font-size: .65em;
+  border: 1px solid #efefef;
+  border-left: 2em solid #efefef;
+  position: relative;
+  margin: 1em 0;
+}
+.highlight pre code {
+  counter-reset: linenumbers;
+  position: relative;
+  overflow: auto;
+}
+
+.highlight pre code > span:before {
+  font-size: .9em;
+  color: #aaa;
+  content: counter(linenumbers);
+  counter-increment: linenumbers;
+  left: -5.5ex;
+  position: absolute;
+  text-align: right;
+  width: 3.5ex;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}

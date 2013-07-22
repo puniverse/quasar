@@ -1,0 +1,28 @@
+<dl class="dl-horizontal">
+  <dt>Implementation status</dt>
+  <dd>{{page.feature.status}}</dd>
+  <dt>Repository</dt>
+  <dd><a href="{{page.feature.code}}">{{page.feature.code | domain_name}}</a></dd>
+  {% if page.feature.spec %}
+  <dt>W3C Specification</dt>
+  <dd><a href="{{page.feature.spec}}">{{page.feature.spec | domain_name}}</a></dd>
+  {% endif %}
+</dl>
+
+---
+
+> {{page.feature.summary}}
+
+{% if page.links %}
+
+#### Before you begin
+
+Some useful resources:
+
+{% for link_hash in page.links %}
+  {% for link in link_hash %}
+  - [{{link[0]}}]({{link[1]}})
+  {% endfor %}
+{% endfor %}
+
+{% endif %}

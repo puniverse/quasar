@@ -67,8 +67,6 @@ subprojects {
     }
 
     dependencies {
-
-
         compile ":jsr166e"
         compile "com.codahale.metrics:metrics-core:3.0.0" 
         compile "org.ow2.asm:asm:4.1" 
@@ -119,15 +117,15 @@ subprojects {
 
     tasks.withType(Test) { 
         useJUnit()
-//        systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+        //        systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
 	//  systemProperty "java.util.logging.config.file", "jul.properties"
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
         systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
 	    
-    //        systemProperty "co.paralleluniverse.debugMode", "true"
-    //        systemProperty "co.paralleluniverse.globalFlightRecorder", "true"
-    //        systemProperty "co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log"
-    //	systemProperty "co.paralleluniverse.monitoring.flightRecorderSize","200000"    
+        //        systemProperty "co.paralleluniverse.debugMode", "true"
+        //        systemProperty "co.paralleluniverse.globalFlightRecorder", "true"
+        //        systemProperty "co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log"
+        //	systemProperty "co.paralleluniverse.monitoring.flightRecorderSize","200000"    
         jvmArgs "-javaagent:${quasarJar}" // =v, =d
         jvmArgs "-Xmx2048m" // =v, =d
         doLast() {
@@ -139,7 +137,7 @@ subprojects {
         main = mainClass
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
         systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
-//        systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+        //        systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
         jvmArgs "-javaagent:${quasarJar}" // =v, =d
     }
 
@@ -163,10 +161,24 @@ subprojects {
     }
 
     
-//    tasks.withType(Debug) { 
-//        classpath = sourceSets.test.runtimeClasspath   
-//    }
+    //    tasks.withType(Debug) { 
+    //        classpath = sourceSets.test.runtimeClasspath   
+    //    }
     
+    configure (javadoc) {    
+        destinationDir = file("${rootProject.projectDir}/docs/${project.name}/javadoc")
+        println "${rootProject.projectDir}/docs/${project.name}/javadoc"
+        options.links = [    
+        "http://docs.oracle.com/javase/7/docs/api/",
+        "http://docs.guava-libraries.googlecode.com/git-history/v14.0/javadoc/"
+        ]
+        excludes = [
+        "co/paralleluniverse/common/MonitoringType.java",
+        "co/paralleluniverse/common/logging/**",
+        "co/paralleluniverse/common/monitoring/**",
+        "co/paralleluniverse/common/util/**",  
+        ]
+    }
     task wrapper(type: Wrapper) {
         gradleVersion = '1.5-20130302103424+0000'
     }

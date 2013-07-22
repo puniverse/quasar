@@ -1,0 +1,33 @@
+<!-- <script src="{{site.baseurl}}/js/prettify/prettify.js"></script> -->
+<script src="{{site.baseurl}}/js/jquery.min.js"></script>
+<script src="{{site.baseurl}}/bootstrap/js/bootstrap.min.js"></script>
+<script src="{{site.baseurl}}/js/bootstrap-scrollspy.js"></script>
+<script>
+
+{% if site.ga_tracking_id %}
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', '{{site.ga_tracking_id}}']);
+  _gaq.push(['_trackPageview']);
+  
+  (function() {
+    var ga = document.createElement('script'); 
+    ga.type = 'text/javascript'; 
+    ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; 
+    s.parentNode.insertBefore(ga, s);
+  })();
+{% endif %}
+
+// Change "active" style on selected left-hand navigation menu item.
+$(document).ready(function () {
+  var path = location.pathname;
+  $('ul.nav > li > a[href="' + path + '"]').parent().addClass('active');
+
+  // TODO: Use kramdown {:.prettyprint .linenums .lang-ruby} to add the
+  // <pre class="prettyprint"> instead of doing this client-side.
+
+  // $('pre:has(code:not(.language-txt))').addClass('prettyprint');
+  // window.prettyPrint && prettyPrint();
+});
+</script>
