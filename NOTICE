@@ -10,7 +10,7 @@ This product depends on ASM, an all purpose Java bytecode manipulation and analy
     * LICENSE: New BSD (http://directory.fsf.org/wiki/License:BSD_3Clause)
     * HOMEPAGE: http://asm.ow2.org/
 
-This product includes code derived from the JSR-166 project (ThreadLocalRandom), which was released
+This product includes code derived from the JSR-166 project, which was released
 with the following comments:
 
     Written by Doug Lea with assistance from members of JCP JSR-166
