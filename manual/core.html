@@ -8,7 +8,7 @@
 <meta itemprop="description" content="Lightweight threads, CSP and actors for the JVM">
 <title>
   
-    Welcome - 
+    Quasar Core - 
    Quasar
 </title>
 <!--<link rel="shortcut icon" href="/images/icons/loading_icon.png">-->
@@ -125,9 +125,11 @@
           
           
             <li>
-              <a  href="/quasar/manual/core.html">
+              <a class="active" href="/quasar/manual/core.html">
                 Quasar Core
               </a>
+              
+              <ul class="nav nav-list"><li><a href="#quasar-and-pulsar">Quasar and&nbsp;Pulsar</a></li><li><a href="#fibers">Fibers</a></li></ul>
               
             </li>
           
@@ -190,55 +192,27 @@
     <div class="span8" id="content-container">
 
       <span class="edit-on-github">
-  <a href="https://github.com/puniverse/quasar/edit/master/docs/index.md">Edit on Github</a>
+  <a href="https://github.com/puniverse/quasar/edit/master/docs/manual/core.md">Edit on Github</a>
 </span>
 
 
       
       <div class="page-header">
-        <h1>Welcome
+        <h1>Quasar Core
           
         </h1>
       </div>
       
 
-      <div id="content"><p>Quasar is a Java library that provides high-performance lightweight threads, Go-like channels, Erlang-like actors, and other asynchronous programming&nbsp;tools.</p>
+      <div id="content">
+<h2 id="quasar-and-pulsar">Quasar and&nbsp;Pulsar</h2>
 
-<p>A good introduction to Pulsar (and Quasar) can be found in the blog post <a href="http://blog.paralleluniverse.co/post/49445260575/quasar-pulsar">Erlang (and Go) in Clojure (and Java), Lightweight Threads, Channels and Actors for the <span class="caps">JVM</span></a>.</p>
+<p>Pulsar is a Clojure <span class="caps">API</span> to <a href="https://github.com/puniverse/quasar">Quasar</a>. Many of the concepts explained below are actually implemented in&nbsp;Quasar.</p>
 
-<p>Quasar is developed by <a href="http://paralleluniverse.co">Parallel Universe</a> and released as free software, dual-licensed under the Eclipse Public License and the <span class="caps">GNU</span> Lesser General Public&nbsp;License.</p>
+<h2 id="fibers">Fibers</h2>
 
-<h2 id="license">License</h2>
+<p>Fibers are lightweight threads. They provide functionality similar to threads, and a similar <span class="caps">API</span>, but they&#8217;re not managed by the <span class="caps">OS.</span> They are lightweight (an idle fiber occupies ~400 bytes of <span class="caps">RAM</span>), and you can have millions of them in an application. If you are familiar with Go, fibers are like goroutines. Fibers in Pulsar (well, Quasar, actually) are scheduled by one or more <a href="http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ForkJoinPool.html">ForkJoinPool</a>s. </p>
 
-<pre><code>Quasar
-Copyright © 2013 Parallel Universe
-
-This program and the accompanying materials are dual-licensed under
-either the terms of the Eclipse Public License v1.0 as published by
-the Eclipse Foundation
-
-  or (per the licensee's choosing)  
-
-under the terms of the GNU Lesser General Public License version 3.0
-as published by the Free Software Foundation. 
-</code></pre>
-<h2 id="dependencies">Dependencies</h2>
-
-<ul>
-  <li><a href="http://g.oswego.edu/dl/concurrency-interest/">JSR166e</a> – java.util.concurrent, by Doug Lea and&nbsp;contributors</li>
-  <li><a href="http://asm.ow2.org/"><span class="caps">ASM</span></a> — Java bytecode manipulation and analysis framework, by the <span class="caps">ASM</span>&nbsp;team</li>
-  <li><a href="http://metrics.codahale.com/">Metrics</a> — A measurement and monitoring library, by Coda&nbsp;Hale</li>
-  <li><a href="https://code.google.com/p/guava-libraries/">Guava</a> — Java utility classes, by&nbsp;Google</li>
-  <li><a href="http://www.slf4j.org/"><span class="caps">SLF4J</span></a> — Simple Logging Facade for Java&nbsp;(<span class="caps">SLF4J</span>)</li>
-</ul>
-
-<p>Quasar’s clustering makes use of <a href="http://puniverse.github.io/galaxy/">Galaxy</a>, by Parallel&nbsp;Universe</p>
-
-<h2 id="acknowledgments">Acknowledgments</h2>
-
-<p>A core component of Quasar, bytecode instrumentation, is a fork of the wonderful <a href="http://www.matthiasmann.de/content/view/24/26/">Continuations Library</a> by Matthias&nbsp;Mann.</p>
-
-<p>Parts of the documentation layout, icons and styles were taken from Google’s <a href="http://www.polymer-project.org/">Polymer Project</a>.</p>
 </div>
 
       <hr>

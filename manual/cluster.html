@@ -8,7 +8,7 @@
 <meta itemprop="description" content="Lightweight threads, CSP and actors for the JVM">
 <title>
   
-    Welcome - 
+    Clustering - 
    Quasar
 </title>
 <!--<link rel="shortcut icon" href="/images/icons/loading_icon.png">-->
@@ -153,9 +153,11 @@
           
           
             <li>
-              <a  href="/quasar/manual/cluster.html">
+              <a class="active" href="/quasar/manual/cluster.html">
                 Clustering
               </a>
+              
+              <ul class="nav nav-list"><li><a href="#enabling-clustering">Enabling&nbsp;Clustering</a></li></ul>
               
             </li>
           
@@ -190,55 +192,27 @@
     <div class="span8" id="content-container">
 
       <span class="edit-on-github">
-  <a href="https://github.com/puniverse/quasar/edit/master/docs/index.md">Edit on Github</a>
+  <a href="https://github.com/puniverse/quasar/edit/master/docs/manual/cluster.md">Edit on Github</a>
 </span>
 
 
       
       <div class="page-header">
-        <h1>Welcome
+        <h1>Clustering
           
         </h1>
       </div>
       
 
-      <div id="content"><p>Quasar is a Java library that provides high-performance lightweight threads, Go-like channels, Erlang-like actors, and other asynchronous programming&nbsp;tools.</p>
+      <div id="content">
+<p>Quasar is able to run on a cluster, thereby letting actors and channels communicate across machines. The Pulsar/Quasar cluster runs on top of <a href="http://puniverse.github.io/galaxy/">Galaxy</a>, Parallel Universe&#8217;s in-memory data&nbsp;grid. </p>
 
-<p>A good introduction to Pulsar (and Quasar) can be found in the blog post <a href="http://blog.paralleluniverse.co/post/49445260575/quasar-pulsar">Erlang (and Go) in Clojure (and Java), Lightweight Threads, Channels and Actors for the <span class="caps">JVM</span></a>.</p>
+<p>In this version, clustering is pretty rudimentary, but essential features should work: actors can be made discoverable on the network, messages can be passed among actors on different nodes, and an actor on a failing node will behave as expected of a dying actor with respect to exit messages sent to other, remote, <em>watching</em> it or <em>linked</em> to&nbsp;it.</p>
 
-<p>Quasar is developed by <a href="http://paralleluniverse.co">Parallel Universe</a> and released as free software, dual-licensed under the Eclipse Public License and the <span class="caps">GNU</span> Lesser General Public&nbsp;License.</p>
+<h2 id="enabling-clustering">Enabling&nbsp;Clustering</h2>
 
-<h2 id="license">License</h2>
+<p>First, you will need to add <code>quasar-galaxy</code> as a dependency to your&nbsp;project:</p>
 
-<pre><code>Quasar
-Copyright © 2013 Parallel Universe
-
-This program and the accompanying materials are dual-licensed under
-either the terms of the Eclipse Public License v1.0 as published by
-the Eclipse Foundation
-
-  or (per the licensee's choosing)  
-
-under the terms of the GNU Lesser General Public License version 3.0
-as published by the Free Software Foundation. 
-</code></pre>
-<h2 id="dependencies">Dependencies</h2>
-
-<ul>
-  <li><a href="http://g.oswego.edu/dl/concurrency-interest/">JSR166e</a> – java.util.concurrent, by Doug Lea and&nbsp;contributors</li>
-  <li><a href="http://asm.ow2.org/"><span class="caps">ASM</span></a> — Java bytecode manipulation and analysis framework, by the <span class="caps">ASM</span>&nbsp;team</li>
-  <li><a href="http://metrics.codahale.com/">Metrics</a> — A measurement and monitoring library, by Coda&nbsp;Hale</li>
-  <li><a href="https://code.google.com/p/guava-libraries/">Guava</a> — Java utility classes, by&nbsp;Google</li>
-  <li><a href="http://www.slf4j.org/"><span class="caps">SLF4J</span></a> — Simple Logging Facade for Java&nbsp;(<span class="caps">SLF4J</span>)</li>
-</ul>
-
-<p>Quasar’s clustering makes use of <a href="http://puniverse.github.io/galaxy/">Galaxy</a>, by Parallel&nbsp;Universe</p>
-
-<h2 id="acknowledgments">Acknowledgments</h2>
-
-<p>A core component of Quasar, bytecode instrumentation, is a fork of the wonderful <a href="http://www.matthiasmann.de/content/view/24/26/">Continuations Library</a> by Matthias&nbsp;Mann.</p>
-
-<p>Parts of the documentation layout, icons and styles were taken from Google’s <a href="http://www.polymer-project.org/">Polymer Project</a>.</p>
 </div>
 
       <hr>

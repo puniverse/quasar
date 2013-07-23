@@ -1,0 +1,210 @@
+body {
+   font-family: sans-serif;
+   font-size: 11pt;
+}
+
+pre, code {
+   font-family: Monaco, DejaVu Sans Mono, Consolas, monospace;
+   font-size: 9pt;
+}
+
+h2 {
+   font-weight: normal;
+   font-size: 18pt;
+   margin: 10px 0 0.4em 0;
+}
+
+#header, #content, .sidebar {
+   position: fixed;
+}
+
+#header {
+   top: 0;
+   left: 0;
+   right: 0;
+   height: 20px;
+   background: #444;
+   color: #fff;
+   padding: 5px;
+}
+
+#content {
+   top: 30px;
+   right: 0;
+   bottom: 0;
+   overflow: auto;
+   background: #fff;
+   color: #333;
+   padding: 0 1em;
+}
+
+.sidebar {
+   position: fixed;
+   top: 30px;
+   bottom: 0;
+   overflow: auto;
+}
+
+#namespaces {
+   background: #e6e6e6;
+   border-right: solid 1px #bbb;
+   left: 0;
+   width: 250px;
+}
+
+#vars {
+   background: #eeeeee;
+   border-right: solid 1px #ccc;
+   left: 251px;
+   width: 200px;
+}
+
+.namespace-index {
+   left: 251px;
+}
+
+.namespace-docs {
+   left: 452px;
+}
+
+#header {
+   background: -moz-linear-gradient(top, #555 0%, #222 100%);
+   background: -webkit-linear-gradient(top, #555 0%, #333 100%);
+   background: -o-linear-gradient(top, #555 0%, #222 100%);
+   background: -ms-linear-gradient(top, #555 0%, #222 100%);
+   background: linear-gradient(top, #555 0%, #222 100%);
+   box-shadow: 0 0 10px #555;
+   z-index: 100;
+}
+
+#header h1 {
+   margin: 0;
+   padding: 0;
+   font-size: 12pt;
+   font-weight: normal;
+   text-shadow: -1px -1px 0px #333;
+}
+
+#header a, .sidebar a {
+   display: block;
+   text-decoration: none;
+}
+
+#header a {
+   color: #fff;
+}
+
+.sidebar a {
+   color: #333;
+}
+
+#header h2 {
+    float: right;
+    font-size: 9pt;
+    font-weight: normal;
+    width: 10em;
+    margin: 3px 0;
+    color: #bbb;
+}
+
+#header h2 a {
+    display: inline;
+}
+
+.sidebar h3 {
+   margin: 0;
+   padding: 10px 0.5em 0 0.5em;
+   font-size: 14pt;
+   font-weight: normal
+}
+
+.sidebar ul {
+   padding: 0.5em 0em;
+   margin: 0;
+}
+
+.sidebar li {
+   display: block;
+}
+
+.sidebar li a {
+   padding: 7px 10px;
+}
+
+#namespaces li.current a {
+   border-left: 3px solid #a33;
+   padding-left: 7px;
+   color: #a33;
+}
+
+#vars li.current a {
+   border-left: 3px solid #33a;
+   padding-left: 7px;
+   color: #33a;
+}
+
+#content h3 {
+   margin-bottom: 0.5em;
+   font-size: 13pt;
+   font-weight: bold;
+}
+
+.public h3, h4.macro {
+    margin: 0;
+    float: left;
+}
+
+.usage {
+    clear: both;
+}
+
+h4.macro {
+    font-variant: small-caps;
+    font-size: 13px;
+    font-weight: bold;
+    color: #717171;
+    margin-top: 3px;
+    margin-left: 10px;
+}
+
+.public {
+   margin-top: 1.5em;
+   margin-bottom: 2.0em;
+}
+
+.public:last-child {
+   margin-bottom: 20%;
+}
+
+.namespace:last-child {
+    margin-bottom: 10%;
+}
+
+.index {
+   padding: 0;
+}
+
+.index * {
+   display: inline;
+}
+
+.index li {
+   padding: 0 .5em;
+}
+
+.index ul {
+   padding-left: 0;
+}
+
+.usage code {
+   display: block;
+   color: #008;
+}
+
+.doc {
+    margin-bottom: .5em;
+}
+
+.src-link a {
+    font-size: 9pt;
+}

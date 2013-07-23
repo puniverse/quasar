@@ -1,0 +1,17 @@
+.doc {
+    clear: both;
+}
+
+h4.fn, h4.var {
+    margin: 0;
+    float: left;
+}
+
+h4.fn, h4.var {
+    font-variant: small-caps;
+    font-size: 13px;
+    font-weight: bold;
+    color: #717171;
+    margin-top: 3px;
+    margin-left: 10px;
+}
