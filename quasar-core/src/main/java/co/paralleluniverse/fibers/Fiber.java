@@ -215,7 +215,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return fid;
     }
 
-    ForkJoinTask<V> getForkJoinTask() {
+    public ForkJoinTask<V> getForkJoinTask() {
         return fjTask;
     }
 
@@ -790,6 +790,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     public final boolean exec(Object blocker) {
         if (ForkJoinTask.getPool() != fjPool)
             return false;
+        record(1, "Fiber", "exec", "Blocker %s attempting to immediately execute %s", blocker, this);
         for (int i = 0; i < 30; i++) {
             if (getBlocker() == blocker && fjTask.tryUnpark()) {
                 if (fjTask.exec())

@@ -17,7 +17,9 @@ import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import co.paralleluniverse.fibers.Fiber;
 import jsr166e.ForkJoinTask;
+import jsr166e.ForkJoinWorkerThread;
 import sun.misc.Unsafe;
 
 /**
@@ -32,27 +34,40 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     public static final int PARKED = -1;
     public static final int PARKING = -2;
     //
-    static final ThreadLocal<ParkableForkJoinTask<?>> current = new ThreadLocal<ParkableForkJoinTask<?>>();
+    private static final ThreadLocal<ParkableForkJoinTask<?>> current = new ThreadLocal<ParkableForkJoinTask<?>>();
     private volatile int state;
     private volatile Object blocker;
+    private ParkableForkJoinTask enclosing;
 
     public ParkableForkJoinTask() {
         state = RUNNABLE;
     }
 
     protected static ParkableForkJoinTask<?> getCurrent() {
-        return current.get();
+        ParkableForkJoinTask ct = current.get();
+        if(ct == null && Thread.currentThread() instanceof ForkJoinWorkerThread) { // false in tests
+            Fiber f = Fiber.currentFiber();
+            if(f != null)
+                ct = (ParkableForkJoinTask)f.getForkJoinTask();
+        }
+        return ct;
     }
 
     @Override
     protected boolean exec() {
-        final ParkableForkJoinTask<?> previousCurrent = current.get();
-        current.set(this);
+        final ParkableForkJoinTask<?> enc = current.get();
+        this.enclosing = enc;
+        setCurrent(this);
         try {
             return doExec();
         } finally {
-            current.set(previousCurrent);
+            setCurrent(enc); // can't use enclosing for the same reason can't nullify enclosing. See below.
+            //enclosing = null; -- can't nullify enclosing here, because by the time we get here, his task may have been re-scheduled and enclosing re-set
         }
+    }
+    
+    static void setCurrent(ParkableForkJoinTask<?> task) {
+        current.set(task);
     }
     
     boolean doExec() {
@@ -77,6 +92,10 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     protected void setBlocker(Object blocker) {
         this.blocker = blocker;
+    }
+
+    ParkableForkJoinTask getEnclosing() {
+        return enclosing;
     }
 
     protected void onExec() {
@@ -213,32 +232,32 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     static void record(String method, String format) {
         if (RECORDER != null)
-            RECORDER.record(1, new FlightRecorderMessage("BlockableForkJoinTask", method, format, null));
+            RECORDER.record(1, new FlightRecorderMessage("ParkableForkJoinTask", method, format, null));
     }
 
     static void record(String method, String format, Object arg1) {
         if (RECORDER != null)
-            RECORDER.record(1, new FlightRecorderMessage("BlockableForkJoinTask", method, format, new Object[]{arg1}));
+            RECORDER.record(1, new FlightRecorderMessage("ParkableForkJoinTask", method, format, new Object[]{arg1}));
     }
 
     static void record(String method, String format, Object arg1, Object arg2) {
         if (RECORDER != null)
-            RECORDER.record(1, new FlightRecorderMessage("BlockableForkJoinTask", method, format, new Object[]{arg1, arg2}));
+            RECORDER.record(1, new FlightRecorderMessage("ParkableForkJoinTask", method, format, new Object[]{arg1, arg2}));
     }
 
     static void record(String method, String format, Object arg1, Object arg2, Object arg3) {
         if (RECORDER != null)
-            RECORDER.record(1, new FlightRecorderMessage("BlockableForkJoinTask", method, format, new Object[]{arg1, arg2, arg3}));
+            RECORDER.record(1, new FlightRecorderMessage("ParkableForkJoinTask", method, format, new Object[]{arg1, arg2, arg3}));
     }
 
     static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
         if (RECORDER != null)
-            RECORDER.record(1, new FlightRecorderMessage("BlockableForkJoinTask", method, format, new Object[]{arg1, arg2, arg3, arg4}));
+            RECORDER.record(1, new FlightRecorderMessage("ParkableForkJoinTask", method, format, new Object[]{arg1, arg2, arg3, arg4}));
     }
 
     static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
         if (RECORDER != null)
-            RECORDER.record(1, new FlightRecorderMessage("BlockableForkJoinTask", method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
+            RECORDER.record(1, new FlightRecorderMessage("ParkableForkJoinTask", method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
     }
     private static final Unsafe unsafe = UtilUnsafe.getUnsafe();
     private static final long stateOffset;
