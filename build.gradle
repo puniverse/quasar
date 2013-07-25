@@ -7,7 +7,7 @@ subprojects {
     [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
     group               = "co.paralleluniverse"
-    version             = "0.2.0"
+    version             = "0.3.0-SNAPSHOT"
     status              = "integration"
     description         = "lightweight threads and actors for the JVM."
     ext.url             = "http://puniverse.github.com/quasar"
@@ -20,7 +20,7 @@ subprojects {
     ext.scmConnection   = "https://github.com/puniverse/quasar.git"
     ext.distDir         = "$buildDir/dist"
     ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
-    ext.baselib			= "${rootProject.projectDir}/baselib"
+    ext.baselib         = "${rootProject.projectDir}/baselib"
     ext.quasarJar       = project(':quasar-core').jar.archivePath
     if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
         println "sonatype username or password not set"
