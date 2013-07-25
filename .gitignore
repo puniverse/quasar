@@ -1,7 +1,8 @@
 /dist/
 /out/
 _site/
-/docs/javadoc/
+/docs/quasar-core/
+/docs/quasar-galaxy/
 .idea/
 *.iml
 /artifacts
