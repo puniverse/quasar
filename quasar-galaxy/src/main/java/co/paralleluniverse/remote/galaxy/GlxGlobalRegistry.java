@@ -131,22 +131,6 @@ public class GlxGlobalRegistry implements GlobalRegistry {
             try {
                 final long root = store.getRoot(rootName, txn);
                 byte[] buf = store.get(root);
-                store.setListener(root, new CacheListener() {
-                    @Override
-                    public void invalidated(long id) {
-                        evicted(id);
-                    }
-
-                    @Override
-                    public void received(long id, long version, ByteBuffer data) {
-                    }
-
-                    @Override
-                    public void evicted(long id) {
-                        rootCache.remove(rootName);
-                        store.setListener(id, null);
-                    }
-                });
                 if (buf == null)
                     return null;
 
@@ -160,7 +144,23 @@ public class GlxGlobalRegistry implements GlobalRegistry {
                     LOG.info("Deserializing actor at root " + rootName + " has failed with exception", e);
                     return null;
                 }
+                store.setListener(root, new CacheListener() {
+                    @Override
+                    public void invalidated(long id) {
+                        evicted(id);
+                    }
 
+                    @Override
+                    public void received(long id, long version, ByteBuffer data) {
+                        evicted(id);
+                    }
+
+                    @Override
+                    public void evicted(long id) {
+                        rootCache.remove(rootName);
+                        store.setListener(id, null);
+                    }
+                });
                 rootCache.put(rootName, actor);
                 return actor;
             } catch (TimeoutException e) {

@@ -1,4 +1,4 @@
-package co.paralleluniverse.galaxy.example;
+package co.paralleluniverse.galaxy.example.testing;
 
 /**
  *

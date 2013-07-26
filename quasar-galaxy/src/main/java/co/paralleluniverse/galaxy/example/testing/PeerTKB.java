@@ -17,11 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public 
  * License along with Galaxy. If not, see <http://www.gnu.org/licenses/>.
  */
-package co.paralleluniverse.galaxy.example;
+package co.paralleluniverse.galaxy.example.testing;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.BasicActor;
-import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.behaviors.AbstractServer;
@@ -36,15 +35,16 @@ import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.galaxy.Grid;
+import co.paralleluniverse.galaxy.Store;
+import co.paralleluniverse.galaxy.StoreTransaction;
+import co.paralleluniverse.galaxy.TimeoutException;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.DelayedVal;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URL;
 import java.util.LinkedList;
-import java.util.Properties;
 import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -71,43 +71,33 @@ public class PeerTKB {
     }
 
     public void run() throws ExecutionException, InterruptedException {
-        switch (SCENARIO.pingPong) {
-            case pingPong:
+        switch (SCENARIO.testGenEvent) {
+            case test:
+                final Store store = Grid.getInstance().store();
                 if (i == 1) {
-                    spawnActor(new BasicActor<RepliableMessage<String>, Void>() {
-                        @Override
-                        protected Void doRun() throws InterruptedException, SuspendExecution {
-                            register("pong");
-                            while (true) {
-                                RepliableMessage<String> msg = receive();
-                                if (msg.data.equals("finished"))
-                                    break;
-                                if (msg.data.equals("ping")) 
-                                    msg.sender.send(new RepliableMessage("pong",this));                                
-                            }
-                            return null;
-                        }
-                    }).join();
-                    System.out.println("pong finished");
+                    StoreTransaction tx = store.beginTransaction();
+                    try {
+                        long root = store.getRoot("root", tx);
+                        byte buf[] = null;//"hello".getBytes();
+                        store.set(root, buf, tx);
+                        store.commit(tx);
+                    } catch (TimeoutException ex) {
+                        throw new RuntimeException("set failed");
+                    }
+                    Thread.sleep(20000);
                 } else {
-                    spawnActor(new BasicActor<RepliableMessage<String>, Void>() {
-                        int i=3;
-                        @Override
-                        protected Void doRun() throws InterruptedException, SuspendExecution {
-                            Actor pong = getActor("pong");
-                            System.out.println("pong is "+pong);
-                            while (i-- > 0) {
-                                pong.send(new RepliableMessage("ping",this));
-                                RepliableMessage<String> msg = receive();
-                                System.out.println("ping received "+msg.data);
-                            }
-                            pong.send(new RepliableMessage("finished",null));
-                            return null;
-                        }
-                    }).join();
+                    StoreTransaction tx = store.beginTransaction();
+                    byte[] get;
+                    try {
+                        long root = store.getRoot("root", tx);
+                        get = store.get(root);
+                        store.commit(tx);
+                    } catch (TimeoutException ex) {
+                        throw new RuntimeException("get failed");
+                    }
+                    System.out.println(get);
                 }
                 break;
-
             case testGenServer:
                 if (i == 1) {
                     spawnGenServer(new AbstractServer<Message, Integer, Message>() {
@@ -299,7 +289,7 @@ public class PeerTKB {
         testGenEvent,
         testMultiGetActor,
         testOrdering,
-    }
+        test,}
 
     private LocalGenServer<Message, Integer, Message> spawnGenServer(Server<Message, Integer, Message> server) {
         return spawnActor(new LocalGenServer<>(server));
@@ -321,23 +311,21 @@ public class PeerTKB {
         });
         fiber.start();
         return actor;
-
-
     }
-    
-    static class RepliableMessage<T> implements Serializable{
+
+    static class RepliableMessage<T> implements Serializable {
         T data;
         Actor sender;
 
         public RepliableMessage(T data, Actor sender) {
             this.data = data;
             this.sender = sender;
-        }        
+        }
     }
 
-    static class Message implements java.io.Serializable {
-        final int a;
-        final int b;
+    public static class Message implements java.io.Serializable {
+        public final int a;
+        public final int b;
 
         public Message(int a, int b) {
             this.a = a;
