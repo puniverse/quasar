@@ -17,20 +17,23 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package co.paralleluniverse.galaxy.example.simplegenserver;
+package co.paralleluniverse.galaxy.example.pingpong;
 
+import co.paralleluniverse.actors.Actor;
 import java.io.Serializable;
 
 /**
  *
  * @author eitan
  */
-public class SumRequest implements Serializable {
-    final int a;
-    final int b;
-
-    public SumRequest(int a, int b) {
-        this.a = a;
-        this.b = b;
+class Message implements Serializable {
+    enum Type { PING, PONG, FINISHED }
+    
+    final Actor from;
+    final Type type;
+    
+    public Message(Actor from, Type type) {
+        this.from = from;
+        this.type = type;
     }
 }

@@ -1,6 +1,21 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (c) 2013 Parallel Universe Software Co.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 package co.paralleluniverse.galaxy.example.pingpong;
 
@@ -8,21 +23,23 @@ import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
+import static co.paralleluniverse.galaxy.example.pingpong.Message.Type.*;
 import co.paralleluniverse.strands.Strand;
-import java.util.concurrent.ExecutionException;
 
 /**
  *
  * @author eitan
  */
 public class Ping {
-    public static void main(String[] args) throws ExecutionException, InterruptedException {
-        final int i = 1;
-        System.setProperty("galaxy.nodeId", Integer.toString(i));
-        System.setProperty("galaxy.port", Integer.toString(7050 + i));
-        System.setProperty("galaxy.slave_port", Integer.toString(8050 + i));
+    private static final int nodeId = 1;
+    
+    public static void main(String[] args) throws Exception {
+        System.setProperty("galaxy.nodeId", Integer.toString(nodeId));
+        System.setProperty("galaxy.port", Integer.toString(7050 + nodeId));
+        System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
 
-        new Fiber(new BasicActor<RepliableMessage<String>, Void>() {
+
+        new Fiber(new BasicActor<Message, Void>() {
             @Override
             protected Void doRun() throws InterruptedException, SuspendExecution {
                 Actor pong;
@@ -31,12 +48,14 @@ public class Ping {
                     Strand.sleep(3000);
                 }
                 System.out.println("pong is " + pong);
-                for (int i=0; i<3; i++) {
-                    pong.send(new RepliableMessage("ping", this));
-                    RepliableMessage<String> msg = receive();
-                    System.out.println("ping received " + msg.data);
+
+                for (int i = 0; i < 3; i++) {
+                    pong.send(new Message(this, PING));
+                    Message msg = receive();
+                    System.out.println("ping received " + msg.type);
                 }
-                pong.send(new RepliableMessage("finished", null));
+
+                pong.send(new Message(null, FINISHED));
                 return null;
             }
         }).start().join();
