@@ -64,7 +64,7 @@ systemProperty "jgroups.bind_addr", "127.0.0.1"
 systemProperty "galaxy.multicast.address", "225.0.0.1"
 ```
 
-In a similar way you can run the other examples in the `co.paralleluniverse.galaxy.example.simpleGenEvent and co.paralleluniverse.galaxy.example.simpleGenServer packages.
+You can similarly run the other examples in the [co.paralleluniverse.galaxy.example.simplegenevent](https://github.com/puniverse/quasar/tree/master/quasar-galaxy/src/main/java/co/paralleluniverse/galaxy/example/simplegenevent) and [co.paralleluniverse.galaxy.example.simplegenserver](https://github.com/puniverse/quasar/tree/master/quasar-galaxy/src/main/java/co/paralleluniverse/galaxy/example/simplegenserver) packages.
 
 ## Getting help
 
