@@ -569,6 +569,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         installFiberLocals();
 
         state = State.RUNNING;
+        boolean restored = false;
         try {
             this.result = run1(); // we jump into the continuation
             state = State.TERMINATED;
@@ -587,7 +588,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
             restoreThreadLocals();
             setCurrentFiber(oldFiber);
-
+            restored = true;
+            
             record(1, "Fiber", "exec1", "parked %s %s", state, this);
             fjTask.doPark(ex == SuspendExecution.YIELD); // now we can complete parking
 
@@ -611,7 +613,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 monitor.fiberTerminated();
             throw t;
         } finally {
-            if (state != State.WAITING) {
+            if (!restored) {
                 restoreThreadLocals();
                 setCurrentFiber(oldFiber);
             }
@@ -628,10 +630,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private void installFiberLocals() {
+        record(1, "Fiber", "installFiberLocals", "%s -> %s", this, Thread.currentThread());
         switchFiberAndThreadLocals();
     }
 
     private void restoreThreadLocals() {
+        record(1, "Fiber", "restoreThreadLocals", "%s <- %s", this, Thread.currentThread());
         switchFiberAndThreadLocals();
     }
 
