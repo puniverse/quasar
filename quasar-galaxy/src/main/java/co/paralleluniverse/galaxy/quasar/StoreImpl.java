@@ -15,7 +15,7 @@ package co.paralleluniverse.galaxy.quasar;
 
 import co.paralleluniverse.common.io.Persistable;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.futures.FiberAsyncListenableFuture;
+import co.paralleluniverse.fibers.futures.AsyncListenableFuture;
 import co.paralleluniverse.galaxy.CacheListener;
 import co.paralleluniverse.galaxy.InvokeOnLine;
 import co.paralleluniverse.galaxy.ItemState;
@@ -240,7 +240,7 @@ public class StoreImpl implements Store {
 
     private <V> V result(ListenableFuture<V> future) throws TimeoutException, SuspendExecution {
         try {
-            return FiberAsyncListenableFuture.get(future);
+            return AsyncListenableFuture.get(future);
         } catch (ExecutionException e) {
             Throwable ex = e.getCause();
             if (ex instanceof TimeoutException)

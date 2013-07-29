@@ -15,7 +15,7 @@ package co.paralleluniverse.galaxy.quasar;
 
 import co.paralleluniverse.common.io.Streamable;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.futures.FiberAsyncListenableFuture;
+import co.paralleluniverse.fibers.futures.AsyncListenableFuture;
 import co.paralleluniverse.galaxy.MessageListener;
 import co.paralleluniverse.galaxy.TimeoutException;
 import co.paralleluniverse.strands.Strand;
@@ -96,7 +96,7 @@ public class MessengerImpl implements Messenger {
 
     private <V> V result(ListenableFuture<V> future) throws TimeoutException, SuspendExecution {
         try {
-            return FiberAsyncListenableFuture.get(future);
+            return AsyncListenableFuture.get(future);
         } catch (ExecutionException e) {
             Throwable ex = e.getCause();
             if (ex instanceof TimeoutException)
