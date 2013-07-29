@@ -153,7 +153,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
             if (compareAndSetState(_state, newState)) {
                 if (Debug.isDebug())
-                    record("park", "current: %s - %s -> %s", this, _state, newState);
+                    record("park", "current: %s - %s -> %s (blocker: %s)", this, _state, newState, blocker);
                 break;
             }
         }

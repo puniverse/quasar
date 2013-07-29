@@ -802,6 +802,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 return true;
             }
         }
+        record(1, "Fiber", "exec", "Blocker %s attempt to immediately execute %s - FAILED", blocker, this);
+        Debug.exit(0);
         return false;
     }
 

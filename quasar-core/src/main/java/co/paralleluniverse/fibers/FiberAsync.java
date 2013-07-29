@@ -37,7 +37,7 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
         while (!Fiber.park(this, this)) // make sure we actually park and run PostParkActions
             ;
         while (!isCompleted())
-            Fiber.park(this);
+            Fiber.park((Object)this);
         return getResult();
     }
 
