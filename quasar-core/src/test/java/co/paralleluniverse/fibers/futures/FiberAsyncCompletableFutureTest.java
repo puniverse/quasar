@@ -17,8 +17,8 @@ import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableCallable;
-import com.google.common.util.concurrent.SettableFuture;
 import java.util.concurrent.ExecutionException;
+import jsr166e.CompletableFuture;
 import jsr166e.ForkJoinPool;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
@@ -28,22 +28,22 @@ import org.junit.Test;
  *
  * @author pron
  */
-public class FiberAsyncListenableFutureTest {
+public class FiberAsyncCompletableFutureTest {
     private ForkJoinPool fjPool;
 
-    public FiberAsyncListenableFutureTest() {
+    public FiberAsyncCompletableFutureTest() {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
     }
 
     @Test
     public void simpleTest1() throws Exception {
-        final SettableFuture<String> fut = SettableFuture.create();
+        final CompletableFuture<String> fut = new CompletableFuture<String>();
 
         final Fiber<String> fiber = new Fiber<>(fjPool, new SuspendableCallable<String>() {
             @Override
             public String run() throws SuspendExecution, InterruptedException {
                 try {
-                    return FiberAsyncListenableFuture.get(fut);
+                    return FiberAsyncCompletableFuture.get(fut);
                 } catch (ExecutionException e) {
                     throw new RuntimeException(e);
                 }
@@ -55,7 +55,7 @@ public class FiberAsyncListenableFutureTest {
             public void run() {
                 try {
                     Thread.sleep(200);
-                    fut.set("hi!");
+                    fut.complete("hi!");
                 } catch (InterruptedException e) {
                 }
             }
@@ -67,13 +67,13 @@ public class FiberAsyncListenableFutureTest {
 
     @Test
     public void testException() throws Exception {
-        final SettableFuture<String> fut = SettableFuture.create();
+        final CompletableFuture<String> fut = new CompletableFuture<String>();
 
         final Fiber<String> fiber = new Fiber<>(fjPool, new SuspendableCallable<String>() {
             @Override
             public String run() throws SuspendExecution, InterruptedException {
                 try {
-                    String res = FiberAsyncListenableFuture.get(fut);
+                    String res = FiberAsyncCompletableFuture.get(fut);
                     fail();
                     return res;
                 } catch (ExecutionException e) {
@@ -87,7 +87,7 @@ public class FiberAsyncListenableFutureTest {
             public void run() {
                 try {
                     Thread.sleep(200);
-                    fut.setException(new RuntimeException("haha!"));
+                    fut.completeExceptionally(new RuntimeException("haha!"));
                 } catch (InterruptedException e) {
                 }
             }
