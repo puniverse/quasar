@@ -28,10 +28,10 @@ import org.junit.Test;
  *
  * @author pron
  */
-public class FiberAsyncCompletableFutureTest {
+public class AsyncCompletableFutureTest {
     private ForkJoinPool fjPool;
 
-    public FiberAsyncCompletableFutureTest() {
+    public AsyncCompletableFutureTest() {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
     }
 
@@ -43,7 +43,7 @@ public class FiberAsyncCompletableFutureTest {
             @Override
             public String run() throws SuspendExecution, InterruptedException {
                 try {
-                    return FiberAsyncCompletableFuture.get(fut);
+                    return AsyncCompletableFuture.get(fut);
                 } catch (ExecutionException e) {
                     throw new RuntimeException(e);
                 }
@@ -73,7 +73,7 @@ public class FiberAsyncCompletableFutureTest {
             @Override
             public String run() throws SuspendExecution, InterruptedException {
                 try {
-                    String res = FiberAsyncCompletableFuture.get(fut);
+                    String res = AsyncCompletableFuture.get(fut);
                     fail();
                     return res;
                 } catch (ExecutionException e) {

@@ -17,29 +17,30 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberAsync;
 import co.paralleluniverse.fibers.RuntimeExecutionException;
 import co.paralleluniverse.fibers.SuspendExecution;
+import com.google.common.util.concurrent.ListenableFuture;
 import java.util.concurrent.ExecutionException;
-import jsr166e.CompletableFuture;
+import java.util.concurrent.Executor;
 
 /**
  *
  * @author pron
  */
-public class FiberAsyncCompletableFuture<V> extends FiberAsync<V, Runnable, Void, ExecutionException> {
-    public static <V> V get(CompletableFuture<V> future) throws ExecutionException, InterruptedException, SuspendExecution {
+public class AsyncListenableFuture<V> extends FiberAsync<V, Runnable, Void, ExecutionException> {
+    public static <V> V get(ListenableFuture<V> future) throws ExecutionException, InterruptedException, SuspendExecution {
         if (Fiber.currentFiber() != null && !future.isDone())
-            return new FiberAsyncCompletableFuture<>(future).run();
+            return new AsyncListenableFuture<>(future).run();
         else
             return future.get();
     }
 
-    public static <V> V getNoSuspend(final CompletableFuture<V> future) throws ExecutionException, InterruptedException {
+    public static <V> V getNoSuspend(final ListenableFuture<V> future) throws ExecutionException, InterruptedException {
         if (Fiber.currentFiber() != null && !future.isDone()) {
             try {
                 return new Fiber<V>() {
                     @Override
                     protected V run() throws SuspendExecution, InterruptedException {
                         try {
-                            return new FiberAsyncCompletableFuture<>(future).run();
+                            return new AsyncListenableFuture<>(future).run();
                         } catch (ExecutionException e) {
                             throw new RuntimeExecutionException(e.getCause());
                         }
@@ -57,9 +58,9 @@ public class FiberAsyncCompletableFuture<V> extends FiberAsync<V, Runnable, Void
     }
     
     ///////////////////////////////////////////////////////////////////////
-    private final CompletableFuture<V> fut;
+    private final ListenableFuture<V> fut;
 
-    private FiberAsyncCompletableFuture(CompletableFuture<V> future) {
+    private AsyncListenableFuture(ListenableFuture<V> future) {
         this.fut = future;
     }
 
@@ -69,18 +70,27 @@ public class FiberAsyncCompletableFuture<V> extends FiberAsync<V, Runnable, Void
     }
 
     @Override
-    protected Void requestAsync(final Fiber current, Runnable callback) {
-        fut.handle(new CompletableFuture.BiFun<V, Throwable, Void>() {
-
+    protected Void requestAsync(final Fiber fiber, Runnable callback) {
+        fut.addListener(new Runnable() {
             @Override
-            public Void apply(V res, Throwable e) {
-                if(e != null)
-                    failed(e, current);
-                else
-                    completed(res, current);
-                return null;
+            public void run() {
+                try {
+                    assert fut.isDone();
+                    final V res = fut.get();
+                    completed(res, fiber);
+                } catch (ExecutionException e) {
+                    failed(e, fiber);
+                } catch (InterruptedException e) {
+                    throw new AssertionError(); // can't happen b/c we know future is done.
+                }
             }
-        });
+        }, sameThreadExecutor);
         return null;
     }
+    private static final Executor sameThreadExecutor = new Executor() {
+        @Override
+        public void execute(Runnable command) {
+            command.run();
+        }
+    };
 }
