@@ -12,6 +12,8 @@
  */
 package co.paralleluniverse.common.util;
 
+import java.util.concurrent.ExecutionException;
+
 /**
  *
  * @author pron
@@ -24,6 +26,17 @@ public final class Exceptions {
             throw ((Error)t);
         else
             throw new RuntimeException(t);
+    }
+    
+    public static Throwable unwrap(Throwable t) {
+        if(t == null)
+            throw new NullPointerException();
+        
+        if(t instanceof ExecutionException)
+            return unwrap(t.getCause());
+        if(t.getClass().equals(RuntimeException.class) && t.getCause() != null)
+            return unwrap(t.getCause());
+        return t;
     }
     
     private Exceptions() {

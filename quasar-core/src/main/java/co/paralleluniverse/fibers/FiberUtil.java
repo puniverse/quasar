@@ -81,11 +81,11 @@ public final class FiberUtil {
         }
     }
 
-    public static <X extends Exception> void runInFiberChecked(SuspendableRunnable target, Class<X> exceptionType) throws X, ExecutionException, InterruptedException {
+    public static <X extends Exception> void runInFiberChecked(SuspendableRunnable target, Class<X> exceptionType) throws X, InterruptedException {
         runInFiberChecked(DefaultFiberPool.getInstance(), target, exceptionType);
     }
 
-    public static <X extends Exception> void runInFiberChecked(ForkJoinPool fjPool, SuspendableRunnable target, Class<X> exceptionType) throws X, ExecutionException, InterruptedException {
+    public static <X extends Exception> void runInFiberChecked(ForkJoinPool fjPool, SuspendableRunnable target, Class<X> exceptionType) throws X, InterruptedException {
         try {
             new Fiber<Void>(fjPool, target).start().join();
         } catch (ExecutionException ex) {
@@ -94,9 +94,9 @@ public final class FiberUtil {
     }
 
     private static <V, X extends Exception> RuntimeException throwChecked(ExecutionException ex, Class<X> exceptionType) throws X {
-        final Throwable t = ex.getCause();
+        Throwable t = Exceptions.unwrap(ex);
         if (exceptionType.isInstance(t))
-            throw (X) t;
+            throw exceptionType.cast(t);
         else
             throw Exceptions.rethrow(t);
     }
