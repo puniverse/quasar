@@ -42,7 +42,6 @@ import java.util.TreeMap;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
-import org.omg.CORBA.UNKNOWN;
 
 /**
  * <p>Collects information about classes and their suspendable methods.</p>
