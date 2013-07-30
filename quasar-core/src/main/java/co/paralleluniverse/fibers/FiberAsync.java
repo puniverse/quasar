@@ -14,7 +14,7 @@
 package co.paralleluniverse.fibers;
 
 /**
- * A general helper class that transforms asynchronous requests to synchronous calls on a LightweightThread.
+ * A general helper class that transforms asynchronous requests to synchronous calls on a Fiber.
  *
  * @author pron
  * @param <V> The value retuned by the async request
