@@ -485,10 +485,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return park(blocker, postParkActions, 0, null);
     }
 
-    public static boolean park(PostParkActions postParkActions) throws SuspendExecution {
-        return park(null, postParkActions, 0, null);
-    }
-
     public static boolean park(Object blocker, long timeout, TimeUnit unit) throws SuspendExecution {
         return park(blocker, null, timeout, unit);
     }
