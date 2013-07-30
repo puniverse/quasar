@@ -86,3 +86,5 @@ the Eclipse Foundation
 under the terms of the GNU Lesser General Public License version 3.0
 as published by the Free Software Foundation.
 ```
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/puniverse/quasar/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
