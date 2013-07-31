@@ -15,6 +15,7 @@ package co.paralleluniverse.strands;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.Fiber;
+import java.util.concurrent.TimeUnit;
 import sun.misc.Unsafe;
 
 /**
@@ -55,7 +56,7 @@ public class OwnedSynchronizer extends ConditionSynchronizer implements Conditio
     public void signalAndTryToExecNow() {
         final Strand s = waiter;
         if (s != null) {
-            if (s instanceof Fiber && ((Fiber) s).exec(this))
+            if (s instanceof Fiber && ((Fiber) s).exec(this, 0, TimeUnit.NANOSECONDS))
                 return;
             signal();
         }

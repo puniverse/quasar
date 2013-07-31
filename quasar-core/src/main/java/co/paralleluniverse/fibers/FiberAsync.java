@@ -13,6 +13,8 @@
  */
 package co.paralleluniverse.fibers;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * A general helper class that transforms asynchronous requests to synchronous calls on a Fiber.
  *
@@ -74,7 +76,7 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
 
     private void fire(Fiber fiber) {
         if (immediateExec) {
-            if(!fiber.exec(this)) {
+            if(!fiber.exec(this, 5, TimeUnit.MILLISECONDS)) {
                 final RuntimeException ex = new RuntimeException("Failed to exec fiber " + fiber + " in thread " + Thread.currentThread());
                 
                 this.exception = ex;

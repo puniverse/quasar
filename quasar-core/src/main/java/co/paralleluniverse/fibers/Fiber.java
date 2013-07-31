@@ -41,6 +41,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -106,6 +107,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private Object fiberLocals;
     private Object inheritableFiberLocals;
     private long sleepStart;
+    private ScheduledFuture<?> timeoutTask;
     private PostParkActions postParkActions;
     private V result;
     private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
@@ -530,12 +532,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * @throws SuspendExecution
      */
     private boolean park1(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
-        record(1, "Fiber", "park", "Parking %s", this);
+        record(1, "Fiber", "park", "Parking %s blocker: %s", this, blocker);
         if (recordsLevel(2))
             record(2, "Fiber", "park", "Parking %s at %s", this, Arrays.toString(getStackTrace()));
         this.postParkActions = postParkActions;
         if (timeout > 0 && unit != null) {
-            timeoutService.schedule(new Runnable() {
+            this.timeoutTask = timeoutService.schedule(new Runnable() {
                 @Override
                 public void run() {
                     fjTask.unpark();
@@ -554,7 +556,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private boolean exec1() {
         if (fjTask.isDone() | state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
-
+        if(timeoutTask != null) {
+            timeoutTask.cancel(false);
+            timeoutTask = null;
+        }
+            
         final JMXFibersForkJoinPoolMonitor monitor = getMonitor();
 
         record(1, "Fiber", "exec1", "running %s %s", state, this);
@@ -585,7 +591,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             restoreThreadLocals();
             setCurrentFiber(oldFiber);
             restored = true;
-            
+
             record(1, "Fiber", "exec1", "parked %s %s", state, this);
             fjTask.doPark(ex == SuspendExecution.YIELD); // now we can complete parking
 
@@ -787,15 +793,27 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * @param blocker
      * @return {@code true} if the task has been executed by this method; {@code false} otherwise.
      */
-    public final boolean exec(Object blocker) {
+    public final boolean exec(Object blocker, long timeout, TimeUnit unit) {
         if (ForkJoinTask.getPool() != fjPool)
             return false;
         record(1, "Fiber", "exec", "Blocker %s attempting to immediately execute %s", blocker, this);
-        for (int i = 0; i < 30; i++) {
+        
+        long start = 0;
+        for (int i = 0; ; i++) {
             if (getBlocker() == blocker && fjTask.tryUnpark()) {
                 if (fjTask.exec())
                     fjTask.quietlyComplete();
                 return true;
+            }
+            if(unit != null && timeout == 0)
+                break;
+            if(unit != null && timeout > 0 && i > (1 << 12)) {
+                if(start == 0)
+                    start = System.nanoTime();
+                else if(i % 100 == 0) {
+                    if(System.nanoTime() - start > unit.toNanos(timeout))
+                        break;
+                }
             }
         }
         record(1, "Fiber", "exec", "Blocker %s attempt to immediately execute %s - FAILED", blocker, this);
