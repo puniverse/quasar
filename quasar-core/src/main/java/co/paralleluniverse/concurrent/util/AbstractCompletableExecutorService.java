@@ -12,8 +12,6 @@
  */
 package co.paralleluniverse.concurrent.util;
 
-import com.google.common.util.concurrent.ListenableFutureTask;
-import com.google.common.util.concurrent.ListeningExecutorService;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.Callable;
 import java.util.concurrent.RunnableFuture;
