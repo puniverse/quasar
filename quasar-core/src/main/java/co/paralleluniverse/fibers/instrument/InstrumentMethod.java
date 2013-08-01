@@ -104,10 +104,16 @@ class InstrumentMethod {
                 if (in.getType() == AbstractInsnNode.METHOD_INSN) {
                     MethodInsnNode min = (MethodInsnNode) in;
                     int opcode = min.getOpcode();
-                    Boolean susp = db.isMethodSuspendable(min.owner, min.name, min.desc, opcode);
-                    if(susp == null) {
-                        db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s", min.owner, min.name, min.desc);
+                    Boolean susp;
+                    if (MethodDatabase.isReflectInvocation(min.owner, min.name)) {
+                        db.log(LogLevel.DEBUG, "Reflective method call at instruction %d is assumed suspendable", i);
                         susp = true;
+                    } else {
+                        susp = db.isMethodSuspendable(min.owner, min.name, min.desc, opcode);
+                        if (susp == null) {
+                            db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s", min.owner, min.name, min.desc);
+                            susp = true;
+                        }
                     }
                     if (susp) {
                         db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is suspendable", i, min.owner, min.name, min.desc);
