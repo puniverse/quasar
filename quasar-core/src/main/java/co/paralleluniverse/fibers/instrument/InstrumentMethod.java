@@ -61,7 +61,7 @@ import org.objectweb.asm.tree.analysis.Value;
  * @author pron
  */
 class InstrumentMethod {
-    private static final String INTERRUPTED_EXCEPTION_NAME = Type.getInternalName(InterruptedException.class);
+//  private static final String INTERRUPTED_EXCEPTION_NAME = Type.getInternalName(InterruptedException.class);
     private static final boolean DUAL = true; // true if suspendable methods can be called from regular threads in addition to fibers
     private final MethodDatabase db;
     private final String className;
@@ -162,8 +162,8 @@ class InstrumentMethod {
             TryCatchBlockNode tcb = (TryCatchBlockNode) o;
             if (EXCEPTION_NAME.equals(tcb.type))
                 throw new UnableToInstrumentException("catch for " + SUSPEND_EXECUTION_CLASS.getSimpleName(), className, mn.name, mn.desc);
-//            if (INTERRUPTED_EXCEPTION_NAME.equals(tcb.type))
-//                throw new UnableToInstrumentException("catch for " + InterruptedException.class.getSimpleName(), className, mn.name, mn.desc);
+//          if (INTERRUPTED_EXCEPTION_NAME.equals(tcb.type))
+//              throw new UnableToInstrumentException("catch for " + InterruptedException.class.getSimpleName(), className, mn.name, mn.desc);
 
             tcb.accept(mv);
         }
