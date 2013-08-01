@@ -22,14 +22,12 @@ import jsr166e.CompletableFuture;
  * @author pron
  */
 /**
- * Implements {@link ListeningExecutorService} execution methods atop the abstract {@link #execute}
+ * Implements {@link CompletableExecutorService} execution methods atop the abstract {@link #execute}
  * method. More concretely, the {@code submit}, {@code invokeAny} and {@code invokeAll} methods
- * create {@link ListenableFutureTask} instances and pass them to {@link #execute}.
+ * create {@link CompletableFutureTask} instances and pass them to {@link #execute}.
  *
  * <p>In addition to {@link #execute}, subclasses must implement all methods related to shutdown and
  * termination.
- *
- * @author Doug Lea
  */
 public abstract class AbstractCompletableExecutorService extends AbstractExecutorService implements CompletableExecutorService {
     @Override

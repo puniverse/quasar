@@ -42,7 +42,7 @@ public final class CompletableExecutors {
      * CompletableScheduledExecutorService}, it is returned untouched, and the rest
      * of this documentation does not apply.
      */
-    public static CompletableScheduledExecutorService listeningDecorator(ScheduledExecutorService delegate) {
+    public static CompletableScheduledExecutorService completableDecorator(ScheduledExecutorService delegate) {
         return (delegate instanceof CompletableScheduledExecutorService)
                 ? (CompletableScheduledExecutorService) delegate
                 : new ScheduledCompletableDecorator(delegate);
