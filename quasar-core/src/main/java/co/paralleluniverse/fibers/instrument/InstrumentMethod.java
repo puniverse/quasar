@@ -313,6 +313,7 @@ class InstrumentMethod {
             int end = getLabelIdx(tcb.end);
 
             if (start <= fi.endInstruction && end >= fi.endInstruction) {
+                db.log(LogLevel.DEBUG, "Splitting try-catch in %s, block %d call at instruction %d", mn.name, i, fi.endInstruction);
                 //System.out.println("i="+i+" start="+start+" end="+end+" split="+splitIdx+
                 //        " start="+mn.instructions.get(start)+" end="+mn.instructions.get(end));
 
