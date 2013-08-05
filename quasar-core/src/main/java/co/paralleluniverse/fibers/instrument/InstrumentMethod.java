@@ -179,7 +179,9 @@ class InstrumentMethod {
 
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, EXCEPTION_NAME);
 
-        // prepare visitTryCatchBlocks for InvocationTargetException.
+        // Prepare visitTryCatchBlocks for InvocationTargetException.
+        // With reflective invocations, the SuspendExecution exception will be wrapped in InvocationTargetException. We need to catch it and unwrap it.
+        // Note that the InvocationTargetException will be regenrated on every park, adding further overhead on top of the reflective call.
         // This must be done here, before all other visitTryCatchBlock, because the exception's handler
         // will be matched according to the order of in which visitTryCatchBlock has been called. Earlier calls take precedence.
         Label[][] refInvokeTryCatch = new Label[numCodeBlocks - 1][];
@@ -288,6 +290,7 @@ class InstrumentMethod {
                     mv.visitLabel(lbl);
 
                 if (isReflectInvocation(min.owner, min.name)) {
+                    // We catch the InvocationTargetException and unwrap it if it wraps a SuspendExecution exception.
                     Label[] ls = refInvokeTryCatch[i - 1];
                     final Label startTry = ls[0];
                     final Label endTry = ls[1];
