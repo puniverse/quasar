@@ -74,6 +74,9 @@ public class Retransform {
     }
 
     public static boolean isWaiver(String className, String methodName) {
+        if (className.startsWith("java.lang.reflect")
+                || className.startsWith("sun.reflect"))
+            return true;
         return waivers.contains(new Pair<String, String>(className, methodName));
     }
 
