@@ -711,6 +711,18 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     /**
+     * Causes the current strand's {@link ThreadLocal thread-locals} to be inherited by this fiber. By default only {@link InheritableThreadLocal}s
+     * are inherited.<p/>
+     * This method must be called <i>before</i> the fiber is started (i.e. before the {@link #start() start} method is called.
+     * Otherwise, an {@link IllegalStateException} is thrown.
+     */
+    public void inheritThreadLocals() {
+        if(state != State.NEW)
+            throw new IllegalStateException("Method called on a started fiber");
+        this.fiberLocals = ThreadAccess.getThreadLocals(Thread.currentThread());
+    }
+
+    /**
      *
      * @return {@code this}
      */
