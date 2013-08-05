@@ -1,4 +1,17 @@
 /*
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
+ * 
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *  
+ *   or (per the licensee's choosing)
+ *  
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
+ */
+/*
  * Copyright (c) 2008-2013, Matthias Mann
  * All rights reserved.
  *
@@ -34,6 +47,7 @@ import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_CL
 import static co.paralleluniverse.fibers.instrument.Classes.isAllowedToBlock;
 import static co.paralleluniverse.fibers.instrument.Classes.isBlockingCall;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
+import static co.paralleluniverse.fibers.instrument.MethodDatabase.isReflectInvocation;
 import java.util.List;
 import java.util.Map;
 import org.objectweb.asm.Label;
@@ -67,9 +81,11 @@ class InstrumentMethod {
     private final String className;
     private final MethodNode mn;
     private final Frame[] frames;
-    private static final int NUM_LOCALS = 2; // lvarStack, lvarResumed
+    private static final int NUM_LOCALS = 4; // lvarStack, lvarResumed, lvarInvocationExceptionCause, lvarInvocationReturnValue
     private final int lvarStack; // ref to Stack
     private final int lvarResumed; // boolean indicating if we've been resumed
+    private final int lvarInvocationExceptionCause;
+    private final int lvarInvocationReturnValue;
     private final int firstLocal;
     private FrameInfo[] codeBlocks = new FrameInfo[32];
     private int numCodeBlocks;
@@ -87,6 +103,8 @@ class InstrumentMethod {
             this.frames = a.analyze(className, mn);
             this.lvarStack = mn.maxLocals;
             this.lvarResumed = mn.maxLocals + 1;
+            this.lvarInvocationExceptionCause = mn.maxLocals + 2;
+            this.lvarInvocationReturnValue = mn.maxLocals + 3;
             this.firstLocal = ((mn.access & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC) ? 0 : 1;
         } catch (UnsupportedOperationException ex) {
             throw new AnalyzerException(null, ex.getMessage(), ex);
@@ -105,7 +123,7 @@ class InstrumentMethod {
                     MethodInsnNode min = (MethodInsnNode) in;
                     int opcode = min.getOpcode();
                     Boolean susp;
-                    if (MethodDatabase.isReflectInvocation(min.owner, min.name)) {
+                    if (isReflectInvocation(min.owner, min.name)) {
                         db.log(LogLevel.DEBUG, "Reflective method call at instruction %d is assumed suspendable", i);
                         susp = true;
                     } else {
@@ -156,7 +174,26 @@ class InstrumentMethod {
         for (int i = 1; i < numCodeBlocks; i++)
             lMethodCalls[i - 1] = new Label();
 
+        mv.visitInsn(Opcodes.ACONST_NULL);
+        mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationReturnValue);
+
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, EXCEPTION_NAME);
+
+        // prepare visitTryCatchBlocks for InvocationTargetException.
+        // This must be done here, before all other visitTryCatchBlock, because the exception's handler
+        // will be matched according to the order of in which visitTryCatchBlock has been called. Earlier calls take precedence.
+        Label[][] refInvokeTryCatch = new Label[numCodeBlocks - 1][];
+        for (int i = 1; i < numCodeBlocks; i++) {
+            FrameInfo fi = codeBlocks[i];
+            MethodInsnNode min = (MethodInsnNode) (mn.instructions.get(fi.endInstruction));
+            if (isReflectInvocation(min.owner, min.name)) {
+                Label[] ls = new Label[3];
+                for (int k = 0; k < 3; k++)
+                    ls[k] = new Label();
+                refInvokeTryCatch[i - 1] = ls;
+                mv.visitTryCatchBlock(ls[0], ls[1], ls[2], "java/lang/reflect/InvocationTargetException");
+            }
+        }
 
         for (Object o : mn.tryCatchBlocks) {
             TryCatchBlockNode tcb = (TryCatchBlockNode) o;
@@ -250,7 +287,34 @@ class InstrumentMethod {
                 if (DUAL)
                     mv.visitLabel(lbl);
 
-                dumpCodeBlock(mv, i, 0);
+                if (isReflectInvocation(min.owner, min.name)) {
+                    Label[] ls = refInvokeTryCatch[i - 1];
+                    final Label startTry = ls[0];
+                    final Label endTry = ls[1];
+                    final Label startCatch = ls[2];
+                    final Label endCatch = new Label();
+
+                    // mv.visitTryCatchBlock(startTry, endTry, startCatch, "java/lang/reflect/InvocationTargetException");
+                    mv.visitLabel(startTry);   // try {
+                    min.accept(mv);            //   method.invoke()
+                    mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationReturnValue); // save return value
+                    mv.visitLabel(endTry);     // }
+                    mv.visitJumpInsn(Opcodes.GOTO, endCatch);
+                    mv.visitLabel(startCatch); // catch(InvocationTargetException ex) {
+                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/reflect/InvocationTargetException", "getCause", "()Ljava/lang/Throwable;");
+                    mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationExceptionCause); // Throwable t = ex.getCause();
+                    mv.visitVarInsn(Opcodes.ALOAD, lvarInvocationExceptionCause);
+                    mv.visitTypeInsn(Opcodes.INSTANCEOF, EXCEPTION_NAME);
+                    mv.visitJumpInsn(Opcodes.IFEQ, endCatch);                      // if(t instanceof SuspendExecution)
+                    mv.visitVarInsn(Opcodes.ALOAD, lvarInvocationExceptionCause);
+                    mv.visitTypeInsn(Opcodes.CHECKCAST, EXCEPTION_NAME);
+                    mv.visitInsn(Opcodes.ATHROW);                                  //     throw (SuspendExecution)t;
+                    mv.visitLabel(endCatch);   // }
+                    mv.visitVarInsn(Opcodes.ALOAD, lvarInvocationReturnValue); // restore return value
+                    dumpCodeBlock(mv, i, 1);    // skip the call
+                } else {
+                    dumpCodeBlock(mv, i, 0);
+                }
             }
         }
 

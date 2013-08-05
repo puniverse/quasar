@@ -13,7 +13,13 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.fibers.SuspendExecution;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import org.objectweb.asm.util.ASMifier;
+//
+import java.util.*;
+import org.objectweb.asm.*;
 
 /**
  *
@@ -24,6 +30,6 @@ public class InstrumentationTKB {
         ASMifier.main(new String[]{"co.paralleluniverse.fibers.instrument.InstrumentationTKB"});
     }
 
-    void foo() {
+    public void foo() throws Exception {
     }
 }

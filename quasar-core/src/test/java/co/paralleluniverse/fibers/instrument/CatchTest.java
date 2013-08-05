@@ -32,6 +32,7 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
+import co.paralleluniverse.strands.SuspendableCallable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -39,42 +40,45 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 /**
- * Check that a generic catch all does not affect the suspendtion of a method
+ * Check that a generic catch all does not affect the suspention of a method
  *
  * @author Matthias Mann
  */
-public class CatchTest implements SuspendableRunnable {
+public class CatchTest {
     private ArrayList<String> results = new ArrayList<String>();
-    int cnt = 0;
 
-    private void throwOnSecondCall() throws SuspendExecution {
-        results.add("cnt=" + cnt);
-        Fiber.park();
-        if (++cnt >= 2) {
-            throw new IllegalStateException("called second time");
+    class Runnable1 implements SuspendableRunnable {
+        int cnt = 0;
+
+        private void throwOnSecondCall() throws SuspendExecution {
+            results.add("cnt=" + cnt);
+            Fiber.park();
+            if (++cnt >= 2) {
+                throw new IllegalStateException("called second time");
+            }
+            results.add("not thrown");
         }
-        results.add("not thrown");
-    }
 
-    @Override
-    public void run() throws SuspendExecution {
-        results.add("A");
-        Fiber.park();
-        try {
-            results.add("C");
+        @Override
+        public void run() throws SuspendExecution {
+            results.add("A");
+            Fiber.park();
+            try {
+                results.add("C");
+                Fiber.park();
+                throwOnSecondCall();
+                suspendableMethod();
+                results.add("never reached");
+            } catch (Throwable ex) {
+                results.add(ex.getMessage());
+            }
+            results.add("H");
+        }
+
+        private void suspendableMethod() throws SuspendExecution {
             Fiber.park();
             throwOnSecondCall();
-            suspendableMethod();
-            results.add("never reached");
-        } catch (Throwable ex) {
-            results.add(ex.getMessage());
         }
-        results.add("H");
-    }
-    
-    private void suspendableMethod() throws SuspendExecution {
-        Fiber.park();
-        throwOnSecondCall();
     }
 
     @Test
@@ -82,7 +86,7 @@ public class CatchTest implements SuspendableRunnable {
         results.clear();
 
         try {
-            Fiber co = new Fiber((String)null, null, this);
+            Fiber co = new Fiber((String) null, null, new Runnable1());
             exec(co);
             results.add("B");
             exec(co);
@@ -114,19 +118,46 @@ public class CatchTest implements SuspendableRunnable {
                 "called second time",
                 "H",
                 "I"), results);
-        Iterator<String> iter = results.iterator();
-        assertEquals("A", iter.next());
-        assertEquals("B", iter.next());
-        assertEquals("C", iter.next());
-        assertEquals("D", iter.next());
-        assertEquals("cnt=0", iter.next());
-        assertEquals("E", iter.next());
-        assertEquals("not thrown", iter.next());
-        assertEquals("F", iter.next());
-        assertEquals("cnt=1", iter.next());
-        assertEquals("G", iter.next());
-        assertEquals("called second time", iter.next());
-        assertEquals("H", iter.next());
-        assertEquals("I", iter.next());
+    }
+
+    class Callable1 implements SuspendableCallable<Integer> {
+        @Override
+        public Integer run() throws SuspendExecution {
+            try {
+                results.add("A");
+                Fiber.park();
+                results.add("C");
+                Fiber.park();
+                results.add("E");
+                return 3;
+            } catch (Exception ex) {
+                //System.out.println("EX: " + ex);
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
+    @Test
+    public void testCatch2() {
+        results.clear();
+
+        try {
+            Fiber co = new Fiber((String) null, null, new Callable1());
+            exec(co);
+            results.add("B");
+            exec(co);
+            results.add("D");
+            exec(co);
+        } finally {
+            System.out.println(results);
+        }
+
+        assertEquals(5, results.size());
+        assertEquals(Arrays.asList(
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"), results);
     }
 }

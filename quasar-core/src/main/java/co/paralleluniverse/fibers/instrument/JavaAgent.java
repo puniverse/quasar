@@ -1,4 +1,17 @@
 /*
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
+ * 
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *  
+ *   or (per the licensee's choosing)
+ *  
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
+ */
+/*
  * Copyright (c) 2008-2013, Matthias Mann
  *
  * All rights reserved.
@@ -27,7 +40,6 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /*
  * Copyright (c) 2012, Enhanced Four
  * All rights reserved.
@@ -61,6 +73,8 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
@@ -73,6 +87,7 @@ import jsr166e.ConcurrentHashMapV8;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.Textifier;
 import org.objectweb.asm.util.TraceClassVisitor;
@@ -148,13 +163,36 @@ public class JavaAgent {
         return active;
     }
 
-    static byte[] instrumentClass(MethodDatabase db, byte[] data, boolean check) {
+    static byte[] instrumentClass(String className, MethodDatabase db, byte[] data, boolean check) {
+//        final String EXAMINED_CLASS = "co/paralleluniverse/fibers/instrument/ReflectionInvokeTest";
         ClassReader r = new ClassReader(data);
         ClassWriter cw = new DBClassWriter(db, r);
         ClassVisitor cv = check ? new CheckClassAdapter(cw) : cw;
+        
+//        if (className.startsWith(EXAMINED_CLASS))
+//            cv = new TraceClassVisitor(cv, new PrintWriter(System.out));
+        
         InstrumentClass ic = new InstrumentClass(cv, db, false);
         r.accept(ic, ClassReader.SKIP_FRAMES);
-        return cw.toByteArray();
+        byte[] transformed = cw.toByteArray();
+
+//        if (className.startsWith(EXAMINED_CLASS)) {
+//            try {
+//                OutputStream os = new FileOutputStream(className.replace('/', '.') + ".class");
+//                os.write(transformed);
+//                os.close();
+//            } catch (Exception e) {
+//                throw new RuntimeException(e);
+//            }
+//        }
+
+//        if (check) {
+//            ClassReader r2 = new ClassReader(transformed);
+//            ClassVisitor cv2 = new CheckClassAdapter(new TraceClassVisitor(null), true);
+//            r2.accept(cv2, 0);
+//        }
+
+        return transformed;
     }
 
     private static class Transformer implements ClassFileTransformer {
@@ -178,14 +216,14 @@ public class JavaAgent {
             db.log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
 
             Retransform.beforeTransform(className, classBeingRedefined, classfileBuffer);
-            
+
             classLoaders.add(new WeakReference<ClassLoader>(loader));
 
             try {
-                final byte[] tranformed = instrumentClass(db, classfileBuffer, check);
-                
+                final byte[] tranformed = instrumentClass(className, db, classfileBuffer, check);
+
                 Retransform.afterTransform(className, classBeingRedefined, tranformed);
-                
+
                 return tranformed;
             } catch (Exception ex) {
                 db.error("Unable to instrument", ex);
