@@ -556,11 +556,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private boolean exec1() {
         if (fjTask.isDone() | state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
-        if(timeoutTask != null) {
+        if (timeoutTask != null) {
             timeoutTask.cancel(false);
             timeoutTask = null;
         }
-            
+
         final JMXFibersForkJoinPoolMonitor monitor = getMonitor();
 
         record(1, "Fiber", "exec1", "running %s %s", state, this);
@@ -797,21 +797,21 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (ForkJoinTask.getPool() != fjPool)
             return false;
         record(1, "Fiber", "exec", "Blocker %s attempting to immediately execute %s", blocker, this);
-        
+
         long start = 0;
-        for (int i = 0; ; i++) {
+        for (int i = 0;; i++) {
             if (getBlocker() == blocker && fjTask.tryUnpark()) {
                 if (fjTask.exec())
                     fjTask.quietlyComplete();
                 return true;
             }
-            if(unit != null && timeout == 0)
+            if (unit != null && timeout == 0)
                 break;
-            if(unit != null && timeout > 0 && i > (1 << 12)) {
-                if(start == 0)
+            if (unit != null && timeout > 0 && i > (1 << 12)) {
+                if (start == 0)
                     start = System.nanoTime();
-                else if(i % 100 == 0) {
-                    if(System.nanoTime() - start > unit.toNanos(timeout))
+                else if (i % 100 == 0) {
+                    if (System.nanoTime() - start > unit.toNanos(timeout))
                         break;
                 }
             }
