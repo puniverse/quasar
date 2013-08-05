@@ -715,11 +715,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * are inherited.<p/>
      * This method must be called <i>before</i> the fiber is started (i.e. before the {@link #start() start} method is called.
      * Otherwise, an {@link IllegalStateException} is thrown.
+     * 
+     * @return {@code this}
      */
-    public void inheritThreadLocals() {
+    public Fiber inheritThreadLocals() {
         if(state != State.NEW)
             throw new IllegalStateException("Method called on a started fiber");
         this.fiberLocals = ThreadAccess.getThreadLocals(Thread.currentThread());
+        return this;
     }
 
     /**
