@@ -34,8 +34,5 @@ public class InstrumentationTKB {
     }
 
     public void foo() throws Throwable {
-        MethodHandle handle = MethodHandles.publicLookup().findVirtual(InstrumentationTKB.class, "foo", MethodType.methodType(void.class));
-        
-        handle.invoke();
     }
 }
