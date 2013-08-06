@@ -173,7 +173,7 @@ class InstrumentMethod {
         return numCodeBlocks > 1;
     }
 
-    public void accept(MethodVisitor mv) {
+    public void accept(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
 
         mv.visitCode();
@@ -212,7 +212,7 @@ class InstrumentMethod {
 
         for (Object o : mn.tryCatchBlocks) {
             TryCatchBlockNode tcb = (TryCatchBlockNode) o;
-            if (EXCEPTION_NAME.equals(tcb.type))
+            if (EXCEPTION_NAME.equals(tcb.type) && !hasAnnotation) // we allow catch of SuspendExecution in method annotated with @Suspendable.
                 throw new UnableToInstrumentException("catch for " + SUSPEND_EXECUTION_CLASS.getSimpleName(), className, mn.name, mn.desc);
 //          if (INTERRUPTED_EXCEPTION_NAME.equals(tcb.type))
 //              throw new UnableToInstrumentException("catch for " + InterruptedException.class.getSimpleName(), className, mn.name, mn.desc);

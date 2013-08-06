@@ -14,6 +14,7 @@ import org.objectweb.asm.tree.MethodInsnNode;
  */
 final class Classes {
     static final Class<?> SUSPEND_EXECUTION_CLASS = co.paralleluniverse.fibers.SuspendExecution.class;
+    static final Class<?> SUSPEND_ANNOTATION_CLASS = co.paralleluniverse.fibers.Suspendable.class;
     // accessing the class loads it and prevents instrumentation. 
     // but while we don't want to instrument Fiber, we do want to instrument Strand, that Fiber extends, so we refer to the Fiber class
     // by name only without loading it.
@@ -31,6 +32,8 @@ final class Classes {
     // computed
     static final String EXCEPTION_NAME = Type.getInternalName(SUSPEND_EXECUTION_CLASS);
     static final String EXCEPTION_DESC = Type.getDescriptor(SUSPEND_EXECUTION_CLASS);
+    static final String ANNOTATION_NAME = Type.getInternalName(SUSPEND_ANNOTATION_CLASS);
+    static final String ANNOTATION_DESC = Type.getDescriptor(SUSPEND_ANNOTATION_CLASS);
     static final String STACK_NAME = Type.getInternalName(STACK_CLASS);
 
     static boolean isYieldMethod(String className, String methodName) {

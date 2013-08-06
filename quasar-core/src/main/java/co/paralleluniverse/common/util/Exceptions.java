@@ -48,6 +48,19 @@ public final class Exceptions {
         }
     }
 
+    static public RuntimeException sneakyThrow(Throwable t) {
+        // http://www.mail-archive.com/javaposse@googlegroups.com/msg05984.html
+        if (t == null)
+            throw new NullPointerException();
+        Exceptions.<RuntimeException>sneakyThrow0(t);
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    static private <T extends Throwable> T sneakyThrow0(Throwable t) throws T {
+        throw (T) t;
+    }
+
     private Exceptions() {
     }
 }

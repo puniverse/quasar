@@ -29,16 +29,17 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Instrumented;
+import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 
@@ -94,28 +95,54 @@ public class InstrumentClass extends ClassVisitor {
     }
 
     @Override
-    public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+    public MethodVisitor visitMethod(final int access, final String name, final String desc, final String signature, final String[] exceptions) {
         final boolean markedSuspendable = SuspendableClassifierService.isSuspendable(className, classEntry, name, desc, signature, exceptions);
         final Boolean setSuspendable = classEntry.check(name, desc) == Boolean.TRUE;
 
         final boolean suspendable = markedSuspendable | setSuspendable == Boolean.TRUE;
         classEntry.set(name, desc, suspendable);
-
-        if (db.isDebug())
-            db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, suspendable, markedSuspendable, setSuspendable);
-
-        if (suspendable && checkAccess(access) && !isYieldMethod(className, name)) {
-            if (db.isDebug())
-                db.log(LogLevel.INFO, "About to instrument method %s#%s", className, name);
-
+        
+        if (checkAccess(access) && !isYieldMethod(className, name)) {
             if (methods == null)
                 methods = new ArrayList<MethodNode>();
+            final MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
 
-            MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
-            methods.add(mn);
-            return mn; // this causes the mn to be initialized
-        }
-        return super.visitMethod(access, name, desc, signature, exceptions);
+            if (suspendable) {
+                if (db.isDebug())
+                    db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, suspendable, markedSuspendable, setSuspendable);
+                if (db.isDebug())
+                    db.log(LogLevel.INFO, "About to instrument method %s#%s", className, name);
+
+                methods.add(mn);
+                return mn; // this causes the mn to be initialized
+            } else { // look for @Suspendable annotation
+                return new MethodVisitor(Opcodes.ASM4, mn) {
+                    private boolean susp = false;
+
+                    @Override
+                    public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
+                        if (adesc.equals(ANNOTATION_DESC))
+                            susp = true;
+                        return super.visitAnnotation(adesc, visible);
+                    }
+
+                    @Override
+                    public void visitEnd() {
+                        super.visitEnd();
+
+                        if (db.isDebug())
+                            db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, false);
+                        classEntry.set(name, desc, susp);
+                        
+                        if (susp)
+                            methods.add(mn);
+                        else
+                            mn.accept(cv); // write method as-is
+                    }
+                };
+            }
+        } else
+            return super.visitMethod(access, name, desc, signature, exceptions);
     }
 
     @Override
@@ -124,7 +151,7 @@ public class InstrumentClass extends ClassVisitor {
         classEntry.setRequiresInstrumentation(false);
         db.recordSuspendableMethods(className, classEntry);
 
-        if (methods != null) {
+        if (methods != null && !methods.isEmpty()) {
             if (alreadyInstrumented && !forceInstrumentation) {
                 for (MethodNode mn : methods)
                     mn.accept(makeOutMV(mn));
@@ -135,16 +162,15 @@ public class InstrumentClass extends ClassVisitor {
                 }
 
                 for (MethodNode mn : methods) {
-                    MethodVisitor outMV = makeOutMV(mn);
+                    final MethodVisitor outMV = makeOutMV(mn);
                     try {
                         InstrumentMethod im = new InstrumentMethod(db, className, mn);
                         if (im.collectCodeBlocks()) {
                             if (mn.name.charAt(0) == '<')
                                 throw new UnableToInstrumentException("special method", className, mn.name, mn.desc);
-                            im.accept(outMV);
-                        } else {
+                            im.accept(outMV, hasAnnotation(mn));
+                        } else
                             mn.accept(outMV);
-                        }
                     } catch (AnalyzerException ex) {
                         ex.printStackTrace();
                         throw new InternalError(ex.getMessage());
@@ -162,6 +188,17 @@ public class InstrumentClass extends ClassVisitor {
             }
         }
         super.visitEnd();
+    }
+
+    private boolean hasAnnotation(MethodNode mn) {
+        List<AnnotationNode> ans = (List<AnnotationNode>) mn.visibleAnnotations;
+        if (ans == null)
+            return false;
+        for (AnnotationNode an : ans) {
+            if (an.desc.equals(an.desc))
+                return true;
+        }
+        return false;
     }
 
     private MethodVisitor makeOutMV(MethodNode mn) {

@@ -29,6 +29,7 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
@@ -83,7 +84,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
     }
 
     @Override
-    public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+    public MethodVisitor visitMethod(int access, final String name, final String desc, String signature, String[] exceptions) {
         boolean suspendable = SuspendableClassifierService.isSuspendable(className, classEntry, name, desc, signature, exceptions) || classEntry.check(name, desc) == Boolean.TRUE;
         if (suspendable) {
             hasSuspendable = true;
@@ -92,6 +93,17 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
                 throw new UnableToInstrumentException("synchronized method", className, name, desc);
         }
         classEntry.set(name, desc, suspendable);
-        return null;
+
+        if (!suspendable) // look for @Suspendable annotation
+            return new MethodVisitor(Opcodes.ASM4) {
+                @Override
+                public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
+                    if (adesc.equals(ANNOTATION_DESC))
+                        classEntry.set(name, desc, true);
+                    return null;
+                }
+            };
+        else
+            return null;
     }
 }
