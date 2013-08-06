@@ -226,7 +226,7 @@ public class JavaAgent {
 
                 return tranformed;
             } catch (Exception ex) {
-                db.error("Unable to instrument", ex);
+                db.error("Unable to instrument " + className, ex);
                 return null;
             } catch (Throwable t) {
                 System.out.println("[quasar] ERROR: " + t.getMessage());
