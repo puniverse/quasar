@@ -319,7 +319,7 @@ public class MethodDatabase implements Log {
 
             String superClass = getDirectSuperClass(className);
             if (superClass == null) {
-                log(LogLevel.WARNING, "Can't determine super class of %s", className);
+                log(isProblematicClass(className) ? LogLevel.INFO : LogLevel.WARNING, "Can't determine super class of %s", className);
                 return false;
             }
             className = superClass;
@@ -396,7 +396,7 @@ public class MethodDatabase implements Log {
 
             String superClass = getDirectSuperClass(className);
             if (superClass == null) {
-                log(LogLevel.WARNING, "Can't determine super class of %s", className);
+                log(isProblematicClass(className) ? LogLevel.INFO : LogLevel.WARNING, "Can't determine super class of %s", className);
                 return null;
             }
             className = superClass;
@@ -446,6 +446,11 @@ public class MethodDatabase implements Log {
         return className.startsWith("java/") || className.startsWith("javax/")
                 || className.startsWith("sun/") || className.startsWith("com/sun/");
     }
+    
+    public static boolean isProblematicClass(String className) {
+        return className.startsWith("org/gradle/") || className.startsWith("ch/qos/logback/");
+    }
+    
     private static final ClassEntry CLASS_NOT_FOUND = new ClassEntry("<class not found>");
 
     public static final class ClassEntry {

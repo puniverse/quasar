@@ -81,6 +81,7 @@ import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.lang.ref.WeakReference;
 import java.security.ProtectionDomain;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 import jsr166e.ConcurrentHashMapV8;
@@ -168,10 +169,10 @@ public class JavaAgent {
         ClassReader r = new ClassReader(data);
         ClassWriter cw = new DBClassWriter(db, r);
         ClassVisitor cv = check ? new CheckClassAdapter(cw) : cw;
-        
+
 //        if (className.startsWith(EXAMINED_CLASS))
 //            cv = new TraceClassVisitor(cv, new PrintWriter(System.out));
-        
+
         InstrumentClass ic = new InstrumentClass(cv, db, false);
         r.accept(ic, ClassReader.SKIP_FRAMES);
         byte[] transformed = cw.toByteArray();
@@ -226,7 +227,10 @@ public class JavaAgent {
 
                 return tranformed;
             } catch (Exception ex) {
-                db.error("Unable to instrument " + className, ex);
+                if (MethodDatabase.isProblematicClass(className))
+                    db.log(LogLevel.INFO, "Unable to instrument %s - %s %s", className, ex, Arrays.toString(ex.getStackTrace()));
+                else
+                    db.error("Unable to instrument " + className, ex);
                 return null;
             } catch (Throwable t) {
                 System.out.println("[quasar] ERROR: " + t.getMessage());
