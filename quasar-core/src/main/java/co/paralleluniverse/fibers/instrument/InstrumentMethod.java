@@ -47,6 +47,7 @@ import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_CL
 import static co.paralleluniverse.fibers.instrument.Classes.isAllowedToBlock;
 import static co.paralleluniverse.fibers.instrument.Classes.isBlockingCall;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
+import static co.paralleluniverse.fibers.instrument.MethodDatabase.isInvocationHandlerInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isMethodHandleInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isReflectInvocation;
 import java.util.List;
@@ -132,6 +133,9 @@ class InstrumentMethod {
                             susp = true;
                         } else if (isMethodHandleInvocation(min.owner, min.name)) {
                             db.log(LogLevel.DEBUG, "MethodHandle invocation at instruction %d is assumed suspendable", i);
+                            susp = true;
+                        } else if (isInvocationHandlerInvocation(min.owner, min.name)) {
+                            db.log(LogLevel.DEBUG, "InvocationHandler invocation at instruction %d is assumed suspendable", i);
                             susp = true;
                         } else {
                             susp = db.isMethodSuspendable(min.owner, min.name, min.desc, opcode);

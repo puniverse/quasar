@@ -434,6 +434,10 @@ public class MethodDatabase implements Log {
         return className.equals("java/lang/reflect/Method") && methodName.equals("invoke");
     }
 
+    public static boolean isInvocationHandlerInvocation(String className, String methodName) {
+        return className.equals("java/lang/reflect/InvocationHandler") && methodName.equals("invoke");
+    }
+
     public static boolean isMethodHandleInvocation(String className, String methodName) {
         return className.equals("java/lang/invoke/MethodHandle") && methodName.startsWith("invoke");
     }

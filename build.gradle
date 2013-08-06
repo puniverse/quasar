@@ -126,7 +126,7 @@ subprojects {
         //        systemProperty "co.paralleluniverse.globalFlightRecorder", "true"
         //        systemProperty "co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log"
         //	systemProperty "co.paralleluniverse.monitoring.flightRecorderSize","200000"    
-        jvmArgs "-javaagent:${quasarJar}" //  =vdmc (verbose, debug, allow monitors, check class)
+        jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
         jvmArgs "-Xmx2048m" // =v, =d
         doLast() {
             println "file://" + testReportDir + "/index.html"    
@@ -138,7 +138,7 @@ subprojects {
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
         systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
         //        systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
-        jvmArgs "-javaagent:${quasarJar}" // =v, =d
+        jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
     }
 
     test {
