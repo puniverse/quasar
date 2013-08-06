@@ -101,7 +101,7 @@ public class InstrumentClass extends ClassVisitor {
 
         final boolean suspendable = markedSuspendable | setSuspendable == Boolean.TRUE;
         classEntry.set(name, desc, suspendable);
-        
+
         if (checkAccess(access) && !isYieldMethod(className, name)) {
             if (methods == null)
                 methods = new ArrayList<MethodNode>();
@@ -110,8 +110,6 @@ public class InstrumentClass extends ClassVisitor {
             if (suspendable) {
                 if (db.isDebug())
                     db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, suspendable, markedSuspendable, setSuspendable);
-                if (db.isDebug())
-                    db.log(LogLevel.INFO, "About to instrument method %s#%s", className, name);
 
                 methods.add(mn);
                 return mn; // this causes the mn to be initialized
@@ -165,6 +163,9 @@ public class InstrumentClass extends ClassVisitor {
                     final MethodVisitor outMV = makeOutMV(mn);
                     try {
                         InstrumentMethod im = new InstrumentMethod(db, className, mn);
+                        if (db.isDebug())
+                            db.log(LogLevel.INFO, "About to instrument method %s#%s%s", className, mn.name, mn.desc);
+
                         if (im.collectCodeBlocks()) {
                             if (mn.name.charAt(0) == '<')
                                 throw new UnableToInstrumentException("special method", className, mn.name, mn.desc);
