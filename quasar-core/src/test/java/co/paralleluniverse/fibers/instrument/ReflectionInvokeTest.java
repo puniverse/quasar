@@ -15,7 +15,6 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.SuspendableRunnable;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
 import co.paralleluniverse.strands.SuspendableCallable;
 import java.lang.reflect.InvocationTargetException;
@@ -26,7 +25,7 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 /**
- * Check that a generic catch all does not affect the suspention of a method
+ * Check that a generic catch all does not affect the suspension of a method
  *
  * @author Matthias Mann
  */
