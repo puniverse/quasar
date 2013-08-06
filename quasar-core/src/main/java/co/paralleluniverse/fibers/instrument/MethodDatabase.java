@@ -191,7 +191,7 @@ public class MethodDatabase implements Log {
     private int isMethodSuspendable0(String className, String methodName, String methodDesc, int opcode) {
         if (methodName.charAt(0) == '<')
             return NONSUSPENDABLE;   // special methods are never suspendable
-        
+
         if (isJavaCore(className))
             return MAYBE_CORE;
 
@@ -431,14 +431,14 @@ public class MethodDatabase implements Log {
     }
 
     public static boolean isReflectInvocation(String className, String methodName) {
-        return className.equals("java/lang/reflect/Method") && methodName.equals("invoke");
+        return (className.equals("java/lang/reflect/Method") || className.equals("java/lang/invoke/MethodHandle"))
+                && methodName.startsWith("invoke");
     }
-    
+
     public static boolean isJavaCore(String className) {
         return className.startsWith("java/") || className.startsWith("javax/")
                 || className.startsWith("sun/") || className.startsWith("com/sun/");
     }
-    
     private static final ClassEntry CLASS_NOT_FOUND = new ClassEntry("<class not found>");
 
     public static final class ClassEntry {

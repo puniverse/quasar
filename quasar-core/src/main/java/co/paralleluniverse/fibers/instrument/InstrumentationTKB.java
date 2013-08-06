@@ -14,6 +14,9 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import org.objectweb.asm.util.ASMifier;
@@ -30,6 +33,9 @@ public class InstrumentationTKB {
         ASMifier.main(new String[]{"co.paralleluniverse.fibers.instrument.InstrumentationTKB"});
     }
 
-    public void foo() throws Exception {
+    public void foo() throws Throwable {
+        MethodHandle handle = MethodHandles.publicLookup().findVirtual(InstrumentationTKB.class, "foo", MethodType.methodType(void.class));
+        
+        handle.invoke();
     }
 }

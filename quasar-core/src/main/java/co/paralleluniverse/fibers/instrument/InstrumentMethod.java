@@ -119,25 +119,34 @@ class InstrumentMethod {
             Frame f = frames[i];
             if (f != null) { // reachable ?
                 AbstractInsnNode in = mn.instructions.get(i);
-                if (in.getType() == AbstractInsnNode.METHOD_INSN) {
-                    MethodInsnNode min = (MethodInsnNode) in;
-                    int opcode = min.getOpcode();
+                if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
                     Boolean susp;
-                    if (isReflectInvocation(min.owner, min.name)) {
-                        db.log(LogLevel.DEBUG, "Reflective method call at instruction %d is assumed suspendable", i);
-                        susp = true;
-                    } else {
-                        susp = db.isMethodSuspendable(min.owner, min.name, min.desc, opcode);
-                        if (susp == null) {
-                            db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s", min.owner, min.name, min.desc);
+                    MethodInsnNode min = null;
+                    if (in.getType() == AbstractInsnNode.METHOD_INSN) {
+                        min = (MethodInsnNode) in;
+                        int opcode = min.getOpcode();
+                        
+                        if (isReflectInvocation(min.owner, min.name)) {
+                            db.log(LogLevel.DEBUG, "Reflective method call at instruction %d is assumed suspendable", i);
                             susp = true;
+                        } else {
+                            susp = db.isMethodSuspendable(min.owner, min.name, min.desc, opcode);
+                            if (susp == null) {
+                                db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s", min.owner, min.name, min.desc);
+                                susp = true;
+                            }
                         }
-                    }
-                    if (susp) {
                         db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is suspendable", i, min.owner, min.name, min.desc);
+                    } else { // invoke dynamic
+                        db.log(LogLevel.DEBUG, "InvokeDynamic Method call at instruction %d to is assumed suspendable", i);
+                        susp = true;
+                    }
+
+                    if (susp) {
                         FrameInfo fi = addCodeBlock(f, i);
                         splitTryCatch(fi);
                     } else {
+                        assert min != null; // not invokedynamic
                         db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
                         int blockingId = isBlockingCall(min);
                         if (blockingId >= 0 && !isAllowedToBlock(className, mn.name)) {
