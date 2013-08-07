@@ -54,7 +54,7 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
     }
 
     private void readFile(URL file, Set<String> set) {
-        try (InputStream is = new FileInputStream(new File(file.toURI()));
+        try (InputStream is = file.openStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF-8")))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -68,8 +68,6 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
             }
         } catch (IOException e) {
             // silently ignore
-        } catch (URISyntaxException e) {
-            throw new AssertionError(e);
         }
     }
 
