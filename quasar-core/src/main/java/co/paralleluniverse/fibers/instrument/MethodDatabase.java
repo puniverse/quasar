@@ -184,7 +184,7 @@ public class MethodDatabase implements Log {
             case NONSUSPENDABLE:
                 return SuspendableType.NON_SUSPENDABLE;
             case SUSPENDABLE_ABSTRACT:
-                return SuspendableType.SUSPENDABLE_ABSTRACT;
+                return SuspendableType.SUSPENDABLE_SUPER;
             case SUSPENDABLE:
                 return SuspendableType.SUSPENDABLE;
             default:
@@ -235,7 +235,7 @@ public class MethodDatabase implements Log {
             suspendable = UNKNOWN;
         else if (susp1 == SuspendableType.SUSPENDABLE)
             suspendable = SUSPENDABLE;
-        else if (susp1 == SuspendableType.SUSPENDABLE_ABSTRACT)
+        else if (susp1 == SuspendableType.SUSPENDABLE_SUPER)
             suspendable = SUSPENDABLE_ABSTRACT;
         else if (susp1 == SuspendableType.NON_SUSPENDABLE)
             suspendable = NONSUSPENDABLE;
@@ -458,7 +458,7 @@ public class MethodDatabase implements Log {
     private static final ClassEntry CLASS_NOT_FOUND = new ClassEntry("<class not found>");
 
     public enum SuspendableType {
-        NON_SUSPENDABLE, SUSPENDABLE_ABSTRACT, SUSPENDABLE
+        NON_SUSPENDABLE, SUSPENDABLE_SUPER, SUSPENDABLE
     };
 
     public static final class ClassEntry {

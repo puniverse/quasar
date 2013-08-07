@@ -31,11 +31,11 @@ import java.util.Set;
 public class SimpleSuspendableClassifier implements SuspendableClassifier {
     private static final String PREFIX = "META-INF/";
     private final Set<String> suspendables = new HashSet<String>();
-    private final Set<String> suspendableAbstracts = new HashSet<String>();
+    private final Set<String> suspendableSupers = new HashSet<String>();
 
     public SimpleSuspendableClassifier() {
         readFiles("suspendables", suspendables);
-        readFiles("suspendable-abstracts", suspendableAbstracts);
+        readFiles("suspendable-supers", suspendableSupers);
     }
 
     private void readFiles(String fileName, Set<String> set) {
@@ -72,8 +72,8 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
         final String fullMethodName = className + '.' + methodName;
         if (suspendables.contains(fullMethodName))
             return SuspendableType.SUSPENDABLE;
-        if (suspendableAbstracts.contains(fullMethodName))
-            return SuspendableType.SUSPENDABLE_ABSTRACT;
+        if (suspendableSupers.contains(fullMethodName))
+            return SuspendableType.SUSPENDABLE_SUPER;
         return null;
     }
 }
