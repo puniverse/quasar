@@ -36,10 +36,17 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
 
     @SuppressWarnings("empty-statement")
     public V run() throws E, SuspendExecution, InterruptedException {
-        while (!Fiber.park(this, this)) // make sure we actually park and run PostParkActions
+        try {
+            while (!Fiber.park(this, this)) // make sure we actually park and run PostParkActions
             ;
-        while (!isCompleted())
-            Fiber.park((Object)this);
+            while (!isCompleted())
+                Fiber.park((Object) this);
+        } catch (NullPointerException e) {
+            if(Fiber.currentFiber() == null)
+                throw new IllegalThreadStateException("Method called not from within a fiber");
+            throw e;
+        }
+        
         return getResult();
     }
 
@@ -51,11 +58,10 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
      * @param callback
      */
     protected abstract A requestAsync(Fiber current, Callback callback);
-    
+
     protected Callback getCallback() {
-        return (Callback)this;
+        return (Callback) this;
     }
-    
     //
     private volatile boolean completed;
     private Throwable exception;
@@ -76,12 +82,12 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
 
     private void fire(Fiber fiber) {
         if (immediateExec) {
-            if(!fiber.exec(this, 5, TimeUnit.MILLISECONDS)) {
+            if (!fiber.exec(this, 5, TimeUnit.MILLISECONDS)) {
                 final RuntimeException ex = new RuntimeException("Failed to exec fiber " + fiber + " in thread " + Thread.currentThread());
-                
+
                 this.exception = ex;
                 fiber.unpark();
-                
+
                 throw ex;
             }
         } else
@@ -102,7 +108,7 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
     protected A getAttachment() {
         return attachment;
     }
-    
+
     public boolean isCompleted() {
         return completed;
     }
