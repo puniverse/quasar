@@ -100,8 +100,8 @@ public class InstrumentClass extends ClassVisitor {
         final SuspendableType markedSuspendable = SuspendableClassifierService.isSuspendable(className, classEntry, name, desc, signature, exceptions);
         final SuspendableType setSuspendable = classEntry.check(name, desc);
 
-        if (markedSuspendable != null && setSuspendable == null)
-            classEntry.set(name, desc, markedSuspendable);
+        if (setSuspendable == null)
+            classEntry.set(name, desc, markedSuspendable != null ? markedSuspendable : SuspendableType.NON_SUSPENDABLE);
    
         final boolean suspendable = markedSuspendable == SuspendableType.SUSPENDABLE | setSuspendable == SuspendableType.SUSPENDABLE;
      
