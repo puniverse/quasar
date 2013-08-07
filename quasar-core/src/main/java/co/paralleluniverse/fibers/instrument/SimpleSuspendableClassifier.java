@@ -15,12 +15,9 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Enumeration;
@@ -38,22 +35,21 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
 
     public SimpleSuspendableClassifier() {
         readFiles("suspendables", suspendables);
-        readFiles("suspendable_abstracts", suspendableAbstracts);
+        readFiles("suspendable-abstracts", suspendableAbstracts);
     }
 
     private void readFiles(String fileName, Set<String> set) {
         try {
             for (Enumeration<URL> susFiles = ClassLoader.getSystemResources(PREFIX + fileName); susFiles.hasMoreElements();) {
                 URL file = susFiles.nextElement();
-                readFile(file, set);
+                parse(file, set);
             }
-
         } catch (IOException e) {
             // silently ignore
         }
     }
 
-    private void readFile(URL file, Set<String> set) {
+    private void parse(URL file, Set<String> set) {
         try (InputStream is = file.openStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF-8")))) {
             String line;
