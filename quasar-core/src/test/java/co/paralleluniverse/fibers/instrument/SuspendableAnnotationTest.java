@@ -42,7 +42,7 @@ public class SuspendableAnnotationTest {
             Fiber.park();
             results.add("C");
         } catch (SuspendExecution e) {
-            throw Exceptions.sneakyThrow(e);
+            throw new AssertionError(e);
         }
     }
 
