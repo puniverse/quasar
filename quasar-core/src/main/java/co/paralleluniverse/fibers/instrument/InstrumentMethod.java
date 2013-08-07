@@ -47,6 +47,7 @@ import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_CL
 import static co.paralleluniverse.fibers.instrument.Classes.isAllowedToBlock;
 import static co.paralleluniverse.fibers.instrument.Classes.isBlockingCall;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
+import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isInvocationHandlerInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isMethodHandleInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isReflectInvocation;
@@ -135,12 +136,13 @@ class InstrumentMethod {
                         else if (isInvocationHandlerInvocation(min.owner, min.name))
                             db.log(LogLevel.DEBUG, "InvocationHandler invocation at instruction %d is assumed suspendable", i);
                         else {
-                            susp = db.isMethodSuspendable(min.owner, min.name, min.desc, opcode);
-                            if (susp == null) {
+                            SuspendableType st = db.isMethodSuspendable(min.owner, min.name, min.desc, opcode);
+                            if (st == SuspendableType.NON_SUSPENDABLE)
+                                susp = false;
+                            else if (st == null) {
                                 db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s", min.owner, min.name, min.desc);
                                 susp = true;
-                            }
-                            else if (susp)
+                            } else if (susp)
                                 db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is suspendable", i, min.owner, min.name, min.desc);
                         }
                     } else // invoke dynamic

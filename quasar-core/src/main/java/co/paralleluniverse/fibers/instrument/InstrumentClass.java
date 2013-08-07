@@ -32,6 +32,7 @@ import co.paralleluniverse.fibers.Instrumented;
 import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
+import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.AnnotationVisitor;
@@ -96,12 +97,14 @@ public class InstrumentClass extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(final int access, final String name, final String desc, final String signature, final String[] exceptions) {
-        final boolean markedSuspendable = SuspendableClassifierService.isSuspendable(className, classEntry, name, desc, signature, exceptions);
-        final Boolean setSuspendable = classEntry.check(name, desc) == Boolean.TRUE;
+        final SuspendableType markedSuspendable = SuspendableClassifierService.isSuspendable(className, classEntry, name, desc, signature, exceptions);
+        final SuspendableType setSuspendable = classEntry.check(name, desc);
 
-        final boolean suspendable = markedSuspendable | setSuspendable == Boolean.TRUE;
-        classEntry.set(name, desc, suspendable);
-
+        if (markedSuspendable != null && setSuspendable == null)
+            classEntry.set(name, desc, markedSuspendable);
+   
+        final boolean suspendable = markedSuspendable == SuspendableType.SUSPENDABLE | setSuspendable == SuspendableType.SUSPENDABLE;
+     
         if (checkAccess(access) && !isYieldMethod(className, name)) {
             if (methods == null)
                 methods = new ArrayList<MethodNode>();
@@ -143,7 +146,7 @@ public class InstrumentClass extends ClassVisitor {
                         commited = true;
                         if (db.isDebug())
                             db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, false);
-                        classEntry.set(name, desc, susp);
+                        classEntry.set(name, desc, susp ? SuspendableType.SUSPENDABLE : SuspendableType.NON_SUSPENDABLE);
 
                         if (susp)
                             methods.add(mn);

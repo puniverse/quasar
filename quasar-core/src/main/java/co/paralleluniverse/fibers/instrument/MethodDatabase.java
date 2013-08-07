@@ -169,9 +169,10 @@ public class MethodDatabase implements Log {
     private static final int UNKNOWN = 0;
     private static final int MAYBE_CORE = 1;
     private static final int NONSUSPENDABLE = 2;
-    private static final int SUSPENDABLE = 3;
+    private static final int SUSPENDABLE_ABSTRACT = 3;
+    private static final int SUSPENDABLE = 4;
 
-    public Boolean isMethodSuspendable(String className, String methodName, String methodDesc, int opcode) {
+    public SuspendableType isMethodSuspendable(String className, String methodName, String methodDesc, int opcode) {
         int res = isMethodSuspendable0(className, methodName, methodDesc, opcode);
         switch (res) {
             case UNKNOWN:
@@ -179,10 +180,13 @@ public class MethodDatabase implements Log {
             case MAYBE_CORE:
                 if (!className.startsWith("java/"))
                     log(LogLevel.INFO, "Method: %s#%s presumed non-suspendable: probably java core", className, methodName);
+                // fallthrough
             case NONSUSPENDABLE:
-                return false;
+                return SuspendableType.NON_SUSPENDABLE;
+            case SUSPENDABLE_ABSTRACT:
+                return SuspendableType.SUSPENDABLE_ABSTRACT;
             case SUSPENDABLE:
-                return true;
+                return SuspendableType.SUSPENDABLE;
             default:
                 throw new AssertionError();
         }
@@ -191,9 +195,6 @@ public class MethodDatabase implements Log {
     private int isMethodSuspendable0(String className, String methodName, String methodDesc, int opcode) {
         if (methodName.charAt(0) == '<')
             return NONSUSPENDABLE;   // special methods are never suspendable
-
-        if (isJavaCore(className))
-            return MAYBE_CORE;
 
         if (isYieldMethod(className, methodName))
             return SUSPENDABLE;
@@ -219,26 +220,30 @@ public class MethodDatabase implements Log {
         }
 
         if (entry == CLASS_NOT_FOUND) {
+            if (isJavaCore(className))
+                return MAYBE_CORE;
+
             if (JavaAgent.isActive())
                 throw new AssertionError();
             return UNKNOWN;
         }
 
-        Boolean susp1 = entry.check(methodName, methodDesc);
+        SuspendableType susp1 = entry.check(methodName, methodDesc);
 
         int suspendable = UNKNOWN;
         if (susp1 == null)
             suspendable = UNKNOWN;
-        else if (susp1 == true)
+        else if (susp1 == SuspendableType.SUSPENDABLE)
             suspendable = SUSPENDABLE;
-        else if (susp1 == false)
+        else if (susp1 == SuspendableType.SUSPENDABLE_ABSTRACT)
+            suspendable = SUSPENDABLE_ABSTRACT;
+        else if (susp1 == SuspendableType.NON_SUSPENDABLE)
             suspendable = NONSUSPENDABLE;
 
         if (suspendable == UNKNOWN) {
             if (opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESTATIC || opcode == Opcodes.INVOKESPECIAL) {
                 suspendable = isMethodSuspendable0(entry.getSuperName(), methodName, methodDesc, opcode);
             } else if (opcode == Opcodes.INVOKEINTERFACE) {
-                boolean maybeJavaCore = false;
                 for (String iface : entry.getInterfaces()) {
                     int s = isMethodSuspendable0(iface, methodName, methodDesc, opcode);
                     if (s > suspendable)
@@ -446,15 +451,18 @@ public class MethodDatabase implements Log {
         return className.startsWith("java/") || className.startsWith("javax/")
                 || className.startsWith("sun/") || className.startsWith("com/sun/");
     }
-    
+
     public static boolean isProblematicClass(String className) {
         return className.startsWith("org/gradle/") || className.startsWith("ch/qos/logback/");
     }
-    
     private static final ClassEntry CLASS_NOT_FOUND = new ClassEntry("<class not found>");
 
+    public enum SuspendableType {
+        NON_SUSPENDABLE, SUSPENDABLE_ABSTRACT, SUSPENDABLE
+    };
+
     public static final class ClassEntry {
-        private final HashMap<String, Boolean> methods;
+        private final HashMap<String, SuspendableType> methods;
         private String[] interfaces;
         private String superName;
         private boolean instrumented;
@@ -462,10 +470,10 @@ public class MethodDatabase implements Log {
 
         public ClassEntry(String superName) {
             this.superName = superName;
-            this.methods = new HashMap<String, Boolean>();
+            this.methods = new HashMap<String, SuspendableType>();
         }
 
-        public void set(String name, String desc, boolean suspendable) {
+        public void set(String name, String desc, SuspendableType suspendable) {
             String nameAndDesc = key(name, desc);
             methods.put(nameAndDesc, suspendable);
         }
@@ -474,8 +482,8 @@ public class MethodDatabase implements Log {
             return superName;
         }
 
-        public void setAll(boolean suspendable) {
-            for (Map.Entry<String, Boolean> entry : methods.entrySet())
+        public void setAll(SuspendableType suspendable) {
+            for (Map.Entry<String, SuspendableType> entry : methods.entrySet())
                 entry.setValue(suspendable);
         }
 
@@ -487,14 +495,15 @@ public class MethodDatabase implements Log {
             this.interfaces = interfaces;
         }
 
-        public Boolean check(String name, String desc) {
+        public SuspendableType check(String name, String desc) {
             return methods.get(key(name, desc));
         }
 
         // only for instrumentation verification
         public boolean isSuspendable(String name) {
-            for (String key : methods.keySet()) {
-                if (key.substring(0, key.indexOf('(')).equals(name))
+            for (Map.Entry<String, SuspendableType> entry : methods.entrySet()) {
+                String key = entry.getKey();
+                if (key.substring(0, key.indexOf('(')).equals(name) && entry.getValue() != SuspendableType.NON_SUSPENDABLE)
                     return true;
             }
             return false;

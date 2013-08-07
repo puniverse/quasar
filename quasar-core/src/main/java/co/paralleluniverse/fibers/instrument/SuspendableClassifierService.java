@@ -24,14 +24,15 @@ import java.util.ServiceLoader;
 class SuspendableClassifierService {
     private static ServiceLoader<SuspendableClassifier> loader = ServiceLoader.load(SuspendableClassifier.class);
 
-    public static boolean isSuspendable(String className, ClassEntry classEntry, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
+    public static MethodDatabase.SuspendableType isSuspendable(String className, ClassEntry classEntry, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
         for (SuspendableClassifier sc : loader) {
-            if (sc.isSuspendable(className, classEntry.getSuperName(), classEntry.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions))
-                return true;
+            MethodDatabase.SuspendableType st = sc.isSuspendable(className, classEntry.getSuperName(), classEntry.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions);
+            if (st != null)
+                return st;
         }
         if (checkExceptions(methodExceptions))
-            return true;
-        return false;
+            return MethodDatabase.SuspendableType.SUSPENDABLE;
+        return null;
     }
 
     private static boolean checkExceptions(String[] exceptions) {

@@ -31,6 +31,7 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
+import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -85,8 +86,10 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, final String name, final String desc, String signature, String[] exceptions) {
-        boolean suspendable = SuspendableClassifierService.isSuspendable(className, classEntry, name, desc, signature, exceptions) || classEntry.check(name, desc) == Boolean.TRUE;
-        if (suspendable) {
+        SuspendableType suspendable = classEntry.check(name, desc);
+        if (suspendable == null)
+            suspendable = SuspendableClassifierService.isSuspendable(className, classEntry, name, desc, signature, exceptions);
+        if (suspendable == SuspendableType.SUSPENDABLE) {
             hasSuspendable = true;
             // synchronized methods can't be made suspendable
             if ((access & Opcodes.ACC_SYNCHRONIZED) == Opcodes.ACC_SYNCHRONIZED)
@@ -94,13 +97,21 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
         }
         classEntry.set(name, desc, suspendable);
 
-        if (!suspendable) // look for @Suspendable annotation
+        if (suspendable == null) // look for @Suspendable annotation
             return new MethodVisitor(Opcodes.ASM4) {
+                private boolean susp = false;
+
                 @Override
                 public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
                     if (adesc.equals(ANNOTATION_DESC))
-                        classEntry.set(name, desc, true);
+                        susp = true;
                     return null;
+                }
+
+                @Override
+                public void visitEnd() {
+                    super.visitEnd();
+                    classEntry.set(name, desc, susp ? SuspendableType.SUSPENDABLE : SuspendableType.NON_SUSPENDABLE);
                 }
             };
         else
