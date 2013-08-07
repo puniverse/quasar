@@ -40,6 +40,7 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
@@ -152,6 +153,7 @@ public class InstrumentClass extends ClassVisitor {
                             methods.add(mn);
                         else {
                             MethodVisitor _mv = makeOutMV(mn);
+                            _mv = new JSRInlinerAdapter(_mv, access, name, desc, signature, exceptions);
                             mn.accept(new MethodVisitor(Opcodes.ASM4, _mv) {
                                 @Override
                                 public void visitEnd() {

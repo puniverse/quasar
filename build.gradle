@@ -71,6 +71,7 @@ subprojects {
         compile "com.codahale.metrics:metrics-core:3.0.0" 
         compile "org.ow2.asm:asm:4.1" 
         compile "org.ow2.asm:asm-analysis:4.1"
+        compile "org.ow2.asm:asm-commons:4.1"
         compile "org.ow2.asm:asm-util:4.1"
         compile "org.apache.ant:ant:1.7.0"
         compile "com.google.guava:guava:14.0.1"
