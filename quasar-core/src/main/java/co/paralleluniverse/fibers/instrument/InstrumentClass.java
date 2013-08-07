@@ -116,6 +116,7 @@ public class InstrumentClass extends ClassVisitor {
             } else { // look for @Suspendable annotation
                 return new MethodVisitor(Opcodes.ASM4, mn) {
                     private boolean susp = false;
+                    private boolean commited = false;
 
                     @Override
                     public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
@@ -125,22 +126,42 @@ public class InstrumentClass extends ClassVisitor {
                     }
 
                     @Override
-                    public void visitEnd() {
-                        super.visitEnd();
+                    public void visitCode() {
+                        commit();
+                        super.visitCode();
+                    }
 
+                    @Override
+                    public void visitEnd() {
+                        commit();
+                        super.visitEnd();
+                    }
+
+                    private void commit() {
+                        if (commited)
+                            return;
+                        commited = true;
                         if (db.isDebug())
                             db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, false);
                         classEntry.set(name, desc, susp);
-                        
+
                         if (susp)
                             methods.add(mn);
-                        else
-                            mn.accept(cv); // write method as-is
+                        else {
+                            MethodVisitor _mv = makeOutMV(mn);
+                            mn.accept(new MethodVisitor(Opcodes.ASM4, _mv) {
+                                @Override
+                                public void visitEnd() {
+                                    // don't call visitEnd on MV
+                                }
+                            }); // write method as-is
+                            this.mv = _mv;
+                        }
                     }
                 };
             }
-        } else
-            return super.visitMethod(access, name, desc, signature, exceptions);
+        }
+        return super.visitMethod(access, name, desc, signature, exceptions);
     }
 
     @Override
