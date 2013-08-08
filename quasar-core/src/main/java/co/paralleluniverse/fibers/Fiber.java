@@ -589,6 +589,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             final PostParkActions ppa = postParkActions;
             this.postParkActions = null;
 
+            assert ppa == null || ex == SuspendExecution.PARK; // can't have postParkActions on yield
+            if (ppa != null)
+                ppa.run(this);
+
             restoreThreadLocals();
             setCurrentFiber(oldFiber);
             restored = true;
@@ -596,9 +600,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             record(1, "Fiber", "exec1", "parked %s %s", state, this);
             fjTask.doPark(ex == SuspendExecution.YIELD); // now we can complete parking
 
-            assert ppa == null || ex == SuspendExecution.PARK; // can't have postParkActions on yield
-            if (ppa != null)
-                ppa.run(this);
+//            assert ppa == null || ex == SuspendExecution.PARK; // can't have postParkActions on yield
+//            if (ppa != null)
+//                ppa.run(this);
 
             if (monitor != null)
                 monitor.fiberSuspended();
