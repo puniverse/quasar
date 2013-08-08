@@ -63,17 +63,26 @@ public class SuspendablesScanner {
     }
 
     private static void outputResults(Set<String> results, String outputFile) throws Exception {
+        PrintStream out = getOutputStream(outputFile);
+        List<String> sorted = new ArrayList<String>(results);
+        Collections.sort(sorted);
+        for (String s : sorted)
+            out.println(s);
+    }
+
+    private static PrintStream getOutputStream(String outputFile) throws Exception {
         if (outputFile != null) {
             outputFile = outputFile.trim();
             if (outputFile.isEmpty())
                 outputFile = null;
         }
-        PrintStream out = outputFile != null ? new PrintStream(outputFile) : System.out;
-
-        List<String> sorted = new ArrayList<String>(results);
-        Collections.sort(sorted);
-        for (String s : sorted)
-            out.println(s);
+        if (outputFile != null) {
+            File file = new File(outputFile);
+            if (file.getParent() != null && !file.getParentFile().exists())
+                file.getParentFile().mkdirs();
+            return new PrintStream(file);
+        } else
+            return System.out;
     }
 
     private static void scanClasses(File file, Set<String> results) throws Exception {
