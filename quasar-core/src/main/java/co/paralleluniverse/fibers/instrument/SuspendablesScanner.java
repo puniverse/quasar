@@ -44,7 +44,7 @@ public class SuspendablesScanner {
         run(classPrefix, outputFile);
     }
 
-    private static void run(String prefix, String outputFile) throws Exception {
+    public static void run(String prefix, String outputFile) throws Exception {
         Set<String> results = new HashSet<String>();
         collect(prefix, results);
         outputResults(results, outputFile);
