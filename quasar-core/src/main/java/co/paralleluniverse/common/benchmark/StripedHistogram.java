@@ -22,7 +22,7 @@ import org.HdrHistogram.HistogramData;
  *
  * @author pron
  */
-public class MultiThreadedHistogram {
+public class StripedHistogram {
     private final AbstractHistogram mainHistogram;
     private final ConcurrentMap<Thread, AbstractHistogram> hs;
     private final long highestTrackableValue;
@@ -37,7 +37,7 @@ public class MultiThreadedHistogram {
      * maintain value resolution and separation. Must be a non-negative
      * integer between 0 and 5.
      */
-    public MultiThreadedHistogram(long highestTrackableValue, int numberOfSignificantValueDigits) {
+    public StripedHistogram(long highestTrackableValue, int numberOfSignificantValueDigits) {
         this.highestTrackableValue = highestTrackableValue;
         this.numberOfSignificantValueDigits = numberOfSignificantValueDigits;
         this.mainHistogram = newHistogram();
