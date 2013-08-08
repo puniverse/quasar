@@ -29,13 +29,16 @@ import java.util.Set;
  * @author pron
  */
 public class SimpleSuspendableClassifier implements SuspendableClassifier {
-    private static final String PREFIX = "META-INF/";
+    public static final String PREFIX = "META-INF/";
+    public static final String SUSPENDABLES_FILE = "suspendables";
+    public static final String SUSPENDABLE_SUPERS_FILE = "suspendable-supers";
+    
     private final Set<String> suspendables = new HashSet<String>();
     private final Set<String> suspendableSupers = new HashSet<String>();
 
     public SimpleSuspendableClassifier() {
-        readFiles("suspendables", suspendables);
-        readFiles("suspendable-supers", suspendableSupers);
+        readFiles(SUSPENDABLES_FILE, suspendables);
+        readFiles(SUSPENDABLE_SUPERS_FILE, suspendableSupers);
     }
 
     private void readFiles(String fileName, Set<String> set) {
