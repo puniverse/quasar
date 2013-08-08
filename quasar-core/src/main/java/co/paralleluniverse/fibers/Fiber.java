@@ -23,6 +23,7 @@ import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
 import co.paralleluniverse.concurrent.util.ScheduledSingleThreadExecutor;
+import co.paralleluniverse.concurrent.util.ThreadUtil;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.instrument.Retransform;
 import co.paralleluniverse.strands.Strand;
@@ -645,6 +646,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (fjPool == null) // in tests
             return;
 
+        if (recordsLevel(2)) {
+            record(2, "Fiber", "switchFiberAndThreadLocals", "threadLocals: %s", ThreadUtil.getThreadLocalsString(this.fiberLocals));
+            record(2, "Fiber", "switchFiberAndThreadLocals", "inheritableThreadLocals: %s", ThreadUtil.getThreadLocalsString(this.inheritableFiberLocals));
+        }
+
         final Thread currentThread = Thread.currentThread();
 
         Object tmpThreadLocals = ThreadAccess.getThreadLocals(currentThread);
@@ -715,11 +721,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * are inherited.<p/>
      * This method must be called <i>before</i> the fiber is started (i.e. before the {@link #start() start} method is called.
      * Otherwise, an {@link IllegalStateException} is thrown.
-     * 
+     *
      * @return {@code this}
      */
     public Fiber inheritThreadLocals() {
-        if(state != State.NEW)
+        if (state != State.NEW)
             throw new IllegalStateException("Method called on a started fiber");
         this.fiberLocals = ThreadAccess.getThreadLocals(Thread.currentThread());
         return this;
