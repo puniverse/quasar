@@ -12,9 +12,6 @@
  */
 package co.paralleluniverse.concurrent.util;
 
-import java.io.PrintStream;
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadInfo;
 import java.lang.ref.Reference;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -54,6 +51,24 @@ public final class ThreadUtil {
         }
     }
 
+    public static String getThreadLocalsString() {
+        try {
+            final Object threadLocals = threadLocalsField.get(Thread.currentThread());
+            return(getThreadLocalsString(threadLocals));
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
+    }
+    
+    public static String getInheritableThreadLocalsString() {
+        try {
+            final Object threadLocals = inheritableThreadLocalsField.get(Thread.currentThread());
+            return(getThreadLocalsString(threadLocals));
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
+    }
+    
     public static String getThreadLocalsString(Object threadLocals) {
         try {
             final StringBuilder sb = new StringBuilder();
@@ -96,7 +111,6 @@ public final class ThreadUtil {
             Class threadLocalMapEntryClass = Class.forName("java.lang.ThreadLocal$ThreadLocalMap$Entry");
             threadLocalMapEntryValueField = threadLocalMapEntryClass.getDeclaredField("value");
             threadLocalMapEntryValueField.setAccessible(true);
-
         } catch (Exception e) {
             throw new AssertionError(e);
         }
