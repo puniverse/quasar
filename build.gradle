@@ -215,7 +215,7 @@ subprojects {
     // remove jsr166e from pom
     configure(install.repositories.mavenInstaller) {
         pom.whenConfigured { pom -> pom.dependencies = pom.dependencies.findAll { 
-                dep -> !dep.artifactId.startsWith('jsr166e') } 
+                dep -> !(dep.artifactId.startsWith('jsr166e') || dep.artifactId.startsWith('HdrHistogram')) } 
         }
     }
 	                
@@ -232,7 +232,7 @@ subprojects {
                     authentication(userName: sonatypeUsername, password: sonatypePassword)
                 } 
                 pom.whenConfigured { pom -> pom.dependencies = pom.dependencies.findAll { 
-                        dep -> !dep.artifactId.startsWith('jsr166e') } 
+                        dep -> !(dep.artifactId.startsWith('jsr166e') || dep.artifactId.startsWith('HdrHistogram'))} 
                 }
                 pom.project {
                     name project.name
