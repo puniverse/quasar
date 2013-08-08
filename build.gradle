@@ -68,6 +68,7 @@ subprojects {
 
     dependencies {
         compile ":jsr166e"
+        compile ":HdrHistogram"
         compile "com.codahale.metrics:metrics-core:3.0.0" 
         compile "org.ow2.asm:asm:4.1" 
         compile "org.ow2.asm:asm-analysis:4.1"

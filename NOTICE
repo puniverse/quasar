@@ -28,6 +28,13 @@ software developed by Coda Hale and Yammer, Inc:
     * LICENSE: Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0.html)
     * HOMEPAGE: http://metrics.codahale.com/
 
+This product depends on 'HdrHistogram', A High Dynamic Range (HDR) Histogram, by Gil Tene:
+
+    * LICENSE: Public Domain CC0 1.0 (http://creativecommons.org/publicdomain/zero/1.0/)
+    * HOMEPAGE: https://github.com/giltene/HdrHistogram
+
+
+
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
