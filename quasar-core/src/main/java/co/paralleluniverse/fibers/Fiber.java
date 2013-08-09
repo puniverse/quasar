@@ -634,27 +634,27 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     private void installFiberLocals() {
         record(1, "Fiber", "installFiberLocals", "%s -> %s", this, Thread.currentThread());
-        switchFiberAndThreadLocals();
+        switchFiberAndThreadLocals(true);
     }
 
     private void restoreThreadLocals() {
         record(1, "Fiber", "restoreThreadLocals", "%s <- %s", this, Thread.currentThread());
-        switchFiberAndThreadLocals();
+        switchFiberAndThreadLocals(false);
     }
 
-    private void switchFiberAndThreadLocals() {
+    private void switchFiberAndThreadLocals(boolean install) {
         if (fjPool == null) // in tests
             return;
-
-        if (recordsLevel(2)) {
-            record(2, "Fiber", "switchFiberAndThreadLocals", "threadLocals: %s", ThreadUtil.getThreadLocalsString(this.fiberLocals));
-            record(2, "Fiber", "switchFiberAndThreadLocals", "inheritableThreadLocals: %s", ThreadUtil.getThreadLocalsString(this.inheritableFiberLocals));
-        }
 
         final Thread currentThread = Thread.currentThread();
 
         Object tmpThreadLocals = ThreadAccess.getThreadLocals(currentThread);
         Object tmpInheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
+
+        if (recordsLevel(2)) {
+            record(2, "Fiber", "switchFiberAndThreadLocals", "fiberLocals: %s", ThreadUtil.getThreadLocalsString(install ? this.fiberLocals : tmpThreadLocals));
+            record(2, "Fiber", "switchFiberAndThreadLocals", "inheritableFilberLocals: %s", ThreadUtil.getThreadLocalsString(install ? this.inheritableFiberLocals : tmpInheritableThreadLocals));
+        }
 
         ThreadAccess.setThreadLocals(currentThread, this.fiberLocals);
         ThreadAccess.setInheritablehreadLocals(currentThread, this.inheritableFiberLocals);
