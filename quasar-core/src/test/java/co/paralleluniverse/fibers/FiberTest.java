@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import java.util.concurrent.ExecutionException;
@@ -91,7 +92,7 @@ public class FiberTest {
 
 
         int res = fiber2.get();
-        
+
         assertThat(res, is(123));
         assertThat(fiber1.get(), is(123));
     }
@@ -144,5 +145,34 @@ public class FiberTest {
 
         assertThat(tl1.get(), is("foo"));
         assertThat(tl2.get(), is("bar"));
+    }
+
+    @Test
+    public void testThreadLocalsParallel() throws Exception {
+        final ThreadLocal<String> tl = new ThreadLocal<>();
+
+        final int n = 100;
+        final int loops = 100;
+        Fiber[] fibers = new Fiber[n];
+        for (int i = 0; i < n; i++) {
+            final int id = i;
+            Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+                @Override
+                public void run() throws SuspendExecution, InterruptedException {
+                    for (int j = 0; j < loops; j++) {
+                        final String tlValue = "tl-" + id + "-" + j;
+                        tl.set(tlValue);
+                        assertThat(tl.get(), equalTo(tlValue));
+                        Strand.sleep(10);
+                        assertThat(tl.get(), equalTo(tlValue));
+                    }
+                }
+            });
+            fiber.start();
+            fibers[i] = fiber;
+        }
+
+        for (Fiber fiber : fibers)
+            fiber.join();
     }
 }
