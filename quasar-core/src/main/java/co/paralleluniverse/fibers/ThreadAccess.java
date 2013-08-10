@@ -26,6 +26,7 @@ class ThreadAccess {
     private static final long targetOffset;
     private static final long threadLocalsOffset;
     private static final long inheritableThreadLocalsOffset;
+    private static final long contextClassLoaderOffset;
     private static final Method createInheritedMap;
 
     static {
@@ -33,11 +34,12 @@ class ThreadAccess {
             targetOffset = unsafe.objectFieldOffset(Thread.class.getDeclaredField("target"));
             threadLocalsOffset = unsafe.objectFieldOffset(Thread.class.getDeclaredField("threadLocals"));
             inheritableThreadLocalsOffset = unsafe.objectFieldOffset(Thread.class.getDeclaredField("inheritableThreadLocals"));
-            
+            contextClassLoaderOffset = unsafe.objectFieldOffset(Thread.class.getDeclaredField("contextClassLoader"));
+
             Method[] methods = ThreadLocal.class.getDeclaredMethods();
             Method tmp = null;
-            for(Method method : methods) {
-                if(method.getName().equals("createInheritedMap")) {
+            for (Method method : methods) {
+                if (method.getName().equals("createInheritedMap")) {
                     tmp = method;
                     break;
                 }
@@ -73,12 +75,20 @@ class ThreadAccess {
     public static void setInheritablehreadLocals(Thread thread, Object inheritableThreadLocals) {
         unsafe.putObject(thread, inheritableThreadLocalsOffset, inheritableThreadLocals);
     }
-    
+
     public static Object createInheritedMap(Object inheritableThreadLocals) {
         try {
             return createInheritedMap.invoke(null, inheritableThreadLocals);
         } catch (Exception ex) {
             throw new AssertionError(ex);
         }
+    }
+
+    public static ClassLoader getContextClassLoader(Thread thread) {
+        return (ClassLoader)unsafe.getObject(thread, contextClassLoaderOffset);
+    }
+
+    public static void setContextClassLoader(Thread thread, ClassLoader classLoader) {
+        unsafe.putObject(thread, contextClassLoaderOffset, classLoader);
     }
 }

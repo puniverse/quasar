@@ -50,6 +50,7 @@ import jsr166e.ForkJoinPool;
 import jsr166e.ForkJoinTask;
 import jsr166e.ForkJoinWorkerThread;
 import sun.misc.Unsafe;
+import sun.security.util.SecurityConstants;
 
 /**
  * A lightweight thread.
@@ -105,6 +106,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private volatile State state;
     private volatile boolean interrupted;
     private final SuspendableCallable<V> target;
+    private ClassLoader contextClassLoader;
     private Object fiberLocals;
     private Object inheritableFiberLocals;
     private long sleepStart;
@@ -152,6 +154,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         Object inheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
         if (inheritableThreadLocals != null)
             this.inheritableFiberLocals = ThreadAccess.createInheritedMap(inheritableThreadLocals);
+        this.contextClassLoader = ThreadAccess.getContextClassLoader(currentThread);
 
         record(1, "Fiber", "<init>", "Created fiber %s", this);
     }
@@ -557,19 +560,17 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private boolean exec1() {
         if (fjTask.isDone() | state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
-        if (timeoutTask != null) {
-            timeoutTask.cancel(false);
-            timeoutTask = null;
-        }
+
+        cancelTimeoutTask();
 
         final JMXFibersForkJoinPoolMonitor monitor = getMonitor();
-
         record(1, "Fiber", "exec1", "running %s %s", state, this);
         // if (monitor != null && state == State.STARTED)
         //    monitor.fiberStarted(); - done elsewhere
+
         final Fiber oldFiber = getCurrentFiber(); // a fiber can directly call exec on another fiber, e.g.: Channel.sendSync
-        setCurrentFiber(this);
-        installFiberLocals();
+        final Thread currentThread = Thread.currentThread();
+        installFiberDataInThread(currentThread);
 
         state = State.RUNNING;
         boolean restored = false;
@@ -577,8 +578,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             this.result = run1(); // we jump into the continuation
             state = State.TERMINATED;
             record(1, "Fiber", "exec1", "finished %s %s res: %s", state, this, this.result);
-            if (monitor != null)
-                monitor.fiberTerminated();
+            monitorFiberTerminated(monitor);
             return true;
         } catch (SuspendExecution ex) {
             assert ex == SuspendExecution.PARK || ex == SuspendExecution.YIELD;
@@ -589,8 +589,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             final PostParkActions ppa = postParkActions;
             this.postParkActions = null;
 
-            restoreThreadLocals();
-            setCurrentFiber(oldFiber);
+            restoreThreadData(currentThread, oldFiber);
             restored = true;
 
             record(1, "Fiber", "exec1", "parked %s %s", state, this);
@@ -606,20 +605,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         } catch (InterruptedException e) {
             state = State.TERMINATED;
             record(1, "Fiber", "exec1", "InterruptedException: %s, %s", state, this);
-            if (monitor != null)
-                monitor.fiberTerminated();
+            monitorFiberTerminated(monitor);
             throw new RuntimeException(e);
         } catch (Throwable t) {
             state = State.TERMINATED;
             record(1, "Fiber", "exec1", "Exception in %s %s: %s", state, this, t);
-            if (monitor != null)
-                monitor.fiberTerminated();
+            monitorFiberTerminated(monitor);
             throw t;
         } finally {
-            if (!restored) {
-                restoreThreadLocals();
-                setCurrentFiber(oldFiber);
-            }
+            if (!restored)
+                restoreThreadData(currentThread, oldFiber);
         }
     }
 
@@ -632,21 +627,43 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return null;
     }
 
-    private void installFiberLocals() {
-        record(1, "Fiber", "installFiberLocals", "%s -> %s", this, Thread.currentThread());
-        switchFiberAndThreadLocals(true);
+    private void monitorFiberTerminated(JMXFibersForkJoinPoolMonitor monitor) {
+        if (monitor != null)
+            monitor.fiberTerminated();
     }
 
-    private void restoreThreadLocals() {
-        record(1, "Fiber", "restoreThreadLocals", "%s <- %s", this, Thread.currentThread());
-        switchFiberAndThreadLocals(false);
+    private void cancelTimeoutTask() {
+        if (timeoutTask != null) {
+            timeoutTask.cancel(false);
+            timeoutTask = null;
+        }
     }
 
-    private void switchFiberAndThreadLocals(boolean install) {
+    private void installFiberDataInThread(Thread currentThread) {
+        setCurrentFiber(this);
+        installFiberLocals(currentThread);
+        installFiberContextClassLoader(currentThread);
+    }
+
+    private void restoreThreadData(Thread currentThread, Fiber oldFiber) {
+        restoreThreadLocals(currentThread);
+        restoreThreadContextClassLoader(currentThread);
+        setCurrentFiber(oldFiber);
+    }
+
+    private void installFiberLocals(Thread currentThread) {
+        record(1, "Fiber", "installFiberLocals", "%s -> %s", this, currentThread);
+        switchFiberAndThreadLocals(currentThread, true);
+    }
+
+    private void restoreThreadLocals(Thread currentThread) {
+        record(1, "Fiber", "restoreThreadLocals", "%s <- %s", this, currentThread);
+        switchFiberAndThreadLocals(currentThread, false);
+    }
+
+    private void switchFiberAndThreadLocals(Thread currentThread, boolean install) {
         if (fjPool == null) // in tests
             return;
-
-        final Thread currentThread = Thread.currentThread();
 
         Object tmpThreadLocals = ThreadAccess.getThreadLocals(currentThread);
         Object tmpInheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
@@ -661,6 +678,18 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         this.fiberLocals = tmpThreadLocals;
         this.inheritableFiberLocals = tmpInheritableThreadLocals;
+    }
+
+    private void installFiberContextClassLoader(Thread currentThread) {
+        final ClassLoader origContextClassLoader = ThreadAccess.getContextClassLoader(currentThread);
+        ThreadAccess.setContextClassLoader(currentThread, contextClassLoader);
+        this.contextClassLoader = origContextClassLoader;
+    }
+
+    private void restoreThreadContextClassLoader(Thread currentThread) {
+        final ClassLoader origContextClassLoader = contextClassLoader;
+        this.contextClassLoader = ThreadAccess.getContextClassLoader(currentThread);
+        ThreadAccess.setContextClassLoader(currentThread, origContextClassLoader);
     }
 
     private void setCurrentFiber(Fiber fiber) {
