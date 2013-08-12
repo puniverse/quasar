@@ -47,7 +47,7 @@ public class Pong {
                     System.out.println("pong received " + msg.type);
                     switch (msg.type) {
                         case PING:
-                            msg.from.send(new Message(this, PONG));
+                            msg.from.send(new Message(self(), PONG));
                             break;
                         case FINISHED:
                             break loop;

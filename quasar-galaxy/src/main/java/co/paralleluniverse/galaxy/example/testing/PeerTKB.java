@@ -22,6 +22,7 @@ package co.paralleluniverse.galaxy.example.testing;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.behaviors.AbstractServer;
 import co.paralleluniverse.actors.behaviors.EventHandler;
@@ -115,7 +116,7 @@ public class PeerTKB {
                 } else {
                     Integer get = spawnActor(new BasicActor<Message, Integer>(new MailboxConfig(10, Channels.OverflowPolicy.THROW)) {
                         protected Integer doRun() throws SuspendExecution, InterruptedException {
-                            final GenServer<Message, Integer, Message> gs = (GenServer) getActor("myServer");
+                            final GenServer<Message, Integer, Message> gs = (GenServer) ActorRegistry.getActor("myServer");
                             return gs.call(new Message(3, 4));
                         }
                     }).get();
@@ -132,13 +133,13 @@ public class PeerTKB {
                         public void init() throws SuspendExecution {
                             GenEventActor.currentGenEvent().register("myEventServer");
                             try {
-                                GenEventActor<String> ge = GenEventActor.currentGenEvent();
+                                final GenEvent<String> ge = (GenEvent<String>)Actor.self();
                                 ge.addHandler(new EventHandler<String>() {
                                     @Override
                                     public void handleEvent(String event) {
                                         dv.set(event);
                                         System.out.println("sout " + event);
-                                        GenEventActor.currentGenEvent().shutdown();
+                                        ge.shutdown();
                                     }
                                 });
                             } catch (InterruptedException ex) {
@@ -160,7 +161,7 @@ public class PeerTKB {
                 } else {
                     spawnActor(new BasicActor<Message, Void>() {
                         protected Void doRun() throws SuspendExecution, InterruptedException {
-                            final GenEvent<String> ge = (GenEvent) getActor("myEventServer");
+                            final GenEvent<String> ge = (GenEvent) ActorRegistry.getActor("myEventServer");
                             ge.notify("hello world");
                             return null;
                         }
@@ -174,10 +175,9 @@ public class PeerTKB {
 
                         @Override
                         public void init() throws SuspendExecution {
-                            GenEventActor.currentGenEvent().register("myEventServer");
-                            System.out.println("kkkvb " + GenEventActor.getActor("myEventServer"));
+                            Actor.currentActor().register("myEventServer");
                             try {
-                                GenEventActor<String> ge = GenEventActor.currentGenEvent();
+                                final GenEvent<String> ge = (GenEvent<String>)Actor.self();
                                 ge.addHandler(new EventHandler<String>() {
                                     @Override
                                     public void handleEvent(String event) {
@@ -200,7 +200,7 @@ public class PeerTKB {
                         final BasicActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>("actor-" + j) {
                             protected Void doRun() throws SuspendExecution, InterruptedException {
                                 try {
-                                    final GenEvent<String> ge = (GenEvent) getActor("myEventServer");
+                                    final GenEvent<String> ge = (GenEvent) ActorRegistry.getActor("myEventServer");
                                     ge.notify("hwf " + getName());
                                 } catch (Exception e) {
                                     System.out.println("error in " + getName());
@@ -228,7 +228,7 @@ public class PeerTKB {
                             GenEventActor.currentGenEvent().register("myEventServer");
                             try {
                                 GenEventActor<String> ge = GenEventActor.currentGenEvent();
-                                ge.addHandler(new EventHandler<String>() {
+                                ge.ref().addHandler(new EventHandler<String>() {
                                     @Override
                                     public void handleEvent(String event) {
                                         System.out.println("msg no " + ai.incrementAndGet() + ": " + event);
@@ -250,7 +250,7 @@ public class PeerTKB {
                         final BasicActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>("actor-" + j) {
                             protected Void doRun() throws SuspendExecution, InterruptedException {
                                 try {
-                                    final GenEvent<String> ge = (GenEvent) getActor("myEventServer");
+                                    final GenEvent<String> ge = (GenEvent) ActorRegistry.getActor("myEventServer");
                                     for (int k = 0; k < 3000; k++)
                                         ge.notify("hw " + k + " f" + getName());
                                 } catch (Exception e) {
@@ -289,7 +289,8 @@ public class PeerTKB {
         testGenEvent,
         testMultiGetActor,
         testOrdering,
-        test,}
+        test,
+    }
 
     private GenServerActor<Message, Integer, Message> spawnGenServer(Server<Message, Integer, Message> server) {
         return spawnActor(new GenServerActor<>(server));

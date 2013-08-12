@@ -19,6 +19,7 @@
  */
 package co.paralleluniverse.galaxy.example.simplegenserver;
 
+import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.behaviors.AbstractServer;
 import co.paralleluniverse.actors.behaviors.GenServerActor;
@@ -42,7 +43,7 @@ public class Server {
             @Override
             public void init() throws SuspendExecution {
                 super.init();
-                GenServerActor.currentGenServer().register("myServer");
+                Actor.currentActor().register("myServer");
                 System.out.println(this.toString() + " is ready");
             }
 

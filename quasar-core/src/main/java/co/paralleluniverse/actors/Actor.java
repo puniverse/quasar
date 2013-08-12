@@ -21,7 +21,6 @@ import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.remote.RemoteProxyFactoryService;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;

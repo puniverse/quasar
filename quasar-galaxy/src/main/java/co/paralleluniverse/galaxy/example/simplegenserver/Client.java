@@ -19,6 +19,7 @@
  */
 package co.paralleluniverse.galaxy.example.simplegenserver;
 
+import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.behaviors.GenServer;
@@ -43,7 +44,7 @@ public class Client {
         Integer res = new Fiber<>(new BasicActor<SumRequest, Integer>(new MailboxConfig(10, Channels.OverflowPolicy.THROW)) {
             protected Integer doRun() throws SuspendExecution, InterruptedException {
                 GenServer<SumRequest, Integer, SumRequest> gs;
-                while ((gs = (GenServer) getActor("myServer")) == null) {
+                while ((gs = (GenServer) ActorRegistry.getActor("myServer")) == null) {
                     System.out.println("waiting for myServer");
                     Strand.sleep(3000);
                 }

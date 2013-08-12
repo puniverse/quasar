@@ -19,7 +19,9 @@
  */
 package co.paralleluniverse.galaxy.example.simplegenevent;
 
+import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.behaviors.EventHandler;
+import co.paralleluniverse.actors.behaviors.GenEvent;
 import co.paralleluniverse.actors.behaviors.Initializer;
 import co.paralleluniverse.actors.behaviors.GenEventActor;
 import co.paralleluniverse.fibers.Fiber;
@@ -43,14 +45,14 @@ public class Server {
         new Fiber(new GenEventActor<>(new Initializer() {
             @Override
             public void init() throws SuspendExecution {
-                GenEventActor.currentGenEvent().register("myEventServer");
-                GenEventActor<String> ge = GenEventActor.currentGenEvent();
+                Actor.currentActor().register("myEventServer");
+                final GenEvent<String> ge = (GenEvent<String>)Actor.self();
                 try {
                     ge.addHandler(new EventHandler<String>() {
                         @Override
                         public void handleEvent(String event) {
                             System.out.println("Handling event: " + event);
-                            GenEventActor.currentGenEvent().shutdown();
+                            ge.shutdown();
                         }
                     });
                 } catch (InterruptedException ex) {
