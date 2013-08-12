@@ -19,7 +19,7 @@ package co.paralleluniverse.actors;
  */
 public interface ActorMonitor {
     long nanoTime();
-    void setActor(LocalActor actor);
+    void setActor(Actor actor);
     void addDeath(Object reason);
     void addRestart();
     void addMessage();

@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
  * @author pron
  */
 public final class Mailbox<Message> extends SingleConsumerQueueChannel<Message> {
-    private transient LocalActor<?, ?> actor;
+    private transient Actor<?, ?> actor;
 
     Mailbox(MailboxConfig config) {
         super(mailboxSize(config) > 0
@@ -44,7 +44,7 @@ public final class Mailbox<Message> extends SingleConsumerQueueChannel<Message> 
         return config != null ? config.getPolicy() : OverflowPolicy.THROW;
     }
 
-    void setActor(LocalActor<?, ?> actor) {
+    void setActor(Actor<?, ?> actor) {
         this.actor = actor;
     }
 

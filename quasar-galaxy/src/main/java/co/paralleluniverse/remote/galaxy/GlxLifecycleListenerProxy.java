@@ -16,7 +16,7 @@ package co.paralleluniverse.remote.galaxy;
 import co.paralleluniverse.actors.ActorImpl;
 import co.paralleluniverse.actors.LifecycleListener;
 import co.paralleluniverse.actors.LifecycleListenerProxy;
-import co.paralleluniverse.actors.RemoteActor;
+import co.paralleluniverse.actors.RemoteActorRef;
 import co.paralleluniverse.galaxy.cluster.NodeChangeListener;
 import co.paralleluniverse.galaxy.quasar.Grid;
 import java.util.Collections;
@@ -67,7 +67,7 @@ public class GlxLifecycleListenerProxy extends LifecycleListenerProxy {
     }
 
     @Override
-    public void addLifecycleListener(final RemoteActor actor, final LifecycleListener listener) {
+    public void addLifecycleListener(final RemoteActorRef actor, final LifecycleListener listener) {
         final GlxRemoteActor glxActor = (GlxRemoteActor) actor;
         final short nodeId = glxActor.getOwnerNodeId();
         if (!grid.cluster().getNodes().contains(nodeId)) {
@@ -79,13 +79,13 @@ public class GlxLifecycleListenerProxy extends LifecycleListenerProxy {
     }
 
     @Override
-    public void removeLifecycleListener(RemoteActor actor, LifecycleListener listener) {
+    public void removeLifecycleListener(RemoteActorRef actor, LifecycleListener listener) {
         super.removeLifecycleListener(actor, listener);
         listenerRegistry.remove(new RegistryRecord(listener, (GlxRemoteActor) actor));
     }
 
     @Override
-    public void removeLifecycleListeners(RemoteActor actor, ActorImpl observer) {
+    public void removeLifecycleListeners(RemoteActorRef actor, ActorImpl observer) {
         super.removeLifecycleListeners(actor, observer);
         for (Iterator<RegistryRecord> it = listenerRegistry.iterator(); it.hasNext();) {
             RegistryRecord registryRecord = it.next();

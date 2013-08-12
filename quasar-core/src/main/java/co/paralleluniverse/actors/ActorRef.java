@@ -11,12 +11,20 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors.behaviors;
+package co.paralleluniverse.actors;
+
+import co.paralleluniverse.fibers.SuspendExecution;
 
 /**
  *
  * @author pron
  */
-public interface GenBehavior {
-    void shutdown();
+public interface ActorRef<Message> {
+    String getName();
+
+    void send(Message message) throws SuspendExecution;
+
+    void sendSync(Message message) throws SuspendExecution;
+
+    void interrupt();
 }

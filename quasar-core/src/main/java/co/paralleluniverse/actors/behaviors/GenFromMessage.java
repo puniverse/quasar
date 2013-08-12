@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
 import java.beans.ConstructorProperties;
 
 /**
@@ -21,15 +21,15 @@ import java.beans.ConstructorProperties;
  * @author pron
  */
 public abstract class GenFromMessage extends GenMessage implements FromMessage {
-    private final Actor from;
+    private final ActorRef from;
 
     @ConstructorProperties("from")
-    public GenFromMessage(Actor<?> from) {
+    public GenFromMessage(ActorRef<?> from) {
         this.from = from;
     }
 
     @Override
-    public Actor getFrom() {
+    public ActorRef getFrom() {
         return from;
     }
 

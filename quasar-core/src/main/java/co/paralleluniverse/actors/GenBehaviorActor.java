@@ -11,86 +11,79 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors.behaviors;
+package co.paralleluniverse.actors;
 
-import co.paralleluniverse.actors.LifecycleMessage;
-import co.paralleluniverse.actors.LocalActor;
-import co.paralleluniverse.actors.MailboxConfig;
-import co.paralleluniverse.actors.RemoteActor;
-import co.paralleluniverse.actors.ShutdownMessage;
+import co.paralleluniverse.actors.behaviors.Initializer;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import org.slf4j.Logger;
 
 /**
  *
  * @author pron
  */
-public abstract class BasicGenBehavior extends LocalActor<Object, Void> implements GenBehavior, java.io.Serializable {
+public abstract class GenBehaviorActor extends Actor<Object, Void> implements java.io.Serializable {
     private final Initializer initializer;
     private boolean run;
+    private final GenBehavior ref;
 
-    public BasicGenBehavior(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
+    public GenBehaviorActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
         super(strand, name, mailboxConfig);
         this.initializer = initializer;
         this.run = true;
+        this.ref = makeRef(self);
     }
-    
-    protected abstract RemoteBasicGenBehavior getRemote(RemoteActor remote);
+
+    protected GenBehavior makeRef(ActorRef<Object> ref) {
+        return new GenBehavior(ref);
+    }
+
+    @Override
+    public GenBehavior ref() {
+        return ref;
+    }
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-    public BasicGenBehavior(String name, Initializer initializer, MailboxConfig mailboxConfig) {
+    public GenBehaviorActor(String name, Initializer initializer, MailboxConfig mailboxConfig) {
         this(name, initializer, null, mailboxConfig);
     }
 
-    public BasicGenBehavior(String name, Initializer initializer) {
+    public GenBehaviorActor(String name, Initializer initializer) {
         this(name, initializer, null, null);
     }
 
-    public BasicGenBehavior(Initializer initializer, MailboxConfig mailboxConfig) {
+    public GenBehaviorActor(Initializer initializer, MailboxConfig mailboxConfig) {
         this(null, initializer, null, mailboxConfig);
     }
 
-    public BasicGenBehavior(Initializer initializer) {
+    public GenBehaviorActor(Initializer initializer) {
         this(null, initializer, null, null);
     }
 
-    public BasicGenBehavior(String name, MailboxConfig mailboxConfig) {
+    public GenBehaviorActor(String name, MailboxConfig mailboxConfig) {
         this(name, null, null, mailboxConfig);
     }
 
-    public BasicGenBehavior(String name) {
+    public GenBehaviorActor(String name) {
         this(name, null, null, null);
     }
 
-    public BasicGenBehavior(MailboxConfig mailboxConfig) {
+    public GenBehaviorActor(MailboxConfig mailboxConfig) {
         this(null, null, null, mailboxConfig);
     }
 
-    public BasicGenBehavior() {
+    public GenBehaviorActor() {
         this(null, null, null, null);
     }
     //</editor-fold>
 
-    @Override
-    public void shutdown() {
-        if (isInActor()) {
-            log().debug("Shutdown requested.");
-            run = false;
-            getStrand().interrupt();
-        } else {
-            try {
-                final ShutdownMessage message = new ShutdownMessage(LocalActor.self());
-                sendOrInterrupt(message);
-            } catch (QueueCapacityExceededException e) {
-                final Strand strand = getStrand();
-                if (strand != null)
-                    strand.interrupt();
-            }
-        }
+    protected void shutdown() {
+        verifyInActor();
+        log().debug("Shutdown requested.");
+        run = false;
+        getStrand().interrupt();
     }
 
     protected Initializer getInitializer() {
@@ -161,11 +154,5 @@ public abstract class BasicGenBehavior extends LocalActor<Object, Void> implemen
             shutdown();
         } else
             super.handleLifecycleMessage(m);
-    }
-
-    @Override
-    protected Object writeReplace() throws java.io.ObjectStreamException {
-        final RemoteActor remote = (RemoteActor)super.writeReplace();
-        return getRemote(remote);
     }
 }

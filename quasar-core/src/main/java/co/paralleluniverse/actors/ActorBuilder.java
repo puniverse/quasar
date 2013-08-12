@@ -18,5 +18,5 @@ package co.paralleluniverse.actors;
  * @author pron
  */
 public interface ActorBuilder<Message, V> {
-    LocalActor<Message, V> build();
+    Actor<Message, V> build();
 }

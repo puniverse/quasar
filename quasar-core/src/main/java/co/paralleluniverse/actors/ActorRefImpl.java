@@ -17,19 +17,16 @@ import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.SendPort;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
-import java.math.BigInteger;
 import java.util.Objects;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 /**
  *
  * @author pron
  */
-public abstract class ActorImpl<Message> implements Actor<Message>, SendPort<Message>, java.io.Serializable {
+public abstract class ActorRefImpl<Message> implements ActorRef<Message>, SendPort<Message>, java.io.Serializable {
     static final long serialVersionUID = 894359345L;
     //
     private static final int MAX_SEND_RETRIES = 10;
@@ -44,14 +41,11 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendPort<Mes
         return "Actor@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this)));
     }
 
-    protected ActorImpl(String name, SendPort<Object> mailbox) {
+    protected ActorRefImpl(String name, SendPort<Object> mailbox) {
         this.name = name;
 
         this.mailbox = mailbox;
-        if (Debug.isDebug())
-            this.flightRecorder = Debug.getGlobalFlightRecorder();
-        else
-            this.flightRecorder = null;
+        this.flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
     }
 
     @Override
@@ -65,16 +59,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendPort<Mes
         this.name = name;
     }
 
-    public static Object randtag() {
-        return new BigInteger(80, ThreadLocalRandom.current()) {
-            @Override
-            public String toString() {
-                return toString(16);
-            }
-        };
-    }
-
-    public static <Message> Actor<Message> getActor(String name) {
+    public static <Message> ActorRef<Message> getActor(String name) {
         return ActorRegistry.getActor(name);
     }
 
@@ -102,7 +87,7 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendPort<Mes
         send(message);
         return true;
     }
-    
+
     public void sendOrInterrupt(Object message) {
         try {
             internalSendNonSuspendable(message);
@@ -120,7 +105,6 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendPort<Mes
     public void close() {
         throw new UnsupportedOperationException();
     }
-    
 
     /**
      * For internal use
@@ -139,23 +123,24 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendPort<Mes
     protected abstract void addLifecycleListener(LifecycleListener listener);
 
     protected abstract void removeLifecycleListener(LifecycleListener listener);
-    protected abstract void removeObserverListeners(ActorImpl actor);
+
+    protected abstract void removeObserverListeners(ActorRefImpl actor);
 
     protected LifecycleListener getLifecycleListener() {
         return lifecycleListener;
     }
 
     protected static class ActorLifecycleListener implements LifecycleListener, java.io.Serializable {
-        private final ActorImpl observer;
+        private final ActorRefImpl observer;
         private final Object id;
 
-        public ActorLifecycleListener(ActorImpl observer, Object id) {
-            this.observer = observer;
+        public ActorLifecycleListener(ActorRef observer, Object id) {
+            this.observer = (ActorRefImpl) observer;
             this.id = id;
         }
 
         @Override
-        public void dead(Actor actor, Throwable cause) {
+        public void dead(ActorRef actor, Throwable cause) {
             observer.internalSendNonSuspendable(new ExitMessage(actor, cause, id));
         }
 
@@ -182,11 +167,27 @@ public abstract class ActorImpl<Message> implements Actor<Message>, SendPort<Mes
             return id;
         }
 
-        public ActorImpl getObserver() {
+        public ActorRefImpl getObserver() {
             return observer;
         }
     }
     //</editor-fold>
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null)
+            return false;
+        if(obj == this)
+            return true;
+        if (!(obj instanceof ActorRef))
+            return false;
+        ActorRef other = (ActorRef) obj;
+        if (other instanceof ActorRefDelegate) {
+            other = ((ActorRefDelegate) other).ref;
+            return this.equals(other);
+        }
+        return obj == this;
+    }
 
     //<editor-fold defaultstate="collapsed" desc="Recording">
     /////////// Recording ///////////////////////////////////

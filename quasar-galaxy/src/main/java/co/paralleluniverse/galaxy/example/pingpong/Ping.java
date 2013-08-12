@@ -19,7 +19,7 @@
  */
 package co.paralleluniverse.galaxy.example.pingpong;
 
-import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -41,7 +41,7 @@ public class Ping {
         new Fiber(new BasicActor<Message, Void>() {
             @Override
             protected Void doRun() throws InterruptedException, SuspendExecution {
-                Actor pong;
+                ActorRef pong;
                 while ((pong = getActor("pong")) == null) {
                     System.out.println("waiting for pong");
                     Strand.sleep(3000);

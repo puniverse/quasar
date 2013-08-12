@@ -13,8 +13,8 @@
  */
 package co.paralleluniverse.remote.galaxy;
 
+import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.CacheListener;
 import co.paralleluniverse.galaxy.StoreTransaction;
@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  * @author pron
  */
 public class GlxGlobalRegistry implements GlobalRegistry {
-    private static final ConcurrentHashMap<String, Actor> rootCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, ActorRef> rootCache = new ConcurrentHashMap<>();
     private static final Logger LOG = LoggerFactory.getLogger(GlxGlobalRegistry.class);
     private static final Serialization ser = Serialization.getInstance();
     private static final co.paralleluniverse.strands.locks.ReentrantLock serlock = new ReentrantLock();
@@ -49,7 +49,7 @@ public class GlxGlobalRegistry implements GlobalRegistry {
     }
 
     @Override
-    public Object register(LocalActor<?, ?> actor) throws SuspendExecution {
+    public Object register(Actor<?, ?> actor) throws SuspendExecution {
         final String rootName = actor.getName();
 
         LOG.info("Registering actor {} at root {}", actor, rootName);
@@ -80,7 +80,7 @@ public class GlxGlobalRegistry implements GlobalRegistry {
     }
 
     @Override
-    public void unregister(LocalActor<?, ?> actor) throws SuspendExecution {
+    public void unregister(ActorRef<?> actor) throws SuspendExecution {
         final String rootName = actor.getName();
 
         LOG.info("Uregistering {}", rootName);
@@ -106,9 +106,9 @@ public class GlxGlobalRegistry implements GlobalRegistry {
     }
 
     @Override
-    public <Message> Actor<Message> getActor(String name) throws SuspendExecution {
+    public <Message> ActorRef<Message> getActor(String name) throws SuspendExecution {
         final String rootName = name;
-        Actor cacheValue = rootCache.get(rootName);
+        ActorRef cacheValue = rootCache.get(rootName);
         if (cacheValue != null)
             return cacheValue;
         serlock.lock();
@@ -122,7 +122,7 @@ public class GlxGlobalRegistry implements GlobalRegistry {
         }
     }
 
-    private <Message> Actor<Message> getRootFromStoreAndUpdateCache(final String rootName) throws SuspendExecution, RuntimeException {
+    private <Message> ActorRef<Message> getRootFromStoreAndUpdateCache(final String rootName) throws SuspendExecution, RuntimeException {
         final Store store = grid.store();
 
         StoreTransaction txn = store.beginTransaction();
@@ -137,9 +137,9 @@ public class GlxGlobalRegistry implements GlobalRegistry {
                 if (buf.length == 0)
                     return null; // TODO: Galaxy should return null
 
-                final Actor<Message> actor;
+                final ActorRef<Message> actor;
                 try {
-                    actor = (Actor<Message>) ser.read(buf);
+                    actor = (ActorRef<Message>) ser.read(buf);
                 } catch (Exception e) {
                     LOG.info("Deserializing actor at root " + rootName + " has failed with exception", e);
                     return null;

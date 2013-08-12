@@ -25,8 +25,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import jsr166e.ForkJoinPool;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
@@ -45,7 +43,7 @@ public class ActorTest {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
     }
 
-    private <Message, V> LocalActor<Message, V> spawnActor(LocalActor<Message, V> actor) {
+    private <Message, V> Actor<Message, V> spawnActor(Actor<Message, V> actor) {
         Fiber fiber = new Fiber("actor", fjPool, actor);
         fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
             @Override
@@ -61,7 +59,7 @@ public class ActorTest {
     @Test
     public void whenActorThrowsExceptionThenGetThrowsIt() throws Exception {
 
-        LocalActor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
+        Actor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
             @Override
             protected Integer doRun() throws SuspendExecution, InterruptedException {
                 throw new RuntimeException("foo");
@@ -79,7 +77,7 @@ public class ActorTest {
 
     @Test
     public void whenActorReturnsValueThenGetReturnsIt() throws Exception {
-        LocalActor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
+        Actor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
             @Override
             protected Integer doRun() throws SuspendExecution, InterruptedException {
                 return 42;
@@ -91,7 +89,7 @@ public class ActorTest {
 
     @Test
     public void testReceive() throws Exception {
-        LocalActor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
+        Actor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
             @Override
             protected Integer doRun() throws SuspendExecution, InterruptedException {
                 Message m = receive();
@@ -99,14 +97,14 @@ public class ActorTest {
             }
         });
 
-        actor.send(new Message(15));
+        actor.ref().send(new Message(15));
 
         assertThat(actor.get(), is(15));
     }
 
     @Test
     public void testReceiveAfterSleep() throws Exception {
-        LocalActor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
+        Actor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
             @Override
             protected Integer doRun() throws SuspendExecution, InterruptedException {
                 Message m1 = receive();
@@ -115,9 +113,9 @@ public class ActorTest {
             }
         });
 
-        actor.send(new Message(25));
+        actor.ref().send(new Message(25));
         Thread.sleep(200);
-        actor.send(new Message(17));
+        actor.ref().send(new Message(17));
 
         assertThat(actor.get(), is(42));
     }
@@ -130,7 +128,7 @@ public class ActorTest {
 
     @Test
     public void testTypedReceive() throws Exception {
-        LocalActor<Object, List<Object>> actor = spawnActor(new BasicActor<Object, List<Object>>(mailboxConfig) {
+        Actor<Object, List<Object>> actor = spawnActor(new BasicActor<Object, List<Object>>(mailboxConfig) {
             @Override
             protected List<Object> doRun() throws InterruptedException, SuspendExecution {
                 List<Object> list = new ArrayList<>();
@@ -141,15 +139,15 @@ public class ActorTest {
         });
         final TypedReceiveB typedReceiveB = new TypedReceiveB();
         final TypedReceiveA typedReceiveA = new TypedReceiveA();
-        actor.send(typedReceiveB);
+        actor.ref().send(typedReceiveB);
         Thread.sleep(2);
-        actor.send(typedReceiveA);
+        actor.ref().send(typedReceiveA);
         assertThat(actor.get(500, TimeUnit.MILLISECONDS), equalTo(Arrays.asList(typedReceiveA, typedReceiveB)));
     }
 
     @Test
     public void testSelectiveReceive() throws Exception {
-        LocalActor<ComplexMessage, List<Integer>> actor = spawnActor(new BasicActor<ComplexMessage, List<Integer>>(mailboxConfig) {
+        Actor<ComplexMessage, List<Integer>> actor = spawnActor(new BasicActor<ComplexMessage, List<Integer>>(mailboxConfig) {
             @Override
             protected List<Integer> doRun() throws SuspendExecution, InterruptedException {
                 final List<Integer> list = new ArrayList<>();
@@ -186,16 +184,16 @@ public class ActorTest {
             }
         });
 
-        actor.send(new ComplexMessage(ComplexMessage.Type.FOO, 1));
-        actor.send(new ComplexMessage(ComplexMessage.Type.BAR, 2));
-        actor.send(new ComplexMessage(ComplexMessage.Type.BAZ, 3));
+        actor.ref().send(new ComplexMessage(ComplexMessage.Type.FOO, 1));
+        actor.ref().send(new ComplexMessage(ComplexMessage.Type.BAR, 2));
+        actor.ref().send(new ComplexMessage(ComplexMessage.Type.BAZ, 3));
 
         assertThat(actor.get(), equalTo(Arrays.asList(1, 3, 2)));
     }
 
     @Test
     public void whenSimpleReceiveAndTimeoutThenReturnNull() throws Exception {
-        LocalActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+        Actor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 Message m;
@@ -210,17 +208,17 @@ public class ActorTest {
             }
         });
 
-        actor.send(new Message(1));
+        actor.ref().send(new Message(1));
         Thread.sleep(20);
-        actor.send(new Message(2));
+        actor.ref().send(new Message(2));
         Thread.sleep(200);
-        actor.send(new Message(3));
+        actor.ref().send(new Message(3));
         actor.join();
     }
 
     @Test
     public void testTimeoutException() throws Exception {
-        LocalActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+        Actor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 try {
@@ -238,13 +236,13 @@ public class ActorTest {
         });
 
         Thread.sleep(150);
-        actor.send(new Message(1));
+        actor.ref().send(new Message(1));
         actor.join();
     }
 
     @Test
     public void testSendSync() throws Exception {
-        final LocalActor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+        final Actor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 Message m;
@@ -258,14 +256,14 @@ public class ActorTest {
             }
         });
 
-        final LocalActor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+        final Actor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 Fiber.sleep(20);
-                actor1.send(new Message(1));
+                actor1.ref().send(new Message(1));
                 Fiber.sleep(10);
                 actor1.sendSync(new Message(2));
-                actor1.send(new Message(3));
+                actor1.ref().send(new Message(3));
                 return null;
             }
         });
@@ -276,7 +274,7 @@ public class ActorTest {
 
     @Test
     public void testLink() throws Exception {
-        LocalActor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+        Actor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 Fiber.sleep(100);
@@ -284,7 +282,7 @@ public class ActorTest {
             }
         });
 
-        LocalActor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+        Actor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 try {
@@ -297,7 +295,7 @@ public class ActorTest {
             }
         });
 
-        actor1.link(actor2);
+        actor1.link(actor2.ref());
 
         actor1.join();
         actor2.join();
@@ -305,7 +303,7 @@ public class ActorTest {
 
     @Test
     public void testWatch() throws Exception {
-        LocalActor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+        Actor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 Fiber.sleep(100);
@@ -315,7 +313,7 @@ public class ActorTest {
 
         final AtomicBoolean handlerCalled = new AtomicBoolean(false);
 
-        LocalActor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+        Actor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 Message m = receive(200, TimeUnit.MILLISECONDS);
@@ -330,7 +328,7 @@ public class ActorTest {
             }
         });
 
-        actor2.watch(actor1);
+        actor2.watch(actor1.ref());
 
         actor1.join();
         actor2.join();
@@ -340,7 +338,7 @@ public class ActorTest {
 
     @Test
     public void testWatchGC() throws Exception {
-        final LocalActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+        final Actor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 Fiber.sleep(120000);
@@ -352,7 +350,7 @@ public class ActorTest {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 Fiber.sleep(10);
-                final Object watch = watch(actor);
+                final Object watch = watch(actor.ref());
 //                unwatch(actor, watch);
                 return null;
             }

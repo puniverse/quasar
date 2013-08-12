@@ -17,6 +17,6 @@ package co.paralleluniverse.actors;
  *
  * @author pron
  */
-public interface ActorWrapper<Message> extends Actor<Message> {
-    ActorImpl<Message> getActor();
+public interface ActorWrapper<Message> extends ActorRef<Message> {
+    ActorRefImpl<Message> getActor();
 }

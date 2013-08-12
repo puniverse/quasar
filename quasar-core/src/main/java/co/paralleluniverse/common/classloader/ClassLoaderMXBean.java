@@ -1,5 +1,4 @@
 /*
- * Quasar: lightweight threads and actors for the JVM.
  * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
@@ -11,14 +10,14 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors.behaviors;
+package co.paralleluniverse.common.classloader;
 
-import co.paralleluniverse.actors.ActorRef;
+import java.net.URL;
 
 /**
  *
  * @author pron
  */
-public interface FromMessage {
-    ActorRef<?> getFrom();
+public interface ClassLoaderMXBean {
+    URL[] getURLs();
 }

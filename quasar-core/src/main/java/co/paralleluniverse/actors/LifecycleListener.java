@@ -18,6 +18,6 @@ package co.paralleluniverse.actors;
  * @author pron
  */
 public interface LifecycleListener {
-    void dead(Actor actor, Throwable cause);
+    void dead(ActorRef actor, Throwable cause);
     Object getId();
 }

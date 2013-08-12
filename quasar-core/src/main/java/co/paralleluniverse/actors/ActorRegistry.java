@@ -31,24 +31,25 @@ import org.slf4j.LoggerFactory;
 public class ActorRegistry {
     // TODO: there are probably race conditions here
     private static final Logger LOG = LoggerFactory.getLogger(ActorRegistry.class);
-    private static final ConcurrentMap<String, LocalActor> registeredActors = new ConcurrentHashMapV8<String, LocalActor>();
+    private static final ConcurrentMap<String, Entry> registeredActors = new ConcurrentHashMapV8<String, Entry>();
     private static final GlobalRegistry globalRegistry = ServiceUtil.loadSingletonServiceOrNull(GlobalRegistry.class);
 
     static {
         LOG.info("Global registry is {}", globalRegistry);
     }
 
-    static Object register(final LocalActor<?, ?> actor) {
+    static Object register(Actor<?, ?> actor) {
         final String name = actor.getName();
         if (name == null)
             throw new IllegalArgumentException("name is null");
 
         // atomically register
-        final LocalActor old = registeredActors.get(name);
-        if (old == actor)
-            return old.getGlobalId();
+        final ActorRef ref = actor.ref();
+        final Entry old = registeredActors.get(name);
+        if (old.actor == actor)
+            return old.globalId;
 
-        if (old != null && !old.isDone())
+        if (old != null)
             throw new RegistrationException("Actor " + old + " is not dead and is already registered under " + name);
 
         if (old != null)
@@ -56,31 +57,34 @@ public class ActorRegistry {
 
         if (old != null && !registeredActors.remove(name, old))
             throw new RegistrationException("Concurrent registration under the name " + name);
-        if (registeredActors.putIfAbsent(name, actor) != null)
+        
+        final Entry entry = new Entry(null, ref);
+        if (registeredActors.putIfAbsent(name, entry) != null)
             throw new RegistrationException("Concurrent registration under the name " + name);
 
         LOG.info("Registering {}: {}", name, actor);
 
-        final Object globalId;
-        if (globalRegistry != null) {
-            try {
-                globalId = new Fiber<Object>() {
-                    @Override
-                    protected Object run() throws SuspendExecution, InterruptedException {
-                        return globalRegistry.register(actor);
-                    }
-                }.start().get();
-            } catch (ExecutionException e) {
-                throw Exceptions.rethrow(e.getCause());
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        } else
-            globalId = name;
-
+        final Object globalId = globalRegistry != null ? registerGlobal(actor) : name;
+        entry.globalId = globalId;
+        
         actor.monitor();
 
         return globalId;
+    }
+
+    static private Object registerGlobal(final Actor<?, ?> actor) {
+        try {
+            return new Fiber<Object>() {
+                @Override
+                protected Object run() throws SuspendExecution, InterruptedException {
+                    return globalRegistry.register(actor);
+                }
+            }.start().get();
+        } catch (ExecutionException e) {
+            throw Exceptions.rethrow(e.getCause());
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     static void unregister(final String name) {
@@ -92,7 +96,7 @@ public class ActorRegistry {
                 new Fiber<Void>() {
                     @Override
                     protected Void run() throws SuspendExecution, InterruptedException {
-                        globalRegistry.unregister(registeredActors.get(name));
+                        globalRegistry.unregister(registeredActors.get(name).actor);
                         return null;
                     }
                 }.start().join();
@@ -106,15 +110,15 @@ public class ActorRegistry {
         registeredActors.remove(name);
     }
 
-    public static <Message> Actor<Message> getActor(final String name) {
-        Actor<Message> actor = registeredActors.get(name);
+    public static <Message> ActorRef<Message> getActor(final String name) {
+        ActorRef<Message> actor = (ActorRef<Message>)registeredActors.get(name).actor;
 
         if (actor == null && globalRegistry != null) {
             // TODO: will only work if called from a fiber
             try {
-                actor = new Fiber<Actor<Message>>() {
+                actor = new Fiber<ActorRef<Message>>() {
                     @Override
-                    protected Actor<Message> run() throws SuspendExecution, InterruptedException {
+                    protected ActorRef<Message> run() throws SuspendExecution, InterruptedException {
                         return globalRegistry.getActor(name);
                     }
                 }.start().get();
@@ -127,8 +131,18 @@ public class ActorRegistry {
 
         return actor;
     }
-    
+
     public static boolean hasGlobalRegistry() {
         return globalRegistry != null;
+    }
+    
+    private static class Entry {
+        Object globalId;
+        final ActorRef<?> actor;
+
+        public Entry(Object globalId, ActorRef<?> actor) {
+            this.globalId = globalId;
+            this.actor = actor;
+        }
     }
 }

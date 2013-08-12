@@ -11,14 +11,25 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors.behaviors;
+package co.paralleluniverse.actors;
 
-import co.paralleluniverse.actors.ActorRef;
+import java.math.BigInteger;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  *
  * @author pron
  */
-public interface FromMessage {
-    ActorRef<?> getFrom();
+public final class ActorUtil {
+    public static Object randtag() {
+        return new BigInteger(80, ThreadLocalRandom.current()) {
+            @Override
+            public String toString() {
+                return toString(16);
+            }
+        };
+    }
+
+    private ActorUtil() {
+    }
 }

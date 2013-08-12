@@ -21,7 +21,7 @@ package co.paralleluniverse.galaxy.example.simplegenevent;
 
 import co.paralleluniverse.actors.behaviors.EventHandler;
 import co.paralleluniverse.actors.behaviors.Initializer;
-import co.paralleluniverse.actors.behaviors.LocalGenEvent;
+import co.paralleluniverse.actors.behaviors.GenEventActor;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.DelayedVal;
@@ -40,17 +40,17 @@ public class Server {
         System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
 
         final DelayedVal<String> dv = new DelayedVal<>();
-        new Fiber(new LocalGenEvent<>(new Initializer() {
+        new Fiber(new GenEventActor<>(new Initializer() {
             @Override
             public void init() throws SuspendExecution {
-                LocalGenEvent.currentGenEvent().register("myEventServer");
-                LocalGenEvent<String> ge = LocalGenEvent.currentGenEvent();
+                GenEventActor.currentGenEvent().register("myEventServer");
+                GenEventActor<String> ge = GenEventActor.currentGenEvent();
                 try {
                     ge.addHandler(new EventHandler<String>() {
                         @Override
                         public void handleEvent(String event) {
                             System.out.println("Handling event: " + event);
-                            LocalGenEvent.currentGenEvent().shutdown();
+                            GenEventActor.currentGenEvent().shutdown();
                         }
                     });
                 } catch (InterruptedException ex) {

@@ -1,11 +1,22 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
+ * 
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *  
+ *   or (per the licensee's choosing)
+ *  
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorBuilder;
+import co.paralleluniverse.actors.GenBehavior;
+import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.TimeUnit;
 
@@ -13,10 +24,21 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public interface Supervisor extends GenBehavior {
-    Actor<Object> addChild(ChildSpec spec) throws SuspendExecution, InterruptedException;
+public class Supervisor extends GenBehavior {
+    public Supervisor(ActorRef<Object> actor) {
+        super(actor);
+    }
 
-    boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException;
+    public final ActorRef addChild(ChildSpec spec) throws SuspendExecution, InterruptedException {
+        final GenResponseMessage res = call(this, new AddChildMessage(RequestReplyHelper.from(), null, spec));
+        return ((GenValueResponseMessage<ActorRef>) res).getValue();
+    }
+
+    public final boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException {
+
+        final GenResponseMessage res = call(this, new RemoveChildMessage(RequestReplyHelper.from(), null, id, terminate));
+        return ((GenValueResponseMessage<Boolean>) res).getValue();
+    }
 
     public enum ChildMode {
         PERMANENT, TRANSIENT, TEMPORARY
@@ -25,7 +47,7 @@ public interface Supervisor extends GenBehavior {
     public static class ChildSpec {
         final String id;
         final ActorBuilder<?, ?> builder;
-        final LocalSupervisor.ChildMode mode;
+        final ChildMode mode;
         final int maxRestarts;
         final long duration;
         final TimeUnit unit;
@@ -49,7 +71,7 @@ public interface Supervisor extends GenBehavior {
             return builder;
         }
 
-        public LocalSupervisor.ChildMode getMode() {
+        public ChildMode getMode() {
             return mode;
         }
 
@@ -72,6 +94,26 @@ public interface Supervisor extends GenBehavior {
         @Override
         public String toString() {
             return "ChildSpec{" + "builder: " + builder + ", mode: " + mode + ", maxRestarts: " + maxRestarts + ", duration: " + duration + ", unit: " + unit + ", shutdownDeadline: " + shutdownDeadline + '}';
+        }
+    }
+
+    static class AddChildMessage extends GenRequestMessage {
+        final ChildSpec info;
+
+        public AddChildMessage(ActorRef from, Object id, ChildSpec info) {
+            super(from, id);
+            this.info = info;
+        }
+    }
+
+    static class RemoveChildMessage extends GenRequestMessage {
+        final Object id;
+        final boolean terminate;
+
+        public RemoveChildMessage(ActorRef from, Object id, Object name, boolean terminate) {
+            super(from, id);
+            this.id = name;
+            this.terminate = terminate;
         }
     }
 }

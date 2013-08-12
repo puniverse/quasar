@@ -19,17 +19,17 @@
  */
 package co.paralleluniverse.galaxy.example.testing;
 
-import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.BasicActor;
-import co.paralleluniverse.actors.LocalActor;
+import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.behaviors.AbstractServer;
 import co.paralleluniverse.actors.behaviors.EventHandler;
 import co.paralleluniverse.actors.behaviors.GenEvent;
 import co.paralleluniverse.actors.behaviors.GenServer;
 import co.paralleluniverse.actors.behaviors.Initializer;
-import co.paralleluniverse.actors.behaviors.LocalGenEvent;
-import co.paralleluniverse.actors.behaviors.LocalGenServer;
+import co.paralleluniverse.actors.behaviors.GenEventActor;
+import co.paralleluniverse.actors.behaviors.GenServerActor;
 import co.paralleluniverse.actors.behaviors.Server;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
@@ -104,11 +104,11 @@ public class PeerTKB {
                         @Override
                         public void init() throws SuspendExecution {
                             super.init();
-                            LocalGenServer.currentGenServer().register("myServer");
+                            GenServerActor.currentGenServer().register("myServer");
                         }
 
                         @Override
-                        public Integer handleCall(Actor<Integer> from, Object id, Message m) {
+                        public Integer handleCall(ActorRef<Integer> from, Object id, Message m) {
                             return m.a + m.b;
                         }
                     }).join();
@@ -130,15 +130,15 @@ public class PeerTKB {
                     spawnGenEvent(new Initializer() {
                         @Override
                         public void init() throws SuspendExecution {
-                            LocalGenEvent.currentGenEvent().register("myEventServer");
+                            GenEventActor.currentGenEvent().register("myEventServer");
                             try {
-                                LocalGenEvent<String> ge = LocalGenEvent.currentGenEvent();
+                                GenEventActor<String> ge = GenEventActor.currentGenEvent();
                                 ge.addHandler(new EventHandler<String>() {
                                     @Override
                                     public void handleEvent(String event) {
                                         dv.set(event);
                                         System.out.println("sout " + event);
-                                        LocalGenEvent.currentGenEvent().shutdown();
+                                        GenEventActor.currentGenEvent().shutdown();
                                     }
                                 });
                             } catch (InterruptedException ex) {
@@ -174,10 +174,10 @@ public class PeerTKB {
 
                         @Override
                         public void init() throws SuspendExecution {
-                            LocalGenEvent.currentGenEvent().register("myEventServer");
-                            System.out.println("kkkvb " + LocalGenEvent.getActor("myEventServer"));
+                            GenEventActor.currentGenEvent().register("myEventServer");
+                            System.out.println("kkkvb " + GenEventActor.getActor("myEventServer"));
                             try {
-                                LocalGenEvent<String> ge = LocalGenEvent.currentGenEvent();
+                                GenEventActor<String> ge = GenEventActor.currentGenEvent();
                                 ge.addHandler(new EventHandler<String>() {
                                     @Override
                                     public void handleEvent(String event) {
@@ -195,7 +195,7 @@ public class PeerTKB {
                         }
                     }).join();
                 } else {
-                    Queue<LocalActor> queue = new LinkedList<>();
+                    Queue<Actor> queue = new LinkedList<>();
                     for (int j = 0; j < 1000; j++) {
                         final BasicActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>("actor-" + j) {
                             protected Void doRun() throws SuspendExecution, InterruptedException {
@@ -212,7 +212,7 @@ public class PeerTKB {
                         queue.add(actor);
 //                        actor.join();
                     }
-                    for (LocalActor localActor : queue)
+                    for (Actor localActor : queue)
                         localActor.join();
                     Thread.sleep(500);
 
@@ -225,9 +225,9 @@ public class PeerTKB {
 
                         @Override
                         public void init() throws SuspendExecution {
-                            LocalGenEvent.currentGenEvent().register("myEventServer");
+                            GenEventActor.currentGenEvent().register("myEventServer");
                             try {
-                                LocalGenEvent<String> ge = LocalGenEvent.currentGenEvent();
+                                GenEventActor<String> ge = GenEventActor.currentGenEvent();
                                 ge.addHandler(new EventHandler<String>() {
                                     @Override
                                     public void handleEvent(String event) {
@@ -245,7 +245,7 @@ public class PeerTKB {
                         }
                     }).join();
                 } else {
-                    Queue<LocalActor> queue = new LinkedList<>();
+                    Queue<Actor> queue = new LinkedList<>();
                     for (int j = 0; j < 1; j++) {
                         final BasicActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>("actor-" + j) {
                             protected Void doRun() throws SuspendExecution, InterruptedException {
@@ -263,7 +263,7 @@ public class PeerTKB {
                         queue.add(actor);
 //                        actor.join();
                     }
-                    for (LocalActor localActor : queue)
+                    for (Actor localActor : queue)
                         localActor.join();
                     Thread.sleep(5000);
 
@@ -291,16 +291,16 @@ public class PeerTKB {
         testOrdering,
         test,}
 
-    private LocalGenServer<Message, Integer, Message> spawnGenServer(Server<Message, Integer, Message> server) {
-        return spawnActor(new LocalGenServer<>(server));
+    private GenServerActor<Message, Integer, Message> spawnGenServer(Server<Message, Integer, Message> server) {
+        return spawnActor(new GenServerActor<>(server));
     }
 
-    private LocalGenEvent<String> spawnGenEvent(Initializer initializer) {
-        return spawnActor(new LocalGenEvent<String>(initializer));
+    private GenEventActor<String> spawnGenEvent(Initializer initializer) {
+        return spawnActor(new GenEventActor<String>(initializer));
     }
     static private ForkJoinPool fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
-    private <T extends LocalActor<Message, V>, Message, V> T spawnActor(T actor) {
+    private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
         Fiber fiber = new Fiber(fjPool, actor);
         fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
             @Override
@@ -315,9 +315,9 @@ public class PeerTKB {
 
     static class RepliableMessage<T> implements Serializable {
         T data;
-        Actor sender;
+        ActorRef sender;
 
-        public RepliableMessage(T data, Actor sender) {
+        public RepliableMessage(T data, ActorRef sender) {
             this.data = data;
             this.sender = sender;
         }

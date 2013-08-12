@@ -20,21 +20,21 @@ import java.util.Objects;
  * @author pron
  */
 public class ExitMessage implements LifecycleMessage {
-    public final Actor actor;
+    public final ActorRef actor;
     public final Throwable cause;
     public final Object watch;
 
-    public ExitMessage(Actor actor, Throwable cause) {
+    public ExitMessage(ActorRef actor, Throwable cause) {
         this(actor, cause, null);
     }
 
-    public ExitMessage(Actor actor, Throwable cause, Object watch) {
+    public ExitMessage(ActorRef actor, Throwable cause, Object watch) {
         this.actor = actor;
         this.cause = cause;
         this.watch = watch;
     }
 
-    public Actor getActor() {
+    public ActorRef getActor() {
         return actor;
     }
 

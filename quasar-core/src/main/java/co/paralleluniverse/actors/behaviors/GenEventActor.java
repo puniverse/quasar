@@ -13,10 +13,9 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.GenBehaviorActor;
 import co.paralleluniverse.actors.MailboxConfig;
-import co.paralleluniverse.actors.RemoteActor;
-import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.replyError;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -30,50 +29,55 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
-public class LocalGenEvent<Event> extends BasicGenBehavior implements GenEvent<Event> {
-    private static final Logger LOG = LoggerFactory.getLogger(LocalGenEvent.class);
+public class GenEventActor<Event> extends GenBehaviorActor {
+    private static final Logger LOG = LoggerFactory.getLogger(GenEventActor.class);
     private final List<EventHandler<Event>> handlers = new ArrayList<>();
 
-    public LocalGenEvent(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
+    public GenEventActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
         super(name, initializer, strand, mailboxConfig);
     }
 
     @Override
-    protected RemoteBasicGenBehavior getRemote(RemoteActor remote) {
-        return new RemoteGenEvent(remote);
+    protected GenEvent<Event> makeRef(ActorRef<Object> ref) {
+        return new GenEvent<Event>(ref);
+    }
+
+    @Override
+    public GenEvent<Event> ref() {
+        return (GenEvent<Event>) super.ref();
     }
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-    public LocalGenEvent(String name, Initializer initializer, MailboxConfig mailboxConfig) {
+    public GenEventActor(String name, Initializer initializer, MailboxConfig mailboxConfig) {
         this(name, initializer, null, mailboxConfig);
     }
 
-    public LocalGenEvent(String name, Initializer initializer) {
+    public GenEventActor(String name, Initializer initializer) {
         this(name, initializer, null, null);
     }
 
-    public LocalGenEvent(Initializer initializer, MailboxConfig mailboxConfig) {
+    public GenEventActor(Initializer initializer, MailboxConfig mailboxConfig) {
         this(null, initializer, null, mailboxConfig);
     }
 
-    public LocalGenEvent(Initializer initializer) {
+    public GenEventActor(Initializer initializer) {
         this(null, initializer, null, null);
     }
 
-    public LocalGenEvent(String name, MailboxConfig mailboxConfig) {
+    public GenEventActor(String name, MailboxConfig mailboxConfig) {
         this(name, null, null, mailboxConfig);
     }
 
-    public LocalGenEvent(String name) {
+    public GenEventActor(String name) {
         this(name, null, null, null);
     }
 
-    public LocalGenEvent(MailboxConfig mailboxConfig) {
+    public GenEventActor(MailboxConfig mailboxConfig) {
         this(null, null, null, mailboxConfig);
     }
 
-    public LocalGenEvent() {
+    public GenEventActor() {
         this(null, null, null, null);
     }
     //</editor-fold>
@@ -83,31 +87,20 @@ public class LocalGenEvent<Event> extends BasicGenBehavior implements GenEvent<E
         return LOG;
     }
 
-    @Override
-    public boolean addHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
-        if (isInActor()) {
-            LOG.info("{} adding handler {}", this, handler);
-            return handlers.add(handler);
-        } else {
-            final GenResponseMessage res = call(this, new HandlerMessage(RequestReplyHelper.from(), null, handler, true));
-            return ((GenValueResponseMessage<Boolean>) res).getValue();
-        }
+    protected boolean addHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
+        verifyInActor();
+        LOG.info("{} adding handler {}", this, handler);
+        return handlers.add(handler);
     }
 
-    @Override
-    public boolean removeHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
-        if (isInActor()) {
-            LOG.info("{} removing handler {}", this, handler);
-            return handlers.remove(handler);
-        } else {
-            final GenResponseMessage res = call(this, new HandlerMessage(RequestReplyHelper.from(), null, handler, false));
-            return ((GenValueResponseMessage<Boolean>) res).getValue();
-        }
+    protected boolean removeHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
+        verifyInActor();
+        LOG.info("{} removing handler {}", this, handler);
+        return handlers.remove(handler);
     }
 
-    @Override
-    public void notify(Event event) throws SuspendExecution {
-        send(event);
+    protected void notify(Event event) throws SuspendExecution {
+        ref().send(event);
     }
 
     @Override
@@ -135,8 +128,8 @@ public class LocalGenEvent<Event> extends BasicGenBehavior implements GenEvent<E
         handlers.clear();
     }
 
-    public static <Event> LocalGenEvent<Event> currentGenEvent() {
-        return (LocalGenEvent<Event>) self();
+    public static <Event> GenEventActor<Event> currentGenEvent() {
+        return (GenEventActor<Event>) self();
     }
 
     private void notifyHandlers(Event event) {
@@ -149,7 +142,7 @@ public class LocalGenEvent<Event> extends BasicGenBehavior implements GenEvent<E
         final EventHandler<Event> handler;
         final boolean add;
 
-        public HandlerMessage(Actor<?> from, Object id, EventHandler<Event> handler, boolean add) {
+        public HandlerMessage(ActorRef<?> from, Object id, EventHandler<Event> handler, boolean add) {
             super(from, id);
             this.handler = handler;
             this.add = add;

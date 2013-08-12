@@ -21,8 +21,8 @@ import java.util.Arrays;
  *
  * @author pron
  */
-public class ActorSpec<T extends LocalActor<Message, V>, Message, V> implements ActorBuilder<Message, V> {
-    public static <Message, V, T extends LocalActor<Message, V>> ActorSpec<T, Message, V> of(Class<T> type, Object... params) {
+public class ActorSpec<T extends Actor<Message, V>, Message, V> implements ActorBuilder<Message, V> {
+    public static <Message, V, T extends Actor<Message, V>> ActorSpec<T, Message, V> of(Class<T> type, Object... params) {
         return new ActorSpec<>(type, params);
     }
     final Constructor<T> ctor;
