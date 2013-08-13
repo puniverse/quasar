@@ -25,11 +25,11 @@ import org.slf4j.LoggerFactory;
 public class RemoteActorRef<Message> extends ActorRefImpl<Message> {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteActorRef.class);
     private static LifecycleListenerProxy lifecycleListenerProxy = ServiceUtil.loadSingletonService(LifecycleListenerProxy.class);
-    private final transient Actor<Message, ?> actor;
+    private final transient ActorRefImpl<Message> actor;
 
-    public RemoteActorRef(Actor<Message, ?> actor) {
-        super(actor.getName(), actor.mailbox());
-        this.actor = actor;
+    public RemoteActorRef(ActorRef<Message> actor) {
+        super(actor.getName(), ((ActorRefImpl)actor).mailbox());
+        this.actor = (ActorRefImpl)actor;
     }
 
     protected void handleAdminMessage(RemoteActorAdminMessage msg) {

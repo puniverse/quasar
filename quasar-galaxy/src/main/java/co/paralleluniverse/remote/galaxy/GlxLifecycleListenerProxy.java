@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.remote.galaxy;
 
-import co.paralleluniverse.actors.ActorImpl;
+import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.LifecycleListener;
 import co.paralleluniverse.actors.LifecycleListenerProxy;
 import co.paralleluniverse.actors.RemoteActorRef;
@@ -85,7 +85,7 @@ public class GlxLifecycleListenerProxy extends LifecycleListenerProxy {
     }
 
     @Override
-    public void removeLifecycleListeners(RemoteActorRef actor, ActorImpl observer) {
+    public void removeLifecycleListeners(RemoteActorRef actor, ActorRef observer) {
         super.removeLifecycleListeners(actor, observer);
         for (Iterator<RegistryRecord> it = listenerRegistry.iterator(); it.hasNext();) {
             RegistryRecord registryRecord = it.next();

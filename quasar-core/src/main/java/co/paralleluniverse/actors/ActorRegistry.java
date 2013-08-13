@@ -64,7 +64,7 @@ public class ActorRegistry {
 
         LOG.info("Registering {}: {}", name, actor);
 
-        final Object globalId = globalRegistry != null ? registerGlobal(actor) : name;
+        final Object globalId = globalRegistry != null ? registerGlobal(actor.ref()) : name;
         entry.globalId = globalId;
         
         actor.monitor();
@@ -72,7 +72,7 @@ public class ActorRegistry {
         return globalId;
     }
 
-    static private Object registerGlobal(final Actor<?, ?> actor) {
+    static private Object registerGlobal(final ActorRef<?> actor) {
         try {
             return new Fiber<Object>() {
                 @Override

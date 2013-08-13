@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public abstract class ActorRefImpl<Message> implements ActorRef<Message>, SendPort<Message>, java.io.Serializable {
+abstract class ActorRefImpl<Message> implements ActorRef<Message>, SendPort<Message>, java.io.Serializable {
     static final long serialVersionUID = 894359345L;
     //
     private static final int MAX_SEND_RETRIES = 10;

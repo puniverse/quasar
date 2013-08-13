@@ -22,6 +22,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.ArrayList;
 import java.util.List;
+import jsr166e.ForkJoinPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,8 +48,19 @@ public class GenEventActor<Event> extends GenBehaviorActor {
         return (GenEvent<Event>) super.ref();
     }
 
+    @Override
+    public GenEvent<Event> spawn(ForkJoinPool fjPool) {
+        return (GenEvent<Event>) spawn(fjPool);
+    }
+
+    @Override
+    public GenEvent<Event> spawn() {
+        return (GenEvent<Event>) spawn();
+    }
+    
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
+
     public GenEventActor(String name, Initializer initializer, MailboxConfig mailboxConfig) {
         this(name, initializer, null, mailboxConfig);
     }

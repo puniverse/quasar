@@ -89,35 +89,35 @@ public class ActorTest {
 
     @Test
     public void testReceive() throws Exception {
-        Actor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
+        ActorRef<Message> actor = new BasicActor<Message, Integer>(mailboxConfig) {
             @Override
             protected Integer doRun() throws SuspendExecution, InterruptedException {
                 Message m = receive();
                 return m.num;
             }
-        });
+        }.spawn();
 
-        actor.ref().send(new Message(15));
+        actor.send(new Message(15));
 
-        assertThat(actor.get(), is(15));
+        assertThat(ActorUtil.<Integer>get(actor), is(15));
     }
 
     @Test
     public void testReceiveAfterSleep() throws Exception {
-        Actor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
+        ActorRef<Message> actor = new BasicActor<Message, Integer>(mailboxConfig) {
             @Override
             protected Integer doRun() throws SuspendExecution, InterruptedException {
                 Message m1 = receive();
                 Message m2 = receive();
                 return m1.num + m2.num;
             }
-        });
+        }.spawn();
 
-        actor.ref().send(new Message(25));
+        actor.send(new Message(25));
         Thread.sleep(200);
-        actor.ref().send(new Message(17));
+        actor.send(new Message(17));
 
-        assertThat(actor.get(), is(42));
+        assertThat(ActorUtil.<Integer>get(actor), is(42));
     }
 
     private class TypedReceiveA {

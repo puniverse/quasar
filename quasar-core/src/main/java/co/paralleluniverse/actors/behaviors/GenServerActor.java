@@ -20,6 +20,7 @@ import co.paralleluniverse.actors.behaviors.GenServer.GenServerRequest;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.TimeUnit;
+import jsr166e.ForkJoinPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +46,17 @@ public class GenServerActor<CallMessage, V, CastMessage> extends GenBehaviorActo
 
     @Override
     public GenServer<CallMessage, V, CastMessage> ref() {
-        return (GenServer<CallMessage, V, CastMessage>)super.ref();
+        return (GenServer<CallMessage, V, CastMessage>) super.ref();
+    }
+
+    @Override
+    public GenServer<CallMessage, V, CastMessage> spawn(ForkJoinPool fjPool) {
+        return (GenServer<CallMessage, V, CastMessage>) spawn(fjPool);
+    }
+
+    @Override
+    public GenServer<CallMessage, V, CastMessage> spawn() {
+        return (GenServer<CallMessage, V, CastMessage>) spawn();
     }
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
@@ -134,7 +145,7 @@ public class GenServerActor<CallMessage, V, CastMessage> extends GenBehaviorActo
     public void shutdown() {
         super.shutdown();
     }
-    
+
     public final void reply(ActorRef to, Object id, V message) throws SuspendExecution {
         verifyInActor();
         to.send(new GenValueResponseMessage<V>(id, message));

@@ -22,7 +22,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
  * @author pron
  */
 public interface GlobalRegistry {
-    Object register(Actor<?, ?> actor) throws SuspendExecution;
+    Object register(ActorRef<?> actor) throws SuspendExecution;
 
     void unregister(ActorRef<?> actor) throws SuspendExecution;
     

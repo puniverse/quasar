@@ -13,8 +13,12 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.strands.channels.QueueChannel;
 import java.math.BigInteger;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
@@ -30,6 +34,36 @@ public final class ActorUtil {
         };
     }
 
+    public static void sendOrInterrupt(ActorRef actor, Object message) {
+        ((ActorRefImpl) actor).sendOrInterrupt(message);
+    }
+
+    public static void join(ActorRef<?> actor) throws ExecutionException, InterruptedException {
+        actorOf(actor).join();
+    }
+    
+    public static void join(ActorRef<?> actor, long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+        actorOf(actor).join(timeout, unit);
+    }
+    
+    public static <V> V get(ActorRef<?> actor) throws ExecutionException, InterruptedException {
+        return (V)actorOf(actor).get();
+    }
+    
+    public static <V> V get(ActorRef<?> actor, long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+        return (V)actorOf(actor).get(timeout, unit);
+    }
+    
+    public static QueueChannel<Object> getMailbox(ActorRef<?> actor) {
+        return actorOf(actor).mailbox();
+    }
+    
+    static Actor actorOf(ActorRef ar) {
+        if(!(ar instanceof LocalActorRef))
+            throw new IllegalArgumentException("ActorRef " + ar + " is not a local actor.");
+        return ((LocalActorRef)ar).getActor();
+    }
+    
     private ActorUtil() {
     }
 }

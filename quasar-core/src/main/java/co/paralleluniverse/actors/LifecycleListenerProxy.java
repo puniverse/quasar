@@ -29,7 +29,7 @@ abstract public class LifecycleListenerProxy {
         actor.internalSendNonSuspendable(new RemoteActorUnregisterListenerAdminMessage(listener));
     }
 
-    public void removeLifecycleListeners(RemoteActorRef actor, ActorRefImpl observer) {
-        actor.internalSendNonSuspendable(new RemoteActorUnregisterListenerAdminMessage(observer));
+    public void removeLifecycleListeners(RemoteActorRef actor, ActorRef observer) {
+        actor.internalSendNonSuspendable(new RemoteActorUnregisterListenerAdminMessage((ActorRefImpl)observer));
     }
 }

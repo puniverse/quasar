@@ -17,6 +17,7 @@ import co.paralleluniverse.actors.behaviors.Initializer;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import jsr166e.ForkJoinPool;
 import org.slf4j.Logger;
 
 /**
@@ -44,8 +45,19 @@ public abstract class GenBehaviorActor extends Actor<Object, Void> implements ja
         return ref;
     }
 
+    @Override
+    public GenBehavior spawn(ForkJoinPool fjPool) {
+        return (GenBehavior)spawn(fjPool);
+    }
+
+    @Override
+    public GenBehavior spawn() {
+        return (GenBehavior)spawn();
+    }
+    
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
+
     public GenBehaviorActor(String name, Initializer initializer, MailboxConfig mailboxConfig) {
         this(name, initializer, null, mailboxConfig);
     }

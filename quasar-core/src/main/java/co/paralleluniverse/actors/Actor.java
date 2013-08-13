@@ -33,6 +33,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import jsr166e.ConcurrentHashMapV8;
+import jsr166e.ForkJoinPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,6 +81,16 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return ((ActorRefImpl) self);
     }
 
+    public ActorRef<Message> spawn(ForkJoinPool fjPool) {
+        new Fiber(getName(), fjPool, this).start();
+        return ref();
+    }
+    
+    public ActorRef<Message> spawn() {
+        new Fiber(getName(), this).start();
+        return ref();
+    }
+    
     public static <T extends Actor<Message, V>, Message, V> T newActor(Class<T> clazz, Object... params) {
         return newActor(ActorSpec.of(clazz, params));
     }

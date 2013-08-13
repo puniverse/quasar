@@ -99,11 +99,6 @@ public class PascalTriangle {
             this.maxLevel = maxLevel;
         }
 
-        PascalNode spawn() {
-            new Fiber<>(this).start();
-            return this;
-        }
-
         @Override
         protected Void doRun() throws InterruptedException, SuspendExecution {
             if (level == maxLevel) {
@@ -116,10 +111,10 @@ public class PascalTriangle {
                 left.send(new RightBrother(ref(), val));
                 leftChild = receive(Nephew.class).node;
             } else
-                leftChild = new PascalNode(leftResult, level + 1, val, false, null, maxLevel).spawn().ref();
+                leftChild = new PascalNode(leftResult, level + 1, val, false, null, maxLevel).spawn();
             
             final RightBrother rb = isRight ? null : receive(RightBrother.class);
-            final ActorRef<PascalNodeMessage> rightChild = new PascalNode(rightResult, level + 1, val.add(rb == null ? BigInteger.ZERO : rb.val), isRight, leftChild, maxLevel).spawn().ref();
+            final ActorRef<PascalNodeMessage> rightChild = new PascalNode(rightResult, level + 1, val.add(rb == null ? BigInteger.ZERO : rb.val), isRight, leftChild, maxLevel).spawn();
             if (rb != null)
                 rb.node.send(new Nephew(rightChild));
 

@@ -14,6 +14,7 @@
 package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.io.serialization.KryoSerializer;
 import co.paralleluniverse.remote.RemoteProxyFactory;
 import co.paralleluniverse.strands.channels.SendPort;
@@ -25,7 +26,7 @@ import co.paralleluniverse.strands.channels.SendPort;
 public class GlxRemoteProxyFactory implements RemoteProxyFactory {
 
     @Override
-    public <Message> GlxRemoteActor<Message> create(Actor<Message, ?> actor, Object globalId) {
+    public <Message> GlxRemoteActor<Message> create(ActorRef<Message> actor, Object globalId) {
         return new GlxRemoteActor<Message>(actor, globalId);
     }
 

@@ -13,11 +13,11 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
+import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.actors.ExitMessage;
 import co.paralleluniverse.actors.LifecycleMessage;
-import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.MessageProcessor;
 import co.paralleluniverse.actors.SelectiveReceiveHelper;

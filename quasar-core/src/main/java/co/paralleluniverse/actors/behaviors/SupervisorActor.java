@@ -15,7 +15,7 @@ package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.ActorRefImpl;
+import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.actors.ExitMessage;
 import co.paralleluniverse.actors.GenBehaviorActor;
 import co.paralleluniverse.actors.LifecycleMessage;
@@ -39,6 +39,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import jsr166e.ConcurrentHashMapV8;
+import jsr166e.ForkJoinPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -90,8 +91,19 @@ public class SupervisorActor extends GenBehaviorActor {
         return (Supervisor) super.ref();
     }
 
+    @Override
+    public Supervisor spawn(ForkJoinPool fjPool) {
+        return (Supervisor) spawn(fjPool);
+    }
+
+    @Override
+    public Supervisor spawn() {
+        return (Supervisor) spawn();
+    }
+    
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
+
     public SupervisorActor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy) {
         this(strand, name, mailboxConfig, restartStrategy, (Initializer) null);
     }
@@ -191,8 +203,8 @@ public class SupervisorActor extends GenBehaviorActor {
             final GenRequestMessage req = (GenRequestMessage) m1;
             try {
                 if (req instanceof AddChildMessage) {
-                    reply(req, addChild(((AddChildMessage)req).info));
-                } else if(req instanceof RemoveChildMessage) {
+                    reply(req, addChild(((AddChildMessage) req).info));
+                } else if (req instanceof RemoveChildMessage) {
                     final RemoveChildMessage m = (RemoveChildMessage) req;
                     reply(req, removeChild(m.id, m.terminate));
                 }
@@ -380,7 +392,7 @@ public class SupervisorActor extends GenBehaviorActor {
             unwatch(child);
             if (!child.actor.isDone()) {
                 LOG.info("{} shutting down child {}", this, child.actor);
-                ((ActorRefImpl) child.actor.ref()).sendOrInterrupt(new ShutdownMessage(this.ref()));
+                ActorUtil.sendOrInterrupt(child.actor.ref(), new ShutdownMessage(this.ref()));
             }
             try {
                 joinChild(child);
@@ -398,7 +410,7 @@ public class SupervisorActor extends GenBehaviorActor {
         for (ChildEntry child : children) {
             if (child.actor != null) {
                 unwatch(child);
-                ((ActorRefImpl) child.actor.ref()).sendOrInterrupt(new ShutdownMessage(this.ref()));
+                ActorUtil.sendOrInterrupt(child.actor.ref(), new ShutdownMessage(this.ref()));
             }
         }
 

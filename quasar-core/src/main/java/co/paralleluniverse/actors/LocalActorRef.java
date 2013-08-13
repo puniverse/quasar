@@ -13,11 +13,15 @@ import co.paralleluniverse.strands.channels.SendPort;
  * @author pron
  */
 class LocalActorRef<Message> extends ActorRefImpl<Message> implements java.io.Serializable {
-    private final Actor<Message, ?> actor;
+    private Actor<Message, ?> actor;
 
     public LocalActorRef(Actor<Message, ?> actor, String name, SendPort<Object> mailbox) {
         super(name, mailbox);
         this.actor = actor;
+    }
+
+    Actor<Message, ?> getActor() {
+        return actor;
     }
 
     @Override

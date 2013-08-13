@@ -14,6 +14,9 @@
 package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.ActorUtil;
+import co.paralleluniverse.actors.RemoteActorRef;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.DefaultFiberPool;
 import co.paralleluniverse.fibers.Fiber;
@@ -28,12 +31,12 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
-public class GlxRemoteActor<Message> extends co.paralleluniverse.actors.RemoteActorRef<Message> {
+public class GlxRemoteActor<Message> extends RemoteActorRef<Message> {
     private static final Logger LOG = LoggerFactory.getLogger(GlxRemoteActor.class);
 
-    public GlxRemoteActor(final Actor<Message, ?> actor, Object globalId) {
+    public GlxRemoteActor(final ActorRef<Message> actor, Object globalId) {
         super(actor);
-        final RemoteChannelReceiver<Object> receiver = RemoteChannelReceiver.getReceiver((QueueChannel<Object>) actor.getMailbox(), globalId != null);
+        final RemoteChannelReceiver<Object> receiver = RemoteChannelReceiver.getReceiver((QueueChannel<Object>) ActorUtil.getMailbox(actor), globalId != null);
         receiver.setFilter(new RemoteChannelReceiver.MessageFilter<Object>() {
             @Override
             public boolean shouldForwardMessage(Object msg) {
