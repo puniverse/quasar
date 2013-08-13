@@ -44,10 +44,9 @@ public class RequestReplyHelper {
     }
 
     public static GenResponseMessage call(final ActorRef actor, GenRequestMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
-
         final Actor currentActor;
         if (m.getFrom() instanceof TempActor)
-            currentActor = (Actor) ((TempActor) m.getFrom()).actor.get();
+            currentActor = ((TempActor<?>) m.getFrom()).actor.get();
         else
             currentActor = Actor.currentActor();
 
@@ -107,26 +106,26 @@ public class RequestReplyHelper {
     }
 
     private static ActorRef getCurrentActor() {
-        ActorRef actor = Actor.self();
-        if (actor == null) {
+        ActorRef actorRef = Actor.self();
+        if (actorRef == null) {
             // create a "dummy actor" on the current strand
-            actor = new Actor(Strand.currentStrand(), null, new MailboxConfig(5, OverflowPolicy.THROW)) {
+            Actor actor = new Actor(Strand.currentStrand(), null, new MailboxConfig(5, OverflowPolicy.THROW)) {
                 @Override
                 protected Object doRun() throws InterruptedException, SuspendExecution {
                     throw new AssertionError();
                 }
-            }.ref();
-            actor = new TempActor(actor);
+            };
+            actorRef = new TempActor(actor);
         }
-        return actor;
+        return actorRef;
     }
 
     private static class TempActor<Message> implements ActorRef<Message> {
-        private WeakReference<ActorRef<Message>> actor;
+        private WeakReference<Actor<Message, Void>> actor;
         private volatile boolean done = false;
 
-        public TempActor(ActorRef actor) {
-            this.actor = new WeakReference<ActorRef<Message>>(actor);
+        public TempActor(Actor actor) {
+            this.actor = new WeakReference<Actor<Message, Void>>(actor);
         }
 
         public void done() {
@@ -137,7 +136,7 @@ public class RequestReplyHelper {
         private ActorRef getActor() {
             ActorRef a = null;
             if (actor != null)
-                a = actor.get();
+                a = actor.get().ref();
             return a;
         }
 

@@ -18,6 +18,7 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
@@ -74,8 +75,8 @@ public class GenEventTest {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
     }
 
-    private GenEventActor<String> spawnGenEvent(Initializer initializer) {
-        return spawnActor(new GenEventActor<String>("genevent", initializer));
+    private GenEvent<String> spawnGenEvent(Initializer initializer) {
+        return new GenEventActor<String>("genevent", initializer).spawn();
     }
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
@@ -94,13 +95,13 @@ public class GenEventTest {
     @Test
     public void testInitializationAndTermination() throws Exception {
         final Initializer init = mock(Initializer.class);
-        GenEventActor<String> ge = spawnGenEvent(init);
+        GenEvent<String> ge = spawnGenEvent(init);
 
         Thread.sleep(100);
         verify(init).init();
 
-        ge.ref().shutdown();
-        ge.join(100, TimeUnit.MILLISECONDS);
+        ge.shutdown();
+        ActorUtil.join(ge, 100, TimeUnit.MILLISECONDS);
 
         verify(init).terminate(null);
     }
@@ -110,7 +111,7 @@ public class GenEventTest {
         final EventHandler<String> handler1 = mock(EventHandler.class);
         final EventHandler<String> handler2 = mock(EventHandler.class);
 
-        final GenEventActor<String> ge = spawnGenEvent(null);
+        final GenEvent<String> ge = spawnGenEvent(null);
 
         ge.addHandler(handler1);
         ge.addHandler(handler2);
@@ -126,8 +127,8 @@ public class GenEventTest {
 
         ge.notify("goodbye");
 
-        ge.ref().shutdown();
-        ge.join(100, TimeUnit.MILLISECONDS);
+        ge.shutdown();
+        ActorUtil.join(ge, 100, TimeUnit.MILLISECONDS);
 
         verify(handler1, never()).handleEvent("goodbye");
         verify(handler2).handleEvent("goodbye");
@@ -143,7 +144,7 @@ public class GenEventTest {
         final Exception myException = new RuntimeException("haha!");
         doThrow(myException).when(handler1).handleEvent(anyString());
 
-        final GenEventActor<String> ge = spawnGenEvent(init);
+        final GenEvent<String> ge = spawnGenEvent(init);
 
         ge.addHandler(handler1);
         ge.addHandler(handler2);
@@ -155,6 +156,6 @@ public class GenEventTest {
 
         verify(init).terminate(myException);
 
-        ge.join(100, TimeUnit.MILLISECONDS);
+        ActorUtil.join(ge, 100, TimeUnit.MILLISECONDS);
     }
 }

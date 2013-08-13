@@ -20,11 +20,11 @@
 package co.paralleluniverse.galaxy.example.simplegenevent;
 
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.actors.behaviors.EventHandler;
 import co.paralleluniverse.actors.behaviors.GenEvent;
-import co.paralleluniverse.actors.behaviors.Initializer;
 import co.paralleluniverse.actors.behaviors.GenEventActor;
-import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.actors.behaviors.Initializer;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.DelayedVal;
 import java.util.concurrent.ExecutionException;
@@ -42,11 +42,11 @@ public class Server {
         System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
 
         final DelayedVal<String> dv = new DelayedVal<>();
-        new Fiber(new GenEventActor<>(new Initializer() {
+        GenEvent<String> ge = new GenEventActor<String>(new Initializer() {
             @Override
             public void init() throws SuspendExecution {
                 Actor.currentActor().register("myEventServer");
-                final GenEvent<String> ge = (GenEvent<String>)Actor.self();
+                final GenEvent<String> ge = Actor.self();
                 try {
                     ge.addHandler(new EventHandler<String>() {
                         @Override
@@ -64,8 +64,9 @@ public class Server {
             public void terminate(Throwable cause) throws SuspendExecution {
                 System.out.println("server terminated");
             }
-        })).start().join();
+        }).spawn();
 
+        ActorUtil.join(ge);
         System.exit(0);
     }
 }

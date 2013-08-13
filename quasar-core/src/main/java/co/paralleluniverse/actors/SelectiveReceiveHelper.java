@@ -31,7 +31,7 @@ public class SelectiveReceiveHelper<Message> {
      * @throws LwtInterruptedException
      */
     public final Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws TimeoutException, SuspendExecution, InterruptedException {
-        assert Actor.self() == null || Actor.self() == actor;
+        assert Actor.currentActor() == null || Actor.currentActor() == actor;
 
         final Mailbox<Object> mailbox = actor.mailbox();
 

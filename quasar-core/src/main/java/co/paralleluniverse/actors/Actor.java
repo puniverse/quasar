@@ -45,7 +45,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private static final Logger LOG = LoggerFactory.getLogger(Actor.class);
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
     private Strand strand;
-    final ActorRef<Message> self;
+    final ActorRef<Message> ref;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
     private final Set<ActorRefImpl> observed = Collections.newSetFromMap(new ConcurrentHashMapV8<ActorRefImpl, Boolean>());
     private volatile V result;
@@ -58,7 +58,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     protected transient final FlightRecorder flightRecorder;
 
     public Actor(String name, MailboxConfig mailboxConfig) {
-        this.self = new LocalActorRef(this, name, new Mailbox(mailboxConfig));
+        this.ref = new LocalActorRef(this, name, new Mailbox(mailboxConfig));
         mailbox().setActor(this);
         this.flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
     }
@@ -70,7 +70,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
 
     public String getName() {
-        return self.getName();
+        return ref.getName();
     }
 
     public void setName(String name) {
@@ -78,19 +78,19 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
 
     private ActorRefImpl myRef() {
-        return ((ActorRefImpl) self);
+        return ((ActorRefImpl) ref);
     }
 
     public ActorRef<Message> spawn(ForkJoinPool fjPool) {
         new Fiber(getName(), fjPool, this).start();
         return ref();
     }
-    
+
     public ActorRef<Message> spawn() {
         new Fiber(getName(), this).start();
         return ref();
     }
-    
+
     public static <T extends Actor<Message, V>, Message, V> T newActor(Class<T> clazz, Object... params) {
         return newActor(ActorSpec.of(clazz, params));
     }
@@ -210,22 +210,25 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return monitor;
     }
 
-    public static Actor currentActor() {
+    public static <M, V> Actor<M, V> currentActor() {
         final Fiber currentFiber = Fiber.currentFiber();
         if (currentFiber == null)
             return currentActor.get();
         final SuspendableCallable target = currentFiber.getTarget();
-        if (target == null || !(target instanceof ActorRef))
+        if (target == null || !(target instanceof Actor))
             return null;
-        return (Actor) target;
+        return (Actor<M, V>) target;
     }
 
-    public ActorRef ref() {
-        return self;
+    public ActorRef<Message> ref() {
+        return ref;
     }
 
-    public static ActorRef self() {
-        return currentActor().ref();
+    public static <T extends ActorRef<M>, M> T self() {
+        final Actor a = currentActor();
+        if(a == null)
+            return null;
+        return (T) currentActor().ref();
     }
 
     @Override
@@ -252,7 +255,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
 
     protected final Mailbox<Object> mailbox() {
-        return (Mailbox<Object>) ((ActorRefImpl) self).mailbox();
+        return (Mailbox<Object>) ((ActorRefImpl) ref).mailbox();
     }
 
     void internalSend(Object message) {
@@ -417,11 +420,11 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     protected final void verifyInActor() {
         if (!isInActor())
-            throw new ConcurrencyException("Operation not called from within the actor (" + this + ")");
+            throw new ConcurrencyException("Operation not called from within the actor (" + this + ", but called in " + currentActor() + ")");
     }
 
     protected final boolean isInActor() {
-        return (self() == this);
+        return (currentActor() == this);
     }
     //</editor-fold>
 
@@ -465,12 +468,12 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     final void addLifecycleListener(LifecycleListener listener) {
         if (isDone()) {
-            listener.dead(self, deathCause);
+            listener.dead(ref, deathCause);
             return;
         }
         lifecycleListeners.add(listener);
         if (isDone())
-            listener.dead(self, deathCause);
+            listener.dead(ref, deathCause);
     }
 
     void removeLifecycleListener(LifecycleListener listener) {
@@ -513,19 +516,19 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
 
     private ActorRefImpl getActorImpl(ActorRef actor) {
+        while(actor instanceof ActorRefDelegate)
+            actor = ((ActorRefDelegate)actor).ref;
         if (actor instanceof ActorRefImpl)
             return (ActorRefImpl) actor;
-        else if (actor instanceof ActorWrapper)
-            return getActorImpl(((ActorWrapper) actor).getActor());
         else
-            throw new ClassCastException("Actor " + actor + " is not an ActorImpl");
+            throw new AssertionError("Actor " + actor + " is not an ActorImpl");
     }
 
     public final Actor link(ActorRef other1) {
         final ActorRefImpl other = getActorImpl(other1);
         record(1, "Actor", "link", "Linking actors %s, %s", this, other);
         if (this.isDone()) {
-            other.getLifecycleListener().dead(self, getDeathCause());
+            other.getLifecycleListener().dead(ref, getDeathCause());
         } else {
             addLifecycleListener(other.getLifecycleListener());
             other.addLifecycleListener(myRef().getLifecycleListener());
@@ -545,7 +548,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         final Object id = ActorUtil.randtag();
 
         final ActorRefImpl other = getActorImpl(other1);
-        final LifecycleListener listener = new ActorLifecycleListener(self, id);
+        final LifecycleListener listener = new ActorLifecycleListener(ref, id);
         record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other, listener);
 
         other.addLifecycleListener(listener);
@@ -555,7 +558,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     public final void unwatch(ActorRef other1, Object watchId) {
         final ActorRefImpl other = getActorImpl(other1);
-        final LifecycleListener listener = new ActorLifecycleListener(self, watchId);
+        final LifecycleListener listener = new ActorLifecycleListener(ref, watchId);
         record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other, listener);
         other.removeLifecycleListener(listener);
         observed.remove(getActorImpl(other1));
@@ -596,7 +599,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         for (LifecycleListener listener : lifecycleListeners) {
             record(1, "Actor", "die", "Actor %s notifying listener %s of death.", this, listener);
             try {
-                listener.dead(self, cause);
+                listener.dead(ref, cause);
             } catch (Exception e) {
                 record(1, "Actor", "die", "Actor %s notifying listener %s of death failed with excetpion %s", this, listener, e);
             }
@@ -616,7 +619,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         observed.clear();
     }
     //</editor-fold>
-    
+
     //<editor-fold defaultstate="collapsed" desc="Monitor delegates">
     /////////// Monitor delegates ///////////////////////////////////
     protected final void monitorAddDeath(Object reason) {

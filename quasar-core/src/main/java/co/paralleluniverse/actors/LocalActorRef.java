@@ -51,12 +51,12 @@ class LocalActorRef<Message> extends ActorRefImpl<Message> implements java.io.Se
 
     @Override
     protected void removeLifecycleListener(LifecycleListener listener) {
-        actor.addLifecycleListener(listener);
+        actor.removeLifecycleListener(listener);
     }
 
     @Override
-    protected void removeObserverListeners(ActorRefImpl actor) {
-        actor.addLifecycleListener(null);
+    protected void removeObserverListeners(ActorRefImpl observer) {
+        actor.removeObserverListeners(observer);
     }
 
     @Override

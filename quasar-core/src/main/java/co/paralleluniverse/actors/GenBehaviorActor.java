@@ -33,7 +33,7 @@ public abstract class GenBehaviorActor extends Actor<Object, Void> implements ja
         super(strand, name, mailboxConfig);
         this.initializer = initializer;
         this.run = true;
-        this.ref = makeRef(self);
+        this.ref = makeRef(super.ref);
     }
 
     protected GenBehavior makeRef(ActorRef<Object> ref) {
@@ -47,12 +47,12 @@ public abstract class GenBehaviorActor extends Actor<Object, Void> implements ja
 
     @Override
     public GenBehavior spawn(ForkJoinPool fjPool) {
-        return (GenBehavior)spawn(fjPool);
+        return (GenBehavior)super.spawn(fjPool);
     }
 
     @Override
     public GenBehavior spawn() {
-        return (GenBehavior)spawn();
+        return (GenBehavior)super.spawn();
     }
     
     //<editor-fold defaultstate="collapsed" desc="Constructors">

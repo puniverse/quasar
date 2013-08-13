@@ -41,29 +41,31 @@ public final class ActorUtil {
     public static void join(ActorRef<?> actor) throws ExecutionException, InterruptedException {
         actorOf(actor).join();
     }
-    
+
     public static void join(ActorRef<?> actor, long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
         actorOf(actor).join(timeout, unit);
     }
-    
+
     public static <V> V get(ActorRef<?> actor) throws ExecutionException, InterruptedException {
-        return (V)actorOf(actor).get();
+        return (V) actorOf(actor).get();
     }
-    
+
     public static <V> V get(ActorRef<?> actor, long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
-        return (V)actorOf(actor).get(timeout, unit);
+        return (V) actorOf(actor).get(timeout, unit);
     }
-    
+
     public static QueueChannel<Object> getMailbox(ActorRef<?> actor) {
         return actorOf(actor).mailbox();
     }
-    
+
     static Actor actorOf(ActorRef ar) {
-        if(!(ar instanceof LocalActorRef))
+        while (ar instanceof ActorRefDelegate)
+            ar = ((ActorRefDelegate) ar).ref;
+        if (!(ar instanceof LocalActorRef))
             throw new IllegalArgumentException("ActorRef " + ar + " is not a local actor.");
-        return ((LocalActorRef)ar).getActor();
+        return ((LocalActorRef) ar).getActor();
     }
-    
+
     private ActorUtil() {
     }
 }

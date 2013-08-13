@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
+import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.GenBehaviorActor;
 import co.paralleluniverse.actors.MailboxConfig;
@@ -51,12 +52,12 @@ public class GenServerActor<CallMessage, V, CastMessage> extends GenBehaviorActo
 
     @Override
     public GenServer<CallMessage, V, CastMessage> spawn(ForkJoinPool fjPool) {
-        return (GenServer<CallMessage, V, CastMessage>) spawn(fjPool);
+        return (GenServer<CallMessage, V, CastMessage>) super.spawn(fjPool);
     }
 
     @Override
     public GenServer<CallMessage, V, CastMessage> spawn() {
-        return (GenServer<CallMessage, V, CastMessage>) spawn();
+        return (GenServer<CallMessage, V, CastMessage>) super.spawn();
     }
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
@@ -104,7 +105,7 @@ public class GenServerActor<CallMessage, V, CastMessage> extends GenBehaviorActo
     }
 
     public static <CallMessage, V, CastMessage> GenServerActor<CallMessage, V, CastMessage> currentGenServer() {
-        return (GenServerActor<CallMessage, V, CastMessage>) self();
+        return (GenServerActor<CallMessage, V, CastMessage>) (Actor)currentActor();
     }
 
     @Override

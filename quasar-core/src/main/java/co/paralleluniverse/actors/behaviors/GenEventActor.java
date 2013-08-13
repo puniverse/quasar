@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
+import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.GenBehaviorActor;
 import co.paralleluniverse.actors.MailboxConfig;
@@ -50,12 +51,12 @@ public class GenEventActor<Event> extends GenBehaviorActor {
 
     @Override
     public GenEvent<Event> spawn(ForkJoinPool fjPool) {
-        return (GenEvent<Event>) spawn(fjPool);
+        return (GenEvent<Event>) super.spawn(fjPool);
     }
 
     @Override
     public GenEvent<Event> spawn() {
-        return (GenEvent<Event>) spawn();
+        return (GenEvent<Event>) super.spawn();
     }
     
     //<editor-fold defaultstate="collapsed" desc="Constructors">
@@ -141,7 +142,7 @@ public class GenEventActor<Event> extends GenBehaviorActor {
     }
 
     public static <Event> GenEventActor<Event> currentGenEvent() {
-        return (GenEventActor<Event>) self();
+        return (GenEventActor<Event>) (Actor)currentActor();
     }
 
     private void notifyHandlers(Event event) {

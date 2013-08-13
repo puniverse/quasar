@@ -21,8 +21,8 @@ package co.paralleluniverse.galaxy.example.pingpong;
 
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorRegistry;
+import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.actors.BasicActor;
-import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.galaxy.example.pingpong.Message.Type.*;
 import co.paralleluniverse.strands.Strand;
@@ -33,13 +33,13 @@ import co.paralleluniverse.strands.Strand;
  */
 public class Ping {
     private static final int nodeId = 1;
-    
+
     public static void main(String[] args) throws Exception {
         System.setProperty("galaxy.nodeId", Integer.toString(nodeId));
         System.setProperty("galaxy.port", Integer.toString(7050 + nodeId));
         System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
 
-        new Fiber(new BasicActor<Message, Void>() {
+        ActorRef<Message> ping = new BasicActor<Message, Void>() {
             @Override
             protected Void doRun() throws InterruptedException, SuspendExecution {
                 ActorRef pong;
@@ -58,7 +58,8 @@ public class Ping {
                 pong.send(new Message(null, FINISHED));
                 return null;
             }
-        }).start().join();
+        }.spawn();
+        ActorUtil.join(ping);
         System.out.println("finished ping");
         System.exit(0);
     }

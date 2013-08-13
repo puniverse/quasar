@@ -93,12 +93,12 @@ public class SupervisorActor extends GenBehaviorActor {
 
     @Override
     public Supervisor spawn(ForkJoinPool fjPool) {
-        return (Supervisor) spawn(fjPool);
+        return (Supervisor) super.spawn(fjPool);
     }
 
     @Override
     public Supervisor spawn() {
-        return (Supervisor) spawn();
+        return (Supervisor) super.spawn();
     }
     
     //<editor-fold defaultstate="collapsed" desc="Constructors">
