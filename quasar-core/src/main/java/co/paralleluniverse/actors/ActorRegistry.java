@@ -46,10 +46,10 @@ public class ActorRegistry {
         // atomically register
         final ActorRef ref = actor.ref();
         final Entry old = registeredActors.get(name);
-        if (old.actor == actor)
+        if (old != null && old.actor == actor)
             return old.globalId;
 
-        if (old != null)
+        if (old != null && LocalActorUtil.isLocal(old.actor) && !LocalActorUtil.isDone(old.actor))
             throw new RegistrationException("Actor " + old + " is not dead and is already registered under " + name);
 
         if (old != null)

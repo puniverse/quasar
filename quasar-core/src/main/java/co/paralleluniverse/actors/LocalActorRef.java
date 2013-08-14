@@ -12,10 +12,10 @@ import co.paralleluniverse.strands.channels.SendPort;
  *
  * @author pron
  */
-class LocalActorRef<Message> extends ActorRefImpl<Message> implements java.io.Serializable {
-    private Actor<Message, ?> actor;
+class LocalActorRef<Message, V> extends ActorRefImpl<Message> implements ActorBuilder<Message, V>, java.io.Serializable {
+    private Actor<Message, V> actor;
 
-    public LocalActorRef(Actor<Message, ?> actor, String name, SendPort<Object> mailbox) {
+    public LocalActorRef(Actor<Message, V> actor, String name, SendPort<Object> mailbox) {
         super(name, mailbox);
         this.actor = actor;
     }
@@ -55,7 +55,7 @@ class LocalActorRef<Message> extends ActorRefImpl<Message> implements java.io.Se
     }
 
     @Override
-    protected void removeObserverListeners(ActorRefImpl observer) {
+    protected void removeObserverListeners(ActorRef observer) {
         actor.removeObserverListeners(observer);
     }
 
@@ -69,11 +69,36 @@ class LocalActorRef<Message> extends ActorRefImpl<Message> implements java.io.Se
         actor.interrupt();
     }
 
+    //////////////////////////////////////
+    @Override
+    public final Actor<Message, V> build() {
+        if (!actor.isDone())
+            throw new IllegalStateException("Actor " + this + " isn't dead. Cannot build a copy");
+
+        final Actor newInstance = actor.reinstantiate();
+
+        if (newInstance.getName() == null)
+            newInstance.setName(this.getName());
+        newInstance.setStrand(null);
+        
+        ActorMonitor monitor = actor.getMonitor();
+        newInstance.setMonitor(monitor);
+        monitor.setActor(newInstance);
+        if (getName() != null && ActorRegistry.getActor(getName()) == this)
+            newInstance.register();
+        return newInstance;
+    }
+
     //<editor-fold desc="Serialization">
     /////////// Serialization ///////////////////////////////////
     protected Object writeReplace() throws java.io.ObjectStreamException {
-        final RemoteActorRef<Message> repl = RemoteProxyFactoryService.create((ActorRef<Message>)this, actor.getGlobalId());
+        final RemoteActorRef<Message> repl = RemoteProxyFactoryService.create((ActorRef<Message>) this, actor.getGlobalId());
         return repl;
     }
     //</editor-fold>
+
+    @Override
+    public String toString() {
+        return "LocalActorRef{" + "actor: " + actor + '}';
+    }
 }

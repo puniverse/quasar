@@ -15,16 +15,18 @@ package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.actors.ExitMessage;
 import co.paralleluniverse.actors.GenBehaviorActor;
 import co.paralleluniverse.actors.LifecycleMessage;
+import co.paralleluniverse.actors.LocalActorUtil;
+import static co.paralleluniverse.actors.LocalActorUtil.isLocal;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.ShutdownMessage;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.replyError;
 import co.paralleluniverse.actors.behaviors.Supervisor.AddChildMessage;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
+import co.paralleluniverse.actors.behaviors.Supervisor.GetChildMessage;
 import co.paralleluniverse.actors.behaviors.Supervisor.RemoveChildMessage;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -34,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -100,10 +103,9 @@ public class SupervisorActor extends GenBehaviorActor {
     public Supervisor spawn() {
         return (Supervisor) super.spawn();
     }
-    
+
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-
     public SupervisorActor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy) {
         this(strand, name, mailboxConfig, restartStrategy, (Initializer) null);
     }
@@ -154,13 +156,6 @@ public class SupervisorActor extends GenBehaviorActor {
     }
     //</editor-fold>
 
-    public <Message, V> Actor<Message, V> getChild(Object name) {
-        final ChildEntry child = findEntryById(name);
-        if (child == null)
-            return null;
-        return (Actor<Message, V>) child.actor;
-    }
-
     @Override
     public Logger log() {
         return LOG;
@@ -202,11 +197,13 @@ public class SupervisorActor extends GenBehaviorActor {
         if (m1 instanceof GenRequestMessage) {
             final GenRequestMessage req = (GenRequestMessage) m1;
             try {
-                if (req instanceof AddChildMessage) {
+                if (req instanceof GetChildMessage) {
+                    reply(req, getChild(((GetChildMessage) req).name));
+                } else if (req instanceof AddChildMessage) {
                     reply(req, addChild(((AddChildMessage) req).info));
                 } else if (req instanceof RemoveChildMessage) {
                     final RemoveChildMessage m = (RemoveChildMessage) req;
-                    reply(req, removeChild(m.id, m.terminate));
+                    reply(req, removeChild(m.name, m.terminate));
                 }
             } catch (Exception e) {
                 replyError(req, e);
@@ -230,12 +227,13 @@ public class SupervisorActor extends GenBehaviorActor {
 
     private ChildEntry addChild1(ChildSpec spec) {
         LOG.debug("Adding child {}", spec);
-        Actor actor = null;
-        if (spec.builder instanceof Actor) {
-            actor = (Actor) spec.builder;
+        ActorRef actor = null;
+        if (spec.builder instanceof ActorRef) {
+            actor = (ActorRef) spec.builder;
             if (findEntry(actor) != null)
                 throw new SupervisorException("Supervisor " + this + " already supervises actor " + actor);
         }
+
         Object id = spec.getId();
         if (id == null && actor != null)
             id = actor.getName();
@@ -252,13 +250,21 @@ public class SupervisorActor extends GenBehaviorActor {
         verifyInActor();
         final ChildEntry child = addChild1(spec);
 
-        final Actor actor = spec.builder instanceof Actor ? (Actor) spec.builder : null;
+        ActorRef<?> actor = spec.builder instanceof ActorRef ? (ActorRef<?>) spec.builder : null;
         if (actor == null)
-            start(child);
+            actor = start(child);
         else
             start(child, actor);
 
-        return actor.ref();
+        return actor;
+    }
+
+    protected <Message> ActorRef<Message> getChild(Object name) {
+        verifyInActor();
+        final ChildEntry child = findEntryById(name);
+        if (child == null)
+            return null;
+        return (ActorRef<Message>) child.actor;
     }
 
     protected final boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException {
@@ -299,8 +305,8 @@ public class SupervisorActor extends GenBehaviorActor {
         try {
             if (m instanceof ExitMessage) {
                 final ExitMessage death = (ExitMessage) m;
-                if (death.getWatch() != null && death.actor instanceof Actor) {
-                    final Actor actor = (Actor) death.actor;
+                if (death.getWatch() != null) {
+                    final ActorRef actor = death.actor;
                     final ChildEntry child = findEntry(actor);
 
                     if (child != null) {
@@ -329,7 +335,7 @@ public class SupervisorActor extends GenBehaviorActor {
             // fall through
             case PERMANENT:
                 LOG.info("Supervisor trying to restart child {}. (cause: {})", child, cause);
-                final Actor actor = child.actor;
+                final ActorRef actor = child.actor;
                 shutdownChild(child, true);
                 child.restartHistory.addRestart(now);
                 final int numRestarts = child.restartHistory.numRestarts(now - child.info.unit.toMillis(child.info.duration));
@@ -350,9 +356,9 @@ public class SupervisorActor extends GenBehaviorActor {
         }
     }
 
-    private Actor start(ChildEntry child) {
-        final Actor old = child.actor;
-        if (old != null && !old.isDone())
+    private ActorRef<?> start(ChildEntry child) {
+        final ActorRef old = child.actor;
+        if (old != null && !LocalActorUtil.isDone(old))
             throw new IllegalStateException("Actor " + child.actor + " cannot be restarted because it is not dead");
 
         final Actor actor = child.info.builder.build();
@@ -361,45 +367,49 @@ public class SupervisorActor extends GenBehaviorActor {
 
         LOG.info("{} starting child {}", this, actor);
 
-        if (old != null && actor.getMonitor() == null && old.getMonitor() != null)
-            actor.setMonitor(old.getMonitor());
+        if (old != null && actor.getMonitor() == null && isLocal(old) && LocalActorUtil.getMonitor(old) != null)
+            actor.setMonitor(LocalActorUtil.getMonitor(old));
         if (actor.getMonitor() != null)
             actor.getMonitor().addRestart();
 
-        return start(child, actor);
-    }
-
-    private Actor start(ChildEntry child, Actor actor) {
         final Strand strand;
         if (actor.getStrand() != null)
             strand = actor.getStrand();
         else
-            strand = createStrandForActor(child.actor != null ? child.actor.getStrand() : null, actor);
-
-        child.actor = actor;
-        child.watch = watch(actor.ref());
+            strand = createStrandForActor(child.actor != null && isLocal(child.actor) ? LocalActorUtil.getStrand(child.actor) : null, actor);
 
         try {
             strand.start();
         } catch (IllegalThreadStateException e) {
             LOG.info("Child {} has already been started.", actor);
         }
+
+        return start(child, actor.ref());
+    }
+
+    private ActorRef start(ChildEntry child, ActorRef actor) {
+        child.actor = actor;
+        child.watch = watch(actor);
+
         return actor;
     }
 
     private void shutdownChild(ChildEntry child, boolean beforeRestart) throws InterruptedException {
         if (child.actor != null) {
             unwatch(child);
-            if (!child.actor.isDone()) {
+            if (!isLocal(child.actor) || !LocalActorUtil.isDone(child.actor)) {
                 LOG.info("{} shutting down child {}", this, child.actor);
-                ActorUtil.sendOrInterrupt(child.actor.ref(), new ShutdownMessage(this.ref()));
+                LocalActorUtil.sendOrInterrupt(child.actor, new ShutdownMessage(this.ref()));
             }
-            try {
-                joinChild(child);
-            } finally {
-                if (!beforeRestart) {
-                    child.actor.stopMonitor();
-                    child.actor = null;
+
+            if (isLocal(child.actor)) {
+                try {
+                    joinChild(child);
+                } finally {
+                    if (!beforeRestart) {
+                        LocalActorUtil.stopMonitor(child.actor);
+                        child.actor = null;
+                    }
                 }
             }
         }
@@ -410,16 +420,16 @@ public class SupervisorActor extends GenBehaviorActor {
         for (ChildEntry child : children) {
             if (child.actor != null) {
                 unwatch(child);
-                ActorUtil.sendOrInterrupt(child.actor.ref(), new ShutdownMessage(this.ref()));
+                LocalActorUtil.sendOrInterrupt(child.actor, new ShutdownMessage(this.ref()));
             }
         }
 
         for (ChildEntry child : children) {
-            if (child.actor != null) {
+            if (child.actor != null && isLocal(child.actor)) {
                 try {
                     joinChild(child);
                     if (child.actor != null)
-                        child.actor.stopMonitor(); // must be done after join to avoid a race with the actor
+                        LocalActorUtil.stopMonitor(child.actor); // must be done after join to avoid a race with the actor
                 } finally {
                     child.actor = null;
                 }
@@ -428,10 +438,12 @@ public class SupervisorActor extends GenBehaviorActor {
     }
 
     private boolean joinChild(ChildEntry child) throws InterruptedException {
+        final ActorRef actor = child.actor;
+
         LOG.debug("Joining child {}", child);
         if (child.actor != null) {
             try {
-                child.actor.join(child.info.shutdownDeadline, TimeUnit.MILLISECONDS);
+                LocalActorUtil.join(actor, child.info.shutdownDeadline, TimeUnit.MILLISECONDS);
                 LOG.debug("Child {} terminated normally", child.actor);
                 return true;
             } catch (ExecutionException ex) {
@@ -440,10 +452,10 @@ public class SupervisorActor extends GenBehaviorActor {
             } catch (TimeoutException ex) {
                 LOG.warn("Child {} shutdown timeout. Interrupting...", child.actor);
                 // is this the best we can do?
-                child.actor.getStrand().interrupt();
+                LocalActorUtil.getStrand(actor).interrupt();
 
                 try {
-                    child.actor.join(child.info.shutdownDeadline, TimeUnit.MILLISECONDS);
+                    LocalActorUtil.join(actor, child.info.shutdownDeadline, TimeUnit.MILLISECONDS);
                     return true;
                 } catch (ExecutionException e) {
                     LOG.info("Child {} terminated with exception {}", child.actor, ex.getCause());
@@ -451,8 +463,8 @@ public class SupervisorActor extends GenBehaviorActor {
                 } catch (TimeoutException e) {
                     LOG.warn("Child {} could not shut down...", child.actor);
 
-                    child.actor.stopMonitor();
-                    child.actor.unregister();
+                    LocalActorUtil.stopMonitor(child.actor);
+                    LocalActorUtil.unregister(child.actor);
                     child.actor = null;
 
                     return false;
@@ -464,7 +476,7 @@ public class SupervisorActor extends GenBehaviorActor {
 
     private void unwatch(ChildEntry child) {
         if (child.actor != null && child.watch != null) {
-            unwatch(child.actor.ref(), child.watch);
+            unwatch(child.actor, child.watch);
             child.watch = null;
         }
     }
@@ -479,14 +491,14 @@ public class SupervisorActor extends GenBehaviorActor {
         return strand;
     }
 
-    private ChildEntry findEntry(Actor actor) {
+    private ChildEntry findEntry(ActorRef actor) {
         if (actor.getName() != null) {
             ChildEntry child = findEntryById(actor.getName());
             if (child != null)
                 return child;
         }
         for (ChildEntry child : children) {
-            if (child.actor == actor)
+            if (Objects.equals(child.actor, actor))
                 return child;
         }
         return null;
@@ -548,13 +560,13 @@ public class SupervisorActor extends GenBehaviorActor {
         final ChildSpec info;
         final RestartHistory restartHistory;
         Object watch;
-        volatile Actor<?, ?> actor;
+        volatile ActorRef<?> actor;
 
         public ChildEntry(ChildSpec info) {
             this(info, null);
         }
 
-        public ChildEntry(ChildSpec info, Actor<?, ?> actor) {
+        public ChildEntry(ChildSpec info, ActorRef<?> actor) {
             this.info = info;
             this.restartHistory = new RestartHistory(info.maxRestarts + 1);
 

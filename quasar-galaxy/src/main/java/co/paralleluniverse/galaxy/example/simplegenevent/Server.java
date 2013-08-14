@@ -20,7 +20,7 @@
 package co.paralleluniverse.galaxy.example.simplegenevent;
 
 import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.ActorUtil;
+import co.paralleluniverse.actors.LocalActorUtil;
 import co.paralleluniverse.actors.behaviors.EventHandler;
 import co.paralleluniverse.actors.behaviors.GenEvent;
 import co.paralleluniverse.actors.behaviors.GenEventActor;
@@ -66,7 +66,7 @@ public class Server {
             }
         }).spawn();
 
-        ActorUtil.join(ge);
+        LocalActorUtil.join(ge);
         System.exit(0);
     }
 }

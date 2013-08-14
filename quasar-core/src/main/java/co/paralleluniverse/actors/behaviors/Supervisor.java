@@ -13,8 +13,9 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorBuilder;
+import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.GenBehavior;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -29,13 +30,17 @@ public class Supervisor extends GenBehavior {
         super(actor);
     }
 
-    public final ActorRef addChild(ChildSpec spec) throws SuspendExecution, InterruptedException {
+    public final <T extends ActorRef<M>, M> T addChild(ChildSpec spec) throws SuspendExecution, InterruptedException {
         final GenResponseMessage res = call(this, new AddChildMessage(RequestReplyHelper.from(), null, spec));
-        return ((GenValueResponseMessage<ActorRef>) res).getValue();
+        return (T) ((GenValueResponseMessage<ActorRef>) res).getValue();
+    }
+
+    public final <T extends ActorRef<M>, M> T getChild(Object id) throws SuspendExecution, InterruptedException {
+        final GenResponseMessage res = call(this, new GetChildMessage(RequestReplyHelper.from(), null, id));
+        return (T) ((GenValueResponseMessage<ActorRef>) res).getValue();
     }
 
     public final boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException {
-
         final GenResponseMessage res = call(this, new RemoveChildMessage(RequestReplyHelper.from(), null, id, terminate));
         return ((GenValueResponseMessage<Boolean>) res).getValue();
     }
@@ -53,6 +58,10 @@ public class Supervisor extends GenBehavior {
         final TimeUnit unit;
         final long shutdownDeadline;
 
+        public ChildSpec(String id, ChildMode mode, int maxRestarts, long duration, TimeUnit unit, long shutdownDeadline, ActorRef<?> actor) {
+            this(id, mode, maxRestarts, duration, unit, shutdownDeadline, (ActorBuilder)actor);
+        }
+        
         public ChildSpec(String id, ChildMode mode, int maxRestarts, long duration, TimeUnit unit, long shutdownDeadline, ActorBuilder<?, ?> builder) {
             this.id = id;
             this.builder = builder;
@@ -97,6 +106,7 @@ public class Supervisor extends GenBehavior {
         }
     }
 
+    ///////// Messages
     static class AddChildMessage extends GenRequestMessage {
         final ChildSpec info;
 
@@ -106,13 +116,22 @@ public class Supervisor extends GenBehavior {
         }
     }
 
+    static class GetChildMessage extends GenRequestMessage {
+        final Object name;
+
+        public GetChildMessage(ActorRef from, Object id, Object name) {
+            super(from, id);
+            this.name = name;
+        }
+    }
+
     static class RemoveChildMessage extends GenRequestMessage {
-        final Object id;
+        final Object name;
         final boolean terminate;
 
         public RemoveChildMessage(ActorRef from, Object id, Object name, boolean terminate) {
             super(from, id);
-            this.id = name;
+            this.name = name;
             this.terminate = terminate;
         }
     }

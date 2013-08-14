@@ -18,7 +18,7 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.ActorUtil;
+import co.paralleluniverse.actors.LocalActorUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
@@ -101,7 +101,7 @@ public class GenEventTest {
         verify(init).init();
 
         ge.shutdown();
-        ActorUtil.join(ge, 100, TimeUnit.MILLISECONDS);
+        LocalActorUtil.join(ge, 100, TimeUnit.MILLISECONDS);
 
         verify(init).terminate(null);
     }
@@ -128,7 +128,7 @@ public class GenEventTest {
         ge.notify("goodbye");
 
         ge.shutdown();
-        ActorUtil.join(ge, 100, TimeUnit.MILLISECONDS);
+        LocalActorUtil.join(ge, 100, TimeUnit.MILLISECONDS);
 
         verify(handler1, never()).handleEvent("goodbye");
         verify(handler2).handleEvent("goodbye");
@@ -156,6 +156,6 @@ public class GenEventTest {
 
         verify(init).terminate(myException);
 
-        ActorUtil.join(ge, 100, TimeUnit.MILLISECONDS);
+        LocalActorUtil.join(ge, 100, TimeUnit.MILLISECONDS);
     }
 }

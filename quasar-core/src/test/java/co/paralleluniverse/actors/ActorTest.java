@@ -99,7 +99,7 @@ public class ActorTest {
 
         actor.send(new Message(15));
 
-        assertThat(ActorUtil.<Integer>get(actor), is(15));
+        assertThat(LocalActorUtil.<Integer>get(actor), is(15));
     }
 
     @Test
@@ -117,7 +117,7 @@ public class ActorTest {
         Thread.sleep(200);
         actor.send(new Message(17));
 
-        assertThat(ActorUtil.<Integer>get(actor), is(42));
+        assertThat(LocalActorUtil.<Integer>get(actor), is(42));
     }
 
     private class TypedReceiveA {

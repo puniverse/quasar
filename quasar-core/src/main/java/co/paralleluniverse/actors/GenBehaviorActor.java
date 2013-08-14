@@ -42,6 +42,8 @@ public abstract class GenBehaviorActor extends Actor<Object, Void> implements ja
 
     @Override
     public GenBehavior ref() {
+        if (!isStarted())
+            throw new IllegalStateException("Actor has not been started");
         return ref;
     }
 

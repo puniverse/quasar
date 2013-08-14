@@ -21,7 +21,7 @@ package co.paralleluniverse.galaxy.example.pingpong;
 
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorRegistry;
-import co.paralleluniverse.actors.ActorUtil;
+import co.paralleluniverse.actors.LocalActorUtil;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.galaxy.example.pingpong.Message.Type.*;
@@ -59,7 +59,7 @@ public class Ping {
                 return null;
             }
         }.spawn();
-        ActorUtil.join(ping);
+        LocalActorUtil.join(ping);
         System.out.println("finished ping");
         System.exit(0);
     }

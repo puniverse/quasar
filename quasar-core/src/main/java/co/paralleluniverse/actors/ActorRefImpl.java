@@ -124,7 +124,7 @@ abstract class ActorRefImpl<Message> implements ActorRef<Message>, SendPort<Mess
 
     protected abstract void removeLifecycleListener(LifecycleListener listener);
 
-    protected abstract void removeObserverListeners(ActorRefImpl actor);
+    protected abstract void removeObserverListeners(ActorRef actor);
 
     protected LifecycleListener getLifecycleListener() {
         return lifecycleListener;

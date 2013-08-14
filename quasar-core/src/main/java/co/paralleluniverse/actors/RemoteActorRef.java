@@ -75,7 +75,7 @@ public class RemoteActorRef<Message> extends ActorRefImpl<Message> {
     }
 
     @Override
-    protected void removeObserverListeners(ActorRefImpl actor) {
+    protected void removeObserverListeners(ActorRef actor) {
         lifecycleListenerProxy.removeLifecycleListeners(this, actor);
     }
 
