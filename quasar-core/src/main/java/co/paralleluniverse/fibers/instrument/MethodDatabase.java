@@ -180,7 +180,7 @@ public class MethodDatabase implements Log {
             case MAYBE_CORE:
                 if (!className.startsWith("java/"))
                     log(LogLevel.INFO, "Method: %s#%s presumed non-suspendable: probably java core", className, methodName);
-                // fallthrough
+            // fallthrough
             case NONSUSPENDABLE:
                 return SuspendableType.NON_SUSPENDABLE;
             case SUSPENDABLE_ABSTRACT:
@@ -242,7 +242,8 @@ public class MethodDatabase implements Log {
 
         if (suspendable == UNKNOWN) {
             if (opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESTATIC || opcode == Opcodes.INVOKESPECIAL) {
-                suspendable = isMethodSuspendable0(entry.getSuperName(), methodName, methodDesc, opcode);
+                if (entry.getSuperName() != null)
+                    suspendable = isMethodSuspendable0(entry.getSuperName(), methodName, methodDesc, opcode);
             } else if (opcode == Opcodes.INVOKEINTERFACE) {
                 for (String iface : entry.getInterfaces()) {
                     int s = isMethodSuspendable0(iface, methodName, methodDesc, opcode);
@@ -464,7 +465,7 @@ public class MethodDatabase implements Log {
     public static final class ClassEntry {
         private final HashMap<String, SuspendableType> methods;
         private String[] interfaces;
-        private String superName;
+        private final String superName;
         private boolean instrumented;
         private volatile boolean requiresInstrumentation;
 

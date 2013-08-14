@@ -140,7 +140,7 @@ class InstrumentMethod {
                             if (st == SuspendableType.NON_SUSPENDABLE)
                                 susp = false;
                             else if (st == null) {
-                                db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s", min.owner, min.name, min.desc);
+                                db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s (at%s#%s)", min.owner, min.name, min.desc, className, mn.name);
                                 susp = true;
                             } else if (susp)
                                 db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is suspendable", i, min.owner, min.name, min.desc);
