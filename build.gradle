@@ -119,7 +119,7 @@ subprojects {
 
     tasks.withType(Test) { 
         useJUnit()
-        systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+        // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
         
 	// systemProperty "java.util.logging.config.file", "jul.properties"
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
