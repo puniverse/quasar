@@ -22,10 +22,13 @@
 
 package co.paralleluniverse.strands.locks;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
 
 /**
  * A reentrant mutual exclusion {@link Lock} with the same basic
@@ -275,8 +278,13 @@ public class ReentrantLock implements Lock, java.io.Serializable {
      * purposes and lies dormant until the lock has been acquired,
      * at which time the lock hold count is set to one.
      */
-    public void lock() throws SuspendExecution {
-        sync.lock();
+    @Suspendable
+    public void lock() {
+        try {
+            sync.lock();
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
     /**
@@ -325,7 +333,8 @@ public class ReentrantLock implements Lock, java.io.Serializable {
      *
      * @throws InterruptedException if the current strand is interrupted
      */
-    public void lockInterruptibly() throws InterruptedException, SuspendExecution {
+    @Suspendable
+    public void lockInterruptibly() throws InterruptedException {
         sync.acquireInterruptibly(1);
     }
 
@@ -429,8 +438,9 @@ public class ReentrantLock implements Lock, java.io.Serializable {
      * @throws NullPointerException if the time unit is null
      *
      */
+    @Suspendable
     public boolean tryLock(long timeout, TimeUnit unit)
-            throws InterruptedException, SuspendExecution {
+            throws InterruptedException {
         return sync.tryAcquireNanos(1, unit.toNanos(timeout));
     }
 

@@ -22,10 +22,14 @@
 
 package co.paralleluniverse.strands.locks;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import java.util.*;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
 
 /**
  * An implementation of {@link ReadWriteLock} supporting similar
@@ -716,7 +720,8 @@ public class ReentrantReadWriteLock
          * the current strand becomes disabled for strand scheduling
          * purposes and lies dormant until the read lock has been acquired.
          */
-        public void lock() throws SuspendExecution {
+        @Suspendable
+        public void lock() {
             sync.acquireShared(1);
         }
 
@@ -761,7 +766,8 @@ public class ReentrantReadWriteLock
          *
          * @throws InterruptedException if the current strand is interrupted
          */
-        public void lockInterruptibly() throws InterruptedException, SuspendExecution {
+        @Suspendable
+        public void lockInterruptibly() throws InterruptedException {
             sync.acquireSharedInterruptibly(1);
         }
 
@@ -857,8 +863,9 @@ public class ReentrantReadWriteLock
          * @throws NullPointerException if the time unit is null
          *
          */
+        @Suspendable
         public boolean tryLock(long timeout, TimeUnit unit)
-                throws InterruptedException, SuspendExecution {
+                throws InterruptedException {
             return sync.tryAcquireSharedNanos(1, unit.toNanos(timeout));
         }
 
@@ -930,7 +937,8 @@ public class ReentrantReadWriteLock
          * lies dormant until the write lock has been acquired, at which
          * time the write lock hold count is set to one.
          */
-        public void lock() throws SuspendExecution {
+        @Suspendable
+        public void lock() {
             sync.acquire(1);
         }
 
@@ -985,7 +993,8 @@ public class ReentrantReadWriteLock
          *
          * @throws InterruptedException if the current strand is interrupted
          */
-        public void lockInterruptibly() throws InterruptedException, SuspendExecution {
+        @Suspendable
+        public void lockInterruptibly() throws InterruptedException {
             sync.acquireInterruptibly(1);
         }
 
@@ -1099,8 +1108,9 @@ public class ReentrantReadWriteLock
          * @throws NullPointerException if the time unit is null
          *
          */
+        @Suspendable
         public boolean tryLock(long timeout, TimeUnit unit)
-                throws InterruptedException, SuspendExecution {
+                throws InterruptedException {
             return sync.tryAcquireNanos(1, unit.toNanos(timeout));
         }
 

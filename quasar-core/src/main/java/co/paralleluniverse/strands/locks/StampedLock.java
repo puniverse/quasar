@@ -24,9 +24,13 @@ package co.paralleluniverse.strands.locks;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
 
 /**
  * A capability-based lock with three modes for controlling read/write
@@ -357,11 +361,16 @@ public class StampedLock implements java.io.Serializable {
      *
      * @return a stamp that can be used to unlock or convert mode
      */
-    public long writeLock() throws SuspendExecution {
-        long s, next;  // bypass acquireWrite in fully unlocked case only
-        return ((((s = state) & ABITS) == 0L
-                && U.compareAndSwapLong(this, STATE, s, next = s + WBIT))
-                ? next : acquireWrite(false, 0L));
+    @Suspendable
+    public long writeLock() {
+        try {
+            long s, next;  // bypass acquireWrite in fully unlocked case only
+            return ((((s = state) & ABITS) == 0L
+                    && U.compareAndSwapLong(this, STATE, s, next = s + WBIT))
+                    ? next : acquireWrite(false, 0L));
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
     /**
@@ -388,21 +397,26 @@ public class StampedLock implements java.io.Serializable {
      * @throws InterruptedException if the current strand is interrupted
      * before acquiring the lock
      */
+    @Suspendable
     public long tryWriteLock(long time, TimeUnit unit)
-            throws InterruptedException, SuspendExecution {
-        long nanos = unit.toNanos(time);
-        if (!Strand.interrupted()) {
-            long next, deadline;
-            if ((next = tryWriteLock()) != 0L)
-                return next;
-            if (nanos <= 0L)
-                return 0L;
-            if ((deadline = System.nanoTime() + nanos) == 0L)
-                deadline = 1L;
-            if ((next = acquireWrite(true, deadline)) != INTERRUPTED)
-                return next;
+            throws InterruptedException {
+        try {
+            long nanos = unit.toNanos(time);
+            if (!Strand.interrupted()) {
+                long next, deadline;
+                if ((next = tryWriteLock()) != 0L)
+                    return next;
+                if (nanos <= 0L)
+                    return 0L;
+                if ((deadline = System.nanoTime() + nanos) == 0L)
+                    deadline = 1L;
+                if ((next = acquireWrite(true, deadline)) != INTERRUPTED)
+                    return next;
+            }
+            throw new InterruptedException();
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
         }
-        throw new InterruptedException();
     }
 
     /**
@@ -415,12 +429,17 @@ public class StampedLock implements java.io.Serializable {
      * @throws InterruptedException if the current strand is interrupted
      * before acquiring the lock
      */
-    public long writeLockInterruptibly() throws InterruptedException, SuspendExecution {
-        long next;
-        if (!Strand.interrupted()
-                && (next = acquireWrite(true, 0L)) != INTERRUPTED)
-            return next;
-        throw new InterruptedException();
+    @Suspendable
+    public long writeLockInterruptibly() throws InterruptedException {
+        try {
+            long next;
+            if (!Strand.interrupted()
+                    && (next = acquireWrite(true, 0L)) != INTERRUPTED)
+                return next;
+            throw new InterruptedException();
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
     /**
@@ -429,11 +448,16 @@ public class StampedLock implements java.io.Serializable {
      *
      * @return a stamp that can be used to unlock or convert mode
      */
-    public long readLock() throws SuspendExecution {
-        long s, next;  // bypass acquireRead on fully unlocked case only
-        return ((((s = state) & ABITS) == 0L
-                && U.compareAndSwapLong(this, STATE, s, next = s + RUNIT))
-                ? next : acquireRead(false, 0L));
+    @Suspendable
+    public long readLock() {
+        try {
+            long s, next;  // bypass acquireRead on fully unlocked case only
+            return ((((s = state) & ABITS) == 0L
+                    && U.compareAndSwapLong(this, STATE, s, next = s + RUNIT))
+                    ? next : acquireRead(false, 0L));
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
     /**
@@ -466,26 +490,31 @@ public class StampedLock implements java.io.Serializable {
      * @throws InterruptedException if the current strand is interrupted
      * before acquiring the lock
      */
+    @Suspendable
     public long tryReadLock(long time, TimeUnit unit)
-            throws InterruptedException, SuspendExecution {
-        long s, m, next, deadline;
-        long nanos = unit.toNanos(time);
-        if (!Strand.interrupted()) {
-            if ((m = (s = state) & ABITS) != WBIT) {
-                if (m < RFULL) {
-                    if (U.compareAndSwapLong(this, STATE, s, next = s + RUNIT))
+            throws InterruptedException {
+        try {
+            long s, m, next, deadline;
+            long nanos = unit.toNanos(time);
+            if (!Strand.interrupted()) {
+                if ((m = (s = state) & ABITS) != WBIT) {
+                    if (m < RFULL) {
+                        if (U.compareAndSwapLong(this, STATE, s, next = s + RUNIT))
+                            return next;
+                    } else if ((next = tryIncReaderOverflow(s)) != 0L)
                         return next;
-                } else if ((next = tryIncReaderOverflow(s)) != 0L)
+                }
+                if (nanos <= 0L)
+                    return 0L;
+                if ((deadline = System.nanoTime() + nanos) == 0L)
+                    deadline = 1L;
+                if ((next = acquireRead(true, deadline)) != INTERRUPTED)
                     return next;
             }
-            if (nanos <= 0L)
-                return 0L;
-            if ((deadline = System.nanoTime() + nanos) == 0L)
-                deadline = 1L;
-            if ((next = acquireRead(true, deadline)) != INTERRUPTED)
-                return next;
+            throw new InterruptedException();
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
         }
-        throw new InterruptedException();
     }
 
     /**
@@ -498,12 +527,17 @@ public class StampedLock implements java.io.Serializable {
      * @throws InterruptedException if the current strand is interrupted
      * before acquiring the lock
      */
-    public long readLockInterruptibly() throws InterruptedException, SuspendExecution {
-        long next;
-        if (!Strand.interrupted()
-                && (next = acquireRead(true, 0L)) != INTERRUPTED)
-            return next;
-        throw new InterruptedException();
+    @Suspendable
+    public long readLockInterruptibly() throws InterruptedException {
+        try {
+            long next;
+            if (!Strand.interrupted()
+                    && (next = acquireRead(true, 0L)) != INTERRUPTED)
+                return next;
+            throw new InterruptedException();
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
     /**
@@ -558,7 +592,7 @@ public class StampedLock implements java.io.Serializable {
      * @throws IllegalMonitorStateException if the stamp does
      * not match the current state of this lock
      */
-    public void unlockRead(long stamp) throws SuspendExecution {
+    public void unlockRead(long stamp) {
         long s, m;
         WNode h;
         for (;;) {
@@ -584,7 +618,7 @@ public class StampedLock implements java.io.Serializable {
      * @throws IllegalMonitorStateException if the stamp does
      * not match the current state of this lock
      */
-    public void unlock(long stamp) throws SuspendExecution {
+    public void unlock(long stamp) {
         long a = stamp & ABITS, m, s;
         WNode h;
         while (((s = state) & SBITS) == (stamp & SBITS)) {
@@ -656,7 +690,7 @@ public class StampedLock implements java.io.Serializable {
      * @param stamp a stamp
      * @return a valid read stamp, or zero on failure
      */
-    public long tryConvertToReadLock(long stamp) throws SuspendExecution {
+    public long tryConvertToReadLock(long stamp) {
         long a = stamp & ABITS, m, s, next;
         WNode h;
         while (((s = state) & SBITS) == (stamp & SBITS)) {
@@ -693,7 +727,7 @@ public class StampedLock implements java.io.Serializable {
      * @param stamp a stamp
      * @return a valid optimistic read stamp, or zero on failure
      */
-    public long tryConvertToOptimisticRead(long stamp) throws SuspendExecution {
+    public long tryConvertToOptimisticRead(long stamp) {
         long a = stamp & ABITS, m, s, next;
         WNode h;
         for (;;) {
@@ -751,7 +785,7 @@ public class StampedLock implements java.io.Serializable {
      *
      * @return true if the read lock was held, else false
      */
-    public boolean tryUnlockRead() throws SuspendExecution {
+    public boolean tryUnlockRead() {
         long s, m;
         WNode h;
         while ((m = (s = state) & ABITS) != 0L && m < WBIT) {
@@ -839,11 +873,13 @@ public class StampedLock implements java.io.Serializable {
 
     // view classes
     final class ReadLockView implements Lock {
-        public void lock() throws SuspendExecution {
+        @Suspendable
+        public void lock() {
             readLock();
         }
 
-        public void lockInterruptibly() throws InterruptedException, SuspendExecution {
+        @Suspendable
+        public void lockInterruptibly() throws InterruptedException {
             readLockInterruptibly();
         }
 
@@ -851,8 +887,9 @@ public class StampedLock implements java.io.Serializable {
             return tryReadLock() != 0L;
         }
 
+        @Suspendable
         public boolean tryLock(long time, TimeUnit unit)
-                throws InterruptedException, SuspendExecution {
+                throws InterruptedException {
             return tryReadLock(time, unit) != 0L;
         }
 
@@ -866,11 +903,13 @@ public class StampedLock implements java.io.Serializable {
     }
 
     final class WriteLockView implements Lock {
-        public void lock() throws SuspendExecution {
+        @Suspendable
+        public void lock() {
             writeLock();
         }
 
-        public void lockInterruptibly() throws InterruptedException, SuspendExecution {
+        @Suspendable
+        public void lockInterruptibly() throws InterruptedException {
             writeLockInterruptibly();
         }
 
@@ -878,8 +917,9 @@ public class StampedLock implements java.io.Serializable {
             return tryWriteLock() != 0L;
         }
 
+        @Suspendable
         public boolean tryLock(long time, TimeUnit unit)
-                throws InterruptedException, SuspendExecution {
+                throws InterruptedException {
             return tryWriteLock(time, unit) != 0L;
         }
 

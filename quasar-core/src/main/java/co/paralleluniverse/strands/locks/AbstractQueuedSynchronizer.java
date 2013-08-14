@@ -35,11 +35,13 @@ package co.paralleluniverse.strands.locks;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.concurrent.locks.Condition;
 import sun.misc.Unsafe;
 
 /**
@@ -1194,10 +1196,15 @@ public abstract class AbstractQueuedSynchronizer
      *        {@link #tryAcquire} but is otherwise uninterpreted and
      *        can represent anything you like.
      */
-    public final void acquire(int arg) throws SuspendExecution {
-        if (!tryAcquire(arg) &&
-            acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
-            selfInterrupt();
+    @Suspendable
+    public final void acquire(int arg) {
+        try {
+            if (!tryAcquire(arg)
+                    && acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
+                selfInterrupt();
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
     /**
@@ -1214,12 +1221,17 @@ public abstract class AbstractQueuedSynchronizer
      *        can represent anything you like.
      * @throws InterruptedException if the current strand is interrupted
      */
+    @Suspendable
     public final void acquireInterruptibly(int arg)
-            throws InterruptedException, SuspendExecution {
-        if (Strand.interrupted())
-            throw new InterruptedException();
-        if (!tryAcquire(arg))
-            doAcquireInterruptibly(arg);
+            throws InterruptedException {
+        try {
+            if (Strand.interrupted())
+                throw new InterruptedException();
+            if (!tryAcquire(arg))
+                doAcquireInterruptibly(arg);
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
     /**
@@ -1239,12 +1251,17 @@ public abstract class AbstractQueuedSynchronizer
      * @return {@code true} if acquired; {@code false} if timed out
      * @throws InterruptedException if the current strand is interrupted
      */
+    @Suspendable
     public final boolean tryAcquireNanos(int arg, long nanosTimeout)
-            throws InterruptedException, SuspendExecution {
-        if (Strand.interrupted())
-            throw new InterruptedException();
-        return tryAcquire(arg) ||
-            doAcquireNanos(arg, nanosTimeout);
+            throws InterruptedException {
+        try {
+            if (Strand.interrupted())
+                throw new InterruptedException();
+            return tryAcquire(arg)
+                    || doAcquireNanos(arg, nanosTimeout);
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
     /**
@@ -1278,9 +1295,14 @@ public abstract class AbstractQueuedSynchronizer
      *        {@link #tryAcquireShared} but is otherwise uninterpreted
      *        and can represent anything you like.
      */
-    public final void acquireShared(int arg) throws SuspendExecution {
-        if (tryAcquireShared(arg) < 0)
-            doAcquireShared(arg);
+    @Suspendable
+    public final void acquireShared(int arg) {
+        try {
+            if (tryAcquireShared(arg) < 0)
+                doAcquireShared(arg);
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
     /**
@@ -1296,12 +1318,17 @@ public abstract class AbstractQueuedSynchronizer
      * you like.
      * @throws InterruptedException if the current strand is interrupted
      */
+    @Suspendable
     public final void acquireSharedInterruptibly(int arg)
-            throws InterruptedException, SuspendExecution {
-        if (Strand.interrupted())
-            throw new InterruptedException();
-        if (tryAcquireShared(arg) < 0)
-            doAcquireSharedInterruptibly(arg);
+            throws InterruptedException {
+        try {
+            if (Strand.interrupted())
+                throw new InterruptedException();
+            if (tryAcquireShared(arg) < 0)
+                doAcquireSharedInterruptibly(arg);
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
     /**
@@ -1321,11 +1348,15 @@ public abstract class AbstractQueuedSynchronizer
      * @throws InterruptedException if the current strand is interrupted
      */
     public final boolean tryAcquireSharedNanos(int arg, long nanosTimeout)
-            throws InterruptedException, SuspendExecution {
-        if (Strand.interrupted())
-            throw new InterruptedException();
-        return tryAcquireShared(arg) >= 0 ||
-            doAcquireSharedNanos(arg, nanosTimeout);
+            throws InterruptedException {
+        try {
+            if (Strand.interrupted())
+                throw new InterruptedException();
+            return tryAcquireShared(arg) >= 0
+                    || doAcquireSharedNanos(arg, nanosTimeout);
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
     /**
@@ -1968,17 +1999,22 @@ public abstract class AbstractQueuedSynchronizer
          *      {@link #acquire} with saved state as argument.
          * </ol>
          */
-        public final void awaitUninterruptibly() throws SuspendExecution {
-            Node node = addConditionWaiter();
-            int savedState = fullyRelease(node);
-            boolean interrupted = false;
-            while (!isOnSyncQueue(node)) {
-                Strand.park(this);
-                if (Strand.interrupted())
-                    interrupted = true;
+        @Suspendable
+        public final void awaitUninterruptibly() {
+            try {
+                Node node = addConditionWaiter();
+                int savedState = fullyRelease(node);
+                boolean interrupted = false;
+                while (!isOnSyncQueue(node)) {
+                    Strand.park(this);
+                    if (Strand.interrupted())
+                        interrupted = true;
+                }
+                if (acquireQueued(node, savedState) || interrupted)
+                    selfInterrupt();
+            } catch (SuspendExecution e) {
+                throw new AssertionError();
             }
-            if (acquireQueued(node, savedState) || interrupted)
-                selfInterrupt();
         }
 
         /*
@@ -2029,23 +2065,28 @@ public abstract class AbstractQueuedSynchronizer
          * <li> If interrupted while blocked in step 4, throw InterruptedException.
          * </ol>
          */
-        public final void await() throws InterruptedException, SuspendExecution {
-            if (Strand.interrupted())
-                throw new InterruptedException();
-            Node node = addConditionWaiter();
-            int savedState = fullyRelease(node);
-            int interruptMode = 0;
-            while (!isOnSyncQueue(node)) {
-                Strand.park(this);
-                if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
-                    break;
+        @Suspendable
+        public final void await() throws InterruptedException {
+            try {
+                if (Strand.interrupted())
+                    throw new InterruptedException();
+                Node node = addConditionWaiter();
+                int savedState = fullyRelease(node);
+                int interruptMode = 0;
+                while (!isOnSyncQueue(node)) {
+                    Strand.park(this);
+                    if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
+                        break;
+                }
+                if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
+                    interruptMode = REINTERRUPT;
+                if (node.nextWaiter != null) // clean up if cancelled
+                    unlinkCancelledWaiters();
+                if (interruptMode != 0)
+                    reportInterruptAfterWait(interruptMode);
+            } catch (SuspendExecution e) {
+                throw new AssertionError(e);
             }
-            if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
-                interruptMode = REINTERRUPT;
-            if (node.nextWaiter != null) // clean up if cancelled
-                unlinkCancelledWaiters();
-            if (interruptMode != 0)
-                reportInterruptAfterWait(interruptMode);
         }
 
         /**
@@ -2061,32 +2102,37 @@ public abstract class AbstractQueuedSynchronizer
          * <li> If interrupted while blocked in step 4, throw InterruptedException.
          * </ol>
          */
+        @Suspendable
         public final long awaitNanos(long nanosTimeout)
-                throws InterruptedException, SuspendExecution {
-            if (Strand.interrupted())
-                throw new InterruptedException();
-            Node node = addConditionWaiter();
-            int savedState = fullyRelease(node);
-            final long deadline = System.nanoTime() + nanosTimeout;
-            int interruptMode = 0;
-            while (!isOnSyncQueue(node)) {
-                if (nanosTimeout <= 0L) {
-                    transferAfterCancelledWait(node);
-                    break;
+                throws InterruptedException {
+            try {
+                if (Strand.interrupted())
+                    throw new InterruptedException();
+                Node node = addConditionWaiter();
+                int savedState = fullyRelease(node);
+                final long deadline = System.nanoTime() + nanosTimeout;
+                int interruptMode = 0;
+                while (!isOnSyncQueue(node)) {
+                    if (nanosTimeout <= 0L) {
+                        transferAfterCancelledWait(node);
+                        break;
+                    }
+                    if (nanosTimeout >= spinForTimeoutThreshold)
+                        Strand.parkNanos(this, nanosTimeout);
+                    if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
+                        break;
+                    nanosTimeout = deadline - System.nanoTime();
                 }
-                if (nanosTimeout >= spinForTimeoutThreshold)
-                    Strand.parkNanos(this, nanosTimeout);
-                if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
-                    break;
-                nanosTimeout = deadline - System.nanoTime();
+                if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
+                    interruptMode = REINTERRUPT;
+                if (node.nextWaiter != null)
+                    unlinkCancelledWaiters();
+                if (interruptMode != 0)
+                    reportInterruptAfterWait(interruptMode);
+                return deadline - System.nanoTime();
+            } catch (SuspendExecution e) {
+                throw new AssertionError();
             }
-            if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
-                interruptMode = REINTERRUPT;
-            if (node.nextWaiter != null)
-                unlinkCancelledWaiters();
-            if (interruptMode != 0)
-                reportInterruptAfterWait(interruptMode);
-            return deadline - System.nanoTime();
         }
 
         /**
@@ -2103,31 +2149,36 @@ public abstract class AbstractQueuedSynchronizer
          * <li> If timed out while blocked in step 4, return false, else true.
          * </ol>
          */
+        @Suspendable
         public final boolean awaitUntil(Date deadline)
-                throws InterruptedException, SuspendExecution {
-            long abstime = deadline.getTime();
-            if (Strand.interrupted())
-                throw new InterruptedException();
-            Node node = addConditionWaiter();
-            int savedState = fullyRelease(node);
-            boolean timedout = false;
-            int interruptMode = 0;
-            while (!isOnSyncQueue(node)) {
-                if (System.currentTimeMillis() > abstime) {
-                    timedout = transferAfterCancelledWait(node);
-                    break;
+                throws InterruptedException {
+            try {
+                long abstime = deadline.getTime();
+                if (Strand.interrupted())
+                    throw new InterruptedException();
+                Node node = addConditionWaiter();
+                int savedState = fullyRelease(node);
+                boolean timedout = false;
+                int interruptMode = 0;
+                while (!isOnSyncQueue(node)) {
+                    if (System.currentTimeMillis() > abstime) {
+                        timedout = transferAfterCancelledWait(node);
+                        break;
+                    }
+                    Strand.parkUntil(this, abstime);
+                    if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
+                        break;
                 }
-                Strand.parkUntil(this, abstime);
-                if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
-                    break;
+                if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
+                    interruptMode = REINTERRUPT;
+                if (node.nextWaiter != null)
+                    unlinkCancelledWaiters();
+                if (interruptMode != 0)
+                    reportInterruptAfterWait(interruptMode);
+                return !timedout;
+            } catch (SuspendExecution e) {
+                throw new AssertionError();
             }
-            if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
-                interruptMode = REINTERRUPT;
-            if (node.nextWaiter != null)
-                unlinkCancelledWaiters();
-            if (interruptMode != 0)
-                reportInterruptAfterWait(interruptMode);
-            return !timedout;
         }
 
         /**
@@ -2144,34 +2195,39 @@ public abstract class AbstractQueuedSynchronizer
          * <li> If timed out while blocked in step 4, return false, else true.
          * </ol>
          */
+        @Suspendable
         public final boolean await(long time, TimeUnit unit)
-                throws InterruptedException, SuspendExecution {
-            long nanosTimeout = unit.toNanos(time);
-            if (Strand.interrupted())
-                throw new InterruptedException();
-            Node node = addConditionWaiter();
-            int savedState = fullyRelease(node);
-            final long deadline = System.nanoTime() + nanosTimeout;
-            boolean timedout = false;
-            int interruptMode = 0;
-            while (!isOnSyncQueue(node)) {
-                if (nanosTimeout <= 0L) {
-                    timedout = transferAfterCancelledWait(node);
-                    break;
+                throws InterruptedException {
+            try {
+                long nanosTimeout = unit.toNanos(time);
+                if (Strand.interrupted())
+                    throw new InterruptedException();
+                Node node = addConditionWaiter();
+                int savedState = fullyRelease(node);
+                final long deadline = System.nanoTime() + nanosTimeout;
+                boolean timedout = false;
+                int interruptMode = 0;
+                while (!isOnSyncQueue(node)) {
+                    if (nanosTimeout <= 0L) {
+                        timedout = transferAfterCancelledWait(node);
+                        break;
+                    }
+                    if (nanosTimeout >= spinForTimeoutThreshold)
+                        Strand.parkNanos(this, nanosTimeout);
+                    if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
+                        break;
+                    nanosTimeout = deadline - System.nanoTime();
                 }
-                if (nanosTimeout >= spinForTimeoutThreshold)
-                    Strand.parkNanos(this, nanosTimeout);
-                if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
-                    break;
-                nanosTimeout = deadline - System.nanoTime();
+                if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
+                    interruptMode = REINTERRUPT;
+                if (node.nextWaiter != null)
+                    unlinkCancelledWaiters();
+                if (interruptMode != 0)
+                    reportInterruptAfterWait(interruptMode);
+                return !timedout;
+            } catch (SuspendExecution e) {
+                throw new AssertionError();
             }
-            if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
-                interruptMode = REINTERRUPT;
-            if (node.nextWaiter != null)
-                unlinkCancelledWaiters();
-            if (interruptMode != 0)
-                reportInterruptAfterWait(interruptMode);
-            return !timedout;
         }
 
         //  support for instrumentation
