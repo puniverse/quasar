@@ -80,10 +80,9 @@ class LocalActorRef<Message, V> extends ActorRefImpl<Message> implements ActorBu
         if (newInstance.getName() == null)
             newInstance.setName(this.getName());
         newInstance.setStrand(null);
-        
+
         ActorMonitor monitor = actor.getMonitor();
         newInstance.setMonitor(monitor);
-        monitor.setActor(newInstance);
         if (getName() != null && ActorRegistry.getActor(getName()) == this)
             newInstance.register();
         return newInstance;

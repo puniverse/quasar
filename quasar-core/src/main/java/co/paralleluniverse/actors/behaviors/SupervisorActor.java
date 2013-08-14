@@ -281,8 +281,6 @@ public class SupervisorActor extends GenBehaviorActor {
 
             if (terminate)
                 shutdownChild(child, false);
-            else
-                unwatch(child);
         }
 
         removeChild(child, null);
@@ -291,8 +289,8 @@ public class SupervisorActor extends GenBehaviorActor {
     }
 
     private void removeChild(ChildEntry child, Iterator<ChildEntry> iter) {
-        if (child.info.getId() != null)
-            childrenById.remove(child.info.getId());
+        if (child.spec.getId() != null)
+            childrenById.remove(child.spec.getId());
         if (iter != null)
             iter.remove();
         else
@@ -326,29 +324,32 @@ public class SupervisorActor extends GenBehaviorActor {
             super.handleLifecycleMessage(m);
     }
 
-    private boolean tryRestart(ChildEntry child, Throwable cause, long now, Iterator<ChildEntry> it) throws InterruptedException {
+    private boolean tryRestart(ChildEntry child, Throwable cause, long now, Iterator<ChildEntry> it, boolean isDead) throws InterruptedException {
         verifyInActor();
-        switch (child.info.mode) {
+        switch (child.spec.mode) {
             case TRANSIENT:
-                if (cause == null)
+                if (isDead && cause == null) {
+                    removeChild(child, it);
                     return true;
+                }
             // fall through
             case PERMANENT:
                 LOG.info("Supervisor trying to restart child {}. (cause: {})", child, cause);
                 final ActorRef actor = child.actor;
                 shutdownChild(child, true);
                 child.restartHistory.addRestart(now);
-                final int numRestarts = child.restartHistory.numRestarts(now - child.info.unit.toMillis(child.info.duration));
+                final int numRestarts = child.restartHistory.numRestarts(now - child.spec.unit.toMillis(child.spec.duration));
                 if (LOG.isDebugEnabled())
-                    LOG.debug("Child {} has been restarted {} times in the last {} {}s", child, numRestarts, child.info.duration, child.info.unit);
-                if (numRestarts > child.info.maxRestarts) {
+                    LOG.debug("Child {} has been restarted {} times in the last {} {}s", child, numRestarts, child.spec.duration, child.spec.unit);
+                if (numRestarts > child.spec.maxRestarts) {
                     LOG.info(this + ": too many restarts for child {}. Giving up.", actor);
                     return false;
                 }
                 start(child);
                 return true;
             case TEMPORARY:
-                shutdownChild(child, false);
+                if (!isDead)
+                    shutdownChild(child, false);
                 removeChild(child, it);
                 return true;
             default:
@@ -361,9 +362,9 @@ public class SupervisorActor extends GenBehaviorActor {
         if (old != null && !LocalActorUtil.isDone(old))
             throw new IllegalStateException("Actor " + child.actor + " cannot be restarted because it is not dead");
 
-        final Actor actor = child.info.builder.build();
-        if (actor.getName() == null && child.info.id != null)
-            actor.setName(child.info.id);
+        final Actor actor = child.spec.builder.build();
+        if (actor.getName() == null && child.spec.id != null)
+            actor.setName(child.spec.id);
 
         LOG.info("{} starting child {}", this, actor);
 
@@ -406,12 +407,12 @@ public class SupervisorActor extends GenBehaviorActor {
                 try {
                     joinChild(child);
                 } finally {
-                    if (!beforeRestart) {
+                    if (!beforeRestart)
                         LocalActorUtil.stopMonitor(child.actor);
-                        child.actor = null;
-                    }
                 }
             }
+            if (!beforeRestart)
+                child.actor = null;
         }
     }
 
@@ -428,12 +429,11 @@ public class SupervisorActor extends GenBehaviorActor {
             if (child.actor != null && isLocal(child.actor)) {
                 try {
                     joinChild(child);
-                    if (child.actor != null)
-                        LocalActorUtil.stopMonitor(child.actor); // must be done after join to avoid a race with the actor
                 } finally {
-                    child.actor = null;
+                    LocalActorUtil.stopMonitor(child.actor); // must be done after join to avoid a race with the actor
                 }
             }
+            child.actor = null;
         }
     }
 
@@ -443,7 +443,7 @@ public class SupervisorActor extends GenBehaviorActor {
         LOG.debug("Joining child {}", child);
         if (child.actor != null) {
             try {
-                LocalActorUtil.join(actor, child.info.shutdownDeadline, TimeUnit.MILLISECONDS);
+                LocalActorUtil.join(actor, child.spec.shutdownDeadline, TimeUnit.MILLISECONDS);
                 LOG.debug("Child {} terminated normally", child.actor);
                 return true;
             } catch (ExecutionException ex) {
@@ -455,7 +455,7 @@ public class SupervisorActor extends GenBehaviorActor {
                 LocalActorUtil.getStrand(actor).interrupt();
 
                 try {
-                    LocalActorUtil.join(actor, child.info.shutdownDeadline, TimeUnit.MILLISECONDS);
+                    LocalActorUtil.join(actor, child.spec.shutdownDeadline, TimeUnit.MILLISECONDS);
                     return true;
                 } catch (ExecutionException e) {
                     LOG.info("Child {} terminated with exception {}", child.actor, ex.getCause());
@@ -522,17 +522,23 @@ public class SupervisorActor extends GenBehaviorActor {
         ONE_FOR_ONE {
             @Override
             boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
-                return supervisor.tryRestart(child, cause, supervisor.now(), null);
+                return supervisor.tryRestart(child, cause, supervisor.now(), null, true);
             }
         },
         ALL_FOR_ONE {
             @Override
             boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
-                supervisor.shutdownChildren();
-                for (Iterator<ChildEntry> it = supervisor.children.iterator(); it.hasNext();) {
-                    final ChildEntry c = it.next();
-                    if (!supervisor.tryRestart(c, cause, supervisor.now(), it))
+                if (child.spec.mode == Supervisor.ChildMode.TEMPORARY
+                        || (child.spec.mode == Supervisor.ChildMode.TRANSIENT && cause == null)) {
+                    if (!supervisor.tryRestart(child, cause, supervisor.now(), null, true))
                         return false;
+                } else {
+                    supervisor.shutdownChildren();
+                    for (Iterator<ChildEntry> it = supervisor.children.iterator(); it.hasNext();) {
+                        final ChildEntry c = it.next();
+                        if (!supervisor.tryRestart(c, c == child ? cause : null, supervisor.now(), it, c == child))
+                            return false;
+                    }
                 }
                 return true;
             }
@@ -540,14 +546,20 @@ public class SupervisorActor extends GenBehaviorActor {
         REST_FOR_ONE {
             @Override
             boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
-                boolean found = false;
-                for (Iterator<ChildEntry> it = supervisor.children.iterator(); it.hasNext();) {
-                    final ChildEntry c = it.next();
-                    if (c == child)
-                        found = true;
-
-                    if (found && !supervisor.tryRestart(c, cause, supervisor.now(), it))
+                if (child.spec.mode == Supervisor.ChildMode.TEMPORARY
+                        || (child.spec.mode == Supervisor.ChildMode.TRANSIENT && cause == null)) {
+                    if (!supervisor.tryRestart(child, cause, supervisor.now(), null, true))
                         return false;
+                } else {
+                    boolean found = false;
+                    for (Iterator<ChildEntry> it = supervisor.children.iterator(); it.hasNext();) {
+                        final ChildEntry c = it.next();
+                        if (c == child)
+                            found = true;
+
+                        if (found && !supervisor.tryRestart(c, c == child ? cause : null, supervisor.now(), it, c == child))
+                            return false;
+                    }
                 }
                 return true;
             }
@@ -557,7 +569,7 @@ public class SupervisorActor extends GenBehaviorActor {
     }
 
     private static class ChildEntry {
-        final ChildSpec info;
+        final ChildSpec spec;
         final RestartHistory restartHistory;
         Object watch;
         volatile ActorRef<?> actor;
@@ -567,7 +579,7 @@ public class SupervisorActor extends GenBehaviorActor {
         }
 
         public ChildEntry(ChildSpec info, ActorRef<?> actor) {
-            this.info = info;
+            this.spec = info;
             this.restartHistory = new RestartHistory(info.maxRestarts + 1);
 
             this.actor = actor;
@@ -575,7 +587,7 @@ public class SupervisorActor extends GenBehaviorActor {
 
         @Override
         public String toString() {
-            return "ActorEntry{" + "info=" + info + " actor=" + actor + '}';
+            return "ActorEntry{" + "info=" + spec + " actor=" + actor + '}';
         }
     }
 

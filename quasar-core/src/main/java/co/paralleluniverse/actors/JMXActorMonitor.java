@@ -47,7 +47,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
      * For the time being, we're not worried about data races. Messages counters are all updated by the actor, so there's no problem there.
      * For the JMX thread to see the messages counter, it should really be volatile, but as an approximation, we keep it a regular int.
      */
-    private WeakReference<Actor> actor;
+    private WeakReference<ActorRef> actor;
     private final String name;
     private boolean registered;
     private long lastCollectTime;
@@ -64,20 +64,24 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
 
     public JMXActorMonitor(String name) {
         super(ActorMXBean.class, true, new NotificationBroadcasterSupport());
-        this.name = "co.paralleluniverse:type=quasar,monitor=actor,name=" + name;
+        this.name = beanName(name);
         LOG.info("Starting monitor {}: {}", name, this.name);
         lastCollectTime = nanoTime();
         collectAndResetCounters();
         registerMBean();
     }
 
+    private static String beanName(String name) {
+        return "co.paralleluniverse:type=quasar,monitor=actor,name=" + name;
+    }
+
     @Override
-    public void setActor(Actor actor) {
-        if(actor == null && this.actor == null)
+    public void setActor(ActorRef actor) {
+        if (actor == null && this.actor == null)
             return;
         LOG.info("Setting actor {} for monitor {}", actor, name);
         reset();
-        this.actor = (actor != null ? new WeakReference<Actor>(actor) : null);
+        this.actor = (actor != null ? new WeakReference<ActorRef>(actor) : null);
     }
 
     @Override
@@ -91,6 +95,14 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
         try {
             MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
             ObjectName mxbeanName = new ObjectName(name);
+
+            if (mbs.isRegistered(mxbeanName)) {
+                try {
+                    LOG.info("MBean named {} is alreasdy registered. Unregistering it.", name);
+                    mbs.unregisterMBean(mxbeanName);
+                } catch (InstanceNotFoundException e) {
+                }
+            }
             mbs.registerMBean(this, mxbeanName);
 
             MonitoringServices.getInstance().addPerfNotificationListener(this, name);
@@ -168,7 +180,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
 
     @Override
     public void addDeath(Object cause) {
-        if(cause == null)
+        if (cause == null)
             cause = "normal";
         while (deathCauses.size() > 20)
             deathCauses.poll();
@@ -200,10 +212,10 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
     public int getQueueLength() {
         if (this.actor == null)
             return 0;
-        final Actor a = this.actor.get();
+        final ActorRef a = this.actor.get();
         if (a == null)
             return 0;
-        return a.getQueueLength();
+        return LocalActorUtil.getQueueLength(a);
     }
 
     @Override

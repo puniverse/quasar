@@ -111,7 +111,8 @@ public class ActorRegistry {
     }
 
     public static <Message> ActorRef<Message> getActor(final String name) {
-        ActorRef<Message> actor = (ActorRef<Message>)registeredActors.get(name).actor;
+        Entry entry = registeredActors.get(name);
+        ActorRef<Message> actor = entry != null ? (ActorRef<Message>)entry.actor : null;
 
         if (actor == null && globalRegistry != null) {
             // TODO: will only work if called from a fiber

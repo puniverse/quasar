@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joinable<V>, Stranded, ReceivePort<Message> {
     private static final Logger LOG = LoggerFactory.getLogger(Actor.class);
+    private static final Throwable NATURAL = new Throwable();
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
     private Strand strand;
     final LocalActorRef<Message, V> ref;
@@ -169,7 +170,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             return monitor;
         final String name = getName().toString().replaceAll(":", "");
         this.monitor = new JMXActorMonitor(name);
-        monitor.setActor(this);
+        monitor.setActor(ref);
         return monitor;
     }
 
@@ -179,7 +180,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         if (this.monitor != null)
             throw new RuntimeException("actor already has a monitor");
         this.monitor = monitor;
-        monitor.setActor(this);
+        monitor.setActor(ref);
     }
 
     public final void stopMonitor() {
@@ -404,7 +405,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     @Override
     public final boolean isDone() {
-        return strand.isTerminated();
+        return deathCause != null || strand.isTerminated();
     }
 
     protected final void verifyInActor() {
@@ -437,7 +438,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             die(t);
             throw t;
         } finally {
-            record(1, "Actor", "die", "Actor %s is now dead of %s", this, deathCause);
+            record(1, "Actor", "die", "Actor %s is now dead of %s", this, getDeathCause());
             if (!(strand instanceof Fiber))
                 currentActor.set(null);
         }
@@ -456,13 +457,14 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
 
     final void addLifecycleListener(LifecycleListener listener) {
+        final Throwable cause = getDeathCause();
         if (isDone()) {
-            listener.dead(ref, deathCause);
+            listener.dead(ref, cause);
             return;
         }
         lifecycleListeners.add(listener);
         if (isDone())
-            listener.dead(ref, deathCause);
+            listener.dead(ref, cause);
     }
 
     void removeLifecycleListener(LifecycleListener listener) {
@@ -479,7 +481,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
 
     protected final Throwable getDeathCause() {
-        return deathCause;
+        return deathCause == NATURAL ? null : deathCause;
     }
 
     public final boolean isRegistered() {
@@ -581,7 +583,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     private void die(Throwable cause) {
         record(1, "Actor", "die", "Actor %s is dying of cause %s", this, cause);
-        this.deathCause = cause;
+        this.deathCause = (cause == null ? NATURAL : cause);
         monitorAddDeath(cause);
         if (isRegistered())
             unregister();

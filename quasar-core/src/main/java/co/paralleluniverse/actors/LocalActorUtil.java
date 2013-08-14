@@ -65,6 +65,29 @@ public final class LocalActorUtil {
         return actorOf(actor).isDone();
     }
 
+    public static ActorMonitor getMonitor(ActorRef<?> actor) {
+        return actorOf(actor).getMonitor();
+    }
+    
+    public static void stopMonitor(ActorRef<?> actor) {
+        actorOf(actor).stopMonitor();
+    }
+    
+    public static void unregister(ActorRef<?> actor) {
+        actorOf(actor).unregister();
+    }
+    
+    public static int getQueueLength(ActorRef<?> actor) {
+        return actorOf(actor).getQueueLength();
+    }
+    
+    public static <M, V> ActorBuilder<M, V> toActorBuilder(ActorRef<M> actor) {
+        actor = stripDelegates(actor);
+        if(!(actor instanceof LocalActorRef))
+            throw new IllegalArgumentException("ActorRef " + actor + " is not a local actor, and cannot be used as an ActorBuilder.");
+        return (ActorBuilder<M, V>)actor;
+    }
+    
     private static Actor actorOf(ActorRef ar) {
         ar = stripDelegates(ar);
         if (!(ar instanceof LocalActorRef))
@@ -72,7 +95,7 @@ public final class LocalActorUtil {
         return ((LocalActorRef) ar).getActor();
     }
     
-    static ActorRef stripDelegates(ActorRef ar) {
+    static <M> ActorRef<M> stripDelegates(ActorRef<M> ar) {
         while (ar instanceof ActorRefDelegate)
             ar = ((ActorRefDelegate) ar).ref;
         return ar;

@@ -207,7 +207,6 @@ public class SupervisorTest {
         LocalActorUtil.join(sup);
     }
 
-    @Ignore
     @Test
     public void whenChildDiesTooManyTimesThenGiveUpAndDie() throws Exception {
         final Supervisor sup = new SupervisorActor(RestartStrategy.ONE_FOR_ONE,
@@ -222,7 +221,7 @@ public class SupervisorTest {
             a.send(1);
 
             try {
-                LocalActorUtil.join(sup);
+                LocalActorUtil.join(a);
                 fail();
             } catch (ExecutionException e) {
             }
@@ -290,7 +289,6 @@ public class SupervisorTest {
             a.send(1);
         a.send(new ShutdownMessage(null));
         assertThat(LocalActorUtil.<Integer>get(a), is(3));
-
 
         a = getChild(sup, "actor1", 200);
         assertThat(a, nullValue());
@@ -390,13 +388,13 @@ public class SupervisorTest {
 
     ///////////////// Complex example ///////////////////////////////////////////
     private static class Actor3 extends BasicActor<Integer, Integer> {
-        private final SupervisorActor mySup;
+        private final Supervisor mySup;
         private final AtomicInteger started;
         private final AtomicInteger terminated;
 
         public Actor3(String name, AtomicInteger started, AtomicInteger terminated) {
             super(name);
-            mySup = (SupervisorActor) Actor.self();
+            mySup = Actor.self();
             this.started = started;
             this.terminated = terminated;
         }

@@ -17,6 +17,7 @@ import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.GenBehavior;
+import co.paralleluniverse.actors.LocalActorUtil;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.TimeUnit;
@@ -58,10 +59,6 @@ public class Supervisor extends GenBehavior {
         final TimeUnit unit;
         final long shutdownDeadline;
 
-        public ChildSpec(String id, ChildMode mode, int maxRestarts, long duration, TimeUnit unit, long shutdownDeadline, ActorRef<?> actor) {
-            this(id, mode, maxRestarts, duration, unit, shutdownDeadline, (ActorBuilder)actor);
-        }
-        
         public ChildSpec(String id, ChildMode mode, int maxRestarts, long duration, TimeUnit unit, long shutdownDeadline, ActorBuilder<?, ?> builder) {
             this.id = id;
             this.builder = builder;
@@ -70,6 +67,10 @@ public class Supervisor extends GenBehavior {
             this.duration = duration;
             this.unit = unit;
             this.shutdownDeadline = shutdownDeadline;
+        }
+
+        public ChildSpec(String id, ChildMode mode, int maxRestarts, long duration, TimeUnit unit, long shutdownDeadline, ActorRef<?> actor) {
+            this(id, mode, maxRestarts, duration, unit, shutdownDeadline, LocalActorUtil.toActorBuilder(actor));
         }
 
         public Object getId() {
