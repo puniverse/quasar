@@ -185,13 +185,6 @@ subprojects {
     task wrapper(type: Wrapper) {
         gradleVersion = '1.5-20130302103424+0000'
     }
-
-    task scanSuspendables(type: JavaExec, dependsOn: classes) { // used to run SuspendableScanner
-        main = "co.paralleluniverse.fibers.instrument.SuspendablesScanner"
-        classpath = sourceSets.main.runtimeClasspath
-        args = ["co.paralleluniverse.fibers", "co.paralleluniverse.strands"]
-    }
-    tasks.jar.dependsOn scanSuspendables
     
     defaultTasks 'build'
 
@@ -276,6 +269,13 @@ subprojects {
     }	
 }
 project (':quasar-core') {
+    task scanSuspendables(type: JavaExec, dependsOn: classes) { // runs SuspendableScanner
+        main = "co.paralleluniverse.fibers.instrument.SuspendablesScanner"
+        classpath = sourceSets.main.runtimeClasspath
+        args = ["co.paralleluniverse.fibers", "co.paralleluniverse.strands"]
+    }
+    tasks.jar.dependsOn scanSuspendables
+    
     jar {
 
         from zipTree("${baselib}/jsr166e.jar")  // include non-Maven jars
@@ -298,7 +298,7 @@ project (':quasar-galaxy') {
         main = mainClass
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
         systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
-        systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+        // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
         jvmArgs "-javaagent:${quasarJar}" // =v, =d
         jvmArgs "-ea", "-XX:MaxDirectMemorySize=100M"
         systemProperty "jgroups.bind_addr", "127.0.0.1"
