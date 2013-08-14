@@ -59,11 +59,11 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * @throws TimeoutException
      * @throws LwtInterruptedException
      */
-    public final Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws TimeoutException, SuspendExecution, InterruptedException {
+    public final <T> T receive(long timeout, TimeUnit unit, MessageProcessor<Message, T> proc) throws TimeoutException, SuspendExecution, InterruptedException {
         return helper.receive(timeout, unit, proc);
     }
 
-    public final Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
+    public final <T> T receive(MessageProcessor<Message, T> proc) throws SuspendExecution, InterruptedException {
         return helper.receive(proc);
     }
 

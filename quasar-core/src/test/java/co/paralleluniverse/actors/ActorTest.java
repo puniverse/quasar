@@ -152,30 +152,30 @@ public class ActorTest {
             protected List<Integer> doRun() throws SuspendExecution, InterruptedException {
                 final List<Integer> list = new ArrayList<>();
                 for (int i = 0; i < 2; i++) {
-                    receive(new MessageProcessor<ComplexMessage>() {
-                        public boolean process(ComplexMessage m) throws SuspendExecution, InterruptedException {
+                    receive(new MessageProcessor<ComplexMessage, ComplexMessage>() {
+                        public ComplexMessage process(ComplexMessage m) throws SuspendExecution, InterruptedException {
                             switch (m.type) {
                                 case FOO:
                                     list.add(m.num);
-                                    receive(new MessageProcessor<ComplexMessage>() {
-                                        public boolean process(ComplexMessage m) throws SuspendExecution, InterruptedException {
+                                    receive(new MessageProcessor<ComplexMessage, ComplexMessage>() {
+                                        public ComplexMessage process(ComplexMessage m) throws SuspendExecution, InterruptedException {
                                             switch (m.type) {
                                                 case BAZ:
                                                     list.add(m.num);
-                                                    return true;
+                                                    return m;
                                                 default:
-                                                    return false;
+                                                    return null;
                                             }
                                         }
                                     });
-                                    return true;
+                                    return m;
                                 case BAR:
                                     list.add(m.num);
-                                    return true;
+                                    return m;
                                 case BAZ:
                                     fail();
                                 default:
-                                    return false;
+                                    return null;
                             }
                         }
                     });
@@ -222,10 +222,10 @@ public class ActorTest {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 try {
-                    receive(100, TimeUnit.MILLISECONDS, new MessageProcessor<Message>() {
-                        public boolean process(Message m) throws SuspendExecution, InterruptedException {
+                    receive(100, TimeUnit.MILLISECONDS, new MessageProcessor<Message, Message>() {
+                        public Message process(Message m) throws SuspendExecution, InterruptedException {
                             fail();
-                            return true;
+                            return m;
                         }
                     });
                     fail();

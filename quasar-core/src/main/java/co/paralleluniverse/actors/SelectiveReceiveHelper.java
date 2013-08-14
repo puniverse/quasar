@@ -30,7 +30,7 @@ public class SelectiveReceiveHelper<Message> {
      * @throws TimeoutException
      * @throws LwtInterruptedException
      */
-    public final Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws TimeoutException, SuspendExecution, InterruptedException {
+    public final <T> T receive(long timeout, TimeUnit unit, MessageProcessor<Message, T> proc) throws TimeoutException, SuspendExecution, InterruptedException {
         assert Actor.currentActor() == null || Actor.currentActor() == actor;
 
         final Mailbox<Object> mailbox = actor.mailbox();
@@ -70,10 +70,11 @@ public class SelectiveReceiveHelper<Message> {
                         final Message msg = (Message) m;
                         currentMessage = msg;
                         try {
-                            if (proc.process(msg)) {
+                            T res = proc.process(msg);
+                            if (res != null) {
                                 if (mailbox.value(n) == msg) // another call to receive from within the processor may have deleted n
                                     mailbox.del(n);
-                                return msg;
+                                return res;
                             }
                         } catch (Exception e) {
                             if (mailbox.value(n) == msg) // another call to receive from within the processor may have deleted n
@@ -113,7 +114,7 @@ public class SelectiveReceiveHelper<Message> {
         }
     }
 
-    public final Message receive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
+    public final <T> T receive(MessageProcessor<Message, T> proc) throws SuspendExecution, InterruptedException {
         try {
             return receive(0, null, proc);
         } catch (TimeoutException e) {
@@ -121,7 +122,7 @@ public class SelectiveReceiveHelper<Message> {
         }
     }
 
-    public final Message tryReceive(MessageProcessor<Message> proc) throws SuspendExecution, InterruptedException {
+    public final <T> T tryReceive(MessageProcessor<Message, T> proc) throws SuspendExecution, InterruptedException {
         try {
             return receive(0, TimeUnit.NANOSECONDS, proc);
         } catch (TimeoutException e) {
@@ -129,20 +130,20 @@ public class SelectiveReceiveHelper<Message> {
         }
     }
 
-    public static <Message, T> MessageProcessor<Message> ofType(final Class<T> type) {
-        return new MessageProcessor<Message>() {
+    public static <M extends Message, Message> MessageProcessor<Message, M> ofType(final Class<M> type) {
+        return new MessageProcessor<Message, M>() {
             @Override
-            public boolean process(Message m) throws SuspendExecution, InterruptedException {
-                return (type.isInstance(m));
+            public M process(Message m) throws SuspendExecution, InterruptedException {
+                return type.isInstance(m) ? type.cast(m) : null;
             }
         };
     }
     
-    public final <T extends Message> T receive(long timeout, TimeUnit unit, final Class<T> type) throws SuspendExecution, InterruptedException, TimeoutException {
-        return type.cast(receive(timeout, unit, (MessageProcessor<Message>)ofType(type)));
+    public final <M extends Message> M receive(long timeout, TimeUnit unit, final Class<M> type) throws SuspendExecution, InterruptedException, TimeoutException {
+        return receive(timeout, unit, (MessageProcessor<Message, M>)ofType(type));
     }
 
-    public final <T extends Message> T receive(final Class<T> type) throws SuspendExecution, InterruptedException {
+    public final <M extends Message> M receive(final Class<M> type) throws SuspendExecution, InterruptedException {
         try {
             return receive(0, null, type);
         } catch (TimeoutException ex) {

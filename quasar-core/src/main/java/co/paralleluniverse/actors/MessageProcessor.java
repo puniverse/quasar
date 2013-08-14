@@ -19,6 +19,6 @@ import co.paralleluniverse.fibers.SuspendExecution;
  *
  * @author pron
  */
-public interface MessageProcessor<Message> {
-    boolean process(Message m) throws SuspendExecution, InterruptedException;
+public interface MessageProcessor<Message, T> {
+    T process(Message m) throws SuspendExecution, InterruptedException;
 }

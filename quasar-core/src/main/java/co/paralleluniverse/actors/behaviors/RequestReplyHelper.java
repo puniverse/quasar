@@ -81,10 +81,10 @@ public class RequestReplyHelper {
         };
         try {
             actor.sendSync(m);
-            final GenResponseMessage response = (GenResponseMessage) helper.receive(timeout, unit, new MessageProcessor<Object>() {
+            final GenResponseMessage response = (GenResponseMessage) helper.receive(timeout, unit, new MessageProcessor<Object, Object>() {
                 @Override
-                public boolean process(Object m) throws SuspendExecution, InterruptedException {
-                    return (m instanceof GenResponseMessage && id.equals(((GenResponseMessage) m).getId()));
+                public Object process(Object m) throws SuspendExecution, InterruptedException {
+                    return (m instanceof GenResponseMessage && id.equals(((GenResponseMessage) m).getId())) ? m : null;
                 }
             });
             currentActor.unwatch(actor, watch); // no need to unwatch in case of receiver death, so not doen in finally block
