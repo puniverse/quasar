@@ -38,15 +38,16 @@ public class SuspendablesScanner {
     private static final String CLASSFILE_SUFFIX = ".class";
 
     public static void main(String args[]) throws Exception {
-        String classPrefix = args[0];
-        String outputFile = args.length > 1 ? args[1] : BUILD_DIR + RESOURCES_DIR + PREFIX + SUSPENDABLE_SUPERS_FILE;
+        String[] classPrefixes = args;
+        String outputFile = BUILD_DIR + RESOURCES_DIR + PREFIX + SUSPENDABLE_SUPERS_FILE;
 
-        run(classPrefix, outputFile);
+        run(classPrefixes, outputFile);
     }
 
-    public static void run(String prefix, String outputFile) throws Exception {
+    public static void run(String[] prefixes, String outputFile) throws Exception {
         Set<String> results = new HashSet<String>();
-        collect(prefix, results);
+        for (String prefix : prefixes)
+            collect(prefix, results);
         outputResults(results, outputFile);
     }
 

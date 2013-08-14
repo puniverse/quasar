@@ -189,7 +189,7 @@ subprojects {
     task scanSuspendables(type: JavaExec, dependsOn: classes) { // used to run SuspendableScanner
         main = "co.paralleluniverse.fibers.instrument.SuspendablesScanner"
         classpath = sourceSets.main.runtimeClasspath
-        args = ["co.paralleluniverse.fibers"]
+        args = ["co.paralleluniverse.fibers", "co.paralleluniverse.strands"]
     }
     tasks.jar.dependsOn scanSuspendables
     
