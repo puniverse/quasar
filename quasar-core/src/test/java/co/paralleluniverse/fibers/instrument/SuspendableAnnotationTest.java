@@ -19,7 +19,6 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
 import co.paralleluniverse.strands.SuspendableCallable;
-import co.paralleluniverse.strands.SuspendableRunnable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -28,7 +27,7 @@ import org.junit.Test;
 
 /**
  * Test instrumentation of methods marked with the @Suspendable annotation
- * 
+ *
  * @author pron
  */
 public class SuspendableAnnotationTest {
