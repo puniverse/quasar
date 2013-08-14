@@ -30,6 +30,8 @@ public class SuspendableUtils {
         private final SuspendableRunnable runnable;
 
         public VoidSuspendableCallable(SuspendableRunnable runnable) {
+            if(runnable == null)
+                throw new NullPointerException("Runnable is null");
             this.runnable = runnable;
         }
 
