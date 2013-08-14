@@ -14,16 +14,20 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.ActorImpl;
+import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ExitMessage;
+import co.paralleluniverse.actors.GenBehaviorActor;
 import co.paralleluniverse.actors.LifecycleMessage;
-import co.paralleluniverse.actors.LocalActor;
+import co.paralleluniverse.actors.LocalActorUtil;
+import static co.paralleluniverse.actors.LocalActorUtil.isLocal;
 import co.paralleluniverse.actors.MailboxConfig;
-import co.paralleluniverse.actors.RemoteActor;
 import co.paralleluniverse.actors.ShutdownMessage;
-import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.replyError;
+import co.paralleluniverse.actors.behaviors.Supervisor.AddChildMessage;
+import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
+import co.paralleluniverse.actors.behaviors.Supervisor.GetChildMessage;
+import co.paralleluniverse.actors.behaviors.Supervisor.RemoveChildMessage;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -32,11 +36,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import jsr166e.ConcurrentHashMapV8;
+import jsr166e.ForkJoinPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -55,92 +61,100 @@ import org.slf4j.MDC;
  *
  * @author pron
  */
-public class LocalSupervisor extends BasicGenBehavior implements Supervisor {
-    private static final Logger LOG = LoggerFactory.getLogger(LocalSupervisor.class);
+public class SupervisorActor extends GenBehaviorActor {
+    private static final Logger LOG = LoggerFactory.getLogger(SupervisorActor.class);
     private final RestartStrategy restartStrategy;
     private List<ChildSpec> childSpec;
     private final List<ChildEntry> children = new ArrayList<ChildEntry>();
     private final ConcurrentMap<Object, ChildEntry> childrenById = new ConcurrentHashMapV8<Object, ChildEntry>();
 
-    public LocalSupervisor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, Initializer initializer) {
+    public SupervisorActor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, Initializer initializer) {
         super(name, initializer, strand, mailboxConfig);
         this.restartStrategy = restartStrategy;
         this.childSpec = null;
     }
 
-    public LocalSupervisor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
+    public SupervisorActor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
         super(name, null, strand, mailboxConfig);
         this.restartStrategy = restartStrategy;
         this.childSpec = childSpec;
     }
 
-    public LocalSupervisor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, ChildSpec... childSpec) {
+    public SupervisorActor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, ChildSpec... childSpec) {
         this(strand, name, mailboxConfig, restartStrategy, Arrays.asList(childSpec));
     }
 
     @Override
-    protected RemoteBasicGenBehavior getRemote(RemoteActor remote) {
-        return new RemoteSupervisor(remote);
+    protected Supervisor makeRef(ActorRef<Object> ref) {
+        return new Supervisor(ref);
+    }
+
+    @Override
+    public Supervisor ref() {
+        return (Supervisor) super.ref();
+    }
+
+    @Override
+    public Supervisor spawn(ForkJoinPool fjPool) {
+        return (Supervisor) super.spawn(fjPool);
+    }
+
+    @Override
+    public Supervisor spawn() {
+        return (Supervisor) super.spawn();
     }
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-    public LocalSupervisor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy) {
+    public SupervisorActor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy) {
         this(strand, name, mailboxConfig, restartStrategy, (Initializer) null);
     }
 
-    public LocalSupervisor(String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy) {
+    public SupervisorActor(String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy) {
         this(null, name, mailboxConfig, restartStrategy, (Initializer) null);
     }
 
-    public LocalSupervisor(String name, RestartStrategy restartStrategy) {
+    public SupervisorActor(String name, RestartStrategy restartStrategy) {
         this(null, name, null, restartStrategy, (Initializer) null);
     }
 
-    public LocalSupervisor(String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, Initializer initializer) {
+    public SupervisorActor(String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, Initializer initializer) {
         this(null, name, mailboxConfig, restartStrategy, initializer);
     }
 
-    public LocalSupervisor(String name, RestartStrategy restartStrategy, Initializer initializer) {
+    public SupervisorActor(String name, RestartStrategy restartStrategy, Initializer initializer) {
         this(null, name, null, restartStrategy, initializer);
     }
 
-    public LocalSupervisor(RestartStrategy restartStrategy) {
+    public SupervisorActor(RestartStrategy restartStrategy) {
         this(null, null, null, restartStrategy, (Initializer) null);
     }
 
     ///
-    public LocalSupervisor(String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
+    public SupervisorActor(String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
         this(null, name, mailboxConfig, restartStrategy, childSpec);
     }
 
-    public LocalSupervisor(String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, ChildSpec... childSpec) {
+    public SupervisorActor(String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, ChildSpec... childSpec) {
         this(null, name, mailboxConfig, restartStrategy, childSpec);
     }
 
-    public LocalSupervisor(String name, RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
+    public SupervisorActor(String name, RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
         this(null, name, null, restartStrategy, childSpec);
     }
 
-    public LocalSupervisor(String name, RestartStrategy restartStrategy, ChildSpec... childSpec) {
+    public SupervisorActor(String name, RestartStrategy restartStrategy, ChildSpec... childSpec) {
         this(null, name, null, restartStrategy, childSpec);
     }
 
-    public LocalSupervisor(RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
+    public SupervisorActor(RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
         this(null, null, null, restartStrategy, childSpec);
     }
 
-    public LocalSupervisor(RestartStrategy restartStrategy, ChildSpec... childSpec) {
+    public SupervisorActor(RestartStrategy restartStrategy, ChildSpec... childSpec) {
         this(null, null, null, restartStrategy, childSpec);
     }
     //</editor-fold>
-
-    public <Message, V> LocalActor<Message, V> getChild(Object name) {
-        final ChildEntry child = findEntryById(name);
-        if (child == null)
-            return null;
-        return (LocalActor<Message, V>) child.actor;
-    }
 
     @Override
     public Logger log() {
@@ -156,7 +170,7 @@ public class LocalSupervisor extends BasicGenBehavior implements Supervisor {
                 try {
                     if (getInitializer() != null)
                         throw new IllegalStateException("Cannot provide a supervisor with both a child-spec list as well as an initializer");
-                    if (!LocalSupervisor.class.equals(this.getClass()))
+                    if (!SupervisorActor.class.equals(this.getClass()))
                         throw new IllegalStateException("Cannot provide a subclassed supervisor with a child-spec list");
 
                     for (ChildSpec cs : childSpec)
@@ -183,9 +197,13 @@ public class LocalSupervisor extends BasicGenBehavior implements Supervisor {
         if (m1 instanceof GenRequestMessage) {
             final GenRequestMessage req = (GenRequestMessage) m1;
             try {
-                if (m1 instanceof AddChildMessage) {
-                    final AddChildMessage m = (AddChildMessage) m1;
-                    reply(m, addChild(m.info));
+                if (req instanceof GetChildMessage) {
+                    reply(req, getChild(((GetChildMessage) req).name));
+                } else if (req instanceof AddChildMessage) {
+                    reply(req, addChild(((AddChildMessage) req).info));
+                } else if (req instanceof RemoveChildMessage) {
+                    final RemoveChildMessage m = (RemoveChildMessage) req;
+                    reply(req, removeChild(m.name, m.terminate));
                 }
             } catch (Exception e) {
                 replyError(req, e);
@@ -209,12 +227,13 @@ public class LocalSupervisor extends BasicGenBehavior implements Supervisor {
 
     private ChildEntry addChild1(ChildSpec spec) {
         LOG.debug("Adding child {}", spec);
-        LocalActor actor = null;
-        if (spec.builder instanceof LocalActor) {
-            actor = (LocalActor) spec.builder;
+        ActorRef actor = null;
+        if (spec.builder instanceof ActorRef) {
+            actor = (ActorRef) spec.builder;
             if (findEntry(actor) != null)
                 throw new SupervisorException("Supervisor " + this + " already supervises actor " + actor);
         }
+
         Object id = spec.getId();
         if (id == null && actor != null)
             id = actor.getName();
@@ -227,55 +246,51 @@ public class LocalSupervisor extends BasicGenBehavior implements Supervisor {
         return child;
     }
 
-    @Override
-    public final Actor addChild(ChildSpec spec) throws SuspendExecution, InterruptedException {
-        if (isInActor()) {
-            final ChildEntry child = addChild1(spec);
+    protected final ActorRef addChild(ChildSpec spec) throws SuspendExecution, InterruptedException {
+        verifyInActor();
+        final ChildEntry child = addChild1(spec);
 
-            final LocalActor actor = spec.builder instanceof LocalActor ? (LocalActor) spec.builder : null;
-            if (actor == null)
-                start(child);
-            else
-                start(child, actor);
+        ActorRef<?> actor = spec.builder instanceof ActorRef ? (ActorRef<?>) spec.builder : null;
+        if (actor == null)
+            actor = start(child);
+        else
+            start(child, actor);
 
-            return actor;
-        } else {
-            final GenResponseMessage res = call(this, new AddChildMessage(RequestReplyHelper.from(), null, spec));
-            return ((GenValueResponseMessage<Actor>) res).getValue();
-        }
+        return actor;
     }
 
-    @Override
-    public final boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException {
-        if (isInActor()) {
-            final ChildEntry child = findEntryById(id);
-            if (child == null) {
-                LOG.warn("Child {} not found", id);
-                return false;
-            }
+    protected <Message> ActorRef<Message> getChild(Object name) {
+        verifyInActor();
+        final ChildEntry child = findEntryById(name);
+        if (child == null)
+            return null;
+        return (ActorRef<Message>) child.actor;
+    }
 
-            LOG.debug("Removing child {}", child);
-            if (child.actor != null) {
-                unwatch(child);
-
-                if (terminate)
-                    shutdownChild(child, false);
-                else
-                    unwatch(child);
-            }
-
-            removeChild(child, null);
-
-            return true;
-        } else {
-            final GenResponseMessage res = call(this, new RemoveChildMessage(RequestReplyHelper.from(), null, id, terminate));
-            return ((GenValueResponseMessage<Boolean>) res).getValue();
+    protected final boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException {
+        verifyInActor();
+        final ChildEntry child = findEntryById(id);
+        if (child == null) {
+            LOG.warn("Child {} not found", id);
+            return false;
         }
+
+        LOG.debug("Removing child {}", child);
+        if (child.actor != null) {
+            unwatch(child);
+
+            if (terminate)
+                shutdownChild(child, false);
+        }
+
+        removeChild(child, null);
+
+        return true;
     }
 
     private void removeChild(ChildEntry child, Iterator<ChildEntry> iter) {
-        if (child.info.getId() != null)
-            childrenById.remove(child.info.getId());
+        if (child.spec.getId() != null)
+            childrenById.remove(child.spec.getId());
         if (iter != null)
             iter.remove();
         else
@@ -288,8 +303,8 @@ public class LocalSupervisor extends BasicGenBehavior implements Supervisor {
         try {
             if (m instanceof ExitMessage) {
                 final ExitMessage death = (ExitMessage) m;
-                if (death.getWatch() != null && death.actor instanceof LocalActor) {
-                    final LocalActor actor = (LocalActor) death.actor;
+                if (death.getWatch() != null) {
+                    final ActorRef actor = death.actor;
                     final ChildEntry child = findEntry(actor);
 
                     if (child != null) {
@@ -309,29 +324,32 @@ public class LocalSupervisor extends BasicGenBehavior implements Supervisor {
             super.handleLifecycleMessage(m);
     }
 
-    private boolean tryRestart(ChildEntry child, Throwable cause, long now, Iterator<ChildEntry> it) throws InterruptedException {
+    private boolean tryRestart(ChildEntry child, Throwable cause, long now, Iterator<ChildEntry> it, boolean isDead) throws InterruptedException {
         verifyInActor();
-        switch (child.info.mode) {
+        switch (child.spec.mode) {
             case TRANSIENT:
-                if (cause == null)
+                if (isDead && cause == null) {
+                    removeChild(child, it);
                     return true;
+                }
             // fall through
             case PERMANENT:
                 LOG.info("Supervisor trying to restart child {}. (cause: {})", child, cause);
-                final Actor actor = child.actor;
+                final ActorRef actor = child.actor;
                 shutdownChild(child, true);
                 child.restartHistory.addRestart(now);
-                final int numRestarts = child.restartHistory.numRestarts(now - child.info.unit.toMillis(child.info.duration));
+                final int numRestarts = child.restartHistory.numRestarts(now - child.spec.unit.toMillis(child.spec.duration));
                 if (LOG.isDebugEnabled())
-                    LOG.debug("Child {} has been restarted {} times in the last {} {}s", child, numRestarts, child.info.duration, child.info.unit);
-                if (numRestarts > child.info.maxRestarts) {
+                    LOG.debug("Child {} has been restarted {} times in the last {} {}s", child, numRestarts, child.spec.duration, child.spec.unit);
+                if (numRestarts > child.spec.maxRestarts) {
                     LOG.info(this + ": too many restarts for child {}. Giving up.", actor);
                     return false;
                 }
                 start(child);
                 return true;
             case TEMPORARY:
-                shutdownChild(child, false);
+                if (!isDead)
+                    shutdownChild(child, false);
                 removeChild(child, it);
                 return true;
             default:
@@ -339,58 +357,62 @@ public class LocalSupervisor extends BasicGenBehavior implements Supervisor {
         }
     }
 
-    private LocalActor start(ChildEntry child) {
-        final LocalActor old = child.actor;
-        if (old != null && !old.isDone())
+    private ActorRef<?> start(ChildEntry child) {
+        final ActorRef old = child.actor;
+        if (old != null && !LocalActorUtil.isDone(old))
             throw new IllegalStateException("Actor " + child.actor + " cannot be restarted because it is not dead");
 
-        final LocalActor actor = child.info.builder.build();
-        if (actor.getName() == null && child.info.id != null)
-            actor.setName(child.info.id);
+        final Actor actor = child.spec.builder.build();
+        if (actor.getName() == null && child.spec.id != null)
+            actor.setName(child.spec.id);
 
         LOG.info("{} starting child {}", this, actor);
 
-        if (old != null && actor.getMonitor() == null && old.getMonitor() != null)
-            actor.setMonitor(old.getMonitor());
+        if (old != null && actor.getMonitor() == null && isLocal(old) && LocalActorUtil.getMonitor(old) != null)
+            actor.setMonitor(LocalActorUtil.getMonitor(old));
         if (actor.getMonitor() != null)
             actor.getMonitor().addRestart();
 
-        return start(child, actor);
-    }
-
-    private LocalActor start(ChildEntry child, LocalActor actor) {
         final Strand strand;
         if (actor.getStrand() != null)
             strand = actor.getStrand();
         else
-            strand = createStrandForActor(child.actor != null ? child.actor.getStrand() : null, actor);
-
-        child.actor = actor;
-        child.watch = watch(actor);
+            strand = createStrandForActor(child.actor != null && isLocal(child.actor) ? LocalActorUtil.getStrand(child.actor) : null, actor);
 
         try {
             strand.start();
         } catch (IllegalThreadStateException e) {
             LOG.info("Child {} has already been started.", actor);
         }
+
+        return start(child, actor.ref());
+    }
+
+    private ActorRef start(ChildEntry child, ActorRef actor) {
+        child.actor = actor;
+        child.watch = watch(actor);
+
         return actor;
     }
 
     private void shutdownChild(ChildEntry child, boolean beforeRestart) throws InterruptedException {
         if (child.actor != null) {
             unwatch(child);
-            if (!child.actor.isDone()) {
+            if (!isLocal(child.actor) || !LocalActorUtil.isDone(child.actor)) {
                 LOG.info("{} shutting down child {}", this, child.actor);
-                ((ActorImpl) child.actor).sendOrInterrupt(new ShutdownMessage(this));
+                LocalActorUtil.sendOrInterrupt(child.actor, new ShutdownMessage(this.ref()));
             }
-            try {
-                joinChild(child);
-            } finally {
-                if (!beforeRestart) {
-                    child.actor.stopMonitor();
-                    child.actor = null;
+
+            if (isLocal(child.actor)) {
+                try {
+                    joinChild(child);
+                } finally {
+                    if (!beforeRestart)
+                        LocalActorUtil.stopMonitor(child.actor);
                 }
             }
+            if (!beforeRestart)
+                child.actor = null;
         }
     }
 
@@ -399,28 +421,29 @@ public class LocalSupervisor extends BasicGenBehavior implements Supervisor {
         for (ChildEntry child : children) {
             if (child.actor != null) {
                 unwatch(child);
-                ((ActorImpl) child.actor).sendOrInterrupt(new ShutdownMessage(this));
+                LocalActorUtil.sendOrInterrupt(child.actor, new ShutdownMessage(this.ref()));
             }
         }
 
         for (ChildEntry child : children) {
-            if (child.actor != null) {
+            if (child.actor != null && isLocal(child.actor)) {
                 try {
                     joinChild(child);
-                    if (child.actor != null)
-                        child.actor.stopMonitor(); // must be done after join to avoid a race with the actor
                 } finally {
-                    child.actor = null;
+                    LocalActorUtil.stopMonitor(child.actor); // must be done after join to avoid a race with the actor
                 }
             }
+            child.actor = null;
         }
     }
 
     private boolean joinChild(ChildEntry child) throws InterruptedException {
+        final ActorRef actor = child.actor;
+
         LOG.debug("Joining child {}", child);
         if (child.actor != null) {
             try {
-                child.actor.join(child.info.shutdownDeadline, TimeUnit.MILLISECONDS);
+                LocalActorUtil.join(actor, child.spec.shutdownDeadline, TimeUnit.MILLISECONDS);
                 LOG.debug("Child {} terminated normally", child.actor);
                 return true;
             } catch (ExecutionException ex) {
@@ -429,10 +452,10 @@ public class LocalSupervisor extends BasicGenBehavior implements Supervisor {
             } catch (TimeoutException ex) {
                 LOG.warn("Child {} shutdown timeout. Interrupting...", child.actor);
                 // is this the best we can do?
-                child.actor.getStrand().interrupt();
+                LocalActorUtil.getStrand(actor).interrupt();
 
                 try {
-                    child.actor.join(child.info.shutdownDeadline, TimeUnit.MILLISECONDS);
+                    LocalActorUtil.join(actor, child.spec.shutdownDeadline, TimeUnit.MILLISECONDS);
                     return true;
                 } catch (ExecutionException e) {
                     LOG.info("Child {} terminated with exception {}", child.actor, ex.getCause());
@@ -440,8 +463,8 @@ public class LocalSupervisor extends BasicGenBehavior implements Supervisor {
                 } catch (TimeoutException e) {
                     LOG.warn("Child {} could not shut down...", child.actor);
 
-                    child.actor.stopMonitor();
-                    child.actor.unregister();
+                    LocalActorUtil.stopMonitor(child.actor);
+                    LocalActorUtil.unregister(child.actor);
                     child.actor = null;
 
                     return false;
@@ -458,7 +481,7 @@ public class LocalSupervisor extends BasicGenBehavior implements Supervisor {
         }
     }
 
-    private Strand createStrandForActor(Strand oldStrand, LocalActor actor) {
+    private Strand createStrandForActor(Strand oldStrand, Actor actor) {
         final Strand strand;
         if (oldStrand != null)
             strand = Strand.clone(oldStrand, actor);
@@ -468,14 +491,14 @@ public class LocalSupervisor extends BasicGenBehavior implements Supervisor {
         return strand;
     }
 
-    private ChildEntry findEntry(LocalActor actor) {
+    private ChildEntry findEntry(ActorRef actor) {
         if (actor.getName() != null) {
             ChildEntry child = findEntryById(actor.getName());
             if (child != null)
                 return child;
         }
         for (ChildEntry child : children) {
-            if (child.actor == actor)
+            if (Objects.equals(child.actor, actor))
                 return child;
         }
         return null;
@@ -492,79 +515,71 @@ public class LocalSupervisor extends BasicGenBehavior implements Supervisor {
     public enum RestartStrategy {
         ESCALATE {
             @Override
-            boolean onChildDeath(LocalSupervisor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
+            boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
                 return false;
             }
         },
         ONE_FOR_ONE {
             @Override
-            boolean onChildDeath(LocalSupervisor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
-                return supervisor.tryRestart(child, cause, supervisor.now(), null);
+            boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
+                return supervisor.tryRestart(child, cause, supervisor.now(), null, true);
             }
         },
         ALL_FOR_ONE {
             @Override
-            boolean onChildDeath(LocalSupervisor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
-                supervisor.shutdownChildren();
-                for (Iterator<ChildEntry> it = supervisor.children.iterator(); it.hasNext();) {
-                    final ChildEntry c = it.next();
-                    if (!supervisor.tryRestart(c, cause, supervisor.now(), it))
+            boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
+                if (child.spec.mode == Supervisor.ChildMode.TEMPORARY
+                        || (child.spec.mode == Supervisor.ChildMode.TRANSIENT && cause == null)) {
+                    if (!supervisor.tryRestart(child, cause, supervisor.now(), null, true))
                         return false;
+                } else {
+                    supervisor.shutdownChildren();
+                    for (Iterator<ChildEntry> it = supervisor.children.iterator(); it.hasNext();) {
+                        final ChildEntry c = it.next();
+                        if (!supervisor.tryRestart(c, c == child ? cause : null, supervisor.now(), it, c == child))
+                            return false;
+                    }
                 }
                 return true;
             }
         },
         REST_FOR_ONE {
             @Override
-            boolean onChildDeath(LocalSupervisor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
-                boolean found = false;
-                for (Iterator<ChildEntry> it = supervisor.children.iterator(); it.hasNext();) {
-                    final ChildEntry c = it.next();
-                    if (c == child)
-                        found = true;
-
-                    if (found && !supervisor.tryRestart(c, cause, supervisor.now(), it))
+            boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
+                if (child.spec.mode == Supervisor.ChildMode.TEMPORARY
+                        || (child.spec.mode == Supervisor.ChildMode.TRANSIENT && cause == null)) {
+                    if (!supervisor.tryRestart(child, cause, supervisor.now(), null, true))
                         return false;
+                } else {
+                    boolean found = false;
+                    for (Iterator<ChildEntry> it = supervisor.children.iterator(); it.hasNext();) {
+                        final ChildEntry c = it.next();
+                        if (c == child)
+                            found = true;
+
+                        if (found && !supervisor.tryRestart(c, c == child ? cause : null, supervisor.now(), it, c == child))
+                            return false;
+                    }
                 }
                 return true;
             }
         };
 
-        abstract boolean onChildDeath(LocalSupervisor supervisor, ChildEntry child, Throwable cause) throws InterruptedException;
-    }
-
-    static class AddChildMessage extends GenRequestMessage {
-        final ChildSpec info;
-
-        public AddChildMessage(Actor from, Object id, ChildSpec info) {
-            super(from, id);
-            this.info = info;
-        }
-    }
-
-    static class RemoveChildMessage extends GenRequestMessage {
-        final Object name;
-        final boolean terminate;
-
-        public RemoveChildMessage(Actor from, Object id, Object name, boolean terminate) {
-            super(from, id);
-            this.name = name;
-            this.terminate = terminate;
-        }
+        abstract boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException;
     }
 
     private static class ChildEntry {
-        final ChildSpec info;
+        final ChildSpec spec;
         final RestartHistory restartHistory;
         Object watch;
-        volatile LocalActor<?, ?> actor;
+        volatile ActorRef<?> actor;
 
         public ChildEntry(ChildSpec info) {
             this(info, null);
         }
 
-        public ChildEntry(ChildSpec info, LocalActor<?, ?> actor) {
-            this.info = info;
+        public ChildEntry(ChildSpec info, ActorRef<?> actor) {
+            this.spec = info;
             this.restartHistory = new RestartHistory(info.maxRestarts + 1);
 
             this.actor = actor;
@@ -572,7 +587,7 @@ public class LocalSupervisor extends BasicGenBehavior implements Supervisor {
 
         @Override
         public String toString() {
-            return "ActorEntry{" + "info=" + info + " actor=" + actor + '}';
+            return "ActorEntry{" + "info=" + spec + " actor=" + actor + '}';
         }
     }
 

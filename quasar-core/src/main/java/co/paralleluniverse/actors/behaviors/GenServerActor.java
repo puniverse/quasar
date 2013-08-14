@@ -14,13 +14,14 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.GenBehaviorActor;
 import co.paralleluniverse.actors.MailboxConfig;
-import co.paralleluniverse.actors.RemoteActor;
-import co.paralleluniverse.actors.behaviors.GenServerHelper.GenServerRequest;
+import co.paralleluniverse.actors.behaviors.GenServer.GenServerRequest;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import jsr166e.ForkJoinPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,53 +29,68 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
-public class LocalGenServer<CallMessage, V, CastMessage> extends BasicGenBehavior implements GenServer<CallMessage, V, CastMessage> {
-    private static final Logger LOG = LoggerFactory.getLogger(LocalGenServer.class);
+public class GenServerActor<CallMessage, V, CastMessage> extends GenBehaviorActor {
+    private static final Logger LOG = LoggerFactory.getLogger(GenServerActor.class);
     private TimeUnit timeoutUnit;
     private long timeout;
 
-    public LocalGenServer(String name, Server<CallMessage, V, CastMessage> server, long timeout, TimeUnit unit, Strand strand, MailboxConfig mailboxConfig) {
+    public GenServerActor(String name, Server<CallMessage, V, CastMessage> server, long timeout, TimeUnit unit, Strand strand, MailboxConfig mailboxConfig) {
         super(name, server, strand, mailboxConfig);
         this.timeoutUnit = timeout > 0 ? unit : null;
         this.timeout = timeout;
     }
 
     @Override
-    protected RemoteBasicGenBehavior getRemote(RemoteActor remote) {
-        return new RemoteGenServer(remote);
+    protected GenServer<CallMessage, V, CastMessage> makeRef(ActorRef<Object> ref) {
+        return new GenServer<CallMessage, V, CastMessage>(ref);
+    }
+
+    @Override
+    public GenServer<CallMessage, V, CastMessage> ref() {
+        return (GenServer<CallMessage, V, CastMessage>) super.ref();
+    }
+
+    @Override
+    public GenServer<CallMessage, V, CastMessage> spawn(ForkJoinPool fjPool) {
+        return (GenServer<CallMessage, V, CastMessage>) super.spawn(fjPool);
+    }
+
+    @Override
+    public GenServer<CallMessage, V, CastMessage> spawn() {
+        return (GenServer<CallMessage, V, CastMessage>) super.spawn();
     }
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-    public LocalGenServer(String name, Server<CallMessage, V, CastMessage> server, MailboxConfig mailboxConfig) {
+    public GenServerActor(String name, Server<CallMessage, V, CastMessage> server, MailboxConfig mailboxConfig) {
         this(name, server, -1, null, null, mailboxConfig);
     }
 
-    public LocalGenServer(String name, Server<CallMessage, V, CastMessage> server) {
+    public GenServerActor(String name, Server<CallMessage, V, CastMessage> server) {
         this(name, server, -1, null, null, null);
     }
 
-    public LocalGenServer(Server<CallMessage, V, CastMessage> server, MailboxConfig mailboxConfig) {
+    public GenServerActor(Server<CallMessage, V, CastMessage> server, MailboxConfig mailboxConfig) {
         this(null, server, -1, null, null, mailboxConfig);
     }
 
-    public LocalGenServer(Server<CallMessage, V, CastMessage> server) {
+    public GenServerActor(Server<CallMessage, V, CastMessage> server) {
         this(null, server, -1, null, null, null);
     }
 
-    public LocalGenServer(String name, MailboxConfig mailboxConfig) {
+    public GenServerActor(String name, MailboxConfig mailboxConfig) {
         this(name, null, -1, null, null, mailboxConfig);
     }
 
-    public LocalGenServer(String name) {
+    public GenServerActor(String name) {
         this(name, null, -1, null, null, null);
     }
 
-    public LocalGenServer(MailboxConfig mailboxConfig) {
+    public GenServerActor(MailboxConfig mailboxConfig) {
         this(null, null, -1, null, null, mailboxConfig);
     }
 
-    public LocalGenServer() {
+    public GenServerActor() {
         this(null, null, -1, null, null, null);
     }
     //</editor-fold>
@@ -88,23 +104,8 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends BasicGenBehavio
         return LOG;
     }
 
-    public static <CallMessage, V, CastMessage> LocalGenServer<CallMessage, V, CastMessage> currentGenServer() {
-        return (LocalGenServer<CallMessage, V, CastMessage>) self();
-    }
-
-    @Override
-    public final V call(CallMessage m) throws InterruptedException, SuspendExecution {
-        return GenServerHelper.call(this, m);
-    }
-
-    @Override
-    public final V call(CallMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
-        return GenServerHelper.call(this, m, timeout, unit);
-    }
-
-    @Override
-    public final void cast(CastMessage m) throws SuspendExecution {
-        GenServerHelper.cast(this, m);
+    public static <CallMessage, V, CastMessage> GenServerActor<CallMessage, V, CastMessage> currentGenServer() {
+        return (GenServerActor<CallMessage, V, CastMessage>) (Actor)currentActor();
     }
 
     @Override
@@ -125,28 +126,33 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends BasicGenBehavio
             switch (m.getType()) {
                 case CALL:
                     try {
-                        final V res = handleCall((Actor<V>) m.getFrom(), m.getId(), (CallMessage) m.getMessage());
+                        final V res = handleCall((ActorRef<V>) m.getFrom(), m.getId(), (CallMessage) m.getMessage());
                         if (res != null)
-                            reply((Actor<V>) m.getFrom(), m.getId(), res);
+                            reply((ActorRef<V>) m.getFrom(), m.getId(), res);
                     } catch (Exception e) {
-                        replyError((Actor<V>) m.getFrom(), m.getId(), e);
+                        replyError((ActorRef<V>) m.getFrom(), m.getId(), e);
                     }
                     break;
 
                 case CAST:
-                    handleCast((Actor<V>) m.getFrom(), m.getId(), (CastMessage) m.getMessage());
+                    handleCast((ActorRef<V>) m.getFrom(), m.getId(), (CastMessage) m.getMessage());
                     break;
             }
         } else
             handleInfo(m1);
     }
 
-    public final void reply(Actor to, Object id, V message) throws SuspendExecution {
+    @Override
+    public void shutdown() {
+        super.shutdown();
+    }
+
+    public final void reply(ActorRef to, Object id, V message) throws SuspendExecution {
         verifyInActor();
         to.send(new GenValueResponseMessage<V>(id, message));
     }
 
-    public final void replyError(Actor to, Object id, Throwable error) throws SuspendExecution {
+    public final void replyError(ActorRef to, Object id, Throwable error) throws SuspendExecution {
         verifyInActor();
         to.send(new GenErrorResponseMessage(id, error));
     }
@@ -157,14 +163,14 @@ public class LocalGenServer<CallMessage, V, CastMessage> extends BasicGenBehavio
         this.timeout = timeout;
     }
 
-    protected V handleCall(Actor<V> from, Object id, CallMessage m) throws Exception, SuspendExecution {
+    protected V handleCall(ActorRef<V> from, Object id, CallMessage m) throws Exception, SuspendExecution {
         if (server() != null)
             return server().handleCall(from, id, m);
         else
             throw new UnsupportedOperationException(m.toString());
     }
 
-    protected void handleCast(Actor<V> from, Object id, CastMessage m) throws SuspendExecution {
+    protected void handleCast(ActorRef<V> from, Object id, CastMessage m) throws SuspendExecution {
         if (server() != null)
             server().handleCast(from, id, m);
         else

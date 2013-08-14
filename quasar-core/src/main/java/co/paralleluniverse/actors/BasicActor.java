@@ -22,7 +22,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public abstract class BasicActor<Message, V> extends LocalActor<Message, V> {
+public abstract class BasicActor<Message, V> extends Actor<Message, V> {
     private final SelectiveReceiveHelper<Message> helper;
 
     public BasicActor(String name, MailboxConfig mailboxConfig) {

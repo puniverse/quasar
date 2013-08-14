@@ -19,7 +19,7 @@
  */
 package co.paralleluniverse.galaxy.example.pingpong;
 
-import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
 import java.io.Serializable;
 
 /**
@@ -29,10 +29,10 @@ import java.io.Serializable;
 class Message implements Serializable {
     enum Type { PING, PONG, FINISHED }
     
-    final Actor from;
+    final ActorRef from;
     final Type type;
     
-    public Message(Actor from, Type type) {
+    public Message(ActorRef from, Type type) {
         this.from = from;
         this.type = type;
     }

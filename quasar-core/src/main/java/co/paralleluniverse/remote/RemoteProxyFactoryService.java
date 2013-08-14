@@ -13,10 +13,8 @@
  */
 package co.paralleluniverse.remote;
 
-import co.paralleluniverse.actors.ActorRegistry;
-import co.paralleluniverse.actors.LocalActor;
-import co.paralleluniverse.actors.RemoteActor;
-import co.paralleluniverse.strands.channels.Channel;
+import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.RemoteActorRef;
 import co.paralleluniverse.strands.channels.SendPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +31,7 @@ public final class RemoteProxyFactoryService {
         LOG.info("RemoteProxyFactory is {}", factory);
     }
     
-    public static <Message> RemoteActor<Message> create(LocalActor<Message, ?> actor, Object globalId) {
+    public static <Message> RemoteActorRef<Message> create(ActorRef<Message> actor, Object globalId) {
         return factory.create(actor, globalId);
     }
     

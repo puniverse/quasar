@@ -17,7 +17,8 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.LocalActor;
+import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.LocalActorUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
@@ -32,7 +33,6 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.InOrder;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
@@ -75,11 +75,11 @@ public class GenEventTest {
         fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
     }
 
-    private LocalGenEvent<String> spawnGenEvent(Initializer initializer) {
-        return spawnActor(new LocalGenEvent<String>("genevent", initializer));
+    private GenEvent<String> spawnGenEvent(Initializer initializer) {
+        return new GenEventActor<String>("genevent", initializer).spawn();
     }
 
-    private <T extends LocalActor<Message, V>, Message, V> T spawnActor(T actor) {
+    private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
         Fiber fiber = new Fiber(fjPool, actor);
         fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
             @Override
@@ -95,13 +95,13 @@ public class GenEventTest {
     @Test
     public void testInitializationAndTermination() throws Exception {
         final Initializer init = mock(Initializer.class);
-        LocalGenEvent<String> ge = spawnGenEvent(init);
+        GenEvent<String> ge = spawnGenEvent(init);
 
         Thread.sleep(100);
         verify(init).init();
 
         ge.shutdown();
-        ge.join(100, TimeUnit.MILLISECONDS);
+        LocalActorUtil.join(ge, 100, TimeUnit.MILLISECONDS);
 
         verify(init).terminate(null);
     }
@@ -111,7 +111,7 @@ public class GenEventTest {
         final EventHandler<String> handler1 = mock(EventHandler.class);
         final EventHandler<String> handler2 = mock(EventHandler.class);
 
-        final LocalGenEvent<String> ge = spawnGenEvent(null);
+        final GenEvent<String> ge = spawnGenEvent(null);
 
         ge.addHandler(handler1);
         ge.addHandler(handler2);
@@ -128,7 +128,7 @@ public class GenEventTest {
         ge.notify("goodbye");
 
         ge.shutdown();
-        ge.join(100, TimeUnit.MILLISECONDS);
+        LocalActorUtil.join(ge, 100, TimeUnit.MILLISECONDS);
 
         verify(handler1, never()).handleEvent("goodbye");
         verify(handler2).handleEvent("goodbye");
@@ -144,7 +144,7 @@ public class GenEventTest {
         final Exception myException = new RuntimeException("haha!");
         doThrow(myException).when(handler1).handleEvent(anyString());
 
-        final LocalGenEvent<String> ge = spawnGenEvent(init);
+        final GenEvent<String> ge = spawnGenEvent(init);
 
         ge.addHandler(handler1);
         ge.addHandler(handler2);
@@ -156,6 +156,6 @@ public class GenEventTest {
 
         verify(init).terminate(myException);
 
-        ge.join(100, TimeUnit.MILLISECONDS);
+        LocalActorUtil.join(ge, 100, TimeUnit.MILLISECONDS);
     }
 }

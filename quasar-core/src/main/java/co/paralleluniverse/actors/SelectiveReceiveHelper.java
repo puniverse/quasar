@@ -13,10 +13,10 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class SelectiveReceiveHelper<Message> {
-    private final LocalActor<Message, ?> actor;
+    private final Actor<Message, ?> actor;
     private Message currentMessage; // this works because channel is single-consumer
 
-    public SelectiveReceiveHelper(LocalActor<Message, ?> actor) {
+    public SelectiveReceiveHelper(Actor<Message, ?> actor) {
         if (actor == null)
             throw new NullPointerException("actor is null");
         this.actor = actor;
@@ -31,7 +31,7 @@ public class SelectiveReceiveHelper<Message> {
      * @throws LwtInterruptedException
      */
     public final Message receive(long timeout, TimeUnit unit, MessageProcessor<Message> proc) throws TimeoutException, SuspendExecution, InterruptedException {
-        assert LocalActor.self() == null || LocalActor.self() == actor;
+        assert Actor.currentActor() == null || Actor.currentActor() == actor;
 
         final Mailbox<Object> mailbox = actor.mailbox();
 

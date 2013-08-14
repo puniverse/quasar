@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.fibers.SuspendExecution;
 
 /**
@@ -26,12 +26,12 @@ public class AbstractServer<CallMessage, V, CastMessage> implements Server<CallM
     }
 
     @Override
-    public V handleCall(Actor<V> from, Object id, CallMessage m) throws SuspendExecution {
+    public V handleCall(ActorRef<V> from, Object id, CallMessage m) throws SuspendExecution {
         throw new UnsupportedOperationException(m.toString());
     }
 
     @Override
-    public void handleCast(Actor<V> from, Object id, CastMessage m) throws SuspendExecution {
+    public void handleCast(ActorRef<V> from, Object id, CastMessage m) throws SuspendExecution {
     }
 
     @Override

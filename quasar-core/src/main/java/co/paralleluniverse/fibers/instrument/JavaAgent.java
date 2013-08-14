@@ -207,11 +207,11 @@ public class JavaAgent {
 
         @Override
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
-            if (MethodDatabase.isJavaCore(className))
-                return null;
-            if (className.startsWith("org/objectweb/asm/"))
+            if (className.startsWith("org/objectweb/asm/") || className.startsWith("co/paralleluniverse/fibers/instrument/"))
                 return null;
             if (className.equals(Classes.COROUTINE_NAME) || className.startsWith(Classes.COROUTINE_NAME + '$'))
+                return null;
+            if (MethodDatabase.isJavaCore(className))
                 return null;
 
             db.log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");

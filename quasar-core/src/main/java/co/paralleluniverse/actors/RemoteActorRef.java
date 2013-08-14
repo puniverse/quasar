@@ -22,14 +22,14 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
-public class RemoteActor<Message> extends ActorImpl<Message> {
-    private static final Logger LOG = LoggerFactory.getLogger(RemoteActor.class);
+public class RemoteActorRef<Message> extends ActorRefImpl<Message> {
+    private static final Logger LOG = LoggerFactory.getLogger(RemoteActorRef.class);
     private static LifecycleListenerProxy lifecycleListenerProxy = ServiceUtil.loadSingletonService(LifecycleListenerProxy.class);
-    private final transient LocalActor<Message, ?> actor;
+    private final transient ActorRefImpl<Message> actor;
 
-    public RemoteActor(LocalActor<Message, ?> actor) {
-        super(actor.getName(), actor.mailbox());
-        this.actor = actor;
+    public RemoteActorRef(ActorRef<Message> actor) {
+        super(actor.getName(), ((ActorRefImpl)actor).mailbox());
+        this.actor = (ActorRefImpl)actor;
     }
 
     protected void handleAdminMessage(RemoteActorAdminMessage msg) {
@@ -75,7 +75,7 @@ public class RemoteActor<Message> extends ActorImpl<Message> {
     }
 
     @Override
-    protected void removeObserverListeners(ActorImpl actor) {
+    protected void removeObserverListeners(ActorRef actor) {
         lifecycleListenerProxy.removeLifecycleListeners(this, actor);
     }
 
@@ -110,10 +110,10 @@ public class RemoteActor<Message> extends ActorImpl<Message> {
     }
 
     static class RemoteActorUnregisterListenerAdminMessage extends RemoteActorAdminMessage {
-        private final ActorImpl observer;
+        private final ActorRefImpl observer;
         private final LifecycleListener listener;
 
-        public RemoteActorUnregisterListenerAdminMessage(ActorImpl observer) {
+        public RemoteActorUnregisterListenerAdminMessage(ActorRefImpl observer) {
             this.observer = observer;
             this.listener = null;
         }
@@ -123,7 +123,7 @@ public class RemoteActor<Message> extends ActorImpl<Message> {
             this.observer = null;
         }
 
-        public ActorImpl getObserver() {
+        public ActorRefImpl getObserver() {
             return observer;
         }
 

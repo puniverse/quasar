@@ -21,14 +21,14 @@ import java.util.Objects;
  * @author pron
  */
 public class ShutdownMessage implements LifecycleMessage {
-    public final Actor requester; // http://english.stackexchange.com/questions/29254/whats-the-difference-between-requester-and-requestor
+    public final ActorRef requester; // http://english.stackexchange.com/questions/29254/whats-the-difference-between-requester-and-requestor
 
 
-    public ShutdownMessage(Actor requestor) {
+    public ShutdownMessage(ActorRef requestor) {
         this.requester = requestor;
     }
 
-    public Actor getRequester() {
+    public ActorRef getRequester() {
         return requester;
     }
 

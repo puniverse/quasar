@@ -19,9 +19,10 @@
  */
 package co.paralleluniverse.galaxy.example.pingpong;
 
-import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.ActorRegistry;
+import co.paralleluniverse.actors.LocalActorUtil;
 import co.paralleluniverse.actors.BasicActor;
-import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.galaxy.example.pingpong.Message.Type.*;
 import co.paralleluniverse.strands.Strand;
@@ -32,24 +33,24 @@ import co.paralleluniverse.strands.Strand;
  */
 public class Ping {
     private static final int nodeId = 1;
-    
+
     public static void main(String[] args) throws Exception {
         System.setProperty("galaxy.nodeId", Integer.toString(nodeId));
         System.setProperty("galaxy.port", Integer.toString(7050 + nodeId));
         System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
 
-        new Fiber(new BasicActor<Message, Void>() {
+        ActorRef<Message> ping = new BasicActor<Message, Void>() {
             @Override
             protected Void doRun() throws InterruptedException, SuspendExecution {
-                Actor pong;
-                while ((pong = getActor("pong")) == null) {
+                ActorRef pong;
+                while ((pong = ActorRegistry.getActor("pong")) == null) {
                     System.out.println("waiting for pong");
                     Strand.sleep(3000);
                 }
                 System.out.println("pong is " + pong);
 
                 for (int i = 0; i < 3; i++) {
-                    pong.send(new Message(this, PING));
+                    pong.send(new Message(self(), PING));
                     Message msg = receive();
                     System.out.println("ping received " + msg.type);
                 }
@@ -57,7 +58,8 @@ public class Ping {
                 pong.send(new Message(null, FINISHED));
                 return null;
             }
-        }).start().join();
+        }.spawn();
+        LocalActorUtil.join(ping);
         System.out.println("finished ping");
         System.exit(0);
     }

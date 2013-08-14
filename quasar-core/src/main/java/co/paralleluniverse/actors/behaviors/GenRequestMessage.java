@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
 import java.beans.ConstructorProperties;
 
 /**
@@ -24,13 +24,13 @@ public abstract class GenRequestMessage extends GenFromMessage implements IdMess
     private Object id;
     
     @ConstructorProperties({"from", "id"})
-    public GenRequestMessage(Actor<?> from, Object id) {
+    public GenRequestMessage(ActorRef<?> from, Object id) {
         super(from);
         this.id = id;
     }
 
     @ConstructorProperties({"from", "id"})
-    public GenRequestMessage(Actor<?> from) {
+    public GenRequestMessage(ActorRef<?> from) {
         super(from);
         this.id = null;
     }

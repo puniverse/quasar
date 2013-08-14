@@ -14,10 +14,10 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.ActorImpl;
+import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.actors.ExitMessage;
 import co.paralleluniverse.actors.LifecycleMessage;
-import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.MessageProcessor;
 import co.paralleluniverse.actors.SelectiveReceiveHelper;
@@ -35,21 +35,29 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class RequestReplyHelper {
+    private static final ThreadLocal<Long> defaultTimeout = new ThreadLocal<Long>();
+
     public static Object makeId() {
-        return ActorImpl.randtag();
+        return ActorUtil.randtag();
     }
 
-    public static <Message> Actor<Message> from() {
+    public static void setDefaultTimeout(long timeout, TimeUnit unit) {
+        if (unit == null)
+            defaultTimeout.remove();
+        else
+            defaultTimeout.set(unit.toNanos(timeout));
+    }
+
+    public static <Message> ActorRef<Message> from() {
         return getCurrentActor(); // new TempActor<Message>(getCurrentActor());
     }
 
-    public static GenResponseMessage call(final Actor actor, GenRequestMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
-
-        final LocalActor currentActor;
+    public static GenResponseMessage call(final ActorRef actor, GenRequestMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
+        final Actor currentActor;
         if (m.getFrom() instanceof TempActor)
-            currentActor = (LocalActor) ((TempActor) m.getFrom()).actor.get();
+            currentActor = ((TempActor<?>) m.getFrom()).actor.get();
         else
-            currentActor = LocalActor.self();
+            currentActor = Actor.currentActor();
 
         assert currentActor != null;
 
@@ -90,11 +98,19 @@ public class RequestReplyHelper {
         }
     }
 
-    public static GenResponseMessage call(Actor actor, GenRequestMessage m) throws InterruptedException, SuspendExecution {
+    public static GenResponseMessage call(ActorRef actor, GenRequestMessage m) throws InterruptedException, SuspendExecution {
+        Long timeout = null;
         try {
-            return call(actor, m, 0, null);
+            timeout = defaultTimeout.get();
+            if (timeout != null)
+                return call(actor, m, timeout, TimeUnit.NANOSECONDS);
+            else
+                return call(actor, m, 0, null);
         } catch (TimeoutException ex) {
-            throw new AssertionError(ex);
+            if (timeout != null)
+                throw new RuntimeException(ex);
+            else
+                throw new AssertionError(ex);
         }
     }
 
@@ -106,27 +122,27 @@ public class RequestReplyHelper {
         req.getFrom().send(new GenErrorResponseMessage(req.getId(), e));
     }
 
-    private static Actor getCurrentActor() {
-        Actor actor = LocalActor.self();
-        if (actor == null) {
+    private static ActorRef getCurrentActor() {
+        ActorRef actorRef = Actor.self();
+        if (actorRef == null) {
             // create a "dummy actor" on the current strand
-            actor = new LocalActor(Strand.currentStrand(), null, new MailboxConfig(5, OverflowPolicy.THROW)) {
+            Actor actor = new Actor(Strand.currentStrand(), null, new MailboxConfig(5, OverflowPolicy.THROW)) {
                 @Override
                 protected Object doRun() throws InterruptedException, SuspendExecution {
                     throw new AssertionError();
                 }
             };
-            actor = new TempActor(actor);
+            actorRef = new TempActor(actor);
         }
-        return actor;
+        return actorRef;
     }
 
-    private static class TempActor<Message> implements Actor<Message> {
-        private WeakReference<Actor<Message>> actor;
+    private static class TempActor<Message> implements ActorRef<Message> {
+        private WeakReference<Actor<Message, Void>> actor;
         private volatile boolean done = false;
 
         public TempActor(Actor actor) {
-            this.actor = new WeakReference<Actor<Message>>(actor);
+            this.actor = new WeakReference<Actor<Message, Void>>(actor);
         }
 
         public void done() {
@@ -134,15 +150,15 @@ public class RequestReplyHelper {
             this.done = true;
         }
 
-        private Actor getActor() {
-            Actor a = null;
+        private ActorRef getActor() {
+            ActorRef a = null;
             if (actor != null)
-                a = actor.get();
+                a = actor.get().ref();
             return a;
         }
 
-        private Actor actor() {
-            final Actor a = getActor();
+        private ActorRef actor() {
+            final ActorRef a = getActor();
             if (a == null)
                 throw new RuntimeException("Temporary actor is out of scope");
             return a;
@@ -155,21 +171,21 @@ public class RequestReplyHelper {
 
         @Override
         public void interrupt() {
-            final Actor a = getActor();
+            final ActorRef a = getActor();
             if (a != null)
                 a.interrupt();
         }
-        
+
         @Override
         public void send(Message message) throws SuspendExecution {
-            final Actor a = getActor();
+            final ActorRef a = getActor();
             if (a != null)
                 a.send(message);
         }
 
         @Override
         public void sendSync(Message message) throws SuspendExecution {
-            final Actor a = getActor();
+            final ActorRef a = getActor();
             if (a != null)
                 a.sendSync(message);
         }

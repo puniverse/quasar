@@ -20,8 +20,9 @@
 package co.paralleluniverse.galaxy.example.simplegenserver;
 
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.behaviors.AbstractServer;
-import co.paralleluniverse.actors.behaviors.LocalGenServer;
+import co.paralleluniverse.actors.behaviors.GenServerActor;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.ExecutionException;
@@ -38,19 +39,19 @@ public class Server {
         System.setProperty("galaxy.port", Integer.toString(7050 + nodeId));
         System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
 
-        new Fiber(new LocalGenServer(new AbstractServer<SumRequest, Integer, SumRequest>() {
+        new Fiber(new GenServerActor(new AbstractServer<SumRequest, Integer, SumRequest>() {
             @Override
             public void init() throws SuspendExecution {
                 super.init();
-                LocalGenServer.currentGenServer().register("myServer");
+                Actor.currentActor().register("myServer");
                 System.out.println(this.toString() + " is ready");
             }
 
             @Override
-            public Integer handleCall(Actor<Integer> from, Object id, SumRequest m) {
+            public Integer handleCall(ActorRef<Integer> from, Object id, SumRequest m) {
                 System.out.println(this.toString() + " is handling " + m);
                 if (m.a == 0 && m.b == 0)
-                    LocalGenServer.currentGenServer().shutdown();
+                    GenServerActor.currentGenServer().shutdown();
                 return m.a + m.b;
             }
         })).start().join();

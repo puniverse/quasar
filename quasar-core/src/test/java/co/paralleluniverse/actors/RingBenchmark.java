@@ -5,7 +5,6 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.Channels;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import jsr166e.ForkJoinPool;
 
 public class RingBenchmark {
     static final int N = 1000;
@@ -24,7 +23,7 @@ public class RingBenchmark {
             new RingBenchmark().run();
     }
 
-    private static <Message, V> LocalActor<Message, V> spawnActor(LocalActor<Message, V> actor) {
+    private static <Message, V> Actor<Message, V> spawnActor(Actor<Message, V> actor) {
         new Fiber(actor).start();
         return actor;
     }
@@ -32,10 +31,10 @@ public class RingBenchmark {
     void run() throws ExecutionException, InterruptedException {
         final long start = System.nanoTime();
 
-        LocalActor<Integer, Integer> manager = spawnActor(new BasicActor<Integer, Integer>(mailboxConfig) {
+        Actor<Integer, Integer> manager = spawnActor(new BasicActor<Integer, Integer>(mailboxConfig) {
             @Override
             protected Integer doRun() throws InterruptedException, SuspendExecution {
-                LocalActor<Integer, ?> a = this;
+                ActorRef<Integer> a = this.ref();
                 for (int i = 0; i < N - 1; i++)
                     a = createRelayActor(a);
 
@@ -56,7 +55,7 @@ public class RingBenchmark {
         System.out.println("messages: " + totalCount + " time (ms): " + time);
     }
 
-    private LocalActor<Integer,?> createRelayActor(final LocalActor<Integer, ?> prev) {
+    private ActorRef<Integer> createRelayActor(final ActorRef<Integer> prev) {
         return spawnActor(new BasicActor<Integer, Void>(mailboxConfig) {
             @Override
             protected Void doRun() throws InterruptedException, SuspendExecution {
@@ -65,6 +64,6 @@ public class RingBenchmark {
                     prev.send(m + 1);
                 }
             }
-        });
+        }).ref();
     }
 }

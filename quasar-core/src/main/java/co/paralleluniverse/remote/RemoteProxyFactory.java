@@ -13,8 +13,8 @@
  */
 package co.paralleluniverse.remote;
 
-import co.paralleluniverse.actors.LocalActor;
-import co.paralleluniverse.actors.RemoteActor;
+import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.RemoteActorRef;
 import co.paralleluniverse.strands.channels.SendPort;
 
 /**
@@ -22,7 +22,7 @@ import co.paralleluniverse.strands.channels.SendPort;
  * @author pron
  */
 public interface RemoteProxyFactory {
-    <Message> RemoteActor<Message> create(LocalActor<Message, ?> actor, Object globalId);
+    <Message> RemoteActorRef<Message> create(ActorRef<Message> actor, Object globalId);
     
     <Message> SendPort<Message> create(SendPort<Message> channel, Object globalId);
 }

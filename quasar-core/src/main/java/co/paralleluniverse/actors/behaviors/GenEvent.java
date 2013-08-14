@@ -13,14 +13,31 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
+import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.GenBehavior;
+import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 import co.paralleluniverse.fibers.SuspendExecution;
 
 /**
  *
  * @author pron
  */
-public interface GenEvent<Event> extends GenBehavior {
-    boolean addHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException;
-    boolean removeHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException;
-    void notify(Event event) throws SuspendExecution;
+public class GenEvent<Event> extends GenBehavior {
+    public GenEvent(ActorRef<Object> actor) {
+        super(actor);
+    }
+
+    public boolean addHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
+        final GenResponseMessage res = call(this, new GenEventActor.HandlerMessage(RequestReplyHelper.from(), null, handler, true));
+        return ((GenValueResponseMessage<Boolean>) res).getValue();
+    }
+
+    public boolean removeHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
+        final GenResponseMessage res = call(this, new GenEventActor.HandlerMessage(RequestReplyHelper.from(), null, handler, false));
+        return ((GenValueResponseMessage<Boolean>) res).getValue();
+    }
+
+    public void notify(Event event) throws SuspendExecution {
+        send(event);
+    }
 }

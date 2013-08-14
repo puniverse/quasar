@@ -57,34 +57,39 @@ public class PascalTriangle {
         assertEquals(BigInteger.valueOf(2).pow(maxLevel - 1), res.get(10, TimeUnit.SECONDS));
     }
 
-    class RightBrother {
-        PascalNode node;
+    static class PascalNodeMessage {
+        
+    }
+    static class RightBrother extends PascalNodeMessage {
+        final ActorRef<PascalNodeMessage> node;
+        final BigInteger val;
 
-        public RightBrother(PascalNode pn) {
+        public RightBrother(ActorRef<PascalNodeMessage> pn, BigInteger result) {
+            this.node = pn;
+            this.val = result;
+        }
+    }
+
+    static class Nephew extends PascalNodeMessage {
+        final ActorRef<PascalNodeMessage> node;
+
+        public Nephew(ActorRef<PascalNodeMessage> pn) {
             this.node = pn;
         }
     }
 
-    class Nephew {
-        PascalNode node;
-
-        public Nephew(PascalNode pn) {
-            this.node = pn;
-        }
-    }
-
-    class PascalNode extends BasicActor<Object, Void> {
+    class PascalNode extends BasicActor<PascalNodeMessage, Void> {
         final DelayedVal<BigInteger> result;
         int level;
         int pos;
         BigInteger val;
         boolean isRight;
-        Actor<Object> left;
+        ActorRef<PascalNodeMessage> left;
         int maxLevel;
         DelayedVal<BigInteger> leftResult = new DelayedVal<>();
         DelayedVal<BigInteger> rightResult = new DelayedVal<>();
 
-        public PascalNode(DelayedVal<BigInteger> result, int level, BigInteger val, boolean isRight, Actor<Object> left, int maxLevel) {
+        public PascalNode(DelayedVal<BigInteger> result, int level, BigInteger val, boolean isRight, ActorRef<PascalNodeMessage> left, int maxLevel) {
             super(mailboxConfig);
             this.result = result;
             this.level = level;
@@ -94,10 +99,6 @@ public class PascalTriangle {
             this.maxLevel = maxLevel;
         }
 
-        Fiber spawn() {
-            return new Fiber<>(this).start();
-        }
-
         @Override
         protected Void doRun() throws InterruptedException, SuspendExecution {
             if (level == maxLevel) {
@@ -105,19 +106,17 @@ public class PascalTriangle {
                 return null;
             }
 
-            PascalNode leftChild;
+            ActorRef<PascalNodeMessage> leftChild;
             if (left != null) {
-                left.send(new RightBrother(this));
+                left.send(new RightBrother(ref(), val));
                 leftChild = receive(Nephew.class).node;
-            } else {
-                leftChild = new PascalNode(leftResult, level + 1, val, false, null, maxLevel);
-                leftChild.spawn();
-            }
-            final PascalNode rb = isRight ? null : receive(RightBrother.class).node;
-            final PascalNode rightChild = new PascalNode(rightResult, level + 1, val.add(rb == null ? BigInteger.ZERO : rb.val), isRight, leftChild, maxLevel);
-            rightChild.spawn();
+            } else
+                leftChild = new PascalNode(leftResult, level + 1, val, false, null, maxLevel).spawn();
+            
+            final RightBrother rb = isRight ? null : receive(RightBrother.class);
+            final ActorRef<PascalNodeMessage> rightChild = new PascalNode(rightResult, level + 1, val.add(rb == null ? BigInteger.ZERO : rb.val), isRight, leftChild, maxLevel).spawn();
             if (rb != null)
-                rb.send(new Nephew(rightChild));
+                rb.node.send(new Nephew(rightChild));
 
             if (left == null)
                 result.set(leftResult.get().add(rightResult.get()));
