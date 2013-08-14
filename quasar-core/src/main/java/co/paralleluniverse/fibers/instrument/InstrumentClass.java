@@ -222,7 +222,7 @@ public class InstrumentClass extends ClassVisitor {
         if (ans == null)
             return false;
         for (AnnotationNode an : ans) {
-            if (an.desc.equals(an.desc))
+            if (an.desc.equals(ANNOTATION_DESC))
                 return true;
         }
         return false;
