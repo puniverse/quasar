@@ -14,7 +14,6 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.GenBehavior;
 import co.paralleluniverse.actors.Actor;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.from;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.makeId;

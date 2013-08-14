@@ -15,8 +15,8 @@ package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.actors.ExitMessage;
-import co.paralleluniverse.actors.GenBehaviorActor;
 import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.LocalActorUtil;
 import static co.paralleluniverse.actors.LocalActorUtil.isLocal;
@@ -400,7 +400,7 @@ public class SupervisorActor extends GenBehaviorActor {
             unwatch(child);
             if (!isLocal(child.actor) || !LocalActorUtil.isDone(child.actor)) {
                 LOG.info("{} shutting down child {}", this, child.actor);
-                LocalActorUtil.sendOrInterrupt(child.actor, new ShutdownMessage(this.ref()));
+                ActorUtil.sendOrInterrupt(child.actor, new ShutdownMessage(this.ref()));
             }
 
             if (isLocal(child.actor)) {
@@ -421,7 +421,7 @@ public class SupervisorActor extends GenBehaviorActor {
         for (ChildEntry child : children) {
             if (child.actor != null) {
                 unwatch(child);
-                LocalActorUtil.sendOrInterrupt(child.actor, new ShutdownMessage(this.ref()));
+                ActorUtil.sendOrInterrupt(child.actor, new ShutdownMessage(this.ref()));
             }
         }
 

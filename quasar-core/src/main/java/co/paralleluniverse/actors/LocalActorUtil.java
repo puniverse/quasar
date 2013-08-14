@@ -29,10 +29,6 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public final class LocalActorUtil {
-    public static void sendOrInterrupt(ActorRef actor, Object message) {
-        ((ActorRefImpl) actor).sendOrInterrupt(message);
-    }
-
     public static boolean isLocal(ActorRef<?> actor) {
         return stripDelegates(actor) instanceof LocalActorRef;
     }

@@ -11,9 +11,13 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors;
+package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.behaviors.Initializer;
+import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.LifecycleMessage;
+import co.paralleluniverse.actors.MailboxConfig;
+import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -27,24 +31,21 @@ import org.slf4j.Logger;
 public abstract class GenBehaviorActor extends Actor<Object, Void> implements java.io.Serializable {
     private final Initializer initializer;
     private boolean run;
-    private final GenBehavior ref;
 
     public GenBehaviorActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
         super(strand, name, mailboxConfig);
         this.initializer = initializer;
         this.run = true;
-        this.ref = makeRef(super.ref);
     }
 
+    @Override
     protected GenBehavior makeRef(ActorRef<Object> ref) {
         return new GenBehavior(ref);
     }
 
     @Override
     public GenBehavior ref() {
-        if (!isStarted())
-            throw new IllegalStateException("Actor has not been started");
-        return ref;
+        return (GenBehavior)super.ref();
     }
 
     @Override

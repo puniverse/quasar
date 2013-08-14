@@ -46,7 +46,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private static final Throwable NATURAL = new Throwable();
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
     private Strand strand;
-    final LocalActorRef<Message, V> ref;
+    private final LocalActorRef<Message, V> ref;
+    private final ActorRef<Message> wrapperRef;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
     private final Set<ActorRefImpl> observed = Collections.newSetFromMap(new ConcurrentHashMapV8<ActorRefImpl, Boolean>());
     private volatile V result;
@@ -62,8 +63,13 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         this.ref = new LocalActorRef<Message, V>(this, name, new Mailbox(mailboxConfig));
         mailbox().setActor(this);
         this.flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
+        this.wrapperRef = makeRef(ref);
     }
 
+    protected ActorRef<Message> makeRef(ActorRef<Message> ref) {
+        return ref;
+    }
+    
     public Actor(Strand strand, String name, MailboxConfig mailboxConfig) {
         this(name, mailboxConfig);
         if (strand != null)
@@ -207,7 +213,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     public ActorRef<Message> ref() {
         if (!isStarted())
             throw new IllegalStateException("Actor has not been started");
-        return ref;
+        return wrapperRef;
     }
 
     public static <T extends ActorRef<M>, M> T self() {

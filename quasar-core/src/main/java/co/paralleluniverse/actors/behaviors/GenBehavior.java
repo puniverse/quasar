@@ -11,7 +11,13 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors;
+package co.paralleluniverse.actors.behaviors;
+
+import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.ActorRefDelegate;
+import co.paralleluniverse.actors.ActorUtil;
+import co.paralleluniverse.actors.ShutdownMessage;
 
 /**
  *
@@ -24,7 +30,7 @@ public class GenBehavior extends ActorRefDelegate<Object> implements java.io.Ser
 
     public void shutdown() {
         final ShutdownMessage message = new ShutdownMessage(Actor.self());
-        ((ActorRefImpl)ref).sendOrInterrupt(message);
+        ActorUtil.sendOrInterrupt(ref, message);
     }
 
     public void close() {

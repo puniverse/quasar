@@ -29,6 +29,10 @@ public final class ActorUtil {
         };
     }
 
+    public static void sendOrInterrupt(ActorRef actor, Object message) {
+        ((ActorRefImpl) actor).sendOrInterrupt(message);
+    }
+
     private ActorUtil() {
     }
 }

@@ -16,7 +16,6 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.GenBehavior;
 import co.paralleluniverse.actors.LocalActorUtil;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 import co.paralleluniverse.fibers.SuspendExecution;

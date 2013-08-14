@@ -15,7 +15,6 @@ package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.GenBehaviorActor;
 import co.paralleluniverse.actors.MailboxConfig;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.replyError;
