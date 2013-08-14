@@ -30,10 +30,6 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Instrumented;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.instrument.InstrumentClass;
-import co.paralleluniverse.fibers.instrument.Log;
-import co.paralleluniverse.fibers.instrument.LogLevel;
-import co.paralleluniverse.fibers.instrument.MethodDatabase;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
@@ -62,8 +58,6 @@ public class BlockingTest {
         msgs.add("Method "+className+"#t_join1(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join()V");
         msgs.add("Method "+className+"#t_join2(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(J)V");
         msgs.add("Method "+className+"#t_join3(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(JI)V");
-        msgs.add("Method "+className+"#t_lock1(Ljava/util/concurrent/locks/Lock;)V contains potentially blocking call to java/util/concurrent/locks/Lock#lock()V");
-        msgs.add("Method "+className+"#t_lock2(Ljava/util/concurrent/locks/Lock;)V contains potentially blocking call to java/util/concurrent/locks/Lock#lockInterruptibly()V");
         
         MethodDatabase db = new MethodDatabase(BlockingTest.class.getClassLoader());
         db.setAllowBlocking(true);
@@ -122,14 +116,6 @@ public class BlockingTest {
 
     public void t_join3(Thread t) throws SuspendExecution, InterruptedException {
         t.join(1, 100);
-    }
-
-    public void t_lock1(Lock lock) throws SuspendExecution {
-        lock.lock();
-    }
-    
-    public void t_lock2(Lock lock) throws SuspendExecution, InterruptedException {
-        lock.lockInterruptibly();
     }
     
     public void t_lock3() throws SuspendExecution {

@@ -18,6 +18,7 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
+import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -61,7 +62,7 @@ public class SuspendableAnnotationTest {
     @Test
     public void testAnnotated() {
         try {
-            Fiber co = new Fiber((String) null, null, (SuspendableRunnable) null) {
+            Fiber co = new Fiber((String) null, null, (SuspendableCallable) null) {
                 @Override
                 protected Object run() throws SuspendExecution, InterruptedException {
                     suspendableMethod();
@@ -82,7 +83,7 @@ public class SuspendableAnnotationTest {
     @Test
     public void testNonAnnotated() {
         try {
-            Fiber co = new Fiber((String) null, null, (SuspendableRunnable) null) {
+            Fiber co = new Fiber((String) null, null, (SuspendableCallable) null) {
                 @Override
                 protected Object run() throws SuspendExecution, InterruptedException {
                     nonsuspendableMethod();
