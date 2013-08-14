@@ -119,15 +119,16 @@ subprojects {
 
     tasks.withType(Test) { 
         useJUnit()
-        //        systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
-	//  systemProperty "java.util.logging.config.file", "jul.properties"
+        // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+        
+	// systemProperty "java.util.logging.config.file", "jul.properties"
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
-        systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
+        // systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
 	    
-        //        systemProperty "co.paralleluniverse.debugMode", "true"
-        //        systemProperty "co.paralleluniverse.globalFlightRecorder", "true"
-        //        systemProperty "co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log"
-        //	systemProperty "co.paralleluniverse.monitoring.flightRecorderSize","200000"    
+        // systemProperty "co.paralleluniverse.debugMode", "true"
+        // systemProperty "co.paralleluniverse.globalFlightRecorder", "true"
+        // systemProperty "co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log"
+        // systemProperty "co.paralleluniverse.monitoring.flightRecorderSize","200000"    
         jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
         jvmArgs "-Xmx2048m"
         doLast() {
@@ -139,7 +140,7 @@ subprojects {
         main = mainClass
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
         systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
-        //        systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+        // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
         jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
     }
 
