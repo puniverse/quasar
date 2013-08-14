@@ -35,8 +35,17 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public class RequestReplyHelper {
+    private static final ThreadLocal<Long> defaultTimeout = new ThreadLocal<Long>();
+
     public static Object makeId() {
         return ActorUtil.randtag();
+    }
+
+    public static void setDefaultTimeout(long timeout, TimeUnit unit) {
+        if (unit == null)
+            defaultTimeout.remove();
+        else
+            defaultTimeout.set(unit.toNanos(timeout));
     }
 
     public static <Message> ActorRef<Message> from() {
@@ -90,10 +99,18 @@ public class RequestReplyHelper {
     }
 
     public static GenResponseMessage call(ActorRef actor, GenRequestMessage m) throws InterruptedException, SuspendExecution {
+        Long timeout = null;
         try {
-            return call(actor, m, 0, null);
+            timeout = defaultTimeout.get();
+            if (timeout != null)
+                return call(actor, m, timeout, TimeUnit.NANOSECONDS);
+            else
+                return call(actor, m, 0, null);
         } catch (TimeoutException ex) {
-            throw new AssertionError(ex);
+            if (timeout != null)
+                throw new RuntimeException(ex);
+            else
+                throw new AssertionError(ex);
         }
     }
 
@@ -158,7 +175,7 @@ public class RequestReplyHelper {
             if (a != null)
                 a.interrupt();
         }
-        
+
         @Override
         public void send(Message message) throws SuspendExecution {
             final ActorRef a = getActor();
