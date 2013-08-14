@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -1194,7 +1195,32 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @SuppressWarnings("unchecked")
     private static boolean isInstrumented(Class clazz) {
-        return clazz.isAnnotationPresent(Instrumented.class);
+        boolean res = clazz.isAnnotationPresent(Instrumented.class);
+        if(!res)
+            res = isInstrumented0(clazz); // a second chance
+        return res;
+    }
+    
+    private static boolean isInstrumented0(Class clazz) {
+        // Sometimes, a child class does not implement any suspendable methods AND is loaded before its superclass (that does). Test for that:
+        Class superclazz = clazz.getSuperclass();
+        if(superclazz != null) {
+            if(superclazz.isAnnotationPresent(Instrumented.class)) {
+                // make sure the child class doesn't have any suspendable methods
+                Method[] ms = clazz.getDeclaredMethods();
+                for(Method m : ms) {
+                    for(Class et : m.getExceptionTypes()) {
+                        if(et.equals(SuspendExecution.class))
+                            return false;
+                    }
+                    if(m.isAnnotationPresent(Suspendable.class))
+                        return false;
+                }
+                return true;
+            } else 
+                return isInstrumented0(superclazz);
+        } else
+            return false;
     }
 
 // for tests only!
