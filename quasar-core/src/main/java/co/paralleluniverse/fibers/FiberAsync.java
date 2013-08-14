@@ -36,17 +36,14 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
 
     @SuppressWarnings("empty-statement")
     public V run() throws E, SuspendExecution, InterruptedException {
-        try {
-            while (!Fiber.park(this, this)) // make sure we actually park and run PostParkActions
+        if (Fiber.currentFiber() == null)
+            return requestSync();
+
+        while (!Fiber.park(this, this)) // make sure we actually park and run PostParkActions
             ;
-            while (!isCompleted())
-                Fiber.park((Object) this);
-        } catch (NullPointerException e) {
-            if(Fiber.currentFiber() == null)
-                throw new IllegalThreadStateException("Method called not from within a fiber");
-            throw e;
-        }
-        
+        while (!isCompleted())
+            Fiber.park((Object) this);
+
         return getResult();
     }
 
@@ -59,6 +56,10 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
      */
     protected abstract A requestAsync(Fiber current, Callback callback);
 
+    protected V requestSync() throws E, InterruptedException {
+        throw new IllegalThreadStateException("Method called not from within a fiber");
+    }
+
     protected Callback getCallback() {
         return (Callback) this;
     }
@@ -68,13 +69,13 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
     private V result;
     private A attachment;
 
-    protected void completed(V result, Fiber fiber) {
+    protected final void completed(V result, Fiber fiber) {
         this.result = result;
         completed = true;
         fire(fiber);
     }
 
-    protected void failed(Throwable exc, Fiber fiber) {
+    protected final void failed(Throwable exc, Fiber fiber) {
         this.exception = exc;
         completed = true;
         fire(fiber);
@@ -105,15 +106,15 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
         attachment = requestAsync(current, getCallback());
     }
 
-    protected A getAttachment() {
+    protected final A getAttachment() {
         return attachment;
     }
 
-    public boolean isCompleted() {
+    public final boolean isCompleted() {
         return completed;
     }
 
-    public V getResult() throws E {
+    public final V getResult() throws E {
         if (!completed)
             throw new IllegalStateException("Not completed");
         if (exception != null)

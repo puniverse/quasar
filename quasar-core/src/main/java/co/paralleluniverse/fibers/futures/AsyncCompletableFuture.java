@@ -83,4 +83,9 @@ public class AsyncCompletableFuture<V> extends FiberAsync<V, Runnable, Void, Exe
         });
         return null;
     }
+
+    @Override
+    protected V requestSync() throws InterruptedException, ExecutionException {
+        return fut.get();
+    }
 }

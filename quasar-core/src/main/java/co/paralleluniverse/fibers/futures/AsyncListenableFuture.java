@@ -87,6 +87,12 @@ public class AsyncListenableFuture<V> extends FiberAsync<V, Runnable, Void, Exec
         }, sameThreadExecutor);
         return null;
     }
+
+    @Override
+    protected V requestSync() throws ExecutionException, InterruptedException {
+        return fut.get();
+    }
+    
     private static final Executor sameThreadExecutor = new Executor() {
         @Override
         public void execute(Runnable command) {
