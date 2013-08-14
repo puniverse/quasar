@@ -33,7 +33,7 @@ import java.util.Set;
  */
 public class SuspendablesScanner {
     private static final String BUILD_DIR = "build/";
-    private static final String RESOURCES_DIR = "/resources/main/";
+    private static final String RESOURCES_DIR = "resources/main/";
     private static final String CLASSES_DIR = "/classes/main/";
     private static final String CLASSFILE_SUFFIX = ".class";
 
@@ -66,11 +66,15 @@ public class SuspendablesScanner {
         PrintStream out = getOutputStream(outputFile);
         List<String> sorted = new ArrayList<String>(results);
         Collections.sort(sorted);
-        for (String s : sorted)
+        for (String s : sorted) {
+//            if(out != System.out)
+//                System.out.println(s);
             out.println(s);
+        }
     }
 
     private static PrintStream getOutputStream(String outputFile) throws Exception {
+//        System.out.println("OUTPUT: " + outputFile);
         if (outputFile != null) {
             outputFile = outputFile.trim();
             if (outputFile.isEmpty())
