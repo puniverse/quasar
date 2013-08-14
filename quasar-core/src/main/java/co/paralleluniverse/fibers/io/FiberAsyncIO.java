@@ -16,6 +16,7 @@ package co.paralleluniverse.fibers.io;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberAsync;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.Suspendable;
 import java.io.IOException;
 import java.nio.channels.CompletionHandler;
 
@@ -49,4 +50,17 @@ abstract class FiberAsyncIO<V> extends FiberAsync<V, CompletionHandler<V, Fiber>
             throw new IOException(e);
         }
     }
+    
+    @Suspendable
+    public V runSneaky() throws IOException {
+        try {
+            return super.run();
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        } catch(SuspendExecution e) {
+            throw new AssertionError();
+        }
+    }
+    
+    
 }

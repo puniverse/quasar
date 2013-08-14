@@ -15,14 +15,18 @@ package co.paralleluniverse.fibers.io;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.Suspendable;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.net.SocketOption;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.ByteChannel;
 import java.nio.channels.CompletionHandler;
+import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.NetworkChannel;
+import java.nio.channels.ScatteringByteChannel;
 import java.nio.channels.spi.AsynchronousChannelProvider;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -31,7 +35,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public class FiberSocketChannel implements FiberByteChannel, NetworkChannel {
+public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, GatheringByteChannel, NetworkChannel {
     private final AsynchronousSocketChannel ac;
 
     public FiberSocketChannel(AsynchronousSocketChannel asc) {
@@ -108,30 +112,56 @@ public class FiberSocketChannel implements FiberByteChannel, NetworkChannel {
         }.run();
     }
 
-    public long read(ByteBuffer[] dsts, int offset, int length) throws IOException, SuspendExecution {
-        return read(dsts, offset, length, 0L, TimeUnit.MILLISECONDS);
+    @Override
+    @Suspendable
+    public long read(ByteBuffer[] dsts, int offset, int length) throws IOException {
+        try {
+            return read(dsts, offset, length, 0L, TimeUnit.MILLISECONDS);
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
-    public long read(ByteBuffer[] dsts) throws IOException, SuspendExecution {
+    @Override
+    @Suspendable
+    public long read(ByteBuffer[] dsts) throws IOException {
         return read(dsts, 0, dsts.length);
     }
 
     @Override
-    public int read(ByteBuffer dst) throws IOException, SuspendExecution {
-        return read(dst, 0L, TimeUnit.MILLISECONDS);
+    @Suspendable
+    public int read(ByteBuffer dst) throws IOException {
+        try {
+            return read(dst, 0L, TimeUnit.MILLISECONDS);
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
-    public long write(ByteBuffer[] srcs, int offset, int length) throws IOException, SuspendExecution {
-        return write(srcs, offset, length, 0L, TimeUnit.MILLISECONDS);
+    @Override
+    @Suspendable
+    public long write(ByteBuffer[] srcs, int offset, int length) throws IOException {
+        try {
+            return write(srcs, offset, length, 0L, TimeUnit.MILLISECONDS);
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
-    public long write(ByteBuffer[] srcs) throws IOException, SuspendExecution {
+    @Override
+    @Suspendable
+    public long write(ByteBuffer[] srcs) throws IOException {
         return write(srcs, 0, srcs.length);
     }
 
     @Override
-    public int write(final ByteBuffer src) throws IOException, SuspendExecution {
-        return write(src, 0L, TimeUnit.MILLISECONDS);
+    @Suspendable
+    public int write(final ByteBuffer src) throws IOException {
+        try {
+            return write(src, 0L, TimeUnit.MILLISECONDS);
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
     @Override
