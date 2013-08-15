@@ -27,7 +27,7 @@ public class RemoteActorRef<Message> extends ActorRefImpl<Message> {
     private static LifecycleListenerProxy lifecycleListenerProxy = ServiceUtil.loadSingletonService(LifecycleListenerProxy.class);
     private final transient ActorRefImpl<Message> actor;
 
-    public RemoteActorRef(ActorRef<Message> actor) {
+    protected RemoteActorRef(ActorRef<Message> actor) {
         super(actor.getName(), ((ActorRefImpl)actor).mailbox());
         this.actor = (ActorRefImpl)actor;
     }
