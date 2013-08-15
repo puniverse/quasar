@@ -148,6 +148,35 @@ public class FiberTest {
     }
 
     @Test
+    public void testInheritThreadLocals() throws Exception {
+        final ThreadLocal<String> tl1 = new ThreadLocal<>();
+        tl1.set("foo");
+
+        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                assertThat(tl1.get(), is("foo"));
+
+                Fiber.sleep(100);
+
+                assertThat(tl1.get(), is("foo"));
+
+                tl1.set("koko");
+
+                assertThat(tl1.get(), is("koko"));
+
+                Fiber.sleep(100);
+
+                assertThat(tl1.get(), is("koko"));
+            }
+        });
+        fiber.inheritThreadLocals().start();
+        fiber.join();
+
+        assertThat(tl1.get(), is("foo"));
+    }
+
+    @Test
     public void testThreadLocalsParallel() throws Exception {
         final ThreadLocal<String> tl = new ThreadLocal<>();
 
@@ -168,6 +197,36 @@ public class FiberTest {
                     }
                 }
             });
+            fiber.start();
+            fibers[i] = fiber;
+        }
+
+        for (Fiber fiber : fibers)
+            fiber.join();
+    }
+
+    @Test
+    public void testInheritThreadLocalsParallel() throws Exception {
+        final ThreadLocal<String> tl = new ThreadLocal<>();
+        tl.set("foo");
+        
+        final int n = 100;
+        final int loops = 100;
+        Fiber[] fibers = new Fiber[n];
+        for (int i = 0; i < n; i++) {
+            final int id = i;
+            Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+                @Override
+                public void run() throws SuspendExecution, InterruptedException {
+                    for (int j = 0; j < loops; j++) {
+                        final String tlValue = "tl-" + id + "-" + j;
+                        tl.set(tlValue);
+                        assertThat(tl.get(), equalTo(tlValue));
+                        Strand.sleep(10);
+                        assertThat(tl.get(), equalTo(tlValue));
+                    }
+                }
+            }).inheritThreadLocals();
             fiber.start();
             fibers[i] = fiber;
         }
