@@ -14,7 +14,7 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.remote.ServiceUtil;
+import co.paralleluniverse.common.util.ServiceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -13,17 +13,16 @@
  */
 package co.paralleluniverse.remote.galaxy;
 
-import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.io.serialization.KryoSerializer;
-import co.paralleluniverse.remote.RemoteProxyFactory;
+import co.paralleluniverse.actors.RemoteActorProxyFactory;
+import co.paralleluniverse.remote.RemoteChannelProxyFactory;
 import co.paralleluniverse.strands.channels.SendPort;
 
 /**
  *
  * @author pron
  */
-public class GlxRemoteProxyFactory implements RemoteProxyFactory {
+public class GlxRemoteProxyFactory implements RemoteChannelProxyFactory, RemoteActorProxyFactory {
 
     @Override
     public <Message> GlxRemoteActor<Message> create(ActorRef<Message> actor, Object globalId) {

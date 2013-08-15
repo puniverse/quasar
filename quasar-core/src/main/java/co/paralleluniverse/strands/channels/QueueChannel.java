@@ -15,7 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.remote.RemoteProxyFactoryService;
+import co.paralleluniverse.remote.RemoteChannelProxyFactoryService;
 import co.paralleluniverse.strands.Condition;
 import co.paralleluniverse.strands.OwnedSynchronizer;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
@@ -354,6 +354,6 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     }
 
     protected Object writeReplace() throws java.io.ObjectStreamException {
-        return RemoteProxyFactoryService.create(this, null);
+        return RemoteChannelProxyFactoryService.create(this, null);
     }
 }

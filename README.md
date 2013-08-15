@@ -15,6 +15,14 @@ In Maven:
 </dependency>
 ```
 
+```xml
+<dependency>
+    <groupId>co.paralleluniverse</groupId>
+    <artifactId>quasar-core</artifactId>
+    <version>0.2.0</version>
+</dependency>
+```
+
 For clustering support add:
 
 ```xml
@@ -34,7 +42,7 @@ Or, build from sources by running:
 ## Usage
 
 Currently, there isn’t much in the way of documentation (coming soon!).
-In the meantime, you can study the examples [here](https://github.com/puniverse/quasar/tree/master/quasar-core/src/test/java/co/paralleluniverse/actors).
+In the meantime, you can study the examples [here](https://github.com/puniverse/quasar/tree/master/quasar-actors/src/test/java/co/paralleluniverse/actors).
 
 You can also read the introductory [blog post](http://blog.paralleluniverse.co/post/49445260575/quasar-pulsar).
 

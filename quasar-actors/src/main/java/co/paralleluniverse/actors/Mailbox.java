@@ -14,7 +14,7 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.remote.RemoteProxyFactoryService;
+import co.paralleluniverse.remote.RemoteChannelProxyFactoryService;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.channels.SingleConsumerQueueChannel;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayObjectQueue;
@@ -98,6 +98,6 @@ public final class Mailbox<Message> extends SingleConsumerQueueChannel<Message> 
 
     @Override
     protected Object writeReplace() throws java.io.ObjectStreamException {
-        return RemoteProxyFactoryService.create(this, actor.getGlobalId());
+        return RemoteChannelProxyFactoryService.create(this, actor.getGlobalId());
     }
 }

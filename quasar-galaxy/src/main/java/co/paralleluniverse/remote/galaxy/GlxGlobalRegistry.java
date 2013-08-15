@@ -22,7 +22,7 @@ import co.paralleluniverse.galaxy.TimeoutException;
 import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Store;
 import co.paralleluniverse.io.serialization.Serialization;
-import co.paralleluniverse.remote.GlobalRegistry;
+import co.paralleluniverse.actors.GlobalRegistry;
 import co.paralleluniverse.strands.locks.ReentrantLock;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;

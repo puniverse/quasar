@@ -1,1 +1,1 @@
-include 'quasar-core','quasar-galaxy'
+include 'quasar-core','quasar-actors','quasar-galaxy'

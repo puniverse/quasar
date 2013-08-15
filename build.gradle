@@ -21,7 +21,8 @@ subprojects {
     ext.distDir         = "$buildDir/dist"
     ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
     ext.baselib         = "${rootProject.projectDir}/baselib"
-    ext.quasarJar       = project(':quasar-core').jar.archivePath
+    ext.quasarJar       = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}.jar" // project(':quasar-core').jar.archivePath
+    
     if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
         println "sonatype username or password not set"
         sonatypeUsername = ""
@@ -50,7 +51,7 @@ subprojects {
             maven { url "http://download.oracle.com/maven/" }
         }
     }
-
+    
     configurations.all {
         resolutionStrategy {
             failOnVersionConflict()
@@ -94,24 +95,24 @@ subprojects {
         testRuntime 'com.sun.jersey:jersey-core:1.11' // needed for caliper. caliper depends on jersey-client but for some reason jersey-core is not a dependency
     }
 
-    task instrumentClasses(dependsOn: 'compileJava') << {
-        //ant.logging.level = LogLevel.INFO
-        ant.taskdef(name:'continuations', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
-        ant.continuations(verbose:'true', check:'true', debug:'true') {
-            fileset(dir: sourceSets.main.output.classesDir) {
-                exclude(name: 'co/paralleluniverse/fibers/*.class')
-                exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
-            }
-        }
-    }
-
-    task instrumentTestClasses(dependsOn: 'compileTestJava') << {
-        //ant.logging.level = LogLevel.INFO
-        ant.taskdef(name:'continuations', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
-        ant.continuations(verbose:'true', check:'true', debug:'true') {
-            fileset(dir: sourceSets.test.output.classesDir)
-        }
-    }
+    //    task instrumentClasses(dependsOn: 'compileJava') << {
+    //        //ant.logging.level = LogLevel.INFO
+    //        ant.taskdef(name:'continuations', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
+    //        ant.continuations(verbose:'true', check:'true', debug:'true') {
+    //            fileset(dir: sourceSets.main.output.classesDir) {
+    //                exclude(name: 'co/paralleluniverse/fibers/*.class')
+    //                exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
+    //            }
+    //        }
+    //    }
+    //
+    //    task instrumentTestClasses(dependsOn: 'compileTestJava') << {
+    //        //ant.logging.level = LogLevel.INFO
+    //        ant.taskdef(name:'continuations', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
+    //        ant.continuations(verbose:'true', check:'true', debug:'true') {
+    //            fileset(dir: sourceSets.test.output.classesDir)
+    //        }
+    //    }
 
     //testClasses.dependsOn instrumentClasses, instrumentTestClasses
 
@@ -268,6 +269,7 @@ subprojects {
         }
     }	
 }
+
 project (':quasar-core') {
     task scanSuspendables(type: JavaExec, dependsOn: classes) { // runs SuspendableScanner
         main = "co.paralleluniverse.fibers.instrument.SuspendablesScanner"
@@ -277,7 +279,6 @@ project (':quasar-core') {
     tasks.jar.dependsOn scanSuspendables
     
     jar {
-
         from zipTree("${baselib}/jsr166e.jar")  // include non-Maven jars
         manifest { 
             attributes(
@@ -293,7 +294,28 @@ project (':quasar-core') {
     }
 }
 
-project (':quasar-galaxy') {
+project (':quasar-actors') {
+    //project.evaluationDependsOn(':quasar-core')
+    
+    dependencies {
+        compile project(':quasar-core')
+    }
+}
+
+project (':quasar-galaxy') {    
+    dependencies {
+        compile project(':quasar-core')
+        compile project(':quasar-actors')
+        
+        compile ("co.paralleluniverse:galaxy:1.2") 
+        compile("com.esotericsoftware.kryo:kryo:2.21") {
+            exclude group: "org.ow2.asm", module: '*'
+        }
+        compile("de.javakaffee:kryo-serializers:0.23") {
+            exclude group: "com.esotericsoftware.kryo", module: '*'
+        }
+    }
+    
     tasks.withType(JavaExec) {
         main = mainClass
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
@@ -306,16 +328,5 @@ project (':quasar-galaxy') {
         systemProperty "galaxy.multicast.port", "7050"
         systemProperty "co.paralleluniverse.galaxy.configFile", "${sourceSets.main.output.resourcesDir}/config/peer.xml"
         systemProperty "co.paralleluniverse.galaxy.autoGoOnline", "true"
-    }
-    
-    dependencies {
-        compile project(':quasar-core')
-        compile ("co.paralleluniverse:galaxy:1.2") 
-        compile("com.esotericsoftware.kryo:kryo:2.21") {
-            exclude group: "org.ow2.asm", module: '*'
-        }
-        compile("de.javakaffee:kryo-serializers:0.23") {
-            exclude group: "com.esotericsoftware.kryo", module: '*'
-        }
     }
 }

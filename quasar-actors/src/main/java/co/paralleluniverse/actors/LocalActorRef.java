@@ -5,7 +5,6 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.remote.RemoteProxyFactoryService;
 import co.paralleluniverse.strands.channels.SendPort;
 
 /**
@@ -91,7 +90,7 @@ class LocalActorRef<Message, V> extends ActorRefImpl<Message> implements ActorBu
     //<editor-fold desc="Serialization">
     /////////// Serialization ///////////////////////////////////
     protected Object writeReplace() throws java.io.ObjectStreamException {
-        final RemoteActorRef<Message> repl = RemoteProxyFactoryService.create((ActorRef<Message>) this, actor.getGlobalId());
+        final RemoteActorRef<Message> repl = RemoteActorProxyFactoryService.create((ActorRef<Message>) this, actor.getGlobalId());
         return repl;
     }
     //</editor-fold>
