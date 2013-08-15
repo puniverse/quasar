@@ -25,14 +25,14 @@ import java.util.concurrent.TimeoutException;
  * <p/>
  * We provide these services as static methods rather than return a reference to the actor because we don't want anyone to accidentally
  * keep a reference to the actor itself.
- * 
+ *
  * @author pron
  */
 public final class LocalActorUtil {
     public static boolean isLocal(ActorRef<?> actor) {
         return stripDelegates(actor) instanceof LocalActorRef;
     }
-    
+
     public static void join(ActorRef<?> actor) throws ExecutionException, InterruptedException {
         actorOf(actor).join();
     }
@@ -64,33 +64,41 @@ public final class LocalActorUtil {
     public static ActorMonitor getMonitor(ActorRef<?> actor) {
         return actorOf(actor).getMonitor();
     }
-    
+
     public static void stopMonitor(ActorRef<?> actor) {
         actorOf(actor).stopMonitor();
     }
-    
+
     public static void unregister(ActorRef<?> actor) {
         actorOf(actor).unregister();
     }
-    
+
     public static int getQueueLength(ActorRef<?> actor) {
         return actorOf(actor).getQueueLength();
     }
-    
+
+    public static void link(ActorRef<?> actor1, ActorRef<?> actor2) {
+        actorOf(actor1).link(actor2);
+    }
+
+    public static void unlink(ActorRef<?> actor1, ActorRef<?> actor2) {
+        actorOf(actor1).unlink(actor2);
+    }
+
     public static <M, V> ActorBuilder<M, V> toActorBuilder(ActorRef<M> actor) {
         actor = stripDelegates(actor);
-        if(!(actor instanceof LocalActorRef))
+        if (!(actor instanceof LocalActorRef))
             throw new IllegalArgumentException("ActorRef " + actor + " is not a local actor, and cannot be used as an ActorBuilder.");
-        return (ActorBuilder<M, V>)actor;
+        return (ActorBuilder<M, V>) actor;
     }
-    
+
     private static Actor actorOf(ActorRef ar) {
         ar = stripDelegates(ar);
         if (!(ar instanceof LocalActorRef))
             throw new IllegalArgumentException("ActorRef " + ar + " is not a local actor.");
         return ((LocalActorRef) ar).getActor();
     }
-    
+
     static <M> ActorRef<M> stripDelegates(ActorRef<M> ar) {
         while (ar instanceof ActorRefDelegate)
             ar = ((ActorRefDelegate) ar).ref;
