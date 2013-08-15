@@ -15,14 +15,6 @@ In Maven:
 </dependency>
 ```
 
-```xml
-<dependency>
-    <groupId>co.paralleluniverse</groupId>
-    <artifactId>quasar-actors</artifactId>
-    <version>0.2.0</version>
-</dependency>
-```
-
 For clustering support add:
 
 ```xml
