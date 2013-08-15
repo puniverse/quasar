@@ -17,16 +17,16 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
+import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorSpec;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.LifecycleMessage;
-import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.LocalActorUtil;
 import co.paralleluniverse.actors.ShutdownMessage;
-import co.paralleluniverse.actors.behaviors.SupervisorActor.RestartStrategy;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildMode;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
+import co.paralleluniverse.actors.behaviors.SupervisorActor.RestartStrategy;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -38,7 +38,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import jsr166e.ForkJoinPool;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;

@@ -59,10 +59,6 @@ abstract class ActorRefImpl<Message> extends ActorRef<Message> implements SendPo
         this.name = name;
     }
 
-    public static <Message> ActorRef<Message> getActor(String name) {
-        return ActorRegistry.getActor(name);
-    }
-
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
     protected SendPort<Object> mailbox() {
