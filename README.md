@@ -18,7 +18,7 @@ In Maven:
 ```xml
 <dependency>
     <groupId>co.paralleluniverse</groupId>
-    <artifactId>quasar-core</artifactId>
+    <artifactId>quasar-actors</artifactId>
     <version>0.2.0</version>
 </dependency>
 ```
