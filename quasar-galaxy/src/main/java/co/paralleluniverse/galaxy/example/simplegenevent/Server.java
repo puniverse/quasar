@@ -20,6 +20,7 @@
 package co.paralleluniverse.galaxy.example.simplegenevent;
 
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.LocalActorUtil;
 import co.paralleluniverse.actors.behaviors.EventHandler;
 import co.paralleluniverse.actors.behaviors.GenEvent;
@@ -46,7 +47,7 @@ public class Server {
             @Override
             public void init() throws SuspendExecution {
                 Actor.currentActor().register("myEventServer");
-                final GenEvent<String> ge = Actor.self();
+                final GenEvent<String> ge = ActorRef.self();
                 try {
                     ge.addHandler(new EventHandler<String>() {
                         @Override

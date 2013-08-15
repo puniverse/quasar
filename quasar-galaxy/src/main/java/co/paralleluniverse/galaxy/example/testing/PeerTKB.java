@@ -133,7 +133,7 @@ public class PeerTKB {
                         public void init() throws SuspendExecution {
                             GenEventActor.currentGenEvent().register("myEventServer");
                             try {
-                                final GenEvent<String> ge = (GenEvent<String>)Actor.self();
+                                final GenEvent<String> ge = ActorRef.self();
                                 ge.addHandler(new EventHandler<String>() {
                                     @Override
                                     public void handleEvent(String event) {
@@ -177,7 +177,7 @@ public class PeerTKB {
                         public void init() throws SuspendExecution {
                             Actor.currentActor().register("myEventServer");
                             try {
-                                final GenEvent<String> ge = (GenEvent<String>)Actor.self();
+                                final GenEvent<String> ge = ActorRef.self();
                                 ge.addHandler(new EventHandler<String>() {
                                     @Override
                                     public void handleEvent(String event) {
