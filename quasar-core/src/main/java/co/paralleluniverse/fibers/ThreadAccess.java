@@ -14,6 +14,10 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import java.lang.ref.Reference;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import sun.misc.Unsafe;
 
@@ -28,6 +32,14 @@ class ThreadAccess {
     private static final long inheritableThreadLocalsOffset;
     private static final long contextClassLoaderOffset;
     private static final Method createInheritedMap;
+    private static final Class threadLocalMapClass;
+    private static final Constructor threadLocalMapConstructor;
+    private static final Field threadLocalMapTableField;
+    private static final Field threadLocalMapSizeField;
+    private static final Field threadLocalMapThresholdField;
+    private static final Class threadLocalMapEntryClass;
+    private static final Constructor threadLocalMapEntryConstructor;
+    private static final Field threadLocalMapEntryValueField;
 
     static {
         try {
@@ -35,10 +47,22 @@ class ThreadAccess {
             threadLocalsOffset = unsafe.objectFieldOffset(Thread.class.getDeclaredField("threadLocals"));
             inheritableThreadLocalsOffset = unsafe.objectFieldOffset(Thread.class.getDeclaredField("inheritableThreadLocals"));
             contextClassLoaderOffset = unsafe.objectFieldOffset(Thread.class.getDeclaredField("contextClassLoader"));
-            
-            Class threadLocalMapClass = Class.forName("java.lang.ThreadLocal$ThreadLocalMap");
+
+            threadLocalMapClass = Class.forName("java.lang.ThreadLocal$ThreadLocalMap");
             createInheritedMap = ThreadLocal.class.getDeclaredMethod("createInheritedMap", threadLocalMapClass);
             createInheritedMap.setAccessible(true);
+            threadLocalMapConstructor = threadLocalMapClass.getDeclaredConstructor(ThreadLocal.class, Object.class);
+            threadLocalMapTableField = threadLocalMapClass.getDeclaredField("table");
+            threadLocalMapTableField.setAccessible(true);
+            threadLocalMapSizeField = threadLocalMapClass.getDeclaredField("size");
+            threadLocalMapSizeField.setAccessible(true);
+            threadLocalMapThresholdField = threadLocalMapClass.getDeclaredField("threshold");
+            threadLocalMapThresholdField.setAccessible(true);
+            threadLocalMapEntryClass = Class.forName("java.lang.ThreadLocal$ThreadLocalMap$Entry");
+            threadLocalMapEntryConstructor = threadLocalMapEntryClass.getDeclaredConstructor(ThreadLocal.class, Object.class);
+            threadLocalMapEntryConstructor.setAccessible(true);
+            threadLocalMapEntryValueField = threadLocalMapEntryClass.getDeclaredField("value");
+            threadLocalMapEntryValueField.setAccessible(true);
         } catch (Exception ex) {
             throw new AssertionError(ex);
         }
@@ -76,8 +100,41 @@ class ThreadAccess {
         }
     }
 
+    // createInheritedMap works only for InheritableThreadLocals
+    public static Object cloneThreadLocalMap(Object orig) {
+        try {
+            Object clone = threadLocalMapConstructor.newInstance(null, null);
+
+            Object origTable = threadLocalMapTableField.get(orig);
+            final int len = Array.getLength(origTable);
+            Object tableClone = Array.newInstance(threadLocalMapEntryClass, len);
+            for (int i = 0; i < len; i++) {
+                Object entry = Array.get(origTable, i);
+                if(entry != null)
+                    Array.set(tableClone, i, cloneThreadLocalMapEntry(entry));
+            }
+            
+            threadLocalMapTableField.set(clone, tableClone);
+            threadLocalMapSizeField.setInt(clone, threadLocalMapSizeField.getInt(orig));
+            threadLocalMapThresholdField.setInt(clone, threadLocalMapThresholdField.getInt(orig));
+            return clone;
+        } catch (Exception ex) {
+            throw new AssertionError(ex);
+        }
+    }
+
+    private static Object cloneThreadLocalMapEntry(Object entry) {
+        try {
+            final ThreadLocal key = ((Reference<ThreadLocal>) entry).get();
+            final Object value = threadLocalMapEntryValueField.get(entry);
+            return threadLocalMapEntryConstructor.newInstance(key, value);
+        } catch (Exception ex) {
+            throw new AssertionError(ex);
+        }
+    }
+
     public static ClassLoader getContextClassLoader(Thread thread) {
-        return (ClassLoader)unsafe.getObject(thread, contextClassLoaderOffset);
+        return (ClassLoader) unsafe.getObject(thread, contextClassLoaderOffset);
     }
 
     public static void setContextClassLoader(Thread thread, ClassLoader classLoader) {
