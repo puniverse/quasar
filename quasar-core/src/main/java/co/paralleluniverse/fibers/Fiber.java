@@ -641,24 +641,24 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private void installFiberDataInThread(Thread currentThread) {
+        record(1, "Fiber", "installFiberDataInThread", "%s <-> %s", this, currentThread);
         setCurrentFiber(this);
         installFiberLocals(currentThread);
         installFiberContextClassLoader(currentThread);
     }
 
     private void restoreThreadData(Thread currentThread, Fiber oldFiber) {
+        record(1, "Fiber", "restoreThreadData", "%s <-> %s", this, currentThread);
         restoreThreadLocals(currentThread);
         restoreThreadContextClassLoader(currentThread);
         setCurrentFiber(oldFiber);
     }
 
     private void installFiberLocals(Thread currentThread) {
-        record(1, "Fiber", "installFiberLocals", "%s -> %s", this, currentThread);
         switchFiberAndThreadLocals(currentThread, true);
     }
 
     private void restoreThreadLocals(Thread currentThread) {
-        record(1, "Fiber", "restoreThreadLocals", "%s <- %s", this, currentThread);
         switchFiberAndThreadLocals(currentThread, false);
     }
 
