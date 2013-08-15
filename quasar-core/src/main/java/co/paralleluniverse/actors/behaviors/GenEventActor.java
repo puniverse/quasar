@@ -38,6 +38,8 @@ public class GenEventActor<Event> extends GenBehaviorActor {
         super(name, initializer, strand, mailboxConfig);
     }
 
+    //<editor-fold defaultstate="collapsed" desc="Behavior boilerplate">
+    /////////// Behavior boilerplate ///////////////////////////////////
     @Override
     protected GenEvent<Event> makeRef(ActorRef<Object> ref) {
         return new GenEvent<Event>(ref);
@@ -49,6 +51,11 @@ public class GenEventActor<Event> extends GenBehaviorActor {
     }
 
     @Override
+    protected GenEvent<Event> self() {
+        return ref();
+    }
+
+    @Override
     public GenEvent<Event> spawn(ForkJoinPool fjPool) {
         return (GenEvent<Event>) super.spawn(fjPool);
     }
@@ -57,10 +64,10 @@ public class GenEventActor<Event> extends GenBehaviorActor {
     public GenEvent<Event> spawn() {
         return (GenEvent<Event>) super.spawn();
     }
+    //</editor-fold>
     
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-
     public GenEventActor(String name, Initializer initializer, MailboxConfig mailboxConfig) {
         this(name, initializer, null, mailboxConfig);
     }
@@ -141,7 +148,7 @@ public class GenEventActor<Event> extends GenBehaviorActor {
     }
 
     public static <Event> GenEventActor<Event> currentGenEvent() {
-        return (GenEventActor<Event>) (Actor)currentActor();
+        return (GenEventActor<Event>) (Actor) currentActor();
     }
 
     private void notifyHandlers(Event event) {

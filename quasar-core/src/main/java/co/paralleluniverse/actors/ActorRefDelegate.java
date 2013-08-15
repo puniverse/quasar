@@ -20,7 +20,7 @@ import java.util.Objects;
  *
  * @author pron
  */
-public class ActorRefDelegate<Message> implements ActorRef<Message> {
+public class ActorRefDelegate<Message> extends ActorRef<Message> {
     protected final ActorRef<Message> ref;
 
     public ActorRefDelegate(ActorRef<Message> ref) {

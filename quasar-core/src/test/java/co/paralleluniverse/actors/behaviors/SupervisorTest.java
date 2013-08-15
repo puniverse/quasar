@@ -394,7 +394,7 @@ public class SupervisorTest {
 
         public Actor3(String name, AtomicInteger started, AtomicInteger terminated) {
             super(name);
-            mySup = Actor.self();
+            mySup = ActorRef.self();
             this.started = started;
             this.terminated = terminated;
         }

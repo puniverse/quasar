@@ -46,7 +46,7 @@ public class ActorRegistry {
         // atomically register
         final ActorRef ref = actor.ref();
         final Entry old = registeredActors.get(name);
-        if (old != null && old.actor == actor)
+        if (old != null && old.actor == actor.ref())
             return old.globalId;
 
         if (old != null && LocalActorUtil.isLocal(old.actor) && !LocalActorUtil.isDone(old.actor))

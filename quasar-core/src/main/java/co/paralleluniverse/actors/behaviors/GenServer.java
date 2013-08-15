@@ -14,7 +14,6 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.Actor;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.from;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.makeId;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -45,11 +44,11 @@ public class GenServer<CallMessage, V, CastMessage> extends GenBehavior {
     }
 
     public final void cast(CastMessage m) throws SuspendExecution {
-        ref.send(new GenServerRequest(Actor.self(), makeId(), MessageType.CAST, m));
+        ref.send(new GenServerRequest(ActorRef.self(), makeId(), MessageType.CAST, m));
     }
 
     public static void cast(ActorRef server, Object m) throws SuspendExecution {
-        server.send(new GenServerRequest(Actor.self(), makeId(), MessageType.CAST, m));
+        server.send(new GenServerRequest(ActorRef.self(), makeId(), MessageType.CAST, m));
     }
 
     enum MessageType {

@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorRefDelegate;
 import co.paralleluniverse.actors.ActorUtil;
@@ -29,7 +28,7 @@ public class GenBehavior extends ActorRefDelegate<Object> implements java.io.Ser
     }
 
     public void shutdown() {
-        final ShutdownMessage message = new ShutdownMessage(Actor.self());
+        final ShutdownMessage message = new ShutdownMessage(ActorRef.self());
         ActorUtil.sendOrInterrupt(ref, message);
     }
 

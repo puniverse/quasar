@@ -84,6 +84,8 @@ public class SupervisorActor extends GenBehaviorActor {
         this(strand, name, mailboxConfig, restartStrategy, Arrays.asList(childSpec));
     }
 
+    //<editor-fold defaultstate="collapsed" desc="Behavior boilerplate">
+    /////////// Behavior boilerplate ///////////////////////////////////
     @Override
     protected Supervisor makeRef(ActorRef<Object> ref) {
         return new Supervisor(ref);
@@ -95,6 +97,11 @@ public class SupervisorActor extends GenBehaviorActor {
     }
 
     @Override
+    protected Supervisor self() {
+        return ref();
+    }
+
+    @Override
     public Supervisor spawn(ForkJoinPool fjPool) {
         return (Supervisor) super.spawn(fjPool);
     }
@@ -103,7 +110,8 @@ public class SupervisorActor extends GenBehaviorActor {
     public Supervisor spawn() {
         return (Supervisor) super.spawn();
     }
-
+    //</editor-fold>
+    
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
     public SupervisorActor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy) {

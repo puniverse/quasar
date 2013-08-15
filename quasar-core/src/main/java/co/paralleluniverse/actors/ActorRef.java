@@ -19,12 +19,19 @@ import co.paralleluniverse.fibers.SuspendExecution;
  *
  * @author pron
  */
-public interface ActorRef<Message> {
-    String getName();
+public abstract class ActorRef<Message> {
+    public abstract String getName();
 
-    void send(Message message) throws SuspendExecution;
+    public abstract void send(Message message) throws SuspendExecution;
 
-    void sendSync(Message message) throws SuspendExecution;
+    public abstract void sendSync(Message message) throws SuspendExecution;
 
-    void interrupt();
+    public abstract void interrupt();
+    
+    public static <T extends ActorRef<M>, M> T self() {
+        final Actor a = Actor.currentActor();
+        if (a == null)
+            return null;
+        return (T) a.ref();
+    }
 }

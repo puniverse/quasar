@@ -39,6 +39,8 @@ public class GenServerActor<CallMessage, V, CastMessage> extends GenBehaviorActo
         this.timeout = timeout;
     }
 
+    //<editor-fold defaultstate="collapsed" desc="Behavior boilerplate">
+    /////////// Behavior boilerplate ///////////////////////////////////
     @Override
     protected GenServer<CallMessage, V, CastMessage> makeRef(ActorRef<Object> ref) {
         return new GenServer<CallMessage, V, CastMessage>(ref);
@@ -50,6 +52,11 @@ public class GenServerActor<CallMessage, V, CastMessage> extends GenBehaviorActo
     }
 
     @Override
+    protected GenServer<CallMessage, V, CastMessage> self() {
+        return ref();
+    }
+
+    @Override
     public GenServer<CallMessage, V, CastMessage> spawn(ForkJoinPool fjPool) {
         return (GenServer<CallMessage, V, CastMessage>) super.spawn(fjPool);
     }
@@ -58,7 +65,8 @@ public class GenServerActor<CallMessage, V, CastMessage> extends GenBehaviorActo
     public GenServer<CallMessage, V, CastMessage> spawn() {
         return (GenServer<CallMessage, V, CastMessage>) super.spawn();
     }
-
+    //</editor-fold>
+    
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
     public GenServerActor(String name, Server<CallMessage, V, CastMessage> server, MailboxConfig mailboxConfig) {
@@ -104,7 +112,7 @@ public class GenServerActor<CallMessage, V, CastMessage> extends GenBehaviorActo
     }
 
     public static <CallMessage, V, CastMessage> GenServerActor<CallMessage, V, CastMessage> currentGenServer() {
-        return (GenServerActor<CallMessage, V, CastMessage>) (Actor)currentActor();
+        return (GenServerActor<CallMessage, V, CastMessage>) (Actor) currentActor();
     }
 
     @Override

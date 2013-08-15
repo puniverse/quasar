@@ -123,7 +123,7 @@ public class RequestReplyHelper {
     }
 
     private static ActorRef getCurrentActor() {
-        ActorRef actorRef = Actor.self();
+        ActorRef actorRef = ActorRef.self();
         if (actorRef == null) {
             // create a "dummy actor" on the current strand
             Actor actor = new Actor(Strand.currentStrand(), null, new MailboxConfig(5, OverflowPolicy.THROW)) {
@@ -137,7 +137,7 @@ public class RequestReplyHelper {
         return actorRef;
     }
 
-    private static class TempActor<Message> implements ActorRef<Message> {
+    private static class TempActor<Message> extends ActorRef<Message> {
         private WeakReference<Actor<Message, Void>> actor;
         private volatile boolean done = false;
 

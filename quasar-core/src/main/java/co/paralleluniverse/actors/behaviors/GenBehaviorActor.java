@@ -38,6 +38,8 @@ public abstract class GenBehaviorActor extends Actor<Object, Void> implements ja
         this.run = true;
     }
 
+    //<editor-fold defaultstate="collapsed" desc="Behavior boilerplate">
+    /////////// Behavior boilerplate ///////////////////////////////////
     @Override
     protected GenBehavior makeRef(ActorRef<Object> ref) {
         return new GenBehavior(ref);
@@ -45,22 +47,27 @@ public abstract class GenBehaviorActor extends Actor<Object, Void> implements ja
 
     @Override
     public GenBehavior ref() {
-        return (GenBehavior)super.ref();
+        return (GenBehavior) super.ref();
+    }
+
+    @Override
+    protected GenBehavior self() {
+        return ref();
     }
 
     @Override
     public GenBehavior spawn(ForkJoinPool fjPool) {
-        return (GenBehavior)super.spawn(fjPool);
+        return (GenBehavior) super.spawn(fjPool);
     }
 
     @Override
     public GenBehavior spawn() {
-        return (GenBehavior)super.spawn();
+        return (GenBehavior) super.spawn();
     }
-    
+    //</editor-fold>
+
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-
     public GenBehaviorActor(String name, Initializer initializer, MailboxConfig mailboxConfig) {
         this(name, initializer, null, mailboxConfig);
     }

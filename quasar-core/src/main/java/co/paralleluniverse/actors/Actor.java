@@ -216,13 +216,10 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return wrapperRef;
     }
 
-    public static <T extends ActorRef<M>, M> T self() {
-        final Actor a = currentActor();
-        if (a == null)
-            return null;
-        return (T) currentActor().ref();
+    protected ActorRef<Message> self() {
+        return ref();
     }
-
+    
     @Override
     public final void setStrand(Strand strand) {
         if (strand == this.strand)
