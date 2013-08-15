@@ -104,7 +104,7 @@ class ThreadAccess {
     // createInheritedMap works only for InheritableThreadLocals
     public static Object cloneThreadLocalMap(Object orig) {
         try {
-            Object clone = threadLocalMapConstructor.newInstance(null, null);
+            Object clone = threadLocalMapConstructor.newInstance(new ThreadLocal(), null);
 
             Object origTable = threadLocalMapTableField.get(orig);
             final int len = Array.getLength(origTable);
