@@ -52,6 +52,7 @@ class ThreadAccess {
             createInheritedMap = ThreadLocal.class.getDeclaredMethod("createInheritedMap", threadLocalMapClass);
             createInheritedMap.setAccessible(true);
             threadLocalMapConstructor = threadLocalMapClass.getDeclaredConstructor(ThreadLocal.class, Object.class);
+            threadLocalMapConstructor.setAccessible(true);
             threadLocalMapTableField = threadLocalMapClass.getDeclaredField("table");
             threadLocalMapTableField.setAccessible(true);
             threadLocalMapSizeField = threadLocalMapClass.getDeclaredField("size");
