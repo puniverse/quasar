@@ -69,6 +69,14 @@ public final class LocalActorUtil {
         actorOf(actor).stopMonitor();
     }
 
+    public static void register(ActorRef<?> actor, String name) {
+        actorOf(actor).register(name);
+    }
+
+    public static void register(ActorRef<?> actor) {
+        actorOf(actor).register();
+    }
+
     public static void unregister(ActorRef<?> actor) {
         actorOf(actor).unregister();
     }
