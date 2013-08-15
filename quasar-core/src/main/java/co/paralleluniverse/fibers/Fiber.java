@@ -757,7 +757,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     public Fiber inheritThreadLocals() {
         if (state != State.NEW)
             throw new IllegalStateException("Method called on a started fiber");
-        this.fiberLocals = ThreadAccess.getThreadLocals(Thread.currentThread());
+        this.fiberLocals = ThreadAccess.createInheritedMap(ThreadAccess.getThreadLocals(Thread.currentThread()));
         return this;
     }
 

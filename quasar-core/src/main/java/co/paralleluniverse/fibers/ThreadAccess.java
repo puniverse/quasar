@@ -35,17 +35,9 @@ class ThreadAccess {
             threadLocalsOffset = unsafe.objectFieldOffset(Thread.class.getDeclaredField("threadLocals"));
             inheritableThreadLocalsOffset = unsafe.objectFieldOffset(Thread.class.getDeclaredField("inheritableThreadLocals"));
             contextClassLoaderOffset = unsafe.objectFieldOffset(Thread.class.getDeclaredField("contextClassLoader"));
-
-            Method[] methods = ThreadLocal.class.getDeclaredMethods();
-            Method tmp = null;
-            for (Method method : methods) {
-                if (method.getName().equals("createInheritedMap")) {
-                    tmp = method;
-                    break;
-                }
-            }
-            createInheritedMap = tmp;
-            assert createInheritedMap != null;
+            
+            Class threadLocalMapClass = Class.forName("java.lang.ThreadLocal$ThreadLocalMap");
+            createInheritedMap = ThreadLocal.class.getDeclaredMethod("createInheritedMap", threadLocalMapClass);
             createInheritedMap.setAccessible(true);
         } catch (Exception ex) {
             throw new AssertionError(ex);
