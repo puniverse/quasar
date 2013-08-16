@@ -164,6 +164,10 @@ public class SupervisorActor extends GenBehaviorActor {
     }
     //</editor-fold>
 
+    public static SupervisorActor currentSupervisor() {
+        return (SupervisorActor)Actor.<Object, Void>currentActor();
+    }
+    
     @Override
     public Logger log() {
         return LOG;
@@ -208,7 +212,7 @@ public class SupervisorActor extends GenBehaviorActor {
                 if (req instanceof GetChildMessage) {
                     reply(req, getChild(((GetChildMessage) req).name));
                 } else if (req instanceof AddChildMessage) {
-                    reply(req, addChild(((AddChildMessage) req).info));
+                    reply(req, addChild(((AddChildMessage) req).spec));
                 } else if (req instanceof RemoveChildMessage) {
                     final RemoveChildMessage m = (RemoveChildMessage) req;
                     reply(req, removeChild(m.name, m.terminate));
@@ -254,7 +258,7 @@ public class SupervisorActor extends GenBehaviorActor {
         return child;
     }
 
-    protected final ActorRef addChild(ChildSpec spec) throws SuspendExecution, InterruptedException {
+    protected final <T extends ActorRef<M>, M> T addChild(ChildSpec spec) throws SuspendExecution, InterruptedException {
         verifyInActor();
         final ChildEntry child = addChild1(spec);
 
@@ -264,15 +268,15 @@ public class SupervisorActor extends GenBehaviorActor {
         else
             start(child, actor);
 
-        return actor;
+        return (T) actor;
     }
 
-    protected <Message> ActorRef<Message> getChild(Object name) {
+    protected <T extends ActorRef<M>, M> T getChild(Object name) {
         verifyInActor();
         final ChildEntry child = findEntryById(name);
         if (child == null)
             return null;
-        return (ActorRef<Message>) child.actor;
+        return (T) child.actor;
     }
 
     protected final boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException {

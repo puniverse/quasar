@@ -112,7 +112,7 @@ public class GenServerActor<CallMessage, V, CastMessage> extends GenBehaviorActo
     }
 
     public static <CallMessage, V, CastMessage> GenServerActor<CallMessage, V, CastMessage> currentGenServer() {
-        return (GenServerActor<CallMessage, V, CastMessage>) (Actor) currentActor();
+        return (GenServerActor<CallMessage, V, CastMessage>) Actor.<Object, Void>currentActor();
     }
 
     @Override

@@ -38,16 +38,18 @@ public class GenBehavior extends ActorRefDelegate<Object> implements java.io.Ser
         ActorUtil.sendOrInterrupt(ref, message);
     }
 
+    @Override
     public void close() {
         throw new UnsupportedOperationException();
     }
 
-    static class Local extends GenBehavior implements ActorBuilder<Object, Void>, Joinable<Void> {
+    static final class Local extends GenBehavior implements LocalBehavior<GenBehavior> {
         Local(ActorRef<Object> actor) {
             super(actor);
         }
 
-        protected final Object writeReplace() throws java.io.ObjectStreamException {
+        @Override
+        public GenBehavior writeReplace() throws java.io.ObjectStreamException {
             return new GenBehavior(ref);
         }
 

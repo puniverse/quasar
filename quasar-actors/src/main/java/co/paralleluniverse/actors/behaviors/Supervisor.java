@@ -34,58 +34,27 @@ public class Supervisor extends GenBehavior {
     }
 
     public final <T extends ActorRef<M>, M> T addChild(ChildSpec spec) throws SuspendExecution, InterruptedException {
+        if (isInActor())
+            return (T) SupervisorActor.currentSupervisor().addChild(spec);
+
         final GenResponseMessage res = call(this, new AddChildMessage(RequestReplyHelper.from(), null, spec));
         return (T) ((GenValueResponseMessage<ActorRef>) res).getValue();
     }
 
     public final <T extends ActorRef<M>, M> T getChild(Object id) throws SuspendExecution, InterruptedException {
+        if (isInActor())
+            return SupervisorActor.currentSupervisor().getChild(id);
+
         final GenResponseMessage res = call(this, new GetChildMessage(RequestReplyHelper.from(), null, id));
         return (T) ((GenValueResponseMessage<ActorRef>) res).getValue();
     }
 
     public final boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException {
+        if (isInActor())
+            return SupervisorActor.currentSupervisor().removeChild(id, terminate);
+
         final GenResponseMessage res = call(this, new RemoveChildMessage(RequestReplyHelper.from(), null, id, terminate));
         return ((GenValueResponseMessage<Boolean>) res).getValue();
-    }
-
-    static class Local extends Supervisor implements ActorBuilder<Object, Void>, Joinable<Void> {
-        Local(ActorRef<Object> actor) {
-            super(actor);
-        }
-
-        protected final Object writeReplace() throws java.io.ObjectStreamException {
-            return new Supervisor(ref);
-        }
-
-        @Override
-        public Actor<Object, Void> build() {
-            return ((ActorBuilder<Object, Void>) ref).build();
-        }
-
-        @Override
-        public void join() throws ExecutionException, InterruptedException {
-            ((Joinable<Void>) ref).join();
-        }
-
-        @Override
-        public void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
-            ((Joinable<Void>) ref).join(timeout, unit);
-        }
-
-        @Override
-        public Void get() throws ExecutionException, InterruptedException {
-            return ((Joinable<Void>) ref).get();
-        }
-
-        @Override
-        public Void get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
-            return ((Joinable<Void>) ref).get(timeout, unit);
-        }
-
-        @Override
-        public boolean isDone() {
-            return ((Joinable<Void>) ref).isDone();
-        }
     }
 
     public enum ChildMode {
@@ -151,11 +120,16 @@ public class Supervisor extends GenBehavior {
 
     ///////// Messages
     static class AddChildMessage extends GenRequestMessage {
-        final ChildSpec info;
+        final ChildSpec spec;
 
         public AddChildMessage(ActorRef from, Object id, ChildSpec info) {
             super(from, id);
-            this.info = info;
+            this.spec = info;
+        }
+
+        @Override
+        protected String contentString() {
+            return super.contentString() + " spec: " + spec;
         }
     }
 
@@ -165,6 +139,11 @@ public class Supervisor extends GenBehavior {
         public GetChildMessage(ActorRef from, Object id, Object name) {
             super(from, id);
             this.name = name;
+        }
+
+        @Override
+        protected String contentString() {
+            return super.contentString() + " name: " + name;
         }
     }
 
@@ -176,6 +155,52 @@ public class Supervisor extends GenBehavior {
             super(from, id);
             this.name = name;
             this.terminate = terminate;
+        }
+
+        @Override
+        protected String contentString() {
+            return super.contentString() + " name: " + name + " terminate: " + terminate;
+        }
+    }
+
+    static final class Local extends Supervisor implements LocalBehavior<Supervisor> {
+        Local(ActorRef<Object> actor) {
+            super(actor);
+        }
+
+        @Override
+        public Supervisor writeReplace() throws java.io.ObjectStreamException {
+            return new Supervisor(ref);
+        }
+
+        @Override
+        public Actor<Object, Void> build() {
+            return ((ActorBuilder<Object, Void>) ref).build();
+        }
+
+        @Override
+        public void join() throws ExecutionException, InterruptedException {
+            ((Joinable<Void>) ref).join();
+        }
+
+        @Override
+        public void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+            ((Joinable<Void>) ref).join(timeout, unit);
+        }
+
+        @Override
+        public Void get() throws ExecutionException, InterruptedException {
+            return ((Joinable<Void>) ref).get();
+        }
+
+        @Override
+        public Void get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+            return ((Joinable<Void>) ref).get(timeout, unit);
+        }
+
+        @Override
+        public boolean isDone() {
+            return ((Joinable<Void>) ref).isDone();
         }
     }
 }

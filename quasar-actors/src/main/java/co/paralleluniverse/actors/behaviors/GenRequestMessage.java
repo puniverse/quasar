@@ -29,7 +29,7 @@ public abstract class GenRequestMessage extends GenFromMessage implements IdMess
         this.id = id;
     }
 
-    @ConstructorProperties({"from", "id"})
+    @ConstructorProperties({"from"})
     public GenRequestMessage(ActorRef<?> from) {
         super(from);
         this.id = null;

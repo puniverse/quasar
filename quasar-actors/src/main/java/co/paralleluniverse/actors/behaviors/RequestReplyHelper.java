@@ -53,6 +53,8 @@ public class RequestReplyHelper {
     }
 
     public static GenResponseMessage call(final ActorRef actor, GenRequestMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
+        assert !actor.equals(ActorRef.self()) : "Can't \"call\" self - deadlock guaranteed";
+        
         final Actor currentActor;
         if (m.getFrom() instanceof TempActor)
             currentActor = ((TempActor<?>) m.getFrom()).actor.get();

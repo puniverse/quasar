@@ -65,7 +65,7 @@ public class GenEventActor<Event> extends GenBehaviorActor {
         return (GenEvent<Event>) super.spawn();
     }
     //</editor-fold>
-    
+
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
     public GenEventActor(String name, Initializer initializer, MailboxConfig mailboxConfig) {
@@ -148,7 +148,7 @@ public class GenEventActor<Event> extends GenBehaviorActor {
     }
 
     public static <Event> GenEventActor<Event> currentGenEvent() {
-        return (GenEventActor<Event>) (Actor) currentActor();
+        return (GenEventActor<Event>) Actor.<Object, Void>currentActor();
     }
 
     private void notifyHandlers(Event event) {
@@ -165,6 +165,11 @@ public class GenEventActor<Event> extends GenBehaviorActor {
             super(from, id);
             this.handler = handler;
             this.add = add;
+        }
+
+        @Override
+        protected String contentString() {
+            return super.contentString() + " handler: " + handler + " add: " + add;
         }
     }
 }

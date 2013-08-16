@@ -33,11 +33,17 @@ public class GenEvent<Event> extends GenBehavior {
     }
 
     public boolean addHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
+        if(isInActor())
+            return GenEventActor.<Event>currentGenEvent().addHandler(handler);
+        
         final GenResponseMessage res = call(this, new GenEventActor.HandlerMessage(RequestReplyHelper.from(), null, handler, true));
         return ((GenValueResponseMessage<Boolean>) res).getValue();
     }
 
     public boolean removeHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
+        if(isInActor())
+            return GenEventActor.<Event>currentGenEvent().removeHandler(handler);
+        
         final GenResponseMessage res = call(this, new GenEventActor.HandlerMessage(RequestReplyHelper.from(), null, handler, false));
         return ((GenValueResponseMessage<Boolean>) res).getValue();
     }
@@ -46,13 +52,14 @@ public class GenEvent<Event> extends GenBehavior {
         send(event);
     }
 
-    static class Local<Event> extends GenEvent<Event> implements ActorBuilder<Object, Void>, Joinable<Void> {
+    static final class Local<Event> extends GenEvent<Event> implements LocalBehavior<GenEvent<Event>> {
         Local(ActorRef<Object> actor) {
             super(actor);
         }
 
-        protected final Object writeReplace() throws java.io.ObjectStreamException {
-            return new GenEvent(ref);
+        @Override
+        public GenEvent<Event> writeReplace() throws java.io.ObjectStreamException {
+            return new GenEvent<>(ref);
         }
 
         @Override

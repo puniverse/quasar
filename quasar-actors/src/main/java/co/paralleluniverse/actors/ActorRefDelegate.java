@@ -14,19 +14,25 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.channels.SendPort;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
  * @author pron
  */
-public class ActorRefDelegate<Message> extends ActorRef<Message> implements java.io.Serializable {
+public abstract class ActorRefDelegate<Message> extends ActorRef<Message> implements SendPort<Message>, java.io.Serializable {
     protected final ActorRef<Message> ref;
 
     public ActorRefDelegate(ActorRef<Message> ref) {
         this.ref = ref;
     }
 
+    protected boolean isInActor() {
+        return Objects.equals(ref, ActorRef.self());
+    }
+    
     @Override
     public String getName() {
         return ref.getName();
@@ -48,6 +54,22 @@ public class ActorRefDelegate<Message> extends ActorRef<Message> implements java
     }
 
     @Override
+    public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        return ((SendPort<Message>)ref).send(message, timeout, unit);
+    }
+
+    @Override
+    public boolean trySend(Message message) {
+        return ((SendPort<Message>)ref).trySend(message);
+    }
+
+    @Override
+    public void close() {
+        ((SendPort<Message>)ref).close();
+    }
+
+    
+    @Override
     public int hashCode() {
         return Objects.hashCode(ref);
     }
@@ -59,9 +81,12 @@ public class ActorRefDelegate<Message> extends ActorRef<Message> implements java
         if (!(obj instanceof ActorRef))
             return false;
         ActorRef other = (ActorRef) obj;
-        if (other instanceof ActorRefDelegate)
+        while (other instanceof ActorRefDelegate)
             other = ((ActorRefDelegate) other).ref;
-        if (!Objects.equals(this.ref, other))
+        ActorRef me = ref;
+        while (me instanceof ActorRefDelegate)
+            me = ((ActorRefDelegate) me).ref;
+        if (!Objects.equals(me, other))
             return false;
         return true;
     }

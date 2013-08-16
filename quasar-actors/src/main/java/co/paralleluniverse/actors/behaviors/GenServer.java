@@ -55,13 +55,37 @@ public class GenServer<CallMessage, V, CastMessage> extends GenBehavior {
         server.send(new GenServerRequest(ActorRef.self(), makeId(), MessageType.CAST, m));
     }
 
-    static class Local<CallMessage, V, CastMessage> extends GenServer<CallMessage, V, CastMessage> implements ActorBuilder<Object, Void>, Joinable<Void> {
+    enum MessageType {
+        CALL, CAST
+    };
+
+    static class GenServerRequest extends GenRequestMessage {
+        private final MessageType type;
+        private final Object message;
+
+        public GenServerRequest(ActorRef sender, Object id, MessageType type, Object message) {
+            super(sender, id);
+            this.type = type;
+            this.message = message;
+        }
+
+        public MessageType getType() {
+            return type;
+        }
+
+        public Object getMessage() {
+            return message;
+        }
+    }
+
+    static final class Local<CallMessage, V, CastMessage> extends GenServer<CallMessage, V, CastMessage> implements LocalBehavior<GenServer<CallMessage, V, CastMessage>> {
         Local(ActorRef<Object> actor) {
             super(actor);
         }
 
-        protected final Object writeReplace() throws java.io.ObjectStreamException {
-            return new GenServer(ref);
+        @Override
+        public GenServer<CallMessage, V, CastMessage> writeReplace() throws java.io.ObjectStreamException {
+            return new GenServer<>(ref);
         }
 
         @Override
@@ -92,29 +116,6 @@ public class GenServer<CallMessage, V, CastMessage> extends GenBehavior {
         @Override
         public boolean isDone() {
             return ((Joinable<Void>) ref).isDone();
-        }
-    }
-
-    enum MessageType {
-        CALL, CAST
-    };
-
-    static class GenServerRequest extends GenRequestMessage {
-        private final MessageType type;
-        private final Object message;
-
-        public GenServerRequest(ActorRef sender, Object id, MessageType type, Object message) {
-            super(sender, id);
-            this.type = type;
-            this.message = message;
-        }
-
-        public MessageType getType() {
-            return type;
-        }
-
-        public Object getMessage() {
-            return message;
         }
     }
 }

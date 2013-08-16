@@ -178,11 +178,9 @@ abstract class ActorRefImpl<Message> extends ActorRef<Message> implements SendPo
         if (!(obj instanceof ActorRef))
             return false;
         ActorRef other = (ActorRef) obj;
-        if (other instanceof ActorRefDelegate) {
+        while(other instanceof ActorRefDelegate)
             other = ((ActorRefDelegate) other).ref;
-            return this.equals(other);
-        }
-        return obj == this;
+        return other == this;
     }
 
     //<editor-fold defaultstate="collapsed" desc="Recording">
