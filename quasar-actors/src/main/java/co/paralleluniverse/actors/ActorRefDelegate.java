@@ -20,7 +20,7 @@ import java.util.Objects;
  *
  * @author pron
  */
-public class ActorRefDelegate<Message> extends ActorRef<Message> {
+public class ActorRefDelegate<Message> extends ActorRef<Message> implements java.io.Serializable {
     protected final ActorRef<Message> ref;
 
     public ActorRefDelegate(ActorRef<Message> ref) {
@@ -56,11 +56,11 @@ public class ActorRefDelegate<Message> extends ActorRef<Message> {
     public boolean equals(Object obj) {
         if (obj == null)
             return false;
-        if(!(obj instanceof ActorRef))
+        if (!(obj instanceof ActorRef))
             return false;
-        ActorRef other = (ActorRef)obj;
+        ActorRef other = (ActorRef) obj;
         if (other instanceof ActorRefDelegate)
-            other = ((ActorRefDelegate)other).ref;
+            other = ((ActorRefDelegate) other).ref;
         if (!Objects.equals(this.ref, other))
             return false;
         return true;

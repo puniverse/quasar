@@ -42,7 +42,7 @@ public class GenEventActor<Event> extends GenBehaviorActor {
     /////////// Behavior boilerplate ///////////////////////////////////
     @Override
     protected GenEvent<Event> makeRef(ActorRef<Object> ref) {
-        return new GenEvent<Event>(ref);
+        return new GenEvent.Local<Event>(ref);
     }
 
     @Override

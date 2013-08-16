@@ -42,7 +42,7 @@ public abstract class GenBehaviorActor extends Actor<Object, Void> implements ja
     /////////// Behavior boilerplate ///////////////////////////////////
     @Override
     protected GenBehavior makeRef(ActorRef<Object> ref) {
-        return new GenBehavior(ref);
+        return new GenBehavior.Local(ref);
     }
 
     @Override

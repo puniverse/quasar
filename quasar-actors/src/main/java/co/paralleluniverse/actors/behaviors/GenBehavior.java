@@ -13,17 +13,23 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
+import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorRefDelegate;
 import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.actors.ShutdownMessage;
+import co.paralleluniverse.fibers.Joinable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
  * @author pron
  */
 public class GenBehavior extends ActorRefDelegate<Object> implements java.io.Serializable {
-    public GenBehavior(ActorRef<Object> actor) {
+    protected GenBehavior(ActorRef<Object> actor) {
         super(actor);
     }
 
@@ -34,5 +40,45 @@ public class GenBehavior extends ActorRefDelegate<Object> implements java.io.Ser
 
     public void close() {
         throw new UnsupportedOperationException();
+    }
+
+    static class Local extends GenBehavior implements ActorBuilder<Object, Void>, Joinable<Void> {
+        Local(ActorRef<Object> actor) {
+            super(actor);
+        }
+
+        protected final Object writeReplace() throws java.io.ObjectStreamException {
+            return new GenBehavior(ref);
+        }
+
+        @Override
+        public Actor<Object, Void> build() {
+            return ((ActorBuilder<Object, Void>) ref).build();
+        }
+
+        @Override
+        public void join() throws ExecutionException, InterruptedException {
+            ((Joinable<Void>) ref).join();
+        }
+
+        @Override
+        public void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+            ((Joinable<Void>) ref).join(timeout, unit);
+        }
+
+        @Override
+        public Void get() throws ExecutionException, InterruptedException {
+            return ((Joinable<Void>) ref).get();
+        }
+
+        @Override
+        public Void get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+            return ((Joinable<Void>) ref).get(timeout, unit);
+        }
+
+        @Override
+        public boolean isDone() {
+            return ((Joinable<Void>) ref).isDone();
+        }
     }
 }

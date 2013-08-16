@@ -4,14 +4,18 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.SendPort;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
  * @author pron
  */
-class LocalActorRef<Message, V> extends ActorRefImpl<Message> implements ActorBuilder<Message, V>, java.io.Serializable {
+final class LocalActorRef<Message, V> extends ActorRefImpl<Message> implements ActorBuilder<Message, V>, Joinable<V>, java.io.Serializable {
     private Actor<Message, V> actor;
 
     public LocalActorRef(Actor<Message, V> actor, String name, SendPort<Object> mailbox) {
@@ -19,56 +23,82 @@ class LocalActorRef<Message, V> extends ActorRefImpl<Message> implements ActorBu
         this.actor = actor;
     }
 
-    Actor<Message, ?> getActor() {
+    final Actor<Message, ?> getActor() {
         return actor;
     }
 
     @Override
-    public boolean trySend(Message message) {
+    public final boolean trySend(Message message) {
         return actor.trySend(message);
     }
 
     @Override
-    protected void internalSend(Object message) throws SuspendExecution {
+    protected final void internalSend(Object message) throws SuspendExecution {
         actor.internalSend(message);
     }
 
     @Override
-    protected void internalSendNonSuspendable(Object message) {
+    protected final void internalSendNonSuspendable(Object message) {
         actor.internalSendNonSuspendable(message);
     }
 
     @Override
-    public void sendSync(Message message) throws SuspendExecution {
+    public final void sendSync(Message message) throws SuspendExecution {
         actor.sendSync(message);
     }
 
     @Override
-    protected void addLifecycleListener(LifecycleListener listener) {
+    protected final void addLifecycleListener(LifecycleListener listener) {
         actor.addLifecycleListener(listener);
     }
 
     @Override
-    protected void removeLifecycleListener(LifecycleListener listener) {
+    protected final void removeLifecycleListener(LifecycleListener listener) {
         actor.removeLifecycleListener(listener);
     }
 
     @Override
-    protected void removeObserverListeners(ActorRef observer) {
+    protected final void removeObserverListeners(ActorRef observer) {
         actor.removeObserverListeners(observer);
     }
 
     @Override
-    protected void throwIn(RuntimeException e) {
+    protected final void throwIn(RuntimeException e) {
         actor.throwIn(e);
     }
 
     @Override
-    public void interrupt() {
+    public final void interrupt() {
         actor.interrupt();
     }
 
-    //////////////////////////////////////
+    /////////// Joinable ///////////////////////////////////
+    @Override
+    public final void join() throws ExecutionException, InterruptedException {
+        actor.join();
+    }
+
+    @Override
+    public final void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+        actor.join(timeout, unit);
+    }
+
+    @Override
+    public final V get() throws ExecutionException, InterruptedException {
+        return actor.get();
+    }
+
+    @Override
+    public final V get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+        return actor.get(timeout, unit);
+    }
+
+    @Override
+    public final boolean isDone() {
+        return actor.isDone();
+    }
+
+    /////////// ActorBuilder ///////////////////////////////////
     @Override
     public final Actor<Message, V> build() {
         if (!actor.isDone())
@@ -87,13 +117,11 @@ class LocalActorRef<Message, V> extends ActorRefImpl<Message> implements ActorBu
         return newInstance;
     }
 
-    //<editor-fold desc="Serialization">
     /////////// Serialization ///////////////////////////////////
-    protected Object writeReplace() throws java.io.ObjectStreamException {
+    protected final Object writeReplace() throws java.io.ObjectStreamException {
         final RemoteActorRef<Message> repl = RemoteActorProxyFactoryService.create((ActorRef<Message>) this, actor.getGlobalId());
         return repl;
     }
-    //</editor-fold>
 
     @Override
     public String toString() {

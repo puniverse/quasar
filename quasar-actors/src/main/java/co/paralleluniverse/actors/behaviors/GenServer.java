@@ -13,10 +13,14 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
+import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.from;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.makeId;
+import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -49,6 +53,46 @@ public class GenServer<CallMessage, V, CastMessage> extends GenBehavior {
 
     public static void cast(ActorRef server, Object m) throws SuspendExecution {
         server.send(new GenServerRequest(ActorRef.self(), makeId(), MessageType.CAST, m));
+    }
+
+    static class Local<CallMessage, V, CastMessage> extends GenServer<CallMessage, V, CastMessage> implements ActorBuilder<Object, Void>, Joinable<Void> {
+        Local(ActorRef<Object> actor) {
+            super(actor);
+        }
+
+        protected final Object writeReplace() throws java.io.ObjectStreamException {
+            return new GenServer(ref);
+        }
+
+        @Override
+        public Actor<Object, Void> build() {
+            return ((ActorBuilder<Object, Void>) ref).build();
+        }
+
+        @Override
+        public void join() throws ExecutionException, InterruptedException {
+            ((Joinable<Void>) ref).join();
+        }
+
+        @Override
+        public void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+            ((Joinable<Void>) ref).join(timeout, unit);
+        }
+
+        @Override
+        public Void get() throws ExecutionException, InterruptedException {
+            return ((Joinable<Void>) ref).get();
+        }
+
+        @Override
+        public Void get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+            return ((Joinable<Void>) ref).get(timeout, unit);
+        }
+
+        @Override
+        public boolean isDone() {
+            return ((Joinable<Void>) ref).isDone();
+        }
     }
 
     enum MessageType {

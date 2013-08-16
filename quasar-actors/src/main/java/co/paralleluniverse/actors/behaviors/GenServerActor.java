@@ -43,7 +43,7 @@ public class GenServerActor<CallMessage, V, CastMessage> extends GenBehaviorActo
     /////////// Behavior boilerplate ///////////////////////////////////
     @Override
     protected GenServer<CallMessage, V, CastMessage> makeRef(ActorRef<Object> ref) {
-        return new GenServer<CallMessage, V, CastMessage>(ref);
+        return new GenServer.Local<CallMessage, V, CastMessage>(ref);
     }
 
     @Override

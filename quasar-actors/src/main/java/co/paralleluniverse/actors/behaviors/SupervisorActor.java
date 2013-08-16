@@ -88,7 +88,7 @@ public class SupervisorActor extends GenBehaviorActor {
     /////////// Behavior boilerplate ///////////////////////////////////
     @Override
     protected Supervisor makeRef(ActorRef<Object> ref) {
-        return new Supervisor(ref);
+        return new Supervisor.Local(ref);
     }
 
     @Override
