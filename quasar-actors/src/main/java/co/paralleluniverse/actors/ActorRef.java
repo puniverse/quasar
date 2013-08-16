@@ -31,7 +31,7 @@ public abstract class ActorRef<Message> {
     public static <T extends ActorRef<M>, M> T self() {
         final Actor a = Actor.currentActor();
         if (a == null)
-            throw new IllegalStateException("Not running in an actor");
+            return null;
         return (T) a.ref();
     }
 }
