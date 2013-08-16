@@ -1,6 +1,7 @@
 /dist/
 /out/
 _site/
+/docs/quasar-actors/
 /docs/quasar-core/
 /docs/quasar-galaxy/
 .idea/
