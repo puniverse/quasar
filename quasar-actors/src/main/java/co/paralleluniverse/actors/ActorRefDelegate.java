@@ -32,7 +32,7 @@ public abstract class ActorRefDelegate<Message> extends ActorRef<Message> implem
     protected boolean isInActor() {
         return Objects.equals(ref, ActorRef.self());
     }
-    
+
     @Override
     public String getName() {
         return ref.getName();
@@ -55,20 +55,26 @@ public abstract class ActorRefDelegate<Message> extends ActorRef<Message> implem
 
     @Override
     public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        return ((SendPort<Message>)ref).send(message, timeout, unit);
+        return ((SendPort<Message>) ref).send(message, timeout, unit);
     }
 
     @Override
     public boolean trySend(Message message) {
-        return ((SendPort<Message>)ref).trySend(message);
+        return ((SendPort<Message>) ref).trySend(message);
     }
 
+    public void sendOrInterrupt(Object message) {
+        if(ref instanceof ActorRefDelegate)
+            ((ActorRefDelegate)ref).sendOrInterrupt(message);
+        else
+            ((ActorRefImpl)ref).sendOrInterrupt(message);
+    }
+    
     @Override
     public void close() {
-        ((SendPort<Message>)ref).close();
+        ((SendPort<Message>) ref).close();
     }
 
-    
     @Override
     public int hashCode() {
         return Objects.hashCode(ref);

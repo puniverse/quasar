@@ -30,7 +30,10 @@ public final class ActorUtil {
     }
 
     public static void sendOrInterrupt(ActorRef actor, Object message) {
-        ((ActorRefImpl) actor).sendOrInterrupt(message);
+        if(actor instanceof ActorRefDelegate)
+            ((ActorRefDelegate)actor).sendOrInterrupt(message);
+        else
+            ((ActorRefImpl)actor).sendOrInterrupt(message);
     }
 
     private ActorUtil() {
