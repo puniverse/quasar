@@ -280,6 +280,7 @@ project (':quasar-core') {
     
     jar {
         from zipTree("${baselib}/jsr166e.jar")  // include non-Maven jars
+        from zipTree("${baselib}/HdrHistogram.jar")  // include non-Maven jars
         manifest { 
             attributes(
 	            "Built-By"                  :   System.getProperty("user.name"),
