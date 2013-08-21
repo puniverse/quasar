@@ -40,12 +40,10 @@ public class StripedHistogram {
         this.numberOfSignificantValueDigits = numberOfSignificantValueDigits;
         this.mainHistogram = new Histogram(highestTrackableValue, numberOfSignificantValueDigits);
         this.hs = new StripedResource<AbstractHistogram>() {
-
             @Override
             protected AbstractHistogram newResource() {
                 return new Histogram(StripedHistogram.this.highestTrackableValue, StripedHistogram.this.numberOfSignificantValueDigits);
             }
-            
         };
     }
 
@@ -60,14 +58,54 @@ public class StripedHistogram {
     }
 
     /**
+     * Record a value in the histogram
+     *
+     * @param value The value to be recorded
+     * @throws ArrayIndexOutOfBoundsException
+     */
+    public void recordValue(long value) throws ArrayIndexOutOfBoundsException {
+        get().recordValue(value);
+    }
+
+    /**
+     * Record a value in the histogram (adding to the value's current count)
+     *
+     * @param value The value to be recorded
+     * @param count The number of occurrences of this value to record
+     * @throws ArrayIndexOutOfBoundsException
+     */
+    public void recordValueWithCount(final long value, final long count) throws ArrayIndexOutOfBoundsException {
+        get().recordValueWithCount(value, count);
+    }
+    
+    /**
+     * @deprecated
+     *
+     * Record a value in the histogram. This deprecated method has identical behavior to
+     * <b><code>recordValueWithExpectedInterval()</code></b>. It was renamed to avoid ambiguity.
+     *
+     * @param value The value to record
+     * @param expectedIntervalBetweenValueSamples If expectedIntervalBetweenValueSamples is larger than 0, add
+     * auto-generated value records as appropriate if value is larger
+     * than expectedIntervalBetweenValueSamples
+     * @throws ArrayIndexOutOfBoundsException
+     */
+    @Deprecated
+    public void recordValue(long value, long expectedIntervalBetweenValueSamples) throws ArrayIndexOutOfBoundsException {
+        get().recordValue(value, expectedIntervalBetweenValueSamples);
+    }
+
+    /**
      * Record a value in the histogram.
      * <p>
      * To compensate for the loss of sampled values when a recorded value is larger than the expected
      * interval between value samples, Histogram will auto-generate an additional series of decreasingly-smaller
-     * (down to the expectedIntervalBetweenValueSamples) value records. In addition to the default, "corrected"
-     * histogram representation containing potential auto-generated value records, the Histogram keeps track of
-     * "raw" histogram data containing no such corrections. This data set is available via the
-     * <b><code>getRawData</code></b> method.
+     * (down to the expectedIntervalBetweenValueSamples) value records.
+     * <p>
+     * Note: This is a at-recording correction method, as opposed to the post-recording correction method provided
+     * by {@link #copyCorrectedForCoordinatedOmission(long) getHistogramCorrectedForCoordinatedOmission}.
+     * The two methods are mutually exclusive, and only one of the two should be be used on a given data set to correct
+     * for the same coordinated omission issue.
      * <p>
      * See notes in the description of the Histogram calls for an illustration of why this corrective behavior is
      * important.
@@ -78,18 +116,8 @@ public class StripedHistogram {
      * than expectedIntervalBetweenValueSamples
      * @throws ArrayIndexOutOfBoundsException
      */
-    public void recordValue(long value, long expectedIntervalBetweenValueSamples) throws ArrayIndexOutOfBoundsException {
-        get().recordValue(value, expectedIntervalBetweenValueSamples);
-    }
-
-    /**
-     * Record a value in the histogram
-     *
-     * @param value The value to be recorded
-     * @throws ArrayIndexOutOfBoundsException
-     */
-    public void recordValue(long value) throws ArrayIndexOutOfBoundsException {
-        get().recordValue(value);
+    public void recordValueWithExpectedInterval(final long value, final long expectedIntervalBetweenValueSamples) throws ArrayIndexOutOfBoundsException {
+        get().recordValueWithExpectedInterval(value, expectedIntervalBetweenValueSamples);
     }
 
     /**
@@ -110,6 +138,22 @@ public class StripedHistogram {
     public HistogramData getHistogramData() {
         combine();
         return mainHistogram.getHistogramData();
+    }
+
+    /**
+     * Provide access to the histogram's data set, corrected for coordinated omission.
+     *
+     * Note: This is a post-correction method, as opposed to the at-recording correction method provided
+     * by {@link #recordValueWithExpectedInterval(long, long) recordValueWithExpectedInterval}. The two
+     * methods are mutually exclusive, and only one of the two should be be used on a given data set to correct
+     * for the same coordinated omission issue.
+     *
+     * @return a {@link HistogramData} that can be used to query stats and iterate through the default (corrected)
+     * data set.
+     */
+    public HistogramData getHistogramDataCorrectedForCoordinatedOmission(long expectedIntervalBetweenValueSamples) {
+        combine();
+        return mainHistogram.copyCorrectedForCoordinatedOmission(expectedIntervalBetweenValueSamples).getHistogramData();
     }
 
     /**
