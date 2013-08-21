@@ -12,8 +12,6 @@
  */
 package co.paralleluniverse.common.benchmark;
 
-import java.util.concurrent.ConcurrentMap;
-import jsr166e.ConcurrentHashMapV8;
 import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.Histogram;
 import org.HdrHistogram.HistogramData;
@@ -24,7 +22,7 @@ import org.HdrHistogram.HistogramData;
  */
 public class StripedHistogram {
     private final AbstractHistogram mainHistogram;
-    private final ConcurrentMap<Thread, AbstractHistogram> hs;
+    private final StripedResource<AbstractHistogram> hs;
     private final long highestTrackableValue;
     private final int numberOfSignificantValueDigits;
 
@@ -40,28 +38,25 @@ public class StripedHistogram {
     public StripedHistogram(long highestTrackableValue, int numberOfSignificantValueDigits) {
         this.highestTrackableValue = highestTrackableValue;
         this.numberOfSignificantValueDigits = numberOfSignificantValueDigits;
-        this.mainHistogram = newHistogram();
-        this.hs = new ConcurrentHashMapV8<>();
+        this.mainHistogram = new Histogram(highestTrackableValue, numberOfSignificantValueDigits);
+        this.hs = new StripedResource<AbstractHistogram>() {
+
+            @Override
+            protected AbstractHistogram newResource() {
+                return new Histogram(StripedHistogram.this.highestTrackableValue, StripedHistogram.this.numberOfSignificantValueDigits);
+            }
+            
+        };
     }
 
     public void combine() {
         mainHistogram.reset();
-        for (AbstractHistogram h : hs.values())
+        for (AbstractHistogram h : hs)
             mainHistogram.add(h);
     }
 
     private AbstractHistogram get() {
-        Thread thread = Thread.currentThread();
-        AbstractHistogram h = hs.get(thread);
-        if (h == null) {
-            h = newHistogram();
-            hs.put(thread, h);
-        }
-        return h;
-    }
-
-    private AbstractHistogram newHistogram() {
-        return new Histogram(highestTrackableValue, numberOfSignificantValueDigits);
+        return hs.get();
     }
 
     /**
@@ -101,7 +96,7 @@ public class StripedHistogram {
      * Reset the contents and stats of this histogram
      */
     public void reset() {
-        for (AbstractHistogram h : hs.values())
+        for (AbstractHistogram h : hs)
             h.reset();
         mainHistogram.reset();
     }
@@ -127,7 +122,7 @@ public class StripedHistogram {
      * @return True if this histogram has had a count value overflow.
      */
     public boolean hasOverflowed() {
-        for (AbstractHistogram h : hs.values()) {
+        for (AbstractHistogram h : hs) {
             if (h.hasOverflowed())
                 return true;
         }
