@@ -25,6 +25,7 @@ public final class SameThreadExecutor implements Executor {
         return INSTANCE;
     }
     
+    @Override
     public void execute(Runnable command) {
         command.run();
     }
