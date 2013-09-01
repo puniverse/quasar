@@ -97,7 +97,7 @@ public class JavaAgent {
         if (!instrumentation.isRetransformClassesSupported())
             System.err.println("Retransforming classes is not supported!");
 
-        final MethodDatabase db = new MethodDatabase(Thread.currentThread().getContextClassLoader(), DefaultSuspendableClassifier.instance());
+        final Instrumentor instrumentor = new Instrumentor(Thread.currentThread().getContextClassLoader(), DefaultSuspendableClassifier.instance());
         boolean checkArg = false;
         active = true;
 
@@ -105,15 +105,15 @@ public class JavaAgent {
             for (char c : agentArguments.toCharArray()) {
                 switch (c) {
                     case 'v':
-                        db.setVerbose(true);
+                        instrumentor.setVerbose(true);
                         break;
 
                     case 'd':
-                        db.setDebug(true);
+                        instrumentor.setDebug(true);
                         break;
 
                     case 'm':
-                        db.setAllowMonitors(true);
+                        instrumentor.setAllowMonitors(true);
                         break;
 
                     case 'c':
@@ -121,7 +121,7 @@ public class JavaAgent {
                         break;
 
                     case 'b':
-                        db.setAllowBlocking(true);
+                        instrumentor.setAllowBlocking(true);
                         break;
 
                     default:
@@ -130,7 +130,7 @@ public class JavaAgent {
             }
         }
 
-        db.setLog(new Log() {
+        instrumentor.setLog(new Log() {
             @Override
             public void log(LogLevel level, String msg, Object... args) {
                 System.out.println("[quasar] " + level + ": " + String.format(msg, args));
@@ -144,11 +144,10 @@ public class JavaAgent {
         });
 
         Retransform.instrumentation = instrumentation;
-        Retransform.db = db;
+        Retransform.db = instrumentor.getMethodDatabase();
         Retransform.classLoaders = classLoaders;
 
-        final Instrumentor instrumentor = new Instrumentor(db, checkArg);
-        instrumentation.addTransformer(new Transformer(db, instrumentor), true);
+        instrumentation.addTransformer(new Transformer(instrumentor), true);
     }
 
     public static boolean isActive() {
@@ -156,11 +155,9 @@ public class JavaAgent {
     }
 
     private static class Transformer implements ClassFileTransformer {
-        private final MethodDatabase db;
         private final Instrumentor instrumentor;
 
-        public Transformer(MethodDatabase db, Instrumentor instrumentor) {
-            this.db = db;
+        public Transformer(Instrumentor instrumentor) {
             this.instrumentor = instrumentor;
         }
 
@@ -173,7 +170,8 @@ public class JavaAgent {
             if (MethodDatabase.isJavaCore(className))
                 return null;
 
-            db.log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
+            final MethodDatabase db = instrumentor.getMethodDatabase();
+            instrumentor.log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
 
             Retransform.beforeTransform(className, classBeingRedefined, classfileBuffer);
 
@@ -187,9 +185,9 @@ public class JavaAgent {
                 return tranformed;
             } catch (Exception ex) {
                 if (MethodDatabase.isProblematicClass(className))
-                    db.log(LogLevel.INFO, "Unable to instrument %s - %s %s", className, ex, Arrays.toString(ex.getStackTrace()));
+                    instrumentor.log(LogLevel.INFO, "Unable to instrument %s - %s %s", className, ex, Arrays.toString(ex.getStackTrace()));
                 else
-                    db.error("Unable to instrument " + className, ex);
+                    instrumentor.error("Unable to instrument " + className, ex);
                 return null;
             } catch (Throwable t) {
                 System.out.println("[quasar] ERROR: " + t.getMessage());

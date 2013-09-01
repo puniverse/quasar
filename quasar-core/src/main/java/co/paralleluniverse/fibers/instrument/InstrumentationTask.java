@@ -98,14 +98,14 @@ public class InstrumentationTask extends Task {
 
     @Override
     public void execute() throws BuildException {
-        final MethodDatabase db = new MethodDatabase(getClass().getClassLoader(), DefaultSuspendableClassifier.instance());
-        final Instrumentor instrumentor = new Instrumentor(db, check);
+        final Instrumentor instrumentor = new Instrumentor(getClass().getClassLoader(), DefaultSuspendableClassifier.instance());
         
-        db.setVerbose(verbose);
-        db.setDebug(debug);
-        db.setAllowMonitors(allowMonitors);
-        db.setAllowBlocking(allowBlocking);
-        db.setLog(new Log() {
+        instrumentor.setCheck(check);
+        instrumentor.setVerbose(verbose);
+        instrumentor.setDebug(debug);
+        instrumentor.setAllowMonitors(allowMonitors);
+        instrumentor.setAllowBlocking(allowBlocking);
+        instrumentor.setLog(new Log() {
             @Override
             public void log(LogLevel level, String msg, Object... args) {
                 final int msgLevel;
@@ -140,17 +140,17 @@ public class InstrumentationTask extends Task {
                     if (filename.endsWith(".class")) {
                         File file = new File(fs.getDir(), filename);
                         if (file.isFile())
-                            db.checkClass(file);
+                            instrumentor.checkClass(file);
                         else
                             log("File not found: " + filename);
                     }
                 }
             }
 
-            db.log(LogLevel.INFO, "Instrumenting " + db.getWorkList().size() + " classes");
+            instrumentor.log(LogLevel.INFO, "Instrumenting " + instrumentor.getWorkList().size() + " classes");
             
-            for (MethodDatabase.WorkListEntry f : db.getWorkList())
-                instrumentClass(instrumentor, db, f);
+            for (MethodDatabase.WorkListEntry f : instrumentor.getWorkList())
+                instrumentClass(instrumentor, f);
 
         } catch (UnableToInstrumentException ex) {
             log(ex.getMessage());
@@ -158,8 +158,8 @@ public class InstrumentationTask extends Task {
         }
     }
 
-    private void instrumentClass(Instrumentor instrumentor, MethodDatabase db, MethodDatabase.WorkListEntry entry) {
-        db.log(LogLevel.INFO, "Instrumenting class %s", entry.file);
+    private void instrumentClass(Instrumentor instrumentor, MethodDatabase.WorkListEntry entry) {
+        instrumentor.log(LogLevel.INFO, "Instrumenting class %s", entry.file);
 
         try {
             try (FileInputStream fis = new FileInputStream(entry.file)) {

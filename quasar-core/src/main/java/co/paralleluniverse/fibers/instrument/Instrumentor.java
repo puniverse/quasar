@@ -42,11 +42,14 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.fibers.instrument.MethodDatabase.WorkListEntry;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -61,11 +64,10 @@ final class Instrumentor {
     final static String EXAMINED_CLASS = null; // "co/paralleluniverse/fibers/instrument/ReflectionInvokeTest";
 
     private final MethodDatabase db;
-    private final boolean check;
+    private boolean check;
 
-    public Instrumentor(MethodDatabase db, boolean check) {
-        this.db = db;
-        this.check = check;
+    public Instrumentor(ClassLoader classLoader, SuspendableClassifier classifier) {
+        this.db = new MethodDatabase(classLoader, classifier);
     }
     
     public byte[] instrumentClass(String className, byte[] data) {
@@ -104,5 +106,49 @@ final class Instrumentor {
         }
 
         return transformed;
+    }
+
+    public MethodDatabase getMethodDatabase() {
+        return db;
+    }
+
+    public void setCheck(boolean check) {
+        this.check = check;
+    }
+
+    public void setAllowMonitors(boolean allowMonitors) {
+        db.setAllowMonitors(allowMonitors);
+    }
+
+    public void setAllowBlocking(boolean allowBlocking) {
+        db.setAllowBlocking(allowBlocking);
+    }
+
+    public void setLog(Log log) {
+        db.setLog(log);
+    }
+
+    public void setVerbose(boolean verbose) {
+        db.setVerbose(verbose);
+    }
+
+    public void setDebug(boolean debug) {
+        db.setDebug(debug);
+    }
+
+    public void log(LogLevel level, String msg, Object... args) {
+        db.log(level, msg, args);
+    }
+
+    public void error(String msg, Exception ex) {
+        db.error(msg, ex);
+    }
+
+    public ArrayList<WorkListEntry> getWorkList() {
+        return db.getWorkList();
+    }
+
+    public void checkClass(File f) {
+        db.checkClass(f);
     }
 }
