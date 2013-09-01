@@ -73,9 +73,6 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
@@ -85,13 +82,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 import jsr166e.ConcurrentHashMapV8;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.util.CheckClassAdapter;
-import org.objectweb.asm.util.Textifier;
-import org.objectweb.asm.util.TraceClassVisitor;
 
 /*
  * Created on Nov 21, 2010
@@ -107,7 +97,7 @@ public class JavaAgent {
         if (!instrumentation.isRetransformClassesSupported())
             System.err.println("Retransforming classes is not supported!");
 
-        MethodDatabase db = new MethodDatabase(Thread.currentThread().getContextClassLoader());
+        final MethodDatabase db = new MethodDatabase(Thread.currentThread().getContextClassLoader(), DefaultSuspendableClassifier.instance());
         boolean checkArg = false;
         active = true;
 
@@ -157,52 +147,21 @@ public class JavaAgent {
         Retransform.db = db;
         Retransform.classLoaders = classLoaders;
 
-        instrumentation.addTransformer(new Transformer(db, checkArg), true);
+        final Instrumentor instrumentor = new Instrumentor(db, checkArg);
+        instrumentation.addTransformer(new Transformer(db, instrumentor), true);
     }
 
     public static boolean isActive() {
         return active;
     }
 
-    static byte[] instrumentClass(String className, MethodDatabase db, byte[] data, boolean check) {
-//        final String EXAMINED_CLASS = "co/paralleluniverse/fibers/instrument/ReflectionInvokeTest";
-        ClassReader r = new ClassReader(data);
-        ClassWriter cw = new DBClassWriter(db, r);
-        ClassVisitor cv = check ? new CheckClassAdapter(cw) : cw;
-
-//        if (className.startsWith(EXAMINED_CLASS))
-//            cv = new TraceClassVisitor(cv, new PrintWriter(System.out));
-
-        InstrumentClass ic = new InstrumentClass(cv, db, false);
-        r.accept(ic, ClassReader.SKIP_FRAMES);
-        byte[] transformed = cw.toByteArray();
-
-//        if (className.startsWith(EXAMINED_CLASS)) {
-//            try {
-//                OutputStream os = new FileOutputStream(className.replace('/', '.') + ".class");
-//                os.write(transformed);
-//                os.close();
-//            } catch (Exception e) {
-//                throw new RuntimeException(e);
-//            }
-//        }
-
-//        if (check) {
-//            ClassReader r2 = new ClassReader(transformed);
-//            ClassVisitor cv2 = new CheckClassAdapter(new TraceClassVisitor(null), true);
-//            r2.accept(cv2, 0);
-//        }
-
-        return transformed;
-    }
-
     private static class Transformer implements ClassFileTransformer {
         private final MethodDatabase db;
-        private final boolean check;
+        private final Instrumentor instrumentor;
 
-        public Transformer(MethodDatabase db, boolean check) {
+        public Transformer(MethodDatabase db, Instrumentor instrumentor) {
             this.db = db;
-            this.check = check;
+            this.instrumentor = instrumentor;
         }
 
         @Override
@@ -221,7 +180,7 @@ public class JavaAgent {
             classLoaders.add(new WeakReference<ClassLoader>(loader));
 
             try {
-                final byte[] tranformed = instrumentClass(className, db, classfileBuffer, check);
+                final byte[] tranformed = instrumentor.instrumentClass(className, classfileBuffer);
 
                 Retransform.afterTransform(className, classBeingRedefined, tranformed);
 

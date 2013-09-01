@@ -38,20 +38,16 @@ import org.apache.tools.ant.DirectoryScanner;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.Task;
 import org.apache.tools.ant.types.FileSet;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.util.CheckClassAdapter;
 
 /**
  * <p>Instrumentation ANT task</p>
- * 
+ *
  * <p>It requires one or more FileSet elements pointing to class files that should
  * be instrumented.</p>
  * <p>Classes that are referenced from the instrumented classes are searched in
  * the classpath of the task. If a referenced class is not found a warning is
  * generated and the instrumentation will result in less efficent code.</p>
- * 
+ *
  * <p>The following options can be set:<ul>
  * <li>check - default: false<br/>The resulting code is run through a verifier.</li>
  * <li>verbose - default: false<br/>The name of each processed class and all suspendable method calles is displayed.</li>
@@ -59,12 +55,11 @@ import org.objectweb.asm.util.CheckClassAdapter;
  * <li>allowmonitors - default: false<br/>Allows the use of synchronized statements - this is DANGEROUS !</li>
  * <li>allowblocking - default: false<br/>Allows the use known blocking calls like Thread.sleep, Object.wait etc.</li>
  * </ul></p>
- * 
+ *
  * @see <a href="http://ant.apache.org/manual/CoreTypes/fileset.html">ANT FileSet</a>
  * @author Matthias Mann
  */
 public class InstrumentationTask extends Task {
-
     private ArrayList<FileSet> filesets = new ArrayList<FileSet>();
     private boolean check;
     private boolean verbose;
@@ -72,7 +67,7 @@ public class InstrumentationTask extends Task {
     private boolean allowBlocking;
     private boolean debug;
     private boolean writeClasses = true;
-    
+
     public void addFileSet(FileSet fs) {
         filesets.add(fs);
     }
@@ -92,7 +87,7 @@ public class InstrumentationTask extends Task {
     public void setAllowBlocking(boolean allowBlocking) {
         this.allowBlocking = allowBlocking;
     }
-    
+
     public void setDebug(boolean debug) {
         this.debug = debug;
     }
@@ -100,89 +95,84 @@ public class InstrumentationTask extends Task {
     public void setWriteClasses(boolean writeClasses) {
         this.writeClasses = writeClasses;
     }
-    
+
     @Override
     public void execute() throws BuildException {
-        MethodDatabase db = new MethodDatabase(getClass().getClassLoader());
+        final MethodDatabase db = new MethodDatabase(getClass().getClassLoader(), DefaultSuspendableClassifier.instance());
+        final Instrumentor instrumentor = new Instrumentor(db, check);
         
         db.setVerbose(verbose);
         db.setDebug(debug);
         db.setAllowMonitors(allowMonitors);
         db.setAllowBlocking(allowBlocking);
         db.setLog(new Log() {
+            @Override
             public void log(LogLevel level, String msg, Object... args) {
-                int msgLevel;
-                switch(level) {
-                    case DEBUG:   msgLevel = Project.MSG_INFO; break;
-                    case INFO:    msgLevel = Project.MSG_INFO; break;
-                    case WARNING: msgLevel = Project.MSG_WARN; break;
-                    default: throw new AssertionError("Unhandled log level: " + level);
+                final int msgLevel;
+                switch (level) {
+                    case DEBUG:
+                        msgLevel = Project.MSG_INFO;
+                        break;
+                    case INFO:
+                        msgLevel = Project.MSG_INFO;
+                        break;
+                    case WARNING:
+                        msgLevel = Project.MSG_WARN;
+                        break;
+                    default:
+                        throw new AssertionError("Unhandled log level: " + level);
                 }
-                InstrumentationTask.this.log(level+": "+String.format(msg, args), msgLevel);
+                InstrumentationTask.this.log(level + ": " + String.format(msg, args), msgLevel);
             }
+
+            @Override
             public void error(String msg, Exception ex) {
-                InstrumentationTask.this.log("ERROR: "+msg, ex, Project.MSG_ERR);
+                InstrumentationTask.this.log("ERROR: " + msg, ex, Project.MSG_ERR);
             }
         });
-        
-        try {
-            for(FileSet fs : filesets) {
-                DirectoryScanner ds = fs.getDirectoryScanner(getProject());
-                String[] includedFiles = ds.getIncludedFiles();
 
-                for(String filename : includedFiles) {
-                    if(filename.endsWith(".class")) {
+        try {
+            for (FileSet fs : filesets) {
+                final DirectoryScanner ds = fs.getDirectoryScanner(getProject());
+                final String[] includedFiles = ds.getIncludedFiles();
+
+                for (String filename : includedFiles) {
+                    if (filename.endsWith(".class")) {
                         File file = new File(fs.getDir(), filename);
-                        if(file.isFile()) {
+                        if (file.isFile())
                             db.checkClass(file);
-                        } else {
+                        else
                             log("File not found: " + filename);
-                        }
                     }
                 }
             }
-            
-            db.log(LogLevel.INFO, "Instrumenting " + db.getWorkList().size() + " classes");
 
-            for(File f : db.getWorkList()) {
-                instrumentClass(db, f);
-            }
+            db.log(LogLevel.INFO, "Instrumenting " + db.getWorkList().size() + " classes");
+            
+            for (MethodDatabase.WorkListEntry f : db.getWorkList())
+                instrumentClass(instrumentor, db, f);
+
         } catch (UnableToInstrumentException ex) {
             log(ex.getMessage());
             throw new BuildException(ex.getMessage(), ex);
         }
     }
-    
-    private void instrumentClass(MethodDatabase db, File f) {
-        db.log(LogLevel.INFO, "Instrumenting class %s", f);
-        
+
+    private void instrumentClass(Instrumentor instrumentor, MethodDatabase db, MethodDatabase.WorkListEntry entry) {
+        db.log(LogLevel.INFO, "Instrumenting class %s", entry.file);
+
         try {
-            ClassReader r;
-            
-            FileInputStream fis = new FileInputStream(f);
-            try {
-                r = new ClassReader(fis);
-            } finally {
-                fis.close();
-            }
+            try (FileInputStream fis = new FileInputStream(entry.file)) {
+                final byte[] newClass = instrumentor.instrumentClass(entry.name, fis);
 
-            ClassWriter cw = new DBClassWriter(db, r);
-            ClassVisitor cv = check ? new CheckClassAdapter(cw) : cw;
-            InstrumentClass ic = new InstrumentClass(cv, db, false);
-            r.accept(ic, ClassReader.SKIP_FRAMES);
-
-            byte[] newClass = cw.toByteArray();
-
-            if(writeClasses) {
-                FileOutputStream fos = new FileOutputStream(f);
-                try {
-                    fos.write(newClass);
-                } finally {
-                    fos.close();
+                if (writeClasses) {
+                    try (FileOutputStream fos = new FileOutputStream(entry.file)) {
+                        fos.write(newClass);
+                    }
                 }
             }
         } catch (IOException ex) {
-            throw new BuildException("Instrumenting file " + f, ex);
+            throw new BuildException("Instrumenting file " + entry.file, ex);
         }
     }
 }

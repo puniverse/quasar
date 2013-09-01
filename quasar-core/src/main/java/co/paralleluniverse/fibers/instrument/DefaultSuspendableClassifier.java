@@ -14,7 +14,6 @@
 package co.paralleluniverse.fibers.instrument;
 
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
-import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import java.util.ServiceLoader;
 
@@ -22,21 +21,31 @@ import java.util.ServiceLoader;
  *
  * @author pron
  */
-class SuspendableClassifierService {
-    private static ServiceLoader<SuspendableClassifier> loader = ServiceLoader.load(SuspendableClassifier.class);
-    private static final SuspendableClassifier simpleClassifier = new SimpleSuspendableClassifier();
+class DefaultSuspendableClassifier implements SuspendableClassifier {
+    private static final DefaultSuspendableClassifier instance = new DefaultSuspendableClassifier();
     
-    public static SuspendableType isSuspendable(String className, ClassEntry classEntry, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
+    public static SuspendableClassifier instance() {
+        return instance;
+    }
+    
+    private final ServiceLoader<SuspendableClassifier> loader = ServiceLoader.load(SuspendableClassifier.class);
+    private final SuspendableClassifier simpleClassifier = new SimpleSuspendableClassifier();
+
+    private DefaultSuspendableClassifier() {
+    }
+    
+    @Override
+    public SuspendableType isSuspendable(String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
         SuspendableType st;
         
         // simple classifier (files in META-INF)
-        st = simpleClassifier.isSuspendable(className, classEntry.getSuperName(), classEntry.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions);
+        st = simpleClassifier.isSuspendable(className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions);
         if(st != null)
             return st;
         
         // classifier service
         for (SuspendableClassifier sc : loader) {
-            st = sc.isSuspendable(className, classEntry.getSuperName(), classEntry.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions);
+            st = sc.isSuspendable(className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions);
             if (st != null)
                 return st;
         }

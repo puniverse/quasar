@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Locale;
-import java.util.concurrent.locks.Lock;
 import static org.junit.Assert.*;
 import org.junit.Test;
 import org.objectweb.asm.ClassReader;
@@ -59,7 +58,7 @@ public class BlockingTest {
         msgs.add("Method "+className+"#t_join2(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(J)V");
         msgs.add("Method "+className+"#t_join3(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(JI)V");
         
-        MethodDatabase db = new MethodDatabase(BlockingTest.class.getClassLoader());
+        MethodDatabase db = new MethodDatabase(BlockingTest.class.getClassLoader(), DefaultSuspendableClassifier.instance());
         db.setAllowBlocking(true);
         db.setLog(new Log() {
             public void log(LogLevel level, String msg, Object... args) {

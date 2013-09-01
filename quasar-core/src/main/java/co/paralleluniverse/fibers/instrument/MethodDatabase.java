@@ -26,6 +26,19 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+/*
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
+ * 
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *  
+ *   or (per the licensee's choosing)
+ *  
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
+ */
 package co.paralleluniverse.fibers.instrument;
 
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
@@ -52,9 +65,10 @@ import org.objectweb.asm.Opcodes;
  */
 public class MethodDatabase implements Log {
     private final ClassLoader cl;
+    private final SuspendableClassifier classifier;
     private final NavigableMap<String, ClassEntry> classes;
     private final HashMap<String, String> superClasses;
-    private final ArrayList<File> workList;
+    private final ArrayList<WorkListEntry> workList;
     private Log log;
     private boolean verbose;
     private boolean debug;
@@ -62,16 +76,17 @@ public class MethodDatabase implements Log {
     private boolean allowBlocking;
     private int logLevelMask;
 
-    public MethodDatabase(ClassLoader classloader) {
+    public MethodDatabase(ClassLoader classloader, SuspendableClassifier classifier) {
         if (classloader == null) {
             throw new NullPointerException("classloader");
         }
 
         this.cl = classloader;
-
+        this.classifier = classifier;
+        
         classes = new TreeMap<String, ClassEntry>();
         superClasses = new HashMap<String, String>();
-        workList = new ArrayList<File>();
+        workList = new ArrayList<WorkListEntry>();
 
         setLogLevelMask();
     }
@@ -90,6 +105,10 @@ public class MethodDatabase implements Log {
 
     public void setAllowBlocking(boolean allowBlocking) {
         this.allowBlocking = allowBlocking;
+    }
+
+    public SuspendableClassifier getClassifier() {
+        return classifier;
     }
 
     public Log getLog() {
@@ -156,7 +175,7 @@ public class MethodDatabase implements Log {
                     } else {
                         log(LogLevel.INFO, "Found class: %s", f.getPath());
                         if (!JavaAgent.isActive())
-                            workList.add(f);
+                            workList.add(new WorkListEntry(civ.getName(), f));
                     }
                 }
             }
@@ -207,14 +226,12 @@ public class MethodDatabase implements Log {
                 log(LogLevel.INFO, "Trying to read class: %s to check %s", className, methodName);
 
                 CheckInstrumentationVisitor civ = checkClass(className);
-                if (civ == null) {
+                if (civ == null)
                     log(LogLevel.WARNING, "Class not found assuming suspendable: %s", className);
-                } else {
+                else
                     entry = civ.getClassEntry();
-                }
-            } else {
+            } else
                 log(LogLevel.WARNING, "Can't check class - assuming suspendable: %s", className);
-            }
 
             recordSuspendableMethods(className, entry);
         }
@@ -332,12 +349,12 @@ public class MethodDatabase implements Log {
         }
     }
 
-    public ArrayList<File> getWorkList() {
+    public ArrayList<WorkListEntry> getWorkList() {
         return workList;
     }
 
     /**
-     * <p>Overwrite this function if Coroutines is used in a transformation chain.</p>
+     * <p>Overwrite this function if library is used in a transformation chain.</p>
      * <p>This method must create a new CheckInstrumentationVisitor and visit the
      * specified class with it.</p>
      *
@@ -358,7 +375,7 @@ public class MethodDatabase implements Log {
             try {
                 ClassReader r = new ClassReader(is);
 
-                CheckInstrumentationVisitor civ = new CheckInstrumentationVisitor();
+                CheckInstrumentationVisitor civ = new CheckInstrumentationVisitor(classifier);
                 r.accept(civ, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES | ClassReader.SKIP_CODE);
 
                 return civ;
@@ -555,6 +572,16 @@ public class MethodDatabase implements Log {
         @Override
         public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
             this.superClass = superName;
+        }
+    }
+    
+    public static class WorkListEntry {
+        public final String name;
+        public final File file;
+
+        public WorkListEntry(String name, File file) {
+            this.name = name;
+            this.file = file;
         }
     }
 }

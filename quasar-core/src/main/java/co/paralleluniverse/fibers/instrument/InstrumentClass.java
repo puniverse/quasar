@@ -53,7 +53,8 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
  */
 public class InstrumentClass extends ClassVisitor {
     static final String ALREADY_INSTRUMENTED_NAME = Type.getDescriptor(Instrumented.class);
-    //static final String SUSPENDABLE_NAME = Type.getInternalName(Suspendable.class);
+    private final SuspendableClassifier classifier;
+    
     private final MethodDatabase db;
     private boolean forceInstrumentation;
     private String className;
@@ -64,6 +65,7 @@ public class InstrumentClass extends ClassVisitor {
     public InstrumentClass(ClassVisitor cv, MethodDatabase db, boolean forceInstrumentation) {
         super(Opcodes.ASM4, cv);
         this.db = db;
+        this.classifier = db.getClassifier();
         this.forceInstrumentation = forceInstrumentation;
     }
 
@@ -98,7 +100,7 @@ public class InstrumentClass extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(final int access, final String name, final String desc, final String signature, final String[] exceptions) {
-        final SuspendableType markedSuspendable = SuspendableClassifierService.isSuspendable(className, classEntry, name, desc, signature, exceptions);
+        final SuspendableType markedSuspendable = classifier.isSuspendable(className, classEntry.getSuperName(), classEntry.getInterfaces(), name, desc, signature, exceptions);
         final SuspendableType setSuspendable = classEntry.check(name, desc);
 
         if (setSuspendable == null)
