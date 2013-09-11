@@ -12,6 +12,7 @@
  */
 package co.paralleluniverse.data.record;
 
+import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import sun.misc.Unsafe;
 
 /**
@@ -19,8 +20,61 @@ import sun.misc.Unsafe;
  * @author pron
  */
 final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
-    static final Unsafe unsafe = DynamicRecordType.unsafe;
-    
+    static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    private static final int base;
+    private static final int shift;
+
+    static {
+        try {
+            if (unsafe.arrayIndexScale(boolean[].class) != 1)
+                throw new AssertionError("Strange boolean array scale: " + unsafe.arrayIndexScale(boolean[].class));
+            if (unsafe.arrayIndexScale(byte[].class) != 1)
+                throw new AssertionError("Strange byte array scale: " + unsafe.arrayIndexScale(byte[].class));
+            if (unsafe.arrayIndexScale(short[].class) != 2)
+                throw new AssertionError("Strange short array scale: " + unsafe.arrayIndexScale(short[].class));
+            if (unsafe.arrayIndexScale(char[].class) != 2)
+                throw new AssertionError("Strange char array scale: " + unsafe.arrayIndexScale(char[].class));
+            if (unsafe.arrayIndexScale(int[].class) != 4)
+                throw new AssertionError("Strange int array scale: " + unsafe.arrayIndexScale(int[].class));
+            if (unsafe.arrayIndexScale(float[].class) != 4)
+                throw new AssertionError("Strange float array scale: " + unsafe.arrayIndexScale(float[].class));
+            if (unsafe.arrayIndexScale(long[].class) != 8)
+                throw new AssertionError("Strange long array scale: " + unsafe.arrayIndexScale(long[].class));
+            if (unsafe.arrayIndexScale(double[].class) != 8)
+                throw new AssertionError("Strange double array scale: " + unsafe.arrayIndexScale(double[].class));
+
+            base = unsafe.arrayBaseOffset(byte[].class);
+
+            if (unsafe.arrayBaseOffset(boolean[].class) != base)
+                throw new AssertionError("different array base");
+            if (unsafe.arrayBaseOffset(short[].class) != base)
+                throw new AssertionError("different array base");
+            if (unsafe.arrayBaseOffset(char[].class) != base)
+                throw new AssertionError("different array base");
+            if (unsafe.arrayBaseOffset(int[].class) != base)
+                throw new AssertionError("different array base");
+            if (unsafe.arrayBaseOffset(float[].class) != base)
+                throw new AssertionError("different array base");
+            if (unsafe.arrayBaseOffset(long[].class) != base)
+                throw new AssertionError("different array base");
+            if (unsafe.arrayBaseOffset(double[].class) != base)
+                throw new AssertionError("different array base");
+
+            int scale = unsafe.arrayIndexScale(byte[].class);
+            if ((scale & (scale - 1)) != 0)
+                throw new Error("data type scale not a power of two");
+            shift = 31 - Integer.numberOfLeadingZeros(scale);
+            if (scale != 1 || shift != 0)
+                throw new AssertionError("Strange byte array alignment");
+        } catch (Exception ex) {
+            throw new Error(ex);
+        }
+    }
+
+    static long getFieldOffset(Class<?> type, java.lang.reflect.Field f) {
+        return unsafe.objectFieldOffset(f);
+    }
+
     DynamicUnsafeRecord(DynamicRecordType<R> recordType, Object target) {
         super(recordType, target);
     }
@@ -28,7 +82,7 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
     protected DynamicUnsafeRecord(DynamicRecordType<R> recordType) {
         super(recordType);
     }
-    
+
     @Override
     public boolean get(Field.BooleanField<? super R> field) {
         return unsafe.getBoolean(obj, entry(field).offset);
@@ -111,7 +165,7 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
 
     @Override
     public <V> V get(Field.ObjectField<? super R, V> field) {
-        return (V)unsafe.getObject(obj, entry(field).offset);
+        return (V) unsafe.getObject(obj, entry(field).offset);
     }
 
     @Override
@@ -119,8 +173,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
         unsafe.putObject(obj, entry(field).offset, value);
     }
 
+    @Override
     boolean[] get(Field.BooleanArrayField<? super R> field) {
-        return (boolean[])unsafe.getObject(obj, entry(field).offset);
+        return (boolean[]) unsafe.getObject(obj, entry(field).offset);
     }
 
     @Override
@@ -148,8 +203,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
         source.get(sourceField, get(field), 0);
     }
 
+    @Override
     byte[] get(Field.ByteArrayField<? super R> field) {
-        return (byte[])unsafe.getObject(obj, entry(field).offset);
+        return (byte[]) unsafe.getObject(obj, entry(field).offset);
     }
 
     @Override
@@ -177,8 +233,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
         source.get(sourceField, get(field), 0);
     }
 
+    @Override
     short[] get(Field.ShortArrayField<? super R> field) {
-        return (short[])unsafe.getObject(obj, entry(field).offset);
+        return (short[]) unsafe.getObject(obj, entry(field).offset);
     }
 
     @Override
@@ -206,8 +263,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
         source.get(sourceField, get(field), 0);
     }
 
+    @Override
     int[] get(Field.IntArrayField<? super R> field) {
-        return (int[])unsafe.getObject(obj, entry(field).offset);
+        return (int[]) unsafe.getObject(obj, entry(field).offset);
     }
 
     @Override
@@ -235,8 +293,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
         source.get(sourceField, get(field), 0);
     }
 
+    @Override
     long[] get(Field.LongArrayField<? super R> field) {
-        return (long[])unsafe.getObject(obj, entry(field).offset);
+        return (long[]) unsafe.getObject(obj, entry(field).offset);
     }
 
     @Override
@@ -264,8 +323,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
         source.get(sourceField, get(field), 0);
     }
 
+    @Override
     float[] get(Field.FloatArrayField<? super R> field) {
-        return (float[])unsafe.getObject(obj, entry(field).offset);
+        return (float[]) unsafe.getObject(obj, entry(field).offset);
     }
 
     @Override
@@ -293,8 +353,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
         source.get(sourceField, get(field), 0);
     }
 
+    @Override
     double[] get(Field.DoubleArrayField<? super R> field) {
-        return (double[])unsafe.getObject(obj, entry(field).offset);
+        return (double[]) unsafe.getObject(obj, entry(field).offset);
     }
 
     @Override
@@ -322,8 +383,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
         source.get(sourceField, get(field), 0);
     }
 
+    @Override
     char[] get(Field.CharArrayField<? super R> field) {
-        return (char[])unsafe.getObject(obj, entry(field).offset);
+        return (char[]) unsafe.getObject(obj, entry(field).offset);
     }
 
     @Override
@@ -351,8 +413,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
         source.get(sourceField, get(field), 0);
     }
 
+    @Override
     <V> V[] get(Field.ObjectArrayField<? super R, V> field) {
-        return (V[])unsafe.getObject(obj, entry(field).offset);
+        return (V[]) unsafe.getObject(obj, entry(field).offset);
     }
 
     @Override

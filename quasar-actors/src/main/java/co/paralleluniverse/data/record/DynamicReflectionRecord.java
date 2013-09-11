@@ -269,6 +269,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
         }
     }
 
+    @Override
     boolean[] get(Field.BooleanArrayField<? super R> field) {
         try {
             final DynamicRecordType.Entry entry = entry(field);
@@ -348,6 +349,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
         }
     }
 
+    @Override
     byte[] get(Field.ByteArrayField<? super R> field) {
         try {
             final DynamicRecordType.Entry entry = entry(field);
@@ -427,6 +429,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
         }
     }
 
+    @Override
     short[] get(Field.ShortArrayField<? super R> field) {
         try {
             final DynamicRecordType.Entry entry = entry(field);
@@ -506,6 +509,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
         }
     }
 
+    @Override
     int[] get(Field.IntArrayField<? super R> field) {
         try {
             final DynamicRecordType.Entry entry = entry(field);
@@ -585,6 +589,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
         }
     }
 
+    @Override
     long[] get(Field.LongArrayField<? super R> field) {
         try {
             final DynamicRecordType.Entry entry = entry(field);
@@ -664,6 +669,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
         }
     }
 
+    @Override
     float[] get(Field.FloatArrayField<? super R> field) {
         try {
             final DynamicRecordType.Entry entry = entry(field);
@@ -743,6 +749,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
         }
     }
 
+    @Override
     double[] get(Field.DoubleArrayField<? super R> field) {
         try {
             final DynamicRecordType.Entry entry = entry(field);
@@ -822,6 +829,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
         }
     }
 
+    @Override
     char[] get(Field.CharArrayField<? super R> field) {
         try {
             final DynamicRecordType.Entry entry = entry(field);
@@ -901,6 +909,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
         }
     }
 
+    @Override
     <V> V[] get(Field.ObjectArrayField<? super R, V> field) {
         try {
             final DynamicRecordType.Entry entry = entry(field);

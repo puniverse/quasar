@@ -12,7 +12,6 @@
  */
 package co.paralleluniverse.data.record;
 
-import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import com.google.common.collect.ImmutableSet;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -22,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import sun.misc.Unsafe;
 
 /**
  *
@@ -89,11 +87,17 @@ public class DynamicRecordType<R> {
 
                     final long offset;
                     if(mode == Mode.UNSAFE)
-                        offset = unsafe.objectFieldOffset(f);
+                        offset = DynamicUnsafeRecord.getFieldOffset(type, f);
                     else
                         offset = -1L;
+                    
+                    final DynamicGeneratedRecord.Accessor accessor;
+                    if(mode == Mode.GENERATION)
+                        accessor = DynamicGeneratedRecord.generateAccessor(type, field);
+                    else
+                        accessor = null;
 
-                    table[field.id()] = new Entry(f, getter, setter, getterHandle, setterHandle, offset, indexed);
+                    table[field.id()] = new Entry(f, getter, setter, getterHandle, setterHandle, offset, accessor, indexed);
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -357,7 +361,7 @@ public class DynamicRecordType<R> {
             case UNSAFE:
                 return new DynamicUnsafeRecord<R>(this, target);
             case GENERATION:
-                throw new UnsupportedOperationException();
+                return new DynamicGeneratedRecord<R>(this, target);
         }
         throw new AssertionError("unreachable");
     }
@@ -374,74 +378,18 @@ public class DynamicRecordType<R> {
         final MethodHandle getterHandle;
         final MethodHandle setterHandle;
         final long offset;
+        final DynamicGeneratedRecord.Accessor accessor;
         final boolean indexed;
 
-        public Entry(java.lang.reflect.Field field, Method getter, Method setter, MethodHandle getterHandle, MethodHandle setterHandle, long offset, boolean indexed) {
+        public Entry(java.lang.reflect.Field field, Method getter, Method setter, MethodHandle getterHandle, MethodHandle setterHandle, long offset, DynamicGeneratedRecord.Accessor accessor, boolean indexed) {
             this.field = field;
             this.getter = getter;
             this.setter = setter;
             this.getterHandle = getterHandle;
             this.setterHandle = setterHandle;
             this.offset = offset;
+            this.accessor = accessor;
             this.indexed = indexed;
         }
     }
-    static final Unsafe unsafe = UtilUnsafe.getUnsafe();
-    private static final int base;
-    private static final int shift;
-
-    static {
-        try {
-            if (unsafe.arrayIndexScale(boolean[].class) != 1)
-                throw new AssertionError("Strange boolean array scale: " + unsafe.arrayIndexScale(boolean[].class));
-            if (unsafe.arrayIndexScale(byte[].class) != 1)
-                throw new AssertionError("Strange byte array scale: " + unsafe.arrayIndexScale(byte[].class));
-            if (unsafe.arrayIndexScale(short[].class) != 2)
-                throw new AssertionError("Strange short array scale: " + unsafe.arrayIndexScale(short[].class));
-            if (unsafe.arrayIndexScale(char[].class) != 2)
-                throw new AssertionError("Strange char array scale: " + unsafe.arrayIndexScale(char[].class));
-            if (unsafe.arrayIndexScale(int[].class) != 4)
-                throw new AssertionError("Strange int array scale: " + unsafe.arrayIndexScale(int[].class));
-            if (unsafe.arrayIndexScale(float[].class) != 4)
-                throw new AssertionError("Strange float array scale: " + unsafe.arrayIndexScale(float[].class));
-            if (unsafe.arrayIndexScale(long[].class) != 8)
-                throw new AssertionError("Strange long array scale: " + unsafe.arrayIndexScale(long[].class));
-            if (unsafe.arrayIndexScale(double[].class) != 8)
-                throw new AssertionError("Strange double array scale: " + unsafe.arrayIndexScale(double[].class));
-
-            base = unsafe.arrayBaseOffset(byte[].class);
-
-            if (unsafe.arrayBaseOffset(boolean[].class) != base)
-                throw new AssertionError("different array base");
-            if (unsafe.arrayBaseOffset(short[].class) != base)
-                throw new AssertionError("different array base");
-            if (unsafe.arrayBaseOffset(char[].class) != base)
-                throw new AssertionError("different array base");
-            if (unsafe.arrayBaseOffset(int[].class) != base)
-                throw new AssertionError("different array base");
-            if (unsafe.arrayBaseOffset(float[].class) != base)
-                throw new AssertionError("different array base");
-            if (unsafe.arrayBaseOffset(long[].class) != base)
-                throw new AssertionError("different array base");
-            if (unsafe.arrayBaseOffset(double[].class) != base)
-                throw new AssertionError("different array base");
-
-            int scale = unsafe.arrayIndexScale(byte[].class);
-            if ((scale & (scale - 1)) != 0)
-                throw new Error("data type scale not a power of two");
-            shift = 31 - Integer.numberOfLeadingZeros(scale);
-            if (scale != 1 || shift != 0)
-                throw new AssertionError("Strange byte array alignment");
-        } catch (Exception ex) {
-            throw new Error(ex);
-        }
-    }
-    private static final int BOOLEAN_SHIFT = 0;
-    private static final int BYTE_SHIFT = 0;
-    private static final int SHORT_SHIFT = 1;
-    private static final int CHAR_SHIFT = 1;
-    private static final int INT_SHIFT = 2;
-    private static final int FLOAT_SHIFT = 2;
-    private static final int LONG_SHIFT = 3;
-    private static final int DOUBLE_SHIFT = 3;
 }

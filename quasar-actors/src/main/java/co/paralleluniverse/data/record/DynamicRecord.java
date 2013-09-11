@@ -39,8 +39,26 @@ public abstract class DynamicRecord<R> extends AbstractRecord<R> {
     public Set<Field<? super R, ?>> fields() {
         return fieldSet;
     }
-    
+
     DynamicRecordType.Entry entry(Field<? super R, ?> field) {
         return vtable[field.id()];
     }
+
+    abstract boolean[] get(Field.BooleanArrayField<? super R> field);
+
+    abstract byte[] get(Field.ByteArrayField<? super R> field);
+
+    abstract short[] get(Field.ShortArrayField<? super R> field);
+
+    abstract int[] get(Field.IntArrayField<? super R> field);
+
+    abstract long[] get(Field.LongArrayField<? super R> field);
+
+    abstract float[] get(Field.FloatArrayField<? super R> field);
+
+    abstract double[] get(Field.DoubleArrayField<? super R> field);
+
+    abstract char[] get(Field.CharArrayField<? super R> field);
+
+    abstract <V> V[] get(Field.ObjectArrayField<? super R, V> field);
 }
