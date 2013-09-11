@@ -57,32 +57,34 @@ public class DynamicRecordTest {
         return Arrays.asList(new Object[][]{
                     {DynamicRecordType.Mode.METHOD_HANDLE},
                     {DynamicRecordType.Mode.REFLECTION},
-                    {DynamicRecordType.Mode.UNSAFE},});
+                    {DynamicRecordType.Mode.UNSAFE},
+                    {DynamicRecordType.Mode.GENERATION},
+        });
     }
 
     @Before
     public void setUp() {
     }
 
-    private static class A {
-        private boolean a;
-        private byte b;
-        private short c;
-        private int d;
-        private long e;
-        private float f;
-        private double g;
-        private char h;
-        private String str;
-        private boolean[] aa;
-        private byte[] ba;
-        private short[] ca;
-        private int[] da;
-        private long[] ea;
-        private float[] fa;
-        private double[] ga;
-        private char[] ha;
-        private String[] stra;
+    public static class A {
+        public boolean a;
+        public byte b;
+        public short c;
+        public int d;
+        public long e;
+        public float f;
+        public double g;
+        public char h;
+        public String str;
+        public boolean[] aa;
+        public byte[] ba;
+        public short[] ca;
+        public int[] da;
+        public long[] ea;
+        public float[] fa;
+        public double[] ga;
+        public char[] ha;
+        public String[] stra;
 
         public A() {
             a = rand.nextBoolean();

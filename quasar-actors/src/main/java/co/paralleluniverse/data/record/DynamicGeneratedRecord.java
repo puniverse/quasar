@@ -12,24 +12,345 @@
  */
 package co.paralleluniverse.data.record;
 
+import java.lang.reflect.Method;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import static org.objectweb.asm.Opcodes.*;
+import org.objectweb.asm.Type;
+
 /**
  *
  * @author pron
  */
-final class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
-    
-    static Accessor generateAccessor(Class<?> type, Field<?, ?> field) {
-        return null;
+public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
+    private static final String DYNAMIC_GENERATED_RECORD_TYPE = Type.getInternalName(DynamicGeneratedRecord.class);
+    private static ClassValue<MyClassLoader> myClassLoader = new ClassValue<MyClassLoader>() {
+        @Override
+        protected MyClassLoader computeValue(Class<?> type) {
+            return new MyClassLoader(type.getClassLoader());
+        }
+    };
+
+    static Accessor generateAccessor(Class<?> type, Field<?, ?> field, java.lang.reflect.Field f, Method getter, Method setter) {
+        final MyClassLoader cl = myClassLoader.get(type);
+        final String className = accessorClassName(type, field);
+        Class<?> accessorClass;
+
+        try {
+            accessorClass = Class.forName(className, false, cl);
+        } catch (ClassNotFoundException e) {
+            final byte[] classData;
+            if (field instanceof Field.ArrayField) {
+                if (f != null)
+                    classData = generateArrayFieldAccessor(type, field, f);
+                else
+                    classData = generateIndexedAccessor(type, field, getter, setter);
+            } else {
+                if (f != null)
+                    classData = generateSimpleFieldAccessor(type, field, f);
+                else
+                    classData = generateMethodAccessor(type, field, getter, setter);
+            }
+
+            accessorClass = cl.defineClass(className, classData);
+        }
+
+        try {
+            final Accessor accessor = (Accessor) accessorClass.newInstance();
+
+            return accessor;
+        } catch (IllegalAccessException | InstantiationException e) {
+            throw new AssertionError(e);
+        }
     }
-    
+
+    private static class MyClassLoader extends ClassLoader {
+        public MyClassLoader(ClassLoader parent) {
+            super(parent);
+        }
+
+        public Class<?> defineClass(String name, byte[] b) {
+            return defineClass(name, b, 0, b.length);
+        }
+    }
+
+    private static String accessorClassName(Class<?> type, Field<?, ?> field) {
+        final String packageName = DynamicGeneratedRecord.class.getPackage().getName();
+        final String className = type.getSimpleName() + "$" + field.name() + "Accessor$" + Integer.toHexString(type.hashCode());
+        return packageName + "." + className;
+    }
+
+    private static ClassWriter generateClass(Class<?> type, Field field, String accName) {
+        final String superName = DYNAMIC_GENERATED_RECORD_TYPE + "$" + accName;
+        final String className = accessorClassName(type, field).replace('.', '/');
+
+        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+
+        cw.visit(V1_7, ACC_PUBLIC + ACC_SUPER, className, null, superName, null);
+
+        cw.visitInnerClass(superName, DYNAMIC_GENERATED_RECORD_TYPE, accName, ACC_STATIC + ACC_ABSTRACT);
+
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitMethodInsn(INVOKESPECIAL, superName, "<init>", "()V");
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(1, 1);
+        mv.visitEnd();
+
+        return cw;
+    }
+
+    private static String methodSigTypeDesc(Field<?, ?> field) {
+        if (field instanceof Field.ObjectField)
+            return "Ljava/lang/Object;";
+        if (field instanceof Field.ObjectArrayField)
+            return "[Ljava/lang/Object;";
+        return Type.getDescriptor(field.typeClass());
+    }
+
+    private static byte[] generateSimpleFieldAccessor(Class<?> type, Field<?, ?> field, java.lang.reflect.Field f) {
+        final String typeName = Type.getInternalName(type);
+        final String fieldTypeName = Type.getInternalName(field.typeClass());
+        final String fieldTypeDesc = Type.getDescriptor(field.typeClass());
+        final String accName = accessorName(field) + "Accessor";
+
+        ClassWriter cw = generateClass(type, field, accName);
+        MethodVisitor mv;
+
+        mv = cw.visitMethod(ACC_PUBLIC, "get", "(Ljava/lang/Object;)" + methodSigTypeDesc(field), null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitTypeInsn(CHECKCAST, typeName);
+        mv.visitFieldInsn(GETFIELD, typeName, field.name(), fieldTypeDesc);
+        mv.visitInsn(returnOpcode(field));
+        mv.visitEnd();
+
+        mv = cw.visitMethod(ACC_PUBLIC, "set", "(Ljava/lang/Object;" + methodSigTypeDesc(field) + ")V", null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitTypeInsn(CHECKCAST, typeName);
+        mv.visitVarInsn(loadOpcode(field), 2);
+        if (field instanceof Field.ObjectField)
+            mv.visitTypeInsn(CHECKCAST, fieldTypeName);
+        mv.visitFieldInsn(PUTFIELD, typeName, field.name(), fieldTypeDesc);
+        mv.visitInsn(RETURN);
+        mv.visitEnd();
+
+        cw.visitEnd();
+
+        return cw.toByteArray();
+    }
+
+    private static byte[] generateMethodAccessor(Class<?> type, Field<?, ?> field, Method getter, Method setter) {
+        final String typeName = Type.getInternalName(type);
+        final String fieldTypeName = Type.getInternalName(field.typeClass());
+        final String fieldTypeDesc = Type.getDescriptor(field.typeClass());
+        final String accName = accessorName(field) + "Accessor";
+
+        ClassWriter cw = generateClass(type, field, accName);
+        MethodVisitor mv;
+
+        mv = cw.visitMethod(ACC_PUBLIC, "get", "(Ljava/lang/Object;)" + methodSigTypeDesc(field), null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitTypeInsn(CHECKCAST, typeName);
+        mv.visitMethodInsn(INVOKEVIRTUAL, typeName, getter.getName(), Type.getMethodDescriptor(getter));
+        mv.visitInsn(returnOpcode(field));
+        mv.visitEnd();
+
+        mv = cw.visitMethod(ACC_PUBLIC, "set", "(Ljava/lang/Object;" + methodSigTypeDesc(field) + ")V", null, null);
+        mv.visitCode();
+
+        if (setter != null) {
+            mv.visitVarInsn(ALOAD, 1);
+            mv.visitTypeInsn(CHECKCAST, typeName);
+            mv.visitVarInsn(loadOpcode(field), 2);
+            if (field instanceof Field.ObjectField)
+                mv.visitTypeInsn(CHECKCAST, fieldTypeName);
+            mv.visitMethodInsn(INVOKEVIRTUAL, typeName, setter.getName(), Type.getMethodDescriptor(setter));
+            mv.visitInsn(RETURN);
+        } else {
+            mv.visitTypeInsn(NEW, Type.getInternalName(ReadOnlyFieldException.class));
+            mv.visitInsn(DUP);
+            mv.visitLdcInsn(field.name);
+            mv.visitVarInsn(ALOAD, 1);
+            mv.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ReadOnlyFieldException.class), "<init>", "(Ljava/lang/String;Ljava/lang/Object)V");
+            mv.visitInsn(ATHROW);
+        }
+        mv.visitEnd();
+
+        cw.visitEnd();
+
+        return cw.toByteArray();
+    }
+
+    private static byte[] generateArrayFieldAccessor(Class<?> type, Field<?, ?> field, java.lang.reflect.Field f) {
+        final String typeName = Type.getInternalName(type);
+        final String typeDesc = Type.getDescriptor(field.typeClass());
+        final String accName = accessorName(field) + "ArrayAccessor";
+
+        ClassWriter cw = generateClass(type, field, accName);
+        MethodVisitor mv;
+
+        mv = cw.visitMethod(ACC_PUBLIC, "get", "(Ljava/lang/Object;)" + methodSigTypeDesc(field), null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitTypeInsn(CHECKCAST, typeName);
+        mv.visitFieldInsn(GETFIELD, typeName, field.name(), typeDesc);
+        mv.visitInsn(ARETURN);
+        mv.visitEnd();
+
+        cw.visitEnd();
+
+        return cw.toByteArray();
+    }
+
+    private static byte[] generateIndexedAccessor(Class<?> type, Field<?, ?> field, Method getter, Method setter) {
+        final String typeName = Type.getInternalName(type);
+        final String fieldTypeName = Type.getInternalName(field.typeClass());
+        final String fieldTypeDesc = Type.getDescriptor(field.typeClass());
+        final String accName = accessorName(field) + "IndexedAccessor";
+
+        ClassWriter cw = generateClass(type, field, accName);
+        MethodVisitor mv;
+
+        mv = cw.visitMethod(ACC_PUBLIC, "get", "(Ljava/lang/Object;I)" + methodSigTypeDesc(field), null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitTypeInsn(CHECKCAST, typeName);
+        mv.visitVarInsn(ILOAD, 2);
+        mv.visitMethodInsn(INVOKEVIRTUAL, typeName, getter.getName(), Type.getMethodDescriptor(getter));
+        mv.visitInsn(returnOpcode(field));
+        mv.visitEnd();
+
+        mv = cw.visitMethod(ACC_PUBLIC, "set", "(Ljava/lang/Object;I" + methodSigTypeDesc(field) + ")V", null, null);
+        mv.visitCode();
+        if (setter != null) {
+            mv.visitVarInsn(ALOAD, 1);
+            mv.visitTypeInsn(CHECKCAST, typeName);
+            mv.visitVarInsn(ILOAD, 2);
+            mv.visitVarInsn(loadOpcode(field), 3);
+            if (field instanceof Field.ObjectField)
+                mv.visitTypeInsn(CHECKCAST, fieldTypeName);
+            mv.visitMethodInsn(INVOKEVIRTUAL, typeName, setter.getName(), Type.getMethodDescriptor(setter));
+            mv.visitInsn(RETURN);
+        } else {
+            mv.visitTypeInsn(NEW, Type.getInternalName(ReadOnlyFieldException.class));
+            mv.visitInsn(DUP);
+            mv.visitLdcInsn(field.name);
+            mv.visitVarInsn(ALOAD, 1);
+            mv.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ReadOnlyFieldException.class), "<init>", "(Ljava/lang/String;Ljava/lang/Object)V");
+            mv.visitInsn(ATHROW);
+        }
+        mv.visitEnd();
+
+        cw.visitEnd();
+
+        return cw.toByteArray();
+    }
+
+    private static String accessorName(Field field) {
+        switch (field.type()) {
+            case Field.BOOLEAN:
+            case Field.BOOLEAN_ARRAY:
+                return "Boolean";
+            case Field.BYTE:
+            case Field.BYTE_ARRAY:
+                return "Byte";
+            case Field.SHORT:
+            case Field.SHORT_ARRAY:
+                return "Short";
+            case Field.INT:
+            case Field.INT_ARRAY:
+                return "Int";
+            case Field.LONG:
+            case Field.LONG_ARRAY:
+                return "Long";
+            case Field.FLOAT:
+            case Field.FLOAT_ARRAY:
+                return "Float";
+            case Field.DOUBLE:
+            case Field.DOUBLE_ARRAY:
+                return "Double";
+            case Field.CHAR:
+            case Field.CHAR_ARRAY:
+                return "Char";
+            case Field.OBJECT:
+            case Field.OBJECT_ARRAY:
+                return "Object";
+            default:
+                throw new AssertionError();
+        }
+    }
+
+    private static int returnOpcode(Field field) {
+        switch (field.type()) {
+            case Field.BOOLEAN:
+            case Field.BOOLEAN_ARRAY:
+            case Field.BYTE:
+            case Field.BYTE_ARRAY:
+            case Field.SHORT:
+            case Field.SHORT_ARRAY:
+            case Field.INT:
+            case Field.INT_ARRAY:
+            case Field.CHAR:
+            case Field.CHAR_ARRAY:
+                return IRETURN;
+            case Field.LONG:
+            case Field.LONG_ARRAY:
+                return LRETURN;
+            case Field.FLOAT:
+            case Field.FLOAT_ARRAY:
+                return FRETURN;
+            case Field.DOUBLE:
+            case Field.DOUBLE_ARRAY:
+                return DRETURN;
+            case Field.OBJECT:
+            case Field.OBJECT_ARRAY:
+                return ARETURN;
+            default:
+                throw new AssertionError();
+        }
+    }
+
+    private static int loadOpcode(Field field) {
+        switch (field.type()) {
+            case Field.BOOLEAN:
+            case Field.BOOLEAN_ARRAY:
+            case Field.BYTE:
+            case Field.BYTE_ARRAY:
+            case Field.SHORT:
+            case Field.SHORT_ARRAY:
+            case Field.INT:
+            case Field.INT_ARRAY:
+            case Field.CHAR:
+            case Field.CHAR_ARRAY:
+                return ILOAD;
+            case Field.LONG:
+            case Field.LONG_ARRAY:
+                return LLOAD;
+            case Field.FLOAT:
+            case Field.FLOAT_ARRAY:
+                return FLOAD;
+            case Field.DOUBLE:
+            case Field.DOUBLE_ARRAY:
+                return DLOAD;
+            case Field.OBJECT:
+            case Field.OBJECT_ARRAY:
+                return ALOAD;
+            default:
+                throw new AssertionError();
+        }
+    }
+
     DynamicGeneratedRecord(DynamicRecordType<R> recordType, Object target) {
         super(recordType, target);
     }
 
-    protected DynamicGeneratedRecord(DynamicRecordType<R> recordType) {
-        super(recordType);
-    }
-
+//    protected DynamicGeneratedRecord(DynamicRecordType<R> recordType) {
+//        super(recordType);
+//    }
     @Override
     public boolean get(Field.BooleanField<? super R> field) {
         return ((BooleanAccessor) entry(field).accessor).get(obj);
@@ -624,7 +945,7 @@ final class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
         if (entry.indexed) {
             final ObjectIndexedAccessor accessor = ((ObjectIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
-                target[offset + i] = (V)accessor.get(obj, i);
+                target[offset + i] = (V) accessor.get(obj, i);
         } else
             System.arraycopy(((ObjectArrayAccessor) entry.accessor).get(obj), 0, target, offset, field.length);
     }
@@ -648,151 +969,151 @@ final class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
             for (int i = 0; i < field.length; i++)
                 accessor.set(obj, i, source.get(sourceField, i));
         } else
-            source.get(sourceField, (V[])((ObjectArrayAccessor) entry.accessor).get(obj), 0);
+            source.get(sourceField, (V[]) ((ObjectArrayAccessor) entry.accessor).get(obj), 0);
     }
 
-    static abstract class Accessor {
+    public static abstract class Accessor {
     }
 
-    static abstract class BooleanAccessor extends Accessor {
+    public static abstract class BooleanAccessor extends Accessor {
         public abstract boolean get(Object target);
 
         public abstract void set(Object target, boolean value);
     }
 
-    static abstract class BooleanArrayAccessor extends Accessor {
+    public static abstract class BooleanArrayAccessor extends Accessor {
         public abstract boolean[] get(Object target);
     }
 
-    static abstract class BooleanIndexedAccessor extends Accessor {
+    public static abstract class BooleanIndexedAccessor extends Accessor {
         public abstract boolean get(Object target, int index);
 
         public abstract void set(Object target, int index, boolean value);
     }
 
-    static abstract class ByteAccessor extends Accessor {
+    public static abstract class ByteAccessor extends Accessor {
         public abstract byte get(Object target);
 
         public abstract void set(Object target, byte value);
     }
 
-    static abstract class ByteArrayAccessor extends Accessor {
+    public static abstract class ByteArrayAccessor extends Accessor {
         public abstract byte[] get(Object target);
     }
 
-    static abstract class ByteIndexedAccessor extends Accessor {
+    public static abstract class ByteIndexedAccessor extends Accessor {
         public abstract byte get(Object target, int index);
 
         public abstract void set(Object target, int index, byte value);
     }
 
-    static abstract class ShortAccessor extends Accessor {
+    public static abstract class ShortAccessor extends Accessor {
         public abstract short get(Object target);
 
         public abstract void set(Object target, short value);
     }
 
-    static abstract class ShortArrayAccessor extends Accessor {
+    public static abstract class ShortArrayAccessor extends Accessor {
         public abstract short[] get(Object target);
     }
 
-    static abstract class ShortIndexedAccessor extends Accessor {
+    public static abstract class ShortIndexedAccessor extends Accessor {
         public abstract short get(Object target, int index);
 
         public abstract void set(Object target, int index, short value);
     }
 
-    static abstract class IntAccessor extends Accessor {
+    public static abstract class IntAccessor extends Accessor {
         public abstract int get(Object target);
 
         public abstract void set(Object target, int value);
     }
 
-    static abstract class IntArrayAccessor extends Accessor {
+    public static abstract class IntArrayAccessor extends Accessor {
         public abstract int[] get(Object target);
     }
 
-    static abstract class IntIndexedAccessor extends Accessor {
+    public static abstract class IntIndexedAccessor extends Accessor {
         public abstract int get(Object target, int index);
 
         public abstract void set(Object target, int index, int value);
     }
 
-    static abstract class LongAccessor extends Accessor {
+    public static abstract class LongAccessor extends Accessor {
         public abstract long get(Object target);
 
         public abstract void set(Object target, long value);
     }
 
-    static abstract class LongArrayAccessor extends Accessor {
+    public static abstract class LongArrayAccessor extends Accessor {
         public abstract long[] get(Object target);
     }
 
-    static abstract class LongIndexedAccessor extends Accessor {
+    public static abstract class LongIndexedAccessor extends Accessor {
         public abstract long get(Object target, int index);
 
         public abstract void set(Object target, int index, long value);
     }
 
-    static abstract class FloatAccessor extends Accessor {
+    public static abstract class FloatAccessor extends Accessor {
         public abstract float get(Object target);
 
         public abstract void set(Object target, float value);
     }
 
-    static abstract class FloatArrayAccessor extends Accessor {
+    public static abstract class FloatArrayAccessor extends Accessor {
         public abstract float[] get(Object target);
     }
 
-    static abstract class FloatIndexedAccessor extends Accessor {
+    public static abstract class FloatIndexedAccessor extends Accessor {
         public abstract float get(Object target, int index);
 
         public abstract void set(Object target, int index, float value);
     }
 
-    static abstract class DoubleAccessor extends Accessor {
+    public static abstract class DoubleAccessor extends Accessor {
         public abstract double get(Object target);
 
         public abstract void set(Object target, double value);
     }
 
-    static abstract class DoubleArrayAccessor extends Accessor {
+    public static abstract class DoubleArrayAccessor extends Accessor {
         public abstract double[] get(Object target);
     }
 
-    static abstract class DoubleIndexedAccessor extends Accessor {
+    public static abstract class DoubleIndexedAccessor extends Accessor {
         public abstract double get(Object target, int index);
 
         public abstract void set(Object target, int index, double value);
     }
 
-    static abstract class CharAccessor extends Accessor {
+    public static abstract class CharAccessor extends Accessor {
         public abstract char get(Object target);
 
         public abstract void set(Object target, char value);
     }
 
-    static abstract class CharArrayAccessor extends Accessor {
+    public static abstract class CharArrayAccessor extends Accessor {
         public abstract char[] get(Object target);
     }
 
-    static abstract class CharIndexedAccessor extends Accessor {
+    public static abstract class CharIndexedAccessor extends Accessor {
         public abstract char get(Object target, int index);
 
         public abstract void set(Object target, int index, char value);
     }
 
-    static abstract class ObjectAccessor extends Accessor {
+    public static abstract class ObjectAccessor extends Accessor {
         public abstract Object get(Object target);
 
         public abstract void set(Object target, Object value);
     }
 
-    static abstract class ObjectArrayAccessor extends Accessor {
+    public static abstract class ObjectArrayAccessor extends Accessor {
         public abstract Object[] get(Object target);
     }
 
-    static abstract class ObjectIndexedAccessor extends Accessor {
+    public static abstract class ObjectIndexedAccessor extends Accessor {
         public abstract Object get(Object target, int index);
 
         public abstract void set(Object target, int index, Object value);

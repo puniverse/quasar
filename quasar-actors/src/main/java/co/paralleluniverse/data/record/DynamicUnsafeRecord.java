@@ -79,9 +79,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
         super(recordType, target);
     }
 
-    protected DynamicUnsafeRecord(DynamicRecordType<R> recordType) {
-        super(recordType);
-    }
+//    protected DynamicUnsafeRecord(DynamicRecordType<R> recordType) {
+//        super(recordType);
+//    }
 
     @Override
     public boolean get(Field.BooleanField<? super R> field) {

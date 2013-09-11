@@ -24,9 +24,9 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
         super(recordType, target);
     }
 
-    protected DynamicMethodHandleRecord(DynamicRecordType<R> recordType) {
-        super(recordType);
-    }
+//    protected DynamicMethodHandleRecord(DynamicRecordType<R> recordType) {
+//        super(recordType);
+//    }
 
     private MethodHandle setter(Field<? super R, ?> field, DynamicRecordType.Entry entry) {
         final MethodHandle mh = entry.setterHandle;

@@ -17,6 +17,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -92,9 +93,14 @@ public class DynamicRecordType<R> {
                         offset = -1L;
                     
                     final DynamicGeneratedRecord.Accessor accessor;
-                    if(mode == Mode.GENERATION)
-                        accessor = DynamicGeneratedRecord.generateAccessor(type, field);
-                    else
+                    if(mode == Mode.GENERATION) {
+                        if((type.getModifiers() & Modifier.PUBLIC) == 0)
+                            throw new RuntimeException("Cannot use GENERATION mode because class " + type.getName() + " is not public.");
+                        if(f != null && (f.getModifiers() & Modifier.PUBLIC) == 0)
+                            throw new RuntimeException("Cannot use GENERATION mode because field " + f.getName() + " in class " + type.getName() + " is not public.");
+                        
+                        accessor = DynamicGeneratedRecord.generateAccessor(type, field, f, getter, setter);
+                    } else
                         accessor = null;
 
                     table[field.id()] = new Entry(f, getter, setter, getterHandle, setterHandle, offset, accessor, indexed);

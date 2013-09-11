@@ -20,4 +20,8 @@ public class ReadOnlyFieldException extends RecordException {
     public ReadOnlyFieldException(Field field, Object record) {
         super("Field " + field + " can only be read, not set in " + record);
     }
+
+    public ReadOnlyFieldException(String field, Object record) {
+        super("Field " + field + " can only be read, not set in " + record);
+    }
 }

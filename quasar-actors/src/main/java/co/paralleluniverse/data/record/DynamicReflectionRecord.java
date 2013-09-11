@@ -24,9 +24,9 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
         super(recordType, target);
     }
 
-    protected DynamicReflectionRecord(DynamicRecordType<R> recordType) {
-        super(recordType);
-    }
+//    protected DynamicReflectionRecord(DynamicRecordType<R> recordType) {
+//        super(recordType);
+//    }
 
     private Method setter(Field<? super R, ?> field, DynamicRecordType.Entry entry) {
         final Method m = entry.setter;

@@ -29,11 +29,11 @@ public abstract class DynamicRecord<R> extends AbstractRecord<R> {
         this.obj = target;
     }
 
-    protected DynamicRecord(DynamicRecordType<R> recordType) {
-        this.vtable = recordType.getClassInfo(this.getClass()).table;
-        this.fieldSet = recordType.fieldSet();
-        this.obj = this;
-    }
+//    protected DynamicRecord(DynamicRecordType<R> recordType) {
+//        this.vtable = recordType.getClassInfo(this.getClass()).table;
+//        this.fieldSet = recordType.fieldSet();
+//        this.obj = this;
+//    }
 
     @Override
     public Set<Field<? super R, ?>> fields() {

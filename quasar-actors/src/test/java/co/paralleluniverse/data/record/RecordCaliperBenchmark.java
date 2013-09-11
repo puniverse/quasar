@@ -37,10 +37,10 @@ public class RecordCaliperBenchmark extends Benchmark {
     protected void tearDown() throws Exception {
     }
 
-    private static class Foo {
-        int a;
-        double b;
-        long c;
+    public static class Foo {
+        public int a;
+        public double b;
+        public long c;
     }
 
     private static class Simple {
@@ -98,6 +98,10 @@ public class RecordCaliperBenchmark extends Benchmark {
     
     public Object timeDynamicUnsafe(int reps) {
         return dyn(DynamicRecordType.Mode.UNSAFE, reps);
+    }
+    
+    public Object timeDynamicGeneration(int reps) {
+        return dyn(DynamicRecordType.Mode.GENERATION, reps);
     }
     
     private Object dyn(DynamicRecordType.Mode mode, int reps) {
