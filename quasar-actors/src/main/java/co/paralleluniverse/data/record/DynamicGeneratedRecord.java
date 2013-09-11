@@ -109,6 +109,13 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
         return Type.getDescriptor(field.typeClass());
     }
 
+     private static String methodSigComponentTypeDesc(Field<?, ?> field) {
+         assert field instanceof Field.ArrayField;
+        if (field instanceof Field.ObjectArrayField)
+            return "Ljava/lang/Object;";
+        return Type.getDescriptor(field.typeClass().getComponentType());
+    }
+
     private static byte[] generateSimpleFieldAccessor(Class<?> type, Field<?, ?> field, java.lang.reflect.Field f) {
         final String typeName = Type.getInternalName(type);
         final String fieldTypeName = Type.getInternalName(field.typeClass());
@@ -175,7 +182,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
             mv.visitInsn(DUP);
             mv.visitLdcInsn(field.name);
             mv.visitVarInsn(ALOAD, 1);
-            mv.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ReadOnlyFieldException.class), "<init>", "(Ljava/lang/String;Ljava/lang/Object)V");
+            mv.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ReadOnlyFieldException.class), "<init>", "(Ljava/lang/String;Ljava/lang/Object;)V");
             mv.visitInsn(ATHROW);
         }
         mv.visitEnd();
@@ -208,14 +215,14 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     private static byte[] generateIndexedAccessor(Class<?> type, Field<?, ?> field, Method getter, Method setter) {
         final String typeName = Type.getInternalName(type);
-        final String fieldTypeName = Type.getInternalName(field.typeClass());
+        final String fieldComponentTypeName = Type.getInternalName(field.typeClass().getComponentType());
         final String fieldTypeDesc = Type.getDescriptor(field.typeClass());
         final String accName = accessorName(field) + "IndexedAccessor";
 
         ClassWriter cw = generateClass(type, field, accName);
         MethodVisitor mv;
 
-        mv = cw.visitMethod(ACC_PUBLIC, "get", "(Ljava/lang/Object;I)" + methodSigTypeDesc(field), null, null);
+        mv = cw.visitMethod(ACC_PUBLIC, "get", "(Ljava/lang/Object;I)" + methodSigComponentTypeDesc(field), null, null);
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 1);
         mv.visitTypeInsn(CHECKCAST, typeName);
@@ -224,15 +231,15 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
         mv.visitInsn(returnOpcode(field));
         mv.visitEnd();
 
-        mv = cw.visitMethod(ACC_PUBLIC, "set", "(Ljava/lang/Object;I" + methodSigTypeDesc(field) + ")V", null, null);
+        mv = cw.visitMethod(ACC_PUBLIC, "set", "(Ljava/lang/Object;I" + methodSigComponentTypeDesc(field) + ")V", null, null);
         mv.visitCode();
         if (setter != null) {
             mv.visitVarInsn(ALOAD, 1);
             mv.visitTypeInsn(CHECKCAST, typeName);
             mv.visitVarInsn(ILOAD, 2);
             mv.visitVarInsn(loadOpcode(field), 3);
-            if (field instanceof Field.ObjectField)
-                mv.visitTypeInsn(CHECKCAST, fieldTypeName);
+            if (field instanceof Field.ObjectArrayField)
+                mv.visitTypeInsn(CHECKCAST, fieldComponentTypeName);
             mv.visitMethodInsn(INVOKEVIRTUAL, typeName, setter.getName(), Type.getMethodDescriptor(setter));
             mv.visitInsn(RETURN);
         } else {
@@ -240,7 +247,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
             mv.visitInsn(DUP);
             mv.visitLdcInsn(field.name);
             mv.visitVarInsn(ALOAD, 1);
-            mv.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ReadOnlyFieldException.class), "<init>", "(Ljava/lang/String;Ljava/lang/Object)V");
+            mv.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ReadOnlyFieldException.class), "<init>", "(Ljava/lang/String;Ljava/lang/Object;)V");
             mv.visitInsn(ATHROW);
         }
         mv.visitEnd();

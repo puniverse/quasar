@@ -14,8 +14,6 @@ package co.paralleluniverse.data.record;
 
 import com.google.common.collect.ImmutableSet;
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -59,8 +57,6 @@ public class DynamicRecordType<R> {
         final Entry[] table;
 
         private ClassInfo(Mode mode, Class<?> type, Collection<? extends Field<?, ?>> fields) {
-            final MethodHandles.Lookup lookup = MethodHandles.lookup();
-
             try {
                 this.table = new Entry[fields.size()];
                 for (Field<?, ?> field : fields) {
@@ -69,42 +65,42 @@ public class DynamicRecordType<R> {
                     final java.lang.reflect.Field f = getter == null ? getField(type, field) : null;
                     final boolean indexed = f == null && field instanceof Field.ArrayField;
 
-                    if (f == null && mode == Mode.UNSAFE)
-                        throw new RuntimeException("Cannot use UNSAFE mode for class " + type.getName() + " because field " + field.name + " has a getter");
-
                     if (getter == null && f == null)
                         throw new FieldNotFoundException(field, type);
 
                     final MethodHandle getterHandle;
                     final MethodHandle setterHandle;
-
                     if (mode == Mode.METHOD_HANDLE) {
-                        getterHandle = fixMethodHandleType(field, f != null ? lookup.unreflectGetter(f) : lookup.unreflect(getter));
-                        setterHandle = fixMethodHandleType(field, f != null ? (field instanceof Field.ScalarField ? lookup.unreflectSetter(f) : null) : (setter != null ? lookup.unreflect(setter) : null));
+                        getterHandle = DynamicMethodHandleRecord.getGetterMethodHandle(field, f, getter);
+                        setterHandle = DynamicMethodHandleRecord.getSetterMethodHandle(field, f, setter);
                     } else {
                         getterHandle = null;
                         setterHandle = null;
                     }
 
                     final long offset;
-                    if(mode == Mode.UNSAFE)
+                    if (mode == Mode.UNSAFE) {
+                        if (f == null)
+                            throw new RuntimeException("Cannot use UNSAFE mode for class " + type.getName() + " because field " + field.name + " has a getter");
                         offset = DynamicUnsafeRecord.getFieldOffset(type, f);
-                    else
+                    } else
                         offset = -1L;
-                    
+
                     final DynamicGeneratedRecord.Accessor accessor;
-                    if(mode == Mode.GENERATION) {
-                        if((type.getModifiers() & Modifier.PUBLIC) == 0)
+                    if (mode == Mode.GENERATION) {
+                        if ((type.getModifiers() & Modifier.PUBLIC) == 0)
                             throw new RuntimeException("Cannot use GENERATION mode because class " + type.getName() + " is not public.");
-                        if(f != null && (f.getModifiers() & Modifier.PUBLIC) == 0)
+                        if (f != null && (f.getModifiers() & Modifier.PUBLIC) == 0)
                             throw new RuntimeException("Cannot use GENERATION mode because field " + f.getName() + " in class " + type.getName() + " is not public.");
-                        
+
                         accessor = DynamicGeneratedRecord.generateAccessor(type, field, f, getter, setter);
                     } else
                         accessor = null;
 
                     table[field.id()] = new Entry(f, getter, setter, getterHandle, setterHandle, offset, accessor, indexed);
                 }
+            } catch (RuntimeException e) {
+                throw e;
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -161,37 +157,10 @@ public class DynamicRecordType<R> {
     private static Method getIndexedSetter(Class<?> type, Field field) {
         assert field instanceof Field.ArrayField;
         try {
-            return type.getMethod("set" + capitalize(field.name()), int.class, field.typeClass());
+            return type.getMethod("set" + capitalize(field.name()), int.class, field.typeClass().getComponentType());
         } catch (NoSuchMethodException e) {
         }
         return null;
-    }
-
-    private static MethodHandle fixMethodHandleType(Field field, MethodHandle mh) throws IllegalAccessException {
-        if (mh == null)
-            return null;
-
-        final MethodType origType = mh.type();
-        final Class<?>[] params = origType.parameterArray();
-
-        params[0] = Object.class;
-        for (int i = 1; i < params.length; i++) {
-            if (!params[i].isPrimitive())
-                params[i] = Object.class;
-        }
-
-        Class<?> rtype = origType.returnType();
-        if(field instanceof Field.ArrayField) {
-            assert rtype.isArray();
-            if(!rtype.getComponentType().isPrimitive())
-                rtype = Object[].class;
-        } else {
-            if(!rtype.isPrimitive())
-                rtype = Object.class;
-        }
-        
-        final MethodType mt = MethodType.methodType(rtype, params);
-        return mh.asType(mt);
     }
 
     private static String capitalize(String str) {

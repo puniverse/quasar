@@ -14,12 +14,57 @@ package co.paralleluniverse.data.record;
 
 import co.paralleluniverse.common.util.Exceptions;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.lang.reflect.Method;
 
 /**
  *
  * @author pron
  */
 class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
+    static MethodHandle getGetterMethodHandle(Field<?, ?> field, java.lang.reflect.Field f, Method getter) {
+        try {
+            final MethodHandles.Lookup lookup = MethodHandles.lookup();
+            return fixMethodHandleType(field, f != null ? lookup.unreflectGetter(f) : lookup.unreflect(getter));
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    static MethodHandle getSetterMethodHandle(Field<?, ?> field, java.lang.reflect.Field f, Method setter) {
+        try {
+            final MethodHandles.Lookup lookup = MethodHandles.lookup();
+            return fixMethodHandleType(field, f != null ? (field instanceof Field.ScalarField ? lookup.unreflectSetter(f) : null) : (setter != null ? lookup.unreflect(setter) : null));
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    private static MethodHandle fixMethodHandleType(Field field, MethodHandle mh) throws IllegalAccessException {
+        if (mh == null)
+            return null;
+
+        final MethodType origType = mh.type();
+        final Class<?>[] params = origType.parameterArray();
+
+        params[0] = Object.class;
+        for (int i = 1; i < params.length; i++) {
+            if (!params[i].isPrimitive())
+                params[i] = Object.class;
+        }
+
+        Class<?> rtype = origType.returnType();
+        if (field instanceof Field.ArrayField && rtype.isArray()) {
+            if (!rtype.getComponentType().isPrimitive())
+                rtype = Object[].class;
+        } else if (!rtype.isPrimitive())
+            rtype = Object.class;
+
+        final MethodType mt = MethodType.methodType(rtype, params);
+        return mh.asType(mt);
+    }
+
     DynamicMethodHandleRecord(DynamicRecordType<R> recordType, Object target) {
         super(recordType, target);
     }
@@ -27,7 +72,6 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
 //    protected DynamicMethodHandleRecord(DynamicRecordType<R> recordType) {
 //        super(recordType);
 //    }
-
     private MethodHandle setter(Field<? super R, ?> field, DynamicRecordType.Entry entry) {
         final MethodHandle mh = entry.setterHandle;
         if (mh == null)
@@ -38,7 +82,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     private MethodHandle setter(Field<? super R, ?> field) {
         return setter(field, entry(field));
     }
-    
+
     @Override
     public boolean get(Field.BooleanField<? super R> field) {
         try {

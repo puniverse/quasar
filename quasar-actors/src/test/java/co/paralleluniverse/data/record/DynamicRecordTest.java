@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
+import static org.junit.Assume.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -58,8 +59,7 @@ public class DynamicRecordTest {
                     {DynamicRecordType.Mode.METHOD_HANDLE},
                     {DynamicRecordType.Mode.REFLECTION},
                     {DynamicRecordType.Mode.UNSAFE},
-                    {DynamicRecordType.Mode.GENERATION},
-        });
+                    {DynamicRecordType.Mode.GENERATION},});
     }
 
     @Before
@@ -123,6 +123,152 @@ public class DynamicRecordTest {
                 ga[i] = rand.nextDouble();
             for (int i = 0; i < ha.length; i++)
                 ha[i] = (char) rand.nextInt();
+        }
+    }
+
+    public static class B extends A {
+        public boolean isA() {
+            return a;
+        }
+
+        public void setA(boolean a) {
+            this.a = a;
+        }
+
+        public byte getB() {
+            return (byte) (b + 1);
+        }
+
+        public void setB(byte b) {
+            this.b = (byte) (b + 1);
+        }
+
+        public short getC() {
+            return (short) (c + 1);
+        }
+
+        public void setC(short c) {
+            this.c = (short) (c + 1);
+        }
+
+        public int getD() {
+            return d + 1;
+        }
+
+        public void setD(int d) {
+            this.d = d + 1;
+        }
+
+        public long getE() {
+            return e + 1;
+        }
+
+        public void setE(long e) {
+            this.e = e + 1;
+        }
+
+        public float getF() {
+            return f + 1;
+        }
+
+        public void setF(float f) {
+            this.f = f + 1;
+        }
+
+        public double getG() {
+            return g + 1;
+        }
+
+        public void setG(double g) {
+            this.g = g + 1;
+        }
+
+        public char getH() {
+            return (char) (h + 1);
+        }
+
+        public void setH(char h) {
+            this.h = (char) (h + 1);
+        }
+
+        public String getStr() {
+            return str + "!";
+        }
+
+        public void setStr(String str) {
+            this.str = str + "!";
+        }
+
+        public boolean getAa(int index) {
+            return aa[index];
+        }
+
+        public void setAa(int index, boolean a) {
+            this.a = a;
+        }
+
+        public byte getBa(int index) {
+            return (byte) (ba[index] + 1);
+        }
+
+        public void setBa(int index, byte b) {
+            this.b = (byte) (b + 1);
+        }
+
+        public short getCa(int index) {
+            return (short) (ca[index] + 1);
+        }
+
+        public void setCa(int index, short c) {
+            this.c = (short) (c + 1);
+        }
+
+        public int getDa(int index) {
+            return da[index] + 1;
+        }
+
+        public void setDa(int index, int d) {
+            this.d = d + 1;
+        }
+
+        public long getEa(int index) {
+            return ea[index] + 1;
+        }
+
+        public void setEa(int index, long e) {
+            this.e = e + 1;
+        }
+
+        public float getFa(int index) {
+            return fa[index] + 1;
+        }
+
+        public void setFa(int index, float f) {
+            this.f = f + 1;
+        }
+
+        public double getGa(int index) {
+            return ga[index] + 1;
+        }
+
+        public void setGa(int index, double g) {
+            this.g = g + 1;
+        }
+
+        public char getHa(int index) {
+            return (char) (ha[index] + 1);
+        }
+
+        public void setHa(int index, char h) {
+            this.h = (char) (h + 1);
+        }
+
+        public String getStra(int index) {
+            return stra[index] + "!";
+        }
+
+        public void setStra(int index, String str) {
+            stra[index]  = str + "!";
         }
     }
     private final DynamicRecordType<A> drt;
@@ -216,6 +362,94 @@ public class DynamicRecordTest {
     }
 
     @Test
+    public void whenUnsafeAndBeanThenThrowException() {
+        assumeThat(mode, is(DynamicRecordType.Mode.UNSAFE));
+
+        try {
+            B a = new B();
+            Record<A> r = drt.newInstance(a);
+            fail();
+        } catch (Exception e) {
+        }
+    }
+
+    @Test
+    public void testSetDirectGetRecordBean() {
+        assumeThat(mode, not(DynamicRecordType.Mode.UNSAFE));
+
+        A a = new B();
+        Record<A> r = drt.newInstance(a);
+
+        assertThat(r.get($a), equalTo(a.a));
+        assertThat(r.get($b), equalTo((byte) (a.b + 1)));
+        assertThat(r.get($c), equalTo((short) (a.c + 1)));
+        assertThat(r.get($d), equalTo(a.d + 1));
+        assertThat(r.get($e), equalTo(a.e + 1));
+        assertThat(r.get($f), equalTo(a.f + 1));
+        assertThat(r.get($g), equalTo(a.g + 1));
+        assertThat(r.get($h), equalTo((char) (a.h + 1)));
+        assertThat(r.get($str), equalTo(a.str + "!"));
+
+        for (int i = 0; i < $aa.length; i++)
+            assertThat(r.get($aa, i), equalTo(a.aa[i]));
+        for (int i = 0; i < $ba.length; i++)
+            assertThat(r.get($ba, i), equalTo((byte) (a.ba[i] + 1)));
+        for (int i = 0; i < $ca.length; i++)
+            assertThat(r.get($ca, i), equalTo((short) (a.ca[i] + 1)));
+        for (int i = 0; i < $da.length; i++)
+            assertThat(r.get($da, i), equalTo(a.da[i] + 1));
+        for (int i = 0; i < $ea.length; i++)
+            assertThat(r.get($ea, i), equalTo(a.ea[i] + 1));
+        for (int i = 0; i < $fa.length; i++)
+            assertThat(r.get($fa, i), equalTo(a.fa[i] + 1));
+        for (int i = 0; i < $ga.length; i++)
+            assertThat(r.get($ga, i), equalTo(a.ga[i] + 1));
+        for (int i = 0; i < $ha.length; i++)
+            assertThat(r.get($ha, i), equalTo((char) (a.ha[i] + 1)));
+        for (int i = 0; i < $stra.length; i++)
+            assertThat(r.get($stra, i), equalTo(a.stra[i] + "!"));
+
+        boolean[] aa = new boolean[1];
+        byte[] ba = new byte[2];
+        short[] ca = new short[3];
+        int[] da = new int[4];
+        long[] ea = new long[5];
+        float[] fa = new float[6];
+        double[] ga = new double[7];
+        char[] ha = new char[8];
+        String[] stra = new String[2];
+
+        r.get($aa, aa, 0);
+        r.get($ba, ba, 0);
+        r.get($ca, ca, 0);
+        r.get($da, da, 0);
+        r.get($ea, ea, 0);
+        r.get($fa, fa, 0);
+        r.get($ga, ga, 0);
+        r.get($ha, ha, 0);
+        r.get($stra, stra, 0);
+
+        for (int i = 0; i < $aa.length; i++)
+            assertThat(aa[i], equalTo(a.aa[i]));
+        for (int i = 0; i < $ba.length; i++)
+            assertThat(ba[i], equalTo((byte) (a.ba[i] + 1)));
+        for (int i = 0; i < $ca.length; i++)
+            assertThat(ca[i], equalTo((short) (a.ca[i] + 1)));
+        for (int i = 0; i < $da.length; i++)
+            assertThat(da[i], equalTo(a.da[i] + 1));
+        for (int i = 0; i < $ea.length; i++)
+            assertThat(ea[i], equalTo(a.ea[i] + 1));
+        for (int i = 0; i < $fa.length; i++)
+            assertThat(fa[i], equalTo(a.fa[i] + 1));
+        for (int i = 0; i < $ga.length; i++)
+            assertThat(ga[i], equalTo(a.ga[i] + 1));
+        for (int i = 0; i < $ha.length; i++)
+            assertThat(ha[i], equalTo((char) (a.ha[i] + 1)));
+        for (int i = 0; i < $stra.length; i++)
+            assertThat(stra[i], equalTo(a.stra[i] + "!"));
+    }
+
+    @Test
     public void testSetRecordGetDirect() {
         A a = new A();
         Record<A> r = drt.newInstance(a);
@@ -282,6 +516,74 @@ public class DynamicRecordTest {
     }
 
     @Test
+    public void testSetRecordBeanGetDirect() {
+        assumeThat(mode, not(DynamicRecordType.Mode.UNSAFE));
+        
+        A a = new B();
+        Record<A> r = drt.newInstance(a);
+
+        r.set($a, rand.nextBoolean());
+        r.set($b, (byte) rand.nextInt());
+        r.set($c, (short) rand.nextInt());
+        r.set($d, rand.nextInt());
+        r.set($e, rand.nextLong());
+        r.set($f, rand.nextFloat());
+        r.set($g, rand.nextDouble());
+        r.set($h, (char) rand.nextInt());
+        r.set($str, "bar");
+
+        for (int i = 0; i < $aa.length; i++)
+            r.set($aa, i, rand.nextBoolean());
+        for (int i = 0; i < $ba.length; i++)
+            r.set($ba, i, (byte) rand.nextInt());
+        for (int i = 0; i < $ca.length; i++)
+            r.set($ca, i, (short) rand.nextInt());
+        for (int i = 0; i < $da.length; i++)
+            r.set($da, i, rand.nextInt());
+        for (int i = 0; i < $ea.length; i++)
+            r.set($ea, i, rand.nextLong());
+        for (int i = 0; i < $fa.length; i++)
+            r.set($fa, i, rand.nextFloat());
+        for (int i = 0; i < $ga.length; i++)
+            r.set($ga, i, rand.nextDouble());
+        for (int i = 0; i < $ha.length; i++)
+            r.set($ha, i, (char) rand.nextInt());
+
+        r.set($stra, 0, "goodbye");
+
+        assertThat(r.get($a), equalTo(a.a));
+        assertThat(r.get($b), equalTo((byte)(a.b + 1)));
+        assertThat(r.get($c), equalTo((short)(a.c + 1)));
+        assertThat(r.get($d), equalTo(a.d + 1));
+        assertThat(r.get($e), equalTo(a.e + 1));
+        assertThat(r.get($f), equalTo(a.f + 1));
+        assertThat(r.get($g), equalTo(a.g + 1));
+        assertThat(r.get($h), equalTo((char)(a.h + 1)));
+        assertThat(a.str, equalTo("bar!"));
+
+        for (int i = 0; i < $aa.length; i++)
+            assertThat(r.get($aa, i), equalTo(a.aa[i]));
+        for (int i = 0; i < $ba.length; i++)
+            assertThat(r.get($ba, i), equalTo((byte)(a.ba[i] + 1)));
+        for (int i = 0; i < $ca.length; i++)
+            assertThat(r.get($ca, i), equalTo((short)(a.ca[i] + 1)));
+        for (int i = 0; i < $da.length; i++)
+            assertThat(r.get($da, i), equalTo(a.da[i] + 1));
+        for (int i = 0; i < $ea.length; i++)
+            assertThat(r.get($ea, i), equalTo(a.ea[i] + 1));
+        for (int i = 0; i < $fa.length; i++)
+            assertThat(r.get($fa, i), equalTo(a.fa[i] + 1));
+        for (int i = 0; i < $ga.length; i++)
+            assertThat(r.get($ga, i), equalTo(a.ga[i] + 1));
+        for (int i = 0; i < $ha.length; i++)
+            assertThat(r.get($ha, i), equalTo((char)(a.ha[i] + 1)));
+        for (int i = 0; i < $stra.length; i++)
+            assertThat(r.get($stra, i), equalTo(a.stra[i] + "!"));
+
+        assertThat(r.get($stra, 0), equalTo("goodbye!!"));
+    }
+
+    @Test
     public void testSetRecordGetDirect2() {
         A a = new A();
         Record<A> r = drt.newInstance(a);
@@ -344,6 +646,73 @@ public class DynamicRecordTest {
 
         assertThat(r.get($stra, 0), equalTo("foo"));
         assertThat(r.get($stra, 1), equalTo("bar"));
+    }
+
+    @Test
+    public void testSetRecordBeanGetDirect2() {
+        assumeThat(mode, not(DynamicRecordType.Mode.UNSAFE));
+        
+        A a = new B();
+        Record<A> r = drt.newInstance(a);
+
+        boolean[] aa = new boolean[1];
+        byte[] ba = new byte[2];
+        short[] ca = new short[3];
+        int[] da = new int[4];
+        long[] ea = new long[5];
+        float[] fa = new float[6];
+        double[] ga = new double[7];
+        char[] ha = new char[8];
+        String[] stra = new String[]{"foo", "bar"};
+
+        for (int i = 0; i < aa.length; i++)
+            aa[i] = rand.nextBoolean();
+        for (int i = 0; i < ba.length; i++)
+            ba[i] = (byte) rand.nextInt();
+        for (int i = 0; i < ca.length; i++)
+            ca[i] = (short) rand.nextInt();
+        for (int i = 0; i < da.length; i++)
+            da[i] = rand.nextInt();
+        for (int i = 0; i < ea.length; i++)
+            ea[i] = rand.nextLong();
+        for (int i = 0; i < fa.length; i++)
+            fa[i] = rand.nextFloat();
+        for (int i = 0; i < aa.length; i++)
+            ga[i] = rand.nextDouble();
+        for (int i = 0; i < ha.length; i++)
+            ha[i] = (char) rand.nextInt();
+
+        r.set($aa, aa, 0);
+        r.set($ba, ba, 0);
+        r.set($ca, ca, 0);
+        r.set($da, da, 0);
+        r.set($ea, ea, 0);
+        r.set($fa, fa, 0);
+        r.set($ga, ga, 0);
+        r.set($ha, ha, 0);
+        r.set($stra, stra, 0);
+
+        for (int i = 0; i < $aa.length; i++)
+            assertThat(r.get($aa, i), equalTo(a.aa[i]));
+        for (int i = 0; i < $ba.length; i++)
+            assertThat(r.get($ba, i), equalTo((byte)(a.ba[i] + 1)));
+        for (int i = 0; i < $ca.length; i++)
+            assertThat(r.get($ca, i), equalTo((short)(a.ca[i] + 1)));
+        for (int i = 0; i < $da.length; i++)
+            assertThat(r.get($da, i), equalTo(a.da[i] + 1));
+        for (int i = 0; i < $ea.length; i++)
+            assertThat(r.get($ea, i), equalTo(a.ea[i] + 1));
+        for (int i = 0; i < $fa.length; i++)
+            assertThat(r.get($fa, i), equalTo(a.fa[i] + 1));
+        for (int i = 0; i < $ga.length; i++)
+            assertThat(r.get($ga, i), equalTo(a.ga[i] + 1));
+        for (int i = 0; i < $ha.length; i++)
+            assertThat(r.get($ha, i), equalTo((char)(a.ha[i] + 1)));
+        for (int i = 0; i < $stra.length; i++)
+            assertThat(r.get($stra, i), equalTo(a.stra[i] + "!"));
+
+        assertThat(r.get($stra, 0), equalTo("foo!!"));
+        assertThat(r.get($stra, 1), equalTo("bar!!"));
     }
 
     @Test
