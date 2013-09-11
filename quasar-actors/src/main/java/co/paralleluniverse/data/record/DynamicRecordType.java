@@ -80,8 +80,8 @@ public class DynamicRecordType<R> {
                     final MethodHandle setterHandle;
 
                     if (mode == Mode.METHOD_HANDLE) {
-                        getterHandle = fixMethodHandleType(f != null ? lookup.unreflectGetter(f) : lookup.unreflect(getter));
-                        setterHandle = fixMethodHandleType(f != null ? (field instanceof Field.ScalarField ? lookup.unreflectSetter(f) : null) : (setter != null ? lookup.unreflect(setter) : null));
+                        getterHandle = fixMethodHandleType(field, f != null ? lookup.unreflectGetter(f) : lookup.unreflect(getter));
+                        setterHandle = fixMethodHandleType(field, f != null ? (field instanceof Field.ScalarField ? lookup.unreflectSetter(f) : null) : (setter != null ? lookup.unreflect(setter) : null));
                     } else {
                         getterHandle = null;
                         setterHandle = null;
@@ -157,7 +157,7 @@ public class DynamicRecordType<R> {
         return null;
     }
 
-    private static MethodHandle fixMethodHandleType(MethodHandle mh) throws IllegalAccessException {
+    private static MethodHandle fixMethodHandleType(Field field, MethodHandle mh) throws IllegalAccessException {
         if (mh == null)
             return null;
 
@@ -170,7 +170,17 @@ public class DynamicRecordType<R> {
                 params[i] = Object.class;
         }
 
-        final MethodType mt = MethodType.methodType(origType.returnType(), params);
+        Class<?> rtype = origType.returnType();
+        if(field instanceof Field.ArrayField) {
+            assert rtype.isArray();
+            if(!rtype.getComponentType().isPrimitive())
+                rtype = Object[].class;
+        } else {
+            if(!rtype.isPrimitive())
+                rtype = Object.class;
+        }
+        
+        final MethodType mt = MethodType.methodType(rtype, params);
         return mh.asType(mt);
     }
 

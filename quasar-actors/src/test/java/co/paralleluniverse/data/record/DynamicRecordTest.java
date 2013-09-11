@@ -14,17 +14,50 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import co.paralleluniverse.data.record.Field.*;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Random;
+import org.junit.runners.Parameterized;
 
 /**
  *
  * @author pron
  */
-//@RunWith(org.mockito.runners.MockitoJUnitRunner.class) //VerboseMockitoJUnitRunner.class)
+@RunWith(Parameterized.class)
 public class DynamicRecordTest {
     private static final Random rand = new Random();
+    private final DynamicRecordType.Mode mode;
 
-    public DynamicRecordTest() {
+    public DynamicRecordTest(DynamicRecordType.Mode mode) {
+        this.mode = mode;
+
+        drt = new DynamicRecordType<>(mode);
+        $a = drt.booleanField("a");
+        $b = drt.byteField("b");
+        $c = drt.shortField("c");
+        $d = drt.intField("d");
+        $e = drt.longField("e");
+        $f = drt.floatField("f");
+        $g = drt.doubleField("g");
+        $h = drt.charField("h");
+        $str = drt.objectField("str", String.class);
+        $aa = drt.booleanArrayField("aa", 1);
+        $ba = drt.byteArrayField("ba", 2);
+        $ca = drt.shortArrayField("ca", 3);
+        $da = drt.intArrayField("da", 4);
+        $ea = drt.longArrayField("ea", 5);
+        $fa = drt.floatArrayField("fa", 6);
+        $ga = drt.doubleArrayField("ga", 7);
+        $ha = drt.charArrayField("ha", 8);
+        $stra = drt.objectArrayField("stra", String.class, 2);
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][]{
+                    {DynamicRecordType.Mode.METHOD_HANDLE},
+                    {DynamicRecordType.Mode.REFLECTION},
+                    {DynamicRecordType.Mode.UNSAFE},});
     }
 
     @Before
@@ -90,25 +123,25 @@ public class DynamicRecordTest {
                 ha[i] = (char) rand.nextInt();
         }
     }
-    private static final DynamicRecordType<A> drt = new DynamicRecordType<>(DynamicRecordType.Mode.UNSAFE);
-    private static final BooleanField<A> $a = drt.booleanField("a");
-    private static final ByteField<A> $b = drt.byteField("b");
-    private static final ShortField<A> $c = drt.shortField("c");
-    private static final IntField<A> $d = drt.intField("d");
-    private static final LongField<A> $e = drt.longField("e");
-    private static final FloatField<A> $f = drt.floatField("f");
-    private static final DoubleField<A> $g = drt.doubleField("g");
-    private static final CharField<A> $h = drt.charField("h");
-    private static final ObjectField<A, String> $str = drt.objectField("str", String.class);
-    private static final BooleanArrayField<A> $aa = drt.booleanArrayField("aa", 1);
-    private static final ByteArrayField<A> $ba = drt.byteArrayField("ba", 2);
-    private static final ShortArrayField<A> $ca = drt.shortArrayField("ca", 3);
-    private static final IntArrayField<A> $da = drt.intArrayField("da", 4);
-    private static final LongArrayField<A> $ea = drt.longArrayField("ea", 5);
-    private static final FloatArrayField<A> $fa = drt.floatArrayField("fa", 6);
-    private static final DoubleArrayField<A> $ga = drt.doubleArrayField("ga", 7);
-    private static final CharArrayField<A> $ha = drt.charArrayField("ha", 8);
-    private static final ObjectArrayField<A, String> $stra = drt.objectArrayField("stra", String.class, 2);
+    private final DynamicRecordType<A> drt;
+    private final BooleanField<A> $a;
+    private final ByteField<A> $b;
+    private final ShortField<A> $c;
+    private final IntField<A> $d;
+    private final LongField<A> $e;
+    private final FloatField<A> $f;
+    private final DoubleField<A> $g;
+    private final CharField<A> $h;
+    private final ObjectField<A, String> $str;
+    private final BooleanArrayField<A> $aa;
+    private final ByteArrayField<A> $ba;
+    private final ShortArrayField<A> $ca;
+    private final IntArrayField<A> $da;
+    private final LongArrayField<A> $ea;
+    private final FloatArrayField<A> $fa;
+    private final DoubleArrayField<A> $ga;
+    private final CharArrayField<A> $ha;
+    private final ObjectArrayField<A, String> $stra;
 
     @After
     public void tearDown() {
@@ -347,12 +380,12 @@ public class DynamicRecordTest {
         } catch (ArrayIndexOutOfBoundsException e) {
         }
         try {
-            r.set($ba, -1, (byte)0);
+            r.set($ba, -1, (byte) 0);
             fail();
         } catch (ArrayIndexOutOfBoundsException e) {
         }
         try {
-            r.set($ba, 2, (byte)0);
+            r.set($ba, 2, (byte) 0);
             fail();
         } catch (ArrayIndexOutOfBoundsException e) {
         }
@@ -367,12 +400,12 @@ public class DynamicRecordTest {
         } catch (ArrayIndexOutOfBoundsException e) {
         }
         try {
-            r.set($ca, -1, (short)0);
+            r.set($ca, -1, (short) 0);
             fail();
         } catch (ArrayIndexOutOfBoundsException e) {
         }
         try {
-            r.set($ca, 3, (short)0);
+            r.set($ca, 3, (short) 0);
             fail();
         } catch (ArrayIndexOutOfBoundsException e) {
         }
