@@ -27,7 +27,23 @@ import java.util.Set;
  */
 public class DynamicRecordType<R> {
     public enum Mode {
-        REFLECTION, METHOD_HANDLE, UNSAFE, GENERATION
+        /**
+         * About 2.5 times slower than REFLECTION in Java 7, but doesn't use boxing and doesn't generate garbage. The default.
+         */
+        METHOD_HANDLE, 
+        /**
+         * About 8x slower than UNSAFE and GENERATION
+         */
+        REFLECTION, 
+        /**
+         * Just a little slower than GENERATION. Can only work on fields; doesn't work if there are getters/setters.
+         */
+        UNSAFE, 
+        /**
+         * The fastest method (as fast as direct settings of fields), but can only be used if both the target object's class 
+         * as well as the fields or getters/setters are public.
+         */
+        GENERATION
     };
     private final List<Field<R, ?>> fields;
     int fieldIndex;
