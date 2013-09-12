@@ -21,6 +21,10 @@ public final class Records {
         return new SimpleRecordType<R>();
     }
     
+    public static <R> DynamicRecordType<R> newDynamicRecordType() {
+        return new DynamicRecordType<R>();
+    }
+    
     public static <R> Record<R> delegate(Object owner, Record<R> record) {
         return new RecordDelegate<R>(owner, record);
     }

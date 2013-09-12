@@ -345,11 +345,11 @@ public class DynamicRecordType<R> {
         return vtables.get(clazz);
     }
 
-    public Record<R> newInstance(R target) {
+    public Record<R> newInstance(Object target) {
         return newInstance(target, Mode.METHOD_HANDLE);
     }
 
-    public Record<R> newInstance(R target, Mode mode) {
+    public Record<R> newInstance(Object target, Mode mode) {
         seal();
         currentMode.set(mode);
         ClassInfo ci = vtables.get(target.getClass());
