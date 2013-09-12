@@ -30,17 +30,17 @@ public class DynamicRecordType<R> {
         /**
          * About 2.5 times slower than REFLECTION in Java 7, but doesn't use boxing and doesn't generate garbage. The default.
          */
-        METHOD_HANDLE, 
+        METHOD_HANDLE,
         /**
          * About 8x slower than UNSAFE and GENERATION
          */
-        REFLECTION, 
+        REFLECTION,
         /**
          * Just a little slower than GENERATION. Can only work on fields; doesn't work if there are getters/setters.
          */
-        UNSAFE, 
+        UNSAFE,
         /**
-         * The fastest method (as fast as direct settings of fields), but can only be used if both the target object's class 
+         * The fastest method (as fast as direct settings of fields), but can only be used if both the target object's class
          * as well as the fields or getters/setters are public.
          */
         GENERATION
@@ -49,31 +49,28 @@ public class DynamicRecordType<R> {
     int fieldIndex;
     private boolean sealed;
     private Set<Field<? super R, ?>> fieldSet;
+    private final ThreadLocal<Mode> currentMode = new ThreadLocal<Mode>();
     final ClassValue<ClassInfo> vtables;
-    private final Mode mode;
 
     public DynamicRecordType() {
-        this(Mode.METHOD_HANDLE);
-    }
-
-    public DynamicRecordType(final Mode mode) {
         this.fields = new ArrayList<Field<R, ?>>();
         this.fieldIndex = 0;
-        this.mode = mode;
         this.vtables = new ClassValue<ClassInfo>() {
             @Override
             protected ClassInfo computeValue(Class<?> type) {
                 seal();
-                return new ClassInfo(mode, type, fields);
+                return new ClassInfo(currentMode.get(), type, fields);
             }
         };
     }
 
     static class ClassInfo {
         final Entry[] table;
+        final Mode mode;
 
         private ClassInfo(Mode mode, Class<?> type, Collection<? extends Field<?, ?>> fields) {
             try {
+                this.mode = mode;
                 this.table = new Entry[fields.size()];
                 for (Field<?, ?> field : fields) {
                     final Method getter = field instanceof Field.ArrayField ? getIndexedGetter(type, field) : getGetter(type, field);
@@ -124,13 +121,19 @@ public class DynamicRecordType<R> {
     }
 
     private static java.lang.reflect.Field getField(Class<?> type, Field field) {
+        java.lang.reflect.Field f = null;
         try {
-            java.lang.reflect.Field f = type.getDeclaredField(field.name());
-            f.setAccessible(true);
-            return f;
+            f = type.getField(field.name());
         } catch (NoSuchFieldException e) {
-            return null;
         }
+        try {
+            f = type.getDeclaredField(field.name());
+        } catch (NoSuchFieldException e) {
+        }
+        if(f != null) {
+            f.setAccessible(true);
+        }
+        return f;
     }
 
     private static Method getGetter(Class<?> type, Field field) {
@@ -343,7 +346,15 @@ public class DynamicRecordType<R> {
     }
 
     public Record<R> newInstance(R target) {
+        return newInstance(target, Mode.METHOD_HANDLE);
+    }
+
+    public Record<R> newInstance(R target, Mode mode) {
         seal();
+        currentMode.set(mode);
+        ClassInfo ci = vtables.get(target.getClass());
+        if (mode != Mode.REFLECTION && ci.mode != mode)
+            throw new IllegalStateException("Target's class, " + target.getClass().getName() + ", has been mirrored with a different, incompatible mode, " + ci.mode);
         switch (mode) {
             case METHOD_HANDLE:
                 return new DynamicMethodHandleRecord<R>(this, target);

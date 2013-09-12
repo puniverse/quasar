@@ -31,26 +31,6 @@ public class DynamicRecordTest {
 
     public DynamicRecordTest(DynamicRecordType.Mode mode) {
         this.mode = mode;
-
-        drt = new DynamicRecordType<>(mode);
-        $a = drt.booleanField("a");
-        $b = drt.byteField("b");
-        $c = drt.shortField("c");
-        $d = drt.intField("d");
-        $e = drt.longField("e");
-        $f = drt.floatField("f");
-        $g = drt.doubleField("g");
-        $h = drt.charField("h");
-        $str = drt.objectField("str", String.class);
-        $aa = drt.booleanArrayField("aa", 1);
-        $ba = drt.byteArrayField("ba", 2);
-        $ca = drt.shortArrayField("ca", 3);
-        $da = drt.intArrayField("da", 4);
-        $ea = drt.longArrayField("ea", 5);
-        $fa = drt.floatArrayField("fa", 6);
-        $ga = drt.doubleArrayField("ga", 7);
-        $ha = drt.charArrayField("ha", 8);
-        $stra = drt.objectArrayField("stra", String.class, 2);
     }
 
     @Parameterized.Parameters
@@ -271,26 +251,27 @@ public class DynamicRecordTest {
             stra[index]  = str + "!";
         }
     }
-    private final DynamicRecordType<A> drt;
-    private final BooleanField<A> $a;
-    private final ByteField<A> $b;
-    private final ShortField<A> $c;
-    private final IntField<A> $d;
-    private final LongField<A> $e;
-    private final FloatField<A> $f;
-    private final DoubleField<A> $g;
-    private final CharField<A> $h;
-    private final ObjectField<A, String> $str;
-    private final BooleanArrayField<A> $aa;
-    private final ByteArrayField<A> $ba;
-    private final ShortArrayField<A> $ca;
-    private final IntArrayField<A> $da;
-    private final LongArrayField<A> $ea;
-    private final FloatArrayField<A> $fa;
-    private final DoubleArrayField<A> $ga;
-    private final CharArrayField<A> $ha;
-    private final ObjectArrayField<A, String> $stra;
+    private final DynamicRecordType<A> drt = new DynamicRecordType<>();
+    private final BooleanField<A> $a = drt.booleanField("a");
+    private final ByteField<A> $b = drt.byteField("b");
+    private final ShortField<A> $c = drt.shortField("c");
+    private final IntField<A> $d = drt.intField("d");
+    private final LongField<A> $e = drt.longField("e");
+    private final FloatField<A> $f = drt.floatField("f");
+    private final DoubleField<A> $g = drt.doubleField("g");
+    private final CharField<A> $h = drt.charField("h");
+    private final ObjectField<A, String> $str = drt.objectField("str", String.class);
+    private final BooleanArrayField<A> $aa = drt.booleanArrayField("aa", 1);
+    private final ByteArrayField<A> $ba = drt.byteArrayField("ba", 2);
+    private final ShortArrayField<A> $ca = drt.shortArrayField("ca", 3);
+    private final IntArrayField<A> $da = drt.intArrayField("da", 4);
+    private final LongArrayField<A> $ea = drt.longArrayField("ea", 5);
+    private final FloatArrayField<A> $fa = drt.floatArrayField("fa", 6);
+    private final DoubleArrayField<A> $ga = drt.doubleArrayField("ga", 7);
+    private final CharArrayField<A> $ha = drt.charArrayField("ha", 8);
+    private final ObjectArrayField<A, String> $stra = drt.objectArrayField("stra", String.class, 2);
 
+        
     @After
     public void tearDown() {
     }
@@ -299,7 +280,7 @@ public class DynamicRecordTest {
     @Test
     public void testSetDirectGetRecord() {
         A a = new A();
-        Record<A> r = drt.newInstance(a);
+        Record<A> r = drt.newInstance(a, mode);
 
         assertThat(r.get($a), equalTo(a.a));
         assertThat(r.get($b), equalTo(a.b));
@@ -367,7 +348,7 @@ public class DynamicRecordTest {
 
         try {
             B a = new B();
-            Record<A> r = drt.newInstance(a);
+            Record<A> r = drt.newInstance(a, mode);
             fail();
         } catch (Exception e) {
         }
@@ -378,7 +359,7 @@ public class DynamicRecordTest {
         assumeThat(mode, not(DynamicRecordType.Mode.UNSAFE));
 
         A a = new B();
-        Record<A> r = drt.newInstance(a);
+        Record<A> r = drt.newInstance(a, mode);
 
         assertThat(r.get($a), equalTo(a.a));
         assertThat(r.get($b), equalTo((byte) (a.b + 1)));
@@ -452,7 +433,7 @@ public class DynamicRecordTest {
     @Test
     public void testSetRecordGetDirect() {
         A a = new A();
-        Record<A> r = drt.newInstance(a);
+        Record<A> r = drt.newInstance(a, mode);
 
         r.set($a, rand.nextBoolean());
         r.set($b, (byte) rand.nextInt());
@@ -520,7 +501,7 @@ public class DynamicRecordTest {
         assumeThat(mode, not(DynamicRecordType.Mode.UNSAFE));
         
         A a = new B();
-        Record<A> r = drt.newInstance(a);
+        Record<A> r = drt.newInstance(a, mode);
 
         r.set($a, rand.nextBoolean());
         r.set($b, (byte) rand.nextInt());
@@ -586,7 +567,7 @@ public class DynamicRecordTest {
     @Test
     public void testSetRecordGetDirect2() {
         A a = new A();
-        Record<A> r = drt.newInstance(a);
+        Record<A> r = drt.newInstance(a, mode);
 
         boolean[] aa = new boolean[1];
         byte[] ba = new byte[2];
@@ -653,7 +634,7 @@ public class DynamicRecordTest {
         assumeThat(mode, not(DynamicRecordType.Mode.UNSAFE));
         
         A a = new B();
-        Record<A> r = drt.newInstance(a);
+        Record<A> r = drt.newInstance(a, mode);
 
         boolean[] aa = new boolean[1];
         byte[] ba = new byte[2];
@@ -718,7 +699,7 @@ public class DynamicRecordTest {
     @Test
     public void testArrayOutOfBounds() {
         A a = new A();
-        Record<A> r = drt.newInstance(a);
+        Record<A> r = drt.newInstance(a, mode);
 
         try {
             r.get($aa, -1);
