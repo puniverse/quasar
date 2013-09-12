@@ -20,7 +20,7 @@ import java.lang.reflect.Method;
  * @author pron
  */
 class DynamicReflectionRecord<R> extends DynamicRecord<R> {
-    DynamicReflectionRecord(DynamicRecordType<R> recordType, Object target) {
+    DynamicReflectionRecord(RecordType<R> recordType, Object target) {
         super(recordType, target);
     }
 
@@ -28,7 +28,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
 //        super(recordType);
 //    }
 
-    private Method setter(Field<? super R, ?> field, DynamicRecordType.Entry entry) {
+    private Method setter(Field<? super R, ?> field, RecordType.Entry entry) {
         final Method m = entry.setter;
         if (m == null)
             throw new ReadOnlyFieldException(field, obj);
@@ -38,7 +38,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public boolean get(Field.BooleanField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 return (boolean) entry.field.get(obj);
             else
@@ -51,7 +51,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.BooleanField<? super R> field, boolean value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -64,7 +64,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public byte get(Field.ByteField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 return (byte) entry.field.get(obj);
             else
@@ -77,7 +77,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.ByteField<? super R> field, byte value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -90,7 +90,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public short get(Field.ShortField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 return (short) entry.field.get(obj);
             else
@@ -103,7 +103,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.ShortField<? super R> field, short value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -116,7 +116,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public int get(Field.IntField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 return (int) entry.field.get(obj);
             else
@@ -129,7 +129,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.IntField<? super R> field, int value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -142,7 +142,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public long get(Field.LongField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 return (long) entry.field.get(obj);
             else
@@ -155,7 +155,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.LongField<? super R> field, long value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -168,7 +168,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public float get(Field.FloatField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 return (float) entry.field.get(obj);
             else
@@ -181,7 +181,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.FloatField<? super R> field, float value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -194,7 +194,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public double get(Field.DoubleField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 return (double) entry.field.get(obj);
             else
@@ -207,7 +207,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.DoubleField<? super R> field, double value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -220,7 +220,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public char get(Field.CharField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 return (char) entry.field.get(obj);
             else
@@ -233,7 +233,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.CharField<? super R> field, char value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -246,7 +246,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public <V> V get(Field.ObjectField<? super R, V> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 return (V) entry.field.get(obj);
             else
@@ -259,7 +259,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public <V> void set(Field.ObjectField<? super R, V> field, V value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -272,7 +272,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     boolean[] get(Field.BooleanArrayField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (boolean[]) entry.field.get(obj);
@@ -284,7 +284,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public boolean get(Field.BooleanArrayField<? super R> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (boolean) entry.getter.invoke(obj, index);
             else
@@ -297,7 +297,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.BooleanArrayField<? super R> field, int index, boolean value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invoke(obj, index, value);
             else
@@ -310,7 +310,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void get(Field.BooleanArrayField<? super R> field, boolean[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (boolean) entry.getter.invoke(obj, i);
@@ -324,7 +324,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.BooleanArrayField<? super R> field, boolean[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source[offset + i]);
@@ -338,7 +338,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public <S> void set(Field.BooleanArrayField<? super R> field, Record<S> source, Field.BooleanArrayField<? super S> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source.get(sourceField, i));
@@ -352,7 +352,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     byte[] get(Field.ByteArrayField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (byte[]) entry.field.get(obj);
@@ -364,7 +364,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public byte get(Field.ByteArrayField<? super R> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (byte) entry.getter.invoke(obj, index);
             else
@@ -377,7 +377,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.ByteArrayField<? super R> field, int index, byte value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invoke(obj, index, value);
             else
@@ -390,7 +390,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void get(Field.ByteArrayField<? super R> field, byte[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (byte) entry.getter.invoke(obj, i);
@@ -404,7 +404,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.ByteArrayField<? super R> field, byte[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source[offset + i]);
@@ -418,7 +418,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public <S> void set(Field.ByteArrayField<? super R> field, Record<S> source, Field.ByteArrayField<? super S> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source.get(sourceField, i));
@@ -432,7 +432,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     short[] get(Field.ShortArrayField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (short[]) entry.field.get(obj);
@@ -444,7 +444,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public short get(Field.ShortArrayField<? super R> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (short) entry.getter.invoke(obj, index);
             else
@@ -457,7 +457,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.ShortArrayField<? super R> field, int index, short value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invoke(obj, index, value);
             else
@@ -470,7 +470,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void get(Field.ShortArrayField<? super R> field, short[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (short) entry.getter.invoke(obj, i);
@@ -484,7 +484,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.ShortArrayField<? super R> field, short[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source[offset + i]);
@@ -498,7 +498,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public <S> void set(Field.ShortArrayField<? super R> field, Record<S> source, Field.ShortArrayField<? super S> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source.get(sourceField, i));
@@ -512,7 +512,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     int[] get(Field.IntArrayField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (int[]) entry.field.get(obj);
@@ -524,7 +524,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public int get(Field.IntArrayField<? super R> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (int) entry.getter.invoke(obj, index);
             else
@@ -537,7 +537,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.IntArrayField<? super R> field, int index, int value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invoke(obj, index, value);
             else
@@ -550,7 +550,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void get(Field.IntArrayField<? super R> field, int[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (int) entry.getter.invoke(obj, i);
@@ -564,7 +564,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.IntArrayField<? super R> field, int[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source[offset + i]);
@@ -578,7 +578,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public <S> void set(Field.IntArrayField<? super R> field, Record<S> source, Field.IntArrayField<? super S> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source.get(sourceField, i));
@@ -592,7 +592,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     long[] get(Field.LongArrayField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (long[]) entry.field.get(obj);
@@ -604,7 +604,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public long get(Field.LongArrayField<? super R> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (long) entry.getter.invoke(obj, index);
             else
@@ -617,7 +617,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.LongArrayField<? super R> field, int index, long value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invoke(obj, index, value);
             else
@@ -630,7 +630,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void get(Field.LongArrayField<? super R> field, long[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (long) entry.getter.invoke(obj, i);
@@ -644,7 +644,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.LongArrayField<? super R> field, long[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source[offset + i]);
@@ -658,7 +658,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public <S> void set(Field.LongArrayField<? super R> field, Record<S> source, Field.LongArrayField<? super S> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source.get(sourceField, i));
@@ -672,7 +672,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     float[] get(Field.FloatArrayField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (float[]) entry.field.get(obj);
@@ -684,7 +684,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public float get(Field.FloatArrayField<? super R> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (float) entry.getter.invoke(obj, index);
             else
@@ -697,7 +697,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.FloatArrayField<? super R> field, int index, float value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invoke(obj, index, value);
             else
@@ -710,7 +710,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void get(Field.FloatArrayField<? super R> field, float[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (float) entry.getter.invoke(obj, i);
@@ -724,7 +724,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.FloatArrayField<? super R> field, float[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source[offset + i]);
@@ -738,7 +738,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public <S> void set(Field.FloatArrayField<? super R> field, Record<S> source, Field.FloatArrayField<? super S> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source.get(sourceField, i));
@@ -752,7 +752,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     double[] get(Field.DoubleArrayField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (double[]) entry.field.get(obj);
@@ -764,7 +764,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public double get(Field.DoubleArrayField<? super R> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (double) entry.getter.invoke(obj, index);
             else
@@ -777,7 +777,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.DoubleArrayField<? super R> field, int index, double value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invoke(obj, index, value);
             else
@@ -790,7 +790,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void get(Field.DoubleArrayField<? super R> field, double[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (double) entry.getter.invoke(obj, i);
@@ -804,7 +804,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.DoubleArrayField<? super R> field, double[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source[offset + i]);
@@ -818,7 +818,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public <S> void set(Field.DoubleArrayField<? super R> field, Record<S> source, Field.DoubleArrayField<? super S> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source.get(sourceField, i));
@@ -832,7 +832,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     char[] get(Field.CharArrayField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (char[]) entry.field.get(obj);
@@ -844,7 +844,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public char get(Field.CharArrayField<? super R> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (char) entry.getter.invoke(obj, index);
             else
@@ -857,7 +857,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.CharArrayField<? super R> field, int index, char value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invoke(obj, index, value);
             else
@@ -870,7 +870,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void get(Field.CharArrayField<? super R> field, char[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (char) entry.getter.invoke(obj, i);
@@ -884,7 +884,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.CharArrayField<? super R> field, char[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source[offset + i]);
@@ -898,7 +898,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public <S> void set(Field.CharArrayField<? super R> field, Record<S> source, Field.CharArrayField<? super S> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source.get(sourceField, i));
@@ -912,7 +912,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     <V> V[] get(Field.ObjectArrayField<? super R, V> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (V[]) entry.field.get(obj);
@@ -924,7 +924,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public <V> V get(Field.ObjectArrayField<? super R, V> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (V) entry.getter.invoke(obj, index);
             else
@@ -937,7 +937,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public <V> void set(Field.ObjectArrayField<? super R, V> field, int index, V value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invoke(obj, index, value);
             else
@@ -950,7 +950,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public <V> void get(Field.ObjectArrayField<? super R, V> field, V[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (V) entry.getter.invoke(obj, i);
@@ -964,7 +964,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public <V> void set(Field.ObjectArrayField<? super R, V> field, V[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source[offset + i]);
@@ -978,7 +978,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     @Override
     public <S, V> void set(Field.ObjectArrayField<? super R, V> field, Record<S> source, Field.ObjectArrayField<? super S, V> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invoke(obj, i, source.get(sourceField, i));

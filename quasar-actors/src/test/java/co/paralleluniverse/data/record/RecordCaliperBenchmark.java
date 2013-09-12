@@ -54,20 +54,10 @@ public class RecordCaliperBenchmark extends Benchmark {
 
     public static class Foo4 extends Foo {
     }
-
-    private static class Simple {
-        static final SimpleRecordType<Simple> rt = new SimpleRecordType<>();
-        static final Field.IntField<Simple> $a = rt.intField("a");
-        static final Field.DoubleField<Simple> $b = rt.doubleField("b");
-        static final Field.LongField<Simple> $c = rt.longField("c");
-    }
-
-    private static class Dynamic {
-        static final DynamicRecordType<Foo> rt = new DynamicRecordType<>();
-        static final Field.IntField<Foo> $a = rt.intField("a");
-        static final Field.DoubleField<Foo> $b = rt.doubleField("b");
-        static final Field.LongField<Foo> $c = rt.longField("c");
-    }
+    static final RecordType<Foo> rt = new RecordType<>();
+    static final Field.IntField<Foo> $a = rt.intField("a");
+    static final Field.DoubleField<Foo> $b = rt.doubleField("b");
+    static final Field.LongField<Foo> $c = rt.longField("c");
 
     public Object timePojo(int reps) {
         final ThreadLocalRandom r = ThreadLocalRandom.current();
@@ -82,41 +72,32 @@ public class RecordCaliperBenchmark extends Benchmark {
     }
 
     public Object timeSimple(int reps) {
-        final ThreadLocalRandom r = ThreadLocalRandom.current();
-
-        Record<Simple> x = Simple.rt.newInstance();
-        for (int i = 0; i < reps; i++) {
-            x.set(Simple.$a, (int) x.get(Simple.$c) + r.nextInt(100));
-            x.set(Simple.$b, x.get(Simple.$a) + r.nextDouble(100));
-            x.set(Simple.$c, (long) x.get(Simple.$b) + r.nextLong(200));
-        }
-        return x;
+        return foo(rt.newInstance(), reps);
     }
 
     public Object timeDynamicMethodHandle(int reps) {
-        return dyn(DynamicRecordType.Mode.METHOD_HANDLE, new Foo1(), reps);
+        return foo(rt.newInstance(new Foo1(), RecordType.Mode.METHOD_HANDLE), reps);
     }
 
     public Object timeDynamicReflection(int reps) {
-        return dyn(DynamicRecordType.Mode.REFLECTION, new Foo2(), reps);
+        return foo(rt.newInstance(new Foo2(), RecordType.Mode.REFLECTION), reps);
     }
 
     public Object timeDynamicUnsafe(int reps) {
-        return dyn(DynamicRecordType.Mode.UNSAFE, new Foo3(), reps);
+        return foo(rt.newInstance(new Foo3(), RecordType.Mode.UNSAFE), reps);
     }
 
     public Object timeDynamicGeneration(int reps) {
-        return dyn(DynamicRecordType.Mode.GENERATION, new Foo4(), reps);
+        return foo(rt.newInstance(new Foo4(), RecordType.Mode.GENERATION), reps);
     }
 
-    private Object dyn(DynamicRecordType.Mode mode, Foo target, int reps) {
+    private Object foo(Record<Foo> x, int reps) {
         final ThreadLocalRandom r = ThreadLocalRandom.current();
 
-        Record<Foo> x = Dynamic.rt.newInstance(target, mode);
         for (int i = 0; i < reps; i++) {
-            x.set(Dynamic.$a, (int) x.get(Dynamic.$c) + r.nextInt(100));
-            x.set(Dynamic.$b, x.get(Dynamic.$a) + r.nextDouble(100));
-            x.set(Dynamic.$c, (long) x.get(Dynamic.$b) + r.nextLong(200));
+            x.set($a, (int) x.get($c) + r.nextInt(100));
+            x.set($b, x.get($a) + r.nextDouble(100));
+            x.set($c, (long) x.get($b) + r.nextLong(200));
         }
         return x;
     }

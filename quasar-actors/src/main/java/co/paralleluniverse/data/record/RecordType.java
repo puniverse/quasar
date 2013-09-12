@@ -25,7 +25,7 @@ import java.util.Set;
  *
  * @author pron
  */
-public class DynamicRecordType<R> {
+public class RecordType<R> {
     public enum Mode {
         /**
          * About 2.5 times slower than REFLECTION in Java 7, but doesn't use boxing and doesn't generate garbage. The default.
@@ -46,13 +46,18 @@ public class DynamicRecordType<R> {
         GENERATION
     };
     private final List<Field<R, ?>> fields;
-    int fieldIndex;
+    private int fieldIndex;
     private boolean sealed;
     private Set<Field<? super R, ?>> fieldSet;
+    private int primitiveIndex;
+    private int primitiveOffset;
+    private int objectIndex;
+    private int objectOffset;
+    private int[] offsets;
     private final ThreadLocal<Mode> currentMode = new ThreadLocal<Mode>();
-    final ClassValue<ClassInfo> vtables;
+    private final ClassValue<ClassInfo> vtables;
 
-    public DynamicRecordType() {
+    public RecordType() {
         this.fields = new ArrayList<Field<R, ?>>();
         this.fieldIndex = 0;
         this.vtables = new ClassValue<ClassInfo>() {
@@ -62,128 +67,6 @@ public class DynamicRecordType<R> {
                 return new ClassInfo(currentMode.get(), type, fields);
             }
         };
-    }
-
-    static class ClassInfo {
-        final Entry[] table;
-        final Mode mode;
-
-        private ClassInfo(Mode mode, Class<?> type, Collection<? extends Field<?, ?>> fields) {
-            try {
-                this.mode = mode;
-                this.table = new Entry[fields.size()];
-                for (Field<?, ?> field : fields) {
-                    final Method getter = field instanceof Field.ArrayField ? getIndexedGetter(type, field) : getGetter(type, field);
-                    final Method setter = field instanceof Field.ArrayField ? getIndexedSetter(type, field) : getSetter(type, field);
-                    final java.lang.reflect.Field f = getter == null ? getField(type, field) : null;
-                    final boolean indexed = f == null && field instanceof Field.ArrayField;
-
-                    if (getter == null && f == null)
-                        throw new FieldNotFoundException(field, type);
-
-                    final MethodHandle getterHandle;
-                    final MethodHandle setterHandle;
-                    if (mode == Mode.METHOD_HANDLE) {
-                        getterHandle = DynamicMethodHandleRecord.getGetterMethodHandle(field, f, getter);
-                        setterHandle = DynamicMethodHandleRecord.getSetterMethodHandle(field, f, setter);
-                    } else {
-                        getterHandle = null;
-                        setterHandle = null;
-                    }
-
-                    final long offset;
-                    if (mode == Mode.UNSAFE) {
-                        if (f == null)
-                            throw new RuntimeException("Cannot use UNSAFE mode for class " + type.getName() + " because field " + field.name + " has a getter");
-                        offset = DynamicUnsafeRecord.getFieldOffset(type, f);
-                    } else
-                        offset = -1L;
-
-                    final DynamicGeneratedRecord.Accessor accessor;
-                    if (mode == Mode.GENERATION) {
-                        if ((type.getModifiers() & Modifier.PUBLIC) == 0)
-                            throw new RuntimeException("Cannot use GENERATION mode because class " + type.getName() + " is not public.");
-                        if (f != null && (f.getModifiers() & Modifier.PUBLIC) == 0)
-                            throw new RuntimeException("Cannot use GENERATION mode because field " + f.getName() + " in class " + type.getName() + " is not public.");
-
-                        accessor = DynamicGeneratedRecord.generateAccessor(type, field, f, getter, setter);
-                    } else
-                        accessor = null;
-
-                    table[field.id()] = new Entry(f, getter, setter, getterHandle, setterHandle, offset, accessor, indexed);
-                }
-            } catch (RuntimeException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    private static java.lang.reflect.Field getField(Class<?> type, Field field) {
-        java.lang.reflect.Field f = null;
-        try {
-            f = type.getField(field.name());
-        } catch (NoSuchFieldException e) {
-        }
-        try {
-            f = type.getDeclaredField(field.name());
-        } catch (NoSuchFieldException e) {
-        }
-        if(f != null) {
-            f.setAccessible(true);
-        }
-        return f;
-    }
-
-    private static Method getGetter(Class<?> type, Field field) {
-        try {
-            return type.getMethod("get" + capitalize(field.name()));
-        } catch (NoSuchMethodException e) {
-        }
-        if (field.type() == Field.BOOLEAN) {
-            try {
-                return type.getMethod("is" + capitalize(field.name()));
-            } catch (NoSuchMethodException e) {
-            }
-        }
-        return null;
-    }
-
-    private static Method getSetter(Class<?> type, Field field) {
-        try {
-            return type.getMethod("set" + capitalize(field.name()), field.typeClass());
-        } catch (NoSuchMethodException e) {
-        }
-        return null;
-    }
-
-    private static Method getIndexedGetter(Class<?> type, Field field) {
-        assert field instanceof Field.ArrayField;
-        try {
-            return type.getMethod("get" + capitalize(field.name()), int.class);
-        } catch (NoSuchMethodException e) {
-        }
-        if (field.type() == Field.BOOLEAN_ARRAY) {
-            try {
-                return type.getMethod("is" + capitalize(field.name()), int.class);
-            } catch (NoSuchMethodException e) {
-            }
-        }
-        return null;
-    }
-
-    private static Method getIndexedSetter(Class<?> type, Field field) {
-        assert field instanceof Field.ArrayField;
-        try {
-            return type.getMethod("set" + capitalize(field.name()), int.class, field.typeClass().getComponentType());
-        } catch (NoSuchMethodException e) {
-        }
-        return null;
-    }
-
-    private static String capitalize(String str) {
-        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
     }
 
     public Field.BooleanField<R> booleanField(String name) {
@@ -333,6 +216,164 @@ public class DynamicRecordType<R> {
         if (!sealed) {
             this.sealed = true;
             this.fieldSet = (Set) ImmutableSet.copyOf(fields);
+            this.offsets = new int[fields.size()];
+            for (Field<?, ?> field : fields) {
+                final int offset;
+                if (field.type() == Field.OBJECT || field.type() == Field.OBJECT_ARRAY) {
+                    offset = objectOffset;
+                    objectOffset += (field instanceof Field.ArrayField ? ((Field.ArrayField) field).length : 1);
+                    objectIndex++;
+                } else {
+                    offset = primitiveOffset;
+                    primitiveOffset += field.size();
+                    primitiveIndex++;
+                }
+                offsets[field.id()] = offset;
+            }
+        }
+    }
+
+    static class ClassInfo {
+        final Entry[] table;
+        final Mode mode;
+
+        private ClassInfo(Mode mode, Class<?> type, Collection<? extends Field<?, ?>> fields) {
+            try {
+                this.mode = mode;
+                this.table = new Entry[fields.size()];
+                for (Field<?, ?> field : fields) {
+                    final Method getter = field instanceof Field.ArrayField ? getIndexedGetter(type, field) : getGetter(type, field);
+                    final Method setter = field instanceof Field.ArrayField ? getIndexedSetter(type, field) : getSetter(type, field);
+                    final java.lang.reflect.Field f = getter == null ? getField(type, field) : null;
+                    final boolean indexed = f == null && field instanceof Field.ArrayField;
+
+                    if (getter == null && f == null)
+                        throw new FieldNotFoundException(field, type);
+
+                    final MethodHandle getterHandle;
+                    final MethodHandle setterHandle;
+                    if (mode == Mode.METHOD_HANDLE) {
+                        getterHandle = DynamicMethodHandleRecord.getGetterMethodHandle(field, f, getter);
+                        setterHandle = DynamicMethodHandleRecord.getSetterMethodHandle(field, f, setter);
+                    } else {
+                        getterHandle = null;
+                        setterHandle = null;
+                    }
+
+                    final long offset;
+                    if (mode == Mode.UNSAFE) {
+                        if (f == null)
+                            throw new RuntimeException("Cannot use UNSAFE mode for class " + type.getName() + " because field " + field.name + " has a getter");
+                        offset = DynamicUnsafeRecord.getFieldOffset(type, f);
+                    } else
+                        offset = -1L;
+
+                    final DynamicGeneratedRecord.Accessor accessor;
+                    if (mode == Mode.GENERATION) {
+                        if ((type.getModifiers() & Modifier.PUBLIC) == 0)
+                            throw new RuntimeException("Cannot use GENERATION mode because class " + type.getName() + " is not public.");
+                        if (f != null && (f.getModifiers() & Modifier.PUBLIC) == 0)
+                            throw new RuntimeException("Cannot use GENERATION mode because field " + f.getName() + " in class " + type.getName() + " is not public.");
+
+                        accessor = DynamicGeneratedRecord.generateAccessor(type, field, f, getter, setter);
+                    } else
+                        accessor = null;
+
+                    table[field.id()] = new Entry(f, getter, setter, getterHandle, setterHandle, offset, accessor, indexed);
+                }
+            } catch (RuntimeException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private static java.lang.reflect.Field getField(Class<?> type, Field field) {
+        java.lang.reflect.Field f = null;
+        try {
+            f = type.getField(field.name());
+        } catch (NoSuchFieldException e) {
+        }
+        try {
+            f = type.getDeclaredField(field.name());
+        } catch (NoSuchFieldException e) {
+        }
+        if (f != null) {
+            f.setAccessible(true);
+        }
+        return f;
+    }
+
+    private static Method getGetter(Class<?> type, Field field) {
+        try {
+            return type.getMethod("get" + capitalize(field.name()));
+        } catch (NoSuchMethodException e) {
+        }
+        if (field.type() == Field.BOOLEAN) {
+            try {
+                return type.getMethod("is" + capitalize(field.name()));
+            } catch (NoSuchMethodException e) {
+            }
+        }
+        return null;
+    }
+
+    private static Method getSetter(Class<?> type, Field field) {
+        try {
+            return type.getMethod("set" + capitalize(field.name()), field.typeClass());
+        } catch (NoSuchMethodException e) {
+        }
+        return null;
+    }
+
+    private static Method getIndexedGetter(Class<?> type, Field field) {
+        assert field instanceof Field.ArrayField;
+        try {
+            return type.getMethod("get" + capitalize(field.name()), int.class);
+        } catch (NoSuchMethodException e) {
+        }
+        if (field.type() == Field.BOOLEAN_ARRAY) {
+            try {
+                return type.getMethod("is" + capitalize(field.name()), int.class);
+            } catch (NoSuchMethodException e) {
+            }
+        }
+        return null;
+    }
+
+    private static Method getIndexedSetter(Class<?> type, Field field) {
+        assert field instanceof Field.ArrayField;
+        try {
+            return type.getMethod("set" + capitalize(field.name()), int.class, field.typeClass().getComponentType());
+        } catch (NoSuchMethodException e) {
+        }
+        return null;
+    }
+
+    private static String capitalize(String str) {
+        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
+    }
+
+    static class Entry {
+        final java.lang.reflect.Field field;
+        final Method getter;
+        final Method setter;
+        final MethodHandle getterHandle;
+        final MethodHandle setterHandle;
+        final long offset;
+        final DynamicGeneratedRecord.Accessor accessor;
+        final boolean indexed;
+
+        public Entry(java.lang.reflect.Field field, Method getter, Method setter, MethodHandle getterHandle, MethodHandle setterHandle, long offset, DynamicGeneratedRecord.Accessor accessor, boolean indexed) {
+            this.field = field;
+            this.getter = getter;
+            this.setter = setter;
+            this.getterHandle = getterHandle;
+            this.setterHandle = setterHandle;
+            this.offset = offset;
+            this.accessor = accessor;
+            this.indexed = indexed;
         }
     }
 
@@ -343,6 +384,31 @@ public class DynamicRecordType<R> {
 
     ClassInfo getClassInfo(Class<?> clazz) {
         return vtables.get(clazz);
+    }
+
+    int getPrimitiveIndex() {
+        return primitiveIndex;
+    }
+
+    int getObjectIndex() {
+        return objectIndex;
+    }
+
+    int getPrimitiveOffset() {
+        return primitiveOffset;
+    }
+
+    int getObjectOffset() {
+        return objectOffset;
+    }
+
+    int[] getOffsets() {
+        return offsets;
+    }
+
+    public Record<R> newInstance() {
+        seal();
+        return new SimpleRecord<R>(this);
     }
 
     public Record<R> newInstance(Object target) {
@@ -371,27 +437,5 @@ public class DynamicRecordType<R> {
     @Override
     public String toString() {
         return fields.toString();
-    }
-
-    static class Entry {
-        final java.lang.reflect.Field field;
-        final Method getter;
-        final Method setter;
-        final MethodHandle getterHandle;
-        final MethodHandle setterHandle;
-        final long offset;
-        final DynamicGeneratedRecord.Accessor accessor;
-        final boolean indexed;
-
-        public Entry(java.lang.reflect.Field field, Method getter, Method setter, MethodHandle getterHandle, MethodHandle setterHandle, long offset, DynamicGeneratedRecord.Accessor accessor, boolean indexed) {
-            this.field = field;
-            this.getter = getter;
-            this.setter = setter;
-            this.getterHandle = getterHandle;
-            this.setterHandle = setterHandle;
-            this.offset = offset;
-            this.accessor = accessor;
-            this.indexed = indexed;
-        }
     }
 }

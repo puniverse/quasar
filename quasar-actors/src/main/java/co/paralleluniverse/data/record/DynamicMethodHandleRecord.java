@@ -65,14 +65,14 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
         return mh.asType(mt);
     }
 
-    DynamicMethodHandleRecord(DynamicRecordType<R> recordType, Object target) {
+    DynamicMethodHandleRecord(RecordType<R> recordType, Object target) {
         super(recordType, target);
     }
 
 //    protected DynamicMethodHandleRecord(DynamicRecordType<R> recordType) {
 //        super(recordType);
 //    }
-    private MethodHandle setter(Field<? super R, ?> field, DynamicRecordType.Entry entry) {
+    private MethodHandle setter(Field<? super R, ?> field, RecordType.Entry entry) {
         final MethodHandle mh = entry.setterHandle;
         if (mh == null)
             throw new ReadOnlyFieldException(field, obj);
@@ -252,7 +252,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     boolean[] get(Field.BooleanArrayField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (boolean[]) entry.getterHandle.invokeExact(obj);
@@ -266,7 +266,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public boolean get(Field.BooleanArrayField<? super R> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (boolean) entry.getterHandle.invokeExact(obj, index);
             else
@@ -281,7 +281,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.BooleanArrayField<? super R> field, int index, boolean value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invokeExact(obj, index, value);
             else
@@ -296,7 +296,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void get(Field.BooleanArrayField<? super R> field, boolean[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (boolean) entry.getterHandle.invokeExact(obj, i);
@@ -312,7 +312,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.BooleanArrayField<? super R> field, boolean[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source[offset + i]);
@@ -328,7 +328,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public <S> void set(Field.BooleanArrayField<? super R> field, Record<S> source, Field.BooleanArrayField<? super S> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source.get(sourceField, i));
@@ -344,7 +344,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     byte[] get(Field.ByteArrayField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (byte[]) entry.getterHandle.invokeExact(obj);
@@ -358,7 +358,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public byte get(Field.ByteArrayField<? super R> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (byte) entry.getterHandle.invokeExact(obj, index);
             else
@@ -373,7 +373,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.ByteArrayField<? super R> field, int index, byte value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invokeExact(obj, index, value);
             else
@@ -388,7 +388,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void get(Field.ByteArrayField<? super R> field, byte[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (byte) entry.getterHandle.invokeExact(obj, i);
@@ -404,7 +404,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.ByteArrayField<? super R> field, byte[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source[offset + i]);
@@ -420,7 +420,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public <S> void set(Field.ByteArrayField<? super R> field, Record<S> source, Field.ByteArrayField<? super S> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source.get(sourceField, i));
@@ -436,7 +436,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     short[] get(Field.ShortArrayField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (short[]) entry.getterHandle.invokeExact(obj);
@@ -450,7 +450,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public short get(Field.ShortArrayField<? super R> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (short) entry.getterHandle.invokeExact(obj, index);
             else
@@ -465,7 +465,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.ShortArrayField<? super R> field, int index, short value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invokeExact(obj, index, value);
             else
@@ -480,7 +480,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void get(Field.ShortArrayField<? super R> field, short[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (short) entry.getterHandle.invokeExact(obj, i);
@@ -496,7 +496,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.ShortArrayField<? super R> field, short[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source[offset + i]);
@@ -512,7 +512,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public <S> void set(Field.ShortArrayField<? super R> field, Record<S> source, Field.ShortArrayField<? super S> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source.get(sourceField, i));
@@ -528,7 +528,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     int[] get(Field.IntArrayField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (int[]) entry.getterHandle.invokeExact(obj);
@@ -542,7 +542,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public int get(Field.IntArrayField<? super R> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (int) entry.getterHandle.invokeExact(obj, index);
             else
@@ -557,7 +557,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.IntArrayField<? super R> field, int index, int value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invokeExact(obj, index, value);
             else
@@ -572,7 +572,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void get(Field.IntArrayField<? super R> field, int[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (int) entry.getterHandle.invokeExact(obj, i);
@@ -588,7 +588,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.IntArrayField<? super R> field, int[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source[offset + i]);
@@ -604,7 +604,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public <S> void set(Field.IntArrayField<? super R> field, Record<S> source, Field.IntArrayField<? super S> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source.get(sourceField, i));
@@ -620,7 +620,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     long[] get(Field.LongArrayField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (long[]) entry.getterHandle.invokeExact(obj);
@@ -634,7 +634,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public long get(Field.LongArrayField<? super R> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (long) entry.getterHandle.invokeExact(obj, index);
             else
@@ -649,7 +649,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.LongArrayField<? super R> field, int index, long value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invokeExact(obj, index, value);
             else
@@ -664,7 +664,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void get(Field.LongArrayField<? super R> field, long[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (long) entry.getterHandle.invokeExact(obj, i);
@@ -680,7 +680,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.LongArrayField<? super R> field, long[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source[offset + i]);
@@ -696,7 +696,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public <S> void set(Field.LongArrayField<? super R> field, Record<S> source, Field.LongArrayField<? super S> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source.get(sourceField, i));
@@ -712,7 +712,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     float[] get(Field.FloatArrayField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (float[]) entry.getterHandle.invokeExact(obj);
@@ -726,7 +726,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public float get(Field.FloatArrayField<? super R> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (float) entry.getterHandle.invokeExact(obj, index);
             else
@@ -741,7 +741,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.FloatArrayField<? super R> field, int index, float value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invokeExact(obj, index, value);
             else
@@ -756,7 +756,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void get(Field.FloatArrayField<? super R> field, float[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (float) entry.getterHandle.invokeExact(obj, i);
@@ -772,7 +772,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.FloatArrayField<? super R> field, float[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source[offset + i]);
@@ -788,7 +788,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public <S> void set(Field.FloatArrayField<? super R> field, Record<S> source, Field.FloatArrayField<? super S> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source.get(sourceField, i));
@@ -804,7 +804,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     double[] get(Field.DoubleArrayField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (double[]) entry.getterHandle.invokeExact(obj);
@@ -818,7 +818,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public double get(Field.DoubleArrayField<? super R> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (double) entry.getterHandle.invokeExact(obj, index);
             else
@@ -833,7 +833,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.DoubleArrayField<? super R> field, int index, double value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invokeExact(obj, index, value);
             else
@@ -848,7 +848,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void get(Field.DoubleArrayField<? super R> field, double[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (double) entry.getterHandle.invokeExact(obj, i);
@@ -864,7 +864,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.DoubleArrayField<? super R> field, double[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source[offset + i]);
@@ -880,7 +880,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public <S> void set(Field.DoubleArrayField<? super R> field, Record<S> source, Field.DoubleArrayField<? super S> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source.get(sourceField, i));
@@ -896,7 +896,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     char[] get(Field.CharArrayField<? super R> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (char[]) entry.getterHandle.invokeExact(obj);
@@ -910,7 +910,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public char get(Field.CharArrayField<? super R> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (char) entry.getterHandle.invokeExact(obj, index);
             else
@@ -925,7 +925,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.CharArrayField<? super R> field, int index, char value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invokeExact(obj, index, value);
             else
@@ -940,7 +940,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void get(Field.CharArrayField<? super R> field, char[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (char) entry.getterHandle.invokeExact(obj, i);
@@ -956,7 +956,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public void set(Field.CharArrayField<? super R> field, char[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source[offset + i]);
@@ -972,7 +972,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public <S> void set(Field.CharArrayField<? super R> field, Record<S> source, Field.CharArrayField<? super S> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source.get(sourceField, i));
@@ -988,7 +988,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     <V> V[] get(Field.ObjectArrayField<? super R, V> field) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return null;
             return (V[]) entry.getterHandle.invokeExact(obj);
@@ -1002,7 +1002,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public <V> V get(Field.ObjectArrayField<? super R, V> field, int index) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 return (V) entry.getterHandle.invokeExact(obj, index);
             else
@@ -1017,7 +1017,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public <V> void set(Field.ObjectArrayField<? super R, V> field, int index, V value) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed)
                 setter(field, entry).invokeExact(obj, index, value);
             else
@@ -1032,7 +1032,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public <V> void get(Field.ObjectArrayField<? super R, V> field, V[] target, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     target[offset + i] = (V) entry.getterHandle.invokeExact(obj, i);
@@ -1048,7 +1048,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public <V> void set(Field.ObjectArrayField<? super R, V> field, V[] source, int offset) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source[offset + i]);
@@ -1064,7 +1064,7 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     @Override
     public <S, V> void set(Field.ObjectArrayField<? super R, V> field, Record<S> source, Field.ObjectArrayField<? super S, V> sourceField) {
         try {
-            final DynamicRecordType.Entry entry = entry(field);
+            final RecordType.Entry entry = entry(field);
             if (entry.indexed) {
                 for (int i = 0; i < field.length; i++)
                     setter(field, entry).invokeExact(obj, i, source.get(sourceField, i));

@@ -17,14 +17,6 @@ package co.paralleluniverse.data.record;
  * @author pron
  */
 public final class Records {
-    public static <R> SimpleRecordType<R> newSimpleRecordType() {
-        return new SimpleRecordType<R>();
-    }
-    
-    public static <R> DynamicRecordType<R> newDynamicRecordType() {
-        return new DynamicRecordType<R>();
-    }
-    
     public static <R> Record<R> delegate(Object owner, Record<R> record) {
         return new RecordDelegate<R>(owner, record);
     }

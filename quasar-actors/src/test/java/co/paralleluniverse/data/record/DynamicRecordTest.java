@@ -27,19 +27,19 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class DynamicRecordTest {
     private static final Random rand = new Random();
-    private final DynamicRecordType.Mode mode;
+    private final RecordType.Mode mode;
 
-    public DynamicRecordTest(DynamicRecordType.Mode mode) {
+    public DynamicRecordTest(RecordType.Mode mode) {
         this.mode = mode;
     }
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-                    {DynamicRecordType.Mode.METHOD_HANDLE},
-                    {DynamicRecordType.Mode.REFLECTION},
-                    {DynamicRecordType.Mode.UNSAFE},
-                    {DynamicRecordType.Mode.GENERATION},});
+                    {RecordType.Mode.METHOD_HANDLE},
+                    {RecordType.Mode.REFLECTION},
+                    {RecordType.Mode.UNSAFE},
+                    {RecordType.Mode.GENERATION},});
     }
 
     @Before
@@ -251,7 +251,7 @@ public class DynamicRecordTest {
             stra[index]  = str + "!";
         }
     }
-    private final DynamicRecordType<A> drt = new DynamicRecordType<>();
+    private final RecordType<A> drt = new RecordType<>();
     private final BooleanField<A> $a = drt.booleanField("a");
     private final ByteField<A> $b = drt.byteField("b");
     private final ShortField<A> $c = drt.shortField("c");
@@ -344,7 +344,7 @@ public class DynamicRecordTest {
 
     @Test
     public void whenUnsafeAndBeanThenThrowException() {
-        assumeThat(mode, is(DynamicRecordType.Mode.UNSAFE));
+        assumeThat(mode, is(RecordType.Mode.UNSAFE));
 
         try {
             B a = new B();
@@ -356,7 +356,7 @@ public class DynamicRecordTest {
 
     @Test
     public void testSetDirectGetRecordBean() {
-        assumeThat(mode, not(DynamicRecordType.Mode.UNSAFE));
+        assumeThat(mode, not(RecordType.Mode.UNSAFE));
 
         A a = new B();
         Record<A> r = drt.newInstance(a, mode);
@@ -498,7 +498,7 @@ public class DynamicRecordTest {
 
     @Test
     public void testSetRecordBeanGetDirect() {
-        assumeThat(mode, not(DynamicRecordType.Mode.UNSAFE));
+        assumeThat(mode, not(RecordType.Mode.UNSAFE));
         
         A a = new B();
         Record<A> r = drt.newInstance(a, mode);
@@ -631,7 +631,7 @@ public class DynamicRecordTest {
 
     @Test
     public void testSetRecordBeanGetDirect2() {
-        assumeThat(mode, not(DynamicRecordType.Mode.UNSAFE));
+        assumeThat(mode, not(RecordType.Mode.UNSAFE));
         
         A a = new B();
         Record<A> r = drt.newInstance(a, mode);

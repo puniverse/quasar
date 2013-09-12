@@ -75,7 +75,7 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
         return unsafe.objectFieldOffset(f);
     }
 
-    DynamicUnsafeRecord(DynamicRecordType<R> recordType, Object target) {
+    DynamicUnsafeRecord(RecordType<R> recordType, Object target) {
         super(recordType, target);
     }
 

@@ -351,7 +351,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
         }
     }
 
-    DynamicGeneratedRecord(DynamicRecordType<R> recordType, Object target) {
+    DynamicGeneratedRecord(RecordType<R> recordType, Object target) {
         super(recordType, target);
     }
 
@@ -450,7 +450,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     boolean[] get(Field.BooleanArrayField<? super R> field) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return null;
         return ((BooleanArrayAccessor) entry.accessor).get(obj);
@@ -458,7 +458,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public boolean get(Field.BooleanArrayField<? super R> field, int index) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return ((BooleanIndexedAccessor) entry.accessor).get(obj, index);
         else
@@ -467,7 +467,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.BooleanArrayField<? super R> field, int index, boolean value) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             ((BooleanIndexedAccessor) entry.accessor).set(obj, index, value);
         else
@@ -476,7 +476,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void get(Field.BooleanArrayField<? super R> field, boolean[] target, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final BooleanIndexedAccessor accessor = ((BooleanIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -487,7 +487,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.BooleanArrayField<? super R> field, boolean[] source, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final BooleanIndexedAccessor accessor = ((BooleanIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -498,7 +498,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public <S> void set(Field.BooleanArrayField<? super R> field, Record<S> source, Field.BooleanArrayField<? super S> sourceField) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final BooleanIndexedAccessor accessor = ((BooleanIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -509,7 +509,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     byte[] get(Field.ByteArrayField<? super R> field) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return null;
         return ((ByteArrayAccessor) entry.accessor).get(obj);
@@ -517,7 +517,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public byte get(Field.ByteArrayField<? super R> field, int index) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return ((ByteIndexedAccessor) entry.accessor).get(obj, index);
         else
@@ -526,7 +526,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.ByteArrayField<? super R> field, int index, byte value) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             ((ByteIndexedAccessor) entry.accessor).set(obj, index, value);
         else
@@ -535,7 +535,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void get(Field.ByteArrayField<? super R> field, byte[] target, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final ByteIndexedAccessor accessor = ((ByteIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -546,7 +546,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.ByteArrayField<? super R> field, byte[] source, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final ByteIndexedAccessor accessor = ((ByteIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -557,7 +557,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public <S> void set(Field.ByteArrayField<? super R> field, Record<S> source, Field.ByteArrayField<? super S> sourceField) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final ByteIndexedAccessor accessor = ((ByteIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -568,7 +568,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     short[] get(Field.ShortArrayField<? super R> field) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return null;
         return ((ShortArrayAccessor) entry.accessor).get(obj);
@@ -576,7 +576,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public short get(Field.ShortArrayField<? super R> field, int index) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return ((ShortIndexedAccessor) entry.accessor).get(obj, index);
         else
@@ -585,7 +585,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.ShortArrayField<? super R> field, int index, short value) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             ((ShortIndexedAccessor) entry.accessor).set(obj, index, value);
         else
@@ -594,7 +594,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void get(Field.ShortArrayField<? super R> field, short[] target, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final ShortIndexedAccessor accessor = ((ShortIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -605,7 +605,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.ShortArrayField<? super R> field, short[] source, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final ShortIndexedAccessor accessor = ((ShortIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -616,7 +616,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public <S> void set(Field.ShortArrayField<? super R> field, Record<S> source, Field.ShortArrayField<? super S> sourceField) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final ShortIndexedAccessor accessor = ((ShortIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -627,7 +627,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     int[] get(Field.IntArrayField<? super R> field) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return null;
         return ((IntArrayAccessor) entry.accessor).get(obj);
@@ -635,7 +635,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public int get(Field.IntArrayField<? super R> field, int index) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return ((IntIndexedAccessor) entry.accessor).get(obj, index);
         else
@@ -644,7 +644,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.IntArrayField<? super R> field, int index, int value) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             ((IntIndexedAccessor) entry.accessor).set(obj, index, value);
         else
@@ -653,7 +653,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void get(Field.IntArrayField<? super R> field, int[] target, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final IntIndexedAccessor accessor = ((IntIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -664,7 +664,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.IntArrayField<? super R> field, int[] source, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final IntIndexedAccessor accessor = ((IntIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -675,7 +675,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public <S> void set(Field.IntArrayField<? super R> field, Record<S> source, Field.IntArrayField<? super S> sourceField) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final IntIndexedAccessor accessor = ((IntIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -686,7 +686,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     long[] get(Field.LongArrayField<? super R> field) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return null;
         return ((LongArrayAccessor) entry.accessor).get(obj);
@@ -694,7 +694,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public long get(Field.LongArrayField<? super R> field, int index) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return ((LongIndexedAccessor) entry.accessor).get(obj, index);
         else
@@ -703,7 +703,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.LongArrayField<? super R> field, int index, long value) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             ((LongIndexedAccessor) entry.accessor).set(obj, index, value);
         else
@@ -712,7 +712,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void get(Field.LongArrayField<? super R> field, long[] target, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final LongIndexedAccessor accessor = ((LongIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -723,7 +723,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.LongArrayField<? super R> field, long[] source, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final LongIndexedAccessor accessor = ((LongIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -734,7 +734,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public <S> void set(Field.LongArrayField<? super R> field, Record<S> source, Field.LongArrayField<? super S> sourceField) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final LongIndexedAccessor accessor = ((LongIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -745,7 +745,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     float[] get(Field.FloatArrayField<? super R> field) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return null;
         return ((FloatArrayAccessor) entry.accessor).get(obj);
@@ -753,7 +753,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public float get(Field.FloatArrayField<? super R> field, int index) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return ((FloatIndexedAccessor) entry.accessor).get(obj, index);
         else
@@ -762,7 +762,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.FloatArrayField<? super R> field, int index, float value) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             ((FloatIndexedAccessor) entry.accessor).set(obj, index, value);
         else
@@ -771,7 +771,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void get(Field.FloatArrayField<? super R> field, float[] target, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final FloatIndexedAccessor accessor = ((FloatIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -782,7 +782,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.FloatArrayField<? super R> field, float[] source, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final FloatIndexedAccessor accessor = ((FloatIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -793,7 +793,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public <S> void set(Field.FloatArrayField<? super R> field, Record<S> source, Field.FloatArrayField<? super S> sourceField) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final FloatIndexedAccessor accessor = ((FloatIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -804,7 +804,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     double[] get(Field.DoubleArrayField<? super R> field) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return null;
         return ((DoubleArrayAccessor) entry.accessor).get(obj);
@@ -812,7 +812,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public double get(Field.DoubleArrayField<? super R> field, int index) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return ((DoubleIndexedAccessor) entry.accessor).get(obj, index);
         else
@@ -821,7 +821,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.DoubleArrayField<? super R> field, int index, double value) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             ((DoubleIndexedAccessor) entry.accessor).set(obj, index, value);
         else
@@ -830,7 +830,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void get(Field.DoubleArrayField<? super R> field, double[] target, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final DoubleIndexedAccessor accessor = ((DoubleIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -841,7 +841,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.DoubleArrayField<? super R> field, double[] source, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final DoubleIndexedAccessor accessor = ((DoubleIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -852,7 +852,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public <S> void set(Field.DoubleArrayField<? super R> field, Record<S> source, Field.DoubleArrayField<? super S> sourceField) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final DoubleIndexedAccessor accessor = ((DoubleIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -863,7 +863,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     char[] get(Field.CharArrayField<? super R> field) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return null;
         return ((CharArrayAccessor) entry.accessor).get(obj);
@@ -871,7 +871,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public char get(Field.CharArrayField<? super R> field, int index) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return ((CharIndexedAccessor) entry.accessor).get(obj, index);
         else
@@ -880,7 +880,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.CharArrayField<? super R> field, int index, char value) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             ((CharIndexedAccessor) entry.accessor).set(obj, index, value);
         else
@@ -889,7 +889,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void get(Field.CharArrayField<? super R> field, char[] target, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final CharIndexedAccessor accessor = ((CharIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -900,7 +900,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.CharArrayField<? super R> field, char[] source, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final CharIndexedAccessor accessor = ((CharIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -911,7 +911,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public <S> void set(Field.CharArrayField<? super R> field, Record<S> source, Field.CharArrayField<? super S> sourceField) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final CharIndexedAccessor accessor = ((CharIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -922,7 +922,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     <V> V[] get(Field.ObjectArrayField<? super R, V> field) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return null;
         return (V[]) ((ObjectArrayAccessor) entry.accessor).get(obj);
@@ -930,7 +930,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public <V> V get(Field.ObjectArrayField<? super R, V> field, int index) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             return (V) ((ObjectIndexedAccessor) entry.accessor).get(obj, index);
         else
@@ -939,7 +939,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public <V> void set(Field.ObjectArrayField<? super R, V> field, int index, V value) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed)
             ((ObjectIndexedAccessor) entry.accessor).set(obj, index, value);
         else
@@ -948,7 +948,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public <V> void get(Field.ObjectArrayField<? super R, V> field, V[] target, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final ObjectIndexedAccessor accessor = ((ObjectIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -959,7 +959,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public <V> void set(Field.ObjectArrayField<? super R, V> field, V[] source, int offset) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final ObjectIndexedAccessor accessor = ((ObjectIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)
@@ -970,7 +970,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
     @Override
     public <S, V> void set(Field.ObjectArrayField<? super R, V> field, Record<S> source, Field.ObjectArrayField<? super S, V> sourceField) {
-        final DynamicRecordType.Entry entry = entry(field);
+        final RecordType.Entry entry = entry(field);
         if (entry.indexed) {
             final ObjectIndexedAccessor accessor = ((ObjectIndexedAccessor) entry.accessor);
             for (int i = 0; i < field.length; i++)

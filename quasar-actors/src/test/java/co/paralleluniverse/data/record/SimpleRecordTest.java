@@ -14,7 +14,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import co.paralleluniverse.data.record.Field.*;
-import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
 /**
@@ -33,7 +32,6 @@ public class SimpleRecordTest {
     }
 
     private static class A {
-        private static final MethodHandles.Lookup lookup = MethodHandles.lookup();
         private boolean a;
         private byte b;
         private short c;
@@ -92,7 +90,7 @@ public class SimpleRecordTest {
                 ha[i] = (char) rand.nextInt();
         }
     }
-    private static final SimpleRecordType<A> srt = new SimpleRecordType<>();
+    private static final RecordType<A> srt = new RecordType<>();
     private static final BooleanField<A> $a = srt.booleanField("a");
     private static final ByteField<A> $b = srt.byteField("b");
     private static final ShortField<A> $c = srt.shortField("c");

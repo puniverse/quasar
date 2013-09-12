@@ -19,13 +19,13 @@ import java.util.Set;
  * @author pron
  */
 public abstract class DynamicRecord<R> extends AbstractRecord<R> {
-    private final DynamicRecordType.Entry[] vtable;
+    private final RecordType.Entry[] vtable;
     private final Set<Field<? super R, ?>> fieldSet;
     final Object obj;
 
-    DynamicRecord(DynamicRecordType<R> recordType, Object target) {
-        this.vtable = recordType.getClassInfo(target.getClass()).table;
+    DynamicRecord(RecordType<R> recordType, Object target) {
         this.fieldSet = recordType.fieldSet();
+        this.vtable = recordType.getClassInfo(target.getClass()).table;
         this.obj = target;
     }
 
@@ -40,7 +40,7 @@ public abstract class DynamicRecord<R> extends AbstractRecord<R> {
         return fieldSet;
     }
 
-    DynamicRecordType.Entry entry(Field<? super R, ?> field) {
+    RecordType.Entry entry(Field<? super R, ?> field) {
         return vtable[field.id()];
     }
 
