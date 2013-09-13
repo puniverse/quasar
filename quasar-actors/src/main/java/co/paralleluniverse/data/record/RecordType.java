@@ -239,6 +239,30 @@ public class RecordType<R> {
 
         private ClassInfo(Mode mode, Class<?> type, Collection<? extends Field<?, ?>> fields) {
             try {
+                if (mode == null) {
+                    boolean unsafePossible = true;
+                    boolean generationPossible = true;
+
+                    for (Field<?, ?> field : fields) {
+                        final Method getter = field instanceof Field.ArrayField ? getIndexedGetter(type, field) : getGetter(type, field);
+                        final Method setter = field instanceof Field.ArrayField ? getIndexedSetter(type, field) : getSetter(type, field);
+                        final java.lang.reflect.Field f = getter == null ? getField(type, field) : null;
+
+                        if (f == null && getter != null)
+                            unsafePossible = false;
+
+                        if (getter == null && ((f.getModifiers() & Modifier.PUBLIC) == 0))
+                            generationPossible = false;
+                    }
+
+                    if (unsafePossible)
+                        mode = Mode.UNSAFE;
+                    else if (generationPossible)
+                        mode = Mode.GENERATION;
+                    else
+                        mode = Mode.METHOD_HANDLE;
+                }
+
                 this.mode = mode;
                 this.table = new Entry[fields.size()];
                 for (Field<?, ?> field : fields) {
@@ -246,9 +270,6 @@ public class RecordType<R> {
                     final Method setter = field instanceof Field.ArrayField ? getIndexedSetter(type, field) : getSetter(type, field);
                     final java.lang.reflect.Field f = getter == null ? getField(type, field) : null;
                     final boolean indexed = f == null && field instanceof Field.ArrayField;
-
-                    if (getter == null && f == null)
-                        throw new FieldNotFoundException(field, type);
 
                     final MethodHandle getterHandle;
                     final MethodHandle setterHandle;
@@ -262,8 +283,8 @@ public class RecordType<R> {
 
                     final long offset;
                     if (mode == Mode.UNSAFE) {
-                        if (f == null)
-                            throw new RuntimeException("Cannot use UNSAFE mode for class " + type.getName() + " because field " + field.name + " has a getter");
+                        if (f == null && getter != null)
+                            throw new RuntimeException("Cannot use UNSAFE mode for class " + type.getName() + " because field " + field.name + " has a getter and/or a setter");
                         offset = DynamicUnsafeRecord.getFieldOffset(type, f);
                     } else
                         offset = -1L;
@@ -412,13 +433,15 @@ public class RecordType<R> {
     }
 
     public Record<R> newInstance(Object target) {
-        return newInstance(target, Mode.METHOD_HANDLE);
+        return newInstance(target, null);
     }
 
     public Record<R> newInstance(Object target, Mode mode) {
         seal();
         currentMode.set(mode);
         ClassInfo ci = vtables.get(target.getClass());
+        if(mode == null)
+            mode = ci.mode;
         if (mode != Mode.REFLECTION && ci.mode != mode)
             throw new IllegalStateException("Target's class, " + target.getClass().getName() + ", has been mirrored with a different, incompatible mode, " + ci.mode);
         switch (mode) {

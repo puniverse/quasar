@@ -90,25 +90,25 @@ public class SimpleRecordTest {
                 ha[i] = (char) rand.nextInt();
         }
     }
-    private static final RecordType<A> srt = new RecordType<>();
-    private static final BooleanField<A> $a = srt.booleanField("a");
-    private static final ByteField<A> $b = srt.byteField("b");
-    private static final ShortField<A> $c = srt.shortField("c");
-    private static final IntField<A> $d = srt.intField("d");
-    private static final LongField<A> $e = srt.longField("e");
-    private static final FloatField<A> $f = srt.floatField("f");
-    private static final DoubleField<A> $g = srt.doubleField("g");
-    private static final CharField<A> $h = srt.charField("h");
-    private static final ObjectField<A, String> $str = srt.objectField("str", String.class);
-    private static final BooleanArrayField<A> $aa = srt.booleanArrayField("aa", 1);
-    private static final ByteArrayField<A> $ba = srt.byteArrayField("ba", 2);
-    private static final ShortArrayField<A> $ca = srt.shortArrayField("ca", 3);
-    private static final IntArrayField<A> $da = srt.intArrayField("da", 4);
-    private static final LongArrayField<A> $ea = srt.longArrayField("ea", 5);
-    private static final FloatArrayField<A> $fa = srt.floatArrayField("fa", 6);
-    private static final DoubleArrayField<A> $ga = srt.doubleArrayField("ga", 7);
-    private static final CharArrayField<A> $ha = srt.charArrayField("ha", 8);
-    private static final ObjectArrayField<A, String> $stra = srt.objectArrayField("stra", String.class, 2);
+    private static final RecordType<A> rt = new RecordType<>();
+    private static final BooleanField<A> $a = rt.booleanField("a");
+    private static final ByteField<A> $b = rt.byteField("b");
+    private static final ShortField<A> $c = rt.shortField("c");
+    private static final IntField<A> $d = rt.intField("d");
+    private static final LongField<A> $e = rt.longField("e");
+    private static final FloatField<A> $f = rt.floatField("f");
+    private static final DoubleField<A> $g = rt.doubleField("g");
+    private static final CharField<A> $h = rt.charField("h");
+    private static final ObjectField<A, String> $str = rt.objectField("str", String.class);
+    private static final BooleanArrayField<A> $aa = rt.booleanArrayField("aa", 1);
+    private static final ByteArrayField<A> $ba = rt.byteArrayField("ba", 2);
+    private static final ShortArrayField<A> $ca = rt.shortArrayField("ca", 3);
+    private static final IntArrayField<A> $da = rt.intArrayField("da", 4);
+    private static final LongArrayField<A> $ea = rt.longArrayField("ea", 5);
+    private static final FloatArrayField<A> $fa = rt.floatArrayField("fa", 6);
+    private static final DoubleArrayField<A> $ga = rt.doubleArrayField("ga", 7);
+    private static final CharArrayField<A> $ha = rt.charArrayField("ha", 8);
+    private static final ObjectArrayField<A, String> $stra = rt.objectArrayField("stra", String.class, 2);
 
     @After
     public void tearDown() {
@@ -118,7 +118,7 @@ public class SimpleRecordTest {
     @Test
     public void test1() {
         A a = new A();
-        Record<A> r = srt.newInstance();
+        Record<A> r = rt.newInstance();
 
         r.set($a, a.a);
         r.set($b, a.b);
@@ -212,7 +212,7 @@ public class SimpleRecordTest {
     @Test
     public void test2() {
         A a = new A();
-        Record<A> r = srt.newInstance();
+        Record<A> r = rt.newInstance();
 
         r.set($aa, a.aa, 0);
         r.set($ba, a.ba, 0);
@@ -258,7 +258,7 @@ public class SimpleRecordTest {
     @Test
     public void testArrayOutOfBounds() {
         A a = new A();
-        Record<A> r = srt.newInstance();
+        Record<A> r = rt.newInstance();
 
         try {
             r.get($aa, -1);

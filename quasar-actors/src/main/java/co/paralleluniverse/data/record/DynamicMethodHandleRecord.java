@@ -25,8 +25,10 @@ import java.lang.reflect.Method;
 class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
     static MethodHandle getGetterMethodHandle(Field<?, ?> field, java.lang.reflect.Field f, Method getter) {
         try {
+            if (f == null && getter == null)
+                return null;
             final MethodHandles.Lookup lookup = MethodHandles.lookup();
-            return fixMethodHandleType(field, f != null ? lookup.unreflectGetter(f) : lookup.unreflect(getter));
+            return fixMethodHandleType(field, getter != null ? lookup.unreflect(getter) : lookup.unreflectGetter(f));
         } catch (IllegalAccessException e) {
             throw new AssertionError(e);
         }
@@ -34,6 +36,8 @@ class DynamicMethodHandleRecord<R> extends DynamicRecord<R> {
 
     static MethodHandle getSetterMethodHandle(Field<?, ?> field, java.lang.reflect.Field f, Method setter) {
         try {
+            if (f == null && setter == null)
+                return null;
             final MethodHandles.Lookup lookup = MethodHandles.lookup();
             return fixMethodHandleType(field, f != null ? (field instanceof Field.ScalarField ? lookup.unreflectSetter(f) : null) : (setter != null ? lookup.unreflect(setter) : null));
         } catch (IllegalAccessException e) {

@@ -248,30 +248,29 @@ public class DynamicRecordTest {
         }
 
         public void setStra(int index, String str) {
-            stra[index]  = str + "!";
+            stra[index] = str + "!";
         }
     }
-    private final RecordType<A> drt = new RecordType<>();
-    private final BooleanField<A> $a = drt.booleanField("a");
-    private final ByteField<A> $b = drt.byteField("b");
-    private final ShortField<A> $c = drt.shortField("c");
-    private final IntField<A> $d = drt.intField("d");
-    private final LongField<A> $e = drt.longField("e");
-    private final FloatField<A> $f = drt.floatField("f");
-    private final DoubleField<A> $g = drt.doubleField("g");
-    private final CharField<A> $h = drt.charField("h");
-    private final ObjectField<A, String> $str = drt.objectField("str", String.class);
-    private final BooleanArrayField<A> $aa = drt.booleanArrayField("aa", 1);
-    private final ByteArrayField<A> $ba = drt.byteArrayField("ba", 2);
-    private final ShortArrayField<A> $ca = drt.shortArrayField("ca", 3);
-    private final IntArrayField<A> $da = drt.intArrayField("da", 4);
-    private final LongArrayField<A> $ea = drt.longArrayField("ea", 5);
-    private final FloatArrayField<A> $fa = drt.floatArrayField("fa", 6);
-    private final DoubleArrayField<A> $ga = drt.doubleArrayField("ga", 7);
-    private final CharArrayField<A> $ha = drt.charArrayField("ha", 8);
-    private final ObjectArrayField<A, String> $stra = drt.objectArrayField("stra", String.class, 2);
+    private final RecordType<A> rt = new RecordType<>();
+    private final BooleanField<A> $a = rt.booleanField("a");
+    private final ByteField<A> $b = rt.byteField("b");
+    private final ShortField<A> $c = rt.shortField("c");
+    private final IntField<A> $d = rt.intField("d");
+    private final LongField<A> $e = rt.longField("e");
+    private final FloatField<A> $f = rt.floatField("f");
+    private final DoubleField<A> $g = rt.doubleField("g");
+    private final CharField<A> $h = rt.charField("h");
+    private final ObjectField<A, String> $str = rt.objectField("str", String.class);
+    private final BooleanArrayField<A> $aa = rt.booleanArrayField("aa", 1);
+    private final ByteArrayField<A> $ba = rt.byteArrayField("ba", 2);
+    private final ShortArrayField<A> $ca = rt.shortArrayField("ca", 3);
+    private final IntArrayField<A> $da = rt.intArrayField("da", 4);
+    private final LongArrayField<A> $ea = rt.longArrayField("ea", 5);
+    private final FloatArrayField<A> $fa = rt.floatArrayField("fa", 6);
+    private final DoubleArrayField<A> $ga = rt.doubleArrayField("ga", 7);
+    private final CharArrayField<A> $ha = rt.charArrayField("ha", 8);
+    private final ObjectArrayField<A, String> $stra = rt.objectArrayField("stra", String.class, 2);
 
-        
     @After
     public void tearDown() {
     }
@@ -280,7 +279,7 @@ public class DynamicRecordTest {
     @Test
     public void testSetDirectGetRecord() {
         A a = new A();
-        Record<A> r = drt.newInstance(a, mode);
+        Record<A> r = rt.newInstance(a, mode);
 
         assertThat(r.get($a), equalTo(a.a));
         assertThat(r.get($b), equalTo(a.b));
@@ -343,12 +342,36 @@ public class DynamicRecordTest {
     }
 
     @Test
+    public void defaultModeForAIsUnsafe() {
+        assumeThat(mode, is(RecordType.Mode.METHOD_HANDLE));
+
+        A a = new A();
+        
+        Record<A> r = rt.newInstance(a);
+        assertThat(r, instanceOf(DynamicUnsafeRecord.class));
+        
+        rt.newInstance(a, RecordType.Mode.UNSAFE);
+    }
+
+    @Test
+    public void defaultModeForBIsGeneration() {
+        assumeThat(mode, is(RecordType.Mode.METHOD_HANDLE));
+
+        A a = new B();
+        
+        Record<A> r = rt.newInstance(a);
+        assertThat(r, instanceOf(DynamicGeneratedRecord.class));
+        
+        rt.newInstance(a, RecordType.Mode.GENERATION);
+    }
+
+    @Test
     public void whenUnsafeAndBeanThenThrowException() {
         assumeThat(mode, is(RecordType.Mode.UNSAFE));
 
         try {
-            B a = new B();
-            Record<A> r = drt.newInstance(a, mode);
+            A a = new B();
+            Record<A> r = rt.newInstance(a, mode);
             fail();
         } catch (Exception e) {
         }
@@ -359,7 +382,7 @@ public class DynamicRecordTest {
         assumeThat(mode, not(RecordType.Mode.UNSAFE));
 
         A a = new B();
-        Record<A> r = drt.newInstance(a, mode);
+        Record<A> r = rt.newInstance(a, mode);
 
         assertThat(r.get($a), equalTo(a.a));
         assertThat(r.get($b), equalTo((byte) (a.b + 1)));
@@ -433,7 +456,7 @@ public class DynamicRecordTest {
     @Test
     public void testSetRecordGetDirect() {
         A a = new A();
-        Record<A> r = drt.newInstance(a, mode);
+        Record<A> r = rt.newInstance(a, mode);
 
         r.set($a, rand.nextBoolean());
         r.set($b, (byte) rand.nextInt());
@@ -499,9 +522,9 @@ public class DynamicRecordTest {
     @Test
     public void testSetRecordBeanGetDirect() {
         assumeThat(mode, not(RecordType.Mode.UNSAFE));
-        
+
         A a = new B();
-        Record<A> r = drt.newInstance(a, mode);
+        Record<A> r = rt.newInstance(a, mode);
 
         r.set($a, rand.nextBoolean());
         r.set($b, (byte) rand.nextInt());
@@ -533,21 +556,21 @@ public class DynamicRecordTest {
         r.set($stra, 0, "goodbye");
 
         assertThat(r.get($a), equalTo(a.a));
-        assertThat(r.get($b), equalTo((byte)(a.b + 1)));
-        assertThat(r.get($c), equalTo((short)(a.c + 1)));
+        assertThat(r.get($b), equalTo((byte) (a.b + 1)));
+        assertThat(r.get($c), equalTo((short) (a.c + 1)));
         assertThat(r.get($d), equalTo(a.d + 1));
         assertThat(r.get($e), equalTo(a.e + 1));
         assertThat(r.get($f), equalTo(a.f + 1));
         assertThat(r.get($g), equalTo(a.g + 1));
-        assertThat(r.get($h), equalTo((char)(a.h + 1)));
+        assertThat(r.get($h), equalTo((char) (a.h + 1)));
         assertThat(a.str, equalTo("bar!"));
 
         for (int i = 0; i < $aa.length; i++)
             assertThat(r.get($aa, i), equalTo(a.aa[i]));
         for (int i = 0; i < $ba.length; i++)
-            assertThat(r.get($ba, i), equalTo((byte)(a.ba[i] + 1)));
+            assertThat(r.get($ba, i), equalTo((byte) (a.ba[i] + 1)));
         for (int i = 0; i < $ca.length; i++)
-            assertThat(r.get($ca, i), equalTo((short)(a.ca[i] + 1)));
+            assertThat(r.get($ca, i), equalTo((short) (a.ca[i] + 1)));
         for (int i = 0; i < $da.length; i++)
             assertThat(r.get($da, i), equalTo(a.da[i] + 1));
         for (int i = 0; i < $ea.length; i++)
@@ -557,7 +580,7 @@ public class DynamicRecordTest {
         for (int i = 0; i < $ga.length; i++)
             assertThat(r.get($ga, i), equalTo(a.ga[i] + 1));
         for (int i = 0; i < $ha.length; i++)
-            assertThat(r.get($ha, i), equalTo((char)(a.ha[i] + 1)));
+            assertThat(r.get($ha, i), equalTo((char) (a.ha[i] + 1)));
         for (int i = 0; i < $stra.length; i++)
             assertThat(r.get($stra, i), equalTo(a.stra[i] + "!"));
 
@@ -567,7 +590,7 @@ public class DynamicRecordTest {
     @Test
     public void testSetRecordGetDirect2() {
         A a = new A();
-        Record<A> r = drt.newInstance(a, mode);
+        Record<A> r = rt.newInstance(a, mode);
 
         boolean[] aa = new boolean[1];
         byte[] ba = new byte[2];
@@ -632,9 +655,9 @@ public class DynamicRecordTest {
     @Test
     public void testSetRecordBeanGetDirect2() {
         assumeThat(mode, not(RecordType.Mode.UNSAFE));
-        
+
         A a = new B();
-        Record<A> r = drt.newInstance(a, mode);
+        Record<A> r = rt.newInstance(a, mode);
 
         boolean[] aa = new boolean[1];
         byte[] ba = new byte[2];
@@ -676,9 +699,9 @@ public class DynamicRecordTest {
         for (int i = 0; i < $aa.length; i++)
             assertThat(r.get($aa, i), equalTo(a.aa[i]));
         for (int i = 0; i < $ba.length; i++)
-            assertThat(r.get($ba, i), equalTo((byte)(a.ba[i] + 1)));
+            assertThat(r.get($ba, i), equalTo((byte) (a.ba[i] + 1)));
         for (int i = 0; i < $ca.length; i++)
-            assertThat(r.get($ca, i), equalTo((short)(a.ca[i] + 1)));
+            assertThat(r.get($ca, i), equalTo((short) (a.ca[i] + 1)));
         for (int i = 0; i < $da.length; i++)
             assertThat(r.get($da, i), equalTo(a.da[i] + 1));
         for (int i = 0; i < $ea.length; i++)
@@ -688,7 +711,7 @@ public class DynamicRecordTest {
         for (int i = 0; i < $ga.length; i++)
             assertThat(r.get($ga, i), equalTo(a.ga[i] + 1));
         for (int i = 0; i < $ha.length; i++)
-            assertThat(r.get($ha, i), equalTo((char)(a.ha[i] + 1)));
+            assertThat(r.get($ha, i), equalTo((char) (a.ha[i] + 1)));
         for (int i = 0; i < $stra.length; i++)
             assertThat(r.get($stra, i), equalTo(a.stra[i] + "!"));
 
@@ -699,7 +722,7 @@ public class DynamicRecordTest {
     @Test
     public void testArrayOutOfBounds() {
         A a = new A();
-        Record<A> r = drt.newInstance(a, mode);
+        Record<A> r = rt.newInstance(a, mode);
 
         try {
             r.get($aa, -1);

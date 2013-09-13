@@ -34,14 +34,17 @@ public abstract class DynamicRecord<R> extends AbstractRecord<R> {
 //        this.fieldSet = recordType.fieldSet();
 //        this.obj = this;
 //    }
-
     @Override
     public Set<Field<? super R, ?>> fields() {
         return fieldSet;
     }
 
     RecordType.Entry entry(Field<? super R, ?> field) {
-        return vtable[field.id()];
+        try {
+            return vtable[field.id()];
+        } catch (IndexOutOfBoundsException e) {
+            throw new FieldNotFoundException(field, obj);
+        }
     }
 
     abstract boolean[] get(Field.BooleanArrayField<? super R> field);

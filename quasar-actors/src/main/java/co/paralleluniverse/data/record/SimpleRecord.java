@@ -44,7 +44,11 @@ class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable 
     }
 
     private int fieldOffset(Field<? super R, ?> field) {
-        return offsets[field.id];
+        try {
+            return offsets[field.id];
+        } catch (IndexOutOfBoundsException e) {
+            throw new FieldNotFoundException(field, this);
+        }
     }
 
     @Override
@@ -513,7 +517,6 @@ class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable 
                 setChar(ba, fieldOffset(field) + offset(i, CHAR_SHIFT), source.get(sourceField, i));
         }
     }
-    
     static final Unsafe unsafe = UtilUnsafe.getUnsafe();
     private static final int base;
     private static final int shift;
