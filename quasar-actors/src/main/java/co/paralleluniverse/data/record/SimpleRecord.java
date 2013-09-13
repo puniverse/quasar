@@ -20,7 +20,7 @@ class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable 
     private final byte[] ba;
 
     SimpleRecord(RecordType<R> recordType) {
-        this.fieldSet = recordType.fieldSet();
+        this.fieldSet = recordType.fields();
         this.offsets = recordType.getOffsets();
         this.oa = recordType.getObjectIndex() > 0 ? new Object[recordType.getObjectOffset()] : null;
         this.ba = recordType.getPrimitiveIndex() > 0 ? new byte[recordType.getPrimitiveOffset()] : null;

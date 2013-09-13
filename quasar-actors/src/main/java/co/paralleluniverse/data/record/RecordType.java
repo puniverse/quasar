@@ -236,6 +236,7 @@ public class RecordType<R> {
     static class ClassInfo {
         final Entry[] table;
         final Mode mode;
+        final Set<Field<?, ?>> fieldSet;
 
         private ClassInfo(Mode mode, Class<?> type, Collection<? extends Field<?, ?>> fields) {
             try {
@@ -265,6 +266,7 @@ public class RecordType<R> {
 
                 this.mode = mode;
                 this.table = new Entry[fields.size()];
+                final List<Field<?, ?>> implementedFields = new ArrayList<>();
                 for (Field<?, ?> field : fields) {
                     final Method getter = field instanceof Field.ArrayField ? getIndexedGetter(type, field) : getGetter(type, field);
                     final Method setter = field instanceof Field.ArrayField ? getIndexedSetter(type, field) : getSetter(type, field);
@@ -300,8 +302,12 @@ public class RecordType<R> {
                     } else
                         accessor = null;
 
+                    if(f != null || getter != null)
+                        implementedFields.add(field);
                     table[field.id()] = new Entry(f, getter, setter, getterHandle, setterHandle, offset, accessor, indexed);
                 }
+
+                this.fieldSet = (Set) ImmutableSet.copyOf(implementedFields);
             } catch (RuntimeException e) {
                 throw e;
             } catch (Exception e) {
@@ -398,7 +404,7 @@ public class RecordType<R> {
         }
     }
 
-    Set<Field<? super R, ?>> fieldSet() {
+    public Set<Field<? super R, ?>> fields() {
         seal();
         return fieldSet;
     }
@@ -440,7 +446,7 @@ public class RecordType<R> {
         seal();
         currentMode.set(mode);
         ClassInfo ci = vtables.get(target.getClass());
-        if(mode == null)
+        if (mode == null)
             mode = ci.mode;
         if (mode != Mode.REFLECTION && ci.mode != mode)
             throw new IllegalStateException("Target's class, " + target.getClass().getName() + ", has been mirrored with a different, incompatible mode, " + ci.mode);

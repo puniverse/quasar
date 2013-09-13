@@ -24,8 +24,9 @@ public abstract class DynamicRecord<R> extends AbstractRecord<R> {
     final Object obj;
 
     DynamicRecord(RecordType<R> recordType, Object target) {
-        this.fieldSet = recordType.fieldSet();
-        this.vtable = recordType.getClassInfo(target.getClass()).table;
+        final RecordType.ClassInfo ci = recordType.getClassInfo(target.getClass());
+        this.fieldSet = (Set<Field<? super R, ?>>)(Object)ci.fieldSet;
+        this.vtable = ci.table;
         this.obj = target;
     }
 
