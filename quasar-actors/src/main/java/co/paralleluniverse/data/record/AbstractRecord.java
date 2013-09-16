@@ -12,7 +12,7 @@
  */
 package co.paralleluniverse.data.record;
 
-import java.util.Arrays;
+import co.paralleluniverse.common.util.DelegatingEquals;
 import java.util.Set;
 
 /**
@@ -22,6 +22,13 @@ import java.util.Set;
 public abstract class AbstractRecord<R> implements Record<R> {
     @Override
     public abstract Set<Field<? super R, ?>> fields();
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null)
+            return false;
+        return obj instanceof DelegatingEquals ? obj.equals(this) : obj == this;
+    }
 
     @Override
     public String toString() {

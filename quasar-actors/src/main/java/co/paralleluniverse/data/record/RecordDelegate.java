@@ -12,6 +12,7 @@
  */
 package co.paralleluniverse.data.record;
 
+import co.paralleluniverse.common.util.DelegatingEquals;
 import co.paralleluniverse.data.record.Field.ArrayField;
 import co.paralleluniverse.data.record.Field.BooleanArrayField;
 import co.paralleluniverse.data.record.Field.BooleanField;
@@ -31,13 +32,14 @@ import co.paralleluniverse.data.record.Field.ObjectArrayField;
 import co.paralleluniverse.data.record.Field.ObjectField;
 import co.paralleluniverse.data.record.Field.ShortArrayField;
 import co.paralleluniverse.data.record.Field.ShortField;
+import java.util.Objects;
 import java.util.Set;
 
 /**
  *
  * @author pron
  */
-final class RecordDelegate<R> implements Record<R> {
+final class RecordDelegate<R> implements Record<R>, DelegatingEquals {
     private final Object owner;
     private volatile Record<R> r;
 
@@ -52,6 +54,21 @@ final class RecordDelegate<R> implements Record<R> {
         this.r = delegate;
     }
 
+    protected Record<R> getDelegate() {
+        return r;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null)
+            return false;
+        if(obj == this)
+            return true;
+        if(r == null)
+            return false;
+        return obj instanceof DelegatingEquals ? obj.equals(r) : r.equals(obj);
+    }
+    
     @Override
     public String toString() {
         return r.toString();
