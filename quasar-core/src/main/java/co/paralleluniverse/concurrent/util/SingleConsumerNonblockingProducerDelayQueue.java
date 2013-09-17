@@ -52,8 +52,11 @@ class SingleConsumerNonblockingProducerDelayQueue<E extends Delayed> extends Sin
                 consumerBlocking = false;
                 lock.unlock();
             }
+        } else {
+            e = sls.pollFirst();
+            assert e != null;
+            return e;
         }
-        return e;
     }
 
     @Override
@@ -78,8 +81,11 @@ class SingleConsumerNonblockingProducerDelayQueue<E extends Delayed> extends Sin
                 consumerBlocking = false;
                 lock.unlock();
             }
+        } else {
+            e = sls.pollFirst();
+            assert e != null;
+            return e;
         }
-        return e;
     }
 
     private long getDelay(E e) {
