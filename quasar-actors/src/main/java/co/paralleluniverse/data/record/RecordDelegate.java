@@ -32,7 +32,6 @@ import co.paralleluniverse.data.record.Field.ObjectArrayField;
 import co.paralleluniverse.data.record.Field.ObjectField;
 import co.paralleluniverse.data.record.Field.ShortArrayField;
 import co.paralleluniverse.data.record.Field.ShortField;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -48,13 +47,15 @@ final class RecordDelegate<R> implements Record<R>, DelegatingEquals {
         this.r = delegate;
     }
 
-    public void setDelegate(Object owner, Record<R> delegate) {
-        if (this.owner != owner)
+    void setDelegate(Object owner, Record<R> delegate) {
+        if (this.owner == null || this.owner != owner)
             throw new IllegalAccessError("Object " + owner + " is not this record's owner");
         this.r = delegate;
     }
 
-    protected Record<R> getDelegate() {
+    Record<R> getDelegate(Object owner) {
+        if (this.owner == null || this.owner != owner)
+            throw new IllegalAccessError("Object " + owner + " is not this record's owner");
         return r;
     }
 

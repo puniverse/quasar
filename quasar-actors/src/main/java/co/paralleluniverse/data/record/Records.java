@@ -30,6 +30,12 @@ public final class Records {
         ((RecordDelegate<R>) record).setDelegate(owner, newDelegate);
     }
 
+    public static <R> Record<R> getDelegate(Record<R> record, Object owner) {
+        if (!(record instanceof RecordDelegate))
+            return record;
+        return ((RecordDelegate<R>) record).getDelegate(owner);
+    }
+
     public static <R> void copy(Record<R> source, Record<R> target) {
         copy(source, target, target.fields());
     }
