@@ -20,6 +20,6 @@ import co.paralleluniverse.fibers.SuspendExecution;
  * @author pron
  */
 public interface Initializer {
-    void init() throws SuspendExecution;
+    void init() throws InterruptedException, SuspendExecution;
     void terminate(Throwable cause) throws SuspendExecution;
 }

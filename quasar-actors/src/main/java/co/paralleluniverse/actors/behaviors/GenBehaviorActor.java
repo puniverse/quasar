@@ -121,7 +121,7 @@ public abstract class GenBehaviorActor extends Actor<Object, Void> implements ja
         terminate(cause);
     }
 
-    protected void init() throws SuspendExecution {
+    protected void init() throws InterruptedException, SuspendExecution {
         if (initializer != null)
             initializer.init();
     }

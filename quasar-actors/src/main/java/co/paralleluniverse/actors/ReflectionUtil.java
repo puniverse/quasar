@@ -41,9 +41,8 @@ class ReflectionUtil {
             return false;
 
         for (int i = 0; i < classArray.length; i++) {
-            if (isAssignable(classArray[i], toClassArray[i], autoboxing) == false) {
+            if (!isAssignable(classArray[i], toClassArray[i], autoboxing))
                 return false;
-            }
         }
         return true;
     }
@@ -147,13 +146,13 @@ class ReflectionUtil {
     }
 
     public static boolean isAssignable(Class<?> cls, final Class<?> toClass, final boolean autoboxing) {
-        if (toClass == null) {
+        if (toClass == null)
             return false;
-        }
+        
         // have to check for null, as isAssignableFrom doesn't
-        if (cls == null) {
+        if (cls == null)
             return !toClass.isPrimitive();
-        }
+        
         //autoboxing:
         if (autoboxing) {
             if (cls.isPrimitive() && !toClass.isPrimitive()) {
@@ -169,13 +168,13 @@ class ReflectionUtil {
                 }
             }
         }
-        if (cls.equals(toClass)) {
+        if (cls.equals(toClass))
             return true;
-        }
+        
         if (cls.isPrimitive()) {
-            if (toClass.isPrimitive() == false) {
+            if (toClass.isPrimitive() == false)
                 return false;
-            }
+            
             if (Integer.TYPE.equals(cls)) {
                 return Long.TYPE.equals(toClass)
                         || Float.TYPE.equals(toClass)

@@ -174,7 +174,7 @@ public class SupervisorActor extends GenBehaviorActor {
     }
 
     @Override
-    protected void init() throws SuspendExecution {
+    protected void init() throws InterruptedException, SuspendExecution {
         if (getInitializer() != null)
             getInitializer().init();
         else {
