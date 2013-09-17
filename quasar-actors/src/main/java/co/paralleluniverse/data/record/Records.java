@@ -106,6 +106,99 @@ public final class Records {
         }
     }
 
+    public static <R> void clear(Record<R> record) {
+        for (Field<? super R, ?> field : record.fields()) {
+            try {
+                switch (field.type()) {
+                    case Field.BOOLEAN:
+                        record.set((Field.BooleanField) field, false);
+                        break;
+                    case Field.BYTE:
+                        record.set((Field.ByteField) field, (byte) 0);
+                        break;
+                    case Field.SHORT:
+                        record.set((Field.ShortField) field, (short) 0);
+                        break;
+                    case Field.INT:
+                        record.set((Field.IntField) field, 0);
+                        break;
+                    case Field.LONG:
+                        record.set((Field.LongField) field, 0L);
+                        break;
+                    case Field.FLOAT:
+                        record.set((Field.FloatField) field, 0.0f);
+                        break;
+                    case Field.DOUBLE:
+                        record.set((Field.DoubleField) field, 0.0);
+                        break;
+                    case Field.CHAR:
+                        record.set((Field.CharField) field, (char) 0);
+                        break;
+                    case Field.OBJECT:
+                        record.set((Field.ObjectField) field, null);
+                        break;
+                    case Field.BOOLEAN_ARRAY: {
+                        Field.BooleanArrayField f = (Field.BooleanArrayField) field;
+                        for (int i = 0; i < f.length; i++)
+                            record.set(f, i, false);
+                        break;
+                    }
+                    case Field.BYTE_ARRAY: {
+                        Field.ByteArrayField f = (Field.ByteArrayField) field;
+                        for (int i = 0; i < f.length; i++)
+                            record.set(f, i, (byte) 0);
+                        break;
+                    }
+                    case Field.SHORT_ARRAY: {
+                        Field.ShortArrayField f = (Field.ShortArrayField) field;
+                        for (int i = 0; i < f.length; i++)
+                            record.set(f, i, (short) 0);
+                        break;
+                    }
+                    case Field.INT_ARRAY: {
+                        Field.IntArrayField f = (Field.IntArrayField) field;
+                        for (int i = 0; i < f.length; i++)
+                            record.set(f, i, 0);
+                        break;
+                    }
+                    case Field.LONG_ARRAY: {
+                        Field.LongArrayField f = (Field.LongArrayField) field;
+                        for (int i = 0; i < f.length; i++)
+                            record.set(f, i, 0L);
+                        break;
+                    }
+                    case Field.FLOAT_ARRAY: {
+                        Field.FloatArrayField f = (Field.FloatArrayField) field;
+                        for (int i = 0; i < f.length; i++)
+                            record.set(f, i, 0.0f);
+                        break;
+                    }
+                    case Field.DOUBLE_ARRAY: {
+                        Field.DoubleArrayField f = (Field.DoubleArrayField) field;
+                        for (int i = 0; i < f.length; i++)
+                            record.set(f, i, 0.0);
+                        break;
+                    }
+                    case Field.CHAR_ARRAY: {
+                        Field.CharArrayField f = (Field.CharArrayField) field;
+                        for (int i = 0; i < f.length; i++)
+                            record.set(f, i, (char) 0);
+                        break;
+                    }
+                    case Field.OBJECT_ARRAY: {
+                        Field.ObjectArrayField f = (Field.ObjectArrayField) field;
+                        for (int i = 0; i < f.length; i++)
+                            record.set(f, i, null);
+                        break;
+                    }
+                    default:
+                        throw new AssertionError();
+                }
+            } catch (FieldNotFoundException e) {
+            }
+        }
+    }
+
     public static <R> boolean deepEquals(Record<R> a, Record<R> b) {
         if (a == b)
             return true;
