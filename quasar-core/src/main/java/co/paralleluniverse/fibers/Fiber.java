@@ -538,7 +538,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      */
     private boolean park1(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
         record(1, "Fiber", "park", "Parking %s blocker: %s", this, blocker);
-        if (recordsLevel(2))
+        if (isRecordingLevel(2))
             record(2, "Fiber", "park", "Parking %s at %s", this, Arrays.toString(getStackTrace()));
         this.postParkActions = postParkActions;
         if (timeout > 0 && unit != null) {
@@ -553,7 +553,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private void yield1() throws SuspendExecution {
-        if (recordsLevel(2))
+        if (isRecordingLevel(2))
             record(2, "Fiber", "yield", "Yielding %s at %s", this, Arrays.toString(getStackTrace()));
         fjTask.yield1();
     }
@@ -669,7 +669,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         Object tmpThreadLocals = ThreadAccess.getThreadLocals(currentThread);
         Object tmpInheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
 
-        if (recordsLevel(2)) {
+        if (isRecordingLevel(2)) {
             record(2, "Fiber", "switchFiberAndThreadLocals", "fiberLocals: %s", ThreadUtil.getThreadLocalsString(install ? this.fiberLocals : tmpThreadLocals));
             record(2, "Fiber", "switchFiberAndThreadLocals", "inheritableFilberLocals: %s", ThreadUtil.getThreadLocalsString(install ? this.inheritableFiberLocals : tmpInheritableThreadLocals));
         }
@@ -711,7 +711,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             if (!(target instanceof DummyRunnable))
                 return null;
             return ((DummyRunnable) ThreadAccess.getTarget(currentThread)).fiber;
-        } else {
+        } else if (Debug.isUnitTest()) {
             try {
                 final FiberForkJoinTask currentFJTask = FiberForkJoinTask.getCurrent();
                 if (currentFJTask == null)
@@ -720,7 +720,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             } catch (ClassCastException e) {
                 return null;
             }
-        }
+        } else
+            return null;
     }
 
     private static final class DummyRunnable implements Runnable {
@@ -778,7 +779,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     protected void onResume() throws InterruptedException {
         record(1, "Fiber", "onResume", "Resuming %s", this);
-        if (recordsLevel(2))
+        if (isRecordingLevel(2))
             record(2, "Fiber", "onResume", "Resuming %s at: %s", this, Arrays.toString(getStackTrace()));
     }
 
@@ -1196,28 +1197,28 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     @SuppressWarnings("unchecked")
     private static boolean isInstrumented(Class clazz) {
         boolean res = clazz.isAnnotationPresent(Instrumented.class);
-        if(!res)
+        if (!res)
             res = isInstrumented0(clazz); // a second chance
         return res;
     }
-    
+
     private static boolean isInstrumented0(Class clazz) {
         // Sometimes, a child class does not implement any suspendable methods AND is loaded before its superclass (that does). Test for that:
         Class superclazz = clazz.getSuperclass();
-        if(superclazz != null) {
-            if(superclazz.isAnnotationPresent(Instrumented.class)) {
+        if (superclazz != null) {
+            if (superclazz.isAnnotationPresent(Instrumented.class)) {
                 // make sure the child class doesn't have any suspendable methods
                 Method[] ms = clazz.getDeclaredMethods();
-                for(Method m : ms) {
-                    for(Class et : m.getExceptionTypes()) {
-                        if(et.equals(SuspendExecution.class))
+                for (Method m : ms) {
+                    for (Class et : m.getExceptionTypes()) {
+                        if (et.equals(SuspendExecution.class))
                             return false;
                     }
-                    if(m.isAnnotationPresent(Suspendable.class))
+                    if (m.isAnnotationPresent(Suspendable.class))
                         return false;
                 }
                 return true;
-            } else 
+            } else
                 return isInstrumented0(superclazz);
         } else
             return false;
@@ -1253,7 +1254,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     //<editor-fold defaultstate="collapsed" desc="Recording">
     /////////// Recording ///////////////////////////////////
-    protected final boolean recordsLevel(int level) {
+    protected final boolean isRecordingLevel(int level) {
         if (!Debug.isDebug())
             return false;
         final FlightRecorder.ThreadRecorder recorder = flightRecorder.get();

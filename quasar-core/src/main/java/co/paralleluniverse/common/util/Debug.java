@@ -26,7 +26,7 @@ public class Debug {
     private static final FlightRecorder flightRecorder = (Boolean.getBoolean("co.paralleluniverse.debugMode") && Boolean.getBoolean("co.paralleluniverse.globalFlightRecorder") ? new FlightRecorder("PUNIVERSE-FLIGHT-RECORDER") : null);
     private static boolean recordStackTraces = false;
     private static final boolean assertionsEnabled;
-    private static boolean unitTest;
+    private static final boolean unitTest;
     private static final AtomicBoolean requestShutdown = new AtomicBoolean(false);
     private static final AtomicBoolean fileDumped = new AtomicBoolean(false);
 
@@ -34,14 +34,17 @@ public class Debug {
         boolean ea = false;
         assert (ea = true);
         assertionsEnabled = ea;
-        unitTest = false;
+        
+        boolean isUnitTest = false;
         StackTraceElement[] stack = Thread.currentThread().getStackTrace();
         for (StackTraceElement ste : stack) {
             if (ste.getClassName().startsWith("org.junit") || ste.getClassName().startsWith("junit.framework")) {
-                unitTest = true;
+                isUnitTest = true;
                 break;
             }
         }
+        unitTest = isUnitTest;
+        
 
         if (debugMode) {
             Runtime.getRuntime().addShutdownHook(new Thread() {

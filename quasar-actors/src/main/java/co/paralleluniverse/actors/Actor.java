@@ -286,7 +286,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         for (;;) {
             checkThrownIn();
             record(1, "Actor", "receive", "%s waiting for a message", this);
-            Object m = mailbox().receive();
+            final Object m = mailbox().receive();
             record(1, "Actor", "receive", "Received %s <- %s", this, m);
             monitorAddMessage();
             Message msg = filterMessage(m);
@@ -310,7 +310,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             if (flightRecorder != null)
                 record(1, "Actor", "receive", "%s waiting for a message. millis left: ", this, TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS));
             checkThrownIn();
-            Object m = mailbox().receive(left, TimeUnit.NANOSECONDS);
+            final Object m = mailbox().receive(left, TimeUnit.NANOSECONDS);
             if (m != null) {
                 record(1, "Actor", "receive", "Received %s <- %s", this, m);
                 monitorAddMessage();
@@ -639,6 +639,15 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     //<editor-fold defaultstate="collapsed" desc="Recording">
     /////////// Recording ///////////////////////////////////
+    protected final boolean isRecordingLevel(int level) {
+        if(flightRecorder == null)
+            return false;
+        final FlightRecorder.ThreadRecorder recorder = flightRecorder.get();
+        if (recorder == null)
+            return false;
+        return recorder.recordsLevel(level);
+    }
+    
     protected final void record(int level, String clazz, String method, String format) {
         if (flightRecorder != null)
             record(flightRecorder.get(), level, clazz, method, format);

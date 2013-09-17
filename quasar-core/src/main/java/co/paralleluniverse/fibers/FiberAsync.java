@@ -83,7 +83,7 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
 
     private void fire(Fiber fiber) {
         if (immediateExec) {
-            if (!fiber.exec(this, 5, TimeUnit.MILLISECONDS)) {
+            if (!fiber.exec(this, 50, TimeUnit.MILLISECONDS)) {
                 final RuntimeException ex = new RuntimeException("Failed to exec fiber " + fiber + " in thread " + Thread.currentThread());
 
                 this.exception = ex;

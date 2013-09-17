@@ -59,7 +59,7 @@ public final class Stack implements Serializable {
         if (dataTOS > dataObject.length)
             growDataStack(dataTOS);
 
-        if (fiber.recordsLevel(2))
+        if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "pushMethod     ", "%s %s", Thread.currentThread().getStackTrace()[2], entry /*Arrays.toString(fiber.getStackTrace())*/);
     }
 
@@ -78,7 +78,7 @@ public final class Stack implements Serializable {
         for (int i = newSP; i < oldSP; i++)
             dataObject[i] = null;
 
-        if (fiber.recordsLevel(2))
+        if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "popMethod      ", "%s", Thread.currentThread().getStackTrace()[2] /*Arrays.toString(fiber.getStackTrace())*/);
     }
 
@@ -92,7 +92,7 @@ public final class Stack implements Serializable {
         curMethodSP = method[++idx];
         methodTOS = ++idx;
         final int entry = method[idx];
-        if (fiber.recordsLevel(2))
+        if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "nextMethodEntry", "%s %s", Thread.currentThread().getStackTrace()[2], entry /*Arrays.toString(fiber.getStackTrace())*/);
         return entry;
     }
