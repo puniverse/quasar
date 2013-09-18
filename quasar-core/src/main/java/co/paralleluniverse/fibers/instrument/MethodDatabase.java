@@ -192,6 +192,9 @@ public class MethodDatabase implements Log {
     private static final int SUSPENDABLE = 4;
 
     public SuspendableType isMethodSuspendable(String className, String methodName, String methodDesc, int opcode) {
+        if(className.startsWith("org/netbeans/lib/"))
+            return SuspendableType.NON_SUSPENDABLE;
+        
         int res = isMethodSuspendable0(className, methodName, methodDesc, opcode);
         switch (res) {
             case UNKNOWN:

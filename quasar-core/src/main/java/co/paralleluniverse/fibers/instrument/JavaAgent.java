@@ -165,6 +165,8 @@ public class JavaAgent {
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
             if (className.startsWith("org/objectweb/asm/"))
                 return null;
+            if (className.startsWith("org/netbeans/lib/"))
+                return null;
             if (className.equals(Classes.COROUTINE_NAME) || className.startsWith(Classes.COROUTINE_NAME + '$'))
                 return null;
             if (MethodDatabase.isJavaCore(className))
