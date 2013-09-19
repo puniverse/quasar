@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.concurrent.util.ThreadUtil;
 import co.paralleluniverse.fibers.Suspendable;
 import static co.paralleluniverse.fibers.instrument.SimpleSuspendableClassifier.PREFIX;
 import static co.paralleluniverse.fibers.instrument.SimpleSuspendableClassifier.SUSPENDABLE_SUPERS_FILE;
@@ -38,7 +39,7 @@ public class SuspendablesScanner {
     private static final String CLASSFILE_SUFFIX = ".class";
 
     public static void main(String args[]) throws Exception {
-        String[] classPrefixes = args;
+        String[] classPrefixes = new String[]{"co.paralleluniverse.fibers", "co.paralleluniverse.strands"};//args;
         String outputFile = BUILD_DIR + RESOURCES_DIR + PREFIX + SUSPENDABLE_SUPERS_FILE;
 
         run(classPrefixes, outputFile);
@@ -72,10 +73,11 @@ public class SuspendablesScanner {
 //                System.out.println(s);
             out.println(s);
         }
+        out.close();
     }
 
     private static PrintStream getOutputStream(String outputFile) throws Exception {
-//        System.out.println("OUTPUT: " + outputFile);
+        System.out.println("OUTPUT: " + outputFile);
         if (outputFile != null) {
             outputFile = outputFile.trim();
             if (outputFile.isEmpty())
@@ -92,6 +94,7 @@ public class SuspendablesScanner {
 
     private static void scanClasses(File file, Set<String> results) throws Exception {
         if (file.isDirectory()) {
+            System.out.println("Scanning dir: " + file.getPath());
             for (File f : file.listFiles())
                 scanClasses(f, results);
         } else {
