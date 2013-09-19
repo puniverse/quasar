@@ -15,6 +15,8 @@ package co.paralleluniverse.strands;
 
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FibersMonitor;
+import co.paralleluniverse.fibers.NoopFibersMonitor;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -80,6 +82,8 @@ public abstract class Strand {
     public abstract StackTraceElement[] getStackTrace();
 
     public abstract long getId();
+    
+    public abstract FibersMonitor getMonitor();
     
     /**
      * Returns the current fiber, if there is one, or the current thread otherwise.
@@ -355,6 +359,11 @@ public abstract class Strand {
         }
 
         @Override
+        public FibersMonitor getMonitor() {
+            return NOOP_FIBERS_MONITOR;
+        }
+        
+        @Override
         public String toString() {
             return thread.toString();
         }
@@ -413,6 +422,11 @@ public abstract class Strand {
         }
 
         @Override
+        public FibersMonitor getMonitor() {
+            return fiber.getMonitor();
+        }
+        
+        @Override
         public Strand start() {
             fiber.start();
             return this;
@@ -458,4 +472,6 @@ public abstract class Strand {
             return fiber.toString();
         }
     }
+    
+    private static final FibersMonitor NOOP_FIBERS_MONITOR = new NoopFibersMonitor();
 }

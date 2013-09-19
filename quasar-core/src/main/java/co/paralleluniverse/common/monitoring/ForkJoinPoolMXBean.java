@@ -17,17 +17,13 @@ package co.paralleluniverse.common.monitoring;
  * @author pron
  */
 public interface ForkJoinPoolMXBean {
-    public static enum Status {
-        ACTIVE, QUIESCENT, SHUTDOWN, TERMINATING, TERMINATED
-    }
-
     boolean getAsyncMode();
 
     int getParalellism();
 
     int getPoolSize();
 
-    Status getStatus();
+    ForkJoinPoolMonitor.Status getStatus();
 
     int getActiveThreadCount();
 

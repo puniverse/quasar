@@ -51,7 +51,6 @@ import jsr166e.ForkJoinPool;
 import jsr166e.ForkJoinTask;
 import jsr166e.ForkJoinWorkerThread;
 import sun.misc.Unsafe;
-import sun.security.util.SecurityConstants;
 
 /**
  * A lightweight thread.
@@ -564,7 +563,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         cancelTimeoutTask();
 
-        final JMXFibersForkJoinPoolMonitor monitor = getMonitor();
+        final FibersMonitor monitor = getMonitor();
         record(1, "Fiber", "exec1", "running %s %s", state, this);
         // if (monitor != null && state == State.STARTED)
         //    monitor.fiberStarted(); - done elsewhere
@@ -619,16 +618,17 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         }
     }
 
-    private JMXFibersForkJoinPoolMonitor getMonitor() {
+    @Override
+    public FibersMonitor getMonitor() {
         if (fjPool instanceof MonitoredForkJoinPool) {
             ForkJoinPoolMonitor mon = ((MonitoredForkJoinPool) fjPool).getMonitor();
-            if (mon instanceof JMXFibersForkJoinPoolMonitor)
-                return (JMXFibersForkJoinPoolMonitor) mon;
+            if (mon instanceof FibersMonitor)
+                return (FibersMonitor) mon;
         }
         return null;
     }
 
-    private void monitorFiberTerminated(JMXFibersForkJoinPoolMonitor monitor) {
+    private void monitorFiberTerminated(FibersMonitor monitor) {
         if (monitor != null)
             monitor.fiberTerminated();
     }
@@ -1028,7 +1028,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         @Override
         protected void submit() {
-            final JMXFibersForkJoinPoolMonitor monitor = fiber.getMonitor();
+            final FibersMonitor monitor = fiber.getMonitor();
             if (monitor != null)
                 monitor.fiberSubmitted(fiber.getState() == State.STARTED);
             if (getPool() == fiber.fjPool)

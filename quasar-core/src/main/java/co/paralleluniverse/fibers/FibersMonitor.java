@@ -13,15 +13,17 @@
  */
 package co.paralleluniverse.fibers;
 
-import co.paralleluniverse.common.monitoring.ForkJoinPoolMXBean;
-
 /**
  *
  * @author pron
  */
-public interface FibersForkJoinPoolMXBean extends ForkJoinPoolMXBean {
-    void refresh();
-    int getNumActiveFibers();
-    int getNumRunnableFibers();
-    int getNumWaitingFibers();
+public interface FibersMonitor {
+
+    void fiberStarted();
+
+    void fiberSubmitted(boolean start);
+
+    void fiberSuspended();
+
+    void fiberTerminated();
 }

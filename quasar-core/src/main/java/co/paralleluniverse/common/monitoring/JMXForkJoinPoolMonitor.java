@@ -37,7 +37,7 @@ public class JMXForkJoinPoolMonitor extends ForkJoinPoolMonitor implements ForkJ
         registerMBean();
     }
 
-    private void registerMBean() {
+    protected void registerMBean() {
         try {
             final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
             final ObjectName mxbeanName = new ObjectName(mbeanName);
@@ -69,6 +69,14 @@ public class JMXForkJoinPoolMonitor extends ForkJoinPoolMonitor implements ForkJ
         }
     }
 
+    public String getMbeanName() {
+        return mbeanName;
+    }
+
+    public boolean isRegistered() {
+        return registered;
+    }
+
     @Override
     protected ForkJoinPool fjPool() {
         final ForkJoinPool fjPool = super.fjPool();
@@ -80,17 +88,17 @@ public class JMXForkJoinPoolMonitor extends ForkJoinPoolMonitor implements ForkJ
     }
 
     @Override
-    public ForkJoinPoolMXBean.Status getStatus() {
+    public ForkJoinPoolMonitor.Status getStatus() {
         final ForkJoinPool fjPool = fjPool();
         if (fjPool.isTerminated()) // Returns true if all tasks have completed following shut down.
-            return ForkJoinPoolMXBean.Status.TERMINATED;
+            return ForkJoinPoolMonitor.Status.TERMINATED;
         if (fjPool.isTerminating()) // Returns true if the process of termination has commenced but not yet completed.
-            return ForkJoinPoolMXBean.Status.TERMINATING;
+            return ForkJoinPoolMonitor.Status.TERMINATING;
         if (fjPool.isShutdown()) // Returns true if this pool has been shut down.
-            return ForkJoinPoolMXBean.Status.SHUTDOWN;
+            return ForkJoinPoolMonitor.Status.SHUTDOWN;
         if (fjPool.isQuiescent()) // Returns true if all worker threads are currently idle.
-            return ForkJoinPoolMXBean.Status.QUIESCENT;
-        return ForkJoinPoolMXBean.Status.ACTIVE;
+            return ForkJoinPoolMonitor.Status.QUIESCENT;
+        return ForkJoinPoolMonitor.Status.ACTIVE;
     }
 
     @Override

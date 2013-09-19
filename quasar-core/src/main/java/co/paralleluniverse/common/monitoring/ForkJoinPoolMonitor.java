@@ -20,15 +20,18 @@ import jsr166e.ForkJoinPool;
  * @author pron
  */
 public abstract class ForkJoinPoolMonitor {
+    public static enum Status {
+        ACTIVE, QUIESCENT, SHUTDOWN, TERMINATING, TERMINATED
+    }
     private final WeakReference<ForkJoinPool> fjPool;
 
     public ForkJoinPoolMonitor(String name, ForkJoinPool fjPool) {
         this.fjPool = new WeakReference<ForkJoinPool>(fjPool);
     }
-    
+
     public void unregister() {
     }
-    
+
     protected ForkJoinPool fjPool() {
         final ForkJoinPool fjp = this.fjPool.get();
         return fjp;

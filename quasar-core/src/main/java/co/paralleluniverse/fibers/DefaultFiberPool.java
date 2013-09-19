@@ -53,7 +53,7 @@ public class DefaultFiberPool {
         instance = new MonitoredForkJoinPool("default-fiber-pool", new ForkJoinPoolMonitorFactory() {
             @Override
             public ForkJoinPoolMonitor newMonitor(String name, ForkJoinPool fjPool) {
-                return new JMXFibersForkJoinPoolMonitor(name, fjPool);
+                return new JMXFibersMonitor(name, fjPool);
             }
         }, par, fac, handler, true);
     }
