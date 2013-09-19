@@ -74,9 +74,8 @@ public final class StrandBlockingWaitStrategy implements WaitStrategy {
             throws AlertException, InterruptedException, SuspendExecution, TimeoutException {
         long availableSequence;
         if ((availableSequence = cursorSequence.get()) < sequence) {
-            final long start = System.nanoTime();
             long left = unit.toNanos(timeout);
-            final long deadline = start + left;
+            final long deadline = System.nanoTime() + left;
 
             processorNotifyCondition.register();
             try {

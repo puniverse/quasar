@@ -138,7 +138,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
     @Override
     public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return send0(message, false, true, unit.toNanos(timeout));
     }
 
     @Override
@@ -171,10 +171,19 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
             sendersSync.register();
         try {
             int i = 0;
+
+            final long deadline = timed ? System.nanoTime() : 0L;
+
             while (!queue.enq(message)) {
                 if (isSendClosed())
                     return true;
-                onQueueFull(i++, false, 0);
+                onQueueFull(i++, timed, nanos);
+
+                if (timed) {
+                    nanos = deadline - System.nanoTime();
+                    if (nanos <= 0)
+                        throw new TimeoutException();
+                }
             }
         } catch (TimeoutException e) {
             return false;
@@ -196,13 +205,9 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
             case THROW:
                 throw new QueueCapacityExceededException();
             case BLOCK:
-                if (timed) {
-                    if (nanos > 0) {
-                        if (sendersSync.await(iter, nanos, TimeUnit.NANOSECONDS))
-                            return;
-                    }
-                    throw new TimeoutException();
-                } else
+                if (timed)
+                    sendersSync.await(iter, nanos, TimeUnit.NANOSECONDS);
+                else
                     sendersSync.await(iter);
                 break;
             case BACKOFF:
@@ -291,9 +296,8 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         if (timeout <= 0)
             return tryReceive();
 
-
-        final long start = System.nanoTime();
         long left = unit.toNanos(timeout);
+        final long deadline = System.nanoTime() + left;
 
         Message m;
         boolean closed;
@@ -310,7 +314,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
                 sync.await(i, left, TimeUnit.NANOSECONDS);
 
-                left = start + unit.toNanos(timeout) - System.nanoTime();
+                left = deadline - System.nanoTime();
                 if (left <= 0)
                     return null;
             }

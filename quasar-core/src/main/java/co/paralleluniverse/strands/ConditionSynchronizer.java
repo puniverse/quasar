@@ -48,10 +48,8 @@ public abstract class ConditionSynchronizer implements Condition {
             throw new InterruptedException();
     }
 
-    public long awaitNanos(int iter, long timeoutNanos) throws InterruptedException, SuspendExecution {
+    public void awaitNanos(int iter, long timeoutNanos) throws InterruptedException, SuspendExecution {
         final int spins = (Fiber.currentFiber() != null ? 0 : SPINS - iter);
-        final long start = System.nanoTime();
-        final long deadline = start + timeoutNanos;
 
         if (spins > 0) {
             if (ThreadLocalRandom.current().nextInt(SPINS) == 0)
@@ -66,12 +64,11 @@ public abstract class ConditionSynchronizer implements Condition {
 
         if (Strand.interrupted())
             throw new InterruptedException();
-        return deadline - System.nanoTime();
     }
 
     @Override
-    public boolean await(int iter, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
-        return awaitNanos(iter, unit.toNanos(timeout)) > 0;
+    public void await(int iter, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
+        awaitNanos(iter, unit.toNanos(timeout));
     }
     ////////////////////////////
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;

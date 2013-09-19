@@ -76,8 +76,8 @@ public class QueuePrimitiveChannel<Message> extends QueueChannel<Message> implem
         maybeSetCurrentStrandAsOwner();
         Object n;
 
-        final long start = System.nanoTime();
         long left = unit.toNanos(timeout);
+        final long deadline = System.nanoTime() + left;
 
         sync.register();
         try {
@@ -88,7 +88,7 @@ public class QueuePrimitiveChannel<Message> extends QueueChannel<Message> implem
                 }
                 sync.await(i, left, TimeUnit.NANOSECONDS);
 
-                left = start + unit.toNanos(timeout) - System.nanoTime();
+                left = deadline - System.nanoTime();
                 if (left <= 0)
                     return false;
             }

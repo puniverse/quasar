@@ -89,9 +89,9 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
         maybeSetCurrentStrandAsOwner();
         Object n;
 
-        final long start = System.nanoTime();
         long left = unit.toNanos(timeout);
-
+        final long deadline = System.nanoTime() + left;
+        
         sync.register();
         try {
             for (int i = 0; (n = queue().pk()) == null; i++) {
@@ -101,7 +101,7 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
                 }
                 sync.await(i, left, TimeUnit.NANOSECONDS);
 
-                left = start + unit.toNanos(timeout) - System.nanoTime();
+                left = deadline - System.nanoTime();
                 if (left <= 0)
                     return null;
             }

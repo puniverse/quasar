@@ -30,8 +30,7 @@ public class DoneSynchronizer implements Condition {
     }
 
     @Override
-    public boolean await(int iter, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
-        return true;
+    public void await(int iter, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
     }
 
     @Override

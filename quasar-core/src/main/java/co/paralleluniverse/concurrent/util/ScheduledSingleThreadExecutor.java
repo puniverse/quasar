@@ -237,8 +237,8 @@ public class ScheduledSingleThreadExecutor extends AbstractExecutorService imple
             if (other == this) // compare zero if same object
                 return 0;
             if (other instanceof ScheduledFutureTask) {
-                ScheduledFutureTask<?> x = (ScheduledFutureTask<?>) other;
-                long diff = time - x.time;
+                final ScheduledFutureTask<?> x = (ScheduledFutureTask<?>) other;
+                final long diff = time - x.time;
                 if (diff < 0)
                     return -1;
                 else if (diff > 0)
@@ -247,9 +247,10 @@ public class ScheduledSingleThreadExecutor extends AbstractExecutorService imple
                     return -1;
                 else
                     return 1;
+            } else {
+                final long diff = getDelay(NANOSECONDS) - other.getDelay(NANOSECONDS);
+                return (diff < 0) ? -1 : (diff > 0) ? 1 : 0;
             }
-            long diff = getDelay(NANOSECONDS) - other.getDelay(NANOSECONDS);
-            return (diff < 0) ? -1 : (diff > 0) ? 1 : 0;
         }
 
         /**

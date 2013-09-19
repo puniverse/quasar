@@ -75,8 +75,8 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         if (isClosed())
             throw new EOFException();
         final Condition sync = channel.sync;
-        final long start = System.nanoTime();
         long left = unit.toNanos(timeout);
+        final long deadline = System.nanoTime() + left;
         sync.register();
         try {
             for (int i = 0; !consumer.hasNext(); i++) {
@@ -85,7 +85,7 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
                     throw new EOFException();
                 }
                 sync.await(i, left, TimeUnit.NANOSECONDS);
-                left = start + unit.toNanos(timeout) - System.nanoTime();
+                left = deadline - System.nanoTime();
                 if (left <= 0)
                     throw new TimeoutException();
             }

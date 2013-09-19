@@ -70,9 +70,12 @@ public class DelayedVal<V> implements Future<V> {
         if (s != null) {
             s.register();
             try {
+                final long start = System.nanoTime();
                 long left = unit.toNanos(timeout);
-                for (int i=0; sync != null; i++) {
-                    left = s.awaitNanos(i, left);
+                final long deadline = start + left;
+                for (int i = 0; sync != null; i++) {
+                    s.awaitNanos(i, left);
+                    left = deadline - System.nanoTime();
                     if (left <= 0)
                         throw new TimeoutException();
                 }

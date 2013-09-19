@@ -69,7 +69,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     protected ActorRef<Message> makeRef(ActorRef<Message> ref) {
         return ref;
     }
-    
+
     public Actor(Strand strand, String name, MailboxConfig mailboxConfig) {
         this(name, mailboxConfig);
         if (strand != null)
@@ -219,7 +219,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     protected ActorRef<Message> self() {
         return ref();
     }
-    
+
     @Override
     public final void setStrand(Strand strand) {
         if (strand == this.strand)
@@ -302,26 +302,27 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         if (timeout <= 0)
             return tryReceive();
 
-        final long start = System.nanoTime();
-        long now;
         long left = unit.toNanos(timeout);
+        final long deadline = System.nanoTime() + left;
 
         for (;;) {
             if (flightRecorder != null)
                 record(1, "Actor", "receive", "%s waiting for a message. millis left: ", this, TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS));
             checkThrownIn();
             final Object m = mailbox().receive(left, TimeUnit.NANOSECONDS);
-            if (m != null) {
+            if (m == null)
+                left = -1; // timeout
+            else {
                 record(1, "Actor", "receive", "Received %s <- %s", this, m);
                 monitorAddMessage();
+
+                Message msg = filterMessage(m);
+                if (msg != null)
+                    return msg;
+                else
+                    left = deadline - System.nanoTime();
             }
-
-            Message msg = filterMessage(m);
-            if (msg != null)
-                return msg;
-
-            now = System.nanoTime();
-            left = start + unit.toNanos(timeout) - now;
+            
             if (left <= 0) {
                 record(1, "Actor", "receive", "%s timed out.", this);
                 return null;
@@ -640,14 +641,14 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     //<editor-fold defaultstate="collapsed" desc="Recording">
     /////////// Recording ///////////////////////////////////
     protected final boolean isRecordingLevel(int level) {
-        if(flightRecorder == null)
+        if (flightRecorder == null)
             return false;
         final FlightRecorder.ThreadRecorder recorder = flightRecorder.get();
         if (recorder == null)
             return false;
         return recorder.recordsLevel(level);
     }
-    
+
     protected final void record(int level, String clazz, String method, String format) {
         if (flightRecorder != null)
             record(flightRecorder.get(), level, clazz, method, format);

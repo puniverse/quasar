@@ -177,9 +177,8 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
             Node n = p.next;
             if (n != p)
                 p = n;
-            else {
+            else
                 p = head;
-            }
         }
     }
     /////////////////////////////////////////
