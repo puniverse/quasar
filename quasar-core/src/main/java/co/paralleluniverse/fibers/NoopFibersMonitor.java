@@ -13,11 +13,18 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitor;
+import jsr166e.ForkJoinPool;
+
 /**
  *
  * @author pron
  */
-public class NoopFibersMonitor implements FibersMonitor {
+public class NoopFibersMonitor extends ForkJoinPoolMonitor implements FibersMonitor {
+
+    public NoopFibersMonitor() {
+        super(null, null);
+    }
 
     @Override
     public void fiberStarted() {
@@ -33,5 +40,13 @@ public class NoopFibersMonitor implements FibersMonitor {
 
     @Override
     public void fiberTerminated() {
+    }
+
+    @Override
+    public void spuriousWakeup() {
+    }
+
+    @Override
+    public void timedParkLatency(long ns) {
     }
 }

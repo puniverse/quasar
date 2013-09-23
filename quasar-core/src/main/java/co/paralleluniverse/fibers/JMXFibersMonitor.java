@@ -15,8 +15,16 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.JMXForkJoinPoolMonitor;
 import co.paralleluniverse.common.monitoring.MonitoringServices;
+import java.lang.management.ManagementFactory;
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.InstanceNotFoundException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
 import javax.management.Notification;
 import javax.management.NotificationListener;
+import javax.management.ObjectName;
 import jsr166e.ForkJoinPool;
 import jsr166e.LongAdder;
 
@@ -24,27 +32,58 @@ import jsr166e.LongAdder;
  *
  * @author pron
  */
-class JMXFibersMonitor extends JMXForkJoinPoolMonitor implements FibersMonitor, NotificationListener, FibersForkJoinPoolMXBean {
+class JMXFibersMonitor implements FibersMonitor, NotificationListener, FibersMXBean {
+    private final String mbeanName;
+    private boolean registered;
     private final LongAdder activeCount = new LongAdder();
     //private final LongAdder runnableCount = new LongAdder();
     private final LongAdder waitingCount = new LongAdder();
+    private final LongAdder spuriousWakeupsCounter = new LongAdder();
+    private final LongAdder timedWakeupsCounter = new LongAdder();
+    private final LongAdder timedParkLatencyCounter = new LongAdder();
+    private long spuriousWakeups;
+    private long meanTimedWakeupLatency;
     private long lastCollectTime;
 
     public JMXFibersMonitor(String name, ForkJoinPool fjPool) {
-        super(name, fjPool);
+        this.mbeanName = "co.paralleluniverse:type=Fibers,name=" + name;
+        registerMBean();
         lastCollectTime = nanoTime();
     }
 
-    @Override
     protected void registerMBean() {
-        super.registerMBean();
-        MonitoringServices.getInstance().addPerfNotificationListener(this, getMbeanName());
+        try {
+            final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+            final ObjectName mxbeanName = new ObjectName(mbeanName);
+            mbs.registerMBean(this, mxbeanName);
+            this.registered = true;
+        } catch (InstanceAlreadyExistsException ex) {
+            throw new RuntimeException(ex);
+        } catch (MBeanRegistrationException ex) {
+            ex.printStackTrace();
+        } catch (NotCompliantMBeanException ex) {
+            throw new AssertionError(ex);
+        } catch (MalformedObjectNameException ex) {
+            throw new AssertionError(ex);
+        }
+        MonitoringServices.getInstance().addPerfNotificationListener(this, mbeanName);
     }
 
     @Override
     public void unregister() {
-        MonitoringServices.getInstance().removePerfNotificationListener(this);
-        super.unregister();
+        try {
+            if (registered) {
+                MonitoringServices.getInstance().removePerfNotificationListener(this);
+                ManagementFactory.getPlatformMBeanServer().unregisterMBean(new ObjectName(mbeanName));
+            }
+            this.registered = false;
+        } catch (InstanceNotFoundException ex) {
+            ex.printStackTrace();
+        } catch (MBeanRegistrationException ex) {
+            ex.printStackTrace();
+        } catch (MalformedObjectNameException ex) {
+            throw new AssertionError(ex);
+        }
     }
 
     @Override
@@ -58,18 +97,24 @@ class JMXFibersMonitor extends JMXForkJoinPoolMonitor implements FibersMonitor, 
         collectAndResetCounters();
     }
 
+    public boolean isRegistered() {
+        return registered;
+    }
+
     private void collectAndResetCounters() {
         if (isRegistered()) {
-            fjPool();
-            collect(nanoTime() - lastCollectTime);
-            reset();
+            collectAndResetCounters(nanoTime() - lastCollectTime);
         }
     }
 
-    protected void collect(long intervalNanos) {
-    }
+    protected void collectAndResetCounters(long intervalNanos) {
+        spuriousWakeups = spuriousWakeupsCounter.sumThenReset();
 
-    protected void reset() {
+        final long tw = timedWakeupsCounter.sumThenReset();
+        final long tpl = timedParkLatencyCounter.sumThenReset();
+
+        meanTimedWakeupLatency = tw != 0L ? tpl / tw : 0L;
+
         lastCollectTime = nanoTime();
     }
 
@@ -104,6 +149,17 @@ class JMXFibersMonitor extends JMXForkJoinPoolMonitor implements FibersMonitor, 
     }
 
     @Override
+    public void spuriousWakeup() {
+        spuriousWakeupsCounter.increment();
+    }
+
+    @Override
+    public void timedParkLatency(long ns) {
+        timedWakeupsCounter.increment();
+        timedParkLatencyCounter.add(ns);
+    }
+
+    @Override
     public int getNumActiveFibers() {
         return activeCount.intValue();
     }
@@ -117,5 +173,15 @@ class JMXFibersMonitor extends JMXForkJoinPoolMonitor implements FibersMonitor, 
     @Override
     public int getNumWaitingFibers() {
         return waitingCount.intValue();
+    }
+
+    @Override
+    public long getSpuriousWakeups() {
+        return spuriousWakeups;
+    }
+
+    @Override
+    public long getMeanTimedWakeupLatency() {
+        return meanTimedWakeupLatency;
     }
 }

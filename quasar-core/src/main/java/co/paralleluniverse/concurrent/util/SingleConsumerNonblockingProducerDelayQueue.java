@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-class SingleConsumerNonblockingProducerDelayQueue<E extends Delayed> extends SingleConsumerNonblockingProducerPriorityQueue<E> {
+public class SingleConsumerNonblockingProducerDelayQueue<E extends Delayed> extends SingleConsumerNonblockingProducerPriorityQueue<E> {
     public SingleConsumerNonblockingProducerDelayQueue() {
     }
 

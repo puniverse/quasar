@@ -26,7 +26,7 @@ public abstract class ForkJoinPoolMonitor {
     private final WeakReference<ForkJoinPool> fjPool;
 
     public ForkJoinPoolMonitor(String name, ForkJoinPool fjPool) {
-        this.fjPool = new WeakReference<ForkJoinPool>(fjPool);
+        this.fjPool = fjPool != null ? new WeakReference<ForkJoinPool>(fjPool) : null;
     }
 
     public void unregister() {

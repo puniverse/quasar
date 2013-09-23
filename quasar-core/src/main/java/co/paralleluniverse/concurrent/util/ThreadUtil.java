@@ -71,10 +71,12 @@ public final class ThreadUtil {
     
     public static String getThreadLocalsString(Object threadLocals) {
         try {
-            final StringBuilder sb = new StringBuilder();
-
+            if(threadLocals == null)
+                return "null";
+            
             final Object table = threadLocalMapTableField.get(threadLocals);
             final int threadLocalCount = Array.getLength(table);
+            final StringBuilder sb = new StringBuilder();
             for (int i = 0; i < threadLocalCount; i++) {
                 Object entry = Array.get(table, i);
                 if (entry != null) {

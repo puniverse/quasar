@@ -31,7 +31,14 @@ public abstract class ConditionSynchronizer implements Condition {
 
     @Override
     public void await(int iter) throws InterruptedException, SuspendExecution {
-        final int spins = (Fiber.currentFiber() != null ? 0 : SPINS - iter);
+        final int spins;
+        final Fiber<?> fib = Fiber.currentFiber();
+        if (fib != null) {
+            spins = 0;
+            if (iter > 0)
+                fib.getMonitor().spuriousWakeup();
+        } else
+            spins = SPINS - iter;
 
         if (spins > 0) {
             if (ThreadLocalRandom.current().nextInt(SPINS) == 0)
@@ -49,7 +56,14 @@ public abstract class ConditionSynchronizer implements Condition {
     }
 
     public void awaitNanos(int iter, long timeoutNanos) throws InterruptedException, SuspendExecution {
-        final int spins = (Fiber.currentFiber() != null ? 0 : SPINS - iter);
+        final int spins;
+        final Fiber<?> fib = Fiber.currentFiber();
+        if (fib != null) {
+            spins = 0;
+            if (iter > 0)
+                fib.getMonitor().spuriousWakeup();
+        } else
+            spins = SPINS - iter;
 
         if (spins > 0) {
             if (ThreadLocalRandom.current().nextInt(SPINS) == 0)

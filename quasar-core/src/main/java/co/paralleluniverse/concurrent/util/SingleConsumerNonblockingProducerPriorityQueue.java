@@ -25,7 +25,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * @author pron
  */
-class SingleConsumerNonblockingProducerPriorityQueue<E> implements BlockingQueue<E> {
+public class SingleConsumerNonblockingProducerPriorityQueue<E> implements BlockingQueue<E> {
     final ConcurrentSkipListSet<E> sls;
     //
     final ReentrantLock lock = new ReentrantLock();

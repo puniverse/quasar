@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
  * @param <E> An exception class that could be thrown by the async request
  */
 public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements Fiber.PostParkActions {
+    private static final long IMMEDIATE_EXEC_TIMEOUT_MILLIS = 50;
     private final boolean immediateExec;
 
     public FiberAsync(boolean immediateExec) {
@@ -83,7 +84,7 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
 
     private void fire(Fiber fiber) {
         if (immediateExec) {
-            if (!fiber.exec(this, 50, TimeUnit.MILLISECONDS)) {
+            if (!fiber.exec(this, IMMEDIATE_EXEC_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 final RuntimeException ex = new RuntimeException("Failed to exec fiber " + fiber + " in thread " + Thread.currentThread());
 
                 this.exception = ex;

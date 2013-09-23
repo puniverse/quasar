@@ -26,4 +26,10 @@ public interface FibersMonitor {
     void fiberSuspended();
 
     void fiberTerminated();
+    
+    void spuriousWakeup();
+    
+    void timedParkLatency(long ns);
+    
+    void unregister();
 }

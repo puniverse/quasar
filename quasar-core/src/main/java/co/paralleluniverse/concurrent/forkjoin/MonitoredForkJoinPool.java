@@ -13,8 +13,7 @@
 package co.paralleluniverse.concurrent.forkjoin;
 
 import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitor;
-import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitorFactory;
-import co.paralleluniverse.common.monitoring.JMXForkJoinPoolMonitor;
+import co.paralleluniverse.fibers.FibersMonitor;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.atomic.AtomicInteger;
 import jsr166e.ForkJoinPool;
@@ -24,43 +23,24 @@ import jsr166e.ForkJoinPool;
  * @author pron
  */
 public class MonitoredForkJoinPool extends ForkJoinPool {
-    private static ForkJoinPoolMonitorFactory defaultForkJoinPoolMonitorFactory = new ForkJoinPoolMonitorFactory() {
-        @Override
-        public ForkJoinPoolMonitor newMonitor(String name, ForkJoinPool fjPool) {
-            return new JMXForkJoinPoolMonitor(name, fjPool);
-        }
-    };
     private static final AtomicInteger ordinal = new AtomicInteger();
     private final String name;
     private ForkJoinPoolMonitor monitor;
-
-    public MonitoredForkJoinPool(String name, ForkJoinPoolMonitorFactory monitorFactory) {
-        this.name = name != null ? name : ("ForkJoinPool-" + ordinal.incrementAndGet());
-        this.monitor = monitorFactory.newMonitor(this.name, this);
-    }
-
-    public MonitoredForkJoinPool(String name, ForkJoinPoolMonitorFactory monitorFactory, int parallelism) {
-        super(parallelism);
-        this.name = name != null ? name : ("ForkJoinPool-" + ordinal.incrementAndGet());
-        this.monitor = monitorFactory.newMonitor(this.name, this);
-    }
-
-    public MonitoredForkJoinPool(String name, ForkJoinPoolMonitorFactory monitorFactory, int parallelism, ForkJoinWorkerThreadFactory factory, UncaughtExceptionHandler handler, boolean asyncMode) {
-        super(parallelism, factory, handler, asyncMode);
-        this.name = name != null ? name : ("ForkJoinPool-" + ordinal.incrementAndGet());
-        this.monitor = monitorFactory.newMonitor(this.name, this);
-    }
+    private FibersMonitor fibersMonitor;
+    private Object fjSchedulerMonitor;
 
     public MonitoredForkJoinPool(String name) {
-        this(name, defaultForkJoinPoolMonitorFactory);
+        this.name = name != null ? name : ("ForkJoinPool-" + ordinal.incrementAndGet());
     }
 
     public MonitoredForkJoinPool(String name, int parallelism) {
-        this(name, defaultForkJoinPoolMonitorFactory, parallelism);
+        super(parallelism);
+        this.name = name != null ? name : ("ForkJoinPool-" + ordinal.incrementAndGet());
     }
 
     public MonitoredForkJoinPool(String name, int parallelism, ForkJoinWorkerThreadFactory factory, UncaughtExceptionHandler handler, boolean asyncMode) {
-        this(name, defaultForkJoinPoolMonitorFactory, parallelism, factory, handler, asyncMode);
+        super(parallelism, factory, handler, asyncMode);
+        this.name = name != null ? name : ("ForkJoinPool-" + ordinal.incrementAndGet());
     }
 
     public MonitoredForkJoinPool() {
@@ -80,12 +60,32 @@ public class MonitoredForkJoinPool extends ForkJoinPool {
     }
 
     public void setMonitor(ForkJoinPoolMonitor monitor) {
-        if(this.monitor != null)
-            this.monitor.unregister();
+        if (this.monitor != null)
+            throw new IllegalStateException("Monitor already set");
         this.monitor = monitor;
     }
-    
+
     public ForkJoinPoolMonitor getMonitor() {
         return monitor;
+    }
+
+    public void setFibersMonitor(FibersMonitor fibersMonitor) {
+        if (this.fibersMonitor != null)
+            throw new IllegalStateException("Monitor already set");
+        this.fibersMonitor = fibersMonitor;
+    }
+
+    public FibersMonitor getFibersMonitor() {
+        return fibersMonitor;
+    }
+
+    public void setFjSchedulerMonitor(Object fjSchedulerMonitor) {
+        if (this.fjSchedulerMonitor != null)
+            throw new IllegalStateException("Monitor already set");
+        this.fjSchedulerMonitor = fjSchedulerMonitor;
+    }
+
+    public Object getFjSchedulerMonitor() {
+        return fjSchedulerMonitor;
     }
 }

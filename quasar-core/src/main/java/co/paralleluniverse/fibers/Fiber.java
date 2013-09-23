@@ -15,14 +15,12 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
-import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitor;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
-import co.paralleluniverse.concurrent.util.ScheduledSingleThreadExecutor;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.instrument.Retransform;
@@ -40,10 +38,7 @@ import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -86,9 +81,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             System.err.println("QUASAR WARNING: Fibers are set to verify instrumentation. This may *severely* harm performance.");
         return true;
     }
-    private static final ScheduledExecutorService timeoutService = Boolean.getBoolean("co.paralleluniverse.fibers.useExperimentalTimeoutExecutor")
-            ? new ScheduledSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("fiber-timeout-%d").setDaemon(true).build())
-            : Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("fiber-timeout-%d").setDaemon(true).build());
+    private static final FiberTimedScheduler timeoutService = new FiberTimedScheduler(new ThreadFactoryBuilder().setNameFormat("fiber-timeout-%d").setDaemon(true).build());
     private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler;
     private static final AtomicLong idGen = new AtomicLong();
 
@@ -110,7 +103,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private Object fiberLocals;
     private Object inheritableFiberLocals;
     private long sleepStart;
-    private ScheduledFuture<?> timeoutTask;
+    private Future<Void> timeoutTask;
     private PostParkActions postParkActions;
     private V result;
     private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
@@ -540,14 +533,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (isRecordingLevel(2))
             record(2, "Fiber", "park", "Parking %s at %s", this, Arrays.toString(getStackTrace()));
         this.postParkActions = postParkActions;
-        if (timeout > 0 && unit != null) {
-            this.timeoutTask = timeoutService.schedule(new Runnable() {
-                @Override
-                public void run() {
-                    fjTask.unpark();
-                }
-            }, timeout, unit);
-        }
+        if (timeout > 0 && unit != null)
+            this.timeoutTask = timeoutService.schedule(this, timeout, unit);
+
         return fjTask.park1(blocker);
     }
 
@@ -621,11 +609,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     @Override
     public FibersMonitor getMonitor() {
         if (fjPool instanceof MonitoredForkJoinPool) {
-            ForkJoinPoolMonitor mon = ((MonitoredForkJoinPool) fjPool).getMonitor();
-            if (mon instanceof FibersMonitor)
-                return (FibersMonitor) mon;
+            final FibersMonitor mon = ((MonitoredForkJoinPool) fjPool).getFibersMonitor();
+            if (mon != null)
+                return mon;
         }
-        return null;
+        return NOOP_FIBERS_MONITOR;
     }
 
     private void monitorFiberTerminated(FibersMonitor monitor) {
@@ -852,11 +840,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         long start = 0;
         for (int i = 0;; i++) {
-            if (getBlocker() == blocker && fjTask.tryUnpark()) {
+            boolean a, b = true;
+            if ((a = getBlocker() == blocker) && (b = fjTask.tryUnpark())) {
+                final FibersMonitor monitor = getMonitor();
+                if (monitor != null)
+                    monitor.fiberSubmitted(false);
                 if (fjTask.exec())
                     fjTask.quietlyComplete();
                 return true;
             }
+            // System.out.println("XXXXX a: " + a + " b: " + b + " fiber: " + this);
             if (unit != null && timeout == 0)
                 break;
             if (unit != null && timeout > 0 && i > (1 << 12)) {
@@ -1358,4 +1351,5 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         //return ((FlightRecorderMessageFactory) recorder.getAux()).makeFlightRecorderMessage(clazz, method, format, args);
     }
     //</editor-fold>
+    private static final FibersMonitor NOOP_FIBERS_MONITOR = new NoopFibersMonitor();
 }

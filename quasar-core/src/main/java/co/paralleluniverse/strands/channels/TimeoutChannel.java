@@ -13,8 +13,8 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.fibers.Fiber;
-import java.lang.reflect.Field;
+import co.paralleluniverse.concurrent.util.ScheduledSingleThreadExecutor;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -28,23 +28,23 @@ public class TimeoutChannel<Message> extends TransferChannel<Message> {
     }
 
     private TimeoutChannel(long timeout, TimeUnit unit) {
-        fiberTimeoutService.schedule(new Runnable() {
+        timeoutService.schedule(new Runnable() {
             @Override
             public void run() {
                 close();
             }
         }, timeout, unit);
     }
-    private static final ScheduledExecutorService fiberTimeoutService;
+    private static final ScheduledExecutorService timeoutService = new ScheduledSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("TimeoutChannelCloser-%d").setDaemon(true).build());
 
-    static {
-
-        try {
-            Field f = Fiber.class.getDeclaredField("timeoutService");
-            f.setAccessible(true);
-            fiberTimeoutService = (ScheduledExecutorService) f.get(null);
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
-    }
+//    static {
+//
+//        try {
+//            Field f = Fiber.class.getDeclaredField("timeoutService");
+//            f.setAccessible(true);
+//            timeoutService = (ScheduledExecutorService) f.get(null);
+//        } catch (Exception e) {
+//            throw new AssertionError(e);
+//        }
+//    }
 }
