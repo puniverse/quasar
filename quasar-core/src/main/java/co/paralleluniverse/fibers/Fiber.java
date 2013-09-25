@@ -545,6 +545,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         fjTask.yield1();
     }
 
+    void preempt() throws SuspendExecution {
+        if (isRecordingLevel(2))
+            record(2, "Fiber", "preempt", "Preempting %s at %s", this, Arrays.toString(getStackTrace()));
+        fjTask.yield1();
+    }
+
     private boolean exec1() {
         if (fjTask.isDone() | state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
@@ -770,10 +776,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (isRecordingLevel(2))
             record(2, "Fiber", "onResume", "Resuming %s at: %s", this, Arrays.toString(getStackTrace()));
     }
-    
-    protected void preemptionPoint(int type) throws SuspendExecution {
+
+    protected boolean shouldPreempt(int type) {
         // 0 - backbranch
         // 1 - call
+        return false;
     }
 
     protected void onCompletion() {
