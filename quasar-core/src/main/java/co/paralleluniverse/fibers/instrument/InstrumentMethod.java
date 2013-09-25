@@ -60,7 +60,6 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -465,18 +464,6 @@ class InstrumentMethod {
                         }
                     }
                     break;
-            }
-            if (ins.getType() == AbstractInsnNode.JUMP_INSN) {
-                if (mn.instructions.indexOf(((JumpInsnNode) ins).label) < mn.instructions.indexOf(ins)) {
-                    Label lbl = new Label();
-                    if (DUAL) {
-                        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-                        mv.visitJumpInsn(Opcodes.IFNULL, lbl);
-                    }
-                    emitPreemptionPoint(mv, PREEMPTION_BACKBRANCH);
-                    if(DUAL)
-                        mv.visitLabel(lbl);
-                }
             }
 
             ins.accept(mv);
