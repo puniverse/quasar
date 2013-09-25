@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.fibers;
 
-import co.paralleluniverse.common.monitoring.JMXForkJoinPoolMonitor;
 import co.paralleluniverse.common.monitoring.MonitoringServices;
 import java.lang.management.ManagementFactory;
 import javax.management.InstanceAlreadyExistsException;

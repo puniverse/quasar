@@ -45,10 +45,10 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     protected static ParkableForkJoinTask<?> getCurrent() {
         ParkableForkJoinTask ct = current.get();
-        if(ct == null && Thread.currentThread() instanceof ForkJoinWorkerThread) { // false in tests
+        if (ct == null && Thread.currentThread() instanceof ForkJoinWorkerThread) { // false in tests
             Fiber f = Fiber.currentFiber();
-            if(f != null)
-                ct = (ParkableForkJoinTask)f.getForkJoinTask();
+            if (f != null)
+                ct = (ParkableForkJoinTask) f.getForkJoinTask();
         }
         return ct;
     }
@@ -65,11 +65,11 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             //enclosing = null; -- can't nullify enclosing here, because by the time we get here, his task may have been re-scheduled and enclosing re-set
         }
     }
-    
+
     static void setCurrent(ParkableForkJoinTask<?> task) {
         current.set(task);
     }
-    
+
     boolean doExec() {
         try {
             onExec();
@@ -210,6 +210,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     }
 
     protected void submit() {
+        assert Thread.currentThread() instanceof jsr166e.ForkJoinWorkerThread;
         fork();
     }
 

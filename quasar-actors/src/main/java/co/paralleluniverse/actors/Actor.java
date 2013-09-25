@@ -322,7 +322,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
                 else
                     left = deadline - System.nanoTime();
             }
-            
+
             if (left <= 0) {
                 record(1, "Actor", "receive", "%s timed out.", this);
                 return null;
