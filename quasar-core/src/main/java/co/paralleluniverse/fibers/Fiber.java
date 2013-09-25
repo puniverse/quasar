@@ -765,10 +765,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     protected void onParked() {
     }
 
-    protected void onResume() throws InterruptedException {
+    protected void onResume() throws SuspendExecution, InterruptedException {
         record(1, "Fiber", "onResume", "Resuming %s", this);
         if (isRecordingLevel(2))
             record(2, "Fiber", "onResume", "Resuming %s at: %s", this, Arrays.toString(getStackTrace()));
+    }
+    
+    protected void preemptionPoint(int type) throws SuspendExecution {
+        // 0 - backbranch
+        // 1 - call
     }
 
     protected void onCompletion() {

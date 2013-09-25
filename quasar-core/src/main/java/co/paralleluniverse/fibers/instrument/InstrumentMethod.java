@@ -60,6 +60,7 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -78,6 +79,8 @@ import org.objectweb.asm.tree.analysis.Value;
  * @author pron
  */
 class InstrumentMethod {
+    private static final int PREEMPTION_BACKBRANCH = 0;
+    private static final int PREEMPTION_CALL = 1;
 //  private static final String INTERRUPTED_EXCEPTION_NAME = Type.getInternalName(InterruptedException.class);
     private static final boolean DUAL = true; // true if suspendable methods can be called from regular threads in addition to fibers
     private final MethodDatabase db;
@@ -297,6 +300,7 @@ class InstrumentMethod {
                 // normal case - call to a suspendable method - resume before the call
                 emitStoreState(mv, i, fi, 0);
                 emitStoreResumed(mv, false); // we have not been resumed
+                emitPreemptionPoint(mv, PREEMPTION_CALL);
 
                 mv.visitLabel(lMethodCalls[i - 1]);
                 emitRestoreState(mv, i, fi, 0);
@@ -462,6 +466,19 @@ class InstrumentMethod {
                     }
                     break;
             }
+            if (ins.getType() == AbstractInsnNode.JUMP_INSN) {
+                if (mn.instructions.indexOf(((JumpInsnNode) ins).label) < mn.instructions.indexOf(ins)) {
+                    Label lbl = new Label();
+                    if (DUAL) {
+                        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+                        mv.visitJumpInsn(Opcodes.IFNULL, lbl);
+                    }
+                    emitPreemptionPoint(mv, PREEMPTION_BACKBRANCH);
+                    if(DUAL)
+                        mv.visitLabel(lbl);
+                }
+            }
+
             ins.accept(mv);
         }
     }
@@ -527,9 +544,8 @@ class InstrumentMethod {
     private void emitStoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsToPreserve) {
         Frame f = frames[fi.endInstruction];
 
-        if (fi.lBefore != null) {
+        if (fi.lBefore != null)
             fi.lBefore.accept(mv);
-        }
 
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         emitConst(mv, idx);
@@ -616,6 +632,27 @@ class InstrumentMethod {
     private void emitPostRestore(MethodVisitor mv) {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "postRestore", "()V");
+    }
+
+    private void emitPreemptionPoint(MethodVisitor mv, int type) {
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+        switch (type) {
+            case 0:
+                mv.visitInsn(Opcodes.ICONST_0);
+                break;
+            case 1:
+                mv.visitInsn(Opcodes.ICONST_1);
+                break;
+            case 2:
+                mv.visitInsn(Opcodes.ICONST_2);
+                break;
+            case 3:
+                mv.visitInsn(Opcodes.ICONST_3);
+                break;
+            default:
+                throw new AssertionError("Unsupported type: " + type);
+        }
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "preemptionPoint", "(I)V");
     }
 
     private void emitStoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx) throws InternalError, IndexOutOfBoundsException {
