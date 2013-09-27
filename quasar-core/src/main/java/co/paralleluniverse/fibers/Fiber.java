@@ -81,7 +81,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             System.err.println("QUASAR WARNING: Fibers are set to verify instrumentation. This may *severely* harm performance.");
         return true;
     }
-    private static final FiberTimedScheduler timeoutService = new FiberTimedScheduler(new ThreadFactoryBuilder().setNameFormat("fiber-timeout-%d").setDaemon(true).build());
+    // private static final FiberTimedScheduler timeoutService = new FiberTimedScheduler(new ThreadFactoryBuilder().setNameFormat("fiber-timeout-%d").setDaemon(true).build());
     private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler;
     private static final AtomicLong idGen = new AtomicLong();
 
@@ -90,6 +90,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
     //
     private final ForkJoinPool fjPool;
+    private final FiberTimedScheduler timeoutService;
     private final FiberForkJoinTask<V> fjTask;
     private final Stack stack;
     private final Strand parent;
@@ -126,10 +127,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     @SuppressWarnings("LeakingThisInConstructor")
-    public Fiber(String name, ForkJoinPool fjPool, int stackSize, SuspendableCallable<V> target) {
+    public Fiber(String name, ForkJoinPool fjPool, FiberTimedScheduler timeService, int stackSize, SuspendableCallable<V> target) {
         this.name = name;
         this.fid = nextFiberId();
         this.fjPool = fjPool;
+        this.timeoutService = timeService;
         this.parent = Strand.currentStrand();
         this.target = target;
         this.fjTask = new FiberForkJoinTask<V>(this);
@@ -168,8 +170,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * @throws NullPointerException when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
+    public Fiber(String name, ForkJoinPool fjPool, int stackSize, SuspendableCallable<V> target) {
+        this(name, fjPool, defaultTimedScheduler(), stackSize, target);
+    }
+
     public Fiber(String name, int stackSize, SuspendableCallable<V> target) {
-        this(name, defaultPool(), stackSize, target);
+        this(name, defaultPool(), defaultTimedScheduler(), stackSize, target);
     }
 
     private static ForkJoinPool defaultPool() {
@@ -178,6 +184,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             return DefaultFiberPool.getInstance();
         else
             return parent.getFjPool();
+    }
+
+    private static FiberTimedScheduler defaultTimedScheduler() {
+        final Fiber parent = currentFiber();
+        if (parent == null)
+            return DefaultFiberTimeService.getInstance();
+        else
+            return parent.timeoutService;
     }
 
     private static Fiber verifyParent() {

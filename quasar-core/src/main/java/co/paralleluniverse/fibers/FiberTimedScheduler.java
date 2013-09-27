@@ -61,7 +61,9 @@ public class FiberTimedScheduler {
         this(new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
-                return new Thread(r, "single-threaded-scheduled-executor-" + nameSuffixSequence.incrementAndGet());
+                Thread t = new Thread(r, "FiberTimedScheduler-" + nameSuffixSequence.incrementAndGet());
+                t.setDaemon(true);
+                return t;
             }
         });
     }
