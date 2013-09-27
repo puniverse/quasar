@@ -14,11 +14,14 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.strands.Condition;
+import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import jsr166e.ForkJoinPool;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -209,7 +212,7 @@ public class FiberTest {
     public void testInheritThreadLocalsParallel() throws Exception {
         final ThreadLocal<String> tl = new ThreadLocal<>();
         tl.set("foo");
-        
+
         final int n = 100;
         final int loops = 100;
         Fiber[] fibers = new Fiber[n];
@@ -233,5 +236,181 @@ public class FiberTest {
 
         for (Fiber fiber : fibers)
             fiber.join();
+    }
+
+    @Test
+    public void whenFiberIsNewThenDumpStackReturnsNull() throws Exception {
+        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                foo();
+            }
+
+            private void foo() {
+            }
+        });
+
+        StackTraceElement[] st = fiber.getStackTrace();
+        assertThat(st, is(nullValue()));
+    }
+
+    @Test
+    public void whenFiberIsTerminatedThenDumpStackReturnsNull() throws Exception {
+        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                foo();
+            }
+
+            private void foo() {
+            }
+        }).start();
+
+        fiber.join();
+
+        StackTraceElement[] st = fiber.getStackTrace();
+        assertThat(st, is(nullValue()));
+    }
+
+    @Test
+    public void testDumpStackCurrentFiber() throws Exception {
+        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                foo();
+            }
+
+            private void foo() {
+                StackTraceElement[] st = Fiber.currentFiber().getStackTrace();
+
+                // Strand.printStackTrace(st, System.err);
+
+                assertThat(st[0].getMethodName(), equalTo("getStackTrace"));
+                assertThat(st[1].getMethodName(), equalTo("foo"));
+                assertThat(st[st.length - 1].getMethodName(), equalTo("run"));
+                assertThat(st[st.length - 1].getClassName(), equalTo(Fiber.class.getName()));
+            }
+        }).start();
+
+        fiber.join();
+    }
+
+    @Test
+    public void testDumpStackRunningFiber() throws Exception {
+        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                foo();
+            }
+
+            private void foo() {
+                final long start = System.nanoTime();
+                for (;;) {
+                    if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) > 1000)
+                        break;
+                }
+            }
+        }).start();
+
+        Thread.sleep(200);
+
+        StackTraceElement[] st = fiber.getStackTrace();
+
+        // Strand.printStackTrace(st, System.err);
+
+        boolean found = false;
+        for (int i = 0; i < st.length; i++) {
+            if (st[i].getMethodName().equals("foo")) {
+                found = true;
+                break;
+            }
+        }
+        assertThat(found, is(true));
+        assertThat(st[st.length - 1].getMethodName(), equalTo("run"));
+        assertThat(st[st.length - 1].getClassName(), equalTo(Fiber.class.getName()));
+
+        fiber.join();
+    }
+
+    @Test
+    public void testDumpStackWaitingFiber() throws Exception {
+        final Condition cond = new SimpleConditionSynchronizer();
+        final AtomicBoolean flag = new AtomicBoolean(false);
+
+        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                foo();
+            }
+
+            private void foo() throws InterruptedException, SuspendExecution {
+                cond.register();
+                try {
+                    for (int i = 0; !flag.get(); i++) {
+                        cond.await(i);
+                    }
+                } finally {
+                    cond.unregister();
+                }
+            }
+        }).start();
+
+        Thread.sleep(200);
+
+        StackTraceElement[] st = fiber.getStackTrace();
+
+        // Strand.printStackTrace(st, System.err);
+
+        assertThat(st[0].getMethodName(), equalTo("park"));
+        boolean found = false;
+        for (int i = 0; i < st.length; i++) {
+            if (st[i].getMethodName().equals("foo")) {
+                found = true;
+                break;
+            }
+        }
+        assertThat(found, is(true));
+        assertThat(st[st.length - 1].getMethodName(), equalTo("run"));
+        assertThat(st[st.length - 1].getClassName(), equalTo(Fiber.class.getName()));
+
+        flag.set(true);
+        cond.signalAll();
+
+        fiber.join();
+    }
+
+    @Test
+    public void testDumpStackSleepingFiber() throws Exception {
+        // sleep is a special case
+        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                foo();
+            }
+
+            private void foo() throws InterruptedException, SuspendExecution {
+                Fiber.sleep(1000);
+            }
+        }).start();
+
+        Thread.sleep(200);
+
+        StackTraceElement[] st = fiber.getStackTrace();
+
+        // Strand.printStackTrace(st, System.err);
+
+        assertThat(st[0].getMethodName(), equalTo("sleep"));
+        boolean found = false;
+        for (int i = 0; i < st.length; i++) {
+            if (st[i].getMethodName().equals("foo")) {
+                found = true;
+                break;
+            }
+        }
+        assertThat(found, is(true));
+        assertThat(st[st.length - 1].getMethodName(), equalTo("run"));
+        assertThat(st[st.length - 1].getClassName(), equalTo(Fiber.class.getName()));
+
+        fiber.join();
     }
 }

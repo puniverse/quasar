@@ -20,6 +20,7 @@ public final class Stack implements Serializable {
     private long[] dataLong;        // holds primitives on stack
     private Object[] dataObject;    // holds refs on stack
     private transient int curMethodSP;
+    static final ThreadLocal<Stack> getStackTrace = new ThreadLocal<Stack>();
 
     Stack(Fiber lwThread, int stackSize) {
         if (stackSize <= 0) {
@@ -34,7 +35,7 @@ public final class Stack implements Serializable {
     public static Stack getStack() {
         final Fiber currentFiber = Fiber.currentFiber();
         if (currentFiber == null)
-            return null; // throw new RuntimeException("Not running in a fiber");
+            return getStackTrace.get(); // throw new RuntimeException("Not running in a fiber");
         return currentFiber.getStack();
     }
 

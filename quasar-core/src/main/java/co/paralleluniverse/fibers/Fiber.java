@@ -32,8 +32,6 @@ import co.paralleluniverse.strands.SuspendableUtils.VoidSuspendableCallable;
 import static co.paralleluniverse.strands.SuspendableUtils.runnableToCallable;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -98,6 +96,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private final long fid;
     private volatile State state;
     private volatile boolean interrupted;
+    private long run;
+    private Thread runningThread;
     private final SuspendableCallable<V> target;
     private ClassLoader contextClassLoader;
     private Object fiberLocals;
@@ -106,6 +106,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private Future<Void> timeoutTask;
     private PostParkActions postParkActions;
     private V result;
+    private boolean getStackTrace;
     private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
     private final DummyRunnable fiberRef = new DummyRunnable(this);
 
@@ -463,6 +464,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     @Override
+    public final boolean isFiber() {
+        return true;
+    }
+
+    @Override
     public final Object getUnderlying() {
         return this;
     }
@@ -566,10 +572,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         final Thread currentThread = Thread.currentThread();
         installFiberDataInThread(currentThread);
 
+        run++;
+        runningThread = currentThread;
         state = State.RUNNING;
+
         boolean restored = false;
         try {
             this.result = run1(); // we jump into the continuation
+
+            runningThread = null;
             state = State.TERMINATED;
             record(1, "Fiber", "exec1", "finished %s %s res: %s", state, this, this.result);
             monitorFiberTerminated(monitor);
@@ -578,6 +589,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             assert ex == SuspendExecution.PARK || ex == SuspendExecution.YIELD;
             //stack.dump();
             stack.resumeStack();
+            runningThread = null;
             state = State.WAITING;
 
             final PostParkActions ppa = postParkActions;
@@ -597,11 +609,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 monitor.fiberSuspended();
             return false;
         } catch (InterruptedException e) {
+            runningThread = null;
             state = State.TERMINATED;
             record(1, "Fiber", "exec1", "InterruptedException: %s, %s", state, this);
             monitorFiberTerminated(monitor);
             throw new RuntimeException(e);
         } catch (Throwable t) {
+            runningThread = null;
             state = State.TERMINATED;
             record(1, "Fiber", "exec1", "Exception in %s %s: %s", state, this, t);
             monitorFiberTerminated(monitor);
@@ -609,6 +623,44 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         } finally {
             if (!restored)
                 restoreThreadData(currentThread, oldFiber);
+        }
+    }
+
+    private StackTraceElement[] execStackTrace1() {
+        if (fjTask.isDone() | state == State.RUNNING)
+            throw new IllegalStateException("Not new or suspended");
+
+        this.getStackTrace = true;
+        Stack.getStackTrace.set(stack);
+        try {
+            run1(); // we jump into the continuation
+            throw new AssertionError();
+        } catch (SuspendExecution | IllegalStateException ex) {
+            assert ex != SuspendExecution.PARK && ex != SuspendExecution.YIELD;
+            //stack.dump();
+            stack.resumeStack();
+            fjTask.doPark(false); // now we can complete parking
+
+            StackTraceElement[] st = ex.getStackTrace();
+
+            if (ex instanceof IllegalStateException) { // special case for sleep (not recognized as a yield method by instrumentation
+                int index = -1;
+                for (int i = 0; i < st.length; i++) {
+                    if (Fiber.class.getName().equals(st[i].getClassName()) && "sleep".equals(st[i].getMethodName())) {
+                        index = i;
+                        break;
+                    }
+                }
+                assert index >= 0;
+                st = skipStackTraceElements(st, index);
+            } else
+                st = skipStackTraceElements(st, 2); // skip Fiber.onResume and Stack.postRestore
+            return st;
+        } catch (Throwable ex) {
+            throw new AssertionError(ex);
+        } finally {
+            this.getStackTrace = false;
+            Stack.getStackTrace.remove();
         }
     }
 
@@ -772,6 +824,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     protected void onResume() throws SuspendExecution, InterruptedException {
+        if (getStackTrace) {
+            try {
+                park1(null, null, 0, null);
+            } catch (SuspendExecution e) {
+            }
+            SuspendExecution ex = new SuspendExecution();
+            ex.setStackTrace(new Throwable().getStackTrace());
+            throw ex;
+        }
+
         record(1, "Fiber", "onResume", "Resuming %s", this);
         if (isRecordingLevel(2))
             record(2, "Fiber", "onResume", "Resuming %s at: %s", this, Arrays.toString(getStackTrace()));
@@ -875,6 +937,26 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return false;
     }
 
+    private StackTraceElement[] execStackTrace(long timeout, TimeUnit unit) {
+        long start = 0;
+        for (int i = 0;; i++) {
+            if (fjTask.tryUnpark())
+                return execStackTrace1();
+
+            if (unit != null && timeout == 0)
+                break;
+            if (unit != null && timeout > 0 && i > (1 << 12)) {
+                if (start == 0)
+                    start = System.nanoTime();
+                else if (i % 100 == 0) {
+                    if (System.nanoTime() - start > unit.toNanos(timeout))
+                        break;
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * Makes available the permit for this fiber, if it was not already available.
      * If the fiber was blocked on {@code park} then it will unblock.
@@ -921,6 +1003,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private void sleep1(long millis) throws InterruptedException, SuspendExecution {
+        if (getStackTrace) { // special case because this method isn't instrumented
+            onResume();
+            assert false : "shouldn't get here";
+        }
         // this class's methods aren't instrumented, so we can't rely on the stack. This method will be called again when unparked
         try {
             for (;;) {
@@ -963,9 +1049,41 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final StackTraceElement[] getStackTrace() {
-        StackTraceElement[] threadStack = Thread.currentThread().getStackTrace();
+        StackTraceElement[] threadStack = null;
+        if (currentFiber() == this)
+            threadStack = skipStackTraceElements(Thread.currentThread().getStackTrace(), 1); // remove Thread.getStackTrace
+        else if (state == State.TERMINATED || state == State.NEW)
+            threadStack = null;
+        else {
+            for (;;) {
+                if (state == State.RUNNING) {
+                    final long r = run;
+                    final Thread t = runningThread;
+                    if (t != null)
+                        threadStack = t.getStackTrace();
+                    if (state == State.RUNNING && run == r && runningThread == t)
+                        break;
+                } else {
+                    threadStack = execStackTrace(1, TimeUnit.MILLISECONDS);
+                    if (threadStack != null) {
+                        // we need to unpark because if someone else had tried to unpark while we were in execStackTrace(), it would have silently failed.
+                        unpark();
+                        break;
+                    }
+                }
+            }
+        }
+        return threadToFiberStack(threadStack);
+    }
+
+    private static StackTraceElement[] threadToFiberStack(StackTraceElement[] threadStack) {
+        if (threadStack == null)
+            return null;
+        if (threadStack.length == 0)
+            return threadStack;
+
         int count = 0;
-        for (int i = 1; i < threadStack.length; i++) {
+        for (int i = 0; i < threadStack.length; i++) {
             count++;
             StackTraceElement ste = threadStack[i];
             if (Fiber.class.getName().equals(ste.getClassName())) {
@@ -979,7 +1097,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         }
 
         StackTraceElement[] fiberStack = new StackTraceElement[count];
-        System.arraycopy(threadStack, 1, fiberStack, 0, count);
+        System.arraycopy(threadStack, 0, fiberStack, 0, count);
         return fiberStack;
     }
 
@@ -989,8 +1107,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     @SuppressWarnings("CallToThrowablePrintStackTrace")
-    public static void printStackTrace(Throwable t, OutputStream out) {
-        t.printStackTrace(new PrintStream(out) {
+    private static void printStackTrace(Throwable t, java.io.OutputStream out) {
+        t.printStackTrace(new java.io.PrintStream(out) {
             boolean seenExec;
 
             @Override
@@ -1362,4 +1480,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
     //</editor-fold>
     private static final FibersMonitor NOOP_FIBERS_MONITOR = new NoopFibersMonitor();
+
+    private static StackTraceElement[] skipStackTraceElements(StackTraceElement[] st, int skip) {
+        final StackTraceElement[] st1 = new StackTraceElement[st.length - skip];
+        System.arraycopy(st, skip, st1, 0, st1.length);
+        return st1;
+    }
 }

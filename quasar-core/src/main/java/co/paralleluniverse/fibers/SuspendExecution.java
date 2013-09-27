@@ -48,7 +48,7 @@ public final class SuspendExecution extends Exception { // InterruptedException 
     static final SuspendExecution PARK = new SuspendExecution();
     static final SuspendExecution YIELD = new SuspendExecution();
     
-    private SuspendExecution() {
+    SuspendExecution() {
     }
 
     @Override
