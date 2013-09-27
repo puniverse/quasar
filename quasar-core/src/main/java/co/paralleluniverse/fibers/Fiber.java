@@ -852,8 +852,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         long start = 0;
         for (int i = 0;; i++) {
-            boolean a, b = true;
-            if ((a = getBlocker() == blocker) && (b = fjTask.tryUnpark())) {
+            if (getBlocker() == blocker && fjTask.tryUnpark()) {
                 final FibersMonitor monitor = getMonitor();
                 if (monitor != null)
                     monitor.fiberSubmitted(false);
@@ -861,7 +860,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                     fjTask.quietlyComplete();
                 return true;
             }
-            // System.out.println("XXXXX a: " + a + " b: " + b + " fiber: " + this);
             if (unit != null && timeout == 0)
                 break;
             if (unit != null && timeout > 0 && i > (1 << 12)) {

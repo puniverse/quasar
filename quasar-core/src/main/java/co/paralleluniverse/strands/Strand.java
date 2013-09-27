@@ -18,6 +18,8 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FibersMonitor;
 import co.paralleluniverse.fibers.NoopFibersMonitor;
 import co.paralleluniverse.fibers.SuspendExecution;
+import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -49,6 +51,8 @@ public abstract class Strand {
     public static enum State {
         NEW, STARTED, RUNNING, WAITING, TERMINATED
     };
+
+    public abstract boolean isFiber();
 
     public abstract Object getUnderlying();
 
@@ -82,9 +86,9 @@ public abstract class Strand {
     public abstract StackTraceElement[] getStackTrace();
 
     public abstract long getId();
-    
+
     public abstract FibersMonitor getMonitor();
-    
+
     /**
      * Returns the current fiber, if there is one, or the current thread otherwise.
      *
@@ -262,11 +266,28 @@ public abstract class Strand {
         return t;
     }
 
+    public static void printStackTrace(StackTraceElement[] trace, PrintStream out) {
+        Throwable t = new Throwable();
+        t.setStackTrace(trace);
+        t.printStackTrace(out);
+    }
+
+    public static void printStackTrace(StackTraceElement[] trace, PrintWriter out) {
+        Throwable t = new Throwable();
+        t.setStackTrace(trace);
+        t.printStackTrace(out);
+    }
+
     private static final class ThreadStrand extends Strand {
         private final Thread thread;
 
         public ThreadStrand(Thread owner) {
             this.thread = owner;
+        }
+
+        @Override
+        public boolean isFiber() {
+            return false;
         }
 
         @Override
@@ -283,7 +304,7 @@ public abstract class Strand {
         public long getId() {
             return thread.getId();
         }
-        
+
         @Override
         public boolean isAlive() {
             return thread.isAlive();
@@ -362,7 +383,7 @@ public abstract class Strand {
         public FibersMonitor getMonitor() {
             return NOOP_FIBERS_MONITOR;
         }
-        
+
         @Override
         public String toString() {
             return thread.toString();
@@ -392,6 +413,11 @@ public abstract class Strand {
         }
 
         @Override
+        public boolean isFiber() {
+            return true;
+        }
+
+        @Override
         public Fiber getUnderlying() {
             return fiber;
         }
@@ -405,7 +431,7 @@ public abstract class Strand {
         public long getId() {
             return fiber.getId();
         }
-        
+
         @Override
         public boolean isAlive() {
             return fiber.isAlive();
@@ -425,7 +451,7 @@ public abstract class Strand {
         public FibersMonitor getMonitor() {
             return fiber.getMonitor();
         }
-        
+
         @Override
         public Strand start() {
             fiber.start();
@@ -472,6 +498,5 @@ public abstract class Strand {
             return fiber.toString();
         }
     }
-    
     private static final FibersMonitor NOOP_FIBERS_MONITOR = new NoopFibersMonitor();
 }
