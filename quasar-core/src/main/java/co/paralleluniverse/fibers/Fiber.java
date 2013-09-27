@@ -63,6 +63,8 @@ import sun.misc.Unsafe;
 public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.verifyInstrumentation", "false"));
     public static final int DEFAULT_STACK_SIZE = 16;
+    private static final int PREEMPTION_CREDITS = 3000;
+    private static final long TIME_SLICE_MICRO = 1000;
     private static final long serialVersionUID = 2783452871536981L;
     protected static final FlightRecorder flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
@@ -97,6 +99,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private volatile State state;
     private volatile boolean interrupted;
     private long run;
+    private boolean noPreempt;
+    private int preemptionCredits;
+    private long runStart;
     private Thread runningThread;
     private final SuspendableCallable<V> target;
     private ClassLoader contextClassLoader;
@@ -573,6 +578,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         installFiberDataInThread(currentThread);
 
         run++;
+        preemptionCredits = PREEMPTION_CREDITS;
+        runStart = 0L;
         runningThread = currentThread;
         state = State.RUNNING;
 
@@ -839,9 +846,26 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             record(2, "Fiber", "onResume", "Resuming %s at: %s", this, Arrays.toString(getStackTrace()));
     }
 
+    final void preemptionPoint(int type) throws SuspendExecution {
+        if (noPreempt)
+            return;
+        if (shouldPreempt(type))
+            preempt();
+    }
+
     protected boolean shouldPreempt(int type) {
         // 0 - backbranch
         // 1 - call
+//        assert type == 1;
+//        preemptionCredits -= 3;
+//        if (preemptionCredits < 0) {
+//            final long now = System.nanoTime();
+//            if (runStart == 0)
+//                runStart = now;
+//            else if (TimeUnit.NANOSECONDS.toMicros(now - runStart) > TIME_SLICE_MICRO)
+//                return true;
+//            preemptionCredits = 1000;
+//        }
         return false;
     }
 
@@ -918,8 +942,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 final FibersMonitor monitor = getMonitor();
                 if (monitor != null)
                     monitor.fiberSubmitted(false);
-                if (fjTask.exec())
-                    fjTask.quietlyComplete();
+                noPreempt = true;
+                try {
+                    if (fjTask.exec())
+                        fjTask.quietlyComplete();
+                } finally {
+                    noPreempt = false;
+                }
                 return true;
             }
             if (unit != null && timeout == 0)
@@ -940,8 +969,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private StackTraceElement[] execStackTrace(long timeout, TimeUnit unit) {
         long start = 0;
         for (int i = 0;; i++) {
-            if (fjTask.tryUnpark())
-                return execStackTrace1();
+            if (fjTask.tryUnpark()) {
+                noPreempt = true;
+                try {
+                    return execStackTrace1();
+                } finally {
+                    noPreempt = false;
+                }
+            }
 
             if (unit != null && timeout == 0)
                 break;

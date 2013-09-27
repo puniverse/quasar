@@ -168,10 +168,9 @@ public final class Stack implements Serializable {
     }
 
     public final void preemptionPoint(int type) throws SuspendExecution {
-        if(fiber.shouldPreempt(type))
-            fiber.preempt();
+        fiber.preemptionPoint(type);
     }
-    
+
     /**
      * called when resuming a stack
      */
