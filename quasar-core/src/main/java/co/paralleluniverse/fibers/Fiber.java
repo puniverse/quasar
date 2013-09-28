@@ -993,11 +993,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         long start = 0;
         for (int i = 0;; i++) {
             if (fjTask.tryUnpark()) {
-                noPreempt = true;
+                this.noPreempt = true;
                 try {
                     return execStackTrace1();
                 } finally {
-                    noPreempt = false;
+                    this.noPreempt = false;
                 }
             }
 
