@@ -945,7 +945,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     public final boolean exec(Object blocker, long timeout, TimeUnit unit) {
-        return exec(blocker, timeout, unit);
+        return exec(blocker, null, timeout, unit);
     }
     /**
      * Executes fiber on this thread, after waiting until the given blocker is indeed the fiber's blocker, and that the fiber is not being run concurrently.
