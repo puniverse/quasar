@@ -30,7 +30,6 @@ import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.SuspendableUtils.VoidSuspendableCallable;
 import static co.paralleluniverse.strands.SuspendableUtils.runnableToCallable;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Method;
@@ -965,13 +964,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 if (monitor != null)
                     monitor.fiberSubmitted(false);
                 this.prePark = prePark;
-                noPreempt = true;
+                this.noPreempt = true;
                 try {
                     if (fjTask.exec())
                         fjTask.quietlyComplete();
                 } finally {
-                    this.postPark = null;
-                    noPreempt = false;
+                    this.prePark = null;
+                    this.noPreempt = false;
                 }
                 return true;
             }
