@@ -110,7 +110,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private Object inheritableFiberLocals;
     private long sleepStart;
     private Future<Void> timeoutTask;
-    private PostParkActions postParkActions;
+    private ParkAction prePark;
+    private ParkAction postPark;
     private V result;
     private boolean getStackTrace;
     private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
@@ -501,11 +502,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * @throws SuspendExecution This exception is used for control transfer and must never be caught.
      * @throws IllegalStateException If not called from a Fiber
      */
-    public static boolean park(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
+    public static boolean park(Object blocker, ParkAction postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
         return verifySuspend().park1(blocker, postParkActions, timeout, unit);
     }
 
-    public static boolean park(Object blocker, PostParkActions postParkActions) throws SuspendExecution {
+    public static boolean park(Object blocker, ParkAction postParkActions) throws SuspendExecution {
         return park(blocker, postParkActions, 0, null);
     }
 
@@ -547,17 +548,19 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * <p/>
      *
      * @param blocker
-     * @param postParkActions
+     * @param postParkAction
      * @param timeout
      * @param unit
      * @return
      * @throws SuspendExecution
      */
-    private boolean park1(Object blocker, PostParkActions postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
+    private boolean park1(Object blocker, ParkAction postParkAction, long timeout, TimeUnit unit) throws SuspendExecution {
         record(1, "Fiber", "park", "Parking %s blocker: %s", this, blocker);
         if (isRecordingLevel(2))
             record(2, "Fiber", "park", "Parking %s at %s", this, Arrays.toString(getStackTrace()));
-        this.postParkActions = postParkActions;
+        if(prePark != null)
+            prePark.run(this);
+        this.postPark = postParkAction;
         if (timeout > 0 && unit != null)
             this.timeoutTask = timeoutService.schedule(this, timeout, unit);
 
@@ -567,6 +570,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private void yield1() throws SuspendExecution {
         if (isRecordingLevel(2))
             record(2, "Fiber", "yield", "Yielding %s at %s", this, Arrays.toString(getStackTrace()));
+        if(prePark != null)
+            prePark.run(this);
         fjTask.yield1();
     }
 
@@ -613,8 +618,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             runningThread = null;
             state = State.WAITING;
 
-            final PostParkActions ppa = postParkActions;
-            this.postParkActions = null;
+            final ParkAction ppa = postPark;
+            this.postPark = null;
 
             restoreThreadData(currentThread, oldFiber);
             restored = true;
@@ -939,13 +944,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return parent;
     }
 
+    public final boolean exec(Object blocker, long timeout, TimeUnit unit) {
+        return exec(blocker, timeout, unit);
+    }
     /**
      * Executes fiber on this thread, after waiting until the given blocker is indeed the fiber's blocker, and that the fiber is not being run concurrently.
      *
      * @param blocker
      * @return {@code true} if the task has been executed by this method; {@code false} otherwise.
      */
-    public final boolean exec(Object blocker, long timeout, TimeUnit unit) {
+    public final boolean exec(Object blocker, ParkAction prePark, long timeout, TimeUnit unit) {
         if (ForkJoinTask.getPool() != fjPool)
             return false;
         record(1, "Fiber", "exec", "Blocker %s attempting to immediately execute %s", blocker, this);
@@ -956,11 +964,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 final FibersMonitor monitor = getMonitor();
                 if (monitor != null)
                     monitor.fiberSubmitted(false);
+                this.prePark = prePark;
                 noPreempt = true;
                 try {
                     if (fjTask.exec())
                         fjTask.quietlyComplete();
                 } finally {
+                    this.postPark = null;
                     noPreempt = false;
                 }
                 return true;
@@ -1312,7 +1322,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         out.defaultWriteObject();
     }
 
-    public static interface PostParkActions {
+    public static interface ParkAction {
         /**
          * Called by Fiber immediately after park.
          * This method may not use any ThreadLocals as they have been rest by the time the method is called.

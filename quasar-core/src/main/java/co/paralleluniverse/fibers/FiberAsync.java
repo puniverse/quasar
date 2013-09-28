@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
  * @param <Callback> The interface of the async callback.
  * @param <E> An exception class that could be thrown by the async request
  */
-public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements Fiber.PostParkActions {
+public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
     private static final long IMMEDIATE_EXEC_TIMEOUT_MILLIS = 50;
     private final boolean immediateExec;
 
@@ -40,8 +40,13 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
         if (Fiber.currentFiber() == null)
             return requestSync();
 
-        while (!Fiber.park(this, this)) // make sure we actually park and run PostParkActions
-            ;
+        while (!Fiber.park(this, new Fiber.ParkAction() {
+            @Override
+            public void run(Fiber current) {
+                attachment = requestAsync(current, getCallback());
+            }
+        })); // make sure we actually park and run PostParkActions
+
         while (!isCompleted())
             Fiber.park((Object) this);
 
@@ -84,7 +89,12 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
 
     private void fire(Fiber fiber) {
         if (immediateExec) {
-            if (!fiber.exec(this, IMMEDIATE_EXEC_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+            if (!fiber.exec(this, new Fiber.ParkAction() {
+                @Override
+                public void run(Fiber current) {
+                    prepark();
+                }
+            }, IMMEDIATE_EXEC_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 final RuntimeException ex = new RuntimeException("Failed to exec fiber " + fiber + " in thread " + Thread.currentThread());
 
                 this.exception = ex;
@@ -97,14 +107,11 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> implements
     }
 
     /**
-     * Internal method, do not call. Called by Fiber immediately after park.
-     * This method may not use any ThreadLocals as they have been rest by the time the method is called.
+     * Can be overridden by subclasses running in immediate-exec mode to verify whether a park is allowed.
      *
-     * @param current
+     * @return
      */
-    @Override
-    public final void run(Fiber current) {
-        attachment = requestAsync(current, getCallback());
+    protected void prepark() {
     }
 
     protected final A getAttachment() {
