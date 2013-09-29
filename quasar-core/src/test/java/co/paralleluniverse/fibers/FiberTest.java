@@ -380,6 +380,60 @@ public class FiberTest {
     }
 
     @Test
+    public void testDumpStackWaitingFiberWhenCalledFromFiber() throws Exception {
+        final Condition cond = new SimpleConditionSynchronizer();
+        final AtomicBoolean flag = new AtomicBoolean(false);
+
+        final Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                foo();
+            }
+
+            private void foo() throws InterruptedException, SuspendExecution {
+                cond.register();
+                try {
+                    for (int i = 0; !flag.get(); i++) {
+                        cond.await(i);
+                    }
+                } finally {
+                    cond.unregister();
+                }
+            }
+        }).start();
+
+        Thread.sleep(200);
+
+        Fiber fiber2 = new Fiber(fjPool, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                StackTraceElement[] st = fiber.getStackTrace();
+
+                // Strand.printStackTrace(st, System.err);
+
+                assertThat(st[0].getMethodName(), equalTo("park"));
+                boolean found = false;
+                for (int i = 0; i < st.length; i++) {
+                    if (st[i].getMethodName().equals("foo")) {
+                        found = true;
+                        break;
+                    }
+                }
+                assertThat(found, is(true));
+                assertThat(st[st.length - 1].getMethodName(), equalTo("run"));
+                assertThat(st[st.length - 1].getClassName(), equalTo(Fiber.class.getName()));
+            }
+        }).start();
+
+        fiber2.join();
+        
+        flag.set(true);
+        cond.signalAll();
+
+        fiber.join();
+    }
+
+    @Test
     public void testDumpStackSleepingFiber() throws Exception {
         // sleep is a special case
         Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {

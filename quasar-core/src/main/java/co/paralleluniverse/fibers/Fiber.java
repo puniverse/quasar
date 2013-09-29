@@ -557,7 +557,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         record(1, "Fiber", "park", "Parking %s blocker: %s", this, blocker);
         if (isRecordingLevel(2))
             record(2, "Fiber", "park", "Parking %s at %s", this, Arrays.toString(getStackTrace()));
-        if(prePark != null)
+        if (prePark != null)
             prePark.run(this);
         this.postPark = postParkAction;
         if (timeout > 0 && unit != null)
@@ -569,7 +569,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private void yield1() throws SuspendExecution {
         if (isRecordingLevel(2))
             record(2, "Fiber", "yield", "Yielding %s at %s", this, Arrays.toString(getStackTrace()));
-        if(prePark != null)
+        if (prePark != null)
             prePark.run(this);
         fjTask.yield1();
     }
@@ -657,6 +657,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         this.getStackTrace = true;
         Stack.getStackTrace.set(stack);
+        final Fiber oldFiber = getCurrentFiber();
+        final Thread currentThread = Thread.currentThread();
+        if (oldFiber != null)
+            setCurrentFiber(this, currentThread);
+
+        boolean restored = false;
         try {
             run1(); // we jump into the continuation
             throw new AssertionError();
@@ -664,6 +670,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             assert ex != SuspendExecution.PARK && ex != SuspendExecution.YIELD;
             //stack.dump();
             stack.resumeStack();
+
+            if (oldFiber != null)
+                setCurrentFiber(oldFiber, currentThread);
+            restored = true;
+
             fjTask.doPark(false); // now we can complete parking
 
             StackTraceElement[] st = ex.getStackTrace();
@@ -686,6 +697,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         } finally {
             this.getStackTrace = false;
             Stack.getStackTrace.remove();
+            if (!restored && oldFiber != null)
+                setCurrentFiber(oldFiber, currentThread);
         }
     }
 
@@ -1110,10 +1123,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         StackTraceElement[] threadStack = null;
         if (currentFiber() == this)
             threadStack = skipStackTraceElements(Thread.currentThread().getStackTrace(), 1); // remove Thread.getStackTrace
-        else if (state == State.TERMINATED || state == State.NEW)
-            threadStack = null;
         else {
             for (;;) {
+                if (state == State.TERMINATED || state == State.NEW)
+                    break;
                 if (state == State.RUNNING) {
                     final long r = run;
                     final Thread t = runningThread;
