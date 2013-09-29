@@ -440,6 +440,13 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
             Node pred = tryAppend(s, haveData);
             if (pred == null)
                 continue retry;           // lost race vs opposite mode
+            
+            if(!haveData && sendClosed) {
+                s.item = CHANNEL_CLOSED;
+                unsplice(pred, s);
+                setReceiveClosed();
+                return CHANNEL_CLOSED;
+            }
 
             return awaitMatch(s, pred, e, (how == TIMED), nanos);
         }
@@ -460,9 +467,8 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
             }
 
             Object item = tryMatch(e, e.message(), haveData);
-            if (item == LOST) {
+            if (item == LOST)
                 return null;
-            }
 
             if (item != NO_MATCH) {
                 e.setItem(item == CHANNEL_CLOSED ? null : (Message) item);
@@ -484,7 +490,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
     }
 
     private Object tryMatch(SelectAction sa, Message e, boolean haveData) {
-        boolean closed = isSendClosed(); // must be read before trying to match
+        boolean closed = isSendClosed(); // must be read before trying to match so as not to miss puts
 
         for (Node h = head, p = h; p != null;) { // find & match first node
             boolean isData = p.isData;
