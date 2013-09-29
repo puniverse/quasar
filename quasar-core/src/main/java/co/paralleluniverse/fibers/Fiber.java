@@ -713,7 +713,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     private void installFiberDataInThread(Thread currentThread) {
         record(1, "Fiber", "installFiberDataInThread", "%s <-> %s", this, currentThread);
-        setCurrentFiber(this);
+        setCurrentFiber(this, currentThread);
         installFiberLocals(currentThread);
         installFiberContextClassLoader(currentThread);
     }
@@ -722,7 +722,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         record(1, "Fiber", "restoreThreadData", "%s <-> %s", this, currentThread);
         restoreThreadLocals(currentThread);
         restoreThreadContextClassLoader(currentThread);
-        setCurrentFiber(oldFiber);
+        setCurrentFiber(oldFiber, currentThread);
     }
 
     private void installFiberLocals(Thread currentThread) {
@@ -764,10 +764,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         ThreadAccess.setContextClassLoader(currentThread, origContextClassLoader);
     }
 
-    private void setCurrentFiber(Fiber fiber) {
+    private void setCurrentFiber(Fiber fiber, Thread currentThread) {
         if (fjPool == null) // in tests
             return;
-        final Thread currentThread = Thread.currentThread();
 //        if (ThreadAccess.getTarget(currentThread) != null && fiber != null)
 //            throw new RuntimeException("Fiber " + fiber + " target: " + ThreadAccess.getTarget(currentThread));
         ThreadAccess.setTarget(currentThread, fiber != null ? fiber.fiberRef : null);
@@ -946,6 +945,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     public final boolean exec(Object blocker, long timeout, TimeUnit unit) {
         return exec(blocker, null, timeout, unit);
     }
+
     /**
      * Executes fiber on this thread, after waiting until the given blocker is indeed the fiber's blocker, and that the fiber is not being run concurrently.
      *
