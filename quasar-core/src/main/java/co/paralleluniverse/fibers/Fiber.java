@@ -530,7 +530,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     public static void sleep(long millis) throws InterruptedException, SuspendExecution {
-        verifySuspend().sleep1(millis);
+        sleep(millis, TimeUnit.MILLISECONDS);
+    }
+
+    public static void sleep(long millis, int nanos) throws InterruptedException, SuspendExecution {
+        sleep(TimeUnit.MILLISECONDS.toNanos(millis) + nanos, TimeUnit.NANOSECONDS);
+    }
+
+    public static void sleep(long duration, TimeUnit unit) throws InterruptedException, SuspendExecution {
+        verifySuspend().sleep1(duration, unit);
     }
 
     public static boolean interrupted() {
@@ -1073,7 +1081,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return false;
     }
 
-    private void sleep1(long millis) throws InterruptedException, SuspendExecution {
+    private void sleep1(long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
         if (getStackTrace) { // special case because this method isn't instrumented
             onResume();
             assert false : "shouldn't get here";
@@ -1086,7 +1094,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 final long now = System.nanoTime();
                 if (sleepStart == 0)
                     this.sleepStart = now;
-                final long deadline = sleepStart + TimeUnit.MILLISECONDS.toNanos(millis);
+                final long deadline = sleepStart + unit.toNanos(timeout);
                 final long left = deadline - now;
                 if (left <= 0) {
                     this.sleepStart = 0;

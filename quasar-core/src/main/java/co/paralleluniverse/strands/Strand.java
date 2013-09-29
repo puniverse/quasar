@@ -141,6 +141,20 @@ public abstract class Strand {
             Thread.sleep(millis);
     }
 
+    public static void sleep(long millis, int nanos) throws SuspendExecution, InterruptedException {
+        if (Fiber.currentFiber() != null)
+            Fiber.sleep(millis, nanos);
+        else
+            Thread.sleep(millis, nanos);
+    }
+
+    public static void sleep(long duration, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        if (Fiber.currentFiber() != null)
+            Fiber.sleep(duration, unit);
+        else
+            unit.sleep(duration);
+    }
+
     public static void park() throws SuspendExecution {
         if (Fiber.currentFiber() != null)
             Fiber.park();
