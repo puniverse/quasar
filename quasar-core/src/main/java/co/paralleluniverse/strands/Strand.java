@@ -281,37 +281,13 @@ public abstract class Strand {
     }
 
     public static void printStackTrace(StackTraceElement[] trace, PrintStream out) {
-        Throwable t = new Throwable();
-        t.setStackTrace(trace);
-        t.printStackTrace(new PrintStream(out) {
-            boolean firstLine = true;
-
-            @Override
-            public void println(Object x) {
-                if (firstLine) {
-                    firstLine = false;
-                    return;
-                }
-                super.println(x);
-            }
-        });
+        for (StackTraceElement traceElement : trace)
+            out.println("\tat " + traceElement);
     }
 
-    public static void printStackTrace(StackTraceElement[] trace, final PrintWriter out) {
-        Throwable t = new Throwable();
-        t.setStackTrace(trace);
-        t.printStackTrace(new PrintWriter(out) {
-            boolean firstLine = true;
-
-            @Override
-            public void println(Object x) {
-                if (firstLine) {
-                    firstLine = false;
-                    return;
-                }
-                super.println(x);
-            }
-        });
+    public static void printStackTrace(StackTraceElement[] trace, PrintWriter out) {
+        for (StackTraceElement traceElement : trace)
+            out.println("\tat " + traceElement);
     }
 
     private static final class ThreadStrand extends Strand {
