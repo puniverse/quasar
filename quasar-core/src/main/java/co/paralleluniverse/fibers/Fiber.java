@@ -626,7 +626,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             state = State.WAITING;
 
             final ParkAction ppa = postPark;
+            this.prePark = null;
             this.postPark = null;
+            this.noPreempt = false;
 
             restoreThreadData(currentThread, oldFiber);
             restored = true;
@@ -670,7 +672,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (oldFiber != null)
             setCurrentFiber(this, currentThread);
 
-        boolean restored = false;
         try {
             run1(); // we jump into the continuation
             throw new AssertionError();
@@ -681,7 +682,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
             if (oldFiber != null)
                 setCurrentFiber(oldFiber, currentThread);
-            restored = true;
+
+            this.noPreempt = false;
+            this.getStackTrace = false;
+            Stack.getStackTrace.remove();
 
             fjTask.doPark(false); // now we can complete parking
 
@@ -702,11 +706,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             return st;
         } catch (Throwable ex) {
             throw new AssertionError(ex);
-        } finally {
-            this.getStackTrace = false;
-            Stack.getStackTrace.remove();
-            if (!restored && oldFiber != null)
-                setCurrentFiber(oldFiber, currentThread);
         }
     }
 
@@ -986,13 +985,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                     monitor.fiberSubmitted(false);
                 this.prePark = prePark;
                 this.noPreempt = true;
-                try {
-                    if (fjTask.exec())
-                        fjTask.quietlyComplete();
-                } finally {
-                    this.prePark = null;
-                    this.noPreempt = false;
-                }
+                if (fjTask.exec())
+                    fjTask.quietlyComplete();
                 return true;
             }
             if (unit != null && timeout == 0)
@@ -1015,11 +1009,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         for (int i = 0;; i++) {
             if (fjTask.tryUnpark()) {
                 this.noPreempt = true;
-                try {
-                    return execStackTrace1();
-                } finally {
-                    this.noPreempt = false;
-                }
+                return execStackTrace1();
             }
 
             if (unit != null && timeout == 0)
