@@ -1,6 +1,14 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (c) 2013, Parallel Universe Software Co. All rights reserved.
+ * 
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *  
+ *   or (per the licensee's choosing)
+ *  
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.data.record;
 
@@ -15,15 +23,29 @@ import sun.misc.Unsafe;
  */
 class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable {
     private final Set<Field<? super R, ?>> fieldSet;
-    private final int[] offsets;
+    final int[] offsets;
     private final Object[] oa;
     private final byte[] ba;
 
-    SimpleRecord(RecordType<R> recordType) {
+    public SimpleRecord(RecordType<R> recordType) {
         this.fieldSet = recordType.fields();
         this.offsets = recordType.getOffsets();
         this.oa = recordType.getObjectIndex() > 0 ? new Object[recordType.getObjectOffset()] : null;
         this.ba = recordType.getPrimitiveIndex() > 0 ? new byte[recordType.getPrimitiveOffset()] : null;
+    }
+
+    /**
+     * Used by SimpleRecordArray
+     * @param fieldSet
+     * @param offsets
+     * @param oa
+     * @param ba 
+     */
+    SimpleRecord(Set<Field<? super R, ?>> fieldSet, int[] offsets, Object[] oa, byte[] ba) {
+        this.fieldSet = fieldSet;
+        this.offsets = offsets;
+        this.oa = oa;
+        this.ba = ba;
     }
 
     private SimpleRecord(SimpleRecord<R> other) {
@@ -34,8 +56,8 @@ class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable 
     }
 
     @Override
-    protected SimpleRecord clone() {
-        return new SimpleRecord(this);
+    protected SimpleRecord<R> clone() {
+        return new SimpleRecord<R>(this);
     }
 
     @Override
@@ -43,7 +65,7 @@ class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable 
         return fieldSet;
     }
 
-    private int fieldOffset(Field<? super R, ?> field) {
+    int fieldOffset(Field<? super R, ?> field) {
         try {
             return offsets[field.id];
         } catch (IndexOutOfBoundsException e) {

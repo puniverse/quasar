@@ -302,7 +302,7 @@ public class RecordType<R> {
                     } else
                         accessor = null;
 
-                    if(f != null || getter != null)
+                    if (f != null || getter != null)
                         implementedFields.add(field);
                     table[field.id()] = new Entry(f, getter, setter, getterHandle, setterHandle, offset, accessor, indexed);
                 }
@@ -461,6 +461,11 @@ public class RecordType<R> {
                 return new DynamicGeneratedRecord<R>(this, target);
         }
         throw new AssertionError("unreachable");
+    }
+
+    public RecordArray<R> newArray(int size) {
+        seal();
+        return new SimpleRecordArray<R>(this, size);
     }
 
     @Override

@@ -199,6 +199,13 @@ public final class Records {
         }
     }
 
+    public static <R> void clear(RecordArray<R> recordArray) {
+        if(recordArray instanceof SimpleRecordArray) {
+            ((SimpleRecordArray<R>)recordArray).clear();
+        } else
+            throw new UnsupportedOperationException();
+    }
+    
     public static <R> boolean deepEquals(Record<R> a, Record<R> b) {
         if (a == b)
             return true;
