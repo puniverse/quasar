@@ -36,6 +36,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import jsr166e.ForkJoinPool;
 
 public class FiberTimedScheduler {
+    private static final boolean BACKPRESSURE = false;
+    private static final int BACKPRESSURE_MASK = (1 << 10) - 1;
+    private static final int BACKPRESSURE_THRESHOLD = 800;
+    private static final int BACKPRESSURE_PAUSE_MS = 1;
     private static final AtomicInteger nameSuffixSequence = new AtomicInteger();
     private final Thread worker;
     private final SingleConsumerNonblockingProducerDelayQueue<ScheduledFutureTask> workQueue;
@@ -93,23 +97,38 @@ public class FiberTimedScheduler {
 
     private void work() {
         try {
+            int counter = 0;
             while (state == RUNNING) {
                 try {
                     ScheduledFutureTask task = workQueue.take();
-                    task.run();
+
+                    if (!task.isCancelled()) {
+                        long delay = task.delay;
+                        if (BACKPRESSURE && (counter & BACKPRESSURE_MASK) == 0) {
+                            while (fjPool.getQueuedSubmissionCount() > BACKPRESSURE_THRESHOLD)
+                                Thread.sleep(BACKPRESSURE_PAUSE_MS);
+                            delay = now() - task.time;
+                        }
+                        if (monitor != null)
+                            monitor.timedParkLatency(delay);
+                        
+                        run(task);
+                    }
                 } catch (InterruptedException e) {
                     if (state != RUNNING) {
                         state = STOP;
                         break;
                     }
                 }
+                counter++;
             }
 
             if (state == SHUTDOWN) {
                 while (state < STOP && !workQueue.isEmpty()) {
                     try {
                         ScheduledFutureTask task = workQueue.take();
-                        task.run();
+                        if (!task.isCancelled())
+                            run(task);
                     } catch (InterruptedException e) {
                         if (state != RUNNING) {
                             state = STOP;
@@ -120,6 +139,14 @@ public class FiberTimedScheduler {
             }
         } finally {
             state = TERMINATED;
+        }
+    }
+
+    private void run(ScheduledFutureTask task) {
+        try {
+            final Fiber fiber = task.fiber;
+            fiber.unpark();
+        } catch (Exception e) {
         }
     }
     /**
@@ -135,8 +162,8 @@ public class FiberTimedScheduler {
         return System.nanoTime();
     }
 
-    private class ScheduledFutureTask implements Delayed, Runnable, Future<Void> {
-        private final Fiber<?> fiber;
+    private class ScheduledFutureTask implements Delayed, Future<Void> {
+        final Fiber<?> fiber;
         /**
          * Sequence number to break ties FIFO
          */
@@ -144,9 +171,9 @@ public class FiberTimedScheduler {
         /**
          * The time the task is enabled to execute in nanoTime units
          */
-        private long time;
+        final long time;
         private volatile boolean cancelled = false;
-        private long delay;
+        long delay;
 
         /**
          * Creates a one-shot action with given nanoTime-based trigger time.
@@ -160,7 +187,7 @@ public class FiberTimedScheduler {
         @Override
         public long getDelay(TimeUnit unit) {
             final long d = unit.convert(time - now(), NANOSECONDS);
-            this.delay = d;
+            this.delay = -d;
             return d;
         }
 
@@ -184,18 +211,6 @@ public class FiberTimedScheduler {
         public boolean cancel(boolean mayInterruptIfRunning) {
             this.cancelled = true;
             return true;
-        }
-
-        @Override
-        public void run() {
-            if (!cancelled) {
-                try {
-                    if (fiber.getMonitor() != null)
-                        fiber.getMonitor().timedParkLatency(-delay);
-                    fiber.unpark();
-                } catch (Exception e) {
-                }
-            }
         }
 
         @Override
@@ -248,7 +263,7 @@ public class FiberTimedScheduler {
             workQueue.add(task);
     }
 
-    protected void reject(Runnable command) {
+    protected void reject(Object command) {
         throw new RejectedExecutionException("Task " + command + " rejected from " + this);
     }
 
@@ -281,18 +296,6 @@ public class FiberTimedScheduler {
                 delay = Long.MAX_VALUE + headDelay;
         }
         return delay;
-    }
-
-    /**
-     * @throws RejectedExecutionException {@inheritDoc}
-     * @throws NullPointerException {@inheritDoc}
-     */
-    public Future<Void> schedule(Fiber<?> fiber, long delay, TimeUnit unit) {
-        if (fiber == null || unit == null)
-            throw new NullPointerException();
-        ScheduledFutureTask t = new ScheduledFutureTask(fiber, triggerTime(delay, unit));
-        delayedExecute(t);
-        return t;
     }
 
     /**
