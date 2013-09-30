@@ -35,6 +35,8 @@ public interface ForkJoinPoolMXBean {
 
     long getStealCount();
 
+    long[] getLatency();
+
     ForkJoinInfo getInfo();
 
     void shutdown();

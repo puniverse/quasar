@@ -33,7 +33,7 @@ public class JMXForkJoinPoolMonitor extends ForkJoinPoolMonitor implements ForkJ
     public JMXForkJoinPoolMonitor(String name, ForkJoinPool fjPool) {
         super(name, fjPool);
         //super(ForkJoinPoolMXBean.class, true, new NotificationBroadcasterSupport());
-        this.mbeanName = "co.paralleluniverse:type=ForkJoinPool,name=" + name + ",monitor=forkJoinPool";
+        this.mbeanName = "co.paralleluniverse:type=ForkJoinPool,name=" + name;
         registerMBean();
     }
 
@@ -141,6 +141,11 @@ public class JMXForkJoinPoolMonitor extends ForkJoinPoolMonitor implements ForkJ
         return fjPool().getStealCount();
     }
 
+    @Override
+    public long[] getLatency() {
+        return new ExecutorServiceLatencyProbe(fjPool(), 5).fire();
+    }
+    
     @Override
     public ForkJoinInfo getInfo() {
         final ForkJoinPool fjPool = fjPool();

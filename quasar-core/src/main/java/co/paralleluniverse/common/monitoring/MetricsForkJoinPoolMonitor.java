@@ -21,7 +21,6 @@ import jsr166e.ForkJoinPool;
  * @author pron
  */
 public class MetricsForkJoinPoolMonitor extends ForkJoinPoolMonitor {
-    
     public MetricsForkJoinPoolMonitor(String name, ForkJoinPool fjPool) {
         super(name, fjPool);
         Metrics.register(metric(name, "status"), new Gauge<Status>() {
@@ -89,10 +88,21 @@ public class MetricsForkJoinPoolMonitor extends ForkJoinPoolMonitor {
             }
         });
 
-       Metrics.register(metric(name, "stealCount"), new Gauge<Long>() {
+        Metrics.register(metric(name, "stealCount"), new Gauge<Long>() {
             @Override
             public Long getValue() {
                 return fjPool().getStealCount();
+            }
+        });
+
+        Metrics.register(metric(name, "latency"), new Gauge<Long[]>() {
+            @Override
+            public Long[] getValue() {
+                long[] res = new ExecutorServiceLatencyProbe(fjPool(), 5).fire();
+                Long[] ret = new Long[res.length];
+                for (int i = 0; i < res.length; i++)
+                    ret[i] = res[i];
+                return ret;
             }
         });
     }
