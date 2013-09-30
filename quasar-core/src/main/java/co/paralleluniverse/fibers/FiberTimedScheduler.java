@@ -20,9 +20,8 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
 import co.paralleluniverse.concurrent.util.SingleConsumerNonblockingProducerDelayQueue;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -34,6 +33,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import jsr166e.ForkJoinPool;
 
 public class FiberTimedScheduler {
     private static final AtomicInteger nameSuffixSequence = new AtomicInteger();
@@ -45,8 +45,11 @@ public class FiberTimedScheduler {
     private static final int TERMINATED = 2;
     private volatile int state = RUNNING;
     private final ReentrantLock mainLock = new ReentrantLock();
+    private final ForkJoinPool fjPool;
+    private final FibersMonitor monitor;
 
-    public FiberTimedScheduler(ThreadFactory threadFactory) {
+    public FiberTimedScheduler(ForkJoinPool fjPool, ThreadFactory threadFactory) {
+        this.fjPool = fjPool;
         this.worker = threadFactory.newThread(new Runnable() {
             @Override
             public void run() {
@@ -54,11 +57,18 @@ public class FiberTimedScheduler {
             }
         });
         this.workQueue = new SingleConsumerNonblockingProducerDelayQueue<ScheduledFutureTask>();
+
+
+        if (fjPool instanceof MonitoredForkJoinPool)
+            this.monitor = ((MonitoredForkJoinPool) fjPool).getFibersMonitor();
+        else
+            this.monitor = null;
+
         worker.start();
     }
 
-    public FiberTimedScheduler() {
-        this(new ThreadFactory() {
+    public FiberTimedScheduler(ForkJoinPool fjPool) {
+        this(fjPool, new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
                 Thread t = new Thread(r, "FiberTimedScheduler-" + nameSuffixSequence.incrementAndGet());
@@ -66,6 +76,19 @@ public class FiberTimedScheduler {
                 return t;
             }
         });
+    }
+
+    /**
+     * @throws RejectedExecutionException {@inheritDoc}
+     * @throws NullPointerException {@inheritDoc}
+     */
+    public Future<Void> schedule(Fiber<?> fiber, long delay, TimeUnit unit) {
+        if (fiber == null || unit == null)
+            throw new NullPointerException();
+        assert fiber.getFjPool() == fjPool;
+        ScheduledFutureTask t = new ScheduledFutureTask(fiber, triggerTime(delay, unit));
+        delayedExecute(t);
+        return t;
     }
 
     private void work() {
@@ -322,16 +345,13 @@ public class FiberTimedScheduler {
      * zero-delay {@code ScheduledFuture}.
      * @throws SecurityException {@inheritDoc}
      */
-    public List<Runnable> shutdownNow() {
+    public void shutdownNow() {
         assert false;
         mainLock.lock();
         try {
             if (state < STOP)
                 state = STOP;
             worker.interrupt();
-            List<Runnable> list = new ArrayList<Runnable>();
-            workQueue.drainTo(list);
-            return list;
         } finally {
             mainLock.unlock();
         }

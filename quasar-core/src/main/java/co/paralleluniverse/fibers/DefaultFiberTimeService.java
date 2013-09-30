@@ -13,21 +13,15 @@
  */
 package co.paralleluniverse.fibers;
 
-import java.util.concurrent.ThreadFactory;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
  *
  * @author pron
  */
 public class DefaultFiberTimeService {
-    private static final FiberTimedScheduler instance = new FiberTimedScheduler(new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread t = new Thread(r, "default-fiber-timed-scheduler");
-            t.setDaemon(true);
-            return t;
-        }
-    });
+    private static final FiberTimedScheduler instance = new FiberTimedScheduler(DefaultFiberPool.getInstance(),
+            new ThreadFactoryBuilder().setNameFormat("default-fiber-timed-scheduler").setDaemon(true).build());
 
     public static FiberTimedScheduler getInstance() {
         return instance;
