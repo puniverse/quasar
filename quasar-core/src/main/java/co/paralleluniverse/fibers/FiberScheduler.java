@@ -22,6 +22,8 @@ public class FiberScheduler {
     private final FiberTimedScheduler timer;
 
     public FiberScheduler(ForkJoinPool fjPool, FiberTimedScheduler timeService) {
+        if(!fjPool.getAsyncMode())
+            throw new IllegalArgumentException("ForkJoinPool is not async");
         this.fjPool = fjPool;
         this.timer = timeService;
     }

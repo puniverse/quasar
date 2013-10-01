@@ -36,10 +36,10 @@ import static org.hamcrest.CoreMatchers.*;
  * @author pron
  */
 public class FiberTest {
-    private ForkJoinPool fjPool;
+    private FiberScheduler scheduler;
 
     public FiberTest() {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
     }
 
     @BeforeClass
@@ -54,7 +54,7 @@ public class FiberTest {
 
     @Test
     public void testTimeout() throws Exception {
-        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
                 Fiber.park(100, TimeUnit.MILLISECONDS);
@@ -73,7 +73,7 @@ public class FiberTest {
 
     @Test
     public void testJoinFromFiber() throws Exception {
-        final Fiber<Integer> fiber1 = new Fiber<Integer>(fjPool, new SuspendableCallable<Integer>() {
+        final Fiber<Integer> fiber1 = new Fiber<Integer>(scheduler, new SuspendableCallable<Integer>() {
             @Override
             public Integer run() throws SuspendExecution {
                 Fiber.park(100, TimeUnit.MILLISECONDS);
@@ -81,7 +81,7 @@ public class FiberTest {
             }
         }).start();
 
-        final Fiber<Integer> fiber2 = new Fiber<Integer>(fjPool, new SuspendableCallable<Integer>() {
+        final Fiber<Integer> fiber2 = new Fiber<Integer>(scheduler, new SuspendableCallable<Integer>() {
             @Override
             public Integer run() throws SuspendExecution, InterruptedException {
                 try {
@@ -102,7 +102,7 @@ public class FiberTest {
 
     @Test
     public void testInterrupt() throws Exception {
-        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
                 try {
@@ -125,7 +125,7 @@ public class FiberTest {
         tl1.set("foo");
         tl2.set("bar");
 
-        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 assertThat(tl1.get(), is(nullValue()));
@@ -155,7 +155,7 @@ public class FiberTest {
         final ThreadLocal<String> tl1 = new ThreadLocal<>();
         tl1.set("foo");
 
-        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 assertThat(tl1.get(), is("foo"));
@@ -188,7 +188,7 @@ public class FiberTest {
         Fiber[] fibers = new Fiber[n];
         for (int i = 0; i < n; i++) {
             final int id = i;
-            Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+            Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
                 @Override
                 public void run() throws SuspendExecution, InterruptedException {
                     for (int j = 0; j < loops; j++) {
@@ -218,7 +218,7 @@ public class FiberTest {
         Fiber[] fibers = new Fiber[n];
         for (int i = 0; i < n; i++) {
             final int id = i;
-            Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+            Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
                 @Override
                 public void run() throws SuspendExecution, InterruptedException {
                     for (int j = 0; j < loops; j++) {
@@ -240,7 +240,7 @@ public class FiberTest {
 
     @Test
     public void whenFiberIsNewThenDumpStackReturnsNull() throws Exception {
-        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 foo();
@@ -256,7 +256,7 @@ public class FiberTest {
 
     @Test
     public void whenFiberIsTerminatedThenDumpStackReturnsNull() throws Exception {
-        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 foo();
@@ -274,7 +274,7 @@ public class FiberTest {
 
     @Test
     public void testDumpStackCurrentFiber() throws Exception {
-        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 foo();
@@ -297,7 +297,7 @@ public class FiberTest {
 
     @Test
     public void testDumpStackRunningFiber() throws Exception {
-        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 foo();
@@ -337,7 +337,7 @@ public class FiberTest {
         final Condition cond = new SimpleConditionSynchronizer();
         final AtomicBoolean flag = new AtomicBoolean(false);
 
-        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 foo();
@@ -384,7 +384,7 @@ public class FiberTest {
         final Condition cond = new SimpleConditionSynchronizer();
         final AtomicBoolean flag = new AtomicBoolean(false);
 
-        final Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 foo();
@@ -404,7 +404,7 @@ public class FiberTest {
 
         Thread.sleep(200);
 
-        Fiber fiber2 = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber fiber2 = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 StackTraceElement[] st = fiber.getStackTrace();
@@ -436,7 +436,7 @@ public class FiberTest {
     @Test
     public void testDumpStackSleepingFiber() throws Exception {
         // sleep is a special case
-        Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 foo();

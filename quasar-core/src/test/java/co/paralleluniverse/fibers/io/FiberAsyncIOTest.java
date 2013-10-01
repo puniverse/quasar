@@ -5,27 +5,24 @@
 package co.paralleluniverse.fibers.io;
 
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketOption;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import static java.nio.file.StandardOpenOption.*;
-
 import jsr166e.ForkJoinPool;
+import static org.hamcrest.CoreMatchers.*;
 import org.junit.After;
+import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
-import static org.hamcrest.CoreMatchers.*;
-import org.junit.Ignore;
 
 /**
  *
@@ -36,10 +33,10 @@ public class FiberAsyncIOTest {
     private static final Charset charset = Charset.forName("UTF-8");
     private static final CharsetEncoder encoder = charset.newEncoder();
     private static final CharsetDecoder decoder = charset.newDecoder();
-    private ForkJoinPool fjPool;
+    private FiberScheduler scheduler;
 
     public FiberAsyncIOTest() {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
     }
 
     @Before
@@ -52,7 +49,7 @@ public class FiberAsyncIOTest {
 
     @Test
     public void testFiberAsyncSocket() throws Exception {
-        final Fiber server = new Fiber(fjPool, new SuspendableRunnable() {
+        final Fiber server = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
                 try (FiberServerSocketChannel socket = FiberServerSocketChannel.open().bind(new InetSocketAddress(PORT));
@@ -97,7 +94,7 @@ public class FiberAsyncIOTest {
             }
         });
 
-        final Fiber client = new Fiber(fjPool, new SuspendableRunnable() {
+        final Fiber client = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
                 try (FiberSocketChannel ch = FiberSocketChannel.open(new InetSocketAddress(PORT))) {
@@ -155,7 +152,7 @@ public class FiberAsyncIOTest {
 
     @Test
     public void testFiberAsyncFile() throws Exception {
-        new Fiber(fjPool, new SuspendableRunnable() {
+        new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
                 try (FiberFileChannel ch = FiberFileChannel.open(Paths.get(System.getProperty("user.home"), "fibertest.bin"), READ, WRITE, CREATE, TRUNCATE_EXISTING)) {

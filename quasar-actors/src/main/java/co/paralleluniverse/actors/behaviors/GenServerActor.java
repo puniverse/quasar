@@ -17,10 +17,10 @@ import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.behaviors.GenServer.GenServerRequest;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.TimeUnit;
-import jsr166e.ForkJoinPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,8 +57,8 @@ public class GenServerActor<CallMessage, V, CastMessage> extends GenBehaviorActo
     }
 
     @Override
-    public GenServer<CallMessage, V, CastMessage> spawn(ForkJoinPool fjPool) {
-        return (GenServer<CallMessage, V, CastMessage>) super.spawn(fjPool);
+    public GenServer<CallMessage, V, CastMessage> spawn(FiberScheduler scheduler) {
+        return (GenServer<CallMessage, V, CastMessage>) super.spawn(scheduler);
     }
 
     @Override

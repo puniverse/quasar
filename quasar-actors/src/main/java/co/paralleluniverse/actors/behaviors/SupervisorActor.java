@@ -29,6 +29,7 @@ import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
 import co.paralleluniverse.actors.behaviors.Supervisor.GetChildMessage;
 import co.paralleluniverse.actors.behaviors.Supervisor.RemoveChildMessage;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
@@ -42,7 +43,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import jsr166e.ConcurrentHashMapV8;
-import jsr166e.ForkJoinPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -102,8 +102,8 @@ public class SupervisorActor extends GenBehaviorActor {
     }
 
     @Override
-    public Supervisor spawn(ForkJoinPool fjPool) {
-        return (Supervisor) super.spawn(fjPool);
+    public Supervisor spawn(FiberScheduler scheduler) {
+        return (Supervisor) super.spawn(scheduler);
     }
 
     @Override

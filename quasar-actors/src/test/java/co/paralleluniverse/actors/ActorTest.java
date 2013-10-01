@@ -15,6 +15,7 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.Channels;
 import java.lang.ref.WeakReference;
@@ -37,14 +38,14 @@ import org.junit.Test;
  */
 public class ActorTest {
     static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channels.OverflowPolicy.THROW);
-    private ForkJoinPool fjPool;
+    private FiberScheduler scheduler;
 
     public ActorTest() {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
     }
 
     private <Message, V> Actor<Message, V> spawnActor(Actor<Message, V> actor) {
-        Fiber fiber = new Fiber("actor", fjPool, actor);
+        Fiber fiber = new Fiber("actor", scheduler, actor);
         fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Fiber lwt, Throwable e) {

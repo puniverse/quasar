@@ -19,9 +19,9 @@ import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
-import jsr166e.ForkJoinPool;
 import org.slf4j.Logger;
 
 /**
@@ -56,8 +56,8 @@ public abstract class GenBehaviorActor extends Actor<Object, Void> implements ja
     }
 
     @Override
-    public GenBehavior spawn(ForkJoinPool fjPool) {
-        return (GenBehavior) super.spawn(fjPool);
+    public GenBehavior spawn(FiberScheduler scheduler) {
+        return (GenBehavior) super.spawn(scheduler);
     }
 
     @Override

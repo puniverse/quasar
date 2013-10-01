@@ -16,6 +16,7 @@ package co.paralleluniverse.strands.channels;
 import static co.paralleluniverse.common.test.Matchers.*;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableRunnable;
@@ -55,10 +56,10 @@ public class TickerChannelTest {
         }
     };
     static final int bufferSize = 10;
-    private ForkJoinPool fjPool;
+    private FiberScheduler scheduler;
 
     public TickerChannelTest() {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
     }
 
 
@@ -92,22 +93,22 @@ public class TickerChannelTest {
 
         for (; i < 50; i++)
             sch.send(i);
-        Fiber f1 = new Fiber(fjPool, run).start();
+        Fiber f1 = new Fiber(scheduler, run).start();
         Thread t1 = new Thread(Strand.toRunnable(run));
         t1.start();
         for (; i < 200; i++)
             sch.send(i);
-        Fiber f2 = new Fiber(fjPool, run).start();
+        Fiber f2 = new Fiber(scheduler, run).start();
         Thread t2 = new Thread(Strand.toRunnable(run));
         t2.start();
         for (; i < 600; i++)
             sch.send(i);
-        Fiber f3 = new Fiber(fjPool, run).start();
+        Fiber f3 = new Fiber(scheduler, run).start();
         Thread t3 = new Thread(Strand.toRunnable(run));
         t3.start();
         for (; i < 800; i++)
             sch.send(i);
-        Fiber f4 = new Fiber(fjPool, run).start();
+        Fiber f4 = new Fiber(scheduler, run).start();
         Thread t4 = new Thread(Strand.toRunnable(run));
         t4.start();
         for (; i < 2000; i++)

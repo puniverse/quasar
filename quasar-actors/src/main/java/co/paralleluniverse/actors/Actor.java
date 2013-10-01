@@ -19,6 +19,7 @@ import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -33,7 +34,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import jsr166e.ConcurrentHashMapV8;
-import jsr166e.ForkJoinPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +59,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private Object aux;
     protected transient final FlightRecorder flightRecorder;
 
+    @SuppressWarnings({"OverridableMethodCallInConstructor", "LeakingThisInConstructor"})
     public Actor(String name, MailboxConfig mailboxConfig) {
         this.ref = new LocalActorRef<Message, V>(this, name, new Mailbox(mailboxConfig));
         mailbox().setActor(this);
@@ -88,8 +89,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return ((ActorRefImpl) ref);
     }
 
-    public ActorRef<Message> spawn(ForkJoinPool fjPool) {
-        new Fiber(getName(), fjPool, this).start();
+    public ActorRef<Message> spawn(FiberScheduler scheduler) {
+        new Fiber(getName(), scheduler, this).start();
         return ref();
     }
 

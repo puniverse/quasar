@@ -29,6 +29,7 @@ import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
 import co.paralleluniverse.actors.behaviors.SupervisorActor.RestartStrategy;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.Arrays;
@@ -82,17 +83,11 @@ public class SupervisorTest {
     };
     private static final Logger LOG = LoggerFactory.getLogger(SupervisorActor.class);
     static final int mailboxSize = 10;
-    private static ForkJoinPool fjPool;
+    private static FiberScheduler scheduler;
 
     public SupervisorTest() throws Exception {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
         java.util.logging.LogManager.getLogManager().readConfiguration(); // gradle messes with the configurations
-    }
-
-    private static <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
-        Fiber fiber = new Fiber(fjPool, actor);
-        fiber.start();
-        return actor;
     }
 
     private static class Actor1 extends BasicActor<Object, Integer> {
@@ -169,7 +164,7 @@ public class SupervisorTest {
     @Test
     public void startChild() throws Exception {
         final Supervisor sup = new SupervisorActor(RestartStrategy.ONE_FOR_ONE,
-                new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor1.class, "actor1"))).spawn(fjPool);
+                new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor1.class, "actor1"))).spawn(scheduler);
 
         ActorRef<Object> a;
 
@@ -186,7 +181,7 @@ public class SupervisorTest {
     @Test
     public void whenChildDiesThenRestart() throws Exception {
         final Supervisor sup = new SupervisorActor(RestartStrategy.ONE_FOR_ONE,
-                new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor1.class, "actor1"))).spawn(fjPool);
+                new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor1.class, "actor1"))).spawn(scheduler);
 
         ActorRef<Object> a;
 
@@ -255,7 +250,7 @@ public class SupervisorTest {
     @Test
     public void dontRestartTemporaryChildDeadOfUnnaturalCause() throws Exception {
         final Supervisor sup = new SupervisorActor(RestartStrategy.ONE_FOR_ONE,
-                new ChildSpec("actor1", ChildMode.TEMPORARY, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(BadActor1.class, "actor1"))).spawn(fjPool);
+                new ChildSpec("actor1", ChildMode.TEMPORARY, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(BadActor1.class, "actor1"))).spawn(scheduler);
 
         ActorRef<Object> a;
 

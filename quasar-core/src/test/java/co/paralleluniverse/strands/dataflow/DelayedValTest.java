@@ -15,6 +15,7 @@ package co.paralleluniverse.strands.dataflow;
 
 import co.paralleluniverse.strands.channels.DelayedVal;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
@@ -33,10 +34,10 @@ import org.junit.Ignore;
  * @author pron
  */
 public class DelayedValTest {
-    private ForkJoinPool fjPool;
+    private FiberScheduler scheduler;
 
     public DelayedValTest() {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
     }
 
     @Test(expected = IllegalStateException.class)
@@ -80,7 +81,7 @@ public class DelayedValTest {
     public void testFiberWaiter() throws Exception {
         final DelayedVal<String> val = new DelayedVal<>();
 
-        final Fiber<String> f1 = new Fiber<String>(fjPool, new SuspendableCallable<String>() {
+        final Fiber<String> f1 = new Fiber<String>(scheduler, new SuspendableCallable<String>() {
             @Override
             public String run() throws SuspendExecution, InterruptedException {
                 final String v = val.get();
@@ -104,7 +105,7 @@ public class DelayedValTest {
 
         final AtomicReference<String> res = new AtomicReference<>();
 
-        final Fiber<String> f1 = new Fiber<String>(fjPool, new SuspendableCallable<String>() {
+        final Fiber<String> f1 = new Fiber<String>(scheduler, new SuspendableCallable<String>() {
             @Override
             public String run() throws SuspendExecution, InterruptedException {
                 final String v = val.get();
@@ -144,7 +145,7 @@ public class DelayedValTest {
 
         final AtomicReference<Integer> res = new AtomicReference<>();
 
-        final Fiber<Integer> f1 = new Fiber<Integer>(fjPool, new SuspendableCallable<Integer>() {
+        final Fiber<Integer> f1 = new Fiber<Integer>(scheduler, new SuspendableCallable<Integer>() {
             @Override
             public Integer run() throws SuspendExecution, InterruptedException {
                 return val1.get() + val2.get();
@@ -163,7 +164,7 @@ public class DelayedValTest {
         }));
         t1.start();
 
-        final Fiber<Integer> f2 = new Fiber<Integer>(fjPool, new SuspendableRunnable() {
+        final Fiber<Integer> f2 = new Fiber<Integer>(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 val2.set(5);
@@ -195,7 +196,7 @@ public class DelayedValTest {
 
         final AtomicReference<Integer> res = new AtomicReference<>();
 
-        final Strand f1 = new Fiber<Integer>(fjPool, new SuspendableRunnable() {
+        final Strand f1 = new Fiber<Integer>(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws InterruptedException, SuspendExecution {
                 val2.set(val1.get() + 1); // 2
@@ -213,7 +214,7 @@ public class DelayedValTest {
             }
         }))).start();
 
-        final Strand f2 = new Fiber<Integer>(fjPool, new SuspendableRunnable() {
+        final Strand f2 = new Fiber<Integer>(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws InterruptedException, SuspendExecution {
                 val4.set(val2.get() + val3.get()); // 5

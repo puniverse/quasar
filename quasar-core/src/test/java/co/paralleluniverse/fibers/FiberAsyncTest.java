@@ -20,10 +20,10 @@ import org.junit.Ignore;
  * @author pron
  */
 public class FiberAsyncTest {
-    private ForkJoinPool fjPool;
+    private FiberScheduler scheduler;
 
     public FiberAsyncTest() {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
     }
 
     interface MyCallback {
@@ -113,7 +113,7 @@ public class FiberAsyncTest {
 
     @Test
     public void testSyncCallback() throws Exception {
-        final Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 String res = callService(syncService);
@@ -126,7 +126,7 @@ public class FiberAsyncTest {
 
     @Test
     public void testSyncCallbackException() throws Exception {
-        final Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
                 try {
@@ -143,7 +143,7 @@ public class FiberAsyncTest {
 
     @Test
     public void testAsyncCallback() throws Exception {
-        final Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 String res = callService(asyncService);
@@ -156,7 +156,7 @@ public class FiberAsyncTest {
 
     @Test
     public void testAsyncCallbackException() throws Exception {
-        final Fiber fiber = new Fiber(fjPool, new SuspendableRunnable() {
+        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
                 try {

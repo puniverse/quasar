@@ -24,7 +24,6 @@ import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
-import jsr166e.ForkJoinPool;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -69,10 +68,8 @@ public class GenEventTest {
         }
     };
     static final int mailboxSize = 10;
-    private ForkJoinPool fjPool;
 
     public GenEventTest() {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
     }
 
     private GenEvent<String> spawnGenEvent(Initializer initializer) {
@@ -80,7 +77,7 @@ public class GenEventTest {
     }
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
-        Fiber fiber = new Fiber(fjPool, actor);
+        Fiber fiber = new Fiber(actor);
         fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Fiber lwt, Throwable e) {

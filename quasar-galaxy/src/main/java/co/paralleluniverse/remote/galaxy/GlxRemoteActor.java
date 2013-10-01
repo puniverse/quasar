@@ -13,12 +13,11 @@
  */
 package co.paralleluniverse.remote.galaxy;
 
-import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.LocalActorUtil;
 import co.paralleluniverse.actors.RemoteActorRef;
 import co.paralleluniverse.common.util.Exceptions;
-import co.paralleluniverse.fibers.DefaultFiberPool;
+import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.QueueChannel;
@@ -61,7 +60,7 @@ public class GlxRemoteActor<Message> extends RemoteActorRef<Message> {
     @Override
     protected void internalSendNonSuspendable(final Object message) {
         try {
-            new Fiber<Void>(DefaultFiberPool.getInstance()) {
+            new Fiber<Void>(DefaultFiberScheduler.getInstance()) {
                 @Override
                 protected Void run() throws SuspendExecution, InterruptedException {
                     internalSend(message);

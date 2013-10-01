@@ -19,18 +19,18 @@
  */
 package co.paralleluniverse.galaxy.example.testing;
 
-import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorRegistry;
+import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.behaviors.AbstractServer;
 import co.paralleluniverse.actors.behaviors.EventHandler;
 import co.paralleluniverse.actors.behaviors.GenEvent;
-import co.paralleluniverse.actors.behaviors.GenServer;
-import co.paralleluniverse.actors.behaviors.Initializer;
 import co.paralleluniverse.actors.behaviors.GenEventActor;
+import co.paralleluniverse.actors.behaviors.GenServer;
 import co.paralleluniverse.actors.behaviors.GenServerActor;
+import co.paralleluniverse.actors.behaviors.Initializer;
 import co.paralleluniverse.actors.behaviors.Server;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
@@ -49,7 +49,6 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
-import jsr166e.ForkJoinPool;
 
 /**
  *
@@ -299,10 +298,9 @@ public class PeerTKB {
     private GenEventActor<String> spawnGenEvent(Initializer initializer) {
         return spawnActor(new GenEventActor<String>(initializer));
     }
-    static private ForkJoinPool fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
-        Fiber fiber = new Fiber(fjPool, actor);
+        Fiber fiber = new Fiber(actor);
         fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Fiber lwt, Throwable e) {

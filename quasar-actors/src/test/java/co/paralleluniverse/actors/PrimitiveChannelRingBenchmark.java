@@ -12,7 +12,6 @@ public class PrimitiveChannelRingBenchmark {
     static final int N = 1000;
     static final int M = 1000;
     static final int mailboxSize = 10;
-    static final ForkJoinPool fjPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
     public static void main(String args[]) throws Exception {
         System.out.println("COMPILER: " + System.getProperty("java.vm.name"));
@@ -34,7 +33,7 @@ public class PrimitiveChannelRingBenchmark {
             a = createRelayActor(a);
         final IntChannel lastChannel = a;
         
-        Fiber<Integer> manager = new Fiber<Integer>(fjPool) {
+        Fiber<Integer> manager = new Fiber<Integer>() {
             @Override
             protected Integer run() throws InterruptedException, SuspendExecution {
                 lastChannel.send(1); // start things off
@@ -58,7 +57,7 @@ public class PrimitiveChannelRingBenchmark {
 
     private IntChannel createRelayActor(final IntChannel prev) {
         final IntChannel channel = Channels.newIntChannel(mailboxSize);
-        Fiber<Void> fiber = new Fiber<Void>(fjPool) {
+        Fiber<Void> fiber = new Fiber<Void>() {
             @Override
             protected Void run() throws InterruptedException, SuspendExecution {
                 for (;;)

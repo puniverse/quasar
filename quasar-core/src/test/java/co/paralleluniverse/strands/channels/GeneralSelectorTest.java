@@ -17,6 +17,7 @@ import co.paralleluniverse.strands.channels.*;
 import static co.paralleluniverse.common.test.Matchers.*;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
@@ -83,7 +84,7 @@ public class GeneralSelectorTest {
     final OverflowPolicy policy;
     final boolean singleConsumer;
     final boolean singleProducer;
-    final ForkJoinPool fjPool;
+    final FiberScheduler scheduler;
 
 //    public GeneralSelectorTest() {
 //        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
@@ -96,7 +97,7 @@ public class GeneralSelectorTest {
 //        Debug.dumpAfter(15000, "channels.log");
 //    }
     public GeneralSelectorTest(int mailboxSize, OverflowPolicy policy, boolean singleConsumer, boolean singleProducer) {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
         this.mailboxSize = mailboxSize;
         this.policy = policy;
         this.singleConsumer = singleConsumer;
@@ -121,7 +122,7 @@ public class GeneralSelectorTest {
 
     void spawn(SuspendableRunnable r) {
         if (fiber)
-            new Fiber(fjPool, r).start();
+            new Fiber(scheduler, r).start();
         else
             new Thread(Strand.toRunnable(r)).start();
     }

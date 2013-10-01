@@ -15,6 +15,7 @@ package co.paralleluniverse.fibers.futures;
 
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableCallable;
 import java.util.concurrent.ExecutionException;
@@ -29,17 +30,17 @@ import org.junit.Test;
  * @author pron
  */
 public class AsyncCompletableFutureTest {
-    private ForkJoinPool fjPool;
+    private FiberScheduler scheduler;
 
     public AsyncCompletableFutureTest() {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
     }
 
     @Test
     public void simpleTest1() throws Exception {
         final CompletableFuture<String> fut = new CompletableFuture<String>();
 
-        final Fiber<String> fiber = new Fiber<>(fjPool, new SuspendableCallable<String>() {
+        final Fiber<String> fiber = new Fiber<>(scheduler, new SuspendableCallable<String>() {
             @Override
             public String run() throws SuspendExecution, InterruptedException {
                 try {
@@ -69,7 +70,7 @@ public class AsyncCompletableFutureTest {
     public void testException() throws Exception {
         final CompletableFuture<String> fut = new CompletableFuture<String>();
 
-        final Fiber<String> fiber = new Fiber<>(fjPool, new SuspendableCallable<String>() {
+        final Fiber<String> fiber = new Fiber<>(scheduler, new SuspendableCallable<String>() {
             @Override
             public String run() throws SuspendExecution, InterruptedException {
                 try {

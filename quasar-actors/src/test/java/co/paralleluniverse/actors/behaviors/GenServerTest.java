@@ -25,6 +25,7 @@ import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.Channels;
@@ -81,18 +82,18 @@ public class GenServerTest {
         }
     };
     static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channels.OverflowPolicy.THROW);
-    private ForkJoinPool fjPool;
+    private FiberScheduler scheduler;
 
     public GenServerTest() {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
     }
 
     private GenServer<Message, Integer, Message> spawnGenServer(Server<Message, Integer, Message> server) {
-        return new GenServerActor<>("server", server).spawn(fjPool);
+        return new GenServerActor<>("server", server).spawn(scheduler);
     }
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
-        Fiber fiber = new Fiber(fjPool, actor);
+        Fiber fiber = new Fiber(scheduler, actor);
         fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Fiber lwt, Throwable e) {

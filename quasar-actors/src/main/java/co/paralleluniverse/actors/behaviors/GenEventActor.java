@@ -18,11 +18,11 @@ import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.MailboxConfig;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.replyError;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.ArrayList;
 import java.util.List;
-import jsr166e.ForkJoinPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,8 +56,8 @@ public class GenEventActor<Event> extends GenBehaviorActor {
     }
 
     @Override
-    public GenEvent<Event> spawn(ForkJoinPool fjPool) {
-        return (GenEvent<Event>) super.spawn(fjPool);
+    public GenEvent<Event> spawn(FiberScheduler scheduler) {
+        return (GenEvent<Event>) super.spawn(scheduler);
     }
 
     @Override

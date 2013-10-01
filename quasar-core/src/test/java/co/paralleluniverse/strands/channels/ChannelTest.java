@@ -16,6 +16,7 @@ package co.paralleluniverse.strands.channels;
 import static co.paralleluniverse.common.test.Matchers.*;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
@@ -77,7 +78,7 @@ public class ChannelTest {
     final OverflowPolicy policy;
     final boolean singleConsumer;
     final boolean singleProducer;
-    final ForkJoinPool fjPool;
+    final FiberScheduler scheduler;
 
 //    public ChannelTest() {
 //        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
@@ -89,7 +90,7 @@ public class ChannelTest {
 //        Debug.dumpAfter(20000, "channels.log");
 //    }
     public ChannelTest(int mailboxSize, OverflowPolicy policy, boolean singleConsumer, boolean singleProducer) {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
         this.mailboxSize = mailboxSize;
         this.policy = policy;
         this.singleConsumer = singleConsumer;
@@ -125,7 +126,7 @@ public class ChannelTest {
     public void sendMessageFromFiberToFiber() throws Exception {
         final Channel<String> ch = newChannel();
 
-        Fiber fib1 = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib1 = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 String m = ch.receive();
@@ -134,7 +135,7 @@ public class ChannelTest {
             }
         }).start();
 
-        Fiber fib2 = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib2 = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 Fiber.sleep(50);
@@ -150,7 +151,7 @@ public class ChannelTest {
     public void sendMessageFromThreadToFiber() throws Exception {
         final Channel<String> ch = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 String m = ch.receive();
@@ -169,7 +170,7 @@ public class ChannelTest {
     public void sendMessageFromFiberToThread() throws Exception {
         final Channel<String> ch = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 Fiber.sleep(100);
@@ -216,7 +217,7 @@ public class ChannelTest {
         assumeTrue(Debug.isAssertionsEnabled());
         final Channel<String> ch = newChannel();
 
-        Fiber fib1 = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib1 = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 String m = ch.receive();
@@ -225,7 +226,7 @@ public class ChannelTest {
             }
         }).start();
 
-        Fiber fib2 = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib2 = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 Fiber.sleep(50);
@@ -251,7 +252,7 @@ public class ChannelTest {
         assumeTrue(Debug.isAssertionsEnabled());
         final Channel<String> ch = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 String m = ch.receive();
@@ -280,7 +281,7 @@ public class ChannelTest {
         assumeTrue(Debug.isAssertionsEnabled());
         final Channel<String> ch = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 Fiber.sleep(100);
@@ -360,7 +361,7 @@ public class ChannelTest {
         assumeThat(policy, is(OverflowPolicy.BLOCK));
         final Channel<Integer> ch = newChannel();
 
-        Fiber<Integer> receiver = new Fiber<Integer>(fjPool, new SuspendableCallable<Integer>() {
+        Fiber<Integer> receiver = new Fiber<Integer>(scheduler, new SuspendableCallable<Integer>() {
             @Override
             public Integer run() throws SuspendExecution, InterruptedException {
                 int i = 0;
@@ -373,7 +374,7 @@ public class ChannelTest {
             }
         }).start();
 
-        Fiber<Void> sender = new Fiber<Void>(fjPool, new SuspendableRunnable() {
+        Fiber<Void> sender = new Fiber<Void>(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 for (int i = 0; i < 10; i++)
@@ -396,7 +397,7 @@ public class ChannelTest {
         assumeThat(policy, is(OverflowPolicy.BLOCK));
         final Channel<Integer> ch = newChannel();
 
-        Fiber<Integer> fib = new Fiber<Integer>(fjPool, new SuspendableCallable<Integer>() {
+        Fiber<Integer> fib = new Fiber<Integer>(scheduler, new SuspendableCallable<Integer>() {
             @Override
             public Integer run() throws SuspendExecution, InterruptedException {
                 int i = 0;
@@ -421,7 +422,7 @@ public class ChannelTest {
     public void testChannelClose() throws Exception {
         final Channel<Integer> ch = newChannel();
 
-        Fiber fib = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 for (int i = 1; i <= 5; i++) {
@@ -456,7 +457,7 @@ public class ChannelTest {
     public void testChannelCloseWithSleep() throws Exception {
         final Channel<Integer> ch = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 for (int i = 1; i <= 5; i++) {
@@ -501,8 +502,8 @@ public class ChannelTest {
                 }
             }
         };
-        Fiber fib1 = new Fiber("fiber", fjPool, r).start();
-        Fiber fib2 = new Fiber("fiber", fjPool, r).start();
+        Fiber fib1 = new Fiber("fiber", scheduler, r).start();
+        Fiber fib2 = new Fiber("fiber", scheduler, r).start();
 
         Thread.sleep(500);
 
@@ -517,7 +518,7 @@ public class ChannelTest {
 
         final IntChannel ch = Channels.newIntChannel(mailboxSize, policy);
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 for (int i = 1; i <= 5; i++) {
@@ -564,7 +565,7 @@ public class ChannelTest {
         topic.subscribe(channel3);
 
 
-        Fiber f1 = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber f1 = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 assertThat(channel1.receive(), equalTo("hello"));
@@ -572,7 +573,7 @@ public class ChannelTest {
             }
         }).start();
 
-        Fiber f2 = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber f2 = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 assertThat(channel2.receive(), equalTo("hello"));
@@ -580,7 +581,7 @@ public class ChannelTest {
             }
         }).start();
 
-        Fiber f3 = new Fiber(fjPool, new SuspendableRunnable() {
+        Fiber f3 = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 assertThat(channel3.receive(), equalTo("hello"));
@@ -606,7 +607,7 @@ public class ChannelTest {
 
         final ReceivePortGroup<String> group = new ReceivePortGroup<String>(channel1, channel2, channel3);
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 String m1 = group.receive();
@@ -636,7 +637,7 @@ public class ChannelTest {
 
         final ReceivePortGroup<String> group = new ReceivePortGroup<String>(channel1, channel2, channel3);
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 String m1 = group.receive();

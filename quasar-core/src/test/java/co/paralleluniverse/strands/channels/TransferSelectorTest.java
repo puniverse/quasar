@@ -17,6 +17,7 @@ import co.paralleluniverse.strands.channels.*;
 import static co.paralleluniverse.common.test.Matchers.*;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
@@ -79,10 +80,10 @@ public class TransferSelectorTest {
     final OverflowPolicy policy;
     final boolean singleConsumer;
     final boolean singleProducer;
-    final ForkJoinPool fjPool;
+    final FiberScheduler scheduler;
 
     public TransferSelectorTest() {
-        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
         this.mailboxSize = 0;
         this.policy = OverflowPolicy.BLOCK;
         this.singleConsumer = false;
@@ -109,7 +110,7 @@ public class TransferSelectorTest {
         final Channel<String> channel2 = newChannel();
         final Channel<String> channel3 = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 SelectAction<String> sa1 = select(
@@ -148,7 +149,7 @@ public class TransferSelectorTest {
         final Channel<String> channel2 = newChannel();
         final Channel<String> channel3 = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 Strand.sleep(200);
@@ -192,7 +193,7 @@ public class TransferSelectorTest {
         final Channel<String> channel2 = newChannel();
         final Channel<String> channel3 = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 SelectAction<String> sa1 = select(
@@ -226,7 +227,7 @@ public class TransferSelectorTest {
         final Channel<String> channel2 = newChannel();
         final Channel<String> channel3 = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 Strand.sleep(200);
@@ -261,7 +262,7 @@ public class TransferSelectorTest {
         final Channel<String> channel2 = newChannel();
         final Channel<String> channel3 = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 SelectAction<String> sa1 = select(1, TimeUnit.MILLISECONDS,
@@ -294,7 +295,7 @@ public class TransferSelectorTest {
         final Channel<String> channel2 = newChannel();
         final Channel<String> channel3 = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 SelectAction<String> sa1 = select(
@@ -329,7 +330,7 @@ public class TransferSelectorTest {
         final Channel<String> channel2 = newChannel();
         final Channel<String> channel3 = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 SelectAction<String> sa1 = select(
@@ -365,7 +366,7 @@ public class TransferSelectorTest {
         final Channel<String> channel2 = newChannel();
         final Channel<String> channel3 = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 Strand.sleep(200);
@@ -400,7 +401,7 @@ public class TransferSelectorTest {
         final Channel<String> channel2 = newChannel();
         final Channel<String> channel3 = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 SelectAction<String> sa1 = select(
@@ -431,7 +432,7 @@ public class TransferSelectorTest {
         final Channel<String> channel2 = newChannel();
         final Channel<String> channel3 = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 Strand.sleep(200);
@@ -463,7 +464,7 @@ public class TransferSelectorTest {
         final Channel<String> channel2 = newChannel();
         final Channel<String> channel3 = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 SelectAction<String> sa1 = select(1, TimeUnit.MILLISECONDS,
@@ -496,7 +497,7 @@ public class TransferSelectorTest {
         final Channel<String> channel2 = newChannel();
         final Channel<String> channel3 = newChannel();
 
-        Fiber fib = new Fiber("fiber", fjPool, new SuspendableRunnable() {
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 SelectAction<String> sa1 = select(
