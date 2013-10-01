@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
@@ -583,8 +584,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         // if (monitor != null && state == State.STARTED)
         //    monitor.fiberStarted(); - done elsewhere
 
-        final Fiber oldFiber = getCurrentFiber(); // a fiber can directly call exec on another fiber, e.g.: Channel.sendSync
         final Thread currentThread = Thread.currentThread();
+        final Object old = getCurrentTarget(currentThread);// getCurrentFiber(); // a fiber can directly call exec on another fiber, e.g.: Channel.sendSync
         installFiberDataInThread(currentThread);
 
         run++;
@@ -614,7 +615,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             this.postPark = null;
             this.noPreempt = false;
 
-            restoreThreadData(currentThread, oldFiber);
+            restoreThreadData(currentThread, old);
             restored = true;
 
             record(1, "Fiber", "exec1", "parked %s %s", state, this);
@@ -641,7 +642,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             throw t;
         } finally {
             if (!restored)
-                restoreThreadData(currentThread, oldFiber);
+                restoreThreadData(currentThread, old);
         }
     }
 
@@ -651,9 +652,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         this.getStackTrace = true;
         Stack.getStackTrace.set(stack);
-        final Fiber oldFiber = getCurrentFiber();
         final Thread currentThread = Thread.currentThread();
-        if (oldFiber != null)
+        final Object old = getCurrentTarget(currentThread);
+        if (old != null)
             setCurrentFiber(this, currentThread);
 
         try {
@@ -664,8 +665,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             //stack.dump();
             stack.resumeStack();
 
-            if (oldFiber != null)
-                setCurrentFiber(oldFiber, currentThread);
+            if (old != null)
+                setCurrentTarget(old, currentThread);
 
             this.noPreempt = false;
             this.getStackTrace = false;
@@ -722,11 +723,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         installFiberContextClassLoader(currentThread);
     }
 
-    private void restoreThreadData(Thread currentThread, Fiber oldFiber) {
+    private void restoreThreadData(Thread currentThread, Object old) {
         record(1, "Fiber", "restoreThreadData", "%s <-> %s", this, currentThread);
         restoreThreadLocals(currentThread);
         restoreThreadContextClassLoader(currentThread);
-        setCurrentFiber(oldFiber, currentThread);
+        setCurrentTarget(old, currentThread);
     }
 
     private void installFiberLocals(Thread currentThread) {
@@ -768,12 +769,24 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         ThreadAccess.setContextClassLoader(currentThread, origContextClassLoader);
     }
 
-    private void setCurrentFiber(Fiber fiber, Thread currentThread) {
+    private void setCurrentFiber(Fiber target, Thread currentThread) {
+        setCurrentTarget(fiberRef, currentThread);
+    }
+    
+    private void setCurrentTarget(Object target, Thread currentThread) {
         if (fjPool == null) // in tests
             return;
 //        if (ThreadAccess.getTarget(currentThread) != null && fiber != null)
 //            throw new RuntimeException("Fiber " + fiber + " target: " + ThreadAccess.getTarget(currentThread));
-        ThreadAccess.setTarget(currentThread, fiber != null ? fiber.fiberRef : null);
+        ThreadAccess.setTarget(currentThread, (Runnable)target);
+    }
+
+   private Object getCurrentTarget(Thread currentThread) {
+        if (fjPool == null) // in tests
+            return null;
+//        if (ThreadAccess.getTarget(currentThread) != null && fiber != null)
+//            throw new RuntimeException("Fiber " + fiber + " target: " + ThreadAccess.getTarget(currentThread));
+        return ThreadAccess.getTarget(currentThread);
     }
 
     private static Fiber getCurrentFiber() {

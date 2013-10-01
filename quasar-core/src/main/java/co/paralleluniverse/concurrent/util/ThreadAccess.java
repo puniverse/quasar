@@ -11,9 +11,8 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.fibers;
+package co.paralleluniverse.concurrent.util;
 
-import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import java.lang.ref.Reference;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
@@ -25,7 +24,7 @@ import sun.misc.Unsafe;
  *
  * @author pron
  */
-class ThreadAccess {
+public class ThreadAccess {
     private static final Unsafe unsafe = UtilUnsafe.getUnsafe();
     private static final long targetOffset;
     private static final long threadLocalsOffset;

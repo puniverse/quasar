@@ -16,6 +16,7 @@ import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.Fiber;
 import jsr166e.ForkJoinTask;
@@ -34,7 +35,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     public static final int PARKED = -1;
     public static final int PARKING = -2;
     //
-    private static final ThreadLocal<ParkableForkJoinTask<?>> current = new ThreadLocal<ParkableForkJoinTask<?>>();
+    private final DummyRunnable taskRef = new DummyRunnable(this);
     private volatile int state;
     private volatile Object blocker;
     private ParkableForkJoinTask enclosing;
@@ -44,7 +45,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     }
 
     protected static ParkableForkJoinTask<?> getCurrent() {
-        ParkableForkJoinTask ct = current.get();
+        ParkableForkJoinTask ct = getCurrent1();
         if (ct == null && Thread.currentThread() instanceof ForkJoinWorkerThread) { // false in tests
             Fiber f = Fiber.currentFiber();
             if (f != null)
@@ -55,7 +56,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     @Override
     protected boolean exec() {
-        final ParkableForkJoinTask<?> enc = current.get();
+        final ParkableForkJoinTask<?> enc = getCurrent1();
         this.enclosing = enc;
         setCurrent(this);
         try {
@@ -67,7 +68,14 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     }
 
     static void setCurrent(ParkableForkJoinTask<?> task) {
-        current.set(task);
+        ThreadAccess.setTarget(Thread.currentThread(), task != null ? task.taskRef : null);
+    }
+
+    static ParkableForkJoinTask<?> getCurrent1() {
+        final Runnable target = ThreadAccess.getTarget(Thread.currentThread());
+        if(target instanceof DummyRunnable)
+            return ((DummyRunnable)target).task;
+        return null;
     }
 
     boolean doExec() {
@@ -279,6 +287,19 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         @Override
         public synchronized Throwable fillInStackTrace() {
             return this;
+        }
+    }
+
+    private static final class DummyRunnable implements Runnable {
+        final ParkableForkJoinTask task;
+
+        public DummyRunnable(ParkableForkJoinTask task) {
+            this.task = task;
+        }
+
+        @Override
+        public void run() {
+            throw new RuntimeException("This method shouldn't be run. This object is a placeholder.");
         }
     }
 }
