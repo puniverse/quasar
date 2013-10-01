@@ -27,7 +27,6 @@ public class MonitoredForkJoinPool extends ForkJoinPool {
     private final String name;
     private ForkJoinPoolMonitor monitor;
     private FibersMonitor fibersMonitor;
-    private Object fjSchedulerMonitor;
 
     public MonitoredForkJoinPool(String name) {
         this.name = name != null ? name : ("ForkJoinPool-" + ordinal.incrementAndGet());
@@ -77,15 +76,5 @@ public class MonitoredForkJoinPool extends ForkJoinPool {
 
     public FibersMonitor getFibersMonitor() {
         return fibersMonitor;
-    }
-
-    public void setFjSchedulerMonitor(Object fjSchedulerMonitor) {
-        if (this.fjSchedulerMonitor != null)
-            throw new IllegalStateException("Monitor already set");
-        this.fjSchedulerMonitor = fjSchedulerMonitor;
-    }
-
-    public Object getFjSchedulerMonitor() {
-        return fjSchedulerMonitor;
     }
 }
