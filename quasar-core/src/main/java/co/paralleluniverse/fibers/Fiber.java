@@ -92,7 +92,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     //
     private final FiberScheduler scheduler;
     private final ForkJoinPool fjPool;
-    private final FiberTimedScheduler timeoutService;
+    final FiberTimedScheduler timeoutService;
     private final FiberForkJoinTask<V> fjTask;
     private final Stack stack;
     private final Strand parent;

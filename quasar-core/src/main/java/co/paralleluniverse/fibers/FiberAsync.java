@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * A general helper class that transforms asynchronous requests to synchronous calls on a Fiber.
@@ -24,17 +25,12 @@ import java.util.concurrent.TimeUnit;
  * @param <E> An exception class that could be thrown by the async request
  */
 public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
-    private static final long IMMEDIATE_EXEC_TIMEOUT_MILLIS = 50;
+    private static final long IMMEDIATE_EXEC_MAX_TIMEOUT = TimeUnit.MILLISECONDS.toNanos(1000);
     private final boolean immediateExec;
-    private final long timeoutMillis;
+    private long timeoutNanos;
 
     public FiberAsync(boolean immediateExec) {
-        this(immediateExec, IMMEDIATE_EXEC_TIMEOUT_MILLIS);
-    }
-
-    public FiberAsync(boolean immediateExec, long timeoutMillis) {
         this.immediateExec = immediateExec;
-        this.timeoutMillis = timeoutMillis;
     }
 
     public FiberAsync() {
@@ -55,6 +51,37 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
 
         while (!isCompleted())
             Fiber.park((Object) this);
+
+        return getResult();
+    }
+
+    @SuppressWarnings("empty-statement")
+    public V run(final long timeout, final TimeUnit unit) throws E, SuspendExecution, InterruptedException, TimeoutException {
+        if (Fiber.currentFiber() == null)
+            return requestSync();
+        if (unit == null)
+            return run();
+        if (timeout <= 0)
+            throw new TimeoutException();
+
+
+        final long deadline = System.nanoTime() + unit.toNanos(timeout);
+
+        while (!Fiber.park(this, new Fiber.ParkAction() {
+            @Override
+            public void run(Fiber current) {
+                current.timeoutService.schedule(current, timeout, unit);
+                attachment = requestAsync(current, getCallback());
+            }
+        })); // make sure we actually park and run PostParkActions
+
+        long left;
+        while (!isCompleted()) {
+            left = deadline - System.nanoTime();
+            if (left <= 0)
+                throw new TimeoutException();
+            Fiber.park((Object) this, left, TimeUnit.NANOSECONDS);
+        }
 
         return getResult();
     }
@@ -100,13 +127,13 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
                 public void run(Fiber current) {
                     prepark();
                 }
-            }, timeoutMillis, TimeUnit.MILLISECONDS)) {
-                final RuntimeException ex = new RuntimeException("Failed to exec fiber " + fiber + " in thread " + Thread.currentThread());
+            }, timeoutNanos > 0 ? timeoutNanos : IMMEDIATE_EXEC_MAX_TIMEOUT, TimeUnit.NANOSECONDS)) {
+                final RuntimeException ex1 = new RuntimeException("Failed to exec fiber " + fiber + " in thread " + Thread.currentThread());
 
-                this.exception = ex;
+                this.exception = timeoutNanos > 0 ? new TimeoutException() : ex1;
                 fiber.unpark();
 
-                throw ex;
+                throw ex1;
             }
         } else
             fiber.unpark();
