@@ -9,7 +9,7 @@ import co.paralleluniverse.common.monitoring.JMXForkJoinPoolMonitor;
 import co.paralleluniverse.common.monitoring.MetricsForkJoinPoolMonitor;
 import co.paralleluniverse.common.monitoring.MonitorType;
 import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
-import co.paralleluniverse.concurrent.util.NamingForkJoinWorkerFactory;
+import co.paralleluniverse.concurrent.forkjoin.NamingForkJoinWorkerFactory;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import jsr166e.ForkJoinPool;
 

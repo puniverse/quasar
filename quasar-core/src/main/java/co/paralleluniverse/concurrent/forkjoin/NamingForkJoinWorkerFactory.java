@@ -10,7 +10,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.concurrent.util;
+package co.paralleluniverse.concurrent.forkjoin;
 
 import jsr166e.ForkJoinPool;
 import jsr166e.ForkJoinWorkerThread;
@@ -27,12 +27,14 @@ public class NamingForkJoinWorkerFactory implements ForkJoinPool.ForkJoinWorkerT
     }
     
     @Override
-    public ForkJoinWorkerThread newThread(ForkJoinPool fjp) {
-        ForkJoinWorkerThread thread = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(fjp);
+    public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
+        ForkJoinWorkerThread thread = new ExtendedForkJoinWorkerThread(pool); // ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
         final String workerNumber = thread.getName().substring(thread.getName().lastIndexOf('-') + 1);
         final String newThreadName = "ForkJoinPool-" + name + "-worker-" + workerNumber;
         thread.setName(newThreadName);
         //thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
         return thread;
     }
+    
+    
 }

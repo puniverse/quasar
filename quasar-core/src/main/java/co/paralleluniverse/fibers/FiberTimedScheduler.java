@@ -36,6 +36,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import jsr166e.ForkJoinPool;
 
 public class FiberTimedScheduler {
+    /*
+     * TODO:
+     * We're currently feeding the fj-pool sequentially (from a single thread).
+     * We can use a custom implementation of a skip-list, and use it to feed the pool in a forking manner.
+     */
     private static final boolean BACKPRESSURE = false;
     private static final int BACKPRESSURE_MASK = (1 << 10) - 1;
     private static final int BACKPRESSURE_THRESHOLD = 800;

@@ -68,14 +68,28 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     }
 
     static void setCurrent(ParkableForkJoinTask<?> task) {
-        ThreadAccess.setTarget(Thread.currentThread(), task != null ? task.taskRef : null);
+        setTarget(Thread.currentThread(), task != null ? task.taskRef : null);
     }
 
     static ParkableForkJoinTask<?> getCurrent1() {
-        final Runnable target = ThreadAccess.getTarget(Thread.currentThread());
-        if(target instanceof DummyRunnable)
-            return ((DummyRunnable)target).task;
+        final Object target = getTarget(Thread.currentThread());
+        if (target instanceof DummyRunnable)
+            return ((DummyRunnable) target).task;
         return null;
+    }
+
+    public static void setTarget(Thread thread, Object target) {
+        if (thread instanceof ExtendedForkJoinWorkerThread)
+            ((ExtendedForkJoinWorkerThread) thread).setTarget(target);
+        else
+            ThreadAccess.setTarget(Thread.currentThread(), (Runnable) target);
+    }
+
+    public static Object getTarget(Thread thread) {
+        if (thread instanceof ExtendedForkJoinWorkerThread)
+            return ((ExtendedForkJoinWorkerThread) thread).getTarget();
+        else
+            return ThreadAccess.getTarget(Thread.currentThread());
     }
 
     boolean doExec() {

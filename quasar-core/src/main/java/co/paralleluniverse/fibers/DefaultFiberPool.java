@@ -17,7 +17,7 @@ import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitor;
 import co.paralleluniverse.common.monitoring.JMXForkJoinPoolMonitor;
 import co.paralleluniverse.common.monitoring.MetricsForkJoinPoolMonitor;
 import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
-import co.paralleluniverse.concurrent.util.NamingForkJoinWorkerFactory;
+import co.paralleluniverse.concurrent.forkjoin.NamingForkJoinWorkerFactory;
 import jsr166e.ForkJoinPool;
 
 /**

@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.fibers;
 
-import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
@@ -22,6 +21,7 @@ import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
+import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.instrument.Retransform;
@@ -63,6 +63,7 @@ import sun.misc.Unsafe;
 public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.verifyInstrumentation", "false"));
     public static final int DEFAULT_STACK_SIZE = 16;
+//    private static final boolean PREEMPTION = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.enablePreemption", "false"));
     private static final int PREEMPTION_CREDITS = 3000;
     private static final long TIME_SLICE_MICRO = 1000;
     private static final long serialVersionUID = 2783452871536981L;
@@ -772,32 +773,28 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private void setCurrentFiber(Fiber target, Thread currentThread) {
         setCurrentTarget(fiberRef, currentThread);
     }
-    
+
     private void setCurrentTarget(Object target, Thread currentThread) {
         if (fjPool == null) // in tests
             return;
-//        if (ThreadAccess.getTarget(currentThread) != null && fiber != null)
-//            throw new RuntimeException("Fiber " + fiber + " target: " + ThreadAccess.getTarget(currentThread));
-        ThreadAccess.setTarget(currentThread, (Runnable)target);
+        ParkableForkJoinTask.setTarget(currentThread, target);
     }
 
-   private Object getCurrentTarget(Thread currentThread) {
+    private Object getCurrentTarget(Thread currentThread) {
         if (fjPool == null) // in tests
             return null;
-//        if (ThreadAccess.getTarget(currentThread) != null && fiber != null)
-//            throw new RuntimeException("Fiber " + fiber + " target: " + ThreadAccess.getTarget(currentThread));
-        return ThreadAccess.getTarget(currentThread);
+        return ParkableForkJoinTask.getTarget(currentThread);
     }
 
     private static Fiber getCurrentFiber() {
         final Thread currentThread = Thread.currentThread();
         if (currentThread instanceof ForkJoinWorkerThread) { // false in tests
-            Object target = ThreadAccess.getTarget(currentThread);
+            Object target = ParkableForkJoinTask.getTarget(currentThread);
             if (target == null)
                 return null;
             if (!(target instanceof DummyRunnable))
                 return null;
-            return ((DummyRunnable) ThreadAccess.getTarget(currentThread)).fiber;
+            return ((DummyRunnable) ParkableForkJoinTask.getTarget(currentThread)).fiber;
         } else if (Debug.isUnitTest()) {
             try {
                 final FiberForkJoinTask currentFJTask = FiberForkJoinTask.getCurrent();
@@ -890,15 +887,17 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     protected boolean shouldPreempt(int type) {
         // 0 - backbranch
         // 1 - call
-//        assert type == 1;
-//        preemptionCredits -= 3;
-//        if (preemptionCredits < 0) {
-//            final long now = System.nanoTime();
-//            if (runStart == 0)
-//                runStart = now;
-//            else if (TimeUnit.NANOSECONDS.toMicros(now - runStart) > TIME_SLICE_MICRO)
-//                return true;
-//            preemptionCredits = 1000;
+//        if (PREEMPTION) {
+//            assert type == 1;
+//            preemptionCredits -= 3;
+//            if (preemptionCredits < 0) {
+//                final long now = System.nanoTime();
+//                if (runStart == 0)
+//                    runStart = now;
+//                else if (TimeUnit.NANOSECONDS.toMicros(now - runStart) > TIME_SLICE_MICRO)
+//                    return true;
+//                preemptionCredits = 1000;
+//            }
 //        }
         return false;
     }
