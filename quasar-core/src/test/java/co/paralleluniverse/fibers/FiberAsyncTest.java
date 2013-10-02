@@ -7,6 +7,8 @@ package co.paralleluniverse.fibers;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import jsr166e.ForkJoinPool;
 import org.junit.After;
 import org.junit.Before;
@@ -93,6 +95,16 @@ public class FiberAsyncTest {
         }.run();
     }
 
+    static String callService(final Service service, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+        return new MyFiberAsync() {
+            @Override
+            protected Void requestAsync(Fiber current, MyCallback callback) {
+                service.registerCallback(callback);
+                return null;
+            }
+        }.run(timeout, unit);
+    }
+
     static abstract class MyFiberAsync extends FiberAsync<String, MyCallback, Void, RuntimeException> implements MyCallback {
         private final Fiber fiber;
 
@@ -164,6 +176,39 @@ public class FiberAsyncTest {
                     fail();
                 } catch (Exception e) {
                     assertThat(e.getMessage(), equalTo("async exception!"));
+                }
+            }
+        }).start();
+
+        fiber.join();
+    }
+
+    @Test
+    public void testTimedAsyncCallbackNoTimeout() throws Exception {
+        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                try {
+                    String res = callService(asyncService, 50, TimeUnit.MILLISECONDS);
+                    assertThat(res, equalTo("async result!"));
+                } catch (TimeoutException e) {
+                    throw new RuntimeException();
+                }
+            }
+        }).start();
+
+        fiber.join();
+    }
+
+    @Test
+    public void testTimedAsyncCallbackWithTimeout() throws Exception {
+        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                try {
+                    String res = callService(asyncService, 10, TimeUnit.MILLISECONDS);
+                    fail();
+                } catch (TimeoutException e) {
                 }
             }
         }).start();
