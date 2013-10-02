@@ -26,9 +26,15 @@ import java.util.concurrent.TimeUnit;
 public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
     private static final long IMMEDIATE_EXEC_TIMEOUT_MILLIS = 50;
     private final boolean immediateExec;
+    private final long timeoutMillis;
 
     public FiberAsync(boolean immediateExec) {
+        this(immediateExec, IMMEDIATE_EXEC_TIMEOUT_MILLIS);
+    }
+
+    public FiberAsync(boolean immediateExec, long timeoutMillis) {
         this.immediateExec = immediateExec;
+        this.timeoutMillis = timeoutMillis;
     }
 
     public FiberAsync() {
@@ -94,7 +100,7 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
                 public void run(Fiber current) {
                     prepark();
                 }
-            }, IMMEDIATE_EXEC_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+            }, timeoutMillis, TimeUnit.MILLISECONDS)) {
                 final RuntimeException ex = new RuntimeException("Failed to exec fiber " + fiber + " in thread " + Thread.currentThread());
 
                 this.exception = ex;
