@@ -56,13 +56,14 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     @Override
     protected boolean exec() {
-        final ParkableForkJoinTask<?> enc = getCurrent1();
-        this.enclosing = enc;
+        final Thread currentThread = Thread.currentThread();
+        final Object oldTarget = getTarget(currentThread);
+        this.enclosing = fromTarget(oldTarget);
         setCurrent(this);
         try {
             return doExec();
         } finally {
-            setCurrent(enc); // can't use enclosing for the same reason can't nullify enclosing. See below.
+            setTarget(currentThread, oldTarget); // can't use enclosing for the same reason can't nullify enclosing. See below.
             //enclosing = null; -- can't nullify enclosing here, because by the time we get here, his task may have been re-scheduled and enclosing re-set
         }
     }
@@ -71,25 +72,28 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         setTarget(Thread.currentThread(), task != null ? task.taskRef : null);
     }
 
-    static ParkableForkJoinTask<?> getCurrent1() {
-        final Object target = getTarget(Thread.currentThread());
+    static ParkableForkJoinTask<?> fromTarget(Object target) {
         if (target instanceof DummyRunnable)
             return ((DummyRunnable) target).task;
         return null;
+    }
+
+    static ParkableForkJoinTask<?> getCurrent1() {
+        return fromTarget(getTarget(Thread.currentThread()));
     }
 
     public static void setTarget(Thread thread, Object target) {
         if (thread instanceof ExtendedForkJoinWorkerThread)
             ((ExtendedForkJoinWorkerThread) thread).setTarget(target);
         else
-            ThreadAccess.setTarget(Thread.currentThread(), (Runnable) target);
+            ThreadAccess.setTarget(thread, (Runnable) target);
     }
 
     public static Object getTarget(Thread thread) {
         if (thread instanceof ExtendedForkJoinWorkerThread)
             return ((ExtendedForkJoinWorkerThread) thread).getTarget();
         else
-            return ThreadAccess.getTarget(Thread.currentThread());
+            return ThreadAccess.getTarget(thread);
     }
 
     boolean doExec() {

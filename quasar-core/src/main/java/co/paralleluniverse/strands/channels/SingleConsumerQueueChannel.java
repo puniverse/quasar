@@ -55,9 +55,8 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
     protected void maybeSetCurrentStrandAsOwner() {
         if (owner == null)
             setStrand(Strand.currentStrand());
-        else {
-            assert Strand.equals(owner, Strand.currentStrand()) : "This method has been called by a different strand (thread or fiber) from that owning this object";
-        }
+        else
+            assert Strand.equals(owner, Strand.currentStrand()) : "This method has been called by a different strand (" + Strand.currentStrand() + ") from that owning this object (" + owner + ")";
     }
 
     Object tryReceiveNode() {
