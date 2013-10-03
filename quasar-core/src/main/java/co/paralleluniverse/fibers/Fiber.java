@@ -19,7 +19,6 @@ import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.common.util.VisibleForTesting;
-import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
@@ -583,7 +582,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         final FibersMonitor monitor = getMonitor();
         record(1, "Fiber", "exec1", "running %s %s", state, this);
         // if (monitor != null && state == State.STARTED)
-        //    monitor.fiberStarted(); - done elsewhere
+        //    monitor.fiberStarted(this); - done elsewhere
 
         final Thread currentThread = Thread.currentThread();
         final Object old = getCurrentTarget(currentThread);// getCurrentFiber(); // a fiber can directly call exec on another fiber, e.g.: Channel.sendSync
@@ -697,17 +696,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public FibersMonitor getMonitor() {
-        if (fjPool instanceof MonitoredForkJoinPool) {
-            final FibersMonitor mon = ((MonitoredForkJoinPool) fjPool).getFibersMonitor();
-            if (mon != null)
-                return mon;
-        }
-        return NOOP_FIBERS_MONITOR;
+        return scheduler.getFibersMonitor();
     }
 
     private void monitorFiberTerminated(FibersMonitor monitor) {
         if (monitor != null)
-            monitor.fiberTerminated();
+            monitor.fiberTerminated(this);
     }
 
     private void cancelTimeoutTask() {
@@ -854,6 +848,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     public final Fiber<V> start() {
         if (!casState(State.NEW, State.STARTED))
             throw new IllegalThreadStateException("Fiber has already been started or has died");
+        getMonitor().fiberStarted(this);
         fjTask.submit();
         return this;
     }
@@ -978,7 +973,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             if (getBlocker() == blocker && fjTask.tryUnpark()) {
                 final FibersMonitor monitor = getMonitor();
                 if (monitor != null)
-                    monitor.fiberSubmitted(false);
+                    monitor.fiberResumed();
                 this.prePark = prePark;
                 this.noPreempt = true;
                 if (fjTask.exec())
@@ -1216,8 +1211,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         @Override
         protected void submit() {
             final FibersMonitor monitor = fiber.getMonitor();
-            if (monitor != null)
-                monitor.fiberSubmitted(fiber.getState() == State.STARTED);
+            if (monitor != null & fiber.getState() != State.STARTED)
+                monitor.fiberResumed();
             if (getPool() == fiber.fjPool)
                 fork();
             else

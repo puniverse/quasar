@@ -26,7 +26,6 @@ public class MonitoredForkJoinPool extends ForkJoinPool {
     private static final AtomicInteger ordinal = new AtomicInteger();
     private final String name;
     private ForkJoinPoolMonitor monitor;
-    private FibersMonitor fibersMonitor;
 
     public MonitoredForkJoinPool(String name) {
         this.name = name != null ? name : ("ForkJoinPool-" + ordinal.incrementAndGet());
@@ -66,15 +65,5 @@ public class MonitoredForkJoinPool extends ForkJoinPool {
 
     public ForkJoinPoolMonitor getMonitor() {
         return monitor;
-    }
-
-    public void setFibersMonitor(FibersMonitor fibersMonitor) {
-        if (this.fibersMonitor != null)
-            throw new IllegalStateException("Monitor already set");
-        this.fibersMonitor = fibersMonitor;
-    }
-
-    public FibersMonitor getFibersMonitor() {
-        return fibersMonitor;
     }
 }

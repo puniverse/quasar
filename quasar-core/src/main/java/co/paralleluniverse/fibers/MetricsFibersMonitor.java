@@ -45,14 +45,14 @@ class MetricsFibersMonitor implements FibersMonitor {
     @Override
     public void unregister() {
     }
-    
+
     @Override
-    public void fiberStarted() {
+    public void fiberStarted(Fiber fiber) {
         activeCount.inc();
     }
 
     @Override
-    public void fiberTerminated() {
+    public void fiberTerminated(Fiber fiber) {
         activeCount.dec();
         //runnableCount.dec();
     }
@@ -64,12 +64,9 @@ class MetricsFibersMonitor implements FibersMonitor {
     }
 
     @Override
-    public void fiberSubmitted(boolean start) {
+    public void fiberResumed() {
         //runnableCount.inc();
-        if (start)
-            activeCount.inc();
-        else
-            waitingCount.dec();
+        waitingCount.dec();
     }
 
     @Override

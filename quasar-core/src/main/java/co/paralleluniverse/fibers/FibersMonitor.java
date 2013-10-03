@@ -19,13 +19,13 @@ package co.paralleluniverse.fibers;
  */
 public interface FibersMonitor {
 
-    void fiberStarted();
+    void fiberStarted(Fiber fiber);
 
-    void fiberSubmitted(boolean start);
+    void fiberResumed();
 
     void fiberSuspended();
 
-    void fiberTerminated();
+    void fiberTerminated(Fiber fiber);
     
     void spuriousWakeup();
     

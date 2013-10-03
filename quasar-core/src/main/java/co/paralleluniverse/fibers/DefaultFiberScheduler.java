@@ -13,16 +13,12 @@
  */
 package co.paralleluniverse.fibers;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
 /**
  *
  * @author pron
  */
 public class DefaultFiberScheduler {
-    private static final FiberTimedScheduler timer = new FiberTimedScheduler(DefaultFiberPool.getInstance(),
-            new ThreadFactoryBuilder().setNameFormat("default-fiber-timed-scheduler").setDaemon(true).build());
-    private static final FiberScheduler instance = new FiberScheduler(DefaultFiberPool.getInstance(), timer);
+    private static final FiberScheduler instance = new FiberScheduler(DefaultFiberPool.getInstance());
 
     public static FiberScheduler getInstance() {
         return instance;

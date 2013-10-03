@@ -122,12 +122,12 @@ class JMXFibersMonitor implements FibersMonitor, NotificationListener, FibersMXB
     }
 
     @Override
-    public void fiberStarted() {
+    public void fiberStarted(Fiber fiber) {
         activeCount.increment();
     }
 
     @Override
-    public void fiberTerminated() {
+    public void fiberTerminated(Fiber fiber) {
         activeCount.decrement();
         //runnableCount.decrement();
     }
@@ -139,12 +139,9 @@ class JMXFibersMonitor implements FibersMonitor, NotificationListener, FibersMXB
     }
 
     @Override
-    public void fiberSubmitted(boolean start) {
+    public void fiberResumed() {
         //runnableCount.increment();
-        if (start)
-            activeCount.increment();
-        else
-            waitingCount.decrement();
+        waitingCount.decrement();
     }
 
     @Override

@@ -20,7 +20,6 @@
  */
 package co.paralleluniverse.fibers;
 
-import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
 import co.paralleluniverse.concurrent.util.SingleConsumerNonblockingProducerDelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.ExecutionException;
@@ -57,7 +56,7 @@ public class FiberTimedScheduler {
     private final ForkJoinPool fjPool;
     private final FibersMonitor monitor;
 
-    public FiberTimedScheduler(ForkJoinPool fjPool, ThreadFactory threadFactory) {
+    public FiberTimedScheduler(ForkJoinPool fjPool, ThreadFactory threadFactory, FibersMonitor monitor) {
         this.fjPool = fjPool;
         this.worker = threadFactory.newThread(new Runnable() {
             @Override
@@ -67,16 +66,12 @@ public class FiberTimedScheduler {
         });
         this.workQueue = new SingleConsumerNonblockingProducerDelayQueue<ScheduledFutureTask>();
 
-
-        if (fjPool instanceof MonitoredForkJoinPool)
-            this.monitor = ((MonitoredForkJoinPool) fjPool).getFibersMonitor();
-        else
-            this.monitor = null;
+        this.monitor = monitor;
 
         worker.start();
     }
 
-    public FiberTimedScheduler(ForkJoinPool fjPool) {
+    public FiberTimedScheduler(ForkJoinPool fjPool, FibersMonitor monitor) {
         this(fjPool, new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -84,7 +79,11 @@ public class FiberTimedScheduler {
                 t.setDaemon(true);
                 return t;
             }
-        });
+        }, monitor);
+    }
+
+    public FiberTimedScheduler(ForkJoinPool fjPool) {
+        this(fjPool, null);
     }
 
     /**
@@ -116,7 +115,7 @@ public class FiberTimedScheduler {
                         }
                         if (monitor != null)
                             monitor.timedParkLatency(delay);
-                        
+
                         run(task);
                     }
                 } catch (InterruptedException e) {

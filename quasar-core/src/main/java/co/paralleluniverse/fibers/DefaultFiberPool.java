@@ -59,26 +59,21 @@ public class DefaultFiberPool {
         instance = new MonitoredForkJoinPool("default-fiber-pool", par, fac, handler, true);
         
         final ForkJoinPoolMonitor fjpMonitor;
-        final FibersMonitor fibersMonitor;
         switch (monitorType) {
             case "JMX":
                 fjpMonitor = new JMXForkJoinPoolMonitor(instance.getName(), instance);
-                fibersMonitor = new JMXFibersMonitor(instance.getName(), instance);
                 break;
             case "METRICS":
                 fjpMonitor = new MetricsForkJoinPoolMonitor(instance.getName(), instance);
-                fibersMonitor = new MetricsFibersMonitor(instance.getName(), instance);
                 break;
             case "NONE":
                 fjpMonitor = null;
-                fibersMonitor = new NoopFibersMonitor();
                 break;
             default:
                 throw new RuntimeException("Unsupported monitor type: " + monitorType);
         }
 
         instance.setMonitor(fjpMonitor);
-        instance.setFibersMonitor(fibersMonitor);
     }
 
     public static ForkJoinPool getInstance() {

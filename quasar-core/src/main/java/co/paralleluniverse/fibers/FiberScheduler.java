@@ -1,6 +1,15 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
+ * 
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *  
+ *   or (per the licensee's choosing)
+ *  
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.fibers;
 
@@ -20,16 +29,34 @@ import jsr166e.ForkJoinPool;
 public class FiberScheduler {
     private final ForkJoinPool fjPool;
     private final FiberTimedScheduler timer;
+    private final FibersMonitor fibersMonitor;
 
     public FiberScheduler(ForkJoinPool fjPool, FiberTimedScheduler timeService) {
         if(!fjPool.getAsyncMode())
             throw new IllegalArgumentException("ForkJoinPool is not async");
         this.fjPool = fjPool;
-        this.timer = timeService;
+        
+        
+        if(fjPool instanceof MonitoredForkJoinPool) {
+            final MonitoredForkJoinPool pool = (MonitoredForkJoinPool)fjPool;
+            String name = pool.getName();
+            if(pool.getMonitor() != null) {
+                if(pool.getMonitor() instanceof JMXForkJoinPoolMonitor)
+                    this.fibersMonitor = createFibersMonitor(name, fjPool, MonitorType.JMX);
+                else if(pool.getMonitor() instanceof MetricsForkJoinPoolMonitor)
+                    this.fibersMonitor = createFibersMonitor(name, fjPool, MonitorType.METRICS);
+                else
+                    throw new RuntimeException("Unrecognized ForkJoinPoolMonitor type: " + pool.getMonitor().getClass().getName());
+            } else
+                this.fibersMonitor = new NoopFibersMonitor();
+        } else
+            this.fibersMonitor = new NoopFibersMonitor();
+        
+        this.timer = timeService != null ? timeService : createTimer(fjPool, fibersMonitor);
     }
 
     public FiberScheduler(ForkJoinPool fjPool) {
-        this(fjPool, createTimer(fjPool));
+        this(fjPool, null);
     }
 
     public FiberScheduler(String name, int parallelism, MonitorType monitorType) {
@@ -38,34 +65,41 @@ public class FiberScheduler {
 
     private static ForkJoinPool createForkJoinPool(String name, int parallelism, MonitorType monitorType) {
         final MonitoredForkJoinPool fjPool = new MonitoredForkJoinPool(name, parallelism, new NamingForkJoinWorkerFactory(name), null, true);
-        final ForkJoinPoolMonitor fjpMonitor;
-        final FibersMonitor fibersMonitor;
+        fjPool.setMonitor(createForkJoinPoolMonitor(name, fjPool, monitorType));
+        return fjPool;
+    }
+    
+    private static FibersMonitor createFibersMonitor(String name, ForkJoinPool fjPool, MonitorType monitorType) {
         switch (monitorType) {
             case JMX:
-                fjpMonitor = new JMXForkJoinPoolMonitor(name, fjPool);
-                fibersMonitor = new JMXFibersMonitor(name, fjPool);
-                break;
+                return new JMXFibersMonitor(name, fjPool);
             case METRICS:
-                fjpMonitor = new MetricsForkJoinPoolMonitor(name, fjPool);
-                fibersMonitor = new MetricsFibersMonitor(name, fjPool);
-                break;
+                return new MetricsFibersMonitor(name, fjPool);
             case NONE:
-                fjpMonitor = null;
-                fibersMonitor = new NoopFibersMonitor();
-                break;
+                return new NoopFibersMonitor();
             default:
                 throw new RuntimeException("Unsupported monitor type: " + monitorType);
         }
-
-        fjPool.setMonitor(fjpMonitor);
-        fjPool.setFibersMonitor(fibersMonitor);
-        return fjPool;
     }
 
-    private static FiberTimedScheduler createTimer(ForkJoinPool fjPool) {
+    private static ForkJoinPoolMonitor createForkJoinPoolMonitor(String name, ForkJoinPool fjPool, MonitorType monitorType) {
+        switch (monitorType) {
+            case JMX:
+                return new JMXForkJoinPoolMonitor(name, fjPool);
+            case METRICS:
+                return new MetricsForkJoinPoolMonitor(name, fjPool);
+            case NONE:
+                return null;
+            default:
+                throw new RuntimeException("Unsupported monitor type: " + monitorType);
+        }
+    }
+
+    private static FiberTimedScheduler createTimer(ForkJoinPool fjPool, FibersMonitor monitor) {
         if (fjPool instanceof MonitoredForkJoinPool)
             return new FiberTimedScheduler(fjPool,
-                    new ThreadFactoryBuilder().setDaemon(true).setNameFormat(((MonitoredForkJoinPool) fjPool).getName()).build());
+                    new ThreadFactoryBuilder().setDaemon(true).setNameFormat(((MonitoredForkJoinPool) fjPool).getName()).build(),
+                    monitor);
         else
             return new FiberTimedScheduler(fjPool);
     }
@@ -76,5 +110,9 @@ public class FiberScheduler {
 
     FiberTimedScheduler getTimer() {
         return timer;
+    }
+
+    FibersMonitor getFibersMonitor() {
+        return fibersMonitor;
     }
 }

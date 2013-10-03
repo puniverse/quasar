@@ -14,7 +14,6 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitor;
-import jsr166e.ForkJoinPool;
 
 /**
  *
@@ -27,11 +26,11 @@ public class NoopFibersMonitor extends ForkJoinPoolMonitor implements FibersMoni
     }
 
     @Override
-    public void fiberStarted() {
+    public void fiberStarted(Fiber fiber) {
     }
 
     @Override
-    public void fiberSubmitted(boolean start) {
+    public void fiberResumed() {
     }
 
     @Override
@@ -39,7 +38,7 @@ public class NoopFibersMonitor extends ForkJoinPoolMonitor implements FibersMoni
     }
 
     @Override
-    public void fiberTerminated() {
+    public void fiberTerminated(Fiber fiber) {
     }
 
     @Override
