@@ -36,7 +36,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     public static final int PARKING = -2;
     //
     private final DummyRunnable taskRef = new DummyRunnable(this);
-    private volatile int state;
+    private volatile int state; // The state field is updated while enforcing memory consistency. This beats the "don't re-fork" rule (see Javadoc for ForkJoinTask.fork())
     private volatile Object blocker;
     private ParkableForkJoinTask enclosing;
 
