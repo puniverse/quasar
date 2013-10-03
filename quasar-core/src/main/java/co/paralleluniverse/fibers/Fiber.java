@@ -94,7 +94,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private final ForkJoinPool fjPool;
     final FiberTimedScheduler timeoutService;
     private final FiberForkJoinTask<V> fjTask;
-    private final Stack stack;
+    final Stack stack;
     private final Strand parent;
     private final String name;
     private final int initialStackSize;
@@ -1029,6 +1029,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      */
     @Override
     public final void unpark() {
+        record(1, "Fiber", "unpark", "Unpark %s", this);
         fjTask.unpark();
     }
 
@@ -1193,7 +1194,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final String toString() {
-        return "Fiber@" + Long.toHexString(fid) + (name != null ? (':' + name) : "") + "[task: " + fjTask + ", target: " + Objects.systemToStringSimpleName(target) + ']';
+        return "Fiber@" + Long.toHexString(fid) + (name != null ? (':' + name) : "") + "[task: " + fjTask + ", target: " + Objects.systemToString(target) + ']';
     }
 
     ////////

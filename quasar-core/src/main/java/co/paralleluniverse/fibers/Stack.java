@@ -21,6 +21,7 @@ public final class Stack implements Serializable {
     private Object[] dataObject;    // holds refs on stack
     private transient int curMethodSP;
     static final ThreadLocal<Stack> getStackTrace = new ThreadLocal<Stack>();
+    static volatile boolean foo;
 
     Stack(Fiber lwThread, int stackSize) {
         if (stackSize <= 0) {
@@ -35,10 +36,32 @@ public final class Stack implements Serializable {
     public static Stack getStack() {
         final Fiber currentFiber = Fiber.currentFiber();
         if (currentFiber == null)
-            return getStackTrace.get(); // throw new RuntimeException("Not running in a fiber");
-        return currentFiber.getStack();
+            return getStackDuringStackTrace(); // throw new RuntimeException("Not running in a fiber");
+        return currentFiber.stack;
     }
 
+    private static Stack getStackDuringStackTrace() {
+        if(foo) { // never true and the block below is junk, but we don't want this method inlined
+            for(int i = 0; i<100; i++) {
+                if(java.util.concurrent.ThreadLocalRandom.current().nextBoolean()) {
+                    for(int j=0; j<10; j++)
+                        System.out.println("6666: " + (i * j));
+                    getStackDuringStackTrace();
+                }
+            }
+            System.out.println("6666: 1");
+            System.out.println("6666: 2");
+            System.out.println("6666: 3");
+            System.out.println("6666: 4");
+            System.out.println("6666: 5");
+            System.out.println("6666: 6");
+            System.out.println("6666: 7");
+            System.out.println("6666: 8");
+            System.out.println("6666: 9");
+            System.out.println("6666: 10");
+        }
+        return getStackTrace.get();
+    }
     /**
      * Called before a method is called.
      *
