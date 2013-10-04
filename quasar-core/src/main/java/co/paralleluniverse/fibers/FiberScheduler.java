@@ -91,7 +91,7 @@ public class FiberScheduler {
         }
     }
 
-    private static ForkJoinPoolMonitor createForkJoinPoolMonitor(String name, ForkJoinPool fjPool, MonitorType monitorType) {
+    static ForkJoinPoolMonitor createForkJoinPoolMonitor(String name, ForkJoinPool fjPool, MonitorType monitorType) {
         switch (monitorType) {
             case JMX:
                 return new JMXForkJoinPoolMonitor(name, fjPool);
