@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import jsr166e.ForkJoinPool;
 import jsr166e.ForkJoinTask;
 import jsr166e.ForkJoinWorkerThread;
+import sun.java2d.loops.Blit;
 import sun.misc.Unsafe;
 
 /**
@@ -696,7 +697,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public FibersMonitor getMonitor() {
-        if(scheduler == null)
+        if (scheduler == null)
             return null;
         return scheduler.getFibersMonitor();
     }
@@ -980,16 +981,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                     fjTask.quietlyComplete();
                 return true;
             }
-            if (unit != null && timeout == 0)
+            if (isTimeoutExpired(i, start, timeout, unit))
                 break;
-            if (unit != null && timeout > 0 && i > (1 << 12)) {
-                if (start == 0)
-                    start = System.nanoTime();
-                else if (i % 100 == 0) {
-                    if (System.nanoTime() - start > unit.toNanos(timeout))
-                        break;
-                }
-            }
         }
         record(1, "Fiber", "exec", "Blocker %s attempt to immediately execute %s - FAILED", blocker, this);
         return false;
@@ -1003,18 +996,40 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 return execStackTrace1();
             }
 
-            if (unit != null && timeout == 0)
+            if (isTimeoutExpired(i, start, timeout, unit))
                 break;
-            if (unit != null && timeout > 0 && i > (1 << 12)) {
-                if (start == 0)
-                    start = System.nanoTime();
-                else if (i % 100 == 0) {
-                    if (System.nanoTime() - start > unit.toNanos(timeout))
-                        break;
-                }
-            }
         }
         return null;
+    }
+
+    private FiberInfo execFiberInfo(long timeout, TimeUnit unit) {
+        long start = 0;
+        for (int i = 0;; i++) {
+            if (fjTask.tryUnpark()) {
+                this.noPreempt = true;
+                final StackTraceElement[] st = execStackTrace1();
+                final Object blocker = getBlocker();
+                return makeFiberInfo(State.WAITING, blocker, st);
+            }
+
+            if (isTimeoutExpired(i, start, timeout, unit))
+                break;
+        }
+        return null;
+    }
+
+    private boolean isTimeoutExpired(int iter, long start, long timeout, TimeUnit unit) {
+        if (unit != null && timeout == 0)
+            return true;
+        if (unit != null && timeout > 0 && iter > (1 << 12)) {
+            if (start == 0)
+                start = System.nanoTime();
+            else if (iter % 100 == 0) {
+                if (System.nanoTime() - start > unit.toNanos(timeout))
+                    return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -1135,6 +1150,49 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             }
         }
         return threadToFiberStack(threadStack);
+    }
+
+    final FiberInfo getFiberInfo(boolean stack) {
+        if (currentFiber() == this)
+            return makeFiberInfo(State.RUNNING, null, stack ? skipStackTraceElements(Thread.currentThread().getStackTrace(), 1) : null); // remove Thread.getStackTrace
+        else {
+            for (;;) {
+                if (state == State.TERMINATED || state == State.NEW)
+                    return makeFiberInfo(state, null, null);
+                if (state == State.RUNNING) {
+                    if (stack) {
+                        final long r = run;
+                        final Thread t = runningThread;
+                        StackTraceElement[] threadStack = null;
+                        if (t != null)
+                            threadStack = t.getStackTrace();
+                        if (state == State.RUNNING && run == r && runningThread == t)
+                            return makeFiberInfo(State.RUNNING, null, threadStack);
+                    } else
+                        return makeFiberInfo(State.RUNNING, null, null);
+                } else {
+                    if (stack) {
+                        FiberInfo fi = execFiberInfo(1, TimeUnit.MILLISECONDS);
+                        if (fi != null) {
+                            // we need to unpark because if someone else had tried to unpark while we were in execStackTrace(), it would have silently failed.
+                            unpark();
+                            return fi;
+                        }
+                    } else {
+                        if (state == State.WAITING) {
+                            Object blocker = getBlocker();
+                            if (state == State.WAITING)
+                                return makeFiberInfo(State.WAITING, blocker, null);
+                        }
+                    }
+
+                }
+            }
+        }
+    }
+
+    private FiberInfo makeFiberInfo(State state, Object blocker, StackTraceElement[] stackTrace) {
+        return new FiberInfo(fid, name, state, blocker, threadToFiberStack(stackTrace));
     }
 
     private static StackTraceElement[] threadToFiberStack(StackTraceElement[] threadStack) {

@@ -69,6 +69,7 @@ subprojects {
 
     dependencies {
         compile ":jsr166e"
+        compile ":high-scale-lib"
         compile ":HdrHistogram"
         compile "com.codahale.metrics:metrics-core:3.0.0" 
         compile "org.ow2.asm:asm:4.1" 
@@ -214,10 +215,10 @@ subprojects {
         sign configurations.archives
     }
 
-    // remove jsr166e from pom
+    // remove embedded jars from pom
     configure(install.repositories.mavenInstaller) {
         pom.whenConfigured { pom -> pom.dependencies = pom.dependencies.findAll { 
-                dep -> !(dep.artifactId.startsWith('jsr166e') || dep.artifactId.startsWith('HdrHistogram')) } 
+                dep -> !(dep.artifactId.startsWith('jsr166e') || dep.artifactId.startsWith('high-scale-lib') || dep.artifactId.startsWith('HdrHistogram')) } 
         }
     }
 	                
@@ -234,7 +235,7 @@ subprojects {
                     authentication(userName: sonatypeUsername, password: sonatypePassword)
                 } 
                 pom.whenConfigured { pom -> pom.dependencies = pom.dependencies.findAll { 
-                        dep -> !(dep.artifactId.startsWith('jsr166e') || dep.artifactId.startsWith('HdrHistogram'))} 
+                        dep -> !(dep.artifactId.startsWith('jsr166e') || dep.artifactId.startsWith('high-scale-lib') || dep.artifactId.startsWith('HdrHistogram'))} 
                 }
                 pom.project {
                     name project.name
@@ -280,6 +281,7 @@ project (':quasar-core') {
     
     jar {
         from zipTree("${baselib}/jsr166e.jar")  // include non-Maven jars
+        from zipTree("${baselib}/high-scale-lib.jar")  // include non-Maven jars
         from zipTree("${baselib}/HdrHistogram.jar")  // include non-Maven jars
         manifest { 
             attributes(
