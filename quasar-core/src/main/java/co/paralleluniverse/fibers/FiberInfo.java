@@ -15,24 +15,54 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.strands.Strand.State;
 import java.beans.ConstructorProperties;
+//import javax.management.openmbean.CompositeData;
 
 /**
  *
  * @author pron
  */
 public class FiberInfo {
-    private long id;
-    private String name;
-    private State state;
-    private Object blocker;
-    private StackTraceElement[] stackTrace;
+//    public static FiberInfo from(CompositeData cd) {
+//        CompositeData[] stcd = (CompositeData[]) cd.get("stackTrace");
+//        StackTraceElement[] stackTrace = new StackTraceElement[stcd.length];
+//        for (int i = 0; i < stcd.length; i++) {
+//            stackTrace[i] = new StackTraceElement(
+//                    (String)stcd[i].get("className"), 
+//                    (String)stcd[i].get("methodName"), 
+//                    (String)stcd[i].get("fileName"), 
+//                    (Integer)stcd[i].get("lineNumber"));
+//        }
+//        return new FiberInfo(
+//                ((Long) cd.get("id")).longValue(),
+//                (String) cd.get("name"),
+//                State.valueOf((String) cd.get("state")),
+//                (String) cd.get("blocker"),
+//                stackTrace);
+//    }
+    
+    private final long id;
+    private final String name;
+    private final State state;
+    private final Object blocker;
+    private final String blockerName;
+    private final StackTraceElement[] stackTrace;
 
-    @ConstructorProperties({"id", "name", "state", "blocker", "stackTrace"})
     public FiberInfo(long id, String name, State state, Object blocker, StackTraceElement[] stackTrace) {
         this.id = id;
         this.name = name;
         this.state = state;
         this.blocker = blocker;
+        this.blockerName = null;
+        this.stackTrace = stackTrace;
+    }
+
+    @ConstructorProperties({"id", "name", "state", "blocker", "stackTrace"})
+    public FiberInfo(long id, String name, State state, String blockerName, StackTraceElement[] stackTrace) {
+        this.id = id;
+        this.name = name;
+        this.state = state;
+        this.blockerName = blockerName;
+        this.blocker = null;
         this.stackTrace = stackTrace;
     }
 
@@ -48,8 +78,15 @@ public class FiberInfo {
         return state;
     }
 
-    public Object getBlocker() {
-        return blocker;
+//    public Object getBlockerObject() {
+//        return blocker;
+//    }
+
+    public String getBlocker() {
+        if(blocker == null)
+            return blockerName;
+        else
+            return blocker.toString();
     }
 
     public StackTraceElement[] getStackTrace() {

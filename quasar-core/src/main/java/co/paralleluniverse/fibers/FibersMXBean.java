@@ -29,4 +29,10 @@ public interface FibersMXBean {
     long getSpuriousWakeups();
 
     long getMeanTimedWakeupLatency();
+    
+    long[] getAllFiberIds();
+
+    FiberInfo getFiberInfo(long id, boolean stack);
+
+    FiberInfo[] getFiberInfo(long[] ids, boolean stack);
 }

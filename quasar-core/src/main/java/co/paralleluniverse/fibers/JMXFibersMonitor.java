@@ -34,6 +34,7 @@ import jsr166e.LongAdder;
 class JMXFibersMonitor implements FibersMonitor, NotificationListener, FibersMXBean {
     private final String mbeanName;
     private boolean registered;
+    private final FibersDetailedMonitor details;
     private final LongAdder activeCount = new LongAdder();
     //private final LongAdder runnableCount = new LongAdder();
     private final LongAdder waitingCount = new LongAdder();
@@ -44,12 +45,14 @@ class JMXFibersMonitor implements FibersMonitor, NotificationListener, FibersMXB
     private long meanTimedWakeupLatency;
     private long lastCollectTime;
 
-    public JMXFibersMonitor(String name, ForkJoinPool fjPool) {
+    public JMXFibersMonitor(String name, ForkJoinPool fjPool, boolean detailedInfo) {
         this.mbeanName = "co.paralleluniverse:type=Fibers,name=" + name;
         registerMBean();
         lastCollectTime = nanoTime();
+        this.details = detailedInfo ? new FibersDetailedMonitor() : null;
     }
 
+    @SuppressWarnings({"CallToPrintStackTrace", "CallToThreadDumpStack"})
     protected void registerMBean() {
         try {
             final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
@@ -68,6 +71,7 @@ class JMXFibersMonitor implements FibersMonitor, NotificationListener, FibersMXB
         MonitoringServices.getInstance().addPerfNotificationListener(this, mbeanName);
     }
 
+    @SuppressWarnings({"CallToPrintStackTrace", "CallToThreadDumpStack"})
     @Override
     public void unregister() {
         try {
@@ -124,12 +128,16 @@ class JMXFibersMonitor implements FibersMonitor, NotificationListener, FibersMXB
     @Override
     public void fiberStarted(Fiber fiber) {
         activeCount.increment();
+        if (details != null)
+            details.fiberStarted(fiber);
     }
 
     @Override
     public void fiberTerminated(Fiber fiber) {
         activeCount.decrement();
         //runnableCount.decrement();
+        if (details != null)
+            details.fiberTerminated(fiber);
     }
 
     @Override
@@ -179,5 +187,26 @@ class JMXFibersMonitor implements FibersMonitor, NotificationListener, FibersMXB
     @Override
     public long getMeanTimedWakeupLatency() {
         return meanTimedWakeupLatency;
+    }
+
+    @Override
+    public long[] getAllFiberIds() {
+        if (details == null)
+            return null;
+        return details.getAllFiberIds();
+    }
+
+    @Override
+    public FiberInfo getFiberInfo(long id, boolean stack) {
+        if (details == null)
+            return null;
+        return details.getFiberInfo(id, stack);
+    }
+
+    @Override
+    public FiberInfo[] getFiberInfo(long[] ids, boolean stack) {
+        if (details == null)
+            return null;
+        return details.getFiberInfo(ids, stack);
     }
 }

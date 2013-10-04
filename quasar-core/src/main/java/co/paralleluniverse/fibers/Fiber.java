@@ -1006,10 +1006,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         long start = 0;
         for (int i = 0;; i++) {
             if (fjTask.tryUnpark()) {
+                final State s = this.state;
                 this.noPreempt = true;
                 final StackTraceElement[] st = execStackTrace1();
                 final Object blocker = getBlocker();
-                return makeFiberInfo(State.WAITING, blocker, st);
+                return makeFiberInfo(s, blocker, st);
             }
 
             if (isTimeoutExpired(i, start, timeout, unit))
@@ -1598,7 +1599,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         //return ((FlightRecorderMessageFactory) recorder.getAux()).makeFlightRecorderMessage(clazz, method, format, args);
     }
     //</editor-fold>
-    private static final FibersMonitor NOOP_FIBERS_MONITOR = new NoopFibersMonitor();
 
     private static StackTraceElement[] skipStackTraceElements(StackTraceElement[] st, int skip) {
         final StackTraceElement[] st1 = new StackTraceElement[st.length - skip];
