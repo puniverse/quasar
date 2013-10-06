@@ -33,13 +33,15 @@ public class DefaultFiberScheduler {
     private static final FiberScheduler instance;
 
     static {
+        // defaults
         final String name = "default-fiber-pool";
         int par = 0;
         Thread.UncaughtExceptionHandler handler = null;
         ForkJoinPool.ForkJoinWorkerThreadFactory fac = new NamingForkJoinWorkerFactory(name);
         MonitorType monitorType = MonitorType.JMX;
-        boolean detailedFiberInfo = true;
+        boolean detailedFiberInfo = false;
 
+        // get overrides
         try {
             String pp = System.getProperty(PROPERTY_PARALLELISM);
             String hp = System.getProperty(PROPERTY_EXCEPTION_HANDLER);
@@ -62,14 +64,14 @@ public class DefaultFiberScheduler {
         if (mt != null)
             monitorType = MonitorType.valueOf(mt.toUpperCase());
 
-        MonitoredForkJoinPool pool = new MonitoredForkJoinPool(name, par, fac, handler, true);
-        final ForkJoinPoolMonitor fjpMonitor = FiberScheduler.createForkJoinPoolMonitor(name, pool, monitorType);
-        pool.setMonitor(fjpMonitor);
-        
         String dfis = System.getProperty(PROPERTY_DETAILED_FIBER_INFO);
         if(dfis != null)
             detailedFiberInfo = Boolean.valueOf(dfis);
         
+        // build instance
+        MonitoredForkJoinPool pool = new MonitoredForkJoinPool(name, par, fac, handler, true);
+        final ForkJoinPoolMonitor fjpMonitor = FiberScheduler.createForkJoinPoolMonitor(name, pool, monitorType);
+        pool.setMonitor(fjpMonitor);
         instance = new FiberScheduler(pool, detailedFiberInfo);
     }
 
