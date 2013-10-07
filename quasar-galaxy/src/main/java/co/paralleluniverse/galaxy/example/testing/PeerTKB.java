@@ -151,12 +151,9 @@ public class PeerTKB {
                             System.out.println("terminated");
                         }
                     });
-                    try {
-                        String get = dv.get();
-                        System.out.println("got msg " + get);
-                        assert get.equals("hello world");
-                    } catch (SuspendExecution ex) {
-                    }
+                    String get = dv.get();
+                    System.out.println("got msg " + get);
+                    assert get.equals("hello world");
                 } else {
                     spawnActor(new BasicActor<Message, Void>() {
                         protected Void doRun() throws SuspendExecution, InterruptedException {
@@ -288,8 +285,7 @@ public class PeerTKB {
         testGenEvent,
         testMultiGetActor,
         testOrdering,
-        test,
-    }
+        test,}
 
     private GenServerActor<Message, Integer, Message> spawnGenServer(Server<Message, Integer, Message> server) {
         return spawnActor(new GenServerActor<>(server));
