@@ -62,8 +62,8 @@ public class CircularObjectBuffer<E> extends CircularBuffer<E> {
 
     static {
         try {
-            base = unsafe.arrayBaseOffset(Object[].class);
-            int scale = unsafe.arrayIndexScale(Object[].class);
+            base = UNSAFE.arrayBaseOffset(Object[].class);
+            int scale = UNSAFE.arrayIndexScale(Object[].class);
             if ((scale & (scale - 1)) != 0)
                 throw new Error("data type scale not a power of two");
             shift = 31 - Integer.numberOfLeadingZeros(scale);
@@ -77,6 +77,6 @@ public class CircularObjectBuffer<E> extends CircularBuffer<E> {
     }
 
     private void orderedSet(int i, Object value) {
-        unsafe.putOrderedObject(array, byteOffset(i), value);
+        UNSAFE.putOrderedObject(array, byteOffset(i), value);
     }
 }

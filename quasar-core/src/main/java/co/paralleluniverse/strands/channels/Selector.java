@@ -278,19 +278,19 @@ public class Selector<Message> {
     public String toString() {
         return Selector.class.getName() + '@' + Long.toHexString(id);
     }
-    static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
     private static final long winnerOffset;
 
     static {
         try {
-            winnerOffset = unsafe.objectFieldOffset(Selector.class.getDeclaredField("winner"));
+            winnerOffset = UNSAFE.objectFieldOffset(Selector.class.getDeclaredField("winner"));
         } catch (Exception ex) {
             throw new Error(ex);
         }
     }
 
     private boolean casWinner(Object expected, Object update) {
-        return unsafe.compareAndSwapObject(this, winnerOffset, expected, update);
+        return UNSAFE.compareAndSwapObject(this, winnerOffset, expected, update);
     }
     static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 

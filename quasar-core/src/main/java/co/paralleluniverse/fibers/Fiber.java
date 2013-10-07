@@ -42,7 +42,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import jsr166e.ForkJoinPool;
 import jsr166e.ForkJoinTask;
 import jsr166e.ForkJoinWorkerThread;
-import sun.java2d.loops.Blit;
 import sun.misc.Unsafe;
 
 /**
@@ -84,7 +83,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
     // private static final FiberTimedScheduler timeoutService = new FiberTimedScheduler(new ThreadFactoryBuilder().setNameFormat("fiber-timeout-%d").setDaemon(true).build());
     private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler;
-    private static final AtomicLong idGen = new AtomicLong();
+    private static final AtomicLong idGen = new AtomicLong(1000000L);
 
     private static long nextFiberId() {
         return idGen.incrementAndGet();
@@ -981,7 +980,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                     fjTask.quietlyComplete();
                 return true;
             }
-            if (isTimeoutExpired(i, start, timeout, unit))
+            if ((start = isTimeoutExpired(i, start, timeout, unit)) < 0)
                 break;
         }
         record(1, "Fiber", "exec", "Blocker %s attempt to immediately execute %s - FAILED", blocker, this);
@@ -996,7 +995,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 return execStackTrace1();
             }
 
-            if (isTimeoutExpired(i, start, timeout, unit))
+            if ((start = isTimeoutExpired(i, start, timeout, unit)) < 0)
                 break;
         }
         return null;
@@ -1013,24 +1012,24 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 return makeFiberInfo(s, blocker, st);
             }
 
-            if (isTimeoutExpired(i, start, timeout, unit))
+            if ((start = isTimeoutExpired(i, start, timeout, unit)) < 0)
                 break;
         }
         return null;
     }
 
-    private boolean isTimeoutExpired(int iter, long start, long timeout, TimeUnit unit) {
+    private long isTimeoutExpired(int iter, long start, long timeout, TimeUnit unit) {
         if (unit != null && timeout == 0)
-            return true;
+            return -1;
         if (unit != null && timeout > 0 && iter > (1 << 12)) {
             if (start == 0)
                 start = System.nanoTime();
             else if (iter % 100 == 0) {
                 if (System.nanoTime() - start > unit.toNanos(timeout))
-                    return true;
+                    return -1;
             }
         }
-        return false;
+        return start;
     }
 
     /**
@@ -1478,19 +1477,19 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         fjTask.tryUnpark();
         assert fjTask.getState() == ParkableForkJoinTask.RUNNABLE;
     }
-    private static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
     private static final long stateOffset;
 
     static {
         try {
-            stateOffset = unsafe.objectFieldOffset(Fiber.class.getDeclaredField("state"));
+            stateOffset = UNSAFE.objectFieldOffset(Fiber.class.getDeclaredField("state"));
         } catch (Exception ex) {
             throw new AssertionError(ex);
         }
     }
 
     private boolean casState(State expected, State update) {
-        return unsafe.compareAndSwapObject(this, stateOffset, expected, update);
+        return UNSAFE.compareAndSwapObject(this, stateOffset, expected, update);
     }
 
     //<editor-fold defaultstate="collapsed" desc="Recording">

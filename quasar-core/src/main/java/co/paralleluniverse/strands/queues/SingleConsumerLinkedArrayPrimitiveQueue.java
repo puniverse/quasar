@@ -84,18 +84,18 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
 
     static {
         try {
-            tailIndexOffset = unsafe.objectFieldOffset(PrimitiveNode.class.getDeclaredField("tailIndex"));
-            maxReadIndexOffset = unsafe.objectFieldOffset(PrimitiveNode.class.getDeclaredField("maxReadIndex"));
+            tailIndexOffset = UNSAFE.objectFieldOffset(PrimitiveNode.class.getDeclaredField("tailIndex"));
+            maxReadIndexOffset = UNSAFE.objectFieldOffset(PrimitiveNode.class.getDeclaredField("maxReadIndex"));
         } catch (Exception ex) {
             throw new Error(ex);
         }
     }
 
     private boolean compareAndSetTailIndex(Node n, int expect, int update) {
-        return unsafe.compareAndSwapInt((PrimitiveNode) n, tailIndexOffset, expect, update);
+        return UNSAFE.compareAndSwapInt((PrimitiveNode) n, tailIndexOffset, expect, update);
     }
 
     private boolean compareAndSetMaxReadIndex(Node n, int expect, int update) {
-        return unsafe.compareAndSwapInt((PrimitiveNode) n, maxReadIndexOffset, expect, update);
+        return UNSAFE.compareAndSwapInt((PrimitiveNode) n, maxReadIndexOffset, expect, update);
     }
 }

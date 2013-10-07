@@ -108,7 +108,7 @@ public class ArrayQueue<E> implements BasicQueue<E> {
         return --i & mask;
     }
     ////////////////////////////////////////////////////////////////////////
-    static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
     private static final int base;
     private static final int shift;
     private static final long headOffset;
@@ -116,11 +116,11 @@ public class ArrayQueue<E> implements BasicQueue<E> {
 
     static {
         try {
-            headOffset = unsafe.objectFieldOffset(ArrayQueue.class.getDeclaredField("head"));
-            tailOffset = unsafe.objectFieldOffset(ArrayQueue.class.getDeclaredField("tail"));
+            headOffset = UNSAFE.objectFieldOffset(ArrayQueue.class.getDeclaredField("head"));
+            tailOffset = UNSAFE.objectFieldOffset(ArrayQueue.class.getDeclaredField("tail"));
 
-            base = unsafe.arrayBaseOffset(Object[].class);
-            int scale = unsafe.arrayIndexScale(Object[].class);
+            base = UNSAFE.arrayBaseOffset(Object[].class);
+            int scale = UNSAFE.arrayIndexScale(Object[].class);
             if ((scale & (scale - 1)) != 0)
                 throw new Error("data type scale not a power of two");
             shift = 31 - Integer.numberOfLeadingZeros(scale);
@@ -133,15 +133,15 @@ public class ArrayQueue<E> implements BasicQueue<E> {
      * CAS tail field. Used only by preEnq.
      */
     private boolean compareAndSetTail(long expect, long update) {
-        return unsafe.compareAndSwapLong(this, tailOffset, expect, update);
+        return UNSAFE.compareAndSwapLong(this, tailOffset, expect, update);
     }
 
     private boolean compareAndSetHead(long expect, long update) {
-        return unsafe.compareAndSwapLong(this, headOffset, expect, update);
+        return UNSAFE.compareAndSwapLong(this, headOffset, expect, update);
     }
 
     private void orderedSetHead(long value) {
-        unsafe.putOrderedLong(this, headOffset, value);
+        UNSAFE.putOrderedLong(this, headOffset, value);
     }
 
     private static long byteOffset(int i) {
@@ -149,18 +149,18 @@ public class ArrayQueue<E> implements BasicQueue<E> {
     }
 
     private void set(int i, E value) {
-        unsafe.putObjectVolatile(array, byteOffset(i), value);
+        UNSAFE.putObjectVolatile(array, byteOffset(i), value);
     }
 
     private void orderedSet(int i, E value) {
-        unsafe.putOrderedObject(array, byteOffset(i), value);
+        UNSAFE.putOrderedObject(array, byteOffset(i), value);
     }
 
     private E get(int i) {
-        return (E) unsafe.getObjectVolatile(array, byteOffset(i));
+        return (E) UNSAFE.getObjectVolatile(array, byteOffset(i));
     }
 
     private boolean cas(int i, E expected, E update) {
-        return unsafe.compareAndSwapObject(array, byteOffset(i), expected, update);
+        return UNSAFE.compareAndSwapObject(array, byteOffset(i), expected, update);
     }
 }

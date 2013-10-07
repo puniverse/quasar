@@ -245,7 +245,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     }
 
     boolean compareAndSetState(int expect, int update) {
-        return unsafe.compareAndSwapInt(this, stateOffset, expect, update);
+        return UNSAFE.compareAndSwapInt(this, stateOffset, expect, update);
     }
 
     @Override
@@ -286,12 +286,12 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         if (RECORDER != null)
             RECORDER.record(1, new FlightRecorderMessage("ParkableForkJoinTask", method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
     }
-    private static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
     private static final long stateOffset;
 
     static {
         try {
-            stateOffset = unsafe.objectFieldOffset(ParkableForkJoinTask.class.getDeclaredField("state"));
+            stateOffset = UNSAFE.objectFieldOffset(ParkableForkJoinTask.class.getDeclaredField("state"));
         } catch (Exception ex) {
             throw new AssertionError(ex);
         }

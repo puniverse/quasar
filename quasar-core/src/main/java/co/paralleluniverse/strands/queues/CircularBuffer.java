@@ -165,28 +165,28 @@ public abstract class CircularBuffer<E> implements BasicQueue<E> {
         protected abstract E getValue();
     }
     ////////////////////////////////////////////////////////////////////////
-    static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
     private static final long tailOffset;
     private static final long lastWrittenOffset;
 
     static {
         try {
-            tailOffset = unsafe.objectFieldOffset(CircularBuffer.class.getDeclaredField("tail"));
-            lastWrittenOffset = unsafe.objectFieldOffset(CircularBuffer.class.getDeclaredField("lastWritten"));
+            tailOffset = UNSAFE.objectFieldOffset(CircularBuffer.class.getDeclaredField("tail"));
+            lastWrittenOffset = UNSAFE.objectFieldOffset(CircularBuffer.class.getDeclaredField("lastWritten"));
         } catch (Exception ex) {
             throw new Error(ex);
         }
     }
 
     private void orderedSetTail(long value) {
-        unsafe.putOrderedLong(this, tailOffset, value);
+        UNSAFE.putOrderedLong(this, tailOffset, value);
     }
 
     boolean casTail(long expected, long update) {
-        return unsafe.compareAndSwapLong(this, tailOffset, expected, update);
+        return UNSAFE.compareAndSwapLong(this, tailOffset, expected, update);
     }
 
     boolean casLastWritten(long expected, long update) {
-        return unsafe.compareAndSwapLong(this, lastWrittenOffset, expected, update);
+        return UNSAFE.compareAndSwapLong(this, lastWrittenOffset, expected, update);
     }
 }

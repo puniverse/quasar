@@ -86,8 +86,8 @@ public class SingleConsumerLinkedArrayObjectQueue<E> extends SingleConsumerLinke
 
     static {
         try {
-            base = unsafe.arrayBaseOffset(Object[].class);
-            int scale = unsafe.arrayIndexScale(Object[].class);
+            base = UNSAFE.arrayBaseOffset(Object[].class);
+            int scale = UNSAFE.arrayIndexScale(Object[].class);
             if ((scale & (scale - 1)) != 0)
                 throw new Error("data type scale not a power of two");
             shift = 31 - Integer.numberOfLeadingZeros(scale);
@@ -97,15 +97,15 @@ public class SingleConsumerLinkedArrayObjectQueue<E> extends SingleConsumerLinke
     }
 
     private static boolean compareAndSetElement(Node n, int i, Object expect, Object update) {
-        return unsafe.compareAndSwapObject(((ObjectNode) n).array, byteOffset(i), expect, update);
+        return UNSAFE.compareAndSwapObject(((ObjectNode) n).array, byteOffset(i), expect, update);
     }
 
     private static void lazySet(Node n, int i, Object value) {
-        unsafe.putOrderedObject(((ObjectNode) n).array, byteOffset(i), value);
+        UNSAFE.putOrderedObject(((ObjectNode) n).array, byteOffset(i), value);
     }
 
     private static Object get(Node n, int i) {
-        return unsafe.getObjectVolatile(((ObjectNode) n).array, byteOffset(i));
+        return UNSAFE.getObjectVolatile(((ObjectNode) n).array, byteOffset(i));
     }
 
     private static long byteOffset(int i) {

@@ -51,7 +51,7 @@ abstract class SingleConsumerArrayPrimitiveQueue<E> extends SingleConsumerArrayQ
 
     static {
         try {
-            maxReadIndexOffset = unsafe.objectFieldOffset(SingleConsumerArrayPrimitiveQueue.class.getDeclaredField("maxReadIndex"));
+            maxReadIndexOffset = UNSAFE.objectFieldOffset(SingleConsumerArrayPrimitiveQueue.class.getDeclaredField("maxReadIndex"));
         } catch (Exception ex) {
             throw new Error(ex);
         }
@@ -61,6 +61,6 @@ abstract class SingleConsumerArrayPrimitiveQueue<E> extends SingleConsumerArrayQ
      * CAS maxReadIndex field. Used only by postEnq.
      */
     private boolean compareAndSetMaxReadIndex(long expect, long update) {
-        return unsafe.compareAndSwapLong(this, maxReadIndexOffset, expect, update);
+        return UNSAFE.compareAndSwapLong(this, maxReadIndexOffset, expect, update);
     }
 }

@@ -221,14 +221,14 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
         }
     }
     ////////////////////////////////////////////////////////////////////////
-    static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
     private static final long headOffset;
     private static final long tailOffset;
 
     static {
         try {
-            headOffset = unsafe.objectFieldOffset(SingleConsumerArrayQueue.class.getDeclaredField("head"));
-            tailOffset = unsafe.objectFieldOffset(SingleConsumerArrayQueue.class.getDeclaredField("tail"));
+            headOffset = UNSAFE.objectFieldOffset(SingleConsumerArrayQueue.class.getDeclaredField("head"));
+            tailOffset = UNSAFE.objectFieldOffset(SingleConsumerArrayQueue.class.getDeclaredField("tail"));
         } catch (Exception ex) {
             throw new Error(ex);
         }
@@ -238,10 +238,10 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
      * CAS tail field. Used only by preEnq.
      */
     private boolean compareAndSetTail(long expect, long update) {
-        return unsafe.compareAndSwapLong(this, tailOffset, expect, update);
+        return UNSAFE.compareAndSwapLong(this, tailOffset, expect, update);
     }
 
     private void orderedSetHead(long value) {
-        unsafe.putOrderedLong(this, headOffset, value);
+        UNSAFE.putOrderedLong(this, headOffset, value);
     }
 }

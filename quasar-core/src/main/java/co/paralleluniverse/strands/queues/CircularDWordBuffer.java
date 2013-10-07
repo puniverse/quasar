@@ -53,8 +53,8 @@ abstract class CircularDWordBuffer<E> extends CircularBuffer<E> {
 
     static {
         try {
-            base = unsafe.arrayBaseOffset(long[].class);
-            int scale = unsafe.arrayIndexScale(long[].class);
+            base = UNSAFE.arrayBaseOffset(long[].class);
+            int scale = UNSAFE.arrayIndexScale(long[].class);
             if ((scale & (scale - 1)) != 0)
                 throw new Error("data type scale not a power of two");
             shift = 31 - Integer.numberOfLeadingZeros(scale);
@@ -68,6 +68,6 @@ abstract class CircularDWordBuffer<E> extends CircularBuffer<E> {
     }
 
     private void orderedSet(int i, long value) {
-        unsafe.putOrderedLong(array, byteOffset(i), value);
+        UNSAFE.putOrderedLong(array, byteOffset(i), value);
     }
 }

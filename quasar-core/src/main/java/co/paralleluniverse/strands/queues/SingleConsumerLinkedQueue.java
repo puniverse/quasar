@@ -190,7 +190,7 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
         volatile Node prev;
     }
     ////////////////////////////////////////////////////////////////////////
-    static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
     private static final long headOffset;
     private static final long tailOffset;
     private static final long nextOffset;
@@ -198,10 +198,10 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
 
     static {
         try {
-            headOffset = unsafe.objectFieldOffset(SingleConsumerLinkedQueue.class.getDeclaredField("head"));
-            tailOffset = unsafe.objectFieldOffset(SingleConsumerLinkedQueue.class.getDeclaredField("tail"));
-            nextOffset = unsafe.objectFieldOffset(Node.class.getDeclaredField("next"));
-            prevOffset = unsafe.objectFieldOffset(Node.class.getDeclaredField("prev"));
+            headOffset = UNSAFE.objectFieldOffset(SingleConsumerLinkedQueue.class.getDeclaredField("head"));
+            tailOffset = UNSAFE.objectFieldOffset(SingleConsumerLinkedQueue.class.getDeclaredField("tail"));
+            nextOffset = UNSAFE.objectFieldOffset(Node.class.getDeclaredField("next"));
+            prevOffset = UNSAFE.objectFieldOffset(Node.class.getDeclaredField("prev"));
         } catch (Exception ex) {
             throw new Error(ex);
         }
@@ -211,37 +211,37 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
      * CAS head field. Used only by enq.
      */
     boolean compareAndSetHead(Node update) {
-        return unsafe.compareAndSwapObject(this, headOffset, null, update);
+        return UNSAFE.compareAndSwapObject(this, headOffset, null, update);
     }
 
     void orderedSetHead(Node value) {
-        unsafe.putOrderedObject(this, headOffset, value);
+        UNSAFE.putOrderedObject(this, headOffset, value);
     }
 
     void volatileSetHead(Node value) {
-        unsafe.putObjectVolatile(this, headOffset, value);
+        UNSAFE.putObjectVolatile(this, headOffset, value);
     }
 
     /**
      * CAS tail field. Used only by enq.
      */
     boolean compareAndSetTail(Node expect, Node update) {
-        return unsafe.compareAndSwapObject(this, tailOffset, expect, update);
+        return UNSAFE.compareAndSwapObject(this, tailOffset, expect, update);
     }
 
     /**
      * CAS next field of a node.
      */
     static boolean compareAndSetNext(Node node, Node expect, Node update) {
-        return unsafe.compareAndSwapObject(node, nextOffset, expect, update);
+        return UNSAFE.compareAndSwapObject(node, nextOffset, expect, update);
     }
 
     static void clearNext(Node node) {
-        unsafe.putOrderedObject(node, nextOffset, null);
+        UNSAFE.putOrderedObject(node, nextOffset, null);
     }
 
     static void clearPrev(Node node) {
-        unsafe.putOrderedObject(node, prevOffset, null);
+        UNSAFE.putOrderedObject(node, prevOffset, null);
     }
 
     abstract void clearValue(Node node);

@@ -25,7 +25,7 @@ import sun.misc.Unsafe;
  * @author pron
  */
 public class ThreadAccess {
-    private static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
     private static final long targetOffset;
     private static final long threadLocalsOffset;
     private static final long inheritableThreadLocalsOffset;
@@ -42,10 +42,10 @@ public class ThreadAccess {
 
     static {
         try {
-            targetOffset = unsafe.objectFieldOffset(Thread.class.getDeclaredField("target"));
-            threadLocalsOffset = unsafe.objectFieldOffset(Thread.class.getDeclaredField("threadLocals"));
-            inheritableThreadLocalsOffset = unsafe.objectFieldOffset(Thread.class.getDeclaredField("inheritableThreadLocals"));
-            contextClassLoaderOffset = unsafe.objectFieldOffset(Thread.class.getDeclaredField("contextClassLoader"));
+            targetOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("target"));
+            threadLocalsOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("threadLocals"));
+            inheritableThreadLocalsOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("inheritableThreadLocals"));
+            contextClassLoaderOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("contextClassLoader"));
 
             threadLocalMapClass = Class.forName("java.lang.ThreadLocal$ThreadLocalMap");
             createInheritedMap = ThreadLocal.class.getDeclaredMethod("createInheritedMap", threadLocalMapClass);
@@ -69,27 +69,27 @@ public class ThreadAccess {
     }
 
     public static Runnable getTarget(Thread thread) {
-        return (Runnable) unsafe.getObject(thread, targetOffset);
+        return (Runnable) UNSAFE.getObject(thread, targetOffset);
     }
 
     public static void setTarget(Thread thread, Runnable target) {
-        unsafe.putObject(thread, targetOffset, target);
+        UNSAFE.putObject(thread, targetOffset, target);
     }
 
     public static Object getThreadLocals(Thread thread) {
-        return unsafe.getObject(thread, threadLocalsOffset);
+        return UNSAFE.getObject(thread, threadLocalsOffset);
     }
 
     public static void setThreadLocals(Thread thread, Object threadLocals) {
-        unsafe.putObject(thread, threadLocalsOffset, threadLocals);
+        UNSAFE.putObject(thread, threadLocalsOffset, threadLocals);
     }
 
     public static Object getInheritableThreadLocals(Thread thread) {
-        return unsafe.getObject(thread, inheritableThreadLocalsOffset);
+        return UNSAFE.getObject(thread, inheritableThreadLocalsOffset);
     }
 
     public static void setInheritablehreadLocals(Thread thread, Object inheritableThreadLocals) {
-        unsafe.putObject(thread, inheritableThreadLocalsOffset, inheritableThreadLocals);
+        UNSAFE.putObject(thread, inheritableThreadLocalsOffset, inheritableThreadLocals);
     }
 
     public static Object createInheritedMap(Object inheritableThreadLocals) {
@@ -134,10 +134,10 @@ public class ThreadAccess {
     }
 
     public static ClassLoader getContextClassLoader(Thread thread) {
-        return (ClassLoader) unsafe.getObject(thread, contextClassLoaderOffset);
+        return (ClassLoader) UNSAFE.getObject(thread, contextClassLoaderOffset);
     }
 
     public static void setContextClassLoader(Thread thread, ClassLoader classLoader) {
-        unsafe.putObject(thread, contextClassLoaderOffset, classLoader);
+        UNSAFE.putObject(thread, contextClassLoaderOffset, classLoader);
     }
 }

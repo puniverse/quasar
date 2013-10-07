@@ -51,7 +51,7 @@ public class SingleConsumerLinkedObjectQueue<E> extends SingleConsumerLinkedQueu
 
     static {
         try {
-            valueOffset = unsafe.objectFieldOffset(ObjectNode.class.getDeclaredField("value"));
+            valueOffset = UNSAFE.objectFieldOffset(ObjectNode.class.getDeclaredField("value"));
         } catch (Exception ex) {
             throw new Error(ex);
         }
@@ -59,6 +59,6 @@ public class SingleConsumerLinkedObjectQueue<E> extends SingleConsumerLinkedQueu
 
     @Override
     void clearValue(Node node) {
-        unsafe.putOrderedObject(node, valueOffset, null);
+        UNSAFE.putOrderedObject(node, valueOffset, null);
     }
 }

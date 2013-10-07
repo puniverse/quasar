@@ -61,18 +61,18 @@ public class OwnedSynchronizer extends ConditionSynchronizer implements Conditio
             signal();
         }
     }
-    static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
     private static final long waiterOffset;
 
     static {
         try {
-            waiterOffset = unsafe.objectFieldOffset(OwnedSynchronizer.class.getDeclaredField("waiter"));
+            waiterOffset = UNSAFE.objectFieldOffset(OwnedSynchronizer.class.getDeclaredField("waiter"));
         } catch (Exception ex) {
             throw new Error(ex);
         }
     }
 
     private boolean casWaiter(Strand expected, Strand update) {
-        return unsafe.compareAndSwapObject(this, waiterOffset, expected, update);
+        return UNSAFE.compareAndSwapObject(this, waiterOffset, expected, update);
     }
 }

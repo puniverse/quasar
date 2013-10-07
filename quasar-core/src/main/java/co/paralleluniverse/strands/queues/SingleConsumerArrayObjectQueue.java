@@ -67,8 +67,8 @@ public class SingleConsumerArrayObjectQueue<E> extends SingleConsumerArrayQueue<
 
     static {
         try {
-            base = unsafe.arrayBaseOffset(Object[].class);
-            int scale = unsafe.arrayIndexScale(Object[].class);
+            base = UNSAFE.arrayBaseOffset(Object[].class);
+            int scale = UNSAFE.arrayIndexScale(Object[].class);
             if ((scale & (scale - 1)) != 0)
                 throw new Error("data type scale not a power of two");
             shift = 31 - Integer.numberOfLeadingZeros(scale);
@@ -82,14 +82,14 @@ public class SingleConsumerArrayObjectQueue<E> extends SingleConsumerArrayQueue<
     }
 
     private void set(int i, Object value) {
-        unsafe.putObjectVolatile(array, byteOffset(i), value);
+        UNSAFE.putObjectVolatile(array, byteOffset(i), value);
     }
 
     private void orderedSet(int i, Object value) {
-        unsafe.putOrderedObject(array, byteOffset(i), value);
+        UNSAFE.putOrderedObject(array, byteOffset(i), value);
     }
 
     private Object get(int i) {
-        return unsafe.getObjectVolatile(array, byteOffset(i));
+        return UNSAFE.getObjectVolatile(array, byteOffset(i));
     }
 }
