@@ -14,8 +14,9 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Future;
+import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -50,40 +51,50 @@ public class DelayedVal<V> implements Future<V> {
     }
 
     @Override
-    public V get() throws InterruptedException, SuspendExecution {
-        final SimpleConditionSynchronizer s = sync;
-        if (s != null) {
-            s.register();
-            try {
-                for (int i = 0; sync != null; i++)
-                    s.await(i);
-            } finally {
-                s.unregister();
+    @Suspendable
+    public V get() throws InterruptedException {
+        try {
+            final SimpleConditionSynchronizer s = sync;
+            if (s != null) {
+                s.register();
+                try {
+                    for (int i = 0; sync != null; i++)
+                        s.await(i);
+                } finally {
+                    s.unregister();
+                }
             }
+            return value;
+        } catch (SuspendExecution e) {
+            throw new AssertionError(e);
         }
-        return value;
     }
 
     @Override
-    public V get(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, SuspendExecution {
-        final SimpleConditionSynchronizer s = sync;
-        if (s != null) {
-            s.register();
-            try {
-                final long start = System.nanoTime();
-                long left = unit.toNanos(timeout);
-                final long deadline = start + left;
-                for (int i = 0; sync != null; i++) {
-                    s.awaitNanos(i, left);
-                    left = deadline - System.nanoTime();
-                    if (left <= 0)
-                        throw new TimeoutException();
+    @Suspendable
+    public V get(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
+        try {
+            final SimpleConditionSynchronizer s = sync;
+            if (s != null) {
+                s.register();
+                try {
+                    final long start = System.nanoTime();
+                    long left = unit.toNanos(timeout);
+                    final long deadline = start + left;
+                    for (int i = 0; sync != null; i++) {
+                        s.awaitNanos(i, left);
+                        left = deadline - System.nanoTime();
+                        if (left <= 0)
+                            throw new TimeoutException();
+                    }
+                } finally {
+                    s.unregister();
                 }
-            } finally {
-                s.unregister();
             }
+            return value;
+        } catch (SuspendExecution e) {
+            throw new AssertionError(e);
         }
-        return value;
     }
 
     @Override
