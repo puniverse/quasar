@@ -727,11 +727,21 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         setCurrentTarget(old, currentThread);
     }
 
-    private void installFiberLocals(Thread currentThread) {
+    /**
+     * Also called by {@link TrueThreadLocal}.
+     *
+     * @param currentThread
+     */
+    void installFiberLocals(Thread currentThread) {
         switchFiberAndThreadLocals(currentThread, true);
     }
 
-    private void restoreThreadLocals(Thread currentThread) {
+    /**
+     * Also called by {@link TrueThreadLocal}.
+     *
+     * @param currentThread
+     */
+    void restoreThreadLocals(Thread currentThread) {
         switchFiberAndThreadLocals(currentThread, false);
     }
 
