@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.fibers;
 
-import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 import org.cliffc.high_scale_lib.NonBlockingHashMapLong;
 import org.cliffc.high_scale_lib.NonBlockingHashMapLong.IteratorLong;
@@ -30,7 +29,6 @@ class FibersDetailedMonitor {
     }
 
     void fiberTerminated(Fiber fiber) {
-        ManagementFactory.getThreadMXBean();
         fibers.remove(fiber.getId());
     }
 
@@ -50,7 +48,6 @@ class FibersDetailedMonitor {
     }
 
     public FiberInfo getFiberInfo(long id, boolean stack) {
-        ManagementFactory.getThreadMXBean();
         final Fiber f = fibers.get(id);
         if (f == null)
             return null;
