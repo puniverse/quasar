@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.concurrent.util.ThreadUtil;
 import co.paralleluniverse.fibers.Suspendable;
 import static co.paralleluniverse.fibers.instrument.SimpleSuspendableClassifier.PREFIX;
 import static co.paralleluniverse.fibers.instrument.SimpleSuspendableClassifier.SUSPENDABLE_SUPERS_FILE;
@@ -65,15 +64,15 @@ public class SuspendablesScanner {
     }
 
     private static void outputResults(Set<String> results, String outputFile) throws Exception {
-        PrintStream out = getOutputStream(outputFile);
-        List<String> sorted = new ArrayList<String>(results);
-        Collections.sort(sorted);
-        for (String s : sorted) {
-//            if(out != System.out)
-//                System.out.println(s);
-            out.println(s);
+        try (PrintStream out = getOutputStream(outputFile)) {
+            List<String> sorted = new ArrayList<String>(results);
+            Collections.sort(sorted);
+            for (String s : sorted) {
+    //            if(out != System.out)
+    //                System.out.println(s);
+                out.println(s);
+            }
         }
-        out.close();
     }
 
     private static PrintStream getOutputStream(String outputFile) throws Exception {
@@ -100,7 +99,7 @@ public class SuspendablesScanner {
         } else {
             String className = extractClassName(file);
             if (className != null)
-                scanClass(className, results);
+                scanClass(Class.forName(className), results);
         }
     }
 
@@ -114,8 +113,7 @@ public class SuspendablesScanner {
             return null;
     }
 
-    private static void scanClass(String className, Set<String> results) throws Exception {
-        Class cls = Class.forName(className);
+    private static void scanClass(Class cls, Set<String> results) throws Exception {
         Method[] methods = cls.getDeclaredMethods();
         for (Method m : methods) {
             if (m.isAnnotationPresent(Suspendable.class))
