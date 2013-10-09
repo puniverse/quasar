@@ -68,14 +68,7 @@ subprojects {
     }
 
     dependencies {
-        compile ":jsr166e"
-        compile ":high-scale-lib"
-        compile ":HdrHistogram"
         compile "com.codahale.metrics:metrics-core:3.0.0" 
-        compile "org.ow2.asm:asm:4.1" 
-        compile "org.ow2.asm:asm-analysis:4.1"
-        compile "org.ow2.asm:asm-commons:4.1"
-        compile "org.ow2.asm:asm-util:4.1"
         compile "org.apache.ant:ant:1.7.0"
         compile "com.google.guava:guava:14.0.1"
         compile "org.slf4j:slf4j-api:1.7.5"
@@ -272,6 +265,16 @@ subprojects {
 }
 
 project (':quasar-core') {
+    dependencies {
+        compile ":jsr166e"
+        compile ":high-scale-lib"
+        compile ":HdrHistogram"
+        compile "org.ow2.asm:asm:4.1" 
+        compile "org.ow2.asm:asm-analysis:4.1"
+        compile "org.ow2.asm:asm-commons:4.1"
+        compile "org.ow2.asm:asm-util:4.1"
+    }
+    
     task scanSuspendables(type: JavaExec, dependsOn: classes) { // runs SuspendableScanner
         main = "co.paralleluniverse.fibers.instrument.SuspendablesScanner"
         classpath = sourceSets.main.runtimeClasspath
