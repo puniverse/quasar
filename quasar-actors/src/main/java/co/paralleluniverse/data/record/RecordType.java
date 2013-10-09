@@ -13,6 +13,7 @@
 package co.paralleluniverse.data.record;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.reflect.TypeToken;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -101,8 +102,12 @@ public class RecordType<R> {
         return addField(new Field.CharField<R>(name, -1));
     }
 
-    public <V> Field.ObjectField<R, V> objectField(String name, Class<? extends V> type) {
+    public <V> Field.ObjectField<R, V> objectField(String name, Class<V> type) {
         return addField(new Field.ObjectField<R, V>(name, type, -1));
+    }
+
+    public <V> Field.ObjectField<R, V> objectField(String name, TypeToken<V> type) {
+        return addField(new Field.ObjectField<R, V>(name, type.getRawType(), -1));
     }
 
     public Field.BooleanArrayField<R> booleanArrayField(String name, int length) {
@@ -200,7 +205,7 @@ public class RecordType<R> {
                 f = Field.charArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id);
                 break;
             case Field.OBJECT:
-                f = Field.objectField(field.name(), field.typeClass(), id);
+                f = Field.objectField(field.name(), (Class)field.typeClass(), id);
                 break;
             case Field.OBJECT_ARRAY:
                 f = Field.objectArrayField(field.name(), field.typeClass().getComponentType(), ((Field.ArrayField<R, ?>) field).length, id);

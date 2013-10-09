@@ -12,6 +12,7 @@
  */
 package co.paralleluniverse.data.record;
 
+import com.google.common.reflect.TypeToken;
 import java.lang.reflect.Array;
 import java.util.Objects;
 
@@ -52,7 +53,11 @@ public abstract class Field<R, V> {
         return new CharField<R>(name, id);
     }
 
-    public static <R, V> ObjectField<R, V> objectField(String name, Class<? extends V> type, int id) {
+    public static <R, V> ObjectField<R, V> objectField(String name, TypeToken<V> type, int id) {
+        return new ObjectField<R, V>(name, type.getRawType(), id);
+    }
+
+    public static <R, V> ObjectField<R, V> objectField(String name, Class<V> type, int id) {
         return new ObjectField<R, V>(name, type, id);
     }
 
@@ -463,9 +468,9 @@ public abstract class Field<R, V> {
     }
 
     public static class ObjectField<R, V> extends ScalarField<R, V> {
-        private final Class<? extends V> clazz;
+        private final Class<?> clazz;
 
-        ObjectField(String name, Class<? extends V> clazz, int id) {
+        ObjectField(String name, Class<?> clazz, int id) {
             super(name, id);
             this.clazz = clazz;
         }
