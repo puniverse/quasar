@@ -218,7 +218,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             }
         }
         if (newState == RUNNABLE) {
-            //this.blocker = null;
+            this.blocker = null;
             submit();
         }
     }
