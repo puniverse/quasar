@@ -14,7 +14,10 @@
 package co.paralleluniverse.strands.queues;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import sun.misc.Unsafe;
 
 /**
@@ -181,6 +184,16 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
     @Override
     public int size() {
         return (int) (tail - head);
+    }
+    
+    @Override
+    public List<E> snapshot() {
+        final long t = tail;
+        final ArrayList<E> list = new ArrayList<E>((int)(t - head));
+        for (long p = tail; p != head; p--)
+            list.add(value((int)p & mask));
+        
+        return Lists.reverse(list);
     }
 
     int next(int i) {

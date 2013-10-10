@@ -14,6 +14,9 @@
 package co.paralleluniverse.strands.queues;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.List;
 import sun.misc.Unsafe;
 
 /**
@@ -50,6 +53,8 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
     abstract void markDeleted(Node n, int index);
 
     abstract int blockSize();
+
+    abstract E value(Node n, int i);
 
     @SuppressWarnings("empty-statement")
     @Override
@@ -128,6 +133,12 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
         return ep.n == head & ep.i == headIndex;
     }
 
+    @Override
+    public final E value(ElementPointer ep) {
+        // called after hasValue so no need for a volatile read
+        return value(ep.n, ep.i);
+    }
+
     @SuppressWarnings("empty-statement")
     @Override
     public ElementPointer del(ElementPointer ep) {
@@ -153,6 +164,21 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
             }
         }
         return count;
+    }
+
+    @Override
+    public List<E> snapshot() {
+        final int blockSize = blockSize();
+        ArrayList<E> list = new ArrayList<E>();
+        for (Node p = tail; p != null; p = p.prev) {
+            for (int i = (p == head ? headIndex : 0); i < blockSize; i++) {
+                if (p == tail && !hasValue(p, i))
+                    break;
+                if (hasValue(p, i) && !isDeleted(p, i))
+                    list.add(value(p, i));
+            }
+        }
+        return Lists.reverse(list);
     }
 
     public int nodeCount() {

@@ -14,6 +14,9 @@
 package co.paralleluniverse.strands.queues;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.List;
 import sun.misc.Unsafe;
 
 /**
@@ -183,6 +186,19 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
 //            if (n != null)
 //                count++;
 //        }
+    }
+    
+    @Override
+    public List<E> snapshot() {
+        final ArrayList<E> list = new ArrayList<E>();
+        for (Node p = tail; p != null; p = p.prev) {
+            if (DUMMY_NODE_ALGORITHM) {
+                if (p.prev == null)
+                    break;
+            }
+            list.add(value(p));
+        }
+        return Lists.reverse(list);
     }
 
     public static class Node<E> {

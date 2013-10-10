@@ -30,13 +30,17 @@ public class SingleConsumerLinkedArrayFloatQueue extends SingleConsumerLinkedArr
     }
 
     @Override
-    public Float value(ElementPointer node) {
-        return floatValue(node);
+    Float value(Node n, int i) {
+        return floatValue(n, i);
     }
 
     @Override
     public float floatValue(ElementPointer node) {
-        return Float.intBitsToFloat(rawValue(node.n, node.i));
+        return floatValue(node.n, node.i);
+    }
+
+    private float floatValue(Node n, int i) {
+        return Float.intBitsToFloat(rawValue(n, i));
     }
 
     @Override

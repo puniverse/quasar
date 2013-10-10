@@ -30,13 +30,17 @@ public class SingleConsumerLinkedArrayIntQueue extends SingleConsumerLinkedArray
     }
 
     @Override
-    public Integer value(ElementPointer node) {
-        return intValue(node);
+    Integer value(Node n, int i) {
+        return intValue(n ,i);
     }
 
     @Override
     public int intValue(ElementPointer node) {
-        return rawValue(node.n, node.i);
+        return intValue(node.n, node.i);
+    }
+
+    private int intValue(Node n, int i) {
+        return rawValue(n, i);
     }
 
     @Override

@@ -30,13 +30,17 @@ public class SingleConsumerLinkedArrayLongQueue extends SingleConsumerLinkedArra
     }
 
     @Override
-    public Long value(ElementPointer node) {
-        return longValue(node);
+    Long value(Node n, int i) {
+        return longValue(n, i);
     }
 
     @Override
     public long longValue(ElementPointer node) {
-        return rawValue(node.n, node.i);
+        return longValue(node.n, node.i);
+    }
+
+    private long longValue(Node n, int i) {
+        return rawValue(n ,i);
     }
 
     @Override

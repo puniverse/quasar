@@ -31,15 +31,18 @@ implements SingleConsumerDoubleQueue<SingleConsumerLinkedArrayQueue.ElementPoint
     }
 
     @Override
-    public Double value(ElementPointer node) {
-        return doubleValue(node);
+    Double value(Node n, int i) {
+        return doubleValue(n, i);
     }
 
     @Override
     public double doubleValue(ElementPointer node) {
-        return Double.longBitsToDouble(rawValue(node.n, node.i));
+        return doubleValue(node.n, node.i);
     }
     
+    private double doubleValue(Node n, int i) {
+        return Double.longBitsToDouble(rawValue(n, i));
+    }
     
     @Override
     public double pollDouble() {

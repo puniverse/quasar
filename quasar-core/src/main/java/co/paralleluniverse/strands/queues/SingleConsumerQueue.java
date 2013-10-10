@@ -20,6 +20,7 @@ import co.paralleluniverse.common.util.Objects;
 import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 
@@ -48,6 +49,8 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
     @Override
     public abstract int size();
 
+    public abstract List<E> snapshot();
+    
     @Override
     public abstract int capacity();
 

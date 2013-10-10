@@ -51,9 +51,9 @@ public class SingleConsumerLinkedArrayObjectQueue<E> extends SingleConsumerLinke
     }
 
     @Override
-    public E value(ElementPointer ep) {
+    E value(Node n, int i) {
         // called after hasValue so no need for a volatile read
-        return (E)((ObjectNode)ep.n).array[ep.i];
+        return (E)((ObjectNode)n).array[i];
     }
 
     @Override
