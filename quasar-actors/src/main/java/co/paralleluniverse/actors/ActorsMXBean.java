@@ -13,16 +13,26 @@
  */
 package co.paralleluniverse.actors;
 
+import java.util.List;
+
 /**
  *
  * @author pron
  */
-public interface ActorMXBean {
+public interface ActorsMXBean {
     void refresh();
-    long getTotalReceivedMessages();
-    int getQueueLength();
-    int getTotalRestarts();
-    String[] getLastDeathCauses();
-    String[] mailbox();
-    String stackTrace();
+
+    int getNumActiveActors();
+    
+    long[] getAllActorIds();
+    
+    String getStackTrace(long actorId);
+    
+    String[] getMailbox(long actorId);
+            
+    void addWatch(long actorId);
+    
+    void removeWatch(long actorId);
+    
+    List<ActorInfo> getWatchedActorsInfo();
 }

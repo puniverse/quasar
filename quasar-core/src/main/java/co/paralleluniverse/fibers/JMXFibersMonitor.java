@@ -34,6 +34,7 @@ import jsr166e.LongAdder;
 class JMXFibersMonitor implements FibersMonitor, NotificationListener, FibersMXBean {
     private final String mbeanName;
     private boolean registered;
+    private long lastCollectTime;
     private final FibersDetailedMonitor details;
     private final LongAdder activeCount = new LongAdder();
     //private final LongAdder runnableCount = new LongAdder();
@@ -43,7 +44,6 @@ class JMXFibersMonitor implements FibersMonitor, NotificationListener, FibersMXB
     private final LongAdder timedParkLatencyCounter = new LongAdder();
     private long spuriousWakeups;
     private long meanTimedWakeupLatency;
-    private long lastCollectTime;
 
     public JMXFibersMonitor(String name, ForkJoinPool fjPool, boolean detailedInfo) {
         this.mbeanName = "co.paralleluniverse:type=Fibers,name=" + name;

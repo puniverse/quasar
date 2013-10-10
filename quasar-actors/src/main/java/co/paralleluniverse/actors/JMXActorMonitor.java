@@ -18,6 +18,7 @@ import co.paralleluniverse.common.monitoring.MonitoringServices;
 import co.paralleluniverse.common.util.Objects;
 import java.lang.management.ManagementFactory;
 import java.lang.ref.WeakReference;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.management.AttributeChangeNotification;
@@ -58,8 +59,8 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
     private final Counter restartCounter = new Counter();
     private final Queue<String> deathCauses = new ConcurrentLinkedQueue<>();
     // These hold counter values for the previous window
-    private long messages;
-    private long skippedMessages;
+    private volatile long messages;
+    private volatile long skippedMessages;
     //
 
     public JMXActorMonitor(String name) {
@@ -67,7 +68,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
         this.name = beanName(name);
         LOG.info("Starting monitor {}: {}", name, this.name);
         lastCollectTime = nanoTime();
-        collectAndResetCounters();
+        refresh();
         registerMBean();
     }
 
@@ -149,12 +150,9 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
 
     @Override
     public void refresh() {
-        collectAndResetCounters();
-    }
-
-    private void collectAndResetCounters() {
         if (registered) {
-            if (actor != null && actor.get() == null)
+            final WeakReference<ActorRef> a1 = actor;
+            if (a1 != null && a1.get() == null)
                 unregisterMBean();
             else
                 collect(nanoTime() - lastCollectTime);
@@ -173,8 +171,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
         lastCollectTime = nanoTime();
     }
 
-    @Override
-    public final long nanoTime() {
+    private long nanoTime() {
         return System.nanoTime();
     }
 
@@ -219,8 +216,8 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
     }
 
     @Override
-    public int getTotalReceivedMessages() {
-        return (int) messages;
+    public long getTotalReceivedMessages() {
+        return messages;
     }
 
     @Override
@@ -231,5 +228,38 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
     @Override
     public String[] getLastDeathCauses() {
         return deathCauses.toArray(new String[0]);
+    }
+
+    @Override
+    public String[] mailbox() {
+        final WeakReference<ActorRef> a1 = actor;
+        final ActorRef a = a1 != null ? a1.get() : null;
+        if (a == null) {
+            unregisterMBean();
+            return null;
+        }
+
+        List<Object> list = LocalActorUtil.getMailboxSnapshot(a);
+        String[] ms = new String[list.size()];
+        int i = 0;
+        for (Object m : list)
+            ms[i++] = m.toString();
+        return ms;
+    }
+
+    @Override
+    public String stackTrace() {
+        final WeakReference<ActorRef> a1 = actor;
+        final ActorRef a = a1 != null ? a1.get() : null;
+        if (a == null) {
+            unregisterMBean();
+            return null;
+        }
+
+        final StackTraceElement[] stackTrace = LocalActorUtil.getStackTrace(a);
+        final StringBuilder sb = new StringBuilder();
+        for (StackTraceElement ste : stackTrace)
+            sb.append('\t').append(ste).append('\n');
+        return sb.toString();
     }
 }

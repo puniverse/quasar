@@ -29,6 +29,7 @@ import co.paralleluniverse.strands.channels.ReceivePort;
 import java.lang.reflect.Constructor;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -54,7 +55,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private volatile RuntimeException exception;
     private volatile Throwable deathCause;
     private volatile Object globalId;
-    private ActorMonitor monitor;
+    private volatile ActorMonitor monitor;
     private ActorSpec<?, Message, V> spec;
     private Object aux;
     protected transient final FlightRecorder flightRecorder;
@@ -170,35 +171,6 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     final void interrupt() {
         getStrand().interrupt();
-    }
-
-    public final ActorMonitor monitor() {
-        if (monitor != null)
-            return monitor;
-        final String name = getName().toString().replaceAll(":", "");
-        this.monitor = new JMXActorMonitor(name);
-        monitor.setActor(ref);
-        return monitor;
-    }
-
-    public final void setMonitor(ActorMonitor monitor) {
-        if (this.monitor == monitor)
-            return;
-        if (this.monitor != null)
-            throw new RuntimeException("actor already has a monitor");
-        this.monitor = monitor;
-        monitor.setActor(ref);
-    }
-
-    public final void stopMonitor() {
-        if (monitor != null) {
-            monitor.shutdown();
-            this.monitor = null;
-        }
-    }
-
-    public final ActorMonitor getMonitor() {
-        return monitor;
     }
 
     public static <M, V> Actor<M, V> currentActor() {
@@ -616,8 +588,37 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
     //</editor-fold>
 
-    //<editor-fold defaultstate="collapsed" desc="Monitor delegates">
-    /////////// Monitor delegates ///////////////////////////////////
+    //<editor-fold defaultstate="collapsed" desc="Monitoring">
+    /////////// Monitoring ///////////////////////////////////
+    public final ActorMonitor monitor() {
+        if (monitor != null)
+            return monitor;
+        final String name = getName().toString().replaceAll(":", "");
+        this.monitor = new JMXActorMonitor(name);
+        monitor.setActor(ref);
+        return monitor;
+    }
+
+    public final void setMonitor(ActorMonitor monitor) {
+        if (this.monitor == monitor)
+            return;
+        if (this.monitor != null)
+            throw new RuntimeException("actor already has a monitor");
+        this.monitor = monitor;
+        monitor.setActor(ref);
+    }
+
+    public final void stopMonitor() {
+        if (monitor != null) {
+            monitor.shutdown();
+            this.monitor = null;
+        }
+    }
+
+    public final ActorMonitor getMonitor() {
+        return monitor;
+    }
+
     protected final void monitorAddDeath(Object reason) {
         if (monitor != null)
             monitor.addDeath(reason);
@@ -636,6 +637,14 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     protected final void monitorResetSkippedMessages() {
         if (monitor != null)
             monitor.resetSkippedMessages();
+    }
+
+    List<Object> getMailboxSnapshot() {
+        return mailbox().getSnapshot();
+    }
+
+    StackTraceElement[] getStackTrace() {
+        return strand.getStackTrace();
     }
     //</editor-fold>
 

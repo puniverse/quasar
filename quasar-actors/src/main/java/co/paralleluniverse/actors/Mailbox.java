@@ -19,6 +19,7 @@ import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.channels.SingleConsumerQueueChannel;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayObjectQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayObjectQueue;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -99,5 +100,9 @@ public final class Mailbox<Message> extends SingleConsumerQueueChannel<Message> 
     @Override
     protected Object writeReplace() throws java.io.ObjectStreamException {
         return RemoteChannelProxyFactoryService.create(this, actor.getGlobalId());
+    }
+    
+    List<Message> getSnapshot() {
+        return queue().snapshot();
     }
 }

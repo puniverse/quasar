@@ -15,6 +15,7 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.QueueChannel;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -100,7 +101,19 @@ public final class LocalActorUtil {
         return (ActorBuilder<M, V>) actor;
     }
 
-    private static Actor actorOf(ActorRef ar) {
+    static void setMonitor(ActorRef<?> actor, ActorMonitor mon) {
+        actorOf(actor).setMonitor(mon);
+    }
+
+    static List<Object> getMailboxSnapshot(ActorRef<?> actor) {
+        return actorOf(actor).getMailboxSnapshot();
+    }
+
+    static StackTraceElement[] getStackTrace(ActorRef<?> actor) {
+        return actorOf(actor).getStackTrace();
+    }
+
+    private static Actor actorOf(ActorRef<?> ar) {
         ar = stripDelegates(ar);
         if (!(ar instanceof LocalActorRef))
             throw new IllegalArgumentException("ActorRef " + ar + " is not a local actor.");
