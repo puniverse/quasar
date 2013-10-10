@@ -25,7 +25,6 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
-import co.paralleluniverse.strands.SuspendableUtils;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import java.lang.reflect.Constructor;
 import java.util.Collections;
@@ -407,6 +406,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     public final V run() throws InterruptedException, SuspendExecution {
         if (strand == null)
             setStrand(Strand.currentStrand());
+        JMXActorsMonitor.getInstance().actorStarted(ref);
         if (!(strand instanceof Fiber))
             currentActor.set(this);
         try {
@@ -424,6 +424,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             record(1, "Actor", "die", "Actor %s is now dead of %s", this, getDeathCause());
             if (!(strand instanceof Fiber))
                 currentActor.set(null);
+            JMXActorsMonitor.getInstance().actorTerminated(ref);
         }
     }
 
