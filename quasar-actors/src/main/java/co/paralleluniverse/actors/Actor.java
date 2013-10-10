@@ -35,15 +35,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import jsr166e.ConcurrentHashMapV8;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author pron
  */
 public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joinable<V>, Stranded, ReceivePort<Message> {
-    private static final Logger LOG = LoggerFactory.getLogger(Actor.class);
     private static final Throwable NATURAL = new Throwable();
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
     private Strand strand;
