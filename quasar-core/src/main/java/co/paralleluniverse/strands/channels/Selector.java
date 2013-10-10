@@ -256,7 +256,7 @@ public class Selector<Message> {
     }
 
     void signal() {
-        waiter.unpark();
+        waiter.unpark(this);
     }
 
     public SelectAction<?> getWinner() {

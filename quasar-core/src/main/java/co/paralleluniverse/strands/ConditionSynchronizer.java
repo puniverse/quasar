@@ -28,6 +28,11 @@ import java.util.concurrent.TimeUnit;
 public abstract class ConditionSynchronizer implements Condition {
     private static final boolean MP = Runtime.getRuntime().availableProcessors() > 1;
     private static final int SPINS = MP ? 1 << 6 : 0;
+    final Object owner;
+
+    public ConditionSynchronizer(Object owner) {
+        this.owner = owner != null ? owner : this;
+    }
 
     @Override
     public void await(int iter) throws InterruptedException, SuspendExecution {
@@ -46,7 +51,7 @@ public abstract class ConditionSynchronizer implements Condition {
         } else {
             if (isRecording())
                 record("await", "%s parking", Strand.currentStrand());
-            Strand.park(this);
+            Strand.park(owner);
             if (isRecording())
                 record("await", "%s awoke", Strand.currentStrand());
         }
@@ -71,7 +76,7 @@ public abstract class ConditionSynchronizer implements Condition {
         } else {
             if (isRecording())
                 record("await", "%s parking", Strand.currentStrand());
-            Strand.parkNanos(this, timeoutNanos);
+            Strand.parkNanos(owner, timeoutNanos);
             if (isRecording())
                 record("await", "%s awoke", Strand.currentStrand());
         }

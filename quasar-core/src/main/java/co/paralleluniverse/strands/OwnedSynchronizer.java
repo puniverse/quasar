@@ -25,6 +25,10 @@ import sun.misc.Unsafe;
 public class OwnedSynchronizer extends ConditionSynchronizer implements Condition {
     private volatile Strand waiter;
 
+    public OwnedSynchronizer(Object owner) {
+        super(owner);
+    }
+
     @Override
     public void register() {
         final Strand currentStrand = Strand.currentStrand();
@@ -49,7 +53,7 @@ public class OwnedSynchronizer extends ConditionSynchronizer implements Conditio
         final Strand s = waiter;
         if (s != null) {
             record("signal", "signalling %s", s);
-            Strand.unpark(s);
+            Strand.unpark(s, owner);
         }
     }
 

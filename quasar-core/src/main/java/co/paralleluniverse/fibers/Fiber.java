@@ -116,6 +116,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private boolean getStackTrace;
     private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
     private final DummyRunnable fiberRef = new DummyRunnable(this);
+    // volatile Object unparker;
 
     /**
      * Creates a new Fiber from the given {@link SuspendableCallable}.
@@ -1048,7 +1049,17 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      */
     @Override
     public final void unpark() {
+        // unparker = null;
+
         record(1, "Fiber", "unpark", "Unpark %s", this);
+        fjTask.unpark();
+    }
+
+    @Override
+    public final void unpark(Object unblocker) {
+        /// unparker = unblocker;
+
+        record(1, "Fiber", "unpark", "Unpark %s by %s", this, unblocker);
         fjTask.unpark();
     }
 

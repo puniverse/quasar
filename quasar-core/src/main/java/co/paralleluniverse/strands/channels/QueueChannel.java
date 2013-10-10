@@ -43,12 +43,12 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     protected QueueChannel(BasicQueue<Message> queue, OverflowPolicy overflowPolicy, boolean singleConsumer) {
         this.queue = queue;
         if (!singleConsumer || queue instanceof CircularBuffer)
-            this.sync = new SimpleConditionSynchronizer();
+            this.sync = new SimpleConditionSynchronizer(this);
         else
-            this.sync = new OwnedSynchronizer();
+            this.sync = new OwnedSynchronizer(this);
 
         this.overflowPolicy = overflowPolicy;
-        this.sendersSync = overflowPolicy == OverflowPolicy.BLOCK ? new SimpleConditionSynchronizer() : null;
+        this.sendersSync = overflowPolicy == OverflowPolicy.BLOCK ? new SimpleConditionSynchronizer(this) : null;
     }
 
     public int capacity() {

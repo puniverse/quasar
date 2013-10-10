@@ -26,7 +26,7 @@ import java.util.concurrent.TimeoutException;
  */
 public class DelayedVal<V> implements Future<V> {
     private V value;
-    private volatile SimpleConditionSynchronizer sync = new SimpleConditionSynchronizer();
+    private volatile SimpleConditionSynchronizer sync = new SimpleConditionSynchronizer(this);
 
     public final void set(V value) {
         if (sync == null)

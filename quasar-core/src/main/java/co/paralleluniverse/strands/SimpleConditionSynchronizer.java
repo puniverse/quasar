@@ -24,6 +24,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class SimpleConditionSynchronizer extends ConditionSynchronizer implements Condition {
     private final Queue<Strand> waiters = new ConcurrentLinkedQueue<Strand>();
 
+    public SimpleConditionSynchronizer(Object owner) {
+        super(owner);
+    }
+
     @Override
     public void register() {
         final Strand currentStrand = Strand.currentStrand();
@@ -43,7 +47,7 @@ public class SimpleConditionSynchronizer extends ConditionSynchronizer implement
             final Strand s = it.next();
             record("signalAll", "signalling %s", s);
 
-            Strand.unpark(s);
+            Strand.unpark(s, owner);
         }
     }
 
@@ -52,7 +56,7 @@ public class SimpleConditionSynchronizer extends ConditionSynchronizer implement
         final Strand s = waiters.peek();
         if(s != null) {
             record("signal", "signalling %s", s);
-            Strand.unpark(s);
+            Strand.unpark(s, owner);
         }
     }
 }

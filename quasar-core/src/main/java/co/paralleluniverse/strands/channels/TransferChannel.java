@@ -170,7 +170,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
             if (!p.isMatched()) {
                 if (!p.isData) {
                     if (p.casItem(null, CHANNEL_CLOSED)) // match waiting requesters with CHANNEL_CLOSED
-                        Strand.unpark(p.waiter);         // ... and wake 'em up
+                        Strand.unpark(p.waiter, this);   // ... and wake 'em up
                 } else
                     p.tryMatchData();
             }
@@ -308,7 +308,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
             // assert isData;
             Object x = item;
             if (x != null && x != this && casItem(x, null)) {
-                Strand.unpark(waiter);
+                Strand.unpark(waiter, this);
                 return true;
             }
             return false;
@@ -529,7 +529,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
                                     || (q = h.next) == null || !q.isMatched())
                                 break;        // unless slack < 2
                         }
-                        Strand.unpark(p.waiter);
+                        Strand.unpark(p.waiter, this);
                         return item;
                     } else
                         p.returnLease();

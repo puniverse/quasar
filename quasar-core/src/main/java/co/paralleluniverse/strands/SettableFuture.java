@@ -28,7 +28,7 @@ import sun.misc.Unsafe;
  * @author pron
  */
 public class SettableFuture<V> implements Future<V> {
-    private final Condition sync = new SimpleConditionSynchronizer();
+    private final Condition sync = new SimpleConditionSynchronizer(this);
     private volatile boolean done;
     private volatile int setting;
     private V value;

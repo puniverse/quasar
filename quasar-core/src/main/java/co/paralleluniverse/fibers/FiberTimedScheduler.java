@@ -90,11 +90,11 @@ public class FiberTimedScheduler {
      * @throws RejectedExecutionException {@inheritDoc}
      * @throws NullPointerException {@inheritDoc}
      */
-    public Future<Void> schedule(Fiber<?> fiber, long delay, TimeUnit unit) {
+    public Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit) {
         if (fiber == null || unit == null)
             throw new NullPointerException();
         assert fiber.getFjPool() == fjPool;
-        ScheduledFutureTask t = new ScheduledFutureTask(fiber, triggerTime(delay, unit));
+        ScheduledFutureTask t = new ScheduledFutureTask(fiber, blocker, triggerTime(delay, unit));
         delayedExecute(t);
         return t;
     }
@@ -149,7 +149,7 @@ public class FiberTimedScheduler {
     private void run(ScheduledFutureTask task) {
         try {
             final Fiber fiber = task.fiber;
-            fiber.unpark();
+            fiber.unpark(this);
         } catch (Exception e) {
         }
     }
@@ -168,6 +168,8 @@ public class FiberTimedScheduler {
 
     private class ScheduledFutureTask implements Delayed, Future<Void> {
         final Fiber<?> fiber;
+        final Object blocker;
+        
         /**
          * Sequence number to break ties FIFO
          */
@@ -182,8 +184,9 @@ public class FiberTimedScheduler {
         /**
          * Creates a one-shot action with given nanoTime-based trigger time.
          */
-        ScheduledFutureTask(Fiber<?> fiber, long ns) {
+        ScheduledFutureTask(Fiber<?> fiber, Object blocker, long ns) {
             this.fiber = fiber;
+            this.blocker = blocker;
             this.time = ns;
             this.sequenceNumber = sequencer.getAndIncrement();
         }
@@ -235,6 +238,11 @@ public class FiberTimedScheduler {
         @Override
         public Void get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String toString() {
+            return "Timeout(" + blocker + ')';
         }
     }
 

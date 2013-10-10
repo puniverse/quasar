@@ -40,7 +40,7 @@ import java.util.concurrent.TimeoutException;
  * Blocking strategy that uses a lock and condition variable for {@link EventProcessor}s waiting on a barrier.
  */
 public final class StrandBlockingWaitStrategy implements WaitStrategy {
-    private final SimpleConditionSynchronizer processorNotifyCondition = new SimpleConditionSynchronizer();
+    private final SimpleConditionSynchronizer processorNotifyCondition = new SimpleConditionSynchronizer(this);
 
     @Override
     public long waitFor(long sequence, Sequence cursorSequence, Sequence dependentSequence, com.lmax.disruptor.SequenceBarrier barrier)

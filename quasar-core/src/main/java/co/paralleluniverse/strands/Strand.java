@@ -79,6 +79,8 @@ public abstract class Strand {
 
     public abstract void unpark();
 
+    public abstract void unpark(Object unblocker);
+
     public abstract Object getBlocker();
 
     public abstract State getState();
@@ -197,11 +199,13 @@ public abstract class Strand {
             strand.unpark();
     }
 
-    public static void unpark(Object strand) {
-        if (strand instanceof Strand)
-            ((Strand) strand).unpark();
-        else
-            LockSupport.unpark((Thread) strand);
+    public static void unpark(Strand strand, Object blocker) {
+        if (strand != null)
+            strand.unpark(blocker);
+    }
+
+    public static void unpark(Thread strand) {
+        LockSupport.unpark((Thread) strand);
     }
 
     @SuppressWarnings("CallToThreadDumpStack")
@@ -382,6 +386,11 @@ public abstract class Strand {
         }
 
         @Override
+        public void unpark(Object unblocker) {
+            unpark();
+        }
+
+        @Override
         public Object getBlocker() {
             return LockSupport.getBlocker(thread);
         }
@@ -493,6 +502,11 @@ public abstract class Strand {
         @Override
         public void unpark() {
             fiber.unpark();
+        }
+
+        @Override
+        public void unpark(Object unblocker) {
+            fiber.unpark(unblocker);
         }
 
         @Override

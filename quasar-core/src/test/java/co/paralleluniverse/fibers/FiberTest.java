@@ -334,7 +334,7 @@ public class FiberTest {
 
     @Test
     public void testDumpStackWaitingFiber() throws Exception {
-        final Condition cond = new SimpleConditionSynchronizer();
+        final Condition cond = new SimpleConditionSynchronizer(null);
         final AtomicBoolean flag = new AtomicBoolean(false);
 
         Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
@@ -381,7 +381,7 @@ public class FiberTest {
 
     @Test
     public void testDumpStackWaitingFiberWhenCalledFromFiber() throws Exception {
-        final Condition cond = new SimpleConditionSynchronizer();
+        final Condition cond = new SimpleConditionSynchronizer(null);
         final AtomicBoolean flag = new AtomicBoolean(false);
 
         final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {

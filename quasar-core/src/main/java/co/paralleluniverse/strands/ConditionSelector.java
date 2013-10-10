@@ -23,12 +23,13 @@ import java.util.Collection;
 public class ConditionSelector extends ConditionSynchronizer implements Condition {
     private final Collection<Condition> conditions;
 
-    public ConditionSelector(Collection<Condition> conditions) {
+    public ConditionSelector(Object owner, Collection<Condition> conditions) {
+        super(owner);
         this.conditions = conditions;
     }
 
-    public ConditionSelector(Condition... conds) {
-        this(Arrays.asList(conds));
+    public ConditionSelector(Object owner, Condition... conds) {
+        this(owner, Arrays.asList(conds));
     }
 
     @Override
