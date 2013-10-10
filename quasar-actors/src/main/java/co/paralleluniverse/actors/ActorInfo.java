@@ -24,21 +24,21 @@ public class ActorInfo {
     private final long id;
     private final String name;
     private final boolean fiber;
-    private final long totalReceivedMessages;
+    private final long receivedMessages;
     private final int queueLength;
-    private final int totalRestarts;
+    private final int restarts;
     private final String[] lastDeathCauses;
     private final String[] mailbox;
     private final String stackTrace;
 
-    @ConstructorProperties({"id", "name", "fiber", "totalReceivedMessages", "queueLength", "totalRestarts", "lastDeathCauses", "mailbox", "stackTrace"})
-    public ActorInfo(long id, String name, boolean fiber, long totalReceivedMessages, int queueLength, int totalRestarts, String[] lastDeathCauses, String[] mailbox, String stackTrace) {
+    @ConstructorProperties({"id", "name", "fiber", "receivedMessages", "queueLength", "restarts", "lastDeathCauses", "mailbox", "stackTrace"})
+    public ActorInfo(long id, String name, boolean fiber, long receivedMessages, int queueLength, int restarts, String[] lastDeathCauses, String[] mailbox, String stackTrace) {
         this.id = id;
         this.name = name;
         this.fiber = fiber;
-        this.totalReceivedMessages = totalReceivedMessages;
+        this.receivedMessages = receivedMessages;
         this.queueLength = queueLength;
-        this.totalRestarts = totalRestarts;
+        this.restarts = restarts;
         this.lastDeathCauses = lastDeathCauses;
         this.mailbox = mailbox;
         this.stackTrace = stackTrace;
@@ -56,16 +56,16 @@ public class ActorInfo {
         return fiber;
     }
 
-    public long getTotalReceivedMessages() {
-        return totalReceivedMessages;
+    public long getReceivedMessages() {
+        return receivedMessages;
     }
 
     public int getQueueLength() {
         return queueLength;
     }
 
-    public int getTotalRestarts() {
-        return totalRestarts;
+    public int getRestarts() {
+        return restarts;
     }
 
     public String[] getLastDeathCauses() {

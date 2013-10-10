@@ -169,7 +169,7 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
         final StackTraceElement[] stackTrace = LocalActorUtil.getStackTrace(actor);
         final StringBuilder sb = new StringBuilder();
         for (StackTraceElement ste : stackTrace)
-            sb.append('\t').append(ste).append('\n');
+            sb.append(ste).append('\n');
         return sb.toString();
     }
     

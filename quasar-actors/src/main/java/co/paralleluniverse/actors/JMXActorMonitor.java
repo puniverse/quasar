@@ -259,7 +259,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
         final StackTraceElement[] stackTrace = LocalActorUtil.getStackTrace(a);
         final StringBuilder sb = new StringBuilder();
         for (StackTraceElement ste : stackTrace)
-            sb.append('\t').append(ste).append('\n');
+            sb.append(ste).append('\n');
         return sb.toString();
     }
 }
