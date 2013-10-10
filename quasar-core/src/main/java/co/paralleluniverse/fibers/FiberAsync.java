@@ -49,7 +49,7 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
             }
         })); // make sure we actually park and run PostParkActions
 
-        while (!isCompleted())
+        while (!isCompleted() || (immediateExec && !Fiber.currentFiber().isInExec()))
             Fiber.park((Object) this);
 
         return getResult();
@@ -70,7 +70,7 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
         while (!Fiber.park(this, new Fiber.ParkAction() {
             @Override
             public void run(Fiber current) {
-                current.timeoutService.schedule(current, timeout, unit);
+                current.timeoutService.schedule(current, FiberAsync.this, timeout, unit);
                 attachment = requestAsync(current, getCallback());
             }
         })); // make sure we actually park and run PostParkActions
@@ -111,32 +111,33 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
     protected final void completed(V result, Fiber fiber) {
         this.result = result;
         completed = true;
+        // a race can happen at this point in the immediateExec case, hence the test Fiber.currentFiber().isInExec() in run()
         fire(fiber);
     }
 
-    protected final void failed(Throwable exc, Fiber fiber) {
-        this.exception = exc;
+    protected final void failed(Throwable t, Fiber fiber) {
+        this.exception = t;
         completed = true;
+        // a race can happen at this point in the immediateExec case, hence the test Fiber.currentFiber().isInExec() in run()
         fire(fiber);
     }
 
     private void fire(Fiber fiber) {
         if (immediateExec) {
+            final long timeout = timeoutNanos > 0 ? timeoutNanos : IMMEDIATE_EXEC_MAX_TIMEOUT;
             if (!fiber.exec(this, new Fiber.ParkAction() {
-                @Override
                 public void run(Fiber current) {
                     prepark();
                 }
-            }, timeoutNanos > 0 ? timeoutNanos : IMMEDIATE_EXEC_MAX_TIMEOUT, TimeUnit.NANOSECONDS)) {
-                final RuntimeException ex1 = new RuntimeException("Failed to exec fiber " + fiber + " in thread " + Thread.currentThread());
+            }, timeout, TimeUnit.NANOSECONDS)) {
+                final RuntimeException ex1 = new RuntimeException("Failed to exec fiber " + fiber + " within " + TimeUnit.NANOSECONDS.toMicros(timeout) + "us in thread " + Thread.currentThread());
 
                 this.exception = timeoutNanos > 0 ? new TimeoutException() : ex1;
-                fiber.unpark();
-
+                fiber.unpark(this);
                 throw ex1;
             }
         } else
-            fiber.unpark();
+            fiber.unpark(this);
     }
 
     /**

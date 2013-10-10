@@ -116,10 +116,6 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         return blocker;
     }
 
-    protected void setBlocker(Object blocker) {
-        this.blocker = blocker;
-    }
-
     ParkableForkJoinTask getEnclosing() {
         return enclosing;
     }
@@ -221,8 +217,10 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
                 break;
             }
         }
-        if (newState == RUNNABLE)
+        if (newState == RUNNABLE) {
+            //this.blocker = null;
             submit();
+        }
     }
 
     protected boolean tryUnpark() {

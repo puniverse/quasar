@@ -112,6 +112,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private Future<Void> timeoutTask;
     private ParkAction prePark;
     private ParkAction postPark;
+    private boolean inExec;
     private V result;
     private boolean getStackTrace;
     private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
@@ -554,7 +555,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             prePark.run(this);
         this.postPark = postParkAction;
         if (timeout > 0 && unit != null)
-            this.timeoutTask = timeoutService.schedule(this, timeout, unit);
+            this.timeoutTask = timeoutService.schedule(this, blocker, timeout, unit);
 
         return fjTask.park1(blocker);
     }
@@ -611,9 +612,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             state = State.WAITING;
 
             final ParkAction ppa = postPark;
-            this.prePark = null;
-            this.postPark = null;
-            this.noPreempt = false;
+            clearRunSettings();
 
             restoreThreadData(currentThread, old);
             restored = true;
@@ -629,12 +628,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 monitor.fiberSuspended();
             return false;
         } catch (InterruptedException e) {
+            clearRunSettings();
             runningThread = null;
             state = State.TERMINATED;
             record(1, "Fiber", "exec1", "InterruptedException: %s, %s", state, this);
             monitorFiberTerminated(monitor);
             throw new RuntimeException(e);
         } catch (Throwable t) {
+            clearRunSettings();
             runningThread = null;
             state = State.TERMINATED;
             record(1, "Fiber", "exec1", "Exception in %s %s: %s", state, this, t);
@@ -644,6 +645,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             if (!restored)
                 restoreThreadData(currentThread, old);
         }
+    }
+
+    private void clearRunSettings() {
+        this.prePark = null;
+        this.postPark = null;
+        this.inExec = false;
+        this.noPreempt = false;
     }
 
     private StackTraceElement[] execStackTrace1() {
@@ -955,10 +963,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return fjTask.getBlocker();
     }
 
-    public final void setBlocker(Object blocker) {
-        fjTask.setBlocker(blocker);
-    }
-
     public final Strand getParent() {
         return parent;
     }
@@ -978,54 +982,54 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             return false;
         record(1, "Fiber", "exec", "Blocker %s attempting to immediately execute %s", blocker, this);
 
-        long start = 0;
-        for (int i = 0;; i++) {
-            if (getBlocker() == blocker && fjTask.tryUnpark()) {
-                final FibersMonitor monitor = getMonitor();
-                if (monitor != null)
-                    monitor.fiberResumed();
-                this.prePark = prePark;
-                this.noPreempt = true;
-                if (fjTask.exec())
-                    fjTask.quietlyComplete();
-                return true;
-            }
-            if ((start = isTimeoutExpired(i, start, timeout, unit)) < 0)
-                break;
+        if (!tryUnpark(blocker, timeout, unit)) {
+            record(1, "Fiber", "exec", "Blocker %s attempt to immediately execute %s FAILED", blocker, this);
+            return false;
         }
-        record(1, "Fiber", "exec", "Blocker %s attempt to immediately execute %s - FAILED", blocker, this);
-        return false;
+        final FibersMonitor monitor = getMonitor();
+        if (monitor != null)
+            monitor.fiberResumed();
+        this.prePark = prePark;
+        this.noPreempt = true;
+        this.inExec = true;
+        if (fjTask.exec())
+            fjTask.quietlyComplete();
+        return true;
     }
 
-    private StackTraceElement[] execStackTrace(long timeout, TimeUnit unit) {
-        long start = 0;
-        for (int i = 0;; i++) {
-            if (fjTask.tryUnpark()) {
-                this.noPreempt = true;
-                return execStackTrace1();
-            }
+    boolean isInExec() {
+        return inExec;
+    } 
 
-            if ((start = isTimeoutExpired(i, start, timeout, unit)) < 0)
-                break;
-        }
-        return null;
+    private StackTraceElement[] execStackTrace(long timeout, TimeUnit unit) {
+        if (!tryUnpark(null, timeout, unit))
+            return null;
+
+        this.noPreempt = true;
+        return execStackTrace1();
     }
 
     private FiberInfo execFiberInfo(long timeout, TimeUnit unit) {
+        if (!tryUnpark(null, timeout, unit))
+            return null;
+
+        final State s = this.state;
+        this.noPreempt = true;
+        final StackTraceElement[] st = execStackTrace1();
+        final Object blocker = getBlocker();
+        return makeFiberInfo(s, blocker, st);
+    }
+
+    private boolean tryUnpark(Object blocker, long timeout, TimeUnit unit) {
         long start = 0;
         for (int i = 0;; i++) {
-            if (fjTask.tryUnpark()) {
-                final State s = this.state;
-                this.noPreempt = true;
-                final StackTraceElement[] st = execStackTrace1();
-                final Object blocker = getBlocker();
-                return makeFiberInfo(s, blocker, st);
-            }
-
+            Object b = getBlocker();
+            boolean tu = true;
+            if ((blocker != null ? b == blocker : true) && (tu = fjTask.tryUnpark()))
+                return true;
             if ((start = isTimeoutExpired(i, start, timeout, unit)) < 0)
-                break;
+                return false;
         }
-        return null;
     }
 
     private long isTimeoutExpired(int iter, long start, long timeout, TimeUnit unit) {
@@ -1369,11 +1373,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         @Override
         protected int getState() {
             return super.getState();
-        }
-
-        @Override
-        protected void setBlocker(Object blocker) {
-            super.setBlocker(blocker);
         }
 
         @Override
