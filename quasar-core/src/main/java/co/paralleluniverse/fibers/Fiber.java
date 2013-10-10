@@ -64,7 +64,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     public static final int DEFAULT_STACK_SIZE = 16;
 //    private static final boolean PREEMPTION = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.enablePreemption", "false"));
     private static final int PREEMPTION_CREDITS = 3000;
-    private static final long TIME_SLICE_MICRO = 1000;
     private static final long serialVersionUID = 2783452871536981L;
     protected static final FlightRecorder flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
@@ -83,7 +82,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
     // private static final FiberTimedScheduler timeoutService = new FiberTimedScheduler(new ThreadFactoryBuilder().setNameFormat("fiber-timeout-%d").setDaemon(true).build());
     private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler;
-    private static final AtomicLong idGen = new AtomicLong(1000000L);
+    private static final AtomicLong idGen = new AtomicLong(10000000L);
 
     private static long nextFiberId() {
         return idGen.incrementAndGet();
