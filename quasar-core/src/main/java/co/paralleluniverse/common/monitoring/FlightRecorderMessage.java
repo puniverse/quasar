@@ -85,6 +85,14 @@ public class FlightRecorderMessage {
         }
     }
 
+    public String getClazz() {
+        return clazz;
+    }
+
+    public String getMethod() {
+        return method;
+    }
+
     public Object recordingDouble(Object obj) {
         try {
             // Use of Guava classes has caused problems with conflicting Guava versions

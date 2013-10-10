@@ -78,13 +78,13 @@ public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean 
 
     public void record(int level, Object payload) {
         final ThreadRecorder recorder = get();
-        if(recorder != null)
+        if (recorder != null)
             recorder.record(level, payload);
     }
 
     public void record(int level, Object... payload) {
         final ThreadRecorder recorder = get();
-        if(recorder != null)
+        if (recorder != null)
             recorder.record(level, payload);
     }
     //////////////////////////////////////////////
@@ -157,6 +157,13 @@ public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean 
                 return;
             if (level > this.level)
                 return;
+
+//            if (obj instanceof FlightRecorderMessage) {
+//                FlightRecorderMessage frm = (FlightRecorderMessage) obj;
+//                if (!Objects.equals(frm.getClazz(), "ParkableForkJoinTask") && !Objects.equals(frm.getClazz(), "Fiber"))
+//                    return;
+//            }
+
             totalRecs++;
             timestamps[tail] = System.nanoTime();
             payloads[tail] = obj;
