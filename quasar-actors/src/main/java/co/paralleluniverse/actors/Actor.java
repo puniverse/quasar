@@ -25,6 +25,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
+import co.paralleluniverse.strands.SuspendableUtils;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import java.lang.reflect.Constructor;
 import java.util.Collections;
@@ -97,6 +98,11 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     public ActorRef<Message> spawn() {
         new Fiber(getName(), this).start();
+        return ref();
+    }
+
+    public ActorRef<Message> spawnThread() {
+        new Thread(Strand.toRunnable(this), getName()).start();
         return ref();
     }
 
