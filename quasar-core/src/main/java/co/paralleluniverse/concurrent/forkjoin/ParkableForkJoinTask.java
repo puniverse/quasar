@@ -169,8 +169,9 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     protected boolean park1(Object blocker, boolean exclusive) throws Exception {
         int newState;
-        for (;;) {
-            final int _state = getState();
+        int _state;
+        do {
+            _state = getState();
             switch (_state) {
                 case LEASED:
                     newState = RUNNABLE;
@@ -184,13 +185,10 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
                 default:
                     throw new AssertionError("Unknown task state: " + _state);
             }
+        } while (!compareAndSetState(_state, newState));
 
-            if (compareAndSetState(_state, newState)) {
-                if (Debug.isDebug())
-                    record("park", "current: %s - %s -> %s (blocker: %s)", this, _state, newState, blocker);
-                break;
-            }
-        }
+        if (Debug.isDebug())
+            record("park", "current: %s - %s -> %s (blocker: %s)", this, _state, newState, blocker);
         if (newState == PARKING) {
             this.blocker = blocker;
             this.parkExclusive = exclusive;
@@ -209,17 +207,17 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         if (isDone())
             return;
 
-        if(parkExclusive && blocker != unblocker)
-            return;
-        
         int newState;
+        int _state;
         for (;;) {
-            final int _state = getState();
+            _state = getState();
             switch (_state) {
                 case RUNNABLE:
                     newState = LEASED;
                     break;
                 case PARKED:
+                    if (parkExclusive && blocker != unblocker)
+                        return;
                     newState = RUNNABLE;
                     break;
                 case PARKING:
@@ -231,13 +229,12 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
                 default:
                     throw new AssertionError("Unknown task state: " + _state);
             }
-
-            if (compareAndSetState(_state, newState)) {
-                if (Debug.isDebug())
-                    record("unpark", "current: %s - %s -> %s", this, _state, newState);
+            if (compareAndSetState(_state, newState))
                 break;
-            }
         }
+
+        if (Debug.isDebug())
+            record("unpark", "current: %s - %s -> %s", this, _state, newState);
         if (newState == RUNNABLE) {
             this.unparker = unblocker;
             this.blocker = null;
