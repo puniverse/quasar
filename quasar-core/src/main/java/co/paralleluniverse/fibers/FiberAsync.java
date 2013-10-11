@@ -94,7 +94,9 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
 
         if (!isCompleted()) {
             assert System.nanoTime() >= deadline;
-            throw new TimeoutException();
+            exception = new TimeoutException();
+            completed = true;
+            throw (TimeoutException) exception;
         }
 
         return getResult();
@@ -123,6 +125,8 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
     private A attachment;
 
     protected final void completed(V result, Fiber fiber) {
+        if (completed) // probably timeout
+            return;
         this.result = result;
         completed = true;
         // a race can happen at this point in the immediateExec case, hence the test Fiber.currentFiber().isInExec() in run()
@@ -130,6 +134,8 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
     }
 
     protected final void failed(Throwable t, Fiber fiber) {
+        if (completed) // probably timeout
+            return;
         this.exception = t;
         completed = true;
         // a race can happen at this point in the immediateExec case, hence the test Fiber.currentFiber().isInExec() in run()
