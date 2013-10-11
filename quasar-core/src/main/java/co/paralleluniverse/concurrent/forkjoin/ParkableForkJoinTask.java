@@ -29,6 +29,7 @@ import sun.misc.Unsafe;
  */
 public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
+    public static final Object EMERGENCY_UNBLOCKER = new Object();
     public static final Park PARK = new Park();
     public static final int RUNNABLE = 0;
     public static final int LEASED = 1;
@@ -39,6 +40,8 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     private volatile int state; // The state field is updated while enforcing memory consistency. This beats the "don't re-fork" rule (see Javadoc for ForkJoinTask.fork())
     private volatile Object blocker;
     private ParkableForkJoinTask enclosing;
+    private boolean parkExclusive;
+    private Object unparker;
 
     public ParkableForkJoinTask() {
         state = RUNNABLE;
@@ -59,6 +62,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         final Thread currentThread = Thread.currentThread();
         final Object oldTarget = getTarget(currentThread);
         this.enclosing = fromTarget(oldTarget);
+        this.parkExclusive = false;
         setCurrent(this);
         try {
             return doExec();
@@ -143,6 +147,10 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             record("doExec", "parked " + (yield ? "(yield)" : "(park)") + " %s", this);
     }
 
+    protected Object getUnparker() {
+        return unparker;
+    }
+
     protected void doPark(boolean yield) {
         if (yield)
             submit();
@@ -156,6 +164,10 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     }
 
     protected boolean park1(Object blocker) throws Exception {
+        return park1(blocker, false);
+    }
+
+    protected boolean park1(Object blocker, boolean exclusive) throws Exception {
         int newState;
         for (;;) {
             final int _state = getState();
@@ -181,6 +193,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         }
         if (newState == PARKING) {
             this.blocker = blocker;
+            this.parkExclusive = exclusive;
             parking(false);
             throwPark(false);
             return true;
@@ -189,8 +202,16 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     }
 
     public void unpark() {
+        unpark(null);
+    }
+
+    public void unpark(Object unblocker) {
         if (isDone())
             return;
+
+        if(parkExclusive && blocker != unblocker)
+            return;
+        
         int newState;
         for (;;) {
             final int _state = getState();
@@ -218,13 +239,16 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             }
         }
         if (newState == RUNNABLE) {
+            this.unparker = unblocker;
             this.blocker = null;
+            this.parkExclusive = false;
             submit();
         }
     }
 
-    protected boolean tryUnpark() {
-        return compareAndSetState(PARKED, RUNNABLE);
+    protected boolean tryUnpark(Object unblocker) {
+        boolean res = compareAndSetState(PARKED, RUNNABLE);
+        return res;
     }
 
     protected void yield1() throws Exception {

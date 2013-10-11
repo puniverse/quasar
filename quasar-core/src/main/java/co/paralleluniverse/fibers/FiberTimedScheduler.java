@@ -149,7 +149,7 @@ public class FiberTimedScheduler {
     private void run(ScheduledFutureTask task) {
         try {
             final Fiber fiber = task.fiber;
-            fiber.unpark(this);
+            fiber.unpark(task.blocker);
         } catch (Exception e) {
         }
     }

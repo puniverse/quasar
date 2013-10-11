@@ -37,6 +37,17 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
         this(false);
     }
 
+    /**
+     *
+     * <p/>
+     * In immediate exec mode, when this method returns we are running within the handler, and will need to call Fiber.yield()
+     * to return from the handler.
+     *
+     * @return
+     * @throws E
+     * @throws SuspendExecution
+     * @throws InterruptedException
+     */
     @SuppressWarnings("empty-statement")
     public V run() throws E, SuspendExecution, InterruptedException {
         if (Fiber.currentFiber() == null)
@@ -49,9 +60,15 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
             }
         })); // make sure we actually park and run PostParkActions
 
-        while (!isCompleted() || (immediateExec && !Fiber.currentFiber().isInExec()))
-            Fiber.park((Object) this);
+        if (Fiber.interrupted())
+            throw new InterruptedException();
 
+        assert isCompleted() : "Unblocker: " + Fiber.currentFiber().getUnparker();
+
+//        while (!isCompleted() || (immediateExec && !Fiber.currentFiber().isInExec())) {
+//            Fiber.park((Object) this);
+//            throw new InterruptedException();
+//        }
         return getResult();
     }
 
@@ -75,12 +92,9 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
             }
         })); // make sure we actually park and run PostParkActions
 
-        long left;
-        while (!isCompleted()) {
-            left = deadline - System.nanoTime();
-            if (left <= 0)
-                throw new TimeoutException();
-            Fiber.park((Object) this, left, TimeUnit.NANOSECONDS);
+        if (!isCompleted()) {
+            assert System.nanoTime() >= deadline;
+            throw new TimeoutException();
         }
 
         return getResult();
@@ -124,13 +138,12 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
 
     private void fire(Fiber fiber) {
         if (immediateExec) {
-            final long timeout = timeoutNanos > 0 ? timeoutNanos : IMMEDIATE_EXEC_MAX_TIMEOUT;
             if (!fiber.exec(this, new Fiber.ParkAction() {
                 public void run(Fiber current) {
                     prepark();
                 }
-            }, timeout, TimeUnit.NANOSECONDS)) {
-                final RuntimeException ex1 = new RuntimeException("Failed to exec fiber " + fiber + " within " + TimeUnit.NANOSECONDS.toMicros(timeout) + "us in thread " + Thread.currentThread());
+            })) {
+                final RuntimeException ex1 = new RuntimeException("Failed to exec fiber " + fiber + " in thread " + Thread.currentThread());
 
                 this.exception = timeoutNanos > 0 ? new TimeoutException() : ex1;
                 fiber.unpark(this);

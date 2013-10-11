@@ -112,12 +112,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private Future<Void> timeoutTask;
     private ParkAction prePark;
     private ParkAction postPark;
-    private boolean inExec;
+    //private boolean inExec;
     private V result;
     private boolean getStackTrace;
     private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
     private final DummyRunnable fiberRef = new DummyRunnable(this);
-    // volatile Object unparker;
 
     /**
      * Creates a new Fiber from the given {@link SuspendableCallable}.
@@ -487,11 +486,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * @throws SuspendExecution This exception is used for control transfer and must never be caught.
      * @throws IllegalStateException If not called from a Fiber
      */
-    public static boolean park(Object blocker, ParkAction postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
+    static boolean park(Object blocker, ParkAction postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
         return verifySuspend().park1(blocker, postParkActions, timeout, unit);
     }
 
-    public static boolean park(Object blocker, ParkAction postParkActions) throws SuspendExecution {
+    static boolean park(Object blocker, ParkAction postParkActions) throws SuspendExecution {
         return park(blocker, postParkActions, 0, null);
     }
 
@@ -557,7 +556,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (timeout > 0 && unit != null)
             this.timeoutTask = timeoutService.schedule(this, blocker, timeout, unit);
 
-        return fjTask.park1(blocker);
+        return fjTask.park1(blocker, postParkAction != null); // postParkActions != null iff parking for FiberAsync
     }
 
     private void yield1() throws SuspendExecution {
@@ -650,7 +649,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private void clearRunSettings() {
         this.prePark = null;
         this.postPark = null;
-        this.inExec = false;
+        //this.inExec = false;
         this.noPreempt = false;
     }
 
@@ -930,7 +929,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     @Override
     public final void interrupt() {
         interrupted = true;
-        unpark();
+        unpark(ParkableForkJoinTask.EMERGENCY_UNBLOCKER);
     }
 
     @Override
@@ -968,16 +967,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     public final boolean exec(Object blocker, long timeout, TimeUnit unit) {
-        return exec(blocker, null, timeout, unit);
-    }
-
-    /**
-     * Executes fiber on this thread, after waiting until the given blocker is indeed the fiber's blocker, and that the fiber is not being run concurrently.
-     *
-     * @param blocker
-     * @return {@code true} if the task has been executed by this method; {@code false} otherwise.
-     */
-    public final boolean exec(Object blocker, ParkAction prePark, long timeout, TimeUnit unit) {
         if (ForkJoinTask.getPool() != fjPool)
             return false;
         record(1, "Fiber", "exec", "Blocker %s attempting to immediately execute %s", blocker, this);
@@ -986,21 +975,46 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             record(1, "Fiber", "exec", "Blocker %s attempt to immediately execute %s FAILED", blocker, this);
             return false;
         }
-        final FibersMonitor monitor = getMonitor();
-        if (monitor != null)
-            monitor.fiberResumed();
-        this.prePark = prePark;
-        this.noPreempt = true;
-        this.inExec = true;
-        if (fjTask.exec())
-            fjTask.quietlyComplete();
+
+        immediateExecHelper();
         return true;
     }
 
-    boolean isInExec() {
-        return inExec;
-    } 
+    /**
+     * Executes fiber on this thread, after waiting until the given blocker is indeed the fiber's blocker, and that the fiber is not being run concurrently.
+     *
+     * @param blocker
+     * @return {@code true} if the task has been executed by this method; {@code false} otherwise.
+     */
+    final boolean exec(Object blocker, ParkAction prePark) {
+        if (ForkJoinTask.getPool() != fjPool)
+            return false;
+        record(1, "Fiber", "exec", "Blocker %s attempting to immediately execute %s", blocker, this);
 
+        if (blocker != getBlocker() || !fjTask.tryUnpark(blocker)) {
+            record(1, "Fiber", "exec", "Blocker %s attempt to immediately execute %s FAILED", blocker, this);
+            return false;
+        }
+
+        this.prePark = prePark;
+        immediateExecHelper();
+        return true;
+    }
+
+    private void immediateExecHelper() {
+        final FibersMonitor monitor = getMonitor();
+        if (monitor != null)
+            monitor.fiberResumed();
+
+        this.noPreempt = true;
+        //this.inExec = true;
+        if (fjTask.exec())
+            fjTask.quietlyComplete();
+    }
+
+//    boolean isInExec() {
+//        return inExec;
+//    }
     private StackTraceElement[] execStackTrace(long timeout, TimeUnit unit) {
         if (!tryUnpark(null, timeout, unit))
             return null;
@@ -1020,12 +1034,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return makeFiberInfo(s, blocker, st);
     }
 
-    private boolean tryUnpark(Object blocker, long timeout, TimeUnit unit) {
+    private boolean tryUnpark(Object unblocker, long timeout, TimeUnit unit) {
         long start = 0;
         for (int i = 0;; i++) {
             Object b = getBlocker();
             boolean tu = true;
-            if ((blocker != null ? b == blocker : true) && (tu = fjTask.tryUnpark()))
+            if ((unblocker != null ? b == unblocker : true) && (tu = fjTask.tryUnpark(unblocker)))
                 return true;
             if ((start = isTimeoutExpired(i, start, timeout, unit)) < 0)
                 return false;
@@ -1046,6 +1060,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return start;
     }
 
+    Object getUnparker() {
+        return fjTask.getUnparker();
+    }
+    
     /**
      * Makes available the permit for this fiber, if it was not already available.
      * If the fiber was blocked on {@code park} then it will unblock.
@@ -1053,18 +1071,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      */
     @Override
     public final void unpark() {
-        // unparker = null;
-
         record(1, "Fiber", "unpark", "Unpark %s", this);
         fjTask.unpark();
     }
 
     @Override
     public final void unpark(Object unblocker) {
-        /// unparker = unblocker;
-
         record(1, "Fiber", "unpark", "Unpark %s by %s", this, unblocker);
-        fjTask.unpark();
+        fjTask.unpark(unblocker);
     }
 
     @Override
@@ -1307,9 +1321,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         }
 
         @Override
-        protected boolean park1(Object blocker) throws SuspendExecution {
+        protected boolean park1(Object blocker, boolean exclusive) throws SuspendExecution {
             try {
-                return super.park1(blocker);
+                return super.park1(blocker, exclusive);
             } catch (SuspendExecution p) {
                 throw p;
             } catch (Exception e) {
@@ -1381,8 +1395,18 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         }
 
         @Override
-        protected boolean tryUnpark() {
-            return super.tryUnpark();
+        protected boolean tryUnpark(Object unblocker) {
+            return super.tryUnpark(unblocker);
+        }
+
+        @Override
+        protected Object getUnparker() {
+            return super.getUnparker();
+        }
+
+        @Override
+        public String toString() {
+            return super.toString() + "(Fiber@" + fiber.getId() + ')';
         }
     }
 
@@ -1493,7 +1517,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @VisibleForTesting
     void resetState() {
-        fjTask.tryUnpark();
+        fjTask.tryUnpark(null);
         assert fjTask.getState() == ParkableForkJoinTask.RUNNABLE;
     }
     private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
