@@ -258,15 +258,20 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     @Override
     public final Message receive() throws SuspendExecution, InterruptedException {
-        for (;;) {
+        try {
+            for (;;) {
+                checkThrownIn();
+                record(1, "Actor", "receive", "%s waiting for a message", this);
+                final Object m = mailbox().receive();
+                record(1, "Actor", "receive", "Received %s <- %s", this, m);
+                monitorAddMessage();
+                Message msg = filterMessage(m);
+                if (msg != null)
+                    return msg;
+            }
+        } catch (InterruptedException e) {
             checkThrownIn();
-            record(1, "Actor", "receive", "%s waiting for a message", this);
-            final Object m = mailbox().receive();
-            record(1, "Actor", "receive", "Received %s <- %s", this, m);
-            monitorAddMessage();
-            Message msg = filterMessage(m);
-            if (msg != null)
-                return msg;
+            throw e;
         }
     }
 
@@ -280,28 +285,33 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         long left = unit.toNanos(timeout);
         final long deadline = System.nanoTime() + left;
 
-        for (;;) {
-            if (flightRecorder != null)
-                record(1, "Actor", "receive", "%s waiting for a message. millis left: ", this, TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS));
+        try {
+            for (;;) {
+                if (flightRecorder != null)
+                    record(1, "Actor", "receive", "%s waiting for a message. millis left: ", this, TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS));
+                checkThrownIn();
+                final Object m = mailbox().receive(left, TimeUnit.NANOSECONDS);
+                if (m == null)
+                    left = -1; // timeout
+                else {
+                    record(1, "Actor", "receive", "Received %s <- %s", this, m);
+                    monitorAddMessage();
+
+                    Message msg = filterMessage(m);
+                    if (msg != null)
+                        return msg;
+                    else
+                        left = deadline - System.nanoTime();
+                }
+
+                if (left <= 0) {
+                    record(1, "Actor", "receive", "%s timed out.", this);
+                    return null;
+                }
+            }
+        } catch (InterruptedException e) {
             checkThrownIn();
-            final Object m = mailbox().receive(left, TimeUnit.NANOSECONDS);
-            if (m == null)
-                left = -1; // timeout
-            else {
-                record(1, "Actor", "receive", "Received %s <- %s", this, m);
-                monitorAddMessage();
-
-                Message msg = filterMessage(m);
-                if (msg != null)
-                    return msg;
-                else
-                    left = deadline - System.nanoTime();
-            }
-
-            if (left <= 0) {
-                record(1, "Actor", "receive", "%s timed out.", this);
-                return null;
-            }
+            throw e;
         }
     }
 
@@ -411,10 +421,22 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             die(null);
             return result;
         } catch (InterruptedException e) {
-            checkThrownIn();
+            if (this.exception != null) {
+                die(exception);
+                throw exception;
+            }
             die(e);
             throw e;
         } catch (Throwable t) {
+            if (t.getCause() instanceof InterruptedException) {
+                InterruptedException ie = (InterruptedException) t.getCause();
+                if (this.exception != null) {
+                    die(exception);
+                    throw exception;
+                }
+                die(ie);
+                throw ie;
+            }
             die(t);
             throw t;
         } finally {
