@@ -38,7 +38,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     //
     private final DummyRunnable taskRef = new DummyRunnable(this);
     private volatile int state; // The state field is updated while enforcing memory consistency. This beats the "don't re-fork" rule (see Javadoc for ForkJoinTask.fork())
-    private volatile Object blocker;
+    private Object blocker;
     private ParkableForkJoinTask enclosing;
     private boolean parkExclusive;
     private Object unparker;
@@ -63,6 +63,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         final Object oldTarget = getTarget(currentThread);
         this.enclosing = fromTarget(oldTarget);
         this.parkExclusive = false;
+        this.blocker = null;
         setCurrent(this);
         try {
             return doExec();
@@ -117,6 +118,8 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     protected abstract boolean exec1();
 
     public Object getBlocker() {
+        if(state != PARKED)
+            return null; // volatile read
         return blocker;
     }
 
@@ -237,8 +240,6 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             record("unpark", "current: %s - %s -> %s", this, _state, newState);
         if (newState == RUNNABLE) {
             this.unparker = unblocker;
-            this.blocker = null;
-            this.parkExclusive = false;
             submit();
         }
     }
