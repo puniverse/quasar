@@ -31,7 +31,7 @@
  *  http://gee.cs.oswego.edu/dl/papers/aqs.pdf
  */
 
-package co.paralleluniverse.strands.locks;
+package co.paralleluniverse.strands.concurrent;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;

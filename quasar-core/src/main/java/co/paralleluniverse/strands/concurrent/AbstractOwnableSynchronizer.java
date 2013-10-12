@@ -20,7 +20,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-package co.paralleluniverse.strands.locks;
+package co.paralleluniverse.strands.concurrent;
 
 import co.paralleluniverse.strands.Strand;
 
