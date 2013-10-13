@@ -104,6 +104,10 @@ public abstract class Strand {
             return of(Thread.currentThread());
     }
 
+    public static boolean isCurrentFiber() {
+        return Fiber.currentFiber() != null;
+    }
+
     public static boolean interrupted() {
         if (Fiber.currentFiber() != null)
             return Fiber.interrupted();

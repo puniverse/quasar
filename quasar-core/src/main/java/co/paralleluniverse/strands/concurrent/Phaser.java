@@ -22,7 +22,6 @@
 package co.paralleluniverse.strands.concurrent;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
-import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
@@ -1047,7 +1046,7 @@ public class Phaser {
         boolean queued = false;           // true when node is enqueued
         int lastUnarrived = 0;            // to increase spins upon change
 
-        final int spinDelta = Fiber.currentFiber() != null ? 0 : SPINS_PER_ARRIVAL;
+        final int spinDelta = Strand.isCurrentFiber() ? 0 : SPINS_PER_ARRIVAL;
         int spins = spinDelta;
         long s;
         int p;

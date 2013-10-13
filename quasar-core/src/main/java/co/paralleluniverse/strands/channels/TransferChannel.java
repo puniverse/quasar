@@ -22,7 +22,6 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
-import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.ThreadLocalRandom;
@@ -596,7 +595,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
     private Message awaitMatch(Node s, Node pred, Message e, boolean timed, long nanos) throws SuspendExecution {
         long lastTime = timed ? System.nanoTime() : 0L;
         Strand w = Strand.currentStrand();
-        int spins = (w instanceof Fiber ? 0 : -1); // no spins in fiber; otherwise, initialized after first item and cancel checks
+        int spins = (w.isFiber() ? 0 : -1); // no spins in fiber; otherwise, initialized after first item and cancel checks
         ThreadLocalRandom randomYields = null; // bound if needed
         
         if(spins == 0)
