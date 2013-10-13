@@ -22,6 +22,7 @@
 package co.paralleluniverse.strands.concurrent;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
@@ -376,7 +377,7 @@ public class Phaser {
                     int nextUnarrived = (int) n >>> PARTIES_SHIFT;
                     if (root != this)
                         return parent.doArrive(nextUnarrived == 0);
-                    // System.out.println("XXX " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " " + Fiber.currentFiber() + " " + Thread.currentThread() + " - doArrive");
+                    // System.out.println("PHASER " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " " + Fiber.currentFiber() + " " + Thread.currentThread() + " - doArrive");
                     if (onAdvance(phase, nextUnarrived))
                         n |= TERMINATION_BIT;
                     else if (nextUnarrived == 0)
@@ -425,7 +426,7 @@ public class Phaser {
                 if (UNSAFE.compareAndSwapLong(this, stateOffset, s, next))
                     break;
             } else {
-                // System.out.println("XXX " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " " + Fiber.currentFiber() + " " + Thread.currentThread() + " - LOCK");
+                // System.out.println("PHASER " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " " + Fiber.currentFiber() + " " + Thread.currentThread() + " - LOCK");
                 mainLock.lock();
                 try {               // 1st sub registration
                     if (state == s) {               // recheck under lock
@@ -674,15 +675,10 @@ public class Phaser {
                         throw new IllegalStateException(badArrive(s));
                 } else if (UNSAFE.compareAndSwapLong(this, stateOffset, s,
                         s -= ONE_ARRIVAL)) {
-                    if (unarrived != 0) {
-                        // System.out.println("XXX " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " "  + Fiber.currentFiber() + " " + Thread.currentThread() + " - 1111111111");
+                    if (unarrived != 0)
                         return root.internalAwaitAdvance(phase, null);
-                    }
-                    if (root != this) {
-                        // System.out.println("XXX " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " "  + Fiber.currentFiber() + " " + Thread.currentThread() + " - 222222222");
+                    if (root != this)
                         return parent.arriveAndAwaitAdvance();
-                    }
-                    // System.out.println("XXX " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " "  + Fiber.currentFiber() + " " + Thread.currentThread() + " - 3333333333");
                     long n = s & PARTIES_MASK;  // base of next state
                     int nextUnarrived = (int) n >>> PARTIES_SHIFT;
                     if (onAdvance(phase, nextUnarrived))
@@ -981,15 +977,22 @@ public class Phaser {
         QNode q;   // first element of queue
         Strand t;  // its strand
         AtomicReference<QNode> head = (phase & 1) == 0 ? evenQ : oddQ;
+        // int total = 0;  // contention profiling
+        // int failed = 0; // contention profiling
         while ((q = head.get()) != null
                 && q.phase != (int) (root.state >>> PHASE_SHIFT)) {
             if (head.compareAndSet(q, q.next)
                     && (t = q.strand) != null) {
                 q.strand = null;
-                // System.out.println("XXX " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " "  + Fiber.currentFiber() + " " + Thread.currentThread() + " - " + t);
+                // System.out.println("PHASER " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " "  + Fiber.currentFiber() + " " + Thread.currentThread() + " - " + t);
                 Strand.unpark(t);
-            }
+            } 
+            // else
+            //    failed++;
+            // total++;
         }
+        // if (total > 0)
+        //    System.out.println("PHASER: " + Fiber.currentFiber() + " releaseWaiters: " + failed + '/' + total + " " + ((double)failed / total));
     }
 
     /**
@@ -1003,16 +1006,24 @@ public class Phaser {
      */
     private int abortWait(int phase) {
         AtomicReference<QNode> head = (phase & 1) == 0 ? evenQ : oddQ;
+        // int total = 0;  // contention profiling
+        //int failed = 0; // contention profiling
         for (;;) {
             Strand t;
             QNode q = head.get();
             int p = (int) (root.state >>> PHASE_SHIFT);
-            if (q == null || ((t = q.strand) != null && q.phase == p))
+            if (q == null || ((t = q.strand) != null && q.phase == p)) {
+                // if (total > 0)
+                //    System.out.println("PHASER: " + Fiber.currentFiber() + " abortWait: " + failed + '/' + total + " " + ((double)failed / total));
                 return p;
+            }
             if (head.compareAndSet(q, q.next) && t != null) {
                 q.strand = null;
                 Strand.unpark(t);
-            }
+            } 
+            // else
+            //   failed++;
+            // total++;
         }
     }
     /**
@@ -1147,7 +1158,7 @@ public class Phaser {
             if (isReleasable())
                 return true;
             else if (!timed) {
-                // System.out.println("XXX " + (System.currentTimeMillis() % 300000) + " " + phase + " " + Fiber.currentFiber() + " " + Thread.currentThread() + " - BLOCKED");
+                // System.out.println("PHASER " + (System.currentTimeMillis() % 300000) + " " + phase + " " + Fiber.currentFiber() + " " + Thread.currentThread() + " - BLOCKED");
                 Strand.park(this);
             } else if (nanos > 0)
                 Strand.parkNanos(this, nanos);
