@@ -31,7 +31,7 @@ class ReflectionUtil {
     public static Class<?>[] getTypes(Object... vals) {
         Class<?>[] types = new Class[vals.length];
         for (int i = 0; i < vals.length; i++)
-            types[i] = vals[i].getClass();
+            types[i] = vals[i] != null ? vals[i].getClass() : null;
 
         return types;
     }

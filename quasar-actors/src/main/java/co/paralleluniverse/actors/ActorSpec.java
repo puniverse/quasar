@@ -40,10 +40,11 @@ public class ActorSpec<T extends Actor<Message, V>, Message, V> implements Actor
 
     private static <T> Constructor<T> matchingConstructor(Class<T> type, Object[] params) {
         final Constructor<T> ctor = ReflectionUtil.getMatchingConstructor(type, ReflectionUtil.getTypes(params));
-        if(ctor == null)
+        if (ctor == null)
             throw new IllegalArgumentException("No constructor for type " + type.getName() + " was found to match parameters " + Arrays.toString(params));
         return ctor;
     }
+
     @Override
     public T build() {
         try {
