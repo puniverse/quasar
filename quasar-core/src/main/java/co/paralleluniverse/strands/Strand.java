@@ -421,8 +421,7 @@ public abstract class Strand {
                 return false;
             if (!(obj instanceof ThreadStrand))
                 return false;
-            final ThreadStrand other = (ThreadStrand) obj;
-            return this.thread.equals(other.thread);
+            return this.thread.equals(((ThreadStrand) obj).thread);
         }
     }
 
@@ -522,6 +521,20 @@ public abstract class Strand {
         @Override
         public String toString() {
             return fiber.toString();
+        }
+
+        @Override
+        public int hashCode() {
+            return fiber.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null)
+                return false;
+            if (!(obj instanceof FiberStrand))
+                return false;
+            return this.fiber.equals(((FiberStrand) obj).fiber);
         }
     }
     private static final FibersMonitor NOOP_FIBERS_MONITOR = new NoopFibersMonitor();

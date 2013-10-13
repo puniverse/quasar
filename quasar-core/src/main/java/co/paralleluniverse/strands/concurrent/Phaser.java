@@ -22,6 +22,7 @@
 package co.paralleluniverse.strands.concurrent;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
@@ -376,6 +377,7 @@ public class Phaser {
                     int nextUnarrived = (int) n >>> PARTIES_SHIFT;
                     if (root != this)
                         return parent.doArrive(nextUnarrived == 0);
+                    // System.out.println("XXX " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " " + Fiber.currentFiber() + " " + Thread.currentThread() + " - doArrive");
                     if (onAdvance(phase, nextUnarrived))
                         n |= TERMINATION_BIT;
                     else if (nextUnarrived == 0)
@@ -424,6 +426,7 @@ public class Phaser {
                 if (UNSAFE.compareAndSwapLong(this, stateOffset, s, next))
                     break;
             } else {
+                // System.out.println("XXX " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " " + Fiber.currentFiber() + " " + Thread.currentThread() + " - LOCK");
                 mainLock.lock();
                 try {               // 1st sub registration
                     if (state == s) {               // recheck under lock
@@ -672,10 +675,15 @@ public class Phaser {
                         throw new IllegalStateException(badArrive(s));
                 } else if (UNSAFE.compareAndSwapLong(this, stateOffset, s,
                         s -= ONE_ARRIVAL)) {
-                    if (unarrived != 0)
+                    if (unarrived != 0) {
+                        // System.out.println("XXX " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " "  + Fiber.currentFiber() + " " + Thread.currentThread() + " - 1111111111");
                         return root.internalAwaitAdvance(phase, null);
-                    if (root != this)
+                    }
+                    if (root != this) {
+                        // System.out.println("XXX " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " "  + Fiber.currentFiber() + " " + Thread.currentThread() + " - 222222222");
                         return parent.arriveAndAwaitAdvance();
+                    }
+                    // System.out.println("XXX " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " "  + Fiber.currentFiber() + " " + Thread.currentThread() + " - 3333333333");
                     long n = s & PARTIES_MASK;  // base of next state
                     int nextUnarrived = (int) n >>> PARTIES_SHIFT;
                     if (onAdvance(phase, nextUnarrived))
@@ -979,6 +987,7 @@ public class Phaser {
             if (head.compareAndSet(q, q.next)
                     && (t = q.strand) != null) {
                 q.strand = null;
+                // System.out.println("XXX " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " "  + Fiber.currentFiber() + " " + Thread.currentThread() + " - " + t);
                 Strand.unpark(t);
             }
         }
@@ -1037,7 +1046,9 @@ public class Phaser {
         releaseWaiters(phase - 1);          // ensure old queue clean
         boolean queued = false;           // true when node is enqueued
         int lastUnarrived = 0;            // to increase spins upon change
-        int spins = SPINS_PER_ARRIVAL;
+
+        final int spinDelta = Fiber.currentFiber() != null ? 0 : SPINS_PER_ARRIVAL;
+        int spins = spinDelta;
         long s;
         int p;
         while ((p = (int) ((s = state) >>> PHASE_SHIFT)) == phase) {
@@ -1045,7 +1056,7 @@ public class Phaser {
                 int unarrived = (int) s & UNARRIVED_MASK;
                 if (unarrived != lastUnarrived
                         && (lastUnarrived = unarrived) < NCPU)
-                    spins += SPINS_PER_ARRIVAL;
+                    spins += spinDelta;
                 boolean interrupted = Strand.interrupted();
                 if (interrupted || --spins < 0) { // need node to record intr
                     node = new QNode(this, phase, false, false, 0L);
@@ -1136,9 +1147,10 @@ public class Phaser {
         public boolean block() throws InterruptedException, SuspendExecution {
             if (isReleasable())
                 return true;
-            else if (!timed)
+            else if (!timed) {
+                // System.out.println("XXX " + (System.currentTimeMillis() % 300000) + " " + phase + " " + Fiber.currentFiber() + " " + Thread.currentThread() + " - BLOCKED");
                 Strand.park(this);
-            else if (nanos > 0)
+            } else if (nanos > 0)
                 Strand.parkNanos(this, nanos);
             return isReleasable();
         }

@@ -1285,7 +1285,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final String toString() {
-        return "Fiber@" + Long.toHexString(fid) + (name != null ? (':' + name) : "") + "[task: " + fjTask + ", target: " + Objects.systemToString(target) + ']';
+        return "Fiber@" + fid + (name != null ? (':' + name) : "") + "[task: " + fjTask + ", target: " + Objects.systemToString(target) + ']';
     }
 
     ////////
