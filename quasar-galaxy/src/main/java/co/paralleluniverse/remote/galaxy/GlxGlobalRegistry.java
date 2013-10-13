@@ -14,6 +14,7 @@
 package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.GlobalRegistry;
 import co.paralleluniverse.actors.LocalActorUtil;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.CacheListener;
@@ -22,8 +23,7 @@ import co.paralleluniverse.galaxy.TimeoutException;
 import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Store;
 import co.paralleluniverse.io.serialization.Serialization;
-import co.paralleluniverse.actors.GlobalRegistry;
-import co.paralleluniverse.strands.locks.ReentrantLock;
+import co.paralleluniverse.strands.concurrent.ReentrantLock;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
@@ -37,7 +37,7 @@ public class GlxGlobalRegistry implements GlobalRegistry {
     private static final ConcurrentHashMap<String, ActorRef> rootCache = new ConcurrentHashMap<>();
     private static final Logger LOG = LoggerFactory.getLogger(GlxGlobalRegistry.class);
     private static final Serialization ser = Serialization.getInstance();
-    private static final co.paralleluniverse.strands.locks.ReentrantLock serlock = new ReentrantLock();
+    private static final ReentrantLock serlock = new ReentrantLock();
     private final Grid grid;
 
     public GlxGlobalRegistry() {
