@@ -22,7 +22,6 @@
 package co.paralleluniverse.strands.concurrent;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
-import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
@@ -990,7 +989,7 @@ public class StampedLock implements java.io.Serializable {
             }
         } else if ((ThreadLocalRandom.current().nextInt()
                 & OVERFLOW_YIELD_RATE) == 0)
-            if (Fiber.currentFiber() == null)
+            if (!Strand.isCurrentFiber())
                 Thread.yield();//Strand.yield();
         return 0L;
     }
@@ -1017,7 +1016,7 @@ public class StampedLock implements java.io.Serializable {
             }
         } else if ((ThreadLocalRandom.current().nextInt()
                 & OVERFLOW_YIELD_RATE) == 0)
-            if (Fiber.currentFiber() == null)
+            if (!Strand.isCurrentFiber())
                 Thread.yield();//Strand.yield();
         return 0L;
     }
