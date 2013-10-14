@@ -7,7 +7,7 @@ subprojects {
     [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
     group               = "co.paralleluniverse"
-    version             = "0.3.0-SNAPSHOT"
+    version             = "0.3.0"
     status              = "integration"
     description         = "lightweight threads and actors for the JVM."
     ext.url             = "http://puniverse.github.com/quasar"
