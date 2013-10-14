@@ -60,33 +60,34 @@ subprojects {
             //            force "org.ow2.asm:asm-analysis:4.1"
             //            force "org.ow2.asm:asm-tree:4.1"
             //            force "org.ow2.asm:asm-util:4.1"
-            force "com.google.guava:guava:14.0.1"
+            force "com.google.guava:guava:15.0"
             force "org.slf4j:slf4j-api:1.7.5"
-            force "log4j:log4j:1.2.16"
-            force "junit:junit:4.10"
+            force "log4j:log4j:1.2.17"
+            force "junit:junit:4.11"
+            force "com.codahale.metrics:metrics-core:3.0.1"
         }
     }
 
     dependencies {
-        compile "com.codahale.metrics:metrics-core:3.0.0" 
-        compile "org.apache.ant:ant:1.7.0"
-        compile "com.google.guava:guava:14.0.1"
+        compile "com.codahale.metrics:metrics-core:3.0.1" 
+        compile "org.apache.ant:ant:1.9.2"
+        compile "com.google.guava:guava:15.0"
         compile "org.slf4j:slf4j-api:1.7.5"
-	//  runtime "org.slf4j:slf4j-jdk14:1.6.4"
-        runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0-beta6"
-        runtime "org.apache.logging.log4j:log4j-api:2.0-beta6"
-        runtime "org.apache.logging.log4j:log4j-core:2.0-beta6"
-        compile "com.lmax:disruptor:3.0.1" // required for log4j
-        testCompile 'junit:junit:4.10'
+	//  runtime "org.slf4j:slf4j-jdk14:1.7.5"
+        runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0-beta9"
+        runtime "org.apache.logging.log4j:log4j-api:2.0-beta9"
+        runtime "org.apache.logging.log4j:log4j-core:2.0-beta9"
+        compile "com.lmax:disruptor:3.2.0" // required for log4j
+        testCompile 'junit:junit:4.11'
         testCompile 'org.hamcrest:hamcrest-all:1.3'
-        testCompile("org.mockito:mockito-all:1.9.0") {
+        testCompile("org.mockito:mockito-all:1.9.5") {
             exclude group: "org.ow2.asm", module: '*'
         }
         testCompile("com.google.caliper:caliper:1.0-beta-1") {
             exclude group: "asm", module: '*'
             exclude group: "org.ow2.asm", module: '*'
         }
-        testRuntime 'com.sun.jersey:jersey-core:1.11' // needed for caliper. caliper depends on jersey-client but for some reason jersey-core is not a dependency
+        testRuntime 'com.sun.jersey:jersey-core:1.17.1' // needed for caliper. caliper depends on jersey-client but for some reason jersey-core is not a dependency
     }
 
     //    task instrumentClasses(dependsOn: 'compileJava') << {
@@ -168,7 +169,7 @@ subprojects {
         println "${rootProject.projectDir}/docs/${project.name}/javadoc"
         options.links = [    
         "http://docs.oracle.com/javase/7/docs/api/",
-        "http://docs.guava-libraries.googlecode.com/git-history/v14.0/javadoc/"
+        "http://docs.guava-libraries.googlecode.com/git-history/v15.0/javadoc/"
         ]
         excludes = [
         "co/paralleluniverse/common/MonitoringType.java",
@@ -313,7 +314,7 @@ project (':quasar-galaxy') {
         compile project(':quasar-core')
         compile project(':quasar-actors')
         
-        compile ("co.paralleluniverse:galaxy:1.2") 
+        compile ("co.paralleluniverse:galaxy:1.2.1") 
         compile("com.esotericsoftware.kryo:kryo:2.21") {
             exclude group: "org.ow2.asm", module: '*'
         }
