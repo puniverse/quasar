@@ -9,7 +9,7 @@ In Maven:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-core</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
 </dependency>
 ```
 
@@ -19,7 +19,7 @@ For clustering support add:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-galaxy</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
 </dependency>
 ```
 
