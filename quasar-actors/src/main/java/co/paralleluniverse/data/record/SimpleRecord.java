@@ -403,13 +403,13 @@ class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable 
     @Override
     public void get(Field.LongArrayField<? super R> field, long[] target, int offset) {
         boundsCheck(field);
-        getArray(ba, fieldOffset(field), target, offset, field.length, LONG_SHIFT);
+        getArrayLong(ba, fieldOffset(field), target, offset, field.length, LONG_SHIFT);
     }
 
     @Override
     public void set(Field.LongArrayField<? super R> field, long[] source, int offset) {
         boundsCheck(field);
-        setArray(ba, fieldOffset(field), source, offset, field.length, LONG_SHIFT);
+        setArrayLong(ba, fieldOffset(field), source, offset, field.length, LONG_SHIFT);
     }
 
     @Override
@@ -419,7 +419,7 @@ class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable 
         if (source instanceof SimpleRecord)
             System.arraycopy(((SimpleRecord<S>) source).ba, ((SimpleRecord<S>) source).fieldOffset(sourceField), ba, fieldOffset(field), field.length << LONG_SHIFT);
         else if (source instanceof DynamicRecord && (array = ((DynamicRecord) source).get(sourceField)) != null)
-            setArray(ba, fieldOffset(field), array, 0, field.length, LONG_SHIFT);
+            setArrayLong(ba, fieldOffset(field), array, 0, field.length, LONG_SHIFT);
         else {
             for (int i = 0; i < field.length; i++)
                 setLong(ba, fieldOffset(field) + offset(i, LONG_SHIFT), source.get(sourceField, i));
@@ -479,13 +479,13 @@ class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable 
     @Override
     public void get(Field.DoubleArrayField<? super R> field, double[] target, int offset) {
         boundsCheck(field);
-        getArray(ba, fieldOffset(field), target, offset, field.length, DOUBLE_SHIFT);
+        getArrayLong(ba, fieldOffset(field), target, offset, field.length, DOUBLE_SHIFT);
     }
 
     @Override
     public void set(Field.DoubleArrayField<? super R> field, double[] source, int offset) {
         boundsCheck(field);
-        setArray(ba, fieldOffset(field), source, offset, field.length, DOUBLE_SHIFT);
+        setArrayLong(ba, fieldOffset(field), source, offset, field.length, DOUBLE_SHIFT);
     }
 
     @Override
@@ -495,7 +495,7 @@ class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable 
         if (source instanceof SimpleRecord)
             System.arraycopy(((SimpleRecord<S>) source).ba, ((SimpleRecord<S>) source).fieldOffset(sourceField), ba, fieldOffset(field), field.length << DOUBLE_SHIFT);
         else if (source instanceof DynamicRecord && (array = ((DynamicRecord) source).get(sourceField)) != null)
-            setArray(ba, fieldOffset(field), array, 0, field.length, DOUBLE_SHIFT);
+            setArrayLong(ba, fieldOffset(field), array, 0, field.length, DOUBLE_SHIFT);
         else {
             for (int i = 0; i < field.length; i++)
                 setDouble(ba, fieldOffset(field) + offset(i, DOUBLE_SHIFT), source.get(sourceField, i));
@@ -541,6 +541,7 @@ class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable 
     }
     static final Unsafe unsafe = UtilUnsafe.getUnsafe();
     private static final int base;
+    private static final int baseLong;
     private static final int shift;
 
     static {
@@ -563,6 +564,7 @@ class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable 
                 throw new AssertionError("Strange double array scale: " + unsafe.arrayIndexScale(double[].class));
 
             base = unsafe.arrayBaseOffset(byte[].class);
+            baseLong = unsafe.arrayBaseOffset(long[].class);
 
             if (unsafe.arrayBaseOffset(boolean[].class) != base)
                 throw new AssertionError("different array base");
@@ -574,9 +576,9 @@ class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable 
                 throw new AssertionError("different array base");
             if (unsafe.arrayBaseOffset(float[].class) != base)
                 throw new AssertionError("different array base");
-            if (unsafe.arrayBaseOffset(long[].class) != base)
+            if (unsafe.arrayBaseOffset(long[].class) != baseLong)
                 throw new AssertionError("different array base");
-            if (unsafe.arrayBaseOffset(double[].class) != base)
+            if (unsafe.arrayBaseOffset(double[].class) != baseLong)
                 throw new AssertionError("different array base");
 
             int scale = unsafe.arrayIndexScale(byte[].class);
@@ -668,6 +670,13 @@ class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable 
 
     private static void setArray(byte[] array, long i, Object source, int offset, int length, int shift) {
         unsafe.copyMemory(source, base + (offset << shift), array, byteOffset(i), length << shift);
+    }
+    private static void getArrayLong(byte[] array, long i, Object target, int offset, int length, int shift) {
+        unsafe.copyMemory(array, byteOffset(i), target, baseLong + (offset << shift), length << shift);
+    }
+
+    private static void setArrayLong(byte[] array, long i, Object source, int offset, int length, int shift) {
+        unsafe.copyMemory(source, baseLong + (offset << shift), array, byteOffset(i), length << shift);
     }
     private static final int BOOLEAN_SHIFT = 0;
     private static final int BYTE_SHIFT = 0;
