@@ -22,7 +22,6 @@
 package co.paralleluniverse.strands.concurrent;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
-import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
@@ -986,7 +985,7 @@ public class Phaser {
                 q.strand = null;
                 // System.out.println("PHASER " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " "  + Fiber.currentFiber() + " " + Thread.currentThread() + " - " + t);
                 Strand.unpark(t);
-            } 
+            }
             // else
             //    failed++;
             // total++;
@@ -1020,7 +1019,7 @@ public class Phaser {
             if (head.compareAndSet(q, q.next) && t != null) {
                 q.strand = null;
                 Strand.unpark(t);
-            } 
+            }
             // else
             //   failed++;
             // total++;
