@@ -20,8 +20,8 @@
 package co.paralleluniverse.galaxy.example.pingpong;
 
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.LocalActorUtil;
 import co.paralleluniverse.actors.BasicActor;
+import co.paralleluniverse.actors.LocalActorUtil;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.galaxy.example.pingpong.Message.Type.*;
 
