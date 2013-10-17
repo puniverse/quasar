@@ -1,4 +1,7 @@
-co.paralleluniverse.galaxy.example
+co.paralleluniverse.galaxy.example.pingpong
+co.paralleluniverse.galaxy.example.simplegenevent
+co.paralleluniverse.galaxy.example.simplegenserver
+co.paralleluniverse.galaxy.example.testing
 co.paralleluniverse.galaxy.quasar
 co.paralleluniverse.io.serialization
 co.paralleluniverse.remote.galaxy

@@ -1,5 +1,5 @@
-co.paralleluniverse.actors
-co.paralleluniverse.actors.behaviors
+co.paralleluniverse.common.benchmark
+co.paralleluniverse.common.classloader
 co.paralleluniverse.concurrent.forkjoin
 co.paralleluniverse.concurrent.util
 co.paralleluniverse.fibers
@@ -10,5 +10,5 @@ co.paralleluniverse.remote
 co.paralleluniverse.strands
 co.paralleluniverse.strands.channels
 co.paralleluniverse.strands.channels.disruptor
-co.paralleluniverse.strands.locks
+co.paralleluniverse.strands.concurrent
 co.paralleluniverse.strands.queues
