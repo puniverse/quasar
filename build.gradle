@@ -178,9 +178,6 @@ subprojects {
         "co/paralleluniverse/common/util/**",  
         ]
     }
-    task wrapper(type: Wrapper) {
-        gradleVersion = '1.5-20130302103424+0000'
-    }
     
     defaultTasks 'build'
 
@@ -336,4 +333,8 @@ project (':quasar-galaxy') {
         systemProperty "co.paralleluniverse.galaxy.configFile", "${sourceSets.main.output.resourcesDir}/config/peer.xml"
         systemProperty "co.paralleluniverse.galaxy.autoGoOnline", "true"
     }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.8'
 }
