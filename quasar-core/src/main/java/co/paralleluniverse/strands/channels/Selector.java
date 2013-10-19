@@ -82,7 +82,7 @@ public class Selector<Message> {
     }
 
     public static <Message> SelectAction<Message> send(SendPort<? super Message> port, Message message) {
-        return new SelectAction<Message>((SendPort)port, message);
+        return new SelectAction<Message>((SendPort) port, message);
     }
 
     public static <Message> SelectAction<Message> receive(ReceivePort<? extends Message> port) {
@@ -122,11 +122,11 @@ public class Selector<Message> {
     }
 
     void reset() {
-        for(SelectAction<Message> sa : actions)
+        for (SelectAction<Message> sa : actions)
             sa.resetReceive();
         winner = null;
     }
-    
+
     public SelectAction<Message> trySelect() {
         selectInit();
         for (int i = 0; i < actions.size(); i++) {
@@ -151,9 +151,9 @@ public class Selector<Message> {
     }
 
     SelectAction<Message> select(long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
-        if(timeout == 0 && unit != null)
+        if (timeout == 0 && unit != null)
             return trySelect();
-        
+
         selectInit();
 
         final boolean timed = (timeout > 0 && unit != null);
