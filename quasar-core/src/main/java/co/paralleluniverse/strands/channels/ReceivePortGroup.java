@@ -14,7 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import static co.paralleluniverse.strands.channels.Selector.*;
+import static co.paralleluniverse.strands.channels.Selector.receive;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
