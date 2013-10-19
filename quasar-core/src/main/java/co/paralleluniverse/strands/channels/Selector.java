@@ -215,7 +215,7 @@ public class Selector<Message> {
         }
         return res;
     }
-    private volatile StackTraceElement st[];
+    // private volatile StackTraceElement st[];
 
     boolean lease() {
         record("lease", "trying lease %s", this);
@@ -224,7 +224,7 @@ public class Selector<Message> {
         do {
             w = winner;
             if (i++ > 1 << 22) {
-                System.err.println(Arrays.toString(st));
+                // System.err.println(Arrays.toString(st));
                 throw new RuntimeException("Unable to obtain selector lease: " + w);
             }
             if (w == LEASED)
@@ -232,7 +232,7 @@ public class Selector<Message> {
             else if (w != null)
                 return false;
         } while (!casWinner(null, LEASED));
-        st = Thread.currentThread().getStackTrace();
+        // st = Thread.currentThread().getStackTrace();
         record("lease", "got lease %s", this);
         return true;
     }
@@ -240,14 +240,14 @@ public class Selector<Message> {
     void setWinner(SelectAction<?> action) {
         record("setWinner", "won %s: %s", this, action);
         assert winner == LEASED;
-        st = null;
+        // st = null;
         winner = action;
     }
 
     void returnLease() {
         record("returnLease", "returned lease %s", this);
         assert winner == LEASED;
-        st = null;
+        // st = null;
         winner = null;
     }
 
