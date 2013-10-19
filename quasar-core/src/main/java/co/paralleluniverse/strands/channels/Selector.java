@@ -223,14 +223,12 @@ public class Selector<Message> {
         int i = 0;
         do {
             w = winner;
+            if (w != null & w != LEASED)
+                return false;
             if (i++ > 1 << 22) {
                 // System.err.println(Arrays.toString(st));
                 throw new RuntimeException("Unable to obtain selector lease: " + w);
             }
-            if (w == LEASED)
-                continue;
-            else if (w != null)
-                return false;
         } while (!casWinner(null, LEASED));
         // st = Thread.currentThread().getStackTrace();
         record("lease", "got lease %s", this);
