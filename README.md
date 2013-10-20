@@ -12,6 +12,15 @@ In Maven:
     <version>0.3.0</version>
 </dependency>
 ```
+To use actors, add
+
+```xml
+<dependency>
+    <groupId>co.paralleluniverse</groupId>
+    <artifactId>quasar-actors</artifactId>
+    <version>0.3.0</version>
+</dependency>
+```
 
 For clustering support add:
 
