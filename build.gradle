@@ -164,9 +164,7 @@ subprojects {
     //        classpath = sourceSets.test.runtimeClasspath   
     //    }
     
-    configure (javadoc) {    
-        destinationDir = file("${rootProject.projectDir}/docs/${project.name}/javadoc")
-        println "${rootProject.projectDir}/docs/${project.name}/javadoc"
+    configure (javadoc) {
         options.links = [    
         "http://docs.oracle.com/javase/7/docs/api/",
         "http://docs.guava-libraries.googlecode.com/git-history/v15.0/javadoc/"
@@ -332,6 +330,25 @@ project (':quasar-galaxy') {
         systemProperty "co.paralleluniverse.galaxy.configFile", "${sourceSets.main.output.resourcesDir}/config/peer.xml"
         systemProperty "co.paralleluniverse.galaxy.autoGoOnline", "true"
     }
+}
+
+task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
+    title = "Quasar ${project(':quasar-core').version}"
+    destinationDir = file("docs/javadoc")
+    source = project(':quasar-core').sourceSets.main.allJava + project(':quasar-actors').sourceSets.main.allJava
+    options.links = [    
+        "http://docs.oracle.com/javase/7/docs/api/",
+        "http://docs.guava-libraries.googlecode.com/git-history/v15.0/javadoc/"
+        ]
+    excludes = [
+        "co/paralleluniverse/common/logging/**",
+        "co/paralleluniverse/common/monitoring/**",
+        "co/paralleluniverse/common/util/**",  
+        ]
+}
+
+task clean(dependsOn: subprojects.clean) << {
+    delete 'docs/javadoc'
 }
 
 task wrapper(type: Wrapper) {
