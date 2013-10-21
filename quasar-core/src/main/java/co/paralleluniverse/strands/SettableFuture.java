@@ -118,12 +118,13 @@ public class SettableFuture<V> implements Future<V> {
             sync.register();
 
             try {
-                for (int i = 0; !done; i++)
+                for (int i = 0; !done; i++) {
                     sync.await(i, left, TimeUnit.NANOSECONDS);
-                
-                left = deadline - System.nanoTime();
-                if (left <= 0)
-                    throw new TimeoutException();
+
+                    left = deadline - System.nanoTime();
+                    if (left <= 0)
+                        throw new TimeoutException();
+                }
             } finally {
                 sync.unregister();
             }
