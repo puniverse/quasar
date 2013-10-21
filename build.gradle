@@ -311,10 +311,10 @@ project (':quasar-galaxy') {
         compile project(':quasar-actors')
         
         compile ("co.paralleluniverse:galaxy:1.2.1") 
-        compile("com.esotericsoftware.kryo:kryo:2.21") {
+        compile("com.esotericsoftware.kryo:kryo:2.22") {
             exclude group: "org.ow2.asm", module: '*'
         }
-        compile("de.javakaffee:kryo-serializers:0.23") {
+        compile("de.javakaffee:kryo-serializers:0.25") {
             exclude group: "com.esotericsoftware.kryo", module: '*'
         }
     }
