@@ -63,7 +63,7 @@
                 Getting Started
               </a>
               
-              <ul class="nav nav-list"><li><a href="#system-requirements">System&nbsp;requirements</a></li><li><a href="#lein">Using&nbsp;Leiningen</a></li><li><a href="#build">Building&nbsp;Pulsar</a></li></ul>
+              <ul class="nav nav-list"><li><a href="#system-requirements">System&nbsp;requirements</a></li><li><a href="#lein">Using&nbsp;Leiningen</a></li><li><a href="#build">Building&nbsp;Quasar</a></li></ul>
               
             </li>
           
@@ -206,13 +206,33 @@
 
       <div id="content"><h2 id="system-requirements">System&nbsp;requirements</h2>
 
-<p>Java 7 and Clojure <span class="caps">1.5</span> are required to run&nbsp;Pulsar.</p>
+<p>Java 7 and is required to run&nbsp;Quasar.</p>
 
 <h2 id="lein">Using&nbsp;Leiningen</h2>
 
-<p>Add the following dependency to <a href="http://github.com/technomancy/leiningen/">Leiningen</a>’s&nbsp;project.clj:</p>
+<p>Add the following dependency to&nbsp;Maven:</p>
 
-<div class="highlight"><pre><code><span id="line-1"><span class="p">[</span><span class="nv">co.paralleluniverse/pulsar</span> <span class="s">&quot;0.2.0&quot;</span><span class="p">]</span>
+<div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
+</span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
+</span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-core<span class="nt">&lt;/artifactId&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.3.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
+</span></code></pre></div>
+<p>To use actors,&nbsp;add:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
+</span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
+</span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-actors<span class="nt">&lt;/artifactId&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.3.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
+</span></code></pre></div>
+<p>For clustering support,&nbsp;add:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
+</span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
+</span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-galaxy<span class="nt">&lt;/artifactId&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.3.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <p>Then, the following must be added to the project.clj&nbsp;file:</p>
 
@@ -222,31 +242,19 @@
 
 <div class="highlight"><pre><code><span id="line-1">-javaagent:path-to-quasar-jar.jar
 </span></code></pre></div>
-<h2 id="build">Building&nbsp;Pulsar</h2>
+<h2 id="build">Building&nbsp;Quasar</h2>
 
 <p>Clone the&nbsp;repository:</p>
 
-<pre><code>git clone git://github.com/puniverse/pulsar.git pulsar
+<pre><code>git clone git://github.com/puniverse/quasar.git quasar
 </code></pre>
 <p>and&nbsp;run:</p>
 
-<pre><code>lein midje
+<pre><code>./gradlew
 </code></pre>
-<p>To build the documentation, you need to have <a href="http://jekyllrb.com/">Jekyll</a> installed. Then&nbsp;run:</p>
+<p>Or, if you have gradle installed,&nbsp;run:</p>
 
-<pre><code>jekyll build
-</code></pre>
-<p>To generate the <span class="caps">API</span> documentation&nbsp;run</p>
-
-<pre><code>lein doc
-</code></pre>
-<p>You can run the examples like&nbsp;this:</p>
-
-<pre><code>lein -o run -m co.paralleluniverse.pulsar.examples.pingpong
-</code></pre>
-<p>For benchmarks, you should use <code>lein trampoline</code>, like&nbsp;so:</p>
-
-<pre><code>lein trampoline run -m co.paralleluniverse.pulsar.examples.ring-benchmark 1000 1000
+<pre><code>gradle
 </code></pre>
 </div>
 

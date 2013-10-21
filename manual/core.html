@@ -129,7 +129,7 @@
                 Quasar Core
               </a>
               
-              <ul class="nav nav-list"><li><a href="#quasar-and-pulsar">Quasar and&nbsp;Pulsar</a></li><li><a href="#fibers">Fibers</a></li></ul>
+              <ul class="nav nav-list"><li><a href="#fibers">Fibers</a></li><li><a href="#advanced-fibers">Advanced Fiber&nbsp;Usage</a></li></ul>
               
             </li>
           
@@ -205,14 +205,16 @@
       
 
       <div id="content">
-<h2 id="quasar-and-pulsar">Quasar and&nbsp;Pulsar</h2>
-
-<p>Pulsar is a Clojure <span class="caps">API</span> to <a href="https://github.com/puniverse/quasar">Quasar</a>. Many of the concepts explained below are actually implemented in&nbsp;Quasar.</p>
-
 <h2 id="fibers">Fibers</h2>
 
-<p>Fibers are lightweight threads. They provide functionality similar to threads, and a similar <span class="caps">API</span>, but they&#8217;re not managed by the <span class="caps">OS.</span> They are lightweight (an idle fiber occupies ~400 bytes of <span class="caps">RAM</span>), and you can have millions of them in an application. If you are familiar with Go, fibers are like goroutines. Fibers in Pulsar (well, Quasar, actually) are scheduled by one or more <a href="http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ForkJoinPool.html">ForkJoinPool</a>s. </p>
+<p>Quasar&#8217;s chief contribution is that of the lightweight thread, called <em>fiber</em> in Quasar.<br />
+Fibers provide functionality similar to threads, and a similar <span class="caps">API</span>, but they&#8217;re not managed by the <span class="caps">OS.</span> They are lightweight in terms of <span class="caps">RAM</span> (an idle fiber occupies ~400 bytes of <span class="caps">RAM</span>) and put a far lesser burden on the <span class="caps">CPU</span> when task-switching. You can have millions of fibers in an application. If you are familiar with Go, fibers are like goroutines. Fibers in Quasar are scheduled by one or more <a href="http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ForkJoinPool.html">ForkJoinPool</a>s. </p>
 
+<p>Fibers are not meant to replace threads in all circumstances. A fiber should be used when its body (the code it executes) blocks very often waiting on other fibers (e.g. waiting for messages sent by other fibers on a channel, or waiting for the value of a dataflow-variable). For long-running computations that rarely block, traditional threads are preferable. Fortunately, as we shall see, fibers and threads interoperate very&nbsp;well.</p>
+
+<h3 id="using-fibers">Using&nbsp;Fibers</h3>
+
+<h2 id="advanced-fibers">Advanced Fiber&nbsp;Usage</h2>
 </div>
 
       <hr>
