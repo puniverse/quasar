@@ -20,31 +20,31 @@ import jsr166e.LongAdder;
  * @author pron
  */
 public class Counter {
-    //private final LongAdder la = new LongAdder();
-    private final AtomicLong al = new AtomicLong();
+    private final LongAdder la = new LongAdder();
+    // private final AtomicLong al = new AtomicLong();
 
     public void reset() {
-        //la.reset();
-        al.set(0);
+        la.reset();
+        //al.set(0);
     }
 
     public void inc() {
-        //la.increment();
-        al.incrementAndGet();
+        la.increment();
+        //al.incrementAndGet();
     }
 
     public void dec() {
-        //la.decrement();
-        al.decrementAndGet();
+        la.decrement();
+        //al.decrementAndGet();
     }
 
     public void add(long val) {
-        //la.add(val);
-        al.addAndGet(val);
+        la.add(val);
+        //al.addAndGet(val);
     }
 
     public long get() {
-        //return la.sum();
-        return al.get();
+        return la.sum();
+        //return al.get();
     }
 }
