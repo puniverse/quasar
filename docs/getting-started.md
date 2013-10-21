@@ -6,14 +6,38 @@ weight: 1
 
 ## System requirements
 
-Java 7 and Clojure 1.5 are required to run Pulsar.
+Java 7 and is required to run Quasar.
 
 ## Using Leiningen {#lein}
 
-Add the following dependency to [Leiningen](http://github.com/technomancy/leiningen/)'s project.clj:
+Add the following dependency to Maven:
 
-~~~ clojure
-[co.paralleluniverse/pulsar "0.2.0"]
+~~~ xml
+<dependency>
+    <groupId>co.paralleluniverse</groupId>
+    <artifactId>quasar-core</artifactId>
+    <version>0.3.0</version>
+</dependency>
+~~~
+
+To use actors, add:
+
+~~~ xml
+<dependency>
+    <groupId>co.paralleluniverse</groupId>
+    <artifactId>quasar-actors</artifactId>
+    <version>0.3.0</version>
+</dependency>
+~~~
+
+For clustering support, add:
+
+~~~ xml
+<dependency>
+    <groupId>co.paralleluniverse</groupId>
+    <artifactId>quasar-galaxy</artifactId>
+    <version>0.3.0</version>
+</dependency>
 ~~~
 
 Then, the following must be added to the project.clj file:
@@ -29,40 +53,19 @@ or, add the following to the java command line:
 ~~~
 
 
-[Leiningen]: http://github.com/technomancy/leiningen/
-
-## Building Pulsar {#build}
+## Building Quasar {#build}
 
 Clone the repository:
 
-    git clone git://github.com/puniverse/pulsar.git pulsar
+    git clone git://github.com/puniverse/quasar.git quasar
 
 and run:
 
-    lein midje
+    ./gradlew
 
-To build the documentation, you need to have [Jekyll] installed. Then run:
+Or, if you have gradle installed, run:
 
-    jekyll build
-
-To generate the API documentation run
-
-    lein doc
-
-
-You can run the examples like this:
-
-
-    lein -o run -m co.paralleluniverse.pulsar.examples.pingpong
-
-
-For benchmarks, you should use `lein trampoline`, like so:
-
-
-    lein trampoline run -m co.paralleluniverse.pulsar.examples.ring-benchmark 1000 1000
-
-
-[Jekyll]: http://jekyllrb.com/
+    gradle
 
 
 {% comment %}

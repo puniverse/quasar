@@ -5,11 +5,10 @@ title: Welcome
 
 Quasar is a Java library that provides high-performance lightweight threads, Go-like channels, Erlang-like actors, and other asynchronous programming tools.
 
-A good introduction to Pulsar (and Quasar) can be found in the blog post [Erlang (and Go) in Clojure (and Java), Lightweight Threads, Channels and Actors for the JVM](http://blog.paralleluniverse.co/post/49445260575/quasar-pulsar).
+A good introduction to Quasar can be found in the blog post [Erlang (and Go) in Clojure (and Java), Lightweight Threads, Channels and Actors for the JVM](http://blog.paralleluniverse.co/post/49445260575/quasar-pulsar).
 
 Quasar is developed by [Parallel Universe] and released as free software, dual-licensed under the Eclipse Public License and the GNU Lesser General Public License.
 
-[Pulsar]: https://github.com/puniverse/pulsar
 [Parallel Universe]: http://paralleluniverse.co
 
 ## License
@@ -29,7 +28,7 @@ Quasar is developed by [Parallel Universe] and released as free software, dual-l
 
 ## Dependencies
 
-* [JSR166e](http://g.oswego.edu/dl/concurrency-interest/) -- java.util.concurrent, by Doug Lea and contributors
+* [JSR166e](http://g.oswego.edu/dl/concurrency-interest/) (embedded in quasar-core) -- java.util.concurrent, by Doug Lea and contributors
 * [ASM](http://asm.ow2.org/) --- Java bytecode manipulation and analysis framework, by the ASM team
 * [Metrics](http://metrics.codahale.com/) --- A measurement and monitoring library, by Coda Hale
 * [Guava](https://code.google.com/p/guava-libraries/) --- Java utility classes, by Google

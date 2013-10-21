@@ -172,7 +172,6 @@ subprojects {
         "http://docs.guava-libraries.googlecode.com/git-history/v15.0/javadoc/"
         ]
         excludes = [
-        "co/paralleluniverse/common/MonitoringType.java",
         "co/paralleluniverse/common/logging/**",
         "co/paralleluniverse/common/monitoring/**",
         "co/paralleluniverse/common/util/**",  
