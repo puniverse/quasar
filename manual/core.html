@@ -33,7 +33,7 @@
       <div class="nav-collapse collapse">
         <ul class="nav">
           <li class="icon github"><a href="https://github.com/puniverse/quasar"><img src="/quasar/images/icons/github.png">View on Github</a></li>
-          <li><a href="/quasar/quasar-core/javadoc/index.html">API</a> </li>
+          <li><a href="/quasar/javadoc/index.html">API</a> </li>
           <li class="icon bug"><a href="https://github.com/puniverse/quasar/issues/new"><img src="/quasar/images/icons/bug.png">File a bug</a></li>
           <!-- <li class="icon source"><a href="https://github.com/puniverse/pulsar/blob/master/CONTRIBUTING.md"><img src="/images/icons/source.png">Contribute</a> </li> -->
           <li class="icon talk"><a href="https://groups.google.com/forum/#!forum/quasar-pulsar-user"><img src="/quasar/images/icons/talk.png">Discuss</a></li>
@@ -93,19 +93,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/news.html">
                 News
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
       
@@ -129,7 +129,7 @@
                 Quasar Core
               </a>
               
-              <ul class="nav nav-list"><li><a href="#fibers">Fibers</a></li><li><a href="#advanced-fibers">Advanced Fiber&nbsp;Usage</a></li></ul>
+              <ul class="nav nav-list"><li><a href="#fibers">Fibers</a></li><li><a href="#strands">Strands</a></li><li><a href="#transforming-any-asynchronous-callback-to-a-fiber-blocking-operation">Transforming any Asynchronous Callback to A Fiber-Blocking&nbsp;Operation</a></li><li><a href="#advanced-fibers">Advanced Fiber&nbsp;Usage</a></li></ul>
               
             </li>
           
@@ -168,19 +168,19 @@
           
           
           
-            <li>
-              <a  href="/quasar/manual/examples.html">
-                Examples
-              </a>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a  href="/quasar/manual/examples.html">
+                Examples
+              </a>
+              
+            </li>
           
         
       
@@ -207,14 +207,53 @@
       <div id="content">
 <h2 id="fibers">Fibers</h2>
 
-<p>Quasar&#8217;s chief contribution is that of the lightweight thread, called <em>fiber</em> in Quasar.<br />
-Fibers provide functionality similar to threads, and a similar <span class="caps">API</span>, but they&#8217;re not managed by the <span class="caps">OS.</span> They are lightweight in terms of <span class="caps">RAM</span> (an idle fiber occupies ~400 bytes of <span class="caps">RAM</span>) and put a far lesser burden on the <span class="caps">CPU</span> when task-switching. You can have millions of fibers in an application. If you are familiar with Go, fibers are like goroutines. Fibers in Quasar are scheduled by one or more <a href="http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ForkJoinPool.html">ForkJoinPool</a>s. </p>
+<p>Quasar’s chief contribution is that of the lightweight thread, called <em>fiber</em> in Quasar.<br />
+Fibers provide functionality similar to threads, and a similar <span class="caps">API</span>, but they’re not managed by the <span class="caps">OS.</span> They are lightweight in terms of <span class="caps">RAM</span> (an idle fiber occupies ~400 bytes of <span class="caps">RAM</span>) and put a far lesser burden on the <span class="caps">CPU</span> when task-switching. You can have millions of fibers in an application. If you are familiar with Go, fibers are like goroutines. Fibers in Quasar are scheduled by one or more <a href="http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ForkJoinPool.html">ForkJoinPool</a>s. </p>
 
 <p>Fibers are not meant to replace threads in all circumstances. A fiber should be used when its body (the code it executes) blocks very often waiting on other fibers (e.g. waiting for messages sent by other fibers on a channel, or waiting for the value of a dataflow-variable). For long-running computations that rarely block, traditional threads are preferable. Fortunately, as we shall see, fibers and threads interoperate very&nbsp;well.</p>
 
+<p>advantages,&nbsp;asynchronous</p>
+
 <h3 id="using-fibers">Using&nbsp;Fibers</h3>
 
+<p>A fiber is represented by the <a href="/quasar/javadoc/co/paralleluniverse/fibers/Fiber.html"><code>Fiber</code></a> class. Similarly to a thread, you spawn a fiber like&nbsp;so:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="k">new</span> <span class="n">Fiber</span><span class="o">&lt;</span><span class="n">V</span><span class="o">&gt;()</span> <span class="o">{</span>
+</span><span id="line-2">	<span class="nd">@Override</span>
+</span><span id="line-3">	<span class="kd">protected</span> <span class="n">V</span> <span class="nf">run</span><span class="o">()</span> <span class="kd">throws</span> <span class="n">SuspendExecution</span><span class="o">,</span> <span class="n">InterruptedException</span> <span class="o">{</span>
+</span><span id="line-4">        <span class="c1">// your code</span>
+</span><span id="line-5">    <span class="o">}</span>
+</span><span id="line-6"><span class="o">}.</span><span class="na">start</span><span class="o">();</span>
+</span></code></pre></div>
+<p>There are several differences between this and starting a thread. First, a fiber can have a return value of the generic type <code>V</code> (we’ll shortly see how to use it). If your fiber does not need to return a value, use <code>Void</code> as the type for <code>V</code>, and return <code>null</code> from the <code>run</code> method. Second, the <code>run</code> method is allowed to throw an <code>InterruptedException</code>, (this is mostly a matter of convenience), as well as <code>SuspendExecution</code> which we’ll come back&nbsp;to.</p>
+
+<p>You can also start a fiber by passing an instance of <a href="/quasar/javadoc/co/paralleluniverse/strands/SuspendableRunnable.html"><code>SuspendableRunnable</code></a> or <a href="/quasar/javadoc/co/paralleluniverse/strands/SuspendableCallable.html"><code>SuspendableCallable</code></a> to <code>Fiber</code>’s&nbsp;constructor:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="k">new</span> <span class="n">Fiber</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;(</span><span class="k">new</span> <span class="n">SuspendableRunnable</span><span class="o">()</span> <span class="o">{</span>
+</span><span id="line-2">	<span class="kd">public</span> <span class="kt">void</span> <span class="nf">run</span><span class="o">()</span> <span class="kd">throws</span> <span class="n">SuspendExecution</span><span class="o">,</span> <span class="n">InterruptedException</span> <span class="o">{</span>
+</span><span id="line-3">		<span class="c1">// your code</span>
+</span><span id="line-4">	<span class="o">}</span>
+</span><span id="line-5"><span class="o">}).</span><span class="na">start</span><span class="o">();</span>
+</span></code></pre></div>
+<p>You can join a fiber much as you’d do a thread with the <code>join</code> method. To obtain the value returned by the fiber (if any), you call the <code>get</code> method, which joins the fiber and returns its&nbsp;result.</p>
+
+<h3 id="suspendable-this-suspendable-that">Suspendable This, Suspendable&nbsp;That</h3>
+
+<p>The <code>run</code> method in <code>Fiber</code>, <code>SuspendableRunnable</code> and <code>SuspendableCallable</code> declares that it may throw a <code>SuspendExecution</code> exception. This is not a real exception, but part of the inner working of fibers. Any method that may run in a fiber and may block, declares to throw this exception or is annotated with the <code>@Suspendable</code> annotation. Such a method is called a <em>suspendable method</em>. When a method you write calls a suspendable method, it, too, is a suspendable method, and must therefore declare to throw <code>SuspendExecution</code> (if you cannot add this exception to your method’s <code>throws</code> clause, say, because you’re implementing an interface that does not throw it, you can annotate your method with the <code>@Suspendable</code> annotation, but this requires extra consideration; please see the <a href="#advanced-fibers">Advanced Fiber Usage</a> section). Adding <code>SuspendExecution</code> to the <code>throws</code> clause is convenient because it makes the compiler force you to add the exception to any method that calls your method, which you&nbsp;should.</p>
+
+<h2 id="strands">Strands</h2>
+
+<p>A <em>strand</em> (represented by the <a href="/quasar/javadoc/co/paralleluniverse/strands/Strand.html"><code>Strand</code></a> class) is an abstraction for both fibers and threads; in short – a strand is either a fiber or a thread. The <code>Strand</code> class provides many useful methods. <code>Strand.currentStrand()</code> returns the current running strand (be it a fiber or a thread), and <code>Strand.sleep()</code> suspends the current strand for the given number of&nbsp;milliseconds. </p>
+
+<h3 id="park-and-unpark"><code>park</code> and&nbsp;<code>unpark</code></h3>
+
+<p>Most importantly (though relevant only for power-users who would like to implement their own concurrency primitives, such as locks), the <code>Strand</code> classcontains the methods <code>park</code> and <code>unpark</code>, that delegate to <code>Fiber.park</code> and <code>Fiber.unpark</code> methods if the strand is a fiber, or to <a href="http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/locks/LockSupport.html"><code>LockSupport</code></a>’s <code>park</code> and <code>unpark</code> methods if the strand is a thread (<code>LockSupport</code> lies at the core of all <code>java.util.concurrent</code> classes). This allows to create synchronization mechanisms that work well for both fibers and&nbsp;threads.</p>
+
+<h2 id="transforming-any-asynchronous-callback-to-a-fiber-blocking-operation">Transforming any Asynchronous Callback to A Fiber-Blocking&nbsp;Operation</h2>
+
 <h2 id="advanced-fibers">Advanced Fiber&nbsp;Usage</h2>
+
+<h3 id="suspendable">@Suspendable</h3>
 </div>
 
       <hr>
