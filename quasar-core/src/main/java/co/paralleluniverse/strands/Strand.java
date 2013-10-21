@@ -153,10 +153,37 @@ public abstract class Strand {
      */
     public abstract boolean isInterrupted();
 
+    /**
+     * Makes available the permit for this strand, if it
+     * was not already available. If this strand was blocked on
+     * {@link #park} then it will unblock. Otherwise, its next call
+     * to {@link #park} is guaranteed not to block. This operation
+     * is not guaranteed to have any effect at all if the given
+     * strand has not been started.
+     *
+     * @param unblocker the synchronization object responsible for the strand unparking
+     */
     public abstract void unpark();
 
+    /**
+     * Makes available the permit for this strand, if it
+     * was not already available. If this strand was blocked on
+     * {@link #park} then it will unblock. Otherwise, its next call
+     * to {@link #park} is guaranteed not to block. This operation
+     * is not guaranteed to have any effect at all if the given
+     * strand has not been started.
+     */
     public abstract void unpark(Object unblocker);
 
+    /**
+     * Returns the blocker object supplied to the most recent
+     * invocation of a {@link #park(java.lang.Object) park} method that has not yet unblocked, or null
+     * if not blocked. The value returned is just a momentary
+     * snapshot -- the thread may have since unblocked or blocked on a
+     * different blocker object.
+     *
+     * @return the blocker
+     */
     public abstract Object getBlocker();
 
     /**
@@ -206,8 +233,8 @@ public abstract class Strand {
      * interrupted again, after the first call had cleared its interrupted
      * status and before the second call had examined it).
      *
-     * @return  {@code true} if the current thread has been interrupted; {@code false} otherwise.
-     * @see #interrupt() 
+     * @return {@code true} if the current thread has been interrupted; {@code false} otherwise.
+     * @see #interrupt()
      * @see #isInterrupted()
      */
     public static boolean interrupted() {
@@ -263,6 +290,30 @@ public abstract class Strand {
             unit.sleep(duration);
     }
 
+    /**
+     * Disables the current strand for scheduling purposes unless the
+     * permit is available.
+     *
+     * <p>If the permit is available then it is consumed and the call returns
+     * immediately; otherwise
+     * the current strand becomes disabled for scheduling
+     * purposes and lies dormant until one of three things happens:
+     *
+     * <ul>
+     * <li>Some other strand invokes {@link #unpark unpark} with the
+     * current strand as the target; or
+     *
+     * <li>Some other strand {@link #interrupt interrupts}
+     * the current strand; or
+     *
+     * <li>The call spuriously (that is, for no reason) returns.
+     * </ul>
+     *
+     * <p>This method does <em>not</em> report which of these caused the
+     * method to return. Callers should re-check the conditions which caused
+     * the strand to park in the first place. Callers may also determine,
+     * for example, the interrupt status of the strand upon return.
+     */
     public static void park() throws SuspendExecution {
         if (Fiber.currentFiber() != null)
             Fiber.park();
@@ -270,6 +321,32 @@ public abstract class Strand {
             LockSupport.park();
     }
 
+    /**
+     * Disables the current strand for scheduling purposes unless the
+     * permit is available.
+     *
+     * <p>If the permit is available then it is consumed and the call returns
+     * immediately; otherwise
+     * the current strand becomes disabled for scheduling
+     * purposes and lies dormant until one of three things happens:
+     *
+     * <ul>
+     * <li>Some other strand invokes {@link #unpark unpark} with the
+     * current strand as the target; or
+     *
+     * <li>Some other strand {@link #interrupt interrupts}
+     * the current strand; or
+     *
+     * <li>The call spuriously (that is, for no reason) returns.
+     * </ul>
+     *
+     * <p>This method does <em>not</em> report which of these caused the
+     * method to return. Callers should re-check the conditions which caused
+     * the strand to park in the first place. Callers may also determine,
+     * for example, the interrupt status of the strand upon return.
+     *
+     * @param blocker the synchronization object responsible for this strand parking
+     */
     public static void park(Object blocker) throws SuspendExecution {
         if (Fiber.currentFiber() != null)
             Fiber.park(blocker);
@@ -277,6 +354,35 @@ public abstract class Strand {
             LockSupport.park(blocker);
     }
 
+    /**
+     * Disables the current strand for thread scheduling purposes, for up to
+     * the specified waiting time, unless the permit is available.
+     *
+     * <p>If the permit is available then it is consumed and the call
+     * returns immediately; otherwise the current strand becomes disabled
+     * for scheduling purposes and lies dormant until one of four
+     * things happens:
+     *
+     * <ul>
+     * <li>Some other strand invokes {@link #unpark unpark} with the
+     * current strand as the target; or
+     *
+     * <li>Some other strand {@link #interrupt interrupts}
+     * the current strand; or
+     *
+     * <li>The specified waiting time elapses; or
+     *
+     * <li>The call spuriously (that is, for no reason) returns.
+     * </ul>
+     *
+     * <p>This method does <em>not</em> report which of these caused the
+     * method to return. Callers should re-check the conditions which caused
+     * the strand to park in the first place. Callers may also determine,
+     * for example, the interrupt status of the strand, or the elapsed time
+     * upon return.
+     *
+     * @param nanos the maximum number of nanoseconds to wait
+     */
     public static void parkNanos(long nanos) throws SuspendExecution {
         if (Fiber.currentFiber() != null)
             Fiber.park(nanos, TimeUnit.NANOSECONDS);
@@ -284,6 +390,36 @@ public abstract class Strand {
             LockSupport.parkNanos(nanos);
     }
 
+    /**
+     * Disables the current strand for thread scheduling purposes, for up to
+     * the specified waiting time, unless the permit is available.
+     *
+     * <p>If the permit is available then it is consumed and the call
+     * returns immediately; otherwise the current strand becomes disabled
+     * for scheduling purposes and lies dormant until one of four
+     * things happens:
+     *
+     * <ul>
+     * <li>Some other strand invokes {@link #unpark unpark} with the
+     * current strand as the target; or
+     *
+     * <li>Some other strand {@link #interrupt interrupts}
+     * the current strand; or
+     *
+     * <li>The specified waiting time elapses; or
+     *
+     * <li>The call spuriously (that is, for no reason) returns.
+     * </ul>
+     *
+     * <p>This method does <em>not</em> report which of these caused the
+     * method to return. Callers should re-check the conditions which caused
+     * the strand to park in the first place. Callers may also determine,
+     * for example, the interrupt status of the strand, or the elapsed time
+     * upon return.
+     *
+     * @param blocker the synchronization object responsible for this strand parking
+     * @param nanos the maximum number of nanoseconds to wait
+     */
     public static void parkNanos(Object blocker, long nanos) throws SuspendExecution {
         if (Fiber.currentFiber() != null)
             Fiber.park(blocker, nanos, TimeUnit.NANOSECONDS);
@@ -291,6 +427,36 @@ public abstract class Strand {
             LockSupport.parkNanos(blocker, nanos);
     }
 
+    /**
+     * Disables the current strand for scheduling purposes, until
+     * the specified deadline, unless the permit is available.
+     *
+     * <p>If the permit is available then it is consumed and the call
+     * returns immediately; otherwise the current strand becomes disabled
+     * for scheduling purposes and lies dormant until one of four
+     * things happens:
+     *
+     * <ul>
+     * <li>Some other strand invokes {@link #unpark unpark} with the
+     * current strand as the target; or
+     *
+     * <li>Some other strand {@link #interrupt interrupts} the
+     * current strand; or
+     *
+     * <li>The specified deadline passes; or
+     *
+     * <li>The call spuriously (that is, for no reason) returns.
+     * </ul>
+     *
+     * <p>This method does <em>not</em> report which of these caused the
+     * method to return. Callers should re-check the conditions which caused
+     * the strand to park in the first place. Callers may also determine,
+     * for example, the interrupt status of the strand, or the current time
+     * upon return.
+     *
+     * @param blocker the synchronization object responsible for this strand parking
+     * @param deadline the absolute time, in milliseconds from the Epoch, to wait until
+     */
     public static void parkUntil(Object blocker, long deadline) throws SuspendExecution {
         if (Fiber.currentFiber() != null) {
             final long delay = deadline - System.currentTimeMillis();
@@ -300,16 +466,47 @@ public abstract class Strand {
             LockSupport.parkUntil(blocker, deadline);
     }
 
+    /**
+     * Makes available the permit for the given strand, if it
+     * was not already available. If the strand was blocked on
+     * {@code park} then it will unblock. Otherwise, its next call
+     * to {@code park} is guaranteed not to block. This operation
+     * is not guaranteed to have any effect at all if the given
+     * strand has not been started.
+     *
+     * @param strand the strand to unpark, or {@code null}, in which case this operation has no effect
+     */
     public static void unpark(Strand strand) {
         if (strand != null)
             strand.unpark();
     }
 
-    public static void unpark(Strand strand, Object blocker) {
+    /**
+     * Makes available the permit for the given strand, if it
+     * was not already available. If the strand was blocked on
+     * {@code park} then it will unblock. Otherwise, its next call
+     * to {@code park} is guaranteed not to block. This operation
+     * is not guaranteed to have any effect at all if the given
+     * strand has not been started.
+     *
+     * @param strand the strand to unpark, or {@code null}, in which case this operation has no effect
+     * @param unblocker the synchronization object responsible for the strand unparking
+     */
+    public static void unpark(Strand strand, Object unblocker) {
         if (strand != null)
-            strand.unpark(blocker);
+            strand.unpark(unblocker);
     }
 
+    /**
+     * Makes available the permit for the given strand, if it
+     * was not already available. If the strand was blocked on
+     * {@code park} then it will unblock. Otherwise, its next call
+     * to {@code park} is guaranteed not to block. This operation
+     * is not guaranteed to have any effect at all if the given
+     * strand has not been started.
+     *
+     * @param strand the strand to unpark, or {@code null}, in which case this operation has no effect
+     */
     public static void unpark(Thread strand) {
         LockSupport.unpark((Thread) strand);
     }

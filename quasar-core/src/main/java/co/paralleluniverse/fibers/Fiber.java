@@ -57,7 +57,9 @@ import sun.misc.Unsafe;
  * <p/>
  * A new Fiber occupies under 400 bytes of memory (when using the default stack size, and compressed OOPs are turned on, as they are by default).
  *
- * @author Ron Pressler
+ * @param <V> The type of the fiber's result value. Should be set to {@link Void} if no value is to be returned by the fiber.
+ *
+ * @author pron
  */
 public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.verifyInstrumentation", "false"));
@@ -342,7 +344,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      *
      * @param name The name of the fiber (may be null)
      * @param target the SuspendableRunnable for the Fiber.
-     * @throws NullPointerException when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(String name, SuspendableCallable<V> target) {
@@ -355,7 +356,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * The new fiber has no name, and uses the default initial stack size.
      *
      * @param target the SuspendableRunnable for the Fiber.
-     * @throws NullPointerException when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(SuspendableCallable<V> target) {
@@ -1058,7 +1058,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     Object getUnparker() {
         return fjTask.getUnparker();
     }
-    
+
     /**
      * Makes available the permit for this fiber, if it was not already available.
      * If the fiber was blocked on {@code park} then it will unblock.

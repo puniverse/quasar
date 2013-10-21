@@ -17,12 +17,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * A general helper class that transforms asynchronous requests to synchronous calls on a Fiber.
+ * A general helper class that transforms asynchronous requests to synchronous (fiber-blocking) calls.
  *
- * @author pron
  * @param <V> The value retuned by the async request
+ * @param <A> The type of the (optional) attachment object associated with this {@code FiberAsyc}.
  * @param <Callback> The interface of the async callback.
  * @param <E> An exception class that could be thrown by the async request
+ * 
+ * @author pron
  */
 public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
     private final boolean immediateExec;
