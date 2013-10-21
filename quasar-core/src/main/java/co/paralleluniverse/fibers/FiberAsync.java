@@ -93,6 +93,9 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
         })); // make sure we actually park and run PostParkActions
 
         if (!isCompleted()) {
+            if (Fiber.interrupted())
+                throw new InterruptedException();
+            
             assert System.nanoTime() >= deadline;
             exception = new TimeoutException();
             completed = true;
