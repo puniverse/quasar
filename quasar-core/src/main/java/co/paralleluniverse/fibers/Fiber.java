@@ -937,11 +937,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return interrupted;
     }
 
-    /**
-     * A fiber is alive if it has been started and has not yet died.
-     *
-     * @return {@code true} if the fiber has been started and has not yet died; {@code false} otherwise.
-     */
     @Override
     public final boolean isAlive() {
         return state != State.NEW && !fjTask.isDone();

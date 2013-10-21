@@ -40,41 +40,117 @@ public abstract class Strand {
             return of((Thread) owner);
     }
 
-    public static Strand of(Thread owner) {
-        return new ThreadStrand(owner);
+    /**
+     * Returns a strand representing the given thread.
+     */
+    public static Strand of(Thread thread) {
+        return new ThreadStrand(thread);
     }
 
+    /**
+     * Returns a strand representing the given fiber.
+     * The current implementation simply returns the fiber itself as {@code Fiber} extends {@code Fiber}.
+     */
     public static Strand of(Fiber fiber) {
         return fiber;
     }
 
+    /**
+     * A strand's running state
+     */
     public static enum State {
-        NEW, STARTED, RUNNING, WAITING, TERMINATED
+        /**
+         * Strand created but not started
+         */
+        NEW,
+        /**
+         * Strand started but not yet running.
+         */
+        STARTED,
+        /**
+         * Strand is running.
+         */
+        RUNNING,
+        /**
+         * Strand is blocked.
+         */
+        WAITING,
+        /**
+         * Strand has terminated.
+         */
+        TERMINATED
     };
 
+    /**
+     * Tests whether this strand is a fiber.
+     *
+     * @return {@code true} iff this strand is a fiber.
+     */
     public abstract boolean isFiber();
 
+    /**
+     * Returns the underlying object of this strand, namely a {@code Thread} or a {@code Fiber}.
+     */
     public abstract Object getUnderlying();
 
+    /**
+     * Returns the strand's name.
+     *
+     * @return The strand's name. May be {@code null}.
+     */
     public abstract String getName();
 
+    /**
+     * Tests whether this strand is alive, namely it has been started but not yet terminated.
+     */
     public abstract boolean isAlive();
 
+    /**
+     * Tests whether this strand has terminated.
+     */
     public abstract boolean isTerminated();
 
     /**
+     * Starts the strand.
      *
-     * @return
+     * @return {@code this}
      * @throws IllegalThreadStateException if the strand has already been started
      */
     public abstract Strand start();
 
+    /**
+     * Awaits the termination of this strand.
+     * This method blocks until this strand terminates.
+     *
+     * @throws ExecutionException
+     * @throws InterruptedException
+     */
     public abstract void join() throws ExecutionException, InterruptedException;
 
+    /**
+     * Awaits the termination of this strand.
+     * This method blocks until this strand terminates.
+     *
+     * @throws ExecutionException
+     * @throws InterruptedException
+     */
     public abstract void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException;
 
+    /**
+     * Interrupts this strand.
+     *
+     * If this strand is blocked, the blocking function will throw an {@link InterruptedException}.
+     * Otherwise, the strand may test its interrupted status with the {@link #interrupted()} or {@link #isInterrupted()} method.
+     */
     public abstract void interrupt();
 
+    /**
+     * Tests whether this strand has been interrupted.
+     *
+     * @return
+     * @see #interrupt()
+     * @see #interrupted()
+     */
     public abstract boolean isInterrupted();
 
     public abstract void unpark();
@@ -83,18 +159,27 @@ public abstract class Strand {
 
     public abstract Object getBlocker();
 
+    /**
+     * Returns the strand's current running state.
+     */
     public abstract State getState();
 
     public abstract StackTraceElement[] getStackTrace();
 
+    /**
+     * Returns the strand's id.
+     * Id's are unique within a single JVM instance.
+     */
     public abstract long getId();
 
     public abstract FibersMonitor getMonitor();
 
     /**
-     * Returns the current fiber, if there is one, or the current thread otherwise.
+     * Returns the current strand.
+     * This method will return a strand representing the fiber calling this method, or the current thread if this method is not
+     * called within a fiber.
      *
-     * @return The current fiber or thread
+     * @return A strand representing the current fiber or thread
      */
     public static Strand currentStrand() {
         final Fiber fiber = Fiber.currentFiber();
@@ -104,10 +189,27 @@ public abstract class Strand {
             return of(Thread.currentThread());
     }
 
+    /**
+     * Tests whether this function is called within a fiber.
+     *
+     * @return {@code true} iff the code that called this method is executing in a fiber.
+     */
     public static boolean isCurrentFiber() {
         return Fiber.currentFiber() != null;
     }
 
+    /**
+     * Tests whether the current strand has been interrupted. The
+     * <i>interrupted status</i> of the strand is cleared by this method. In
+     * other words, if this method were to be called twice in succession, the
+     * second call would return {@code false} (unless the current strand were
+     * interrupted again, after the first call had cleared its interrupted
+     * status and before the second call had examined it).
+     *
+     * @return  {@code true} if the current thread has been interrupted; {@code false} otherwise.
+     * @see #interrupt() 
+     * @see #isInterrupted()
+     */
     public static boolean interrupted() {
         if (Fiber.currentFiber() != null)
             return Fiber.interrupted();
