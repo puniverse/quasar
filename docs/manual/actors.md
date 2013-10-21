@@ -14,4 +14,6 @@ An actor is a self-contained execution unit with well-defined inputs and outputs
 
 ### Spawning actors
 
-Actors can run in any strand – fiber or thread - but for now, Pulsar only supports actors running in fibers (Quasar, the Java library that Pulsar wraps, allows running actors in regular threads).
+Actors can run in any strand – fiber or thread.
+
+T B D
