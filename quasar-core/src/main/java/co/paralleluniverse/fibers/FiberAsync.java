@@ -25,7 +25,6 @@ import java.util.concurrent.TimeoutException;
  * @param <E> An exception class that could be thrown by the async request
  */
 public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
-    private static final long IMMEDIATE_EXEC_MAX_TIMEOUT = TimeUnit.MILLISECONDS.toNanos(1000);
     private final boolean immediateExec;
     private long timeoutNanos;
 
