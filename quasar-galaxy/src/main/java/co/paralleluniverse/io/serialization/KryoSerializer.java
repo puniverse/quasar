@@ -18,6 +18,7 @@ import com.esotericsoftware.kryo.Registration;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.shaded.org.objenesis.strategy.SerializingInstantiatorStrategy;
 import de.javakaffee.kryoserializers.ArraysAsListSerializer;
 import de.javakaffee.kryoserializers.GregorianCalendarSerializer;
 import de.javakaffee.kryoserializers.JdkProxySerializer;
@@ -34,7 +35,6 @@ import java.io.ObjectOutput;
 import java.io.OutputStream;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import org.objenesis.strategy.SerializingInstantiatorStrategy;
 
 /**
  *
