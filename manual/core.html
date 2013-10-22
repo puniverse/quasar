@@ -58,6 +58,13 @@
           
           
           
+            <li>
+              <a  href="/quasar/getting-started.html">
+                Getting Started
+              </a>
+              
+            </li>
+          
         
           
           
@@ -65,12 +72,12 @@
           
           
           
-            <li>
-              <a  href="/quasar/getting-started.html">
-                Getting Started
-              </a>
-              
-            </li>
+        
+          
+          
+            
+          
+          
           
         
           
@@ -101,15 +108,15 @@
             </li>
           
         
+      
+        <li class="nav-header">User Manual</li>
+        
           
           
             
           
           
           
-        
-      
-        <li class="nav-header">User Manual</li>
         
           
           
@@ -125,13 +132,6 @@
               <ul class="nav nav-list"><li><a href="#fibers">Fibers</a></li><li><a href="#strands">Strands</a></li><li><a href="#transforming-any-asynchronous-callback-to-a-fiber-blocking-operation">Transforming any Asynchronous Callback to A Fiber-Blocking&nbsp;Operation</a></li><li><a href="#advanced-fibers">Advanced Fiber&nbsp;Usage</a></li></ul>
               
             </li>
-          
-        
-          
-          
-            
-          
-          
           
         
           
@@ -168,19 +168,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/manual/examples.html">
                 Examples
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
       
@@ -212,7 +212,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>Fibers are not meant to replace threads in all circumstances. A fiber should be used when its body (the code it executes) blocks very often waiting on other fibers (e.g. waiting for messages sent by other fibers on a channel, or waiting for the value of a dataflow-variable). For long-running computations that rarely block, traditional threads are preferable. Fortunately, as we shall see, fibers and threads interoperate very&nbsp;well.</p>
 
-<p>advantages,&nbsp;asynchronous</p>
+<p>Fibers are especially useful for replacing callback-ridden asynchronous code. They allow you to enjoy the scalability and performance benefits of asynchronous code while keeping the simple to use and understand threaded&nbsp;modedl.</p>
 
 <h3 id="using-fibers">Using&nbsp;Fibers</h3>
 
@@ -252,6 +252,43 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 <p>Most importantly (though relevant only for power-users who would like to implement their own concurrency primitives, such as locks), the <code>Strand</code> classcontains the methods <code>park</code> and <code>unpark</code>, that delegate to <code>Fiber.park</code> and <code>Fiber.unpark</code> methods if the strand is a fiber, or to <a href="http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/locks/LockSupport.html"><code>LockSupport</code></a>’s <code>park</code> and <code>unpark</code> methods if the strand is a thread (<code>LockSupport</code> lies at the core of all <code>java.util.concurrent</code> classes). This allows to create synchronization mechanisms that work well for both fibers and&nbsp;threads.</p>
 
 <h2 id="transforming-any-asynchronous-callback-to-a-fiber-blocking-operation">Transforming any Asynchronous Callback to A Fiber-Blocking&nbsp;Operation</h2>
+
+<p>As we said above, fibers are great as a replacement for callbacks. The <a href="/quasar/javadoc/co/paralleluniverse/fibers/FiberAsync.html">FiberAsync</a> class helps us easily turn any callback-based asynchronous operation to as simple fiber-blocking&nbsp;call.</p>
+
+<p>Assume that operation <code>Foo.asyncOp(FooCompletion callback)</code> is an asynchronous operation, where <code>Completion</code> is defined&nbsp;as:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="kd">interface</span> <span class="nc">FooCompletion</span> <span class="o">{</span>
+</span><span id="line-2">	<span class="kt">void</span> <span class="nf">success</span><span class="o">(</span><span class="n">String</span> <span class="n">result</span><span class="o">);</span>
+</span><span id="line-3">	<span class="kt">void</span> <span class="nf">failure</span><span class="o">(</span><span class="n">FooException</span> <span class="n">exception</span><span class="o">);</span>
+</span><span id="line-4"><span class="o">}</span>
+</span></code></pre></div>
+<p>We then define the following subclass of&nbsp;<code>FiberAsync</code>:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="kd">class</span> <span class="nc">FooAsync</span> <span class="kd">extends</span> <span class="n">FiberAsync</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">Void</span><span class="o">,</span> <span class="n">FooException</span><span class="o">&gt;</span> <span class="kd">implements</span> <span class="n">FooCompletion</span> <span class="o">{</span>
+</span><span id="line-2">	<span class="nd">@Override</span>
+</span><span id="line-3">	<span class="kd">public</span> <span class="kt">void</span> <span class="nf">success</span><span class="o">(</span><span class="n">String</span> <span class="n">result</span><span class="o">)</span> <span class="o">{</span>
+</span><span id="line-4">		<span class="n">asyncCompleted</span><span class="o">(</span><span class="n">result</span><span class="o">);</span>
+</span><span id="line-5">	<span class="o">}</span>
+</span><span id="line-6"> 
+</span><span id="line-7"> 	<span class="nd">@Override</span>
+</span><span id="line-8"> 	<span class="kd">public</span> <span class="kt">void</span> <span class="nf">failure</span><span class="o">(</span><span class="n">FooException</span> <span class="n">exception</span><span class="o">)</span> <span class="o">{</span>
+</span><span id="line-9"> 		<span class="n">asyncFailed</span><span class="o">(</span><span class="n">exception</span><span class="o">);</span>
+</span><span id="line-10"> 	<span class="o">}</span>
+</span><span id="line-11"><span class="o">}</span>
+</span></code></pre></div>
+<p>Then, to transform the operation to a fiber-blocking one, we can&nbsp;define:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="n">String</span> <span class="nf">op</span><span class="o">()</span> <span class="o">{</span>
+</span><span id="line-2">	<span class="k">new</span> <span class="nf">FooAsync</span><span class="o">()</span> <span class="o">{</span>
+</span><span id="line-3">		<span class="kd">protected</span> <span class="n">Void</span> <span class="nf">requestAsync</span><span class="o">()</span> <span class="o">{</span>
+</span><span id="line-4">        	<span class="n">Foo</span><span class="o">.</span><span class="na">asyncOp</span><span class="o">(</span><span class="k">this</span><span class="o">);</span>
+</span><span id="line-5">     	<span class="o">}</span>
+</span><span id="line-6">	<span class="o">}.</span><span class="na">run</span><span class="o">();</span>
+</span><span id="line-7"><span class="o">}</span>
+</span></code></pre></div>
+<p>The call to <code>run</code> will block the fiber until the operation&nbsp;completes.</p>
+
+<p>Transforming asynchronous code to fiber-blocking calls has a negligible overhead both in terms of memory and performance, while making the code shorter and far simpler to&nbsp;understand.</p>
 
 <h2 id="advanced-fibers">Advanced Fiber&nbsp;Usage</h2>
 
