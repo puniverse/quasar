@@ -77,9 +77,8 @@ public class MethodDatabase implements Log {
     private int logLevelMask;
 
     public MethodDatabase(ClassLoader classloader, SuspendableClassifier classifier) {
-        if (classloader == null) {
+        if (classloader == null)
             throw new NullPointerException("classloader");
-        }
 
         this.cl = classloader;
         this.classifier = classifier;

@@ -62,23 +62,39 @@ import org.objectweb.asm.util.TraceClassVisitor;
  */
 final class Instrumentor {
     final static String EXAMINED_CLASS = null; // "co/paralleluniverse/fibers/instrument/ReflectionInvokeTest";
-
     private final MethodDatabase db;
     private boolean check;
 
     public Instrumentor(ClassLoader classLoader, SuspendableClassifier classifier) {
         this.db = new MethodDatabase(classLoader, classifier);
     }
-    
+
+    public Instrumentor(ClassLoader classLoader) {
+        this(classLoader, DefaultSuspendableClassifier.instance());
+    }
+
+    public boolean shouldInstrument(String className) {
+        if (className.startsWith("org/objectweb/asm/"))
+            return false;
+        if (className.startsWith("org/netbeans/lib/"))
+            return false;
+        if (className.equals(Classes.COROUTINE_NAME) || className.startsWith(Classes.COROUTINE_NAME + '$'))
+            return false;
+        if (MethodDatabase.isJavaCore(className))
+            return false;
+        return true;
+    }
+
     public byte[] instrumentClass(String className, byte[] data) {
         return instrumentClass(className, new ClassReader(data));
     }
-    
+
     public byte[] instrumentClass(String className, FileInputStream fis) throws IOException {
         return instrumentClass(className, new ClassReader(fis));
     }
-    
+
     private byte[] instrumentClass(String className, ClassReader r) {
+        log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
         final ClassWriter cw = new DBClassWriter(db, r);
         ClassVisitor cv = (check && EXAMINED_CLASS == null) ? new CheckClassAdapter(cw) : cw;
 
