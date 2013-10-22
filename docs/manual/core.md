@@ -14,8 +14,7 @@ Fibers provide functionality similar to threads, and a similar API, but they're 
 
 Fibers are not meant to replace threads in all circumstances. A fiber should be used when its body (the code it executes) blocks very often waiting on other fibers (e.g. waiting for messages sent by other fibers on a channel, or waiting for the value of a dataflow-variable). For long-running computations that rarely block, traditional threads are preferable. Fortunately, as we shall see, fibers and threads interoperate very well.
 
-
-advantages, asynchronous
+Fibers are especially useful for replacing callback-ridden asynchronous code. They allow you to enjoy the scalability and performance benefits of asynchronous code while keeping the simple to use and understand threaded modedl.
 
 ### Using Fibers
 
@@ -59,6 +58,49 @@ A *strand* (represented by the [`Strand`]({{javadoc}}/strands/Strand.html) class
 Most importantly (though relevant only for power-users who would like to implement their own concurrency primitives, such as locks), the `Strand` classcontains the methods `park` and `unpark`, that delegate to `Fiber.park` and `Fiber.unpark` methods if the strand is a fiber, or to [`LockSupport`](http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/locks/LockSupport.html)'s `park` and `unpark` methods if the strand is a thread (`LockSupport` lies at the core of all `java.util.concurrent` classes). This allows to create synchronization mechanisms that work well for both fibers and threads.
 
 ## Transforming any Asynchronous Callback to A Fiber-Blocking Operation
+
+As we said above, fibers are great as a replacement for callbacks. The [FiberAsync]({{javadoc}}/fibers/FiberAsync.html) class helps us easily turn any callback-based asynchronous operation to as simple fiber-blocking call.
+
+ Assume that operation `Foo.asyncOp(FooCompletion callback)` is an asynchronous operation, where `Completion` is defined as:
+ 
+~~~ java
+interface FooCompletion {
+	void success(String result);
+	void failure(FooException exception);
+}
+~~~
+
+We then define the following subclass of `FiberAsync`:
+ 
+~~~ java
+class FooAsync extends FiberAsync<String, Void, FooException> implements FooCompletion {
+	@Override
+	public void success(String result) {
+		asyncCompleted(result);
+	}
+ 
+ 	@Override
+ 	public void failure(FooException exception) {
+ 		asyncFailed(exception);
+ 	}
+}
+~~~
+ 
+Then, to transform the operation to a fiber-blocking one, we can define:
+ 
+~~~ java
+String op() {
+	new FooAsync() {
+		protected Void requestAsync() {
+        	Foo.asyncOp(this);
+     	}
+	}.run();
+}
+~~~
+
+The call to `run` will block the fiber until the operation completes.
+
+Transforming asynchronous code to fiber-blocking calls has a negligible overhead both in terms of memory and performance, while making the code shorter and far simpler to understand.
 
 ## Advanced Fiber Usage {#advanced-fibers}
 

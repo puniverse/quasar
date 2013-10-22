@@ -18,11 +18,11 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * A general helper class that transforms asynchronous requests to synchronous (fiber-blocking) calls.
- * 
+ *
  * ### Usage example:
- * 
- * Assume that operation `Foo.async(FooCompletion callback)` is an asynchronous operation, where `Completion` is defined as:
- * 
+ *
+ * Assume that operation `Foo.asyncOp(FooCompletion callback)` is an asynchronous operation, where `Completion` is defined as:
+ *
  * ```java
  * interface FooCompletion {
  *    void success(String result);
@@ -30,30 +30,31 @@ import java.util.concurrent.TimeoutException;
  * }
  * ```
  * We then define the following subclass:
- * 
+ *
  * ```java
  * class FooAsync extends FiberAsync<String, Void, FooException> implements FooCompletion {
  *     {@literal @}Override
  *     public void success(String result) {
  *         asyncCompleted(result);
  *     }
- * 
+ *
  *     {@literal @}Override
  *     public void failure(FooException exception) {
  *         asyncFailed(exception);
  *     }
  * }
  * ```
- * 
- * Then, to run the operation as a fiber-blocking operation:
- * 
+ *
+ * Then, to turn the operation into a fiber-blocking one, we can define:
+ *
  * ```java
- * new FooAsync() {
- *     {@literal @}Override
- *     protected Void requestAsync() {
- *         Foo.async(this);
- *     }
- * }.run();
+ * String op() {
+ *     return new FooAsync() {
+ *         protected Void requestAsync() {
+ *             Foo.asyncOp(this);
+ *         }
+ *     }.run();
+ * }
  * ```
  *
  * @param <V> The value returned by the async request
@@ -182,7 +183,6 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
     protected V requestSync() throws E, InterruptedException {
         throw new IllegalThreadStateException("Method called not from within a fiber");
     }
-
     //
     private volatile boolean completed;
     private Throwable exception;
