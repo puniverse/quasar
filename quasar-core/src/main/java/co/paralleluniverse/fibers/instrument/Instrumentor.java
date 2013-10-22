@@ -128,28 +128,34 @@ final class Instrumentor {
         return db;
     }
 
-    public void setCheck(boolean check) {
+    public Instrumentor setCheck(boolean check) {
         this.check = check;
+        return this;
     }
 
-    public void setAllowMonitors(boolean allowMonitors) {
+    public Instrumentor setAllowMonitors(boolean allowMonitors) {
         db.setAllowMonitors(allowMonitors);
+        return this;
     }
 
-    public void setAllowBlocking(boolean allowBlocking) {
+    public Instrumentor setAllowBlocking(boolean allowBlocking) {
         db.setAllowBlocking(allowBlocking);
+        return this;
     }
 
-    public void setLog(Log log) {
+    public Instrumentor setLog(Log log) {
         db.setLog(log);
+        return this;
     }
 
-    public void setVerbose(boolean verbose) {
+    public Instrumentor setVerbose(boolean verbose) {
         db.setVerbose(verbose);
+        return this;
     }
 
-    public void setDebug(boolean debug) {
+    public Instrumentor setDebug(boolean debug) {
         db.setDebug(debug);
+        return this;
     }
 
     public void log(LogLevel level, String msg, Object... args) {
