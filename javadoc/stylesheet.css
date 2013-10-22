@@ -1,4 +1,32 @@
-/* Javadoc style sheet */
+/*
+ * Copyright 2013 Raffael Herzog
+ *
+ * This file is part of pegdown-doclet.
+ *
+ * pegdown-doclet is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * pegdown-doclet is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with pegdown-doclet.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/* Javadoc style sheet
+ *
+ * Taken from the standard doclet:
+ * http://download.java.net/jdk8/docs/api/stylesheet.css
+ *
+ * Modifications are tagged with [MOD]
+ */
+/* [MOD] stylesheet for highlight.js style */
+@import url(highlight.css);
+
 /*
 Overall document style
 */
@@ -28,9 +56,10 @@ a[name]:hover {
     text-decoration:none;
     color:#353833;
 }
+/*[MOD]
 pre {
     font-size:1.3em;
-}
+}*/
 h1 {
     font-size:1.8em;
 }
@@ -52,9 +81,10 @@ h6 {
 ul {
     list-style-type:disc;
 }
+/* [MOD] See `additions` below
 code, tt {
     font-size:1.2em;
-}
+}*/
 dt code {
     font-size:1.2em;
 }
@@ -190,6 +220,9 @@ Page header and footer styles
 .indexHeader {
     margin:10px;
     position:relative;
+}
+.indexHeader span{
+    margin-right:15px;
 }
 .indexHeader h1 {
     font-size:1.3em;
@@ -381,8 +414,51 @@ caption a:link, caption a:hover, caption a:active, caption a:visited {
     background-image:url(resources/titlebar.gif);
     height:18px;
 }
+.contentContainer ul.blockList li.blockList caption span.activeTableTab span {
+    white-space:nowrap;
+    padding-top:8px;
+    padding-left:8px;
+    display:block;
+    float:left;
+    background-image:url(resources/activetitlebar.gif);
+    height:18px;
+}
+.contentContainer ul.blockList li.blockList caption span.tableTab span {
+    white-space:nowrap;
+    padding-top:8px;
+    padding-left:8px;
+    display:block;
+    float:left;
+    background-image:url(resources/titlebar.gif);
+    height:18px;
+}
+.contentContainer ul.blockList li.blockList caption span.tableTab, .contentContainer ul.blockList li.blockList caption span.activeTableTab {
+    padding-top:0px;
+    padding-left:0px;
+    background-image:none;
+    float:none;
+    display:inline;
+}
 .overviewSummary .tabEnd, .packageSummary .tabEnd, .contentContainer ul.blockList li.blockList .tabEnd, .summary .tabEnd, .classUseContainer .tabEnd, .constantValuesContainer .tabEnd {
     width:10px;
+    background-image:url(resources/titlebar_end.gif);
+    background-repeat:no-repeat;
+    background-position:top right;
+    position:relative;
+    float:left;
+}
+.contentContainer ul.blockList li.blockList .activeTableTab .tabEnd {
+    width:10px;
+    margin-right:5px;
+    background-image:url(resources/activetitlebar_end.gif);
+    background-repeat:no-repeat;
+    background-position:top right;
+    position:relative;
+    float:left;
+}
+.contentContainer ul.blockList li.blockList .tableTab .tabEnd {
+    width:10px;
+    margin-right:5px;
     background-image:url(resources/titlebar_end.gif);
     background-repeat:no-repeat;
     background-position:top right;
@@ -471,4 +547,110 @@ h1.hidden {
 }
 .strong {
     font-weight:bold;
+}
+
+/* [MOD] Additions */
+.contentContainer blockquote {
+    margin: 0 2em;
+    border: solid 1px rgb(234, 234, 234);
+    border-left: solid 2px rgb(180, 180, 180);
+    border-radius: 3px;
+    padding: 0 5px;
+    background: rgb(248, 248, 248);
+}
+.contentContainer blockquote code, blockquote tt {
+    background: none;
+    border: 0;
+    padding: 0;
+}
+.contentContainer pre {
+    margin: 1em 2em;
+    padding: 0 5px;
+}
+.contentContainer dl dt {
+    margin-top: 1em;
+    font-weight: bold;
+    /*font-style: italic;*/
+}
+.contentContainer dl dd {
+    margin-left: 2em;
+}
+.contentContainer dl dd p:first-child {
+    margin-top: 0;
+}
+div.block h2 {
+    padding: 0 !important; /* fixes rule for ul.blockList li.blockList h2 above */
+}
+.block img {
+    margin-left: 2em;
+}
+
+/* tables */
+.block table {
+    border-collapse: collapse;
+    width: auto;
+    margin-left: 2em;
+    padding: 2em;
+    border: 0;
+}
+.block td, .block th {
+    padding: .25em .5em;
+}
+.block td {
+    border: solid 1px rgb(234, 234, 234);
+}
+.block tbody {
+    background: rgb(248, 248, 248);
+}
+
+/* code block tweaks */
+code, tt {
+    font-size: 1.2em;
+}
+pre {
+    /* inspired by GitHub */
+    padding: 0 5px;
+    border: solid 1px rgb(234, 234, 234);
+    background: rgb(248, 248, 248);
+    border-radius: 3px;
+}
+pre code {
+    background: none;
+}
+li.blockList > pre {
+    font-size: 1.3em;
+    padding: 0;
+    margin: 0;
+    background: 0;
+    border: 0;
+}
+div.summary code {
+    background: none;
+    border: 0;
+    padding: 0;
+}
+
+/* @todo tag */
+div.todo {
+    display: block;
+    margin: 1em;
+    border: solid 1px black;
+    border-radius: 3px;
+}
+div.todoTitle {
+    display: block;
+    background: #f6f30d;
+    padding: 5px;
+    border-bottom: solid 1px black;
+}
+span.todoTitle {
+    font-weight: bold;
+}
+span.todoCounter {
+    float: right;
+    font-size: .8em;
+}
+div.todoText {
+    display: block;
+    padding: 5px;
 }
