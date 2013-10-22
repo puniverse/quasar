@@ -68,6 +68,10 @@ subprojects {
         }
     }
 
+    configurations {
+        markdownDoclet
+    }
+    
     dependencies {
         compile "com.codahale.metrics:metrics-core:3.0.1" 
         compile "org.apache.ant:ant:1.9.2"
@@ -88,6 +92,7 @@ subprojects {
             exclude group: "org.ow2.asm", module: '*'
         }
         testRuntime 'com.sun.jersey:jersey-core:1.17.1' // needed for caliper. caliper depends on jersey-client but for some reason jersey-core is not a dependency
+        markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
     }
 
     //    task instrumentClasses(dependsOn: 'compileJava') << {
@@ -165,10 +170,16 @@ subprojects {
     //    }
     
     configure (javadoc) {
-        options.links = [    
+        options {
+            docletpath = configurations.markdownDoclet.files.asType(List)
+            doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
+            addStringOption("parse-timeout", "10")
+            // stylesheetFile = rootProject.file('./baselib/javadoc.css')
+            links = [    
         "http://docs.oracle.com/javase/7/docs/api/",
         "http://docs.guava-libraries.googlecode.com/git-history/v15.0/javadoc/"
-        ]
+            ]
+        }
         excludes = [
         "co/paralleluniverse/common/logging/**",
         "co/paralleluniverse/common/monitoring/**",
@@ -336,15 +347,21 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
     title = "Quasar ${project(':quasar-core').version}"
     destinationDir = file("docs/javadoc")
     source = project(':quasar-core').sourceSets.main.allJava + project(':quasar-actors').sourceSets.main.allJava
-    options.links = [    
+    options {
+        docletpath = project(':quasar-core').configurations.markdownDoclet.files.asType(List)
+        doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
+        addStringOption("parse-timeout", "10")
+        // stylesheetFile = rootProject.file('./baselib/javadoc.css')
+        links = [    
         "http://docs.oracle.com/javase/7/docs/api/",
         "http://docs.guava-libraries.googlecode.com/git-history/v15.0/javadoc/"
         ]
+    }
     excludes = [
         "co/paralleluniverse/common/logging/**",
         "co/paralleluniverse/common/monitoring/**",
         "co/paralleluniverse/common/util/**",  
-        ]
+    ]
 }
 
 task clean(dependsOn: subprojects.clean) << {
