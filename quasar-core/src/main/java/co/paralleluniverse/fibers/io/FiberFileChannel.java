@@ -13,14 +13,11 @@
  */
 package co.paralleluniverse.fibers.io;
 
-import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
-import java.nio.channels.CompletionHandler;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.ReadableByteChannel;
@@ -72,8 +69,8 @@ public class FiberFileChannel extends FileChannel {
     public int read(final ByteBuffer dst, final long position) throws IOException {
         return new FiberAsyncIO<Integer>() {
             @Override
-            protected Void requestAsync(Fiber current, CompletionHandler<Integer, Fiber> completionHandler) {
-                ac.read(dst, position, current, completionHandler);
+            protected Void requestAsync() {
+                ac.read(dst, position, null, makeCallback());
                 return null;
             }
         }.runSneaky();
@@ -84,8 +81,8 @@ public class FiberFileChannel extends FileChannel {
     public int write(final ByteBuffer src, final long position) throws IOException {
         return new FiberAsyncIO<Integer>() {
             @Override
-            protected Void requestAsync(Fiber current, CompletionHandler<Integer, Fiber> completionHandler) {
-                ac.write(src, position, current, completionHandler);
+            protected Void requestAsync() {
+                ac.write(src, position, null, makeCallback());
                 return null;
             }
         }.runSneaky();
@@ -96,8 +93,8 @@ public class FiberFileChannel extends FileChannel {
     public FileLock lock(final long position, final long size, final boolean shared) throws IOException {
         return new FiberAsyncIO<FileLock>() {
             @Override
-            protected Void requestAsync(Fiber current, CompletionHandler<FileLock, Fiber> completionHandler) {
-                ac.lock(position, size, shared, current, completionHandler);
+            protected Void requestAsync() {
+                ac.lock(position, size, shared, null, makeCallback());
                 return null;
             }
         }.runSneaky();

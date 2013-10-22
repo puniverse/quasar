@@ -24,20 +24,17 @@ import java.nio.channels.CompletionHandler;
  *
  * @author pron
  */
-abstract class FiberAsyncIO<V> extends FiberAsync<V, CompletionHandler<V, Fiber>, Void, IOException> {
-
-    @Override
-    protected CompletionHandler<V, Fiber> getCallback() {
+abstract class FiberAsyncIO<V> extends FiberAsync<V, Void, IOException> {
+    protected CompletionHandler<V, Fiber> makeCallback() {
         return new CompletionHandler<V, Fiber>() {
-
             @Override
             public void completed(V result, Fiber attachment) {
-                FiberAsyncIO.this.completed(result, attachment);
+                FiberAsyncIO.this.asyncCompleted(result);
             }
 
             @Override
             public void failed(Throwable exc, Fiber attachment) {
-                FiberAsyncIO.this.failed(exc, attachment);
+                FiberAsyncIO.this.asyncFailed(exc);
             }
         };
     }
@@ -50,17 +47,15 @@ abstract class FiberAsyncIO<V> extends FiberAsync<V, CompletionHandler<V, Fiber>
             throw new IOException(e);
         }
     }
-    
+
     @Suspendable
     public V runSneaky() throws IOException {
         try {
             return super.run();
         } catch (InterruptedException e) {
             throw new IOException(e);
-        } catch(SuspendExecution e) {
+        } catch (SuspendExecution e) {
             throw new AssertionError();
         }
     }
-    
-    
 }

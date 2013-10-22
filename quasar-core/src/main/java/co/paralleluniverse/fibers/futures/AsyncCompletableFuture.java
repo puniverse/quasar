@@ -24,7 +24,7 @@ import jsr166e.CompletableFuture;
  *
  * @author pron
  */
-public class AsyncCompletableFuture<V> extends FiberAsync<V, Runnable, Void, ExecutionException> {
+public class AsyncCompletableFuture<V> extends FiberAsync<V, Void, ExecutionException> {
     public static <V> V get(CompletableFuture<V> future) throws ExecutionException, InterruptedException, SuspendExecution {
         if (Fiber.currentFiber() != null && !future.isDone())
             return new AsyncCompletableFuture<>(future).run();
@@ -64,20 +64,15 @@ public class AsyncCompletableFuture<V> extends FiberAsync<V, Runnable, Void, Exe
     }
 
     @Override
-    protected Runnable getCallback() {
-        return null;
-    }
-
-    @Override
-    protected Void requestAsync(final Fiber current, Runnable callback) {
+    protected Void requestAsync() {
         fut.handle(new CompletableFuture.BiFun<V, Throwable, Void>() {
 
             @Override
             public Void apply(V res, Throwable e) {
                 if(e != null)
-                    failed(e, current);
+                    asyncFailed(e);
                 else
-                    completed(res, current);
+                    asyncCompleted(res);
                 return null;
             }
         });

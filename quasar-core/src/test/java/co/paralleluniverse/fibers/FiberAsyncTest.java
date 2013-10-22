@@ -88,8 +88,8 @@ public class FiberAsyncTest {
     static String callService(final Service service) throws SuspendExecution, InterruptedException {
         return new MyFiberAsync() {
             @Override
-            protected Void requestAsync(Fiber current, MyCallback callback) {
-                service.registerCallback(callback);
+            protected Void requestAsync() {
+                service.registerCallback(this);
                 return null;
             }
         }.run();
@@ -98,14 +98,14 @@ public class FiberAsyncTest {
     static String callService(final Service service, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
         return new MyFiberAsync() {
             @Override
-            protected Void requestAsync(Fiber current, MyCallback callback) {
-                service.registerCallback(callback);
+            protected Void requestAsync() {
+                service.registerCallback(this);
                 return null;
             }
         }.run(timeout, unit);
     }
 
-    static abstract class MyFiberAsync extends FiberAsync<String, MyCallback, Void, RuntimeException> implements MyCallback {
+    static abstract class MyFiberAsync extends FiberAsync<String, Void, RuntimeException> implements MyCallback {
         private final Fiber fiber;
 
         public MyFiberAsync() {
@@ -114,12 +114,12 @@ public class FiberAsyncTest {
 
         @Override
         public void call(String str) {
-            super.completed(str, fiber);
+            super.asyncCompleted(str);
         }
 
         @Override
         public void fail(RuntimeException e) {
-            super.failed(e, fiber);
+            super.asyncFailed(e);
         }
     }
 

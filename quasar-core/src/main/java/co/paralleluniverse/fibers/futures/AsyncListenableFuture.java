@@ -25,7 +25,7 @@ import java.util.concurrent.Executor;
  *
  * @author pron
  */
-public class AsyncListenableFuture<V> extends FiberAsync<V, Runnable, Void, ExecutionException> {
+public class AsyncListenableFuture<V> extends FiberAsync<V, Void, ExecutionException> {
     public static <V> V get(ListenableFuture<V> future) throws ExecutionException, InterruptedException, SuspendExecution {
         if (Fiber.currentFiber() != null && !future.isDone())
             return new AsyncListenableFuture<>(future).run();
@@ -65,21 +65,16 @@ public class AsyncListenableFuture<V> extends FiberAsync<V, Runnable, Void, Exec
     }
 
     @Override
-    protected Runnable getCallback() {
-        return null;
-    }
-
-    @Override
-    protected Void requestAsync(final Fiber fiber, Runnable callback) {
+    protected Void requestAsync() {
         fut.addListener(new Runnable() {
             @Override
             public void run() {
                 try {
                     assert fut.isDone();
                     final V res = fut.get();
-                    completed(res, fiber);
+                    asyncCompleted(res);
                 } catch (ExecutionException e) {
-                    failed(e, fiber);
+                    asyncFailed(e);
                 } catch (InterruptedException e) {
                     throw new AssertionError(); // can't happen b/c we know future is done.
                 }

@@ -18,46 +18,90 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * A general helper class that transforms asynchronous requests to synchronous (fiber-blocking) calls.
- *
- * @param <V> The value retuned by the async request
- * @param <A> The type of the (optional) attachment object associated with this {@code FiberAsyc}.
- * @param <Callback> The interface of the async callback.
- * @param <E> An exception class that could be thrown by the async request
  * 
+ * ## Usage example:
+ * 
+ * Assume that operation `Foo.async(FooCompletion callback)` is an asynchronous operation, where `Completion` is defined as:
+ * 
+ * ```java
+ * interface FooCompletion {
+ *    void success(String result);
+ *    void failure(FooException exception);
+ * }
+ * ```
+ * . We then define the following subclass:
+ * 
+ * ```java
+ * class FooAsync extends FiberAsync<String, Void, FooException> implements FooCompletion {
+ *     @Override
+ *     public void success(String result) {
+ *         asyncCompleted(result);
+ *     }
+ * 
+ *     @Override
+ *     public void failure(FooException exception) {
+ *         asyncFailed(exception);
+ *     }
+ * }
+ * ```
+ * 
+ * Then, to run the operation as a fiber-blocking operation:
+ * 
+ * ```java
+ * new FooAsync() {
+ *     @Override
+ *     protected Void requestAsync() {
+ *         Foo.async(this);
+ *     }
+ * }.run();
+ * ```
+ *
+ * @param <V> The value returned by the async request
+ * @param <A> The type of the (optional) attachment object associated with this `FiberAsyc`.
+ * @param <E> An exception class that could be thrown by the async request
+ *
  * @author pron
  */
-public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
+public abstract class FiberAsync<V, A, E extends Throwable> {
+    private final Fiber fiber;
     private final boolean immediateExec;
     private long timeoutNanos;
 
-    public FiberAsync(boolean immediateExec) {
-        this.immediateExec = immediateExec;
-    }
-
+    /**
+     * Same as `FiberAsync(false)`
+     */
     public FiberAsync() {
         this(false);
     }
 
     /**
      *
+     * @param immediateExec Whether the fiber should be executed in the same thread as the callback. Should generally be set to `false`.
+     */
+    public FiberAsync(boolean immediateExec) {
+        this.fiber = Fiber.currentFiber();
+        this.immediateExec = immediateExec;
+    }
+
+    /**
+     * Runs the asynchronous operation, blocks until it completes and returns its result. Throws an exception if the operation has failed.
      * <p/>
-     * In immediate exec mode, when this method returns we are running within the handler, and will need to call Fiber.yield()
+     * In immediate exec mode, when this method returns we are running within the handler, and will need to call {@link Fiber#yield()}
      * to return from the handler.
      *
-     * @return
-     * @throws E
-     * @throws SuspendExecution
+     * @return the result of the async operation as set in the call to {@link #completed(Object, Fiber) completed}.
+     * @throws E if the async computation failed and an exception was set in a call to {@link #failed(Throwable, Fiber) failed}.
      * @throws InterruptedException
      */
     @SuppressWarnings("empty-statement")
     public V run() throws E, SuspendExecution, InterruptedException {
-        if (Fiber.currentFiber() == null)
+        if (fiber == null)
             return requestSync();
 
         while (!Fiber.park(this, new Fiber.ParkAction() {
             @Override
             public void run(Fiber current) {
-                attachment = requestAsync(current, getCallback());
+                attachment = requestAsync();
             }
         })); // make sure we actually park and run PostParkActions
 
@@ -73,6 +117,18 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
         return getResult();
     }
 
+    /**
+     * Runs the asynchronous operation, blocks until it completes (but only up to the given timeout duration) and returns its result.
+     * Throws an exception if the operation has failed.
+     * <p/>
+     * In immediate exec mode, when this method returns we are running within the handler, and will need to call {@link Fiber#yield()}
+     * to return from the handler.
+     *
+     * @return the result of the async operation as set in the call to {@link #completed(Object, Fiber) completed}.
+     * @throws E if the async computation failed and an exception was set in a call to {@link #failed(Throwable, Fiber) failed}.
+     * @throws TimeoutException if the operation had not completed by the time the timeout has elapsed.
+     * @throws InterruptedException
+     */
     @SuppressWarnings("empty-statement")
     public V run(final long timeout, final TimeUnit unit) throws E, SuspendExecution, InterruptedException, TimeoutException {
         if (Fiber.currentFiber() == null)
@@ -89,14 +145,14 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
             @Override
             public void run(Fiber current) {
                 current.timeoutService.schedule(current, FiberAsync.this, timeout, unit);
-                attachment = requestAsync(current, getCallback());
+                attachment = requestAsync();
             }
         })); // make sure we actually park and run PostParkActions
 
         if (!isCompleted()) {
             if (Fiber.interrupted())
                 throw new InterruptedException();
-            
+
             assert System.nanoTime() >= deadline;
             exception = new TimeoutException();
             completed = true;
@@ -107,28 +163,38 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
     }
 
     /**
-     * Calls the asynchronous request and registers the callback.
-     * This method may not use any ThreadLocals.
+     * A user of this class must override this method to start the asynchronous operation and register the callback.
+     * This method may return an *attachment object* that can be retrieved later by calling {@link #getAttachment()}.
+     * This method may not use any {@link ThreadLocal}s.
      *
-     * @param current
-     * @param callback
+     * @return An object to be set as this `FiberAsync`'s *attachment*, that can be later retrieved with {@link #getAttachment()}.
      */
-    protected abstract A requestAsync(Fiber current, Callback callback);
+    protected abstract A requestAsync();
 
+    /**
+     * Called if {@link #run()} is not being executed in a fiber. Should perform the operation synchronously and return its result.
+     * The default implementation of this method throws an `IllegalThreadStateException`.
+     *
+     * @return The operation's result.
+     * @throws E
+     * @throws InterruptedException
+     */
     protected V requestSync() throws E, InterruptedException {
         throw new IllegalThreadStateException("Method called not from within a fiber");
     }
 
-    protected Callback getCallback() {
-        return (Callback) this;
-    }
     //
     private volatile boolean completed;
     private Throwable exception;
     private V result;
     private A attachment;
 
-    protected final void completed(V result, Fiber fiber) {
+    /**
+     * This method must be called by the callback upon successful completion of the asynchronous operation.
+     *
+     * @param result The operation's result
+     */
+    protected final void asyncCompleted(V result) {
         if (completed) // probably timeout
             return;
         this.result = result;
@@ -137,7 +203,14 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
         fire(fiber);
     }
 
-    protected final void failed(Throwable t, Fiber fiber) {
+    /**
+     * This method must be called by the callback upon a failure of the asynchronous operation.
+     *
+     * @param t The exception that caused the failure, or an exception to be associated with it. Must not be `null`.
+     */
+    protected final void asyncFailed(Throwable t) {
+        if (t == null)
+            throw new IllegalArgumentException("t must not be null");
         if (completed) // probably timeout
             return;
         this.exception = t;
@@ -164,21 +237,35 @@ public abstract class FiberAsync<V, Callback, A, E extends Throwable> {
     }
 
     /**
+     * Called by the fiber if this `FiberAsync` is in immediate-exec mode, immediately before attempting to block while running
+     * in the callback's thread.
      * Can be overridden by subclasses running in immediate-exec mode to verify whether a park is allowed.
-     *
-     * @return
      */
     protected void prepark() {
     }
 
+    /**
+     * Returns the attachment object that was returned by the call to {@link #requestAsync(Fiber, Object) requestAsync}.
+     */
     protected final A getAttachment() {
         return attachment;
     }
 
+    /**
+     * Tests whether or not the asynchronous operation represented by this `FiberAsyc` has completed.
+     */
     public final boolean isCompleted() {
         return completed;
     }
 
+    /**
+     * Returns the result of the asynchronous operation if it has completed, or throws an exception if it completed unsuccessfully.
+     * If the operation has not yet completed, this method throws an `IllegalStateException`.
+     *
+     * @return
+     * @throws E if the async computation failed and an exception was set in a call to {@link #failed(Throwable, Fiber) failed}.
+     * @throw IllegalStateException if the operation has not yet completed.
+     */
     public final V getResult() throws E {
         if (!completed)
             throw new IllegalStateException("Not completed");
