@@ -28,6 +28,8 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
     int headIndex;
     volatile Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
     volatile Node tail;
+    volatile int p016, p017, p018, p019, p020, p021, p022, p023, p024, p025, p026, p027, p028, p029, p030;
+    int seed = (int) System.nanoTime();
 
     @SuppressWarnings("OverridableMethodCallInConstructor")
     public SingleConsumerLinkedArrayQueue() {
@@ -186,6 +188,19 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
         for (Node p = tail; p != null; p = p.prev)
             count++;
         return count;
+    }
+
+    void backoff() {
+        int spins = 1 << 8;
+        int r = seed;
+        while (spins >= 0) {
+            r ^= r << 1;
+            r ^= r >>> 3;
+            r ^= r << 10; // xorshift
+            if (r >= 0)
+                --spins;
+        }
+        seed = r;
     }
 
     static abstract class Node {

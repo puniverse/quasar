@@ -28,48 +28,53 @@ public class SingleConsumerLinkedArrayObjectQueue<E> extends SingleConsumerLinke
     Node newNode() {
         return new ObjectNode();
     }
-    
+
     @Override
     int blockSize() {
         return BLOCK_SIZE;
     }
-    
+
     @Override
     public boolean enq(E item) {
         for (;;) {
             final Node t = tail;
             for (int i = 0; i < BLOCK_SIZE; i++) {
-                if (get(t, i) == null && compareAndSetElement(t, i, null, item))
-                    return true;
+                if (get(t, i) == null) {
+                    if (compareAndSetElement(t, i, null, item))
+                        return true;
+                    backoff();
+                }
             }
 
             Node n = newNode();
             n.prev = t;
             if (compareAndSetTail(t, n))
                 t.next = n;
+            else
+                backoff();
         }
     }
 
     @Override
     E value(Node n, int i) {
         // called after hasValue so no need for a volatile read
-        return (E)((ObjectNode)n).array[i];
+        return (E) ((ObjectNode) n).array[i];
     }
 
     @Override
     boolean hasValue(Node n, int index) {
         return get(n, index) != null;
     }
-    
+
     @Override
     boolean isDeleted(Node n, int index) {
         // called after hasValue so no need for volatile read
-        return ((ObjectNode)n).array[index] == TOMBSTONE;
+        return ((ObjectNode) n).array[index] == TOMBSTONE;
     }
-    
+
     @Override
     void markDeleted(Node n, int index) {
-        ((ObjectNode)n).array[index] = TOMBSTONE;
+        ((ObjectNode) n).array[index] = TOMBSTONE;
     }
 
     static class ObjectNode extends Node {
@@ -80,7 +85,6 @@ public class SingleConsumerLinkedArrayObjectQueue<E> extends SingleConsumerLinke
             return "Node{" + "array: " + Arrays.toString(array) + ", next: " + next + ", prev: " + Objects.systemToString(prev) + '}';
         }
     }
-
     private static final int base;
     private static final int shift;
 

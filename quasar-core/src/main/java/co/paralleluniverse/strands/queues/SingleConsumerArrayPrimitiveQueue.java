@@ -24,9 +24,19 @@ abstract class SingleConsumerArrayPrimitiveQueue<E> extends SingleConsumerArrayQ
     public SingleConsumerArrayPrimitiveQueue(int capacity) {
         super(capacity);
     }
+    
+    @Override
+    long maxReadIndex() {
+        return maxReadIndex;
+    }
 
     @Override
     void clearValue(long index) {
+    }
+
+    @Override
+    boolean hasNext(long lind, int iind) {
+        return lind < maxReadIndex;
     }
 
     @SuppressWarnings("empty-statement")

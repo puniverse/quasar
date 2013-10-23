@@ -42,8 +42,13 @@ public class SingleConsumerArrayObjectQueue<E> extends SingleConsumerArrayQueue<
         final long i = preEnq();
         if(i < 0)
             return false;
-        set((int) i & mask, item);
+        orderedSet((int) i & mask, item); // volatile set
         return true;
+    }
+    
+    @Override
+    boolean hasNext(long lind, int iind) {
+        return array[iind] != null;
     }
 
     @SuppressWarnings("empty-statement")
@@ -81,7 +86,7 @@ public class SingleConsumerArrayObjectQueue<E> extends SingleConsumerArrayQueue<
         return ((long) i << shift) + base;
     }
 
-    private void set(int i, Object value) {
+    private void volatileSet(int i, Object value) {
         UNSAFE.putObjectVolatile(array, byteOffset(i), value);
     }
 

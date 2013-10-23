@@ -27,11 +27,14 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
             if (i < blockSize) {
                 if (compareAndSetTailIndex(t, i, i + 1))
                     return new ElementPointer(t, i);
+                backoff();
             } else {
                 Node n = newNode();
                 n.prev = t;
                 if (compareAndSetTail(t, n))
                     t.next = n;
+                else
+                    backoff();
             }
         }
     }

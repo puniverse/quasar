@@ -32,9 +32,7 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
     volatile long p101, p102, p103, p104, p105, p106, p107;
     volatile long tail; // next element to be written
     volatile long p201, p202, p203, p204, p205, p206, p207;
-    private long cachedHead;
-    volatile long p301, p302, p303, p304, p305, p306, p307;
-    private long cachedMaxReadIndex;
+    int seed = (int) System.nanoTime();
 
     SingleConsumerArrayQueue(int capacity) {
         // size is a power of 2
@@ -78,16 +76,16 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
 
     final long preEnq() {
         long t, w;
-        do {
+        for (;;) {
             t = tail;
             w = t - capacity; // "wrap point"
+            if (head <= w)
+                return -1;
 
-            if (cachedHead <= w) {
-                cachedHead = head; // only time a producer reads head. for this, head needs to be volatile. can we do better?
-                if (cachedHead <= w)
-                    return -1;
-            }
-        } while (!compareAndSetTail(t, t + 1));
+            if (compareAndSetTail(t, t + 1))
+                break;
+            backoff();
+        }
         return t;
     }
 
@@ -100,37 +98,25 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
         final long newHead = intToLongIndex(index) + 1;
         for (long i = head; i != newHead; i++)
             clearValue(i);
-        head = newHead; // orderedSetHead(newHead); //
+        orderedSetHead(newHead); // head = newHead; // 
     }
+
+    abstract boolean hasNext(long lind, int iind);
 
     @Override
     public boolean hasNext() {
         final long h = head;
-        if (h >= cachedMaxReadIndex) {
-            cachedMaxReadIndex = maxReadIndex();
-            if (h >= cachedMaxReadIndex)
-                return false;
-        }
-        return true;
+        return hasNext(h, (int) h & mask);
     }
-    
+
     @Override
     @SuppressWarnings("empty-statement")
     public Integer pk() {
         final long h = head;
-        if (h >= cachedMaxReadIndex) {
-            cachedMaxReadIndex = maxReadIndex();
-            if (h >= cachedMaxReadIndex)
-                return null;
-        }
-        awaitValue(h);
-        return Integer.valueOf((int) h & mask);
-    }
-
-    @Override
-    public Integer succ(Integer index) {
-        final int s = succ(index != null ? index.intValue() : -1);
-        return s >= 0 ? Integer.valueOf(s) : null;
+        final int h1 = (int) head & mask;
+        if (!hasNext(h, h1))
+            return null;
+        return Integer.valueOf(h1);
     }
 
     @SuppressWarnings("empty-statement")
@@ -139,14 +125,17 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
             final Integer pk = pk();
             return pk != null ? pk : -1;
         }
-        long n = intToLongIndex((int) (index + 1) & mask);
-        if (n >= cachedMaxReadIndex) {
-            cachedMaxReadIndex = maxReadIndex();
-            if (n >= cachedMaxReadIndex)
-                return -1;
-        }
-        awaitValue(n);
+        int n1 = (int) (index + 1) & mask;
+        long n = intToLongIndex(n1);
+        if (!hasNext(n, n1))
+            return -1;
         return (int) n & mask;
+    }
+
+    @Override
+    public Integer succ(Integer index) {
+        final int s = succ(index != null ? index.intValue() : -1);
+        return s >= 0 ? Integer.valueOf(s) : null;
     }
 
     @Override
@@ -185,14 +174,14 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
     public int size() {
         return (int) (tail - head);
     }
-    
+
     @Override
     public List<E> snapshot() {
         final long t = tail;
-        final ArrayList<E> list = new ArrayList<E>((int)(t - head));
+        final ArrayList<E> list = new ArrayList<E>((int) (t - head));
         for (long p = tail; p != head; p--)
-            list.add(value((int)p & mask));
-        
+            list.add(value((int) p & mask));
+
         return Lists.reverse(list);
     }
 
@@ -202,6 +191,19 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
 
     int prev(int i) {
         return --i & mask;
+    }
+
+    void backoff() {
+        int spins = 1 << 8;
+        int r = seed;
+        while (spins >= 0) {
+            r ^= r << 1;
+            r ^= r >>> 3;
+            r ^= r << 10; // xorshift
+            if (r >= 0)
+                --spins;
+        }
+        seed = r;
     }
 
     @Override
