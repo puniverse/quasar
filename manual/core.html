@@ -58,19 +58,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/getting-started.html">
                 Getting Started
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
           
@@ -117,21 +117,21 @@
           
           
           
-            <li>
-              <a class="active" href="/quasar/manual/core.html">
-                Quasar Core
-              </a>
-              
-              <ul class="nav nav-list"><li><a href="#fibers">Fibers</a></li><li><a href="#strands">Strands</a></li><li><a href="#transforming-any-asynchronous-callback-to-a-fiber-blocking-operation">Transforming any Asynchronous Callback to A Fiber-Blocking&nbsp;Operation</a></li><li><a href="#advanced-fibers">Advanced Fiber&nbsp;Usage</a></li></ul>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a class="active" href="/quasar/manual/core.html">
+                Quasar Core
+              </a>
+              
+              <ul class="nav nav-list"><li><a href="#fibers">Fibers</a></li><li><a href="#strands">Strands</a></li><li><a href="#transforming-any-asynchronous-callback-to-a-fiber-blocking-operation">Transforming any Asynchronous Callback to A Fiber-Blocking&nbsp;Operation</a></li><li><a href="#advanced-fibers">Advanced Fiber&nbsp;Usage</a></li><li><a href="#fiber-internals">Fiber&nbsp;Internals</a></li></ul>
+              
+            </li>
           
         
           
@@ -292,7 +292,71 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <h2 id="advanced-fibers">Advanced Fiber&nbsp;Usage</h2>
 
+<h2 id="fiber-internals">Fiber&nbsp;Internals</h2>
+
+<p>We will now cover in some depth the inner workings of Quasar fibers. You should read this section if you’d like to annotate suspendable methods with the <code>@Suspendable</code> annotation rather than by declaring <code>throws SuspendExecution</code>, or if you’re just&nbsp;curious.</p>
+
+<p>Internally, a fiber is a <em>continuation</em> which is then scheduled in a scheduler. A continuation captures the instantaneous state of a computation, and allows it to be suspended and then resumed at a later time from the point where it was suspended. Quasar creates continuations by instrumenting (at the bytecode level) suspendable methods. For scheduling, Quasar uses <code>ForkJoinPool</code>, which is a very efficient, work-stealing, multi-threaded&nbsp;scheduler.</p>
+
+<p>Whenever a class is loaded, Quasar’s instrumentation module (usually run as a Java agent) scans it for suspendable methods. Every suspendable method <code>f</code> is then instrumented in the following way: It is scanned for calls to other suspendable methods. For every call to a suspendable method <code>g</code>, some code is inserted before (and after) the call to <code>g</code> that saves (and restores) the state of a local variables to the fiber’s stack (a fiber manages its own stack), and records the fact that this (i.e. the call to <code>g</code>) is a possible suspension point. At the end of this “suspendable function chain”, we’ll find a call to <code>Fiber.park</code>. <code>park</code> suspends the fiber by throwing a <code>SuspendExecution</code> exception (which the instrumentation prevents you from catching, even if your method contains a <code>catch(Throwable t)</code>&nbsp;block).</p>
+
+<p>If <code>g</code> indeed blocks, the <code>SuspendExecution</code> exception will be caught by the <code>Fiber</code> class. When the fiber is awakened (with <code>unpark</code>), method <code>f</code> will be called, and then the execution record will show that we’re blocked at the call to <code>g</code>, so we’ll immediately jump to the line in <code>f</code> where <code>g</code> is called, and call it. Finally, we’ll reach the actual suspension point (the call to <code>park</code>), where we’ll resume execution immediately following the call. When <code>g</code> returns, the code inserted in <code>f</code> will restore <code>f</code>’s local variables from the fiber&nbsp;stack.</p>
+
+<p>This process sounds complicated, but its incurs a performance overhead of no more than&nbsp;3%-5%.</p>
+
 <h3 id="suspendable">@Suspendable</h3>
+
+<p>So far, our way to specify a suspendable method is by declaring it throws <code>SusepndExecution</code>. This is convenient because <code>SuspendExecution</code> is a checked exception, so if <code>f</code> calls <code>g</code> and <code>g</code> is suspendable, the Java compiler will force us to declare that <code>f</code> is suspendable (and it must be because it calls <code>g</code> and <code>g</code> might be&nbsp;suspended).</p>
+
+<p>Sometimes, however, we cannot declare <code>f</code> to throw <code>SuspendExecution</code>. One example is that <code>f</code> is an implementation of an interface method, and we cannot (or don’t want to) change the interface so that it throws <code>SuspendExecution</code>. It is also possible that we want <code>f</code> to be run in regular threads as well as&nbsp;fibers. </p>
+
+<p>An example for that are the synchronization primitives in the <code>co.paralleluniverse.strands.concurrent</code> package, which implement interfaces declared in <code>java.util.concurrent</code>, and we want to maintain compatibility. Also, no harm will come if we use these classes in regular threads. They will work just as well for threads as for fibers, because internally they call <code>Strand.park</code> which is fiber-blocking (suspends) if run in a fiber, but simply blocks the thread if&nbsp;not.</p>
+
+<p>So, suppose method <code>f</code> is declared in interface <code>I</code>, and we’d like to make its implementation in class <code>C</code> suspendable. The compiler will not let us declare that we throw <code>SuspendExecution</code> because that will conflict with <code>f</code>’s declaration in&nbsp;<code>I</code>.</p>
+
+<p>What we do, then, is annotate <code>C.f</code> with the <code>co.paralleluniverse.fibers.@Suspendable</code> annotation. Assuming <code>C.f</code> calls <code>park</code> or some other suspendable method <code>g</code> – which does declare <code>throws SuspendExecution</code>, we need to surround <code>f</code>’s body with <code>try {} catch(SuspendExecution)</code> just so the method will compile, like&nbsp;so:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="kd">class</span> <span class="nc">C</span> <span class="kd">implements</span> <span class="n">I</span> <span class="o">{</span>
+</span><span id="line-2">	<span class="nd">@Suspendable</span>
+</span><span id="line-3">	<span class="kd">public</span> <span class="kt">int</span> <span class="nf">f</span><span class="o">()</span> <span class="o">{</span>
+</span><span id="line-4">		<span class="k">try</span> <span class="o">{</span>
+</span><span id="line-5">			<span class="c1">// do some stuff</span>
+</span><span id="line-6">			<span class="k">return</span> <span class="nf">g</span><span class="o">()</span> <span class="o">*</span> <span class="mi">2</span><span class="o">;</span>
+</span><span id="line-7">		<span class="o">}</span> <span class="k">catch</span><span class="o">(</span><span class="n">SuspendExecution</span> <span class="n">s</span><span class="o">)</span> <span class="o">{</span>
+</span><span id="line-8">			<span class="k">throw</span> <span class="k">new</span> <span class="nf">AssertionError</span><span class="o">(</span><span class="n">s</span><span class="o">);</span> 
+</span><span id="line-9">		<span class="o">}</span>
+</span><span id="line-10">	<span class="o">}</span>
+</span><span id="line-11"><span class="o">}</span>
+</span></code></pre></div>
+<p>The <code>catch</code> block will never be executed; the intstrumentation will take care of&nbsp;that.</p>
+
+<p>But now let’s consider method&nbsp;<code>h</code>:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="nd">@Suspendable</span>
+</span><span id="line-2"><span class="kd">public</span> <span class="kt">void</span> <span class="nf">h</span><span class="o">(</span><span class="n">I</span> <span class="n">x</span><span class="o">)</span> <span class="o">{</span>
+</span><span id="line-3">	<span class="n">x</span><span class="o">.</span><span class="na">f</span><span class="o">();</span>
+</span><span id="line-4"><span class="o">}</span>
+</span></code></pre></div>
+<p>First, if we want to run <code>h</code> in a fiber, then it must be suspendable because it calls <code>f</code> which is suspendable. We could designate <code>h</code> as suspendable either by annotating it with <code>@Suspendable</code> or by declaring <code>throws SuspendExecution</code> (even though <code>f</code> is not declared to throw&nbsp;<code>SuspendExecution</code>).</p>
+
+<p>When <code>h</code> is encountered by the instrumentation module, it will be instrumented because it’s marked suspendable, but in order for the instrumentation to work, it needs to know of <code>h</code>’s calls to other instrumented methods. <code>h</code> calls <code>f</code>, which is suspendable, but through its interface <code>I</code>, while we’ve only annotated <code>f</code>’s <em>implementation</em> in class C. The instrumenter does not know that <code>I.f</code> has an implementation that might&nbsp;suspend.</p>
+
+<p>Therefore, if you’d like to use the <code>@Suspendable</code> annotation, there’s a step you need to add to your build step, after compilation and before creating the jar file: running the class <code>co.paralleluniverse.fibers.instrument.SuspendablesScanner</code>. In Gradle it looks like&nbsp;this:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="n">task</span> <span class="nf">scanSuspendables</span><span class="o">(</span><span class="nl">type:</span> <span class="n">JavaExec</span><span class="o">,</span> <span class="nl">dependsOn:</span> <span class="n">classes</span><span class="o">)</span> <span class="o">{</span> <span class="c1">// runs SuspendableScanner</span>
+</span><span id="line-2">    <span class="n">main</span> <span class="o">=</span> <span class="s2">&quot;co.paralleluniverse.fibers.instrument.SuspendablesScanner&quot;</span>
+</span><span id="line-3">    <span class="n">classpath</span> <span class="o">=</span> <span class="n">sourceSets</span><span class="o">.</span><span class="na">main</span><span class="o">.</span><span class="na">runtimeClasspath</span>
+</span><span id="line-4">    <span class="n">args</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;package1&quot;</span><span class="o">,</span> <span class="s2">&quot;package2&quot;</span><span class="o">]</span>
+</span><span id="line-5"><span class="o">}</span>
+</span></code></pre></div>
+<p>Where <code>"package1"</code> and <code>"package2"</code> are packages that contain methods annotated with&nbsp;<code>@Suspendable</code>. </p>
+
+<p><code>SuspendablesScanner</code> scans your code after it’s been compiled for methods annotated with <code>@Suspendable</code>. In our example it will find <code>C.f</code>. It will then see that <code>C.f</code> is an implementation of <code>I.f</code>, and so it will list <code>I.f</code> in a text file (<code>META-INF/suspendable-supers</code>), that contains all methods that have overriding suspendable&nbsp;implementations. </p>
+
+<p>When the instrumentation module instruments <code>h</code>, it will find <code>I.f</code> in the file, and, knowing it might suspend, inject the appropriate&nbsp;code.</p>
+
+<p>Note that this has no effect on other calls to <code>I.f</code>. The instrumentation module only cares that <code>I.f</code> has suspendable implementations when it finds it called in suspendable methods (in our case:&nbsp;<code>h</code>).</p>
+
 </div>
 
       <hr>
