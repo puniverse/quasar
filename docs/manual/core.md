@@ -104,7 +104,7 @@ Transforming asynchronous code to fiber-blocking calls has a negligible overhead
 
 ## Advanced Fiber Usage {#advanced-fibers}
 
-## Fiber Internals 
+### Fiber Internals 
 
 We will now cover in some depth the inner workings of Quasar fibers. You should read this section if you'd like to annotate suspendable methods with the `@Suspendable` annotation rather than by declaring `throws SuspendExecution`, or if you're just curious.
 
