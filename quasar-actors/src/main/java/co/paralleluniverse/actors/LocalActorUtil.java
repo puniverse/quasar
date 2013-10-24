@@ -62,6 +62,10 @@ public final class LocalActorUtil {
         return actorOf(actor).isDone();
     }
 
+    public static Throwable getDeathCause(ActorRef<?> actor) {
+        return actorOf(actor).getDeathCause();
+    }
+
     public static ActorMonitor getMonitor(ActorRef<?> actor) {
         return actorOf(actor).getMonitor();
     }
