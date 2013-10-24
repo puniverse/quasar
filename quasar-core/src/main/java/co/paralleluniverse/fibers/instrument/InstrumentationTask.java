@@ -98,8 +98,8 @@ public class InstrumentationTask extends Task {
 
     @Override
     public void execute() throws BuildException {
-        final Instrumentor instrumentor = new Instrumentor(getClass().getClassLoader(), DefaultSuspendableClassifier.instance());
-        
+        final QuasarInstrumentor instrumentor = new QuasarInstrumentor(getClass().getClassLoader(), DefaultSuspendableClassifier.instance());
+
         instrumentor.setCheck(check);
         instrumentor.setVerbose(verbose);
         instrumentor.setDebug(debug);
@@ -148,7 +148,7 @@ public class InstrumentationTask extends Task {
             }
 
             instrumentor.log(LogLevel.INFO, "Instrumenting " + instrumentor.getWorkList().size() + " classes");
-            
+
             for (MethodDatabase.WorkListEntry f : instrumentor.getWorkList())
                 instrumentClass(instrumentor, f);
 
@@ -158,9 +158,9 @@ public class InstrumentationTask extends Task {
         }
     }
 
-    private void instrumentClass(Instrumentor instrumentor, MethodDatabase.WorkListEntry entry) {
-        instrumentor.log(LogLevel.INFO, "Instrumenting class %s", entry.file);
-
+    private void instrumentClass(QuasarInstrumentor instrumentor, MethodDatabase.WorkListEntry entry) {
+        if (!instrumentor.shouldInstrument(entry.name))
+            return;
         try {
             try (FileInputStream fis = new FileInputStream(entry.file)) {
                 final byte[] newClass = instrumentor.instrumentClass(entry.name, fis);

@@ -97,7 +97,7 @@ public class JavaAgent {
         if (!instrumentation.isRetransformClassesSupported())
             System.err.println("Retransforming classes is not supported!");
 
-        final Instrumentor instrumentor = new Instrumentor(Thread.currentThread().getContextClassLoader(), DefaultSuspendableClassifier.instance());
+        final QuasarInstrumentor instrumentor = new QuasarInstrumentor(Thread.currentThread().getContextClassLoader(), DefaultSuspendableClassifier.instance());
         boolean checkArg = false;
         active = true;
 
@@ -155,9 +155,9 @@ public class JavaAgent {
     }
 
     private static class Transformer implements ClassFileTransformer {
-        private final Instrumentor instrumentor;
+        private final QuasarInstrumentor instrumentor;
 
-        public Transformer(Instrumentor instrumentor) {
+        public Transformer(QuasarInstrumentor instrumentor) {
             this.instrumentor = instrumentor;
         }
 

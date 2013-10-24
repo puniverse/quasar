@@ -60,20 +60,21 @@ import org.objectweb.asm.util.TraceClassVisitor;
  *
  * @author pron
  */
-final class Instrumentor {
+public final class QuasarInstrumentor {
     final static String EXAMINED_CLASS = null; // "co/paralleluniverse/fibers/instrument/ReflectionInvokeTest";
+    private final ThreadLocal<Boolean> recursive = new ThreadLocal<Boolean>();
     private final MethodDatabase db;
     private boolean check;
 
-    public Instrumentor(ClassLoader classLoader, SuspendableClassifier classifier) {
+    public QuasarInstrumentor(ClassLoader classLoader, SuspendableClassifier classifier) {
         this.db = new MethodDatabase(classLoader, classifier);
     }
 
-    public Instrumentor(ClassLoader classLoader) {
+    public QuasarInstrumentor(ClassLoader classLoader) {
         this(classLoader, DefaultSuspendableClassifier.instance());
     }
 
-    public boolean shouldInstrument(String className) {
+    boolean shouldInstrument(String className) {
         if (className.startsWith("org/objectweb/asm/"))
             return false;
         if (className.startsWith("org/netbeans/lib/"))
@@ -86,10 +87,18 @@ final class Instrumentor {
     }
 
     public byte[] instrumentClass(String className, byte[] data) {
-        return instrumentClass(className, new ClassReader(data));
+        if (recursive.get() == Boolean.TRUE) // this is important if we're called from within a ClassLoader because instrumentation may recursively load resources
+            return data;
+
+        recursive.set(Boolean.TRUE);
+        try {
+            return shouldInstrument(className) ? instrumentClass(className, new ClassReader(data)) : data;
+        } finally {
+            recursive.remove();
+        }
     }
 
-    public byte[] instrumentClass(String className, FileInputStream fis) throws IOException {
+    byte[] instrumentClass(String className, FileInputStream fis) throws IOException {
         return instrumentClass(className, new ClassReader(fis));
     }
 
@@ -128,32 +137,32 @@ final class Instrumentor {
         return db;
     }
 
-    public Instrumentor setCheck(boolean check) {
+    public QuasarInstrumentor setCheck(boolean check) {
         this.check = check;
         return this;
     }
 
-    public Instrumentor setAllowMonitors(boolean allowMonitors) {
+    public QuasarInstrumentor setAllowMonitors(boolean allowMonitors) {
         db.setAllowMonitors(allowMonitors);
         return this;
     }
 
-    public Instrumentor setAllowBlocking(boolean allowBlocking) {
+    public QuasarInstrumentor setAllowBlocking(boolean allowBlocking) {
         db.setAllowBlocking(allowBlocking);
         return this;
     }
 
-    public Instrumentor setLog(Log log) {
+    public QuasarInstrumentor setLog(Log log) {
         db.setLog(log);
         return this;
     }
 
-    public Instrumentor setVerbose(boolean verbose) {
+    public QuasarInstrumentor setVerbose(boolean verbose) {
         db.setVerbose(verbose);
         return this;
     }
 
-    public Instrumentor setDebug(boolean debug) {
+    public QuasarInstrumentor setDebug(boolean debug) {
         db.setDebug(debug);
         return this;
     }
