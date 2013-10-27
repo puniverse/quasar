@@ -62,7 +62,6 @@ import org.objectweb.asm.util.TraceClassVisitor;
  */
 public final class QuasarInstrumentor {
     final static String EXAMINED_CLASS = null; // "co/paralleluniverse/fibers/instrument/ReflectionInvokeTest";
-    private final ThreadLocal<Boolean> recursive = new ThreadLocal<Boolean>();
     private final MethodDatabase db;
     private boolean check;
 
@@ -87,15 +86,7 @@ public final class QuasarInstrumentor {
     }
 
     public byte[] instrumentClass(String className, byte[] data) {
-        if (recursive.get() == Boolean.TRUE) // this is important if we're called from within a ClassLoader because instrumentation may recursively load resources
-            return data;
-
-        recursive.set(Boolean.TRUE);
-        try {
-            return shouldInstrument(className) ? instrumentClass(className, new ClassReader(data)) : data;
-        } finally {
-            recursive.remove();
-        }
+        return shouldInstrument(className) ? instrumentClass(className, new ClassReader(data)) : data;
     }
 
     byte[] instrumentClass(String className, FileInputStream fis) throws IOException {
