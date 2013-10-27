@@ -46,7 +46,8 @@ public class RecordType<R> {
          */
         GENERATION
     };
-    private final List<Field<R, ?>> fields;
+    private final RecordType<? super R> parent;
+    private final List<Field<? super R, ?>> fields;
     private int fieldIndex;
     private boolean sealed;
     private Set<Field<? super R, ?>> fieldSet;
@@ -58,9 +59,21 @@ public class RecordType<R> {
     private final ThreadLocal<Mode> currentMode = new ThreadLocal<Mode>();
     private final ClassValue<ClassInfo> vtables;
 
-    public RecordType() {
-        this.fields = new ArrayList<Field<R, ?>>();
-        this.fieldIndex = 0;
+    public RecordType(RecordType<? super R> parent) {
+        this.parent = parent;
+        if (parent != null) {
+            parent.seal();
+            this.fields = new ArrayList<Field<? super R, ?>>(parent.fields);
+            this.fieldIndex = parent.fieldIndex;
+            this.primitiveIndex = parent.primitiveIndex;
+            this.primitiveOffset = parent.primitiveOffset;
+            this.objectIndex = parent.objectIndex;
+            this.objectOffset = parent.objectOffset;
+        } else {
+            this.fields = new ArrayList<Field<? super R, ?>>();
+            this.fieldIndex = 0;
+        }
+
         this.vtables = new ClassValue<ClassInfo>() {
             @Override
             protected ClassInfo computeValue(Class<?> type) {
@@ -68,6 +81,10 @@ public class RecordType<R> {
                 return new ClassInfo(currentMode.get(), type, fields);
             }
         };
+    }
+
+    public RecordType() {
+        this(null);
     }
 
     public Field.BooleanField<R> booleanField(String name) {
@@ -205,7 +222,7 @@ public class RecordType<R> {
                 f = Field.charArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id);
                 break;
             case Field.OBJECT:
-                f = Field.objectField(field.name(), (Class)field.typeClass(), id);
+                f = Field.objectField(field.name(), (Class) field.typeClass(), id);
                 break;
             case Field.OBJECT_ARRAY:
                 f = Field.objectArrayField(field.name(), field.typeClass().getComponentType(), ((Field.ArrayField<R, ?>) field).length, id);
