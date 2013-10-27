@@ -152,7 +152,7 @@ public abstract class Field<R, V> {
 
     abstract int size();
 
-    abstract Class<?> typeClass();
+    public abstract Class<?> typeClass();
 
     abstract void set(Record<? extends R> record, V value);
 
@@ -235,7 +235,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return boolean.class;
         }
 
@@ -266,7 +266,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return byte.class;
         }
 
@@ -297,7 +297,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return short.class;
         }
 
@@ -328,7 +328,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return int.class;
         }
 
@@ -359,7 +359,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return long.class;
         }
 
@@ -390,7 +390,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return float.class;
         }
 
@@ -421,7 +421,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return double.class;
         }
 
@@ -452,7 +452,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return char.class;
         }
 
@@ -486,7 +486,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return clazz;
         }
 
@@ -518,7 +518,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return boolean[].class;
         }
 
@@ -561,7 +561,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return byte[].class;
         }
 
@@ -604,7 +604,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return short[].class;
         }
 
@@ -647,7 +647,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return int[].class;
         }
 
@@ -690,7 +690,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return long[].class;
         }
 
@@ -733,7 +733,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return float[].class;
         }
 
@@ -776,7 +776,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return double[].class;
         }
 
@@ -819,7 +819,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return char[].class;
         }
 
@@ -865,7 +865,7 @@ public abstract class Field<R, V> {
         }
 
         @Override
-        Class<?> typeClass() {
+        public Class<?> typeClass() {
             return clazz;
         }
 
