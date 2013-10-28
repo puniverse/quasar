@@ -48,6 +48,22 @@ public final class Exceptions {
         }
     }
 
+    public static <X extends Throwable> RuntimeException rethrowUnwrap(Throwable t, Class<X> exceptionClass) throws X {
+        Throwable t1 = unwrap(t);
+        if (exceptionClass.isInstance(t1))
+            throw exceptionClass.cast(t1);
+        throw new RuntimeException(t1);
+    }
+
+    public static <X1 extends Throwable, X2 extends Throwable> RuntimeException rethrowUnwrap(Throwable t, Class<X1> exceptionClass1, Class<X2> exceptionClass2) throws X1, X2 {
+        Throwable t1 = unwrap(t);
+        if (exceptionClass1.isInstance(t1))
+            throw exceptionClass1.cast(t1);
+        if (exceptionClass2.isInstance(t1))
+            throw exceptionClass2.cast(t1);
+        throw new RuntimeException(t1);
+    }
+
     static public RuntimeException sneakyThrow(Throwable t) {
         // http://www.mail-archive.com/javaposse@googlegroups.com/msg05984.html
         if (t == null)
