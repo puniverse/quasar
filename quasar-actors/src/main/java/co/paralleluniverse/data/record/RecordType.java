@@ -78,7 +78,7 @@ public class RecordType<R> {
     }
 
     public RecordType(String name, RecordType<? super R> parent) {
-        this.name = name;
+        this.name = name.intern();
         this.parent = parent;
         if (parent != null) {
             parent.seal();
