@@ -86,6 +86,7 @@ public final class QuasarInstrumentor {
     }
 
     public byte[] instrumentClass(String className, byte[] data) {
+        className = className.replace('.', '/');
         return shouldInstrument(className) ? instrumentClass(className, new ClassReader(data)) : data;
     }
 
