@@ -28,7 +28,7 @@ public abstract class AbstractRecord<R> implements Record<R> {
 
     @Override
     public RecordType<R> type() {
-        return type();
+        return type;
     }
     
     @Override
