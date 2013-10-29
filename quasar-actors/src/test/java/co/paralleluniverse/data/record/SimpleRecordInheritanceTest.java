@@ -73,4 +73,15 @@ public class SimpleRecordInheritanceTest {
         assertThat(b.get(B.$d1), equalTo(42));
         assertThat(b.get(B.$str1), equalTo("bye"));
     }
+    
+    @Test
+    public void testIsInstance() {
+        Record<B> b = B.rt.newInstance();
+        Record<A> a = A.rt.newInstance();
+        
+        assertThat(B.rt.isInstance(b), is(true));
+        assertThat(A.rt.isInstance(b), is(true));
+        assertThat(B.rt.isInstance(a), is(false));
+        assertThat(A.rt.isInstance(a), is(true));
+    }
 }
