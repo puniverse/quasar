@@ -97,7 +97,7 @@ public class RecordType<R> {
             @Override
             protected ClassInfo computeValue(Class<?> type) {
                 seal();
-                return new ClassInfo(currentMode.get(), type, fields);
+                return new ClassInfo(currentMode.get(), type, RecordType.this);
             }
         };
     }
@@ -134,10 +134,15 @@ public class RecordType<R> {
             return false;
         return true;
     }
-    
+
+    @Override
+    public String toString() {
+        return name;
+    }
+
     public boolean isInstance(Record<?> record) {
-        for(RecordType<?> t = record.type(); t != null; t = t.parent) {
-            if(this.equals(t))
+        for (RecordType<?> t = record.type(); t != null; t = t.parent) {
+            if (this.equals(t))
                 return true;
         }
         return false;
@@ -316,8 +321,9 @@ public class RecordType<R> {
         final Mode mode;
         final Set<Field<?, ?>> fieldSet;
 
-        private ClassInfo(Mode mode, Class<?> type, Collection<? extends Field<?, ?>> fields) {
+        private ClassInfo(Mode mode, Class<?> type, RecordType<?> recordType) {
             try {
+                final Collection<? extends Field<?, ?>> fields = recordType.fields();
                 if (mode == null) {
                     boolean unsafePossible = true;
                     boolean generationPossible = true;
@@ -326,6 +332,9 @@ public class RecordType<R> {
                         final Method getter = field instanceof Field.ArrayField ? getIndexedGetter(type, field) : getGetter(type, field);
                         final Method setter = field instanceof Field.ArrayField ? getIndexedSetter(type, field) : getSetter(type, field);
                         final java.lang.reflect.Field f = getter == null ? getField(type, field) : null;
+
+                        if (f == null && getter == null)
+                            throw new RuntimeException("Field " + field.name() + " defined in record type " + recordType + " is neither a field or a getter of class " + type.getName());
 
                         if (f == null && getter != null)
                             unsafePossible = false;
@@ -544,10 +553,5 @@ public class RecordType<R> {
     public RecordArray<R> newArray(int size) {
         seal();
         return new SimpleRecordArray<R>(this, size);
-    }
-
-    @Override
-    public String toString() {
-        return fields.toString();
     }
 }
