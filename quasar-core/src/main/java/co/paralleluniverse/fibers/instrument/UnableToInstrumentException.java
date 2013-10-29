@@ -45,7 +45,7 @@ public class UnableToInstrumentException extends RuntimeException {
     private final String methodDesc;
     
     public UnableToInstrumentException(String reason, String className, String methodName, String methodDesc) {
-        super(String.format("Unable to instrument class %s#%s%s because of %s", className, methodName, methodDesc, reason));
+        super(String.format("Unable to instrument %s#%s%s because of %s", className, methodName, methodDesc, reason));
         this.reason = reason;
         this.className = className;
         this.methodName = methodName;
