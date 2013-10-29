@@ -12,20 +12,17 @@
  */
 package co.paralleluniverse.data.record;
 
-import java.util.Set;
-
 /**
  *
  * @author pron
  */
 public abstract class DynamicRecord<R> extends AbstractRecord<R> {
     private final RecordType.Entry[] vtable;
-    private final Set<Field<? super R, ?>> fieldSet;
     final Object obj;
 
     DynamicRecord(RecordType<R> recordType, Object target) {
+        super(recordType);
         final RecordType.ClassInfo ci = recordType.getClassInfo(target.getClass());
-        this.fieldSet = (Set<Field<? super R, ?>>)(Object)ci.fieldSet;
         this.vtable = ci.table;
         this.obj = target;
     }
@@ -35,10 +32,6 @@ public abstract class DynamicRecord<R> extends AbstractRecord<R> {
 //        this.fieldSet = recordType.fieldSet();
 //        this.obj = this;
 //    }
-    @Override
-    public Set<Field<? super R, ?>> fields() {
-        return fieldSet;
-    }
 
     RecordType.Entry entry(Field<? super R, ?> field) {
         try {

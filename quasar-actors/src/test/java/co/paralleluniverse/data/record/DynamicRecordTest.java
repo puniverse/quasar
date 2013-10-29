@@ -251,7 +251,7 @@ public class DynamicRecordTest {
             stra[index] = str + "!";
         }
     }
-    private final RecordType<A> rt = new RecordType<>();
+    private final RecordType<A> rt = RecordType.newType(A.class);
     private final BooleanField<A> $a = rt.booleanField("a");
     private final ByteField<A> $b = rt.byteField("b");
     private final ShortField<A> $c = rt.shortField("c");

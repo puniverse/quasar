@@ -90,7 +90,7 @@ public class SimpleRecordTest {
                 ha[i] = (char) rand.nextInt();
         }
     }
-    private static final RecordType<A> rt = new RecordType<>();
+    private static final RecordType<A> rt = RecordType.newType(A.class);
     private static final BooleanField<A> $a = rt.booleanField("a");
     private static final ByteField<A> $b = rt.byteField("b");
     private static final ShortField<A> $c = rt.shortField("c");
@@ -148,7 +148,7 @@ public class SimpleRecordTest {
             r.set($ha, i, a.ha[i]);
         for (int i = 0; i < $stra.length; i++)
             r.set($stra, i, a.stra[i]);
-        
+
         assertThat(r.get($a), equalTo(a.a));
         assertThat(r.get($b), equalTo(a.b));
         assertThat(r.get($c), equalTo(a.c));

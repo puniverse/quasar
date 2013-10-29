@@ -54,7 +54,7 @@ public class RecordCaliperBenchmark extends Benchmark {
 
     public static class Foo4 extends Foo {
     }
-    static final RecordType<Foo> rt = new RecordType<>();
+    static final RecordType<Foo> rt = RecordType.newType(Foo.class);
     static final Field.IntField<Foo> $a = rt.intField("a");
     static final Field.DoubleField<Foo> $b = rt.doubleField("b");
     static final Field.LongField<Foo> $c = rt.longField("c");

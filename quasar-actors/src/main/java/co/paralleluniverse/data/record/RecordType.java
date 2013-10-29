@@ -20,6 +20,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -46,6 +47,7 @@ public class RecordType<R> {
          */
         GENERATION
     };
+    private final String name;
     private final RecordType<? super R> parent;
     private final List<Field<? super R, ?>> fields;
     private int fieldIndex;
@@ -59,7 +61,24 @@ public class RecordType<R> {
     private final ThreadLocal<Mode> currentMode = new ThreadLocal<Mode>();
     private final ClassValue<ClassInfo> vtables;
 
-    public RecordType(RecordType<? super R> parent) {
+    public static <R> RecordType<R> newType(Class<R> type, RecordType<? super R> parent) {
+        return new RecordType<R>(type, parent);
+    }
+
+    public static <R> RecordType<R> newType(String name, RecordType<? super R> parent) {
+        return new RecordType<R>(name, parent);
+    }
+
+    public static <R> RecordType<R> newType(Class<R> type) {
+        return newType(type, null);
+    }
+
+    public static <R> RecordType<R> newType(String name) {
+        return newType(name, null);
+    }
+
+    public RecordType(String name, RecordType<? super R> parent) {
+        this.name = name;
         this.parent = parent;
         if (parent != null) {
             parent.seal();
@@ -83,8 +102,45 @@ public class RecordType<R> {
         };
     }
 
-    public RecordType() {
-        this(null);
+    public RecordType(Class<R> type, RecordType<? super R> parent) {
+        this(type.getName(), parent);
+    }
+
+    public RecordType(String name) {
+        this(name, null);
+    }
+
+    public RecordType(Class<R> type) {
+        this(type, null);
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 53 * hash + Objects.hashCode(this.name);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this)
+            return true;
+        if (obj == null)
+            return false;
+        if (!(obj instanceof RecordType))
+            return false;
+        final RecordType<R> other = (RecordType<R>) obj;
+        if (!Objects.equals(this.name, other.name))
+            return false;
+        return true;
+    }
+    
+    public boolean isInstance(Record<?> record) {
+        for(RecordType<?> t = record.type(); t != null; t = t.parent) {
+            if(this.equals(t))
+                return true;
+        }
+        return false;
     }
 
     public Field.BooleanField<R> booleanField(String name) {

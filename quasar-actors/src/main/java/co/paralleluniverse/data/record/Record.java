@@ -19,6 +19,8 @@ import java.util.Set;
  * @author pron
  */
 public interface Record<R> {
+    RecordType<R> type();
+    
     Set<Field<? super R, ?>> fields();
 
     <V> V get(Field<? super R, V> field);

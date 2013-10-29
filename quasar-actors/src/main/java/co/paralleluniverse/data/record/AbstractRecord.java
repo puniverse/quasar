@@ -20,8 +20,21 @@ import java.util.Set;
  * @author pron
  */
 public abstract class AbstractRecord<R> implements Record<R> {
+    public final RecordType<R> type;
+
+    protected AbstractRecord(RecordType<R> type) {
+        this.type = type;
+    }
+
     @Override
-    public abstract Set<Field<? super R, ?>> fields();
+    public RecordType<R> type() {
+        return type();
+    }
+    
+    @Override
+    public final Set<Field<? super R, ?>> fields() {
+        return type.fields();
+    }
 
     @Override
     public boolean equals(Object obj) {

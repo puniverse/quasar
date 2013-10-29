@@ -22,13 +22,12 @@ import sun.misc.Unsafe;
  * @author pron
  */
 class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable {
-    private final Set<Field<? super R, ?>> fieldSet;
     final int[] offsets;
     private final Object[] oa;
     private final byte[] ba;
 
     public SimpleRecord(RecordType<R> recordType) {
-        this.fieldSet = recordType.fields();
+        super(recordType);
         this.offsets = recordType.getOffsets();
         this.oa = recordType.getObjectIndex() > 0 ? new Object[recordType.getObjectOffset()] : null;
         this.ba = recordType.getPrimitiveIndex() > 0 ? new byte[recordType.getPrimitiveOffset()] : null;
@@ -41,15 +40,15 @@ class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable 
      * @param oa
      * @param ba 
      */
-    SimpleRecord(Set<Field<? super R, ?>> fieldSet, int[] offsets, Object[] oa, byte[] ba) {
-        this.fieldSet = fieldSet;
+    SimpleRecord(RecordType<R> recordType, int[] offsets, Object[] oa, byte[] ba) {
+        super(recordType);
         this.offsets = offsets;
         this.oa = oa;
         this.ba = ba;
     }
 
     private SimpleRecord(SimpleRecord<R> other) {
-        this.fieldSet = other.fieldSet;
+        super(other.type);
         this.offsets = other.offsets;
         this.oa = other.oa != null ? Arrays.copyOf(other.oa, other.oa.length) : null;
         this.ba = other.ba != null ? Arrays.copyOf(other.ba, other.ba.length) : null;
@@ -58,11 +57,6 @@ class SimpleRecord<R> extends AbstractRecord<R> implements Record<R>, Cloneable 
     @Override
     protected SimpleRecord<R> clone() {
         return new SimpleRecord<R>(this);
-    }
-
-    @Override
-    public Set<Field<? super R, ?>> fields() {
-        return fieldSet;
     }
 
     int fieldOffset(Field<? super R, ?> field) {

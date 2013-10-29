@@ -60,6 +60,11 @@ final class RecordDelegate<R> implements Record<R>, DelegatingEquals {
     }
 
     @Override
+    public RecordType<R> type() {
+        return r.type();
+    }
+    
+    @Override
     public boolean equals(Object obj) {
         if (obj == null)
             return false;

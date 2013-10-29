@@ -20,6 +20,8 @@ public interface RecordArray<R> extends Iterable<Record<R>> {
     public interface Accessor {
     }
 
+    RecordType<R> type();
+    
     Accessor newAccessor();
 
     Accessor reset(Accessor accessor);

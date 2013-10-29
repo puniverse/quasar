@@ -21,8 +21,8 @@ import java.util.Set;
  * @author pron
  */
 public class SimpleRecordArray<R> implements RecordArray<R>, Iterable<Record<R>>, Cloneable {
+    public final RecordType<R> type;
     public final int length;
-    private final Set<Field<? super R, ?>> fieldSet;
     private final int osize;
     private final int bsize;
     private final int[] offsets;
@@ -31,8 +31,8 @@ public class SimpleRecordArray<R> implements RecordArray<R>, Iterable<Record<R>>
     private final int offset;
 
     public SimpleRecordArray(RecordType<R> recordType, int length) {
+        this.type = recordType;
         this.length = length;
-        this.fieldSet = recordType.fields();
         this.offsets = recordType.getOffsets();
         this.osize = recordType.getObjectIndex() > 0 ? recordType.getObjectOffset() : 0;
         this.bsize = recordType.getPrimitiveIndex() > 0 ? recordType.getPrimitiveOffset() : 0;
@@ -42,8 +42,8 @@ public class SimpleRecordArray<R> implements RecordArray<R>, Iterable<Record<R>>
     }
 
     private SimpleRecordArray(SimpleRecordArray<R> other, int offset, int length, boolean copy) {
+        this.type = other.type;
         this.length = length;
-        this.fieldSet = other.fieldSet;
         this.offsets = other.offsets;
         this.osize = other.osize;
         this.bsize = other.bsize;
@@ -59,13 +59,18 @@ public class SimpleRecordArray<R> implements RecordArray<R>, Iterable<Record<R>>
     }
 
     @Override
+    public RecordType<R> type() {
+        return type;
+    }
+    
+    @Override
     protected SimpleRecordArray<R> clone() {
         return new SimpleRecordArray<R>(this, offset, length, true);
     }
 
     @Override
     public Accessor newAccessor() {
-        return new AccessorRecord(fieldSet, offsets, oa, ba, osize, bsize, offset);
+        return new AccessorRecord(type, offsets, oa, ba, osize, bsize, offset);
     }
 
     @Override
@@ -132,8 +137,8 @@ public class SimpleRecordArray<R> implements RecordArray<R>, Iterable<Record<R>>
         private final int offset;
         int index;
 
-        public AccessorRecord(Set<Field<? super R, ?>> fieldSet, int[] offsets, Object[] oa, byte[] ba, int osize, int bsize, int offset) {
-            super(fieldSet, offsets, oa, ba);
+        public AccessorRecord(RecordType<R> recordType, int[] offsets, Object[] oa, byte[] ba, int osize, int bsize, int offset) {
+            super(recordType, offsets, oa, ba);
             this.osize = osize;
             this.bsize = bsize;
             this.index = -1;

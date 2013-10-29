@@ -45,7 +45,7 @@ public class DynamicRecordInheritanceTest {
     }
 
     private static class AR {
-        static final RecordType<A> rt = new RecordType<>();
+        static final RecordType<A> rt = RecordType.newType(A.class);
         static final BooleanField<A> $a = rt.booleanField("a");
         static final IntField<A> $d = rt.intField("d");
         static final ObjectField<A, String> $str = rt.objectField("str", String.class);
@@ -54,7 +54,7 @@ public class DynamicRecordInheritanceTest {
     }
 
     private static class BR extends AR {
-        static final RecordType<B> rt = new RecordType<>(AR.rt);
+        static final RecordType<B> rt = RecordType.newType(B.class, AR.rt);
         static final IntField<B> $d1 = rt.intField("d1");
         static final ObjectField<B, String> $str1 = rt.objectField("str1", String.class);
     }

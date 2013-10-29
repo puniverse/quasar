@@ -32,7 +32,7 @@ public class SimpleRecordInheritanceTest {
     }
 
     private static class A {
-        static final RecordType<A> rt = new RecordType<>();
+        static final RecordType<A> rt = RecordType.newType(A.class);
         static final BooleanField<A> $a = rt.booleanField("a");
         static final IntField<A> $d = rt.intField("d");
         static final ObjectField<A, String> $str = rt.objectField("str", String.class);
@@ -41,7 +41,7 @@ public class SimpleRecordInheritanceTest {
     }
 
     private static class B extends A {
-        static final RecordType<B> rt = new RecordType<>(A.rt);
+        static final RecordType<B> rt = RecordType.newType(B.class, A.rt);
         static final IntField<B> $d1 = rt.intField("d1");
         static final ObjectField<B, String> $str1 = rt.objectField("str1", String.class);
     }
