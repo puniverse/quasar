@@ -74,7 +74,6 @@ public final class QuasarInstrumentor {
     }
 
     boolean shouldInstrument(String className) {
-        System.out.println("ZZZZZZZZZ: " + className);
         className = className.replace('.', '/');
         if (className.startsWith("org/objectweb/asm/"))
             return false;
@@ -84,7 +83,6 @@ public final class QuasarInstrumentor {
             return false;
         if (MethodDatabase.isJavaCore(className))
             return false;
-        System.out.println("VVVVVVVV");
         return true;
     }
 
