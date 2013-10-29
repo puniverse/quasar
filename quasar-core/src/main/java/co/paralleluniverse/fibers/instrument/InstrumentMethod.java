@@ -43,7 +43,6 @@ package co.paralleluniverse.fibers.instrument;
 
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.STACK_NAME;
-import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_CLASS;
 import static co.paralleluniverse.fibers.instrument.Classes.isAllowedToBlock;
 import static co.paralleluniverse.fibers.instrument.Classes.isBlockingCall;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
@@ -217,7 +216,7 @@ class InstrumentMethod {
         for (Object o : mn.tryCatchBlocks) {
             TryCatchBlockNode tcb = (TryCatchBlockNode) o;
             if (EXCEPTION_NAME.equals(tcb.type) && !hasAnnotation) // we allow catch of SuspendExecution in method annotated with @Suspendable.
-                throw new UnableToInstrumentException("catch for " + SUSPEND_EXECUTION_CLASS.getSimpleName(), className, mn.name, mn.desc);
+                throw new UnableToInstrumentException("catch for SuspendExecution", className, mn.name, mn.desc);
 //          if (INTERRUPTED_EXCEPTION_NAME.equals(tcb.type))
 //              throw new UnableToInstrumentException("catch for " + InterruptedException.class.getSimpleName(), className, mn.name, mn.desc);
 

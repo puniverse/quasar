@@ -81,6 +81,8 @@ public final class QuasarInstrumentor {
             return false;
         if (className.equals(Classes.COROUTINE_NAME) || className.startsWith(Classes.COROUTINE_NAME + '$'))
             return false;
+        if (className.equals(Classes.STACK_NAME))
+            return false;
         if (MethodDatabase.isJavaCore(className))
             return false;
         return true;
