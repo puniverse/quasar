@@ -36,7 +36,7 @@ import sun.misc.URLClassPath;
  *
  * @author pron
  */
-public class QuasarURLClassLoaderHelper {
+public final class QuasarURLClassLoaderHelper {
     private final URLClassLoader cl;
     private final QuasarInstrumentor instrumentor;
 
