@@ -110,10 +110,9 @@ public class QuasarURLClassLoader extends URLClassLoader {
                 return new ByteArrayInputStream(instrumented);
             } catch (final IOException e) {
                 return new InputStream() {
-
                     @Override
                     public int read() throws IOException {
-                        throw e;
+                        throw new IOException(e);
                     }
                 };
             }
