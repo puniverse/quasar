@@ -347,6 +347,9 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
     title = "Quasar ${project(':quasar-core').version}"
     destinationDir = file("docs/javadoc")
     source = project(':quasar-core').sourceSets.main.allJava + project(':quasar-actors').sourceSets.main.allJava
+    classpath = files(subprojects.collect { project ->
+            project.sourceSets.main.compileClasspath
+        })
     options {
         docletpath = project(':quasar-core').configurations.markdownDoclet.files.asType(List)
         doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
