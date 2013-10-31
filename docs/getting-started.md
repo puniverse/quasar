@@ -40,13 +40,7 @@ For clustering support, add:
 </dependency>
 ~~~
 
-Then, the following must be added to the project.clj file:
-
-~~~ clojure
-:java-agents [[co.paralleluniverse/quasar-core "0.2.0"]]
-~~~
-
-or, add the following to the java command line:
+Then, the following must be added to the java command line (or use your favorite build tool to add this as a JVM argument):
 
 ~~~ sh
 -javaagent:path-to-quasar-jar.jar
