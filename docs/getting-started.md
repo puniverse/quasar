@@ -8,7 +8,7 @@ weight: 1
 
 Java 7 and is required to run Quasar.
 
-## Using Leiningen {#lein}
+## Using Maven {#maven}
 
 Add the following dependency to Maven:
 
