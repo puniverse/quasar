@@ -234,11 +234,7 @@
 </span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.3.0<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
-<p>Then, the following must be added to the project.clj&nbsp;file:</p>
-
-<div class="highlight"><pre><code><span id="line-1"><span class="ss">:java-agents</span> <span class="p">[[</span><span class="nv">co.paralleluniverse/quasar-core</span> <span class="s">&quot;0.2.0&quot;</span><span class="p">]]</span>
-</span></code></pre></div>
-<p>or, add the following to the java command&nbsp;line:</p>
+<p>Then, the following must be added to the java command line (or use your favorite build tool to add this as a <span class="caps">JVM</span>&nbsp;argument):</p>
 
 <div class="highlight"><pre><code><span id="line-1">-javaagent:path-to-quasar-jar.jar
 </span></code></pre></div>
