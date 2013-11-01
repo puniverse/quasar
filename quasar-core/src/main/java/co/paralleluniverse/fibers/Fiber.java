@@ -63,6 +63,7 @@ import sun.misc.Unsafe;
  */
 public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.verifyInstrumentation", "false"));
+    private static final boolean traceInterrupt = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.traceInterrupt", "false"));
     public static final int DEFAULT_STACK_SIZE = 16;
 //    private static final boolean PREEMPTION = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.enablePreemption", "false"));
     private static final int PREEMPTION_CREDITS = 3000;
@@ -100,6 +101,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private final int initialStackSize;
     private final long fid;
     private volatile State state;
+    private InterruptedException interruptStack;
     private volatile boolean interrupted;
     private long run;
     private boolean noPreempt;
@@ -928,6 +930,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final void interrupt() {
+        if (traceInterrupt)
+            interruptStack = new InterruptedException();
         interrupted = true;
         unpark(ParkableForkJoinTask.EMERGENCY_UNBLOCKER);
     }
@@ -935,6 +939,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     @Override
     public final boolean isInterrupted() {
         return interrupted;
+    }
+
+    @Override
+    public final InterruptedException getInterruptStack() {
+        if(!traceInterrupt)
+            return null;
+        return interruptStack;
     }
 
     @Override

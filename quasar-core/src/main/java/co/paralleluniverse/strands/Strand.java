@@ -158,6 +158,15 @@ public abstract class Strand {
     public abstract boolean isInterrupted();
 
     /**
+     * Returns an {@link InterruptedException} that was created when the {@link #interrupt()} method was called, and can be used
+     * to retrieve the stack trace of the strand that interrupted this strand.
+     * This method is only intended to assist in debugging. 
+     * This method may return {@code null} if this information is not available. The current implementation always returns {@code null}
+     * if this strand is a thread.
+     */
+    public abstract InterruptedException getInterruptStack();
+    
+    /**
      * Makes available the permit for this strand, if it
      * was not already available. If this strand was blocked on
      * {@link #park} then it will unblock. Otherwise, its next call
@@ -811,6 +820,11 @@ public abstract class Strand {
         }
 
         @Override
+        public InterruptedException getInterruptStack() {
+            return null;
+        }
+        
+        @Override
         public void unpark() {
             LockSupport.unpark(thread);
         }
@@ -928,6 +942,11 @@ public abstract class Strand {
             return fiber.isInterrupted();
         }
 
+        @Override
+        public InterruptedException getInterruptStack() {
+            return fiber.getInterruptStack();
+        }
+        
         @Override
         public void unpark() {
             fiber.unpark();
