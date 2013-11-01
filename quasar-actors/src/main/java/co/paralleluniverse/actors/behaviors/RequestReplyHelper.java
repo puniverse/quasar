@@ -191,5 +191,23 @@ public class RequestReplyHelper {
             if (a != null)
                 a.sendSync(message);
         }
+
+        @Override
+        public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+            final ActorRef a = getActor();
+            if (a != null)
+                return a.send(message, timeout, unit);
+            return true;
+        }
+
+        @Override
+        public boolean trySend(Message message) {
+            final ActorRef a = getActor();
+            if (a != null)
+                return a.trySend(message);
+            return true;
+        }
+        
+        
     }
 }
