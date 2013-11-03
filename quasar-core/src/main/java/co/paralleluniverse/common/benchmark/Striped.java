@@ -21,10 +21,10 @@ import jsr166e.ConcurrentHashMapV8;
  *
  * @author pron
  */
-public abstract class StripedResource<T> implements Iterable<T> {
+public abstract class Striped<T> implements Iterable<T> {
     private final ConcurrentMap<Thread, T> rs;
 
-    public StripedResource() {
+    public Striped() {
         this.rs = new ConcurrentHashMapV8<>();
     }
 

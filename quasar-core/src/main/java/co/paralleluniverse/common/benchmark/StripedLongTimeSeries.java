@@ -29,13 +29,13 @@ public class StripedLongTimeSeries {
             this.value = value;
         }
     }
-    private final StripedResource<ThreadRecorder> rs;
+    private final Striped<ThreadRecorder> rs;
     private final boolean autoTimestamp;
     private final long startWallTime;
     private final long startTimestamp;
 
     public StripedLongTimeSeries(final int size, boolean autoTimestamp) {
-        this.rs = new StripedResource<ThreadRecorder>() {
+        this.rs = new Striped<ThreadRecorder>() {
             @Override
             protected ThreadRecorder newResource() {
                 return new ThreadRecorder(size);

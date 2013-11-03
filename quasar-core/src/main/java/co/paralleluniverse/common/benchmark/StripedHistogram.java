@@ -22,7 +22,7 @@ import org.HdrHistogram.HistogramData;
  */
 public class StripedHistogram {
     private final AbstractHistogram mainHistogram;
-    private final StripedResource<AbstractHistogram> hs;
+    private final Striped<AbstractHistogram> hs;
     private final long highestTrackableValue;
     private final int numberOfSignificantValueDigits;
 
@@ -39,7 +39,7 @@ public class StripedHistogram {
         this.highestTrackableValue = highestTrackableValue;
         this.numberOfSignificantValueDigits = numberOfSignificantValueDigits;
         this.mainHistogram = new Histogram(highestTrackableValue, numberOfSignificantValueDigits);
-        this.hs = new StripedResource<AbstractHistogram>() {
+        this.hs = new Striped<AbstractHistogram>() {
             @Override
             protected AbstractHistogram newResource() {
                 return new Histogram(StripedHistogram.this.highestTrackableValue, StripedHistogram.this.numberOfSignificantValueDigits);
