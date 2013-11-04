@@ -58,19 +58,19 @@
           
           
           
-            <li>
-              <a  href="/quasar/getting-started.html">
-                Getting Started
-              </a>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a  href="/quasar/getting-started.html">
+                Getting Started
+              </a>
+              
+            </li>
           
         
           
@@ -117,19 +117,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/manual/core.html">
                 Quasar Core
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
           
@@ -241,6 +241,8 @@
 
 <p>The <code>spawn</code> method returns an instance of <a href="/quasar/javadoc/co/paralleluniverse/actors/ActorRef.html"><code>ActorRef</code></a>. All (almost) interactions with an actor take place through its <code>ActorRef</code>, which can also be obtained by calling <code>ref()</code> on the actor. The <code>ActorRef</code> is used as a level of indirection that provides additional isolation for the actor (and actors are all about isolation). It enables things like hot code swapping and&nbsp;more.</p>
 
+<p><a href="/quasar/javadoc/co/paralleluniverse/actors/ActorRef.html#self()"><code>ActorRef.self()</code></a> is a static function that returns the currently executing actor’s ref, and <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#self()"><code>Actor.self()</code></a> is a protected member function that returns an actor’s ref. Use them to obtain and share an actor’s ref with other&nbsp;actors.</p>
+
 <p class="alert alert-warn"><strong>Note</strong>: An actor must <em>never</em> pass a direct reference to itself to other actors or to be used on other strands. However, it may share its <code>ActorRef</code>&nbsp;freely.</p>
 
 <p>The <code>ActorRef</code> allows sending messages to the actor’s mailbox. In fact, <code>ActorRef</code> implements <code>SendPort</code> so it can be used just like a&nbsp;channel.</p>
@@ -260,6 +262,10 @@
 </span><span id="line-9">    <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
 </span><span id="line-10"><span class="o">}</span>
 </span></code></pre></div>
+<h3 id="selective-receive">Selective&nbsp;Receive</h3>
+
+<p>If your actor extends <a href="/quasar/javadoc/co/paralleluniverse/actors/BasicActor.html"><code>BasicActor</code></a>, there’s another form of the <code>receive</code>&nbsp;method</p>
+
 </div>
 
       <hr>
