@@ -19,7 +19,7 @@ All actors extends the [`Actor`]({{javadoc}}/actors/Actor.html) class. The const
 
 `MailboxConfig` defines the mailbox size (the number of messages that can wait in the mailbox channel), with `-1` specifying an unbounded mailbox, and an *overflow policy*. The overflow policy works the same as for plain channels, except that the `THROW` policy doesn't cause an exception to be thrown in the sender if the mailbox capacity is exceeded, but rather throws an exception into the receiving actor (the exception will be thrown when the actor next blocks on a `recieve`).
 
-An actor is required to implement the `doRun` method. This method is the actor body, and is run when the actor is spawned.
+An actor is required to implement the [`doRun`]({{javadoc}}/actors/Actor.html#doRun()) method. This method is the actor body, and is run when the actor is spawned.
 
 It is prefereable to subclass [`BasicActor`]({{javadoc}}/actors/BasicActor.html) rather than `Actor`; `BasicActor` provides the ability to perform selective receives (more on that later).
 
@@ -53,6 +53,24 @@ The `spawn` method returns an instance of [`ActorRef`]({{javadoc}}/actors/ActorR
 
 The `ActorRef` allows sending messages to the actor's mailbox. In fact, `ActorRef` implements `SendPort` so it can be used just like a channel.
 
+An actor receives a message by calling the [`recieve`]({{javadoc}}/actors//Actor.html#receive()) method. The method blocks until a message is available in the mailbox, and then returns it. [Another version]({{javadoc}}/actors//Actor.html#receive(long, java.util.concurrent.TimeUnit)) of `receive` blocks up to a given duration, and returns `null` if no message is received by that time.
+
+Normally, an actor is implements a loop similar to this one:
+
+~~~ java
+@Override
+protected Void doRun() {
+    for(;;) {
+        Object msg = receive();
+        // process message
+        if (thatsIt())
+            break;
+    }
+    return null;
+}
+~~~
+
+{% comment %}
 An actor's mailbox is a channel, that can be obtained with the `mailbox-of` function. You can therefore send a message to an actor like so:
 
 ~~~ clojure
@@ -751,5 +769,5 @@ A supervised actor may be removed from the supervisor by calling
 
 with `id` being the one given to the actor in the child spec or the arguments to `add-child`.
 
-
+{% endcomment %}
 

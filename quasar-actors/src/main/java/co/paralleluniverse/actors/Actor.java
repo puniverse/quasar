@@ -246,12 +246,22 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return (Actor<M, V>) target;
     }
 
+    /**
+     * Returns the ActorRef to this actor, if it has been started.
+     *
+     * @return the ActorRef of this actor if it has been started, or {@code null} otherwise.
+     */
     public ActorRef<Message> ref() {
         if (!isStarted())
             throw new IllegalStateException("Actor has not been started");
         return wrapperRef;
     }
 
+    /**
+     * Returns the ActorRef to this actor, if it has been started.
+     *
+     * @return the ActorRef of this actor if it has been started, or {@code null} otherwise.
+     */
     protected ActorRef<Message> self() {
         return ref();
     }
@@ -275,10 +285,16 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
+    /**
+     * Returns the number of messages currently waiting in the mailbox.
+     */
     public final int getQueueLength() {
         return mailbox().getQueueLength();
     }
 
+    /**
+     * Returns this actor's mailbox channel.
+     */
     protected final Mailbox<Object> mailbox() {
         return (Mailbox<Object>) ((ActorRefImpl) ref).mailbox();
     }
@@ -508,6 +524,13 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         }
     }
 
+    /**
+     * An actor must implement this method, which contains the actor's logic. This method begins executing on the actor's
+     * strand.
+     * @return The actor's return value, which can be obtained with {@link #get() }.
+     * @throws InterruptedException
+     * @throws SuspendExecution 
+     */
     protected abstract V doRun() throws InterruptedException, SuspendExecution;
 
     protected void handleLifecycleMessage(LifecycleMessage m) {
