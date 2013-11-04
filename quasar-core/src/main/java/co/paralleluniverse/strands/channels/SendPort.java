@@ -43,7 +43,7 @@ public interface SendPort<Message> extends Port<Message>, AutoCloseable {
      * @param message
      * @param timeout the maximum duration this method is allowed to wait.
      * @param unit the timeout's time unit
-     * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has elapsed.
+     * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has expired.
      * @throws SuspendExecution
      */
     boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;

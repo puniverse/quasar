@@ -48,6 +48,8 @@ An actor can be `join`ed, just like a fiber. Calling `get` on an actor will join
 
 The `spawn` method returns an instance of [`ActorRef`]({{javadoc}}/actors/ActorRef.html). All (almost) interactions with an actor take place through its `ActorRef`, which can also be obtained by calling `ref()` on the actor. The `ActorRef` is used as a level of indirection that provides additional isolation for the actor (and actors are all about isolation). It enables things like hot code swapping and more.
 
+[`ActorRef.self()`]({{javadoc}}/actors/ActorRef.html#self()) is a static function that returns the currently executing actor's ref, and [`Actor.self()`]({{javadoc}}/actors/Actor.html#self()) is a protected member function that returns an actor's ref. Use them to obtain and share an actor's ref with other actors.
+
 {:.alert .alert-warn}
 **Note**: An actor must *never* pass a direct reference to itself to other actors or to be used on other strands. However, it may share its `ActorRef` freely.
 
@@ -70,64 +72,11 @@ protected Void doRun() {
 }
 ~~~
 
+### Selective Receive
+
+If your actor extends [`BasicActor`]({{javadoc}}/actors/BasicActor.html), there's another form of the `receive` method
+
 {% comment %}
-An actor's mailbox is a channel, that can be obtained with the `mailbox-of` function. You can therefore send a message to an actor like so:
-
-~~~ clojure
-(snd (mailbox-of actor) msg)
-~~~
-
-But there's an easier way. Actors implement the `SendPort` interface, and so, are treated like a channel by the `snd` function. So we can simple call:
-
-~~~ clojure
-(snd actor msg)
-~~~
-
-While the above is a perfectly valid way of sending a message to an actor, this is not how it's normally done. Instead of `snd` we normally use the `!` (bang) function to send a message to an actor, like so:
-
-~~~ clojure
-(! actor msg)
-~~~
-
-The bang operator has a slightly different semantic than `snd`. While `snd` will always place the message in the mailbox, `!` will only do it if the actor is alive. It will not place a message in the mailbox if there is no one to receive it on the other end (and never will be, as mailboxes, like all channels, cannot change ownership).
-
-In many circumstances, an actor sends a message to another actor, and expects a reply. In those circumstances, using `!!` instead of `!` might offer reduced latency (but with the same semantics; both `!` and `!!` always return `nil`)
-
-The value `@self`, when evaluated in an actor, returns the actor. So, as you may guess, an actor can receive messages with:
-
-~~~ clojure
-(rcv (mailbox-of @self))
-~~~
-
-`@mailbox` returns the actor's own mailbox channel, so the above may be written as:
-
-~~~ clojure
-(rcv @mailbox)
-~~~
-
-... and because actors also implement the `ReceivePort` interface required by `rcv`, the following will also work:
-
-~~~ clojure
-(rcv @self)
-~~~
-
-But, again, while an actor can be treated as a fiber with a channel, it has some extra features that give it a super-extra punch. Actors normally receive messages with the `receive` function, like so:
-
-~~~ clojure
-(receive)
-~~~
-
-`receive` has some features that make it very suitable for handling messages in actors. Its most visible feature is pattern matching. When an actor receives a message, it usually takes different action based on the type and content of the message. Making the decision with pattern matching is easy and elegant:
-
-~~~ clojure
-(let [actor (spawn
-               #(receive
-                   :abc "yes!"
-                   [:why? answer] answer
-                   :else "oy"))]
-     (! actor [:why? "because!"])
-     (join actor)) ; => "because!"
-~~~
 
 As we can see in the example, `receive` not only picks the action based on the message, but also destructures the message and binds free variable, in our example – the `answer` variable. `receive` uses the [core.match](https://github.com/clojure/core.match) library for pattern matching, and you can consult [its documentation](https://github.com/clojure/core.match/wiki/Overview) to learn exactly how matching works.
 

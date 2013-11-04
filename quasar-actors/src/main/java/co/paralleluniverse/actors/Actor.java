@@ -333,6 +333,13 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return true;
     }
 
+    /**
+     * Returns the next message from the mailbox. If no message is currently available, this method blocks until a message arrives.
+     *
+     * @return a message sent to this actor.
+     * @throws SuspendExecution
+     * @throws InterruptedException
+     */
     @Override
     public final Message receive() throws SuspendExecution, InterruptedException {
         try {
@@ -527,9 +534,10 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     /**
      * An actor must implement this method, which contains the actor's logic. This method begins executing on the actor's
      * strand.
+     *
      * @return The actor's return value, which can be obtained with {@link #get() }.
      * @throws InterruptedException
-     * @throws SuspendExecution 
+     * @throws SuspendExecution
      */
     protected abstract V doRun() throws InterruptedException, SuspendExecution;
 
