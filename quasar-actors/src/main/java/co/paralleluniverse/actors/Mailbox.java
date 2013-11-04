@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * A channel that is used as an actor's mailbox.
  * This class should only be used by actors
  *
  * @author pron

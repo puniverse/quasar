@@ -37,7 +37,11 @@ import java.util.concurrent.TimeoutException;
 import jsr166e.ConcurrentHashMapV8;
 
 /**
+ * An actor is a self-contained execution unit – an object running in its own strand and communicating with other actors via messages.
+ * An actor has a channel used as a mailbox, and can be monitored for errors.
  *
+ * @param <Message> The message type the actor can receive. It is often {@link Object}.
+ * @param <V> The actor's return value type. Use {@link Void} if the actor does not return a result.
  * @author pron
  */
 public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joinable<V>, Stranded, ReceivePort<Message> {
@@ -57,6 +61,11 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private Object aux;
     protected transient final FlightRecorder flightRecorder;
 
+    /**
+     * Creates a new actor.
+     * @param name The actor's name (may be {@code null}).
+     * @param mailboxConfig Actor's mailbox settings.
+     */
     @SuppressWarnings({"OverridableMethodCallInConstructor", "LeakingThisInConstructor"})
     public Actor(String name, MailboxConfig mailboxConfig) {
         this.ref = new LocalActorRef<Message, V>(this, name, new Mailbox(mailboxConfig));
@@ -69,7 +78,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return ref;
     }
 
-    public Actor(Strand strand, String name, MailboxConfig mailboxConfig) {
+    protected Actor(Strand strand, String name, MailboxConfig mailboxConfig) {
         this(name, mailboxConfig);
         if (strand != null)
             setStrand(strand);
@@ -92,6 +101,10 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return ref();
     }
 
+    /**
+     * Sets the fiber's name to be this actor's name.
+     * @return 
+     */
     public ActorRef<Message> spawn() {
         new Fiber(getName(), this).start();
         return ref();

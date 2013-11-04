@@ -14,6 +14,7 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
+
 /**
  *
  * @author pron
@@ -22,11 +23,19 @@ public class MailboxConfig {
     private final int mailboxSize;
     private final OverflowPolicy policy;
 
+    /**
+     * Specifies a mailbox configuration with a given size and overflow policy.
+     * @param mailboxSize The number of messages that can wait in the mailbox channel, with {@code -1} specifying an unbounded mailbox.
+     * @param policy Specifies what to do when the mailbox is full and a new message is added.
+     */
     public MailboxConfig(int mailboxSize, OverflowPolicy policy) {
         this.mailboxSize = mailboxSize;
         this.policy = policy;
     }
 
+    /**
+     * Specifies a default mailbox configuration - an unbounded mailbox.
+     */
     public MailboxConfig() {
         this(-1, null);
     }

@@ -42,7 +42,26 @@ import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayObjectQueue;
  */
 public final class Channels {
     public enum OverflowPolicy {
-        THROW, DROP, BLOCK, BACKOFF, DISPLACE
+        /**
+         * The sender will get an exception (except if the channel is an actor's mailbox)
+         */
+        THROW, 
+        /**
+         * The message will be silently dropped.
+         */
+        DROP, 
+        /**
+         * The sender will block until there's a vacancy in the channel.
+         */
+        BLOCK, 
+        /**
+         * The sender will block for some time, and retry.
+         */
+        BACKOFF, 
+        /**
+         * The oldest message in the queue will be removed to make room for the new message.
+         */
+        DISPLACE
     }
     private static final OverflowPolicy defaultPolicy = OverflowPolicy.BLOCK;
     private static final boolean defaultSingleProducer = false;

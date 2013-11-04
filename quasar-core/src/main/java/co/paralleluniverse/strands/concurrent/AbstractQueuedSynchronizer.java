@@ -37,10 +37,10 @@ import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
-import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import sun.misc.Unsafe;
 
@@ -834,7 +834,7 @@ public abstract class AbstractQueuedSynchronizer
      *
      * @return {@code true} if interrupted
      */
-    private final boolean parkAndCheckInterrupt() throws SuspendExecution {
+    private boolean parkAndCheckInterrupt() throws SuspendExecution {
         Strand.park(this);
         return Strand.interrupted();
     }
@@ -1643,6 +1643,7 @@ public abstract class AbstractQueuedSynchronizer
      *
      * @return a string identifying this synchronizer, as well as its state
      */
+    @Override
     public String toString() {
         int s = getState();
         String q  = hasQueuedStrands() ? "non" : "";
@@ -1965,6 +1966,7 @@ public abstract class AbstractQueuedSynchronizer
          * @throws IllegalMonitorStateException if {@link #isHeldExclusively}
          *         returns {@code false}
          */
+        @Override
         public final void signal() {
             if (!isHeldExclusively())
                 throw new IllegalMonitorStateException();
@@ -1980,6 +1982,7 @@ public abstract class AbstractQueuedSynchronizer
          * @throws IllegalMonitorStateException if {@link #isHeldExclusively}
          *         returns {@code false}
          */
+        @Override
         public final void signalAll() {
             if (!isHeldExclusively())
                 throw new IllegalMonitorStateException();

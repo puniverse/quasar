@@ -32,7 +32,7 @@ public abstract class GenBehaviorActor extends Actor<Object, Void> implements ja
     private final Initializer initializer;
     private boolean run;
 
-    public GenBehaviorActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
+    protected GenBehaviorActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
         super(strand, name, mailboxConfig);
         this.initializer = initializer;
         this.run = true;
