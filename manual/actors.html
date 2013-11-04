@@ -239,6 +239,12 @@
 
 <h2 id="sending-and-receiving-messages-actorref">Sending and Receiving Messages,&nbsp;<code>ActorRef</code></h2>
 
+<p>The <code>spawn</code> method returns an instance of <a href="/quasar/javadoc/co/paralleluniverse/actors/ActorRef.html"><code>ActorRef</code></a>. All (almost) interactions with an actor take place through its <code>ActorRef</code>, which can also be obtained by calling <code>ref()</code> on the actor. The <code>ActorRef</code> is used as a level of indirection that provides additional isolation for the actor (and actors are all about isolation). It enables things like hot code swapping and&nbsp;more.</p>
+
+<p class="alert alert-warn"><strong>Note</strong>: An actor must <em>never</em> pass a direct reference to itself to other actors or to be used on other strands. However, it may share its <code>ActorRef</code>&nbsp;freely.</p>
+
+<p>The <code>ActorRef</code> allows sending messages to the actor’s mailbox. In fact, <code>ActorRef</code> implements <code>SendPort</code> so it can be used just like a&nbsp;channel.</p>
+
 <p>An actor’s mailbox is a channel, that can be obtained with the <code>mailbox-of</code> function. You can therefore send a message to an actor like&nbsp;so:</p>
 
 <div class="highlight"><pre><code><span id="line-1"><span class="p">(</span><span class="nf">snd</span> <span class="p">(</span><span class="nf">mailbox-of</span> <span class="nv">actor</span><span class="p">)</span> <span class="nv">msg</span><span class="p">)</span>
