@@ -45,6 +45,33 @@ import jsr166e.ConcurrentHashMapV8;
  * @author pron
  */
 public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joinable<V>, Stranded, ReceivePort<Message> {
+    /**
+     * Creates a new actor.
+     * The actor must have a public constructor that can take the given parameters.
+     *
+     * @param <T> The actor's type
+     * @param <Message> The actor's message type.
+     * @param <V> The actor's return value type.
+     * @param clazz The actor's class
+     * @param params Parameters that will be passed to the actor class's constructor in order to construct a new instance.
+     * @return A new actor of type T.
+     */
+    public static <T extends Actor<Message, V>, Message, V> T newActor(Class<T> clazz, Object... params) {
+        return newActor(ActorSpec.of(clazz, params));
+    }
+
+    /**
+     * Creates a new actor from an {@link ActorSpec}.
+     *
+     * @param <T> The actor's type
+     * @param <Message> The actor's message type.
+     * @param <V> The actor's return value type.
+     * @param spec The ActorSpec that defines how to build the actor.
+     * @return A new actor of type T.
+     */
+    public static <T extends Actor<Message, V>, Message, V> T newActor(ActorSpec<T, Message, V> spec) {
+        return spec.build();
+    }
     private static final Throwable NATURAL = new Throwable();
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
     private Strand strand;
@@ -63,6 +90,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     /**
      * Creates a new actor.
+     *
      * @param name The actor's name (may be {@code null}).
      * @param mailboxConfig Actor's mailbox settings.
      */
@@ -84,10 +112,18 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             setStrand(strand);
     }
 
+    /**
+     * Returns this actor's name.
+     */
     public String getName() {
         return ref.getName();
     }
 
+    /**
+     * Sets this actor's name. The name does not have to be unique, and may be {@code null}
+     *
+     * @param name
+     */
     public void setName(String name) {
         myRef().setName(name);
     }
@@ -96,35 +132,41 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return ((ActorRefImpl) ref);
     }
 
+    /**
+     * Starts a new fiber using the given scheduler and runs the actor in it.
+     * The fiber's name will be set to this actor's name.
+     *
+     * @param scheduler The new fiber's scheduler.
+     * @return This actors' ActorRef
+     */
     public ActorRef<Message> spawn(FiberScheduler scheduler) {
         new Fiber(getName(), scheduler, this).start();
         return ref();
     }
 
     /**
-     * Sets the fiber's name to be this actor's name.
-     * @return 
+     * Starts a new fiber and runs the actor in it.
+     * The fiber's name will be set to this actor's name.
+     *
+     * @return This actors' ActorRef
      */
     public ActorRef<Message> spawn() {
         new Fiber(getName(), this).start();
         return ref();
     }
 
+    /**
+     * Starts a new thread and runs the actor in it.
+     * The fiber's name will be set to this actor's name.
+     *
+     * @return This actors' ActorRef
+     */
     public ActorRef<Message> spawnThread() {
         new Thread(Strand.toRunnable(this), getName()).start();
         return ref();
     }
 
-    public static <T extends Actor<Message, V>, Message, V> T newActor(Class<T> clazz, Object... params) {
-        return newActor(ActorSpec.of(clazz, params));
-    }
-
-    public static <T extends Actor<Message, V>, Message, V> T newActor(ActorSpec<T, Message, V> spec) {
-        return spec.build();
-    }
-
     /**
-     * '
      * Returns a "clone" of this actor, used by a {@link co.paralleluniverse.actors.behaviors.Supervisor supervisor} to restart this actor if it dies.
      * <p/>
      * If this actor is supervised by a {@link co.paralleluniverse.actors.behaviors.Supervisor supervisor} and was not created with the
@@ -184,10 +226,16 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return (obj == null ? "null" : obj.getClass().getSimpleName() + "@" + Objects.systemObjectId(obj));
     }
 
+    /**
+     * Interrupts the actor's strand.
+     */
     final void interrupt() {
         getStrand().interrupt();
     }
 
+    /**
+     * Returns the actor currently running in the current strand.
+     */
     public static <M, V> Actor<M, V> currentActor() {
         final Fiber currentFiber = Fiber.currentFiber();
         if (currentFiber == null)

@@ -25,23 +25,42 @@ public abstract class ActorRef<Message> implements SendPort<Message> {
     public abstract String getName();
 
     @Override
+    public String toString() {
+        return "ActorRef{" + '}';
+    }
+
+    @Override
     public abstract void send(Message message) throws SuspendExecution;
 
     public abstract void sendSync(Message message) throws SuspendExecution;
 
     @Override
-    public abstract boolean send(Message msg, long l, TimeUnit tu) throws SuspendExecution, InterruptedException;
+    public abstract boolean send(Message msg, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
 
     @Override
     public abstract boolean trySend(Message msg);
 
+    /**
+     * {@inheritDoc}
+     * 
+     * This implementation just throws {@code UnsupportedOperationException}.
+     */
     @Override
     public void close() {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * Interrupts the actor's strand
+     */
     public abstract void interrupt();
 
+    /**
+     * Returns the {@code ActorRef} of the actor currently running in the current strand.
+     * @param <T>
+     * @param <M>
+     * @return 
+     */
     public static <T extends ActorRef<M>, M> T self() {
         final Actor a = Actor.currentActor();
         if (a == null)
