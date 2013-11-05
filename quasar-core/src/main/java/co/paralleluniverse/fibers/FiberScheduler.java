@@ -107,7 +107,7 @@ public class FiberScheduler {
     private static FiberTimedScheduler createTimer(ForkJoinPool fjPool, FibersMonitor monitor) {
         if (fjPool instanceof MonitoredForkJoinPool)
             return new FiberTimedScheduler(fjPool,
-                    new ThreadFactoryBuilder().setDaemon(true).setNameFormat(((MonitoredForkJoinPool) fjPool).getName()).build(),
+                    new ThreadFactoryBuilder().setDaemon(true).setNameFormat("FiberTimedScheduler-" + ((MonitoredForkJoinPool) fjPool).getName()).build(),
                     monitor);
         else
             return new FiberTimedScheduler(fjPool);
