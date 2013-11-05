@@ -82,79 +82,85 @@ Actors are a different abstraction. They are more like objects in object-oriente
 
 An actor is a state machine. It usually encompasses some *state* and the messages it receives trigger *state transitions*. But because the actor has no control over which messages it receives and when (which can be a result of either other actors' behavior, or even the way the OS schedules threads), an actor would be required to process any message and any state, and build a full *state transition matrix*, namely how to transition whenever *any* messages is received at *any* state.
 
-This can not only lead to code explosion; it can lead to bugs. The key to managing a complex state machine is by not handling messages in the order they arrive, but in the order we wish to process them. If a message does not match any of the clauses in `receive`, it will remain in the mailbox. `receive` will return only when it finds a message that does. When another `receive` statement is called, it will again search the messages that are in the mailbox, and may match a message that has been skipped by a previous `receive`. 
+This can not only lead to code explosion; it can lead to bugs. The key to managing a complex state machine is by not handling messages in the order they arrive, but in the order we wish to process them. If your actor extends [`BasicActor`]({{javadoc}}/actors/BasicActor.html), there's [another form]({{javadoc}}/actors//BasicActor.html#receive(co.paralleluniverse.actors.MessageProcessor)) of the `receive` method that allows for *selective receive*. This method takes an instance of [`MessageProcessor`]({{javadoc}}/actors/MessageProcessor.html), which *selects* messages out of the mailbox (a message is selected iff `MessageProcessor.process` returns a non-null value when it is passed the message). 
 
-If your actor extends [`BasicActor`]({{javadoc}}/actors/BasicActor.html), there's another form of the `receive` method that allows for *selective receive*. 
+Let's look at an example. Suppose we have this message class:
 
-{% comment %}
-
-## Selective Receive
-
-~~~ clojure
-(let [res (atom [])
-      actor (spawn
-              #(dotimes [i 2]
-                 (receive
-                   [:foo x] (do
-                              (swap! res conj x)
-                              (receive
-                                [:baz z] (swap! res conj z)))
-                   [:bar y] (swap! res conj y)
-                   [:baz z] (swap! res conj z))))]
-  (! actor [:foo 1])
-  (! actor [:bar 2])
-  (! actor [:baz 3])
-  (join actor)
-  @res) ; => [1 3 2]
+~~~ java
+class ComplexMessage {
+    enum Type { FOO, BAR, BAZ, WAT }
+    final Type type;
+    final int num;
+    public ComplexMessage(Type type, int num) {
+        this.type = type;
+        this.num = num;
+    }
+}
 ~~~
 
-[Another example]({{examples}}/priority.clj) demonstrates receiving messages in order of priority.
+Then, this call:
 
-Selective receive is also very useful when communicating with other actors. Here's an excerpt from [this example]({{examples}}/selective.clj):
-
-~~~ clojure
-(defsfn adder []
-  (loop []
-    (receive
-      [from tag [:add a b]] (! from tag [:sum (+ a b)]))
-    (recur)))
-
-(defsfn computer [adder]
-  (loop []
-    (receive [m]
-             [from tag [:compute a b c d]] (let [tag1 (maketag)]
-                                             (! adder [@self tag1 [:add (* a b) (* c d)]])
-                                             (receive
-                                               [tag1 [:sum sum]]  (! from tag [:result sum])
-                                               :after 10          (! from tag [:error "timeout!"])))
-             :else (println "Unknown message: " m))
-    (recur)))
-
-(defsfn curious [nums computer]
-  (when (seq nums)
-    (let [[a b c d] (take 4 nums)
-          tag       (maketag)]
-      (! computer @self tag [:compute a b c d])
-      (receive [m]
-               [tag [:result res]]  (println a b c d "->" res)
-               [tag [:error error]] (println "ERROR: " a b c d "->" error)
-               :else (println "Unexpected message" m))
-      (recur (drop 4 nums) computer))))
-
-(defn -main []
-  (let [ad (spawn adder)
-        cp (spawn computer ad)
-        cr (spawn curious (take 20 (repeatedly #(rand-int 10))) cp)]
-    (join cr)
-    :ok))
+~~~ java
+ComplexMessage m = receive(new MessageProcessor<ComplexMessage, ComplexMessage>() {
+        public ComplexMessage process(ComplexMessage m) throws SuspendExecution, InterruptedException {
+            switch (m.type) {
+            case FOO:
+            case BAR:
+                return m;
+            default:
+                return null;
+            }
+        }
+    });
 ~~~
 
-In the example, we have three actors: `curious`, `computer` and `adder`. `curious` asks `computer` to perform a computation, and `computer` relies on `adder` to perform addition. Note the nested `receive` in `computer`: the actor waits for a reply from `adder` before accepting other requests (from `curious`) in the outer receive (actually, because this pattern of sending a message to an actor and waiting for a reply is so common, it's encapsulated by a construct call `gen-server` - yet another blatant theft from Erlang - which we'll introduce later; if you want to see how this example looks using `gen-server`, take a look [here]({{examples}}/selective_gen_server.clj). 
+will only return a message whose `type` value is `FOO` or `BAR`, but not `BAZ`. If a message of type `BAZ` is found in the mailbox, it
+will remain there and be skipped, until it is selcted by a subsequent call to `receive` (selective or plain).
 
-There are several actor systems that do not support selective receive, but Erlang does, and so does Pulsar. [The talk *Death by Accidental Complexity*](http://www.infoq.com/presentations/Death-by-Accidental-Complexity), by Ulf Wiger, shows how using selective receive avoids implementing a full, complicated and error-prone transition matrix. [In a different talk](http://www.infoq.com/presentations/1000-Year-old-Design-Patterns), Wiger compared non-selective (FIFO) receive to a tetris game where you must fit each piece into the puzzle as it comes, while selective receive turns the problem into a jigsaw puzzle, where you can look for a piece that you know will fit.
+`MessageProcessor.process` can also process the message inline (rather than have it processed by the caller to `receive`), and even call a nested `receive:
+
+~~~ java
+protected List<Integer> doRun() throws SuspendExecution, InterruptedException {
+    final List<Integer> list = new ArrayList<>();
+    for (int i = 0; i < 2; i++) {
+        receive(new MessageProcessor<ComplexMessage, ComplexMessage>() {
+            public ComplexMessage process(ComplexMessage m) throws SuspendExecution, InterruptedException {
+                switch (m.type) {
+                case FOO:
+                    list.add(m.num);
+                    receive(new MessageProcessor<ComplexMessage, ComplexMessage>() {
+                        public ComplexMessage process(ComplexMessage m) throws SuspendExecution, InterruptedException {
+                            switch (m.type) {
+                            case BAZ:
+                                list.add(m.num);
+                                return m;
+                            default:
+                                return null;
+                            }
+                        }
+                    });
+                    return m;
+                case BAR:
+                    list.add(m.num);
+                    return m;
+                default:
+                    return null;
+                }
+            }
+        });
+    }
+    return list;
+}
+~~~
+
+If a `FOO` is received first, then the next `BAZ` will be added to the list following the `FOO`, even if a `BAR` is found in the mailbox after the `FOO`, because the nested receive in the `case FOO:` clause selects only a `BAZ` message.
+
+There are several actor systems that do not support selective receive, but Erlang does, and so does Quasar. [The talk *Death by Accidental Complexity*](http://www.infoq.com/presentations/Death-by-Accidental-Complexity), by Ulf Wiger, shows how using selective receive avoids implementing a full, complicated and error-prone transition matrix. [In a different talk](http://www.infoq.com/presentations/1000-Year-old-Design-Patterns), Wiger compared non-selective (FIFO) receive to a tetris game where you must fit each piece into the puzzle as it comes, while selective receive turns the problem into a jigsaw puzzle, where you can look for a piece that you know will fit.
 
 {:.alert .alert-warn}
 **A word of caution**: Using selective receive in your code may lead to deadlocks (because you're essentially saying, I'm going to wait here until a specific message arrives). This can be easily avoided by always specifying a timeout (with the `:after millis` clause) when doing a selective receive. Selective receive is a powerful tool that can greatly help writing readable, maintainable message-handling code, but don't over-use it.
+
+{% comment %}
 
 ## Actor State
 
