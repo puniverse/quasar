@@ -41,6 +41,11 @@ public final class AnnotationUtil {
         final String annDesc = Type.getDescriptor(annClass);
         final AtomicBoolean res = new AtomicBoolean(false);
         r.accept(new ClassVisitor(Opcodes.ASM4) {
+
+            @Override
+            public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+            }
+            
             @Override
             public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
                 if (desc.equals(annDesc))
