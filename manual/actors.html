@@ -58,19 +58,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/getting-started.html">
                 Getting Started
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
           
@@ -117,19 +117,19 @@
           
           
           
-            <li>
-              <a  href="/quasar/manual/core.html">
-                Quasar Core
-              </a>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a  href="/quasar/manual/core.html">
+                Quasar Core
+              </a>
+              
+            </li>
           
         
           
@@ -262,9 +262,19 @@
 </span><span id="line-9">    <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
 </span><span id="line-10"><span class="o">}</span>
 </span></code></pre></div>
+<h3 id="actors-vs-channels">Actors vs.&nbsp;Channels</h3>
+
+<p>One of the reasons of providing a different <code>receive</code> function for actors is because programming with actors is conceptually different from just using fibers and channels. I think of channels as hoses pumping data into a function, or as sort of like asynchronous parameters. A fiber may pull many different kinds of data from many different channels, and combine the data in some&nbsp;way. </p>
+
+<p>Actors are a different abstraction. They are more like objects in object-oriented languages, assigned to a single thread. The mailbox serves as the object’s dispatch mechanism; it’s not a hose but a switchboard. It’s for this reason that actors often need to pattern-match their mailbox messages, while regular channels – each usually serving as a conduit for a single kind of data –&nbsp;don’t.</p>
+
 <h3 id="selective-receive">Selective&nbsp;Receive</h3>
 
-<p>If your actor extends <a href="/quasar/javadoc/co/paralleluniverse/actors/BasicActor.html"><code>BasicActor</code></a>, there’s another form of the <code>receive</code>&nbsp;method</p>
+<p>An actor is a state machine. It usually encompasses some <em>state</em> and the messages it receives trigger <em>state transitions</em>. But because the actor has no control over which messages it receives and when (which can be a result of either other actors’ behavior, or even the way the <span class="caps">OS</span> schedules threads), an actor would be required to process any message and any state, and build a full <em>state transition matrix</em>, namely how to transition whenever <em>any</em> messages is received at <em>any</em>&nbsp;state.</p>
+
+<p>This can not only lead to code explosion; it can lead to bugs. The key to managing a complex state machine is by not handling messages in the order they arrive, but in the order we wish to process them. If a message does not match any of the clauses in <code>receive</code>, it will remain in the mailbox. <code>receive</code> will return only when it finds a message that does. When another <code>receive</code> statement is called, it will again search the messages that are in the mailbox, and may match a message that has been skipped by a previous&nbsp;<code>receive</code>. </p>
+
+<p>If your actor extends <a href="/quasar/javadoc/co/paralleluniverse/actors/BasicActor.html"><code>BasicActor</code></a>, there’s another form of the <code>receive</code> method that allows for <em>selective receive</em>. </p>
 
 </div>
 
