@@ -366,9 +366,9 @@ public class MethodDatabase implements Log {
      */
     protected CheckInstrumentationVisitor checkClass(String className) {
         InputStream is = cl.getResourceAsStream(className + ".class");
-        if (is != null) {
+        if (is != null)
             return checkFileAndClose(is, className);
-        }
+        
         return null;
     }
 
