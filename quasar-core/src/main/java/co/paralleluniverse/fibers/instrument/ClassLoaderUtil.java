@@ -12,7 +12,7 @@
  * as published by the Free Software Foundation.
  */
 /*
- * Based on:
+ * Based on Guava's com.google.common.reflect.ClassPath
  */
 /*
  * Copyright (C) 2012 The Guava Authors
