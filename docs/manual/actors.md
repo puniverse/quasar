@@ -72,99 +72,23 @@ protected Void doRun() {
 }
 ~~~
 
-### Selective Receive
+### Actors vs. Channels
 
-If your actor extends [`BasicActor`]({{javadoc}}/actors/BasicActor.html), there's another form of the `receive` method
-
-{% comment %}
-
-As we can see in the example, `receive` not only picks the action based on the message, but also destructures the message and binds free variable, in our example – the `answer` variable. `receive` uses the [core.match](https://github.com/clojure/core.match) library for pattern matching, and you can consult [its documentation](https://github.com/clojure/core.match/wiki/Overview) to learn exactly how matching works.
-
-Sometimes, we would like to assign the whole message to a variable. We do it by creating a binding clause in `receive`:
-
-~~~ clojure
-(receive [m]
-   [:foo val] (println "got foo:" val)
-   :else      (println "got" m))
-~~~
-
-We can also match not on the raw message as its been received, but transform it first, and then match on the transformed value, like so, assuming `transform` is a function that takes a single argument (the message):
-
-~~~ clojure
-(receive [m transform]
-   [:foo val] (println "got foo:" val)
-   :else      (println "got" m))
-~~~
-
-Now `m` – and the value we're matching – is the the transformed value.
-
-`receive` also deals with timeouts. Say we want to do something if a message has not been received within 30 milliseconds (all `receive` timeouts are specified in milliseconds):
-
-~~~ clojure
-(receive [m transform]
-   [:foo val] (println "got foo:" val)
-   :else      (println "got" m)
-   :after 30  (println "nothing..."))
-~~~
-
-{:.alert .alert-warn}
-**Note**: The `:after` clause in `receive` *must* be last.
-
-Before we move on, it's time for a short example. In this example, we will define an actor, `adder`, that receives an `:add` message with two numbers, and reply to the sender with the sum of those two numbers. In order to reply to the sender, we need to know who the sender is. So the sender will add a reference to itself in the message. In this request-reply pattern, it is also good practice to attach a random unique tag to the request, because messages are asynchronous, and it is possible that the adder will not respond to the requests in the order they were received, and the requester might want to send two requests before waiting for a response, so a tag is a good way to match replies with their respective requests. We can generate a random tag with the `maketag` function.
-
-Here's the adder actor:
-
-~~~ clojure
-(defsfn adder []
-  (loop []
-    (receive
-     [from tag [:add a b]] (! from tag [:sum (+ a b)]))
-    (recur)))
-~~~
-
-And this is how we'll use it from within another actor:
-
-~~~ clojure
-...
-(let [tag (maketag)
-      a ...
-      b ...]
-   (! adder-actor @self tag [:add a b])
-   (->>
-      (receive 
-         [tag [:sum sum]] sum
-         :after 10        nil)
-      (println "sum:"))
-...
-~~~
-
-## Actors vs. Channels
-
-One of the reasons of providing a different `receive` function for actors is because programming with actors is conceptually different from just using fibers and channels. I think of channels as hoses  pumping data into a function, or as sort of like asynchronous parameters. A fiber may pull many different kinds of data from many different channels, and combine the data in some way. 
+One of the reasons of providing a different `receive` function for actors is because programming with actors is conceptually different from just using fibers and channels. I think of channels as hoses pumping data into a function, or as sort of like asynchronous parameters. A fiber may pull many different kinds of data from many different channels, and combine the data in some way. 
 
 Actors are a different abstraction. They are more like objects in object-oriented languages, assigned to a single thread. The mailbox serves as the object's dispatch mechanism; it's not a hose but a switchboard. It's for this reason that actors often need to pattern-match their mailbox messages, while regular channels – each usually serving as a conduit for a single kind of data – don't.
 
-But while the `receive` syntax is nice and all (it mirrors Erlang's syntax), we could have achieved the same with `rcv` almost as easily:
-
-~~~ clojure
-(let [m1 (rcv 30 :ms)]
-   (if m1
-      (let [m (transform m1)]
-         (match (transform (rcv 30 :ms))
-             [:foo val]  (println "got foo:" val)
-   		     :else      (println "got" m)))
-   	   (println "nothing...")))
-~~~
-
-Pretty syntax is not the main goal of the `receive` function. The reason `receive` is much more powerful than `rcv`, is mostly because of a feature we will now introduce.
-
-## Selective Receive
+### Selective Receive
 
 An actor is a state machine. It usually encompasses some *state* and the messages it receives trigger *state transitions*. But because the actor has no control over which messages it receives and when (which can be a result of either other actors' behavior, or even the way the OS schedules threads), an actor would be required to process any message and any state, and build a full *state transition matrix*, namely how to transition whenever *any* messages is received at *any* state.
 
 This can not only lead to code explosion; it can lead to bugs. The key to managing a complex state machine is by not handling messages in the order they arrive, but in the order we wish to process them. If a message does not match any of the clauses in `receive`, it will remain in the mailbox. `receive` will return only when it finds a message that does. When another `receive` statement is called, it will again search the messages that are in the mailbox, and may match a message that has been skipped by a previous `receive`. 
 
-In this code snippet, we specifically wait for the `:baz` message after receiving `:foo`, and so process the messages in this order -- `:foo`, `:baz`, `:bar` -- even though `:bar` is sent before `:baz`:
+If your actor extends [`BasicActor`]({{javadoc}}/actors/BasicActor.html), there's another form of the `receive` method that allows for *selective receive*. 
+
+{% comment %}
+
+## Selective Receive
 
 ~~~ clojure
 (let [res (atom [])
