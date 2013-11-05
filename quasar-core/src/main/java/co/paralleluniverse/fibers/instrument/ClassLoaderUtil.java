@@ -51,13 +51,26 @@ import java.util.jar.Manifest;
  *
  * @author pron
  */
-public class ClassLoaderUtil {
+public final class ClassLoaderUtil {
     public interface Visitor {
-        void visit(URL resource);
+        void visit(String resource, URL url);
     }
-    
     private static final Splitter CLASS_PATH_ATTRIBUTE_SEPARATOR = Splitter.on(" ").omitEmptyStrings();
     private static final String CLASS_FILE_NAME_EXTENSION = ".class";
+
+    public static boolean isClassfile(String resourceName) {
+        return resourceName.endsWith(CLASS_FILE_NAME_EXTENSION);
+    }
+
+    public static String classToResource(String className) {
+        return className.replace('.', '/') + CLASS_FILE_NAME_EXTENSION;
+    }
+
+    public static String resourceToClass(String resourceName) {
+        if (!resourceName.endsWith(CLASS_FILE_NAME_EXTENSION))
+            throw new IllegalArgumentException("Resource " + resourceName + " is not a class file");
+        return resourceName.substring(0, resourceName.length() - CLASS_FILE_NAME_EXTENSION.length()).replace('/', '.');
+    }
 
     public static void accept(ClassLoader classLoader, Visitor visitor) throws IOException {
         URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
@@ -113,9 +126,8 @@ public class ClassLoaderUtil {
                 scanDirectory(f, classloader, packagePrefix + name + "/", newAncestors, visitor);
             } else {
                 String resourceName = packagePrefix + name;
-                if (!resourceName.equals(JarFile.MANIFEST_NAME)) {
-                    visitor.visit(f.toURI().toURL());
-                }
+                if (!resourceName.equals(JarFile.MANIFEST_NAME))
+                    visitor.visit(resourceName, f.toURI().toURL());
             }
         }
     }
@@ -136,7 +148,7 @@ public class ClassLoaderUtil {
                 JarEntry entry = entries.nextElement();
                 if (entry.isDirectory() || entry.getName().equals(JarFile.MANIFEST_NAME))
                     continue;
-                visitor.visit(new URL("jar:file:" + file.getCanonicalPath() + "!/" + entry.getName()));
+                visitor.visit(entry.getName(), new URL("jar:file:" + file.getCanonicalPath() + "!/" + entry.getName()));
             }
         } finally {
             try {
@@ -155,7 +167,7 @@ public class ClassLoaderUtil {
     private static ImmutableSet<URI> getClassPathFromManifest(File jarFile, Manifest manifest) {
         if (manifest == null)
             return ImmutableSet.of();
-        
+
         ImmutableSet.Builder<URI> builder = ImmutableSet.builder();
         String classpathAttribute = manifest.getMainAttributes().getValue(Attributes.Name.CLASS_PATH.toString());
         if (classpathAttribute != null) {
@@ -186,5 +198,8 @@ public class ClassLoaderUtil {
             return uri;
         else
             return new File(jarFile.getParentFile(), path.replace('/', File.separatorChar)).toURI();
+    }
+
+    private ClassLoaderUtil() {
     }
 }
