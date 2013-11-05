@@ -55,6 +55,7 @@ public class ClassLoaderUtil {
     public interface Visitor {
         void visit(URL resource);
     }
+    
     private static final Splitter CLASS_PATH_ATTRIBUTE_SEPARATOR = Splitter.on(" ").omitEmptyStrings();
     private static final String CLASS_FILE_NAME_EXTENSION = ".class";
 
@@ -65,9 +66,8 @@ public class ClassLoaderUtil {
                 final Set<URI> scannedUris = new HashSet<>();
                 for (URL entry : urlClassLoader.getURLs()) {
                     URI uri = entry.toURI();
-                    if (uri.getScheme().equals("file") && scannedUris.add(uri)) {
+                    if (uri.getScheme().equals("file") && scannedUris.add(uri))
                         scanFrom(new File(uri), classLoader, scannedUris, visitor);
-                    }
                 }
             } catch (URISyntaxException e) {
                 throw new RuntimeException(e);
@@ -76,21 +76,18 @@ public class ClassLoaderUtil {
     }
 
     private static void scan(URI uri, ClassLoader classloader, Set<URI> scannedUris, Visitor visitor) throws IOException {
-        if (uri.getScheme().equals("file") && scannedUris.add(uri)) {
+        if (uri.getScheme().equals("file") && scannedUris.add(uri))
             scanFrom(new File(uri), classloader, scannedUris, visitor);
-        }
     }
 
-    private static void scanFrom(File file, ClassLoader classloader, Set<URI> scannedUris, Visitor visitor)
-            throws IOException {
-        if (!file.exists()) {
+    private static void scanFrom(File file, ClassLoader classloader, Set<URI> scannedUris, Visitor visitor) throws IOException {
+        if (!file.exists())
             return;
-        }
-        if (file.isDirectory()) {
+
+        if (file.isDirectory())
             scanDirectory(file, classloader, visitor);
-        } else {
+        else
             scanJar(file, classloader, scannedUris, visitor);
-        }
     }
 
     private static void scanDirectory(File directory, ClassLoader classloader, Visitor visitor) throws IOException {
@@ -132,15 +129,14 @@ public class ClassLoaderUtil {
             return;
         }
         try {
-            for (URI uri : getClassPathFromManifest(file, jarFile.getManifest())) {
+            for (URI uri : getClassPathFromManifest(file, jarFile.getManifest()))
                 scan(uri, classloader, scannedUris, visitor);
-            }
-            Enumeration<JarEntry> entries = jarFile.entries();
-            while (entries.hasMoreElements()) {
+
+            for (Enumeration<JarEntry> entries = jarFile.entries(); entries.hasMoreElements();) {
                 JarEntry entry = entries.nextElement();
                 if (entry.isDirectory() || entry.getName().equals(JarFile.MANIFEST_NAME))
                     continue;
-                visitor.visit(new URL("jar:file:" + file.getCanonicalPath() + '!' + entry.getName()));
+                visitor.visit(new URL("jar:file:" + file.getCanonicalPath() + "!/" + entry.getName()));
             }
         } finally {
             try {
@@ -157,9 +153,9 @@ public class ClassLoaderUtil {
      * manifest, and an empty set will be returned.
      */
     private static ImmutableSet<URI> getClassPathFromManifest(File jarFile, Manifest manifest) {
-        if (manifest == null) {
+        if (manifest == null)
             return ImmutableSet.of();
-        }
+        
         ImmutableSet.Builder<URI> builder = ImmutableSet.builder();
         String classpathAttribute = manifest.getMainAttributes().getValue(Attributes.Name.CLASS_PATH.toString());
         if (classpathAttribute != null) {
@@ -186,10 +182,9 @@ public class ClassLoaderUtil {
      */
     private static URI getClassPathEntry(File jarFile, String path) throws URISyntaxException {
         URI uri = new URI(path);
-        if (uri.isAbsolute()) {
+        if (uri.isAbsolute())
             return uri;
-        } else {
+        else
             return new File(jarFile.getParentFile(), path.replace('/', File.separatorChar)).toURI();
-        }
     }
 }
