@@ -155,6 +155,9 @@ protected List<Integer> doRun() throws SuspendExecution, InterruptedException {
 
 If a `FOO` is received first, then the next `BAZ` will be added to the list following the `FOO`, even if a `BAR` is found in the mailbox after the `FOO`, because the nested receive in the `case FOO:` clause selects only a `BAZ` message.
 
+{:.alert .alert-info}
+**Note**: `MessageProcessor` will become much less cumbersome in Java 8 with the introduction of lambda expressions.
+
 There are several actor systems that do not support selective receive, but Erlang does, and so does Quasar. [The talk *Death by Accidental Complexity*](http://www.infoq.com/presentations/Death-by-Accidental-Complexity), by Ulf Wiger, shows how using selective receive avoids implementing a full, complicated and error-prone transition matrix. [In a different talk](http://www.infoq.com/presentations/1000-Year-old-Design-Patterns), Wiger compared non-selective (FIFO) receive to a tetris game where you must fit each piece into the puzzle as it comes, while selective receive turns the problem into a jigsaw puzzle, where you can look for a piece that you know will fit.
 
 {:.alert .alert-warn}
@@ -162,94 +165,7 @@ There are several actor systems that do not support selective receive, but Erlan
 
 {% comment %}
 
-## Actor State
 
-In Erlang, actor state is set by recursively calling the actor function with the new state as an argument. In Pulsar, we can do the same. Here’s an example:
-
-~~~ clojure
-(let [actor
-      (spawn #(loop [i (int 2)
-                     state (int 0)]
-                (if (== i 0)
-                  state
-                  (recur (dec i) (+ state (int (receive)))))))]
-  (! actor 13)
-  (! actor 12)
-  (join actor)) ; => 25
-~~~
-
-Clojure is all about managing state. It ensures that every computation has access to consistent data. Because actors communicate with other computation only by exchanging immutable messages, and because each actor runs in a single strand, it's absolutely ok for an actor to have mutable state - only the actor has access to it. 
-
-Every Pulsar actor has a `state` field that can be read like this `@state` and written with `set-state!`. Here’s an example:
-
-~~~ clojure
-(let [actor
-      (spawn #(do
-                (set-state! 0)
-                (set-state! (+ @state (receive)))
-                (set-state! (+ @state (receive)))
-                @state))]
-  (! actor 13)
-  (! actor 12)
-  (join actor)) ; => 25
-~~~
-
-Finally, what if we want several state fields? What if we want some or all of them to be of a primitive type? This, too, poses no risk of race conditions because all state fields are written and read only by the actor, and there is no danger of them appearing inconsistent to an observer.
-Pulsar supports this as an experimental feature (implemented internally with `deftype`), like so:
-
-~~~ clojure
-(let [actor (spawn (actor [^int sum 0]
-                          (set! sum (int (+ sum (receive))))
-                          (set! sum (int (+ sum (receive))))
-                          sum))]
-  (! actor 13)
-  (! actor 12)
-  (join actor)) ; => 25
-~~~
-
-These are three different ways of managing actor state. Eventually, we’ll settle on just one or two (and are open to discussion about which is preferred).
-
-## State Machines with strampoline
-
-As we've seen, the `receive` form defines which messages the actor is willing to accept and process. You can nest `receive` statements, or place them in other functions that the actor calls (in which case the must be defined with `defsfn`). It is often useful to treat the actor as a state machine, going from one state to another, executing a different `receive` at each state (to define the acceptable transitions from the state). To change state, all we would have to do is call a different function, each with its own receive, but here we face a technical limitation of Clojure. As Clojure (due to JVM limitations) does not perform true tail-call optimization, every state transition (i.e. every function call), would add a frame to the stack, eventually throwing a stack overflow. Clojure solves it with the `clojure.core/trampoline` function. It takes a function and calls it. When the function returns, if the returned value is a function, `trampoline` calls it.
-
-Pulsar comes with a version of `trampoline` for suspendable functions called `strampoline` (with the exact same API as `trampoline`).
-
-Consider this example:
-
-~~~ clojure
-(let [state2 (sfn []
-                    (receive
-                      :bar :foobar))
-      state1 (sfn []
-                    (receive
-                      :foo state2))
-      actor (spawn (fn []
-                     (strampoline state1)))]
-  (! actor :foo)
-  (Thread/sleep 50) ; or (Strand/sleep 50)
-  (! actor :bar)
-  (join actor)) ; => :foobar
-~~~
-
-The actor starts at `state1` (represented by the function with the same name), by calling `(strampoline state1)`. In `state1` we expect to receive the message `:foo`. When it arrives, we transition to `state2` by returning the `state2` function (which will immediately be called by `strampoline`). In `state1` we await the `:bar` message, and then terminate.
-
-What happens if the messages `:foo` and `:bar` arrive in reverse order? Thanks to selective receive the result will be exactly the same! `state1` will skip the `:bar` message, and transition to `state2` when `:foo` arrives; the `receive` statement in `state2` will then find the `:bar` message waiting in the mailbox:
-
-~~~ clojure
-(let [state2 (sfn []
-                    (receive
-                      :bar :foobar))
-      state1 (sfn []
-                    (receive
-                      :foo state2))
-      actor (spawn (fn []
-                     (strampoline state1)))]
-  (! actor :bar)
-  (Thread/sleep 50) ; or (Strand/sleep 50)
-  (! actor :foo)
-  (join actor)) ; => :foobar
-~~~
 
 ## Error Handling
 
