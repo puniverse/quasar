@@ -1473,7 +1473,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 continue;
             if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')) {
                 if (!Retransform.isWaiver(ste.getClassName(), ste.getMethodName())
-                        && (!Retransform.isInstrumented(ste.getClassName()) || !isSuspendableOrUnknown(ste.getClassName(), ste.getMethodName()))) {
+                        && (!Retransform.isInstrumented(ste.getClassName()) || isNonSuspendable(ste.getClassName(), ste.getMethodName()))) {
                     final String str = "Method " + ste.getClassName() + "." + ste.getMethodName() + " on the call-stack has not been instrumented. (trace: " + Arrays.toString(stes) + ")";
                     System.err.println("WARNING: " + str);
                     throw new IllegalStateException(str);
@@ -1484,11 +1484,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         throw new IllegalStateException("Not run through Fiber.exec(). (trace: " + Arrays.toString(stes) + ")");
     }
 
-    private static boolean isSuspendableOrUnknown(String className, String methodName) {
+    private static boolean isNonSuspendable(String className, String methodName) {
         Boolean res = Retransform.isSuspendable(className, methodName);
         if (res == null)
-            return true;
-        return res;
+            return false;
+        return !res;
     }
 
     @SuppressWarnings("unchecked")
