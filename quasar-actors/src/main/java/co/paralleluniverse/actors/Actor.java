@@ -37,7 +37,7 @@ import java.util.concurrent.TimeoutException;
 import jsr166e.ConcurrentHashMapV8;
 
 /**
- * An actor is a self-contained execution unit – an object running in its own strand and communicating with other actors via messages.
+ * An actor is a self-contained execution unit - an object running in its own strand and communicating with other actors via messages.
  * An actor has a channel used as a mailbox, and can be monitored for errors.
  *
  * @param <Message> The message type the actor can receive. It is often {@link Object}.

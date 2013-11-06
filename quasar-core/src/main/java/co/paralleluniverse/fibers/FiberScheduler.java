@@ -22,6 +22,8 @@ import co.paralleluniverse.concurrent.forkjoin.ExtendedForkJoinWorkerThread;
 import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import jsr166e.ConcurrentHashMapV8;
 import jsr166e.ForkJoinPool;
@@ -36,7 +38,7 @@ public class FiberScheduler {
     private final FiberTimedScheduler timer;
     private final FibersMonitor fibersMonitor;
     private final Set<FiberWorkerThread> activeThreads = Collections.newSetFromMap(new ConcurrentHashMapV8<FiberWorkerThread, Boolean>());
-    
+
     public FiberScheduler(String name, int parallelism, Thread.UncaughtExceptionHandler exceptionHandler, MonitorType monitorType, boolean detailedInfo) {
         this.fjPool = createForkJoinPool(name, parallelism, exceptionHandler, monitorType);
 
@@ -65,17 +67,12 @@ public class FiberScheduler {
         this.timer = timeService != null ? timeService : createTimer(fjPool, fibersMonitor);
     }
 
-//    public void foo() {
-//        fjPool.get
-//    }
     private ForkJoinPool createForkJoinPool(String name, int parallelism, Thread.UncaughtExceptionHandler exceptionHandler, MonitorType monitorType) {
         final MonitoredForkJoinPool pool = new MonitoredForkJoinPool(name, parallelism, new ExtendedForkJoinWorkerFactory(name) {
-
             @Override
             protected ExtendedForkJoinWorkerThread createThread(ForkJoinPool pool) {
                 return new FiberWorkerThread(pool);
             }
-            
         }, exceptionHandler, true);
         pool.setMonitor(createForkJoinPoolMonitor(name, pool, monitorType));
         return pool;
@@ -131,7 +128,6 @@ public class FiberScheduler {
     }
 
     private class FiberWorkerThread extends ExtendedForkJoinWorkerThread {
-
         public FiberWorkerThread(ForkJoinPool pool) {
             super(pool);
         }
@@ -147,5 +143,14 @@ public class FiberScheduler {
             super.onTermination(exception);
             activeThreads.remove(this);
         }
+    }
+
+    Map<Thread, Object> getRunningTargets() {
+        Map<Thread, Object> fibers = new HashMap<>(activeThreads.size() + 2);
+        for (FiberWorkerThread t : activeThreads) {
+            final Object target = t.getTarget();
+            fibers.put(t, target);
+        }
+        return fibers;
     }
 }

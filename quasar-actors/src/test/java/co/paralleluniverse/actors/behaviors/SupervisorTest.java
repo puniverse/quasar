@@ -35,7 +35,6 @@ import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import jsr166e.ForkJoinPool;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import org.junit.Rule;
@@ -85,7 +84,7 @@ public class SupervisorTest {
     private static FiberScheduler scheduler;
 
     public SupervisorTest() throws Exception {
-        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
+        scheduler = new FiberScheduler("test", 4, null, false);
         java.util.logging.LogManager.getLogManager().readConfiguration(); // gradle messes with the configurations
     }
 

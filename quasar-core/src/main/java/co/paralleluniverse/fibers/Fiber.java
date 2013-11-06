@@ -231,6 +231,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return scheduler;
     }
 
+    long getRun() {
+        return run;
+    }
+
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
     /**

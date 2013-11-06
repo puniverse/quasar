@@ -425,7 +425,7 @@ public class FiberTest {
         }).start();
 
         fiber2.join();
-        
+
         flag.set(true);
         cond.signalAll();
 
@@ -465,5 +465,30 @@ public class FiberTest {
         assertThat(st[st.length - 1].getClassName(), equalTo(Fiber.class.getName()));
 
         fiber.join();
+    }
+
+    @Test
+    public void testBadFiberDetection() throws Exception {
+        Fiber good = new Fiber("good", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                for (int i = 0; i < 100; i++)
+                    Strand.sleep(10);
+            }
+        }).start();
+
+        Fiber bad = new Fiber("bad", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                final long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(1000);
+                for (;;) {
+                    if (System.nanoTime() >= deadline)
+                        break;
+                }
+            }
+        }).start();
+
+        good.join();
+        bad.join();
     }
 }
