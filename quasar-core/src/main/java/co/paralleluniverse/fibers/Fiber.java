@@ -805,13 +805,17 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return ParkableForkJoinTask.getTarget(currentThread);
     }
 
+    static Fiber getTargetFiber(Thread thread) {
+        final Object target = ParkableForkJoinTask.getTarget(thread);
+        if (target == null || !(target instanceof DummyRunnable))
+            return null;
+        return ((DummyRunnable) target).fiber;
+    }
+
     private static Fiber getCurrentFiber() {
         final Thread currentThread = Thread.currentThread();
         if (currentThread instanceof ForkJoinWorkerThread) { // false in tests
-            final Object target = ParkableForkJoinTask.getTarget(currentThread);
-            if (target == null || !(target instanceof DummyRunnable))
-                return null;
-            return ((DummyRunnable) target).fiber;
+            return getTargetFiber(currentThread);
         } else if (Debug.isUnitTest()) {
             try {
                 final FiberForkJoinTask currentFJTask = FiberForkJoinTask.getCurrent();
@@ -947,7 +951,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final InterruptedException getInterruptStack() {
-        if(!traceInterrupt)
+        if (!traceInterrupt)
             return null;
         return interruptStack;
     }

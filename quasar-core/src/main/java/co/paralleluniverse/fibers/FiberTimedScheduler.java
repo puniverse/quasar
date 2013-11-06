@@ -407,21 +407,22 @@ public class FiberTimedScheduler {
 
     private Collection<Fiber> findProblemFibers(long now, long nanos) {
         final List<Fiber> pfs = new ArrayList<Fiber>();
-        final Map<Thread, Object> fibs = scheduler.getRunningTargets();
+        final Map<Thread, Fiber> fibs = scheduler.getRunningFibers();
 
         fibersInfo.keySet().retainAll(fibs.keySet());
 
-        for (Iterator<Map.Entry<Thread, Object>> it = fibs.entrySet().iterator(); it.hasNext();) {
-            final Map.Entry<Thread, Object> entry = it.next();
+        for (Iterator<Map.Entry<Thread, Fiber>> it = fibs.entrySet().iterator(); it.hasNext();) {
+            final Map.Entry<Thread, Fiber> entry = it.next();
             final Thread t = entry.getKey();
-            final Fiber f = entry.getValue() instanceof Fiber ? (Fiber) entry.getValue() : null;
+            final Fiber f = entry.getValue();
 
             if (f != null)
                 f.getState(); // volatile read
 
             final FiberInfo fi = fibersInfo.get(t);
             final long run = f != null ? f.getRun() : 0;
-            //System.err.println("XXX findProblemFibers f: " + f + " run: " + run + " time: " + (fi != null ? (now - fi.time) : "NA"));
+//            if (f != null)
+//                System.err.println("XXX findProblemFibers f: " + f + " run: " + run + " time: " + (fi != null ? (now - fi.time) : "NA"));
             if (fi == null)
                 fibersInfo.put(t, new FiberInfo(f, run, f != null ? now : -1));
             else if (fi.fiber != f | fi.run != run)

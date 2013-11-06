@@ -145,12 +145,10 @@ public class FiberScheduler {
         }
     }
 
-    Map<Thread, Object> getRunningTargets() {
-        Map<Thread, Object> fibers = new HashMap<>(activeThreads.size() + 2);
-        for (FiberWorkerThread t : activeThreads) {
-            final Object target = t.getTarget();
-            fibers.put(t, target);
-        }
+    Map<Thread, Fiber> getRunningFibers() {
+        Map<Thread, Fiber> fibers = new HashMap<>(activeThreads.size() + 2);
+        for (FiberWorkerThread t : activeThreads)
+            fibers.put(t, Fiber.getTargetFiber(t));
         return fibers;
     }
 }
