@@ -19,16 +19,16 @@ import jsr166e.ForkJoinWorkerThread;
  *
  * @author pron
  */
-public class NamingForkJoinWorkerFactory implements ForkJoinPool.ForkJoinWorkerThreadFactory {
+public class ExtendedForkJoinWorkerFactory implements ForkJoinPool.ForkJoinWorkerThreadFactory {
     private final String name;
 
-    public NamingForkJoinWorkerFactory(String name) {
+    public ExtendedForkJoinWorkerFactory(String name) {
         this.name = name;
     }
     
     @Override
     public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
-        ForkJoinWorkerThread thread = new ExtendedForkJoinWorkerThread(pool); // ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
+        ForkJoinWorkerThread thread = createThread(pool); // ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
         final String workerNumber = thread.getName().substring(thread.getName().lastIndexOf('-') + 1);
         final String newThreadName = "ForkJoinPool-" + name + "-worker-" + workerNumber;
         thread.setName(newThreadName);
@@ -36,5 +36,7 @@ public class NamingForkJoinWorkerFactory implements ForkJoinPool.ForkJoinWorkerT
         return thread;
     }
     
-    
+    protected ExtendedForkJoinWorkerThread createThread(ForkJoinPool pool) {
+        return new ExtendedForkJoinWorkerThread(pool);
+    }
 }

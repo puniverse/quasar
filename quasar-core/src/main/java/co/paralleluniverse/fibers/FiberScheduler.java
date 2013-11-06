@@ -17,9 +17,13 @@ import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitor;
 import co.paralleluniverse.common.monitoring.JMXForkJoinPoolMonitor;
 import co.paralleluniverse.common.monitoring.MetricsForkJoinPoolMonitor;
 import co.paralleluniverse.common.monitoring.MonitorType;
+import co.paralleluniverse.concurrent.forkjoin.ExtendedForkJoinWorkerFactory;
+import co.paralleluniverse.concurrent.forkjoin.ExtendedForkJoinWorkerThread;
 import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
-import co.paralleluniverse.concurrent.forkjoin.NamingForkJoinWorkerFactory;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.util.Collections;
+import java.util.Set;
+import jsr166e.ConcurrentHashMapV8;
 import jsr166e.ForkJoinPool;
 
 /**
@@ -31,6 +35,22 @@ public class FiberScheduler {
     private final ForkJoinPool fjPool;
     private final FiberTimedScheduler timer;
     private final FibersMonitor fibersMonitor;
+    private final Set<FiberWorkerThread> activeThreads = Collections.newSetFromMap(new ConcurrentHashMapV8<FiberWorkerThread, Boolean>());
+    
+    public FiberScheduler(String name, int parallelism, Thread.UncaughtExceptionHandler exceptionHandler, MonitorType monitorType, boolean detailedInfo) {
+        this.fjPool = createForkJoinPool(name, parallelism, exceptionHandler, monitorType);
+
+        if (fjPool instanceof MonitoredForkJoinPool && ((MonitoredForkJoinPool) fjPool).getMonitor() != null)
+            this.fibersMonitor = new JMXFibersMonitor(((MonitoredForkJoinPool) fjPool).getName(), fjPool, detailedInfo);
+        else
+            this.fibersMonitor = NOOP_FIBERS_MONITOR;
+
+        this.timer = createTimer(fjPool, fibersMonitor);
+    }
+
+    public FiberScheduler(String name, int parallelism, MonitorType monitorType, boolean detailedInfo) {
+        this(name, parallelism, null, monitorType, detailedInfo);
+    }
 
     private FiberScheduler(ForkJoinPool fjPool, FiberTimedScheduler timeService, boolean detailedInfo) {
         if (!fjPool.getAsyncMode())
@@ -42,47 +62,23 @@ public class FiberScheduler {
         else
             this.fibersMonitor = NOOP_FIBERS_MONITOR;
 
-//        if (fjPool instanceof MonitoredForkJoinPool) {
-//            final MonitoredForkJoinPool pool = (MonitoredForkJoinPool) fjPool;
-//            String name = pool.getName();
-//            if (pool.getMonitor() != null) {
-//                if (pool.getMonitor() instanceof JMXForkJoinPoolMonitor)
-//                    this.fibersMonitor = createFibersMonitor(name, fjPool, MonitorType.JMX);
-//                else if (pool.getMonitor() instanceof MetricsForkJoinPoolMonitor)
-//                    this.fibersMonitor = createFibersMonitor(name, fjPool, MonitorType.METRICS);
-//                else
-//                    throw new RuntimeException("Unrecognized ForkJoinPoolMonitor type: " + pool.getMonitor().getClass().getName());
-//            } else
-//                this.fibersMonitor = new NoopFibersMonitor();
-//        } else
-//            this.fibersMonitor = createFibersMonitor(null, fjPool, MonitorType.NONE);
-
         this.timer = timeService != null ? timeService : createTimer(fjPool, fibersMonitor);
-    }
-
-    private FiberScheduler(ForkJoinPool fjPool) {
-        this(fjPool, true);
-    }
-
-    private FiberScheduler(ForkJoinPool fjPool, boolean detailedInfo) {
-        this(fjPool, null, detailedInfo);
-    }
-
-    public FiberScheduler(String name, int parallelism, Thread.UncaughtExceptionHandler exceptionHandler, MonitorType monitorType, boolean detailedInfo) {
-        this(createForkJoinPool(name, parallelism, exceptionHandler, monitorType), detailedInfo);
-    }
-
-    public FiberScheduler(String name, int parallelism, MonitorType monitorType, boolean detailedInfo) {
-        this(name, parallelism, null, monitorType, detailedInfo);
     }
 
 //    public void foo() {
 //        fjPool.get
 //    }
-    private static ForkJoinPool createForkJoinPool(String name, int parallelism, Thread.UncaughtExceptionHandler exceptionHandler, MonitorType monitorType) {
-        final MonitoredForkJoinPool fjPool = new MonitoredForkJoinPool(name, parallelism, new NamingForkJoinWorkerFactory(name), exceptionHandler, true);
-        fjPool.setMonitor(createForkJoinPoolMonitor(name, fjPool, monitorType));
-        return fjPool;
+    private ForkJoinPool createForkJoinPool(String name, int parallelism, Thread.UncaughtExceptionHandler exceptionHandler, MonitorType monitorType) {
+        final MonitoredForkJoinPool pool = new MonitoredForkJoinPool(name, parallelism, new ExtendedForkJoinWorkerFactory(name) {
+
+            @Override
+            protected ExtendedForkJoinWorkerThread createThread(ForkJoinPool pool) {
+                return new FiberWorkerThread(pool);
+            }
+            
+        }, exceptionHandler, true);
+        pool.setMonitor(createForkJoinPoolMonitor(name, pool, monitorType));
+        return pool;
     }
 
     private static FibersMonitor createFibersMonitor(String name, ForkJoinPool fjPool, MonitorType monitorType, boolean detailedInfo) {
@@ -99,7 +95,7 @@ public class FiberScheduler {
     }
 
     static ForkJoinPoolMonitor createForkJoinPoolMonitor(String name, ForkJoinPool fjPool, MonitorType monitorType) {
-        if(monitorType == null)
+        if (monitorType == null)
             return null;
         switch (monitorType) {
             case JMX:
@@ -113,16 +109,16 @@ public class FiberScheduler {
         }
     }
 
-    private static FiberTimedScheduler createTimer(ForkJoinPool fjPool, FibersMonitor monitor) {
+    private FiberTimedScheduler createTimer(ForkJoinPool fjPool, FibersMonitor monitor) {
         if (fjPool instanceof MonitoredForkJoinPool)
-            return new FiberTimedScheduler(fjPool,
+            return new FiberTimedScheduler(this,
                     new ThreadFactoryBuilder().setDaemon(true).setNameFormat("FiberTimedScheduler-" + ((MonitoredForkJoinPool) fjPool).getName()).build(),
                     monitor);
         else
-            return new FiberTimedScheduler(fjPool);
+            return new FiberTimedScheduler(this);
     }
 
-    public ForkJoinPool getFjPool() {
+    public ForkJoinPool getForkJoinPool() {
         return fjPool;
     }
 
@@ -132,5 +128,24 @@ public class FiberScheduler {
 
     FibersMonitor getFibersMonitor() {
         return fibersMonitor;
+    }
+
+    private class FiberWorkerThread extends ExtendedForkJoinWorkerThread {
+
+        public FiberWorkerThread(ForkJoinPool pool) {
+            super(pool);
+        }
+
+        @Override
+        protected void onStart() {
+            super.onStart();
+            activeThreads.add(this);
+        }
+
+        @Override
+        protected void onTermination(Throwable exception) {
+            super.onTermination(exception);
+            activeThreads.remove(this);
+        }
     }
 }

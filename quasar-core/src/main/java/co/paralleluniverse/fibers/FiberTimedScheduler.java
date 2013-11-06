@@ -53,11 +53,11 @@ public class FiberTimedScheduler {
     private static final int TERMINATED = 2;
     private volatile int state = RUNNING;
     private final ReentrantLock mainLock = new ReentrantLock();
-    private final ForkJoinPool fjPool;
+    private final FiberScheduler scheduler;
     private final FibersMonitor monitor;
 
-    public FiberTimedScheduler(ForkJoinPool fjPool, ThreadFactory threadFactory, FibersMonitor monitor) {
-        this.fjPool = fjPool;
+    public FiberTimedScheduler(FiberScheduler scheduler, ThreadFactory threadFactory, FibersMonitor monitor) {
+        this.scheduler = scheduler;
         this.worker = threadFactory.newThread(new Runnable() {
             @Override
             public void run() {
@@ -71,8 +71,8 @@ public class FiberTimedScheduler {
         worker.start();
     }
 
-    public FiberTimedScheduler(ForkJoinPool fjPool, FibersMonitor monitor) {
-        this(fjPool, new ThreadFactory() {
+    public FiberTimedScheduler(FiberScheduler scheduler, FibersMonitor monitor) {
+        this(scheduler, new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
                 Thread t = new Thread(r, "FiberTimedScheduler-" + nameSuffixSequence.incrementAndGet());
@@ -82,8 +82,8 @@ public class FiberTimedScheduler {
         }, monitor);
     }
 
-    public FiberTimedScheduler(ForkJoinPool fjPool) {
-        this(fjPool, null);
+    public FiberTimedScheduler(FiberScheduler scheduler) {
+        this(scheduler, null);
     }
 
     /**
@@ -93,7 +93,7 @@ public class FiberTimedScheduler {
     public Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit) {
         if (fiber == null || unit == null)
             throw new NullPointerException();
-        assert fiber.getFjPool() == fjPool;
+        assert fiber.getFjPool() == scheduler.getForkJoinPool();
         ScheduledFutureTask t = new ScheduledFutureTask(fiber, blocker, triggerTime(delay, unit));
         delayedExecute(t);
         return t;
@@ -109,7 +109,7 @@ public class FiberTimedScheduler {
                     if (!task.isCancelled()) {
                         long delay = task.delay;
                         if (BACKPRESSURE && (counter & BACKPRESSURE_MASK) == 0) {
-                            while (fjPool.getQueuedSubmissionCount() > BACKPRESSURE_THRESHOLD)
+                            while (scheduler.getForkJoinPool().getQueuedSubmissionCount() > BACKPRESSURE_THRESHOLD)
                                 Thread.sleep(BACKPRESSURE_PAUSE_MS);
                             delay = now() - task.time;
                         }

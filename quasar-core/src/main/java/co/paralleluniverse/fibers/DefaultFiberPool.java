@@ -21,6 +21,6 @@ import jsr166e.ForkJoinPool;
  */
 public class DefaultFiberPool {
     public static ForkJoinPool getInstance() {
-        return DefaultFiberScheduler.getInstance().getFjPool();
+        return DefaultFiberScheduler.getInstance().getForkJoinPool();
     }
 }

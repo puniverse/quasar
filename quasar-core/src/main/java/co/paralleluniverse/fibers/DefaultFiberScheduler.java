@@ -16,7 +16,7 @@ package co.paralleluniverse.fibers;
 import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitor;
 import co.paralleluniverse.common.monitoring.MonitorType;
 import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
-import co.paralleluniverse.concurrent.forkjoin.NamingForkJoinWorkerFactory;
+import co.paralleluniverse.concurrent.forkjoin.ExtendedForkJoinWorkerFactory;
 import jsr166e.ForkJoinPool;
 
 /**

@@ -137,7 +137,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         this.name = name;
         this.fid = nextFiberId();
         this.scheduler = scheduler;
-        this.fjPool = scheduler != null ? scheduler.getFjPool() : null;        // null only in tests
+        this.fjPool = scheduler != null ? scheduler.getForkJoinPool() : null;        // null only in tests
         this.timeoutService = scheduler != null ? scheduler.getTimer() : null; // null only in tests
         this.parent = Strand.currentStrand();
         this.target = target;

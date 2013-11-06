@@ -26,7 +26,7 @@ public class ExtendedForkJoinWorkerThread extends ForkJoinWorkerThread {
         super(pool);
     }
 
-    Object getTarget() {
+    public Object getTarget() {
         return target;
     }
 
