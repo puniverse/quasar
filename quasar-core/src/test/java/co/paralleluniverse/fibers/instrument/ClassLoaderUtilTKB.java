@@ -29,7 +29,7 @@ public class ClassLoaderUtilTKB {
         ClassLoaderUtil.accept(cl, new ClassLoaderUtil.Visitor() {
 
             @Override
-            public void visit(String resource, URL url) {
+            public void visit(String resource, URL url, ClassLoader cl) {
                 System.out.println("- " + resource + " " + url);
             }
         });

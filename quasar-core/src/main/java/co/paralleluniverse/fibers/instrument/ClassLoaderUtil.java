@@ -53,7 +53,7 @@ import java.util.jar.Manifest;
  */
 public final class ClassLoaderUtil {
     public interface Visitor {
-        void visit(String resource, URL url);
+        void visit(String resource, URL url, ClassLoader cl);
     }
     private static final Splitter CLASS_PATH_ATTRIBUTE_SEPARATOR = Splitter.on(" ").omitEmptyStrings();
     private static final String CLASS_FILE_NAME_EXTENSION = ".class";
@@ -127,7 +127,7 @@ public final class ClassLoaderUtil {
             } else {
                 String resourceName = packagePrefix + name;
                 if (!resourceName.equals(JarFile.MANIFEST_NAME))
-                    visitor.visit(resourceName, f.toURI().toURL());
+                    visitor.visit(resourceName, f.toURI().toURL(), classloader);
             }
         }
     }
@@ -148,7 +148,7 @@ public final class ClassLoaderUtil {
                 JarEntry entry = entries.nextElement();
                 if (entry.isDirectory() || entry.getName().equals(JarFile.MANIFEST_NAME))
                     continue;
-                visitor.visit(entry.getName(), new URL("jar:file:" + file.getCanonicalPath() + "!/" + entry.getName()));
+                visitor.visit(entry.getName(), new URL("jar:file:" + file.getCanonicalPath() + "!/" + entry.getName()), classloader);
             }
         } finally {
             try {
