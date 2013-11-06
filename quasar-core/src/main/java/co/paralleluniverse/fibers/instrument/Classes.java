@@ -23,8 +23,7 @@ final class Classes {
         new BlockingMethod("java/lang/Thread", "sleep", "(J)V", "(JI)V"),
         new BlockingMethod("java/lang/Thread", "join", "()V", "(J)V", "(JI)V"),
         new BlockingMethod("java/lang/Object", "wait", "()V", "(J)V", "(JI)V"),
-        new BlockingMethod("java/util/concurrent/locks/Lock", "lock", "()V"),
-        new BlockingMethod("java/util/concurrent/locks/Lock", "lockInterruptibly", "()V"),};
+    };
     // computed
     static final String EXCEPTION_DESC = "L" + EXCEPTION_NAME + ";";
     static final String ANNOTATION_DESC = "L" + ANNOTATION_NAME + ";";

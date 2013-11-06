@@ -373,15 +373,18 @@ task wrapper(type: Wrapper) {
     gradleVersion = '1.8'
 }
 
-//project(':quasar-core') {
-//    task instrumentClasses(dependsOn: 'compileJava') << {
-//        //ant.logging.level = LogLevel.INFO
-//        ant.taskdef(name:'continuations', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
-//        ant.continuations(verbose:'true', check:'true', debug:'true') {
-//            fileset(dir: sourceSets.main.output.classesDir) {
-//                exclude(name: 'co/paralleluniverse/fibers/*.class')
-//                exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
-//            }
-//        }
-//    }
-//}
+project(':quasar-core') {
+    compileJava {
+        doLast {
+            println "Instrumenting classes..."
+            ant.taskdef(name:'continuations', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
+            ant.continuations(verbose:'true', check:'true', debug:'true') {
+                fileset(dir: sourceSets.main.output.classesDir) {
+                    exclude(name: 'co/paralleluniverse/fibers/*.class')
+                    exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
+                }
+            }
+                
+        }
+    }
+}
