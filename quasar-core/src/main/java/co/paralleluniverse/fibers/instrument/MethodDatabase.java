@@ -57,8 +57,10 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
 
 /**
- * <p>Collects information about classes and their suspendable methods.</p>
- * <p>Provides access to configuration parameters and to logging</p>
+ * <p>
+ * Collects information about classes and their suspendable methods.</p>
+ * <p>
+ * Provides access to configuration parameters and to logging</p>
  *
  * @author Matthias Mann
  * @author pron
@@ -82,7 +84,7 @@ public class MethodDatabase implements Log {
 
         this.cl = classloader;
         this.classifier = classifier;
-        
+
         classes = new TreeMap<String, ClassEntry>();
         superClasses = new HashMap<String, String>();
         workList = new ArrayList<WorkListEntry>();
@@ -191,9 +193,9 @@ public class MethodDatabase implements Log {
     private static final int SUSPENDABLE = 4;
 
     public SuspendableType isMethodSuspendable(String className, String methodName, String methodDesc, int opcode) {
-        if(className.startsWith("org/netbeans/lib/"))
+        if (className.startsWith("org/netbeans/lib/"))
             return SuspendableType.NON_SUSPENDABLE;
-        
+
         int res = isMethodSuspendable0(className, methodName, methodDesc, opcode);
         switch (res) {
             case UNKNOWN:
@@ -356,8 +358,10 @@ public class MethodDatabase implements Log {
     }
 
     /**
-     * <p>Overwrite this function if library is used in a transformation chain.</p>
-     * <p>This method must create a new CheckInstrumentationVisitor and visit the
+     * <p>
+     * Overwrite this function if library is used in a transformation chain.</p>
+     * <p>
+     * This method must create a new CheckInstrumentationVisitor and visit the
      * specified class with it.</p>
      *
      * @param className the class the needs to be analysed
@@ -473,7 +477,9 @@ public class MethodDatabase implements Log {
     }
 
     public static boolean isProblematicClass(String className) {
-        return className.startsWith("org/gradle/") || className.startsWith("ch/qos/logback/");
+        return className.startsWith("org/gradle/")
+                || className.startsWith("ch/qos/logback/")
+                || className.startsWith("org/apache/logging/log4j/");
     }
     private static final ClassEntry CLASS_NOT_FOUND = new ClassEntry("<class not found>");
 
@@ -576,7 +582,7 @@ public class MethodDatabase implements Log {
             this.superClass = superName;
         }
     }
-    
+
     public static class WorkListEntry {
         public final String name;
         public final File file;

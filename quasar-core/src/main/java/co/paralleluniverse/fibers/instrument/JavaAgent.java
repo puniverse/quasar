@@ -178,7 +178,7 @@ public class JavaAgent {
                 return tranformed;
             } catch (Exception ex) {
                 if (MethodDatabase.isProblematicClass(className))
-                    instrumentor.log(LogLevel.INFO, "Unable to instrument %s - %s %s", className, ex, Arrays.toString(ex.getStackTrace()));
+                    instrumentor.log(LogLevel.INFO, "Skipping problematic class instrumentation %s - %s %s", className, ex, Arrays.toString(ex.getStackTrace()));
                 else
                     instrumentor.error("Unable to instrument " + className, ex);
                 return null;
