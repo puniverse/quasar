@@ -83,7 +83,7 @@ public class TransferSelectorTest {
     final FiberScheduler scheduler;
 
     public TransferSelectorTest() {
-        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
+        scheduler = new FiberScheduler("test", 4, null, false);
         this.mailboxSize = 0;
         this.policy = OverflowPolicy.BLOCK;
         this.singleConsumer = false;

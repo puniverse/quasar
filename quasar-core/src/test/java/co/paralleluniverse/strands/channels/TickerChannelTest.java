@@ -21,7 +21,6 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import java.util.Arrays;
-import jsr166e.ForkJoinPool;
 import static org.hamcrest.CoreMatchers.*;
 import org.junit.After;
 import static org.junit.Assert.*;
@@ -59,9 +58,8 @@ public class TickerChannelTest {
     private FiberScheduler scheduler;
 
     public TickerChannelTest() {
-        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
+        scheduler = new FiberScheduler("test", 4, null, false);
     }
-
 
     @Test
     public void testMultipleConsumersAlwaysAscending() throws Exception {

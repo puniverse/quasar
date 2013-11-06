@@ -37,7 +37,7 @@ public class DefaultFiberScheduler {
         final String name = "default-fiber-pool";
         int par = 0;
         Thread.UncaughtExceptionHandler handler = null;
-        ForkJoinPool.ForkJoinWorkerThreadFactory fac = new NamingForkJoinWorkerFactory(name);
+        // ForkJoinPool.ForkJoinWorkerThreadFactory fac = new NamingForkJoinWorkerFactory(name);
         MonitorType monitorType = MonitorType.JMX;
         boolean detailedFiberInfo = false;
 
@@ -45,9 +45,9 @@ public class DefaultFiberScheduler {
         try {
             String pp = System.getProperty(PROPERTY_PARALLELISM);
             String hp = System.getProperty(PROPERTY_EXCEPTION_HANDLER);
-            String fp = System.getProperty(PROPERTY_THREAD_FACTORY);
-            if (fp != null)
-                fac = ((ForkJoinPool.ForkJoinWorkerThreadFactory) ClassLoader.getSystemClassLoader().loadClass(fp).newInstance());
+//            String fp = System.getProperty(PROPERTY_THREAD_FACTORY);
+//            if (fp != null)
+//                fac = ((ForkJoinPool.ForkJoinWorkerThreadFactory) ClassLoader.getSystemClassLoader().loadClass(fp).newInstance());
             if (hp != null)
                 handler = ((Thread.UncaughtExceptionHandler) ClassLoader.getSystemClassLoader().loadClass(hp).newInstance());
             if (pp != null)
@@ -65,14 +65,11 @@ public class DefaultFiberScheduler {
             monitorType = MonitorType.valueOf(mt.toUpperCase());
 
         String dfis = System.getProperty(PROPERTY_DETAILED_FIBER_INFO);
-        if(dfis != null)
+        if (dfis != null)
             detailedFiberInfo = Boolean.valueOf(dfis);
-        
+
         // build instance
-        MonitoredForkJoinPool pool = new MonitoredForkJoinPool(name, par, fac, handler, true);
-        final ForkJoinPoolMonitor fjpMonitor = FiberScheduler.createForkJoinPoolMonitor(name, pool, monitorType);
-        pool.setMonitor(fjpMonitor);
-        instance = new FiberScheduler(pool, detailedFiberInfo);
+        instance = new FiberScheduler(name, par, handler, monitorType, detailedFiberInfo);
     }
 
     public static FiberScheduler getInstance() {

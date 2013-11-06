@@ -22,7 +22,6 @@ import co.paralleluniverse.strands.SuspendableRunnable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import jsr166e.ForkJoinPool;
 import org.junit.After;
 import org.junit.AfterClass;
 import static org.junit.Assert.*;
@@ -39,7 +38,7 @@ public class FiberTest {
     private FiberScheduler scheduler;
 
     public FiberTest() {
-        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
+        scheduler = new FiberScheduler("test", 4, null, false);
     }
 
     @BeforeClass

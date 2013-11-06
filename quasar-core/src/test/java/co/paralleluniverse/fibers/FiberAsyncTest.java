@@ -9,7 +9,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import jsr166e.ForkJoinPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,7 +24,7 @@ public class FiberAsyncTest {
     private FiberScheduler scheduler;
 
     public FiberAsyncTest() {
-        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
+        scheduler = new FiberScheduler("test", 4, null, false);
     }
 
     interface MyCallback {

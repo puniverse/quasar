@@ -20,7 +20,6 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableCallable;
 import java.util.concurrent.ExecutionException;
 import jsr166e.CompletableFuture;
-import jsr166e.ForkJoinPool;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -33,7 +32,7 @@ public class AsyncCompletableFutureTest {
     private FiberScheduler scheduler;
 
     public AsyncCompletableFutureTest() {
-        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
+        scheduler = new FiberScheduler("test", 4, null, false);
     }
 
     @Test

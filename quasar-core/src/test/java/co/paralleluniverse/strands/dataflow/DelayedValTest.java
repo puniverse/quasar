@@ -21,7 +21,6 @@ import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import java.util.concurrent.atomic.AtomicReference;
-import jsr166e.ForkJoinPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,7 +36,7 @@ public class DelayedValTest {
     private FiberScheduler scheduler;
 
     public DelayedValTest() {
-        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
+        scheduler = new FiberScheduler("test", 4, null, false);
     }
 
     @Test(expected = IllegalStateException.class)

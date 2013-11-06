@@ -17,7 +17,6 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.file.Paths;
 import static java.nio.file.StandardOpenOption.*;
-import jsr166e.ForkJoinPool;
 import static org.hamcrest.CoreMatchers.*;
 import org.junit.After;
 import static org.junit.Assert.*;
@@ -36,7 +35,7 @@ public class FiberAsyncIOTest {
     private FiberScheduler scheduler;
 
     public FiberAsyncIOTest() {
-        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
+        scheduler = new FiberScheduler("test", 4, null, false);
     }
 
     @Before

@@ -30,7 +30,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import jsr166e.ForkJoinPool;
 import static org.hamcrest.CoreMatchers.*;
 import org.junit.After;
 import static org.junit.Assert.*;
@@ -97,7 +96,7 @@ public class GeneralSelectorTest {
 //        Debug.dumpAfter(15000, "channels.log");
 //    }
     public GeneralSelectorTest(int mailboxSize, OverflowPolicy policy, boolean singleConsumer, boolean singleProducer) {
-        scheduler = new FiberScheduler(new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true));
+        scheduler = new FiberScheduler("test", 4, null, false);
         this.mailboxSize = mailboxSize;
         this.policy = policy;
         this.singleConsumer = singleConsumer;
