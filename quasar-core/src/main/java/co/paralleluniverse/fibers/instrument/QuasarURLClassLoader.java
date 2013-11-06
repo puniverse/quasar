@@ -29,6 +29,7 @@ import java.security.AccessController;
 import java.security.CodeSigner;
 import java.security.PrivilegedExceptionAction;
 import java.security.cert.Certificate;
+import java.util.Arrays;
 import java.util.jar.Manifest;
 import sun.misc.Resource;
 import sun.misc.URLClassPath;
@@ -120,7 +121,7 @@ public class QuasarURLClassLoader extends URLClassLoader {
             return is;
     }
 
-    private Resource instrument(final String name, final Resource res) {
+    private Resource instrument(final String className, final Resource res) {
         return new Resource() {
             private byte[] instrumented;
 
@@ -136,7 +137,15 @@ public class QuasarURLClassLoader extends URLClassLoader {
                     } else
                         bytes = res.getBytes();
 
-                    this.instrumented = instrumentor.instrumentClass(name, bytes);
+                    try {
+                        this.instrumented = instrumentor.instrumentClass(className, bytes);
+                    } catch (Exception ex) {
+                        if (MethodDatabase.isProblematicClass(className))
+                            instrumentor.log(LogLevel.INFO, "Skipping problematic class instrumentation %s - %s %s", className, ex, Arrays.toString(ex.getStackTrace()));
+                        else
+                            instrumentor.error("Unable to instrument " + className, ex);
+                        instrumented = bytes;
+                    }
                 }
                 return instrumented;
             }
