@@ -1451,24 +1451,23 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     private static Fiber verifySuspend() {
         final Fiber current = verifyCurrent();
-        if (current == null) {
-            Stack stack = Stack.getStack();
-            if (stack != null) {
-                Fiber f = stack.getFiber();
-                if(!f.getStackTrace)
-                    throw new AssertionError();
-                return f;
-            }
-        }
         if (verifyInstrumentation)
             assert checkInstrumentation();
         return current;
     }
 
     private static Fiber verifyCurrent() {
-        final Fiber current = currentFiber();
-        if (current == null)
+        Fiber current = currentFiber();
+        if (current == null) {
+            Stack stack = Stack.getStack();
+            if (stack != null) {
+                current = stack.getFiber();
+                if (!current.getStackTrace)
+                    throw new AssertionError();
+                return current;
+            }
             throw new IllegalStateException("Not called from withing a Fiber");
+        }
         return current;
     }
 
