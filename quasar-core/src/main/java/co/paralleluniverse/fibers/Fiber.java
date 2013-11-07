@@ -1175,6 +1175,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         Fiber.defaultUncaughtExceptionHandler = defaultUncaughtExceptionHandler;
     }
 
+    Thread getRunningThread() {
+        return runningThread;
+    }
+    
     @Override
     public final StackTraceElement[] getStackTrace() {
         StackTraceElement[] threadStack = null;
