@@ -64,7 +64,7 @@ public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean 
             //threadRecorder.set(recorder);
             recorders.put(Thread.currentThread(), recorder);
         }
-        System.err.println("STARTING FLIGHT RECORDER FOR THREAD " + Thread.currentThread() + " OF SIZE " + size);
+        System.err.println("STARTING FLIGHT RECORDER FOR THREAD " + Thread.currentThread() + " OF SIZE " + size + " AT LEVEL " + level);
         return recorder;
     }
 
