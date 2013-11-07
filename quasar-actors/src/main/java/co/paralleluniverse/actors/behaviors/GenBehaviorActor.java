@@ -171,10 +171,11 @@ public abstract class GenBehaviorActor extends Actor<Object, Void> implements ja
     }
 
     @Override
-    protected void handleLifecycleMessage(LifecycleMessage m) {
-        if (m instanceof ShutdownMessage) {
+    protected Object handleLifecycleMessage(LifecycleMessage m) {
+        if (m instanceof ShutdownMessage)
             shutdown();
-        } else
+        else
             super.handleLifecycleMessage(m);
+        return null;
     }
 }

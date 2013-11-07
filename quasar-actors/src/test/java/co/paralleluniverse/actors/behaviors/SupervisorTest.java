@@ -108,11 +108,12 @@ public class SupervisorTest {
         }
 
         @Override
-        protected void handleLifecycleMessage(LifecycleMessage m) {
+        protected Object handleLifecycleMessage(LifecycleMessage m) {
             if (m instanceof ShutdownMessage)
                 Strand.currentStrand().interrupt();
             else
                 super.handleLifecycleMessage(m);
+            return null;
         }
     }
 
@@ -335,11 +336,12 @@ public class SupervisorTest {
         }
 
         @Override
-        protected void handleLifecycleMessage(LifecycleMessage m) {
+        protected Object handleLifecycleMessage(LifecycleMessage m) {
             if (m instanceof ShutdownMessage)
                 Strand.currentStrand().interrupt();
             else
                 super.handleLifecycleMessage(m);
+            return null;
         }
 
         @Override

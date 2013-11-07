@@ -310,7 +310,7 @@ public class SupervisorActor extends GenBehaviorActor {
     }
 
     @Override
-    protected final void handleLifecycleMessage(LifecycleMessage m) {
+    protected final Object handleLifecycleMessage(LifecycleMessage m) {
         boolean handled = false;
         try {
             if (m instanceof ExitMessage) {
@@ -334,6 +334,7 @@ public class SupervisorActor extends GenBehaviorActor {
         }
         if (!handled)
             super.handleLifecycleMessage(m);
+        return null;
     }
 
     private boolean tryRestart(ChildEntry child, Throwable cause, long now, Iterator<ChildEntry> it, boolean isDead) throws InterruptedException {

@@ -322,9 +322,10 @@ public class ActorTest {
             }
 
             @Override
-            protected void handleLifecycleMessage(LifecycleMessage m) {
+            protected Message handleLifecycleMessage(LifecycleMessage m) {
                 super.handleLifecycleMessage(m);
                 handlerCalled.set(true);
+                return null;
             }
         });
 

@@ -417,8 +417,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     protected Message filterMessage(Object m) {
         if (m instanceof LifecycleMessage) {
-            handleLifecycleMessage((LifecycleMessage) m);
-            return null;
+            return handleLifecycleMessage((LifecycleMessage) m);
         }
         return (Message) m;
     }
@@ -541,7 +540,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      */
     protected abstract V doRun() throws InterruptedException, SuspendExecution;
 
-    protected void handleLifecycleMessage(LifecycleMessage m) {
+    protected Message handleLifecycleMessage(LifecycleMessage m) {
         record(1, "Actor", "handleLifecycleMessage", "%s got LifecycleMessage %s", this, m);
         if (m instanceof ExitMessage) {
             ExitMessage exit = (ExitMessage) m;
@@ -549,6 +548,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             if (exit.getWatch() == null)
                 throw new LifecycleException(m);
         }
+        return null;
     }
 
     final void addLifecycleListener(LifecycleListener listener) {
