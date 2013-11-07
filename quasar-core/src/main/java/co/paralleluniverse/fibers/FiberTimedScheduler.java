@@ -435,7 +435,7 @@ public class FiberTimedScheduler {
 
     private void reportProblemFibers(Collection<Fiber> fs) {
         for (Fiber f : fs) {
-            System.err.println("WARNING: fiber " + f + " is hogging the CPU.");
+            System.err.println("WARNING: fiber " + f + " is hogging the CPU or blocking a thread.");
             Strand.printStackTrace(f.getStackTrace(), System.err);
         }
     }

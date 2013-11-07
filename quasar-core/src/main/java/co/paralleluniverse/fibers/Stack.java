@@ -67,6 +67,10 @@ public final class Stack implements Serializable {
         return getStackTrace.get();
     }
 
+    Fiber getFiber() {
+        return fiber;
+    }
+    
     /**
      * Called before a method is called.
      *

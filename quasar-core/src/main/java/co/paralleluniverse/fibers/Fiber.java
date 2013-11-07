@@ -1451,6 +1451,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     private static Fiber verifySuspend() {
         final Fiber current = verifyCurrent();
+        if (current == null) {
+            Stack stack = Stack.getStack();
+            if (stack != null) {
+                Fiber f = stack.getFiber();
+                if(!f.getStackTrace)
+                    throw new AssertionError();
+                return f;
+            }
+        }
         if (verifyInstrumentation)
             assert checkInstrumentation();
         return current;
@@ -1657,6 +1666,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     //</editor-fold>
 
     private static StackTraceElement[] skipStackTraceElements(StackTraceElement[] st, int skip) {
+        if (skip >= st.length)
+            return st; // something is wrong, but all the more reason not to lose the stacktrace
         final StackTraceElement[] st1 = new StackTraceElement[st.length - skip];
         System.arraycopy(st, skip, st1, 0, st1.length);
         return st1;
