@@ -14,6 +14,7 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.actors.ActorRefImpl.ActorLifecycleListener;
+import static co.paralleluniverse.actors.ActorRefImpl.getActorRefImpl;
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
@@ -321,7 +322,6 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     boolean trySend(Message message) {
         record(1, "Actor", "trySend", "Sending %s -> %s", message, this);
-        boolean res = false;
         if (mailbox().isOwnerAlive()) {
             if (mailbox().trySend(message))
                 return true;
@@ -544,7 +544,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         record(1, "Actor", "handleLifecycleMessage", "%s got LifecycleMessage %s", this, m);
         if (m instanceof ExitMessage) {
             ExitMessage exit = (ExitMessage) m;
-            removeObserverListeners(getActorImpl(exit.getActor()));
+            removeObserverListeners(getActorRefImpl(exit.getActor()));
             if (exit.getWatch() == null)
                 throw new LifecycleException(m);
         }
@@ -601,17 +601,9 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         }
     }
 
-    private ActorRefImpl getActorImpl(ActorRef actor) {
-        while (actor instanceof ActorRefDelegate)
-            actor = ((ActorRefDelegate) actor).ref;
-        if (actor instanceof ActorRefImpl)
-            return (ActorRefImpl) actor;
-        else
-            throw new AssertionError("Actor " + actor + " is not an ActorImpl");
-    }
 
     public final Actor link(ActorRef other1) {
-        final ActorRefImpl other = getActorImpl(other1);
+        final ActorRefImpl other = getActorRefImpl(other1);
         record(1, "Actor", "link", "Linking actors %s, %s", this, other);
         if (this.isDone()) {
             other.getLifecycleListener().dead(ref, getDeathCause());
@@ -623,7 +615,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
 
     public final Actor unlink(ActorRef other1) {
-        final ActorRefImpl other = getActorImpl(other1);
+        final ActorRefImpl other = getActorRefImpl(other1);
         record(1, "Actor", "unlink", "Uninking actors %s, %s", this, other);
         removeLifecycleListener(other.getLifecycleListener());
         other.removeLifecycleListener(myRef().getLifecycleListener());
@@ -633,7 +625,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     public final Object watch(ActorRef other1) {
         final Object id = ActorUtil.randtag();
 
-        final ActorRefImpl other = getActorImpl(other1);
+        final ActorRefImpl other = getActorRefImpl(other1);
         final LifecycleListener listener = new ActorLifecycleListener(ref, id);
         record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other, listener);
 
@@ -643,11 +635,11 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
 
     public final void unwatch(ActorRef other1, Object watchId) {
-        final ActorRefImpl other = getActorImpl(other1);
+        final ActorRefImpl other = getActorRefImpl(other1);
         final LifecycleListener listener = new ActorLifecycleListener(ref, watchId);
         record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other, listener);
         other.removeLifecycleListener(listener);
-        observed.remove(getActorImpl(other1));
+        observed.remove(getActorRefImpl(other1));
     }
 
     public final Actor register(String name) {

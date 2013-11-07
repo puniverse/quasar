@@ -22,10 +22,6 @@ import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-/**
- *
- * @author pron
- */
 abstract class ActorRefImpl<Message> extends ActorRef<Message> implements SendPort<Message>, java.io.Serializable {
     static final long serialVersionUID = 894359345L;
     //
@@ -102,6 +98,9 @@ abstract class ActorRefImpl<Message> extends ActorRef<Message> implements SendPo
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public abstract boolean trySend(Message message);
+
     /**
      * For internal use
      *
@@ -173,14 +172,23 @@ abstract class ActorRefImpl<Message> extends ActorRef<Message> implements SendPo
     public boolean equals(Object obj) {
         if (obj == null)
             return false;
-        if(obj == this)
+        if (obj == this)
             return true;
         if (!(obj instanceof ActorRef))
             return false;
         ActorRef other = (ActorRef) obj;
-        while(other instanceof ActorRefDelegate)
+        while (other instanceof ActorRefDelegate)
             other = ((ActorRefDelegate) other).ref;
         return other == this;
+    }
+    
+    static ActorRefImpl getActorRefImpl(ActorRef actor) {
+        while (actor instanceof ActorRefDelegate)
+            actor = ((ActorRefDelegate) actor).ref;
+        if (actor instanceof ActorRefImpl)
+            return (ActorRefImpl) actor;
+        else
+            throw new AssertionError("Actor " + actor + " is not an ActorRefImpl");
     }
 
     //<editor-fold defaultstate="collapsed" desc="Recording">
