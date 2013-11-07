@@ -277,32 +277,32 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         return RECORDER != null;
     }
 
-    static void record(String method, String format) {
+    public static void record(String method, String format) {
         if (RECORDER != null)
             RECORDER.record(1, new FlightRecorderMessage("ParkableForkJoinTask", method, format, null));
     }
 
-    static void record(String method, String format, Object arg1) {
+    public static void record(String method, String format, Object arg1) {
         if (RECORDER != null)
             RECORDER.record(1, new FlightRecorderMessage("ParkableForkJoinTask", method, format, new Object[]{arg1}));
     }
 
-    static void record(String method, String format, Object arg1, Object arg2) {
+    public static void record(String method, String format, Object arg1, Object arg2) {
         if (RECORDER != null)
             RECORDER.record(1, new FlightRecorderMessage("ParkableForkJoinTask", method, format, new Object[]{arg1, arg2}));
     }
 
-    static void record(String method, String format, Object arg1, Object arg2, Object arg3) {
+    public static void record(String method, String format, Object arg1, Object arg2, Object arg3) {
         if (RECORDER != null)
             RECORDER.record(1, new FlightRecorderMessage("ParkableForkJoinTask", method, format, new Object[]{arg1, arg2, arg3}));
     }
 
-    static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+    public static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
         if (RECORDER != null)
             RECORDER.record(1, new FlightRecorderMessage("ParkableForkJoinTask", method, format, new Object[]{arg1, arg2, arg3, arg4}));
     }
 
-    static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+    public static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
         if (RECORDER != null)
             RECORDER.record(1, new FlightRecorderMessage("ParkableForkJoinTask", method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
     }
