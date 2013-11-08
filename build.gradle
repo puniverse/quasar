@@ -281,6 +281,19 @@ project (':quasar-core') {
         compile "org.ow2.asm:asm-util:4.2"
     }
     
+    compileJava {
+        doLast {
+            println "Instrumenting classes..."
+            ant.taskdef(name:'continuations', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
+            ant.continuations(verbose:'true', check:'true', debug:'true') {
+                fileset(dir: sourceSets.main.output.classesDir) {
+                    exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
+                }
+            }
+                
+        }
+    }
+    
     task scanSuspendables(type: JavaExec, dependsOn: classes) { // runs SuspendableScanner
         main = "co.paralleluniverse.fibers.instrument.SuspendablesScanner"
         classpath = sourceSets.main.runtimeClasspath
@@ -371,20 +384,4 @@ task clean(dependsOn: subprojects.clean) << {
 
 task wrapper(type: Wrapper) {
     gradleVersion = '1.8'
-}
-
-project(':quasar-core') {
-    compileJava {
-        doLast {
-            println "Instrumenting classes..."
-            ant.taskdef(name:'continuations', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
-            ant.continuations(verbose:'true', check:'true', debug:'true') {
-                fileset(dir: sourceSets.main.output.classesDir) {
-                    exclude(name: 'co/paralleluniverse/fibers/*.class')
-                    exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
-                }
-            }
-                
-        }
-    }
 }
