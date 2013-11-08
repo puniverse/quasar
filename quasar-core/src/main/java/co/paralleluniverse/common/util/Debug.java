@@ -92,7 +92,8 @@ public class Debug {
         }
 
         if (requestShutdown.compareAndSet(false, true)) {
-            System.err.println("SHUTTING DOWN THE VM.");
+            System.err.println("DEBUG EXIT REQUEST: SHUTTING DOWN THE JVM.");
+            Thread.dumpStack();
             System.exit(code);
         }
     }
