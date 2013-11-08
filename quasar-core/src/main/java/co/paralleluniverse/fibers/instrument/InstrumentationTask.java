@@ -111,7 +111,7 @@ public class InstrumentationTask extends Task {
                 final int msgLevel;
                 switch (level) {
                     case DEBUG:
-                        msgLevel = Project.MSG_INFO;
+                        msgLevel = Project.MSG_DEBUG;
                         break;
                     case INFO:
                         msgLevel = Project.MSG_INFO;

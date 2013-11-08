@@ -17,21 +17,23 @@ import co.paralleluniverse.fibers.Suspendable;
 import static co.paralleluniverse.fibers.instrument.ASMUtil.*;
 import static co.paralleluniverse.fibers.instrument.SimpleSuspendableClassifier.PREFIX;
 import static co.paralleluniverse.fibers.instrument.SimpleSuspendableClassifier.SUSPENDABLE_SUPERS_FILE;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.AnnotationNode;
+import org.apache.tools.ant.BuildException;
+import org.apache.tools.ant.DirectoryScanner;
+import org.apache.tools.ant.Project;
+import org.apache.tools.ant.Task;
+import org.apache.tools.ant.types.FileSet;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -39,40 +41,93 @@ import org.objectweb.asm.tree.MethodNode;
  *
  * @author pron
  */
-public class SuspendablesScanner {
+public class SuspendablesScanner extends Task {
     private static final boolean USE_REFLECTION = false;
-    private static final String BUILD_DIR = "build/";
-    private static final String RESOURCES_DIR = "resources/main/";
-    private static final String CLASSES_DIR = "/classes/main/";
     private static final String CLASSFILE_SUFFIX = ".class";
 
-    public static void main(String args[]) throws Exception {
-        String[] classPrefixes = new String[]{"co.paralleluniverse.fibers", "co.paralleluniverse.strands"};//args;
-        String outputFile = BUILD_DIR + RESOURCES_DIR + PREFIX + SUSPENDABLE_SUPERS_FILE;
+    private ClassLoader cl;
+    private final ArrayList<FileSet> filesets = new ArrayList<FileSet>();
+    private final Set<String> results = new HashSet<String>();
+    private String outputFile;
 
-        run(classPrefixes, outputFile);
+    public void addFileSet(FileSet fs) {
+        filesets.add(fs);
     }
 
-    public static void run(String[] prefixes, String outputFile) throws Exception {
-        Set<String> results = new HashSet<String>();
+    public void setOutputFile(String outputFile) {
+        this.outputFile = outputFile;
+    }
+
+    public void run(String[] prefixes) throws Exception {
         for (String prefix : prefixes)
-            collect(prefix, results);
-        outputResults(results, outputFile);
+            collect(prefix);
+        outputResults(outputFile);
     }
 
-    private static Set<String> collect(String prefix, Set<String> results) throws Exception {
+    @Override
+    public void execute() throws BuildException {
+        if (USE_REFLECTION)
+            log("Using reflection", Project.MSG_INFO);
+        try {
+            List<URL> urls = new ArrayList<>();
+            for (FileSet fs : filesets)
+                urls.add(fs.getDir().toURI().toURL());
+            System.out.println("URLs: " + urls);
+            cl = new URLClassLoader(urls.toArray(new URL[0]), ClassLoader.getSystemClassLoader());
+
+            for (FileSet fs : filesets) {
+                final DirectoryScanner ds = fs.getDirectoryScanner(getProject());
+                final String[] includedFiles = ds.getIncludedFiles();
+
+                for (String filename : includedFiles) {
+                    if (filename.endsWith(CLASSFILE_SUFFIX)) {
+                        File file = new File(fs.getDir(), filename);
+                        if (file.isFile())
+                            scanClass(file);
+                        else
+                            log("File not found: " + filename);
+                    }
+                }
+            }
+            outputResults(outputFile);
+        } catch (Exception e) {
+            log(e, Project.MSG_ERR);
+            throw new BuildException(e);
+        }
+    }
+
+    private Set<String> collect(String prefix) throws Exception {
         prefix = prefix.trim();
         prefix = prefix.replace('.', '/');
         for (Enumeration<URL> urls = ClassLoader.getSystemResources(prefix); urls.hasMoreElements();) {
             URL url = urls.nextElement();
             File file = new File(url.getFile());
             if (file.isDirectory())
-                scanClasses(file, results, ClassLoader.getSystemClassLoader());
+                scanClasses(file);
         }
         return results;
     }
 
-    private static void outputResults(Set<String> results, String outputFile) throws Exception {
+    private void scanClasses(File file) throws Exception {
+        if (file.isDirectory()) {
+            System.out.println("Scanning dir: " + file.getPath());
+            for (File f : file.listFiles())
+                scanClasses(f);
+        } else
+            scanClass(file);
+    }
+
+    private void scanClass(File file) throws Exception {
+        log("Scanning " + file, Project.MSG_VERBOSE);
+        if (file != null) {
+            if (USE_REFLECTION)
+                scanClass(Class.forName(extractClassName(file)));
+            else
+                scanClass(getClassNode(file, true));
+        }
+    }
+
+    private void outputResults(String outputFile) throws Exception {
         try (PrintStream out = getOutputStream(outputFile)) {
             List<String> sorted = new ArrayList<String>(results);
             Collections.sort(sorted);
@@ -84,8 +139,8 @@ public class SuspendablesScanner {
         }
     }
 
-    private static PrintStream getOutputStream(String outputFile) throws Exception {
-        System.out.println("OUTPUT: " + outputFile);
+    private PrintStream getOutputStream(String outputFile) throws Exception {
+        log("OUTPUT: " + outputFile, Project.MSG_INFO);
         if (outputFile != null) {
             outputFile = outputFile.trim();
             if (outputFile.isEmpty())
@@ -100,62 +155,55 @@ public class SuspendablesScanner {
             return System.out;
     }
 
-    private static void scanClasses(File file, Set<String> results, ClassLoader cl) throws Exception {
-        if (file.isDirectory()) {
-            System.out.println("Scanning dir: " + file.getPath());
-            for (File f : file.listFiles())
-                scanClasses(f, results, cl);
-        } else {
-            String className = extractClassName(file);
-            if (className != null) {
-                if (USE_REFLECTION)
-                    scanClass(Class.forName(className), results);
-                else
-                    scanClass(getClassNode(className, true, cl), results, cl);
+    /////////// ASM
+    private void scanClass(ClassNode cls) throws Exception {
+        List<MethodNode> methods = cls.methods;
+        for (MethodNode m : methods) {
+            if (hasAnnotation(Suspendable.class, m)) {
+                log("Found annotated method: " + cls.name + "." + m.name + m.desc, Project.MSG_VERBOSE);
+                findSuperDeclarations(cls, cls, m);
             }
         }
     }
 
-    private static String extractClassName(File file) {
-        String fileName = file.getPath();
-        if (fileName.endsWith(CLASSFILE_SUFFIX) && fileName.indexOf(CLASSES_DIR) >= 0) {
-            String className = fileName.substring(fileName.indexOf(CLASSES_DIR) + CLASSES_DIR.length(),
-                    fileName.length() - CLASSFILE_SUFFIX.length()).replace('/', '.');
-            return className;
-        } else
-            return null;
-    }
-
-    private static void scanClass(ClassNode cls, Set<String> results, ClassLoader cl) throws Exception {
-        List<MethodNode> methods = cls.methods;
-        for (MethodNode m : methods) {
-            if (hasAnnotation(Suspendable.class, m))
-                findSuperDeclarations(cls, cls, m, results, cl);
-        }
-    }
-
-    private static void findSuperDeclarations(ClassNode cls, ClassNode declaringClass, MethodNode method, Set<String> results, ClassLoader cl) throws IOException {
+    private void findSuperDeclarations(ClassNode cls, ClassNode declaringClass, MethodNode method) throws IOException {
         if (cls == null)
             return;
 
-        if (!ASMUtil.equals(cls, declaringClass) && hasMethod(method, cls))
+        if (!ASMUtil.equals(cls, declaringClass) && hasMethod(method, cls)) {
+            log("Found parent of annotated method: " + declaringClass.name + "." + method.name + method.desc + " in " + cls.name, Project.MSG_VERBOSE);
             results.add(cls.name.replace('/', '.') + '.' + method.name);
+        }
 
         // recursively look in superclass and interfaces
-        findSuperDeclarations(getClassNode(cls.superName, true, cl), declaringClass, method, results, cl);
+        findSuperDeclarations(getClassNode(cls.superName, true, cl), declaringClass, method);
         for (String iface : (List<String>) cls.interfaces)
-            findSuperDeclarations(getClassNode(iface, true, cl), declaringClass, method, results, cl);
+            findSuperDeclarations(getClassNode(iface, true, cl), declaringClass, method);
     }
 
-    private static void scanClass(Class cls, Set<String> results) throws Exception {
+    ///////// REFLECTION
+    private String extractClassName(File file) {
+        String fileName = file.getPath();
+        URL[] urls = ((URLClassLoader) cl).getURLs();
+        for (URL url : urls) {
+            if (fileName.startsWith(url.getPath())) {
+                String className = fileName.substring(url.getPath().length(),
+                        fileName.length() - CLASSFILE_SUFFIX.length()).replace('/', '.');
+                return className;
+            }
+        }
+        throw new RuntimeException();
+    }
+
+    private void scanClass(Class cls) throws Exception {
         Method[] methods = cls.getDeclaredMethods();
         for (Method m : methods) {
             if (m.isAnnotationPresent(Suspendable.class))
-                findSuperDeclarations(cls, m, results);
+                findSuperDeclarations(cls, m);
         }
     }
 
-    private static void findSuperDeclarations(Class cls, Method method, Set<String> results) {
+    private void findSuperDeclarations(Class cls, Method method) {
         if (cls == null)
             return;
 
@@ -168,8 +216,8 @@ public class SuspendablesScanner {
         }
 
         // recursively look in superclass and interfaces
-        findSuperDeclarations(cls.getSuperclass(), method, results);
+        findSuperDeclarations(cls.getSuperclass(), method);
         for (Class iface : cls.getInterfaces())
-            findSuperDeclarations(iface, method, results);
+            findSuperDeclarations(iface, method);
     }
 }

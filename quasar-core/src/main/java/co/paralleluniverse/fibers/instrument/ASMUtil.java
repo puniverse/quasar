@@ -14,6 +14,8 @@
 package co.paralleluniverse.fibers.instrument;
 
 import com.google.common.io.ByteStreams;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -39,6 +41,19 @@ public final class ASMUtil {
         if (className == null)
             return null;
         try (InputStream is = cl.getResourceAsStream(className.replace('.', '/') + ".class")) {
+            ClassReader cr = new ClassReader(is);
+            ClassNode cn = new ClassNode();
+            cr.accept(cn, ClassReader.SKIP_DEBUG | (skipCode ? 0 : ClassReader.SKIP_CODE));
+            return cn;
+        }
+    }
+
+    public static ClassNode getClassNode(File classFile, boolean skipCode) throws IOException {
+        if (classFile == null)
+            return null;
+        if(!classFile.exists())
+            return null;
+        try (InputStream is = new FileInputStream(classFile)) {
             ClassReader cr = new ClassReader(is);
             ClassNode cn = new ClassNode();
             cr.accept(cn, ClassReader.SKIP_DEBUG | (skipCode ? 0 : ClassReader.SKIP_CODE));
