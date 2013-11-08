@@ -298,9 +298,8 @@ project (':quasar-core') {
         ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner', classpath: "build/classes/main:" + configurations.compile.asPath)
         ant.scanSuspendables(outputFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") { // "$buildDir/resources/main/META-INF/suspendable-supers"
             fileset(dir: sourceSets.main.output.classesDir) {
-                include(name: 'co/paralleluniverse/fibers/**.class')
-                include(name: 'co/paralleluniverse/strands/**.class')
-                include(name: 'co/paralleluniverse/strands/concurrent/**.class')
+                include(name: 'co/paralleluniverse/fibers/**/*.class')
+                include(name: 'co/paralleluniverse/strands/**/*.class')
             }
         }
     }
