@@ -30,9 +30,14 @@ public abstract class TransformingReceivePort<S, T> implements ReceivePort<T> {
     @Override
     @SuppressWarnings("empty-statement")
     public T receive() throws SuspendExecution, InterruptedException {
-        T m;
-        while ((m = transform(target.receive())) == null);
-        return m;
+        for (;;) {
+            S m0 = target.receive();
+            if (m0 == null) // closed
+                return null;
+            T m = transform(m0);
+            if (m != null)
+                return m;
+        }
     }
 
     @Override
