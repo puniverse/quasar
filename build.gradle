@@ -95,27 +95,6 @@ subprojects {
         markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
     }
 
-    //    task instrumentClasses(dependsOn: 'compileJava') << {
-    //        //ant.logging.level = LogLevel.INFO
-    //        ant.taskdef(name:'continuations', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
-    //        ant.continuations(verbose:'true', check:'true', debug:'true') {
-    //            fileset(dir: sourceSets.main.output.classesDir) {
-    //                exclude(name: 'co/paralleluniverse/fibers/*.class')
-    //                exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
-    //            }
-    //        }
-    //    }
-    //
-    //    task instrumentTestClasses(dependsOn: 'compileTestJava') << {
-    //        //ant.logging.level = LogLevel.INFO
-    //        ant.taskdef(name:'continuations', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
-    //        ant.continuations(verbose:'true', check:'true', debug:'true') {
-    //            fileset(dir: sourceSets.test.output.classesDir)
-    //        }
-    //    }
-
-    //testClasses.dependsOn instrumentClasses, instrumentTestClasses
-
     test.dependsOn jar
 
     tasks.withType(Test) { 
