@@ -13,6 +13,10 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.util.Function2;
+import co.paralleluniverse.common.util.Function3;
+import co.paralleluniverse.common.util.Function4;
+import co.paralleluniverse.common.util.Function5;
 import co.paralleluniverse.strands.queues.ArrayQueue;
 import co.paralleluniverse.strands.queues.BasicQueue;
 import co.paralleluniverse.strands.queues.BasicSingleConsumerDoubleQueue;
@@ -35,6 +39,8 @@ import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayFloatQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayIntQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayLongQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayObjectQueue;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 
 /**
  *
@@ -45,19 +51,19 @@ public final class Channels {
         /**
          * The sender will get an exception (except if the channel is an actor's mailbox)
          */
-        THROW, 
+        THROW,
         /**
          * The message will be silently dropped.
          */
-        DROP, 
+        DROP,
         /**
          * The sender will block until there's a vacancy in the channel.
          */
-        BLOCK, 
+        BLOCK,
         /**
          * The sender will block for some time, and retry.
          */
-        BACKOFF, 
+        BACKOFF,
         /**
          * The oldest message in the queue will be removed to make room for the new message.
          */
@@ -217,6 +223,65 @@ public final class Channels {
 
     public static DoubleReceivePort newTickerConsumerFor(DoubleChannel channel) {
         return TickerChannelConsumer.newFor((QueueDoubleChannel) channel);
+    }
+
+    ////////////////////
+    public static <M> ReceivePort<M> group(ReceivePort<? extends M>... channels) {
+        return new ReceivePortGroup<M>(channels);
+    }
+
+    public static <M> ReceivePort<M> filter(ReceivePort<M> channel, Predicate<M> pred) {
+        return new FilteringReceivePort<M>(channel, pred);
+    }
+
+    public static <S, T> ReceivePort<T> map(ReceivePort<S> channel, Function<S, T> f) {
+        return new MappingReceivePort<S, T>(channel, f);
+    }
+
+    public static <M, S1, S2> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S1> c2, final Function2<S1, S2, M> f) {
+        return new ZippingReceivePort<M>(c1, c2) {
+            @Override
+            protected M transform(Object[] ms) {
+                return f.apply((S1) ms[0], (S2) ms[1]);
+            }
+        };
+    }
+
+    public static <M, S1, S2, S3> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S1> c2, ReceivePort<S1> c3, final Function3<S1, S2, S3, M> f) {
+        return new ZippingReceivePort<M>(c1, c2, c3) {
+            @Override
+            protected M transform(Object[] ms) {
+                return f.apply((S1) ms[0], (S2) ms[1], (S3) ms[2]);
+            }
+        };
+    }
+
+    public static <M, S1, S2, S3, S4> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S1> c2, ReceivePort<S1> c3, ReceivePort<S4> c4,
+            final Function4<S1, S2, S3, S4, M> f) {
+        return new ZippingReceivePort<M>(c1, c2, c3, c4) {
+            @Override
+            protected M transform(Object[] ms) {
+                return f.apply((S1) ms[0], (S2) ms[1], (S3) ms[2], (S4) ms[3]);
+            }
+        };
+    }
+
+    public static <M, S1, S2, S3, S4, S5> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S1> c2, ReceivePort<S1> c3, ReceivePort<S4> c4, ReceivePort<S5> c5,
+            final Function5<S1, S2, S3, S4, S5, M> f) {
+        return new ZippingReceivePort<M>(c1, c2, c3, c4, c5) {
+            @Override
+            protected M transform(Object[] ms) {
+                return f.apply((S1) ms[0], (S2) ms[1], (S3) ms[2], (S4) ms[3], (S5) ms[4]);
+            }
+        };
+    }
+
+    public static <M> SendPort<M> filter(SendPort<M> channel, Predicate<M> pred) {
+        return new FilteringSendPort<M>(channel, pred);
+    }
+
+    public static <S, T> SendPort<S> map(SendPort<T> channel, Function<S, T> f) {
+        return new MappingSendPort<S, T>(channel, f);
     }
 
     private Channels() {

@@ -26,7 +26,7 @@ public abstract class ZippingReceivePort<Message> implements ReceivePort<Message
     private final ReceivePort<?>[] targets;
     private final Object[] ms;
 
-    public ZippingReceivePort(ReceivePort<?>[] targets) {
+    public ZippingReceivePort(ReceivePort<?>... targets) {
         this.targets = Arrays.copyOf(targets, targets.length);
         this.ms = new Object[targets.length];
     }
