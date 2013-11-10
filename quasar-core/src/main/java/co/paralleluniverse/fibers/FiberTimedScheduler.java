@@ -438,7 +438,7 @@ public class FiberTimedScheduler {
             Thread t = f.getRunningThread();
             if (t == null)
                 System.err.println("WARNING: fiber " + f + " is hogging the CPU or blocking a thread.");
-            if(t.getState() != Thread.State.RUNNABLE)
+            else if(t.getState() != Thread.State.RUNNABLE)
                 System.err.println("WARNING: fiber " + f + " is hogging the CPU.");
             else
                 System.err.println("WARNING: fiber " + f + " is blocking a thread.");
