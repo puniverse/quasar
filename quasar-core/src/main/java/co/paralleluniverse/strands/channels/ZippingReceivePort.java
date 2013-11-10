@@ -14,21 +14,28 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import com.google.common.base.Function;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Sincle consumer
+ * Single consumer
  *
  * @author pron
  */
-public abstract class ZippingReceivePort<Message> implements ReceivePort<Message> {
+public class ZippingReceivePort<Message> implements ReceivePort<Message> {
+    private final Function<Object[], Message> f;
     private final ReceivePort<?>[] targets;
-    private final Object[] ms;
+    private Object[] ms;
 
-    public ZippingReceivePort(ReceivePort<?>... targets) {
+    public ZippingReceivePort(Function<Object[], Message> f, ReceivePort<?>... targets) {
+        this.f = f;
         this.targets = Arrays.copyOf(targets, targets.length);
         this.ms = new Object[targets.length];
+    }
+
+    public ZippingReceivePort(ReceivePort<?>... targets) {
+        this(null, targets);
     }
 
     @Override
@@ -42,7 +49,7 @@ public abstract class ZippingReceivePort<Message> implements ReceivePort<Message
                 ms[i] = m;
             }
         }
-        return transform(ms);
+        return transformAndReset();
     }
 
     @Override
@@ -55,7 +62,7 @@ public abstract class ZippingReceivePort<Message> implements ReceivePort<Message
                 ms[i] = m;
             }
         }
-        return transform(ms);
+        return transformAndReset();
     }
 
     @Override
@@ -72,9 +79,21 @@ public abstract class ZippingReceivePort<Message> implements ReceivePort<Message
                 left = deadline - System.nanoTime();
             }
         }
-        return transform(ms);
+        return transformAndReset();
     }
 
+    private Message transformAndReset() {
+        final Object[] ms1 = copy(ms);
+        Arrays.fill(ms, null);
+        return transform(ms1);
+    }
+    
+    private static Object[] copy(Object[] array) {
+        Object[] array2 = new Object[array.length];
+        System.arraycopy(array, 0, array2, 0, array.length);
+        return array2;
+    } 
+    
     @Override
     public void close() {
         for (ReceivePort<?> c : targets)
@@ -90,5 +109,9 @@ public abstract class ZippingReceivePort<Message> implements ReceivePort<Message
         return false;
     }
 
-    protected abstract Message transform(Object[] ms);
+    protected Message transform(Object[] ms) {
+        if(f != null)
+            return f.apply(ms);
+        throw new UnsupportedOperationException();
+    }
 }

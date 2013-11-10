@@ -238,7 +238,11 @@ public final class Channels {
         return new MappingReceivePort<S, T>(channel, f);
     }
 
-    public static <M, S1, S2> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S1> c2, final Function2<S1, S2, M> f) {
+    public static <M> ReceivePort<M> zip(Function<Object[], M> f, ReceivePort<?>... cs) {
+        return new ZippingReceivePort<M>(f, cs);
+    }
+
+    public static <M, S1, S2> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S2> c2, final Function2<S1, S2, M> f) {
         return new ZippingReceivePort<M>(c1, c2) {
             @Override
             protected M transform(Object[] ms) {
@@ -247,7 +251,7 @@ public final class Channels {
         };
     }
 
-    public static <M, S1, S2, S3> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S1> c2, ReceivePort<S1> c3, final Function3<S1, S2, S3, M> f) {
+    public static <M, S1, S2, S3> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S2> c2, ReceivePort<S3> c3, final Function3<S1, S2, S3, M> f) {
         return new ZippingReceivePort<M>(c1, c2, c3) {
             @Override
             protected M transform(Object[] ms) {
@@ -256,7 +260,7 @@ public final class Channels {
         };
     }
 
-    public static <M, S1, S2, S3, S4> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S1> c2, ReceivePort<S1> c3, ReceivePort<S4> c4,
+    public static <M, S1, S2, S3, S4> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S2> c2, ReceivePort<S3> c3, ReceivePort<S4> c4,
             final Function4<S1, S2, S3, S4, M> f) {
         return new ZippingReceivePort<M>(c1, c2, c3, c4) {
             @Override
@@ -266,7 +270,7 @@ public final class Channels {
         };
     }
 
-    public static <M, S1, S2, S3, S4, S5> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S1> c2, ReceivePort<S1> c3, ReceivePort<S4> c4, ReceivePort<S5> c5,
+    public static <M, S1, S2, S3, S4, S5> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S2> c2, ReceivePort<S3> c3, ReceivePort<S4> c4, ReceivePort<S5> c5,
             final Function5<S1, S2, S3, S4, S5, M> f) {
         return new ZippingReceivePort<M>(c1, c2, c3, c4, c5) {
             @Override
