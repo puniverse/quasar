@@ -43,7 +43,7 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
 
     private void readFiles(String fileName, Set<String> set) {
         try {
-            for (Enumeration<URL> susFiles = ClassLoader.getSystemResources(PREFIX + fileName); susFiles.hasMoreElements();) {
+            for (Enumeration<URL> susFiles = getClass().getClassLoader().getResources(PREFIX + fileName); susFiles.hasMoreElements();) {
                 URL file = susFiles.nextElement();
                 parse(file, set);
             }

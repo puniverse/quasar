@@ -114,6 +114,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
                 public void visitEnd() {
                     super.visitEnd();
                     classEntry.set(name, desc, susp ? SuspendableType.SUSPENDABLE : SuspendableType.NON_SUSPENDABLE);
+                    hasSuspendable = hasSuspendable | susp;
                 }
             };
         else

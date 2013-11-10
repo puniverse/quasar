@@ -267,7 +267,7 @@ project (':quasar-core') {
                 fileset(dir: sourceSets.main.output.classesDir)
             }
             
-            ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/classes/main:" + configurations.compile.asPath)
+            ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/resources/main:" + "build/classes/main:" + configurations.compile.asPath)
             ant.instrumentation(verbose:'true', check:'true', debug:'true') {
                 fileset(dir: sourceSets.main.output.classesDir) {
                     exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
