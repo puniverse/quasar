@@ -15,8 +15,6 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Suspendable;
 import static co.paralleluniverse.fibers.instrument.ASMUtil.*;
-import static co.paralleluniverse.fibers.instrument.SimpleSuspendableClassifier.PREFIX;
-import static co.paralleluniverse.fibers.instrument.SimpleSuspendableClassifier.SUSPENDABLE_SUPERS_FILE;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -44,7 +42,6 @@ import org.objectweb.asm.tree.MethodNode;
 public class SuspendablesScanner extends Task {
     private static final boolean USE_REFLECTION = false;
     private static final String CLASSFILE_SUFFIX = ".class";
-
     private ClassLoader cl;
     private final ArrayList<FileSet> filesets = new ArrayList<FileSet>();
     private final Set<String> results = new HashSet<String>();
@@ -73,7 +70,7 @@ public class SuspendablesScanner extends Task {
             for (FileSet fs : filesets)
                 urls.add(fs.getDir().toURI().toURL());
             System.out.println("URLs: " + urls);
-            cl = new URLClassLoader(urls.toArray(new URL[0]), ClassLoader.getSystemClassLoader());
+            cl = new URLClassLoader(urls.toArray(new URL[0]), getClass().getClassLoader());
 
             for (FileSet fs : filesets) {
                 final DirectoryScanner ds = fs.getDirectoryScanner(getProject());
