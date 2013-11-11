@@ -48,9 +48,9 @@ public class FiberTimedScheduler {
      * We're currently feeding the fj-pool sequentially (from a single thread).
      * We can use a custom implementation of a skip-list, and use it to feed the pool in a forking manner.
      */
-    private static final boolean BACKPRESSURE = false;
+    private static final boolean BACKPRESSURE = true;
     private static final int BACKPRESSURE_MASK = (1 << 10) - 1;
-    private static final int BACKPRESSURE_THRESHOLD = 800;
+    private static final int BACKPRESSURE_THRESHOLD = 1200;
     private static final int BACKPRESSURE_PAUSE_MS = 1;
     private static final AtomicInteger nameSuffixSequence = new AtomicInteger();
     private final Thread worker;
