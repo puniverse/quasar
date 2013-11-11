@@ -96,7 +96,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     final FiberTimedScheduler timeoutService;
     private final FiberForkJoinTask<V> fjTask;
     final Stack stack;
-    private final Strand parent;
+    // private final Strand parent; // retaining the parent is a huge, complex memory leak
     private final String name;
     private final int initialStackSize;
     private final long fid;
@@ -139,7 +139,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         this.scheduler = scheduler;
         this.fjPool = scheduler != null ? scheduler.getForkJoinPool() : null;        // null only in tests
         this.timeoutService = scheduler != null ? scheduler.getTimer() : null; // null only in tests
-        this.parent = Strand.currentStrand();
+        Strand parent = Strand.currentStrand();
+        // this.parent = Strand.currentStrand();
         this.target = target;
         this.fjTask = new FiberForkJoinTask<V>(this);
         this.initialStackSize = stackSize;
@@ -976,9 +977,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return fjTask.getBlocker();
     }
 
-    public final Strand getParent() {
-        return parent;
-    }
+//    public final Strand getParent() {
+//        return parent;
+//    }
 
     public final boolean exec(Object blocker, long timeout, TimeUnit unit) {
         if (ForkJoinTask.getPool() != fjPool)
