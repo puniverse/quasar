@@ -14,14 +14,22 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.TimeUnit;
 
 /**
- * A channel's producer-side interface.
- * 
+ * This class is a simple convenience wrapper around {@link SendPort} that can be used by threads (as opposed to fibers). Its methods do not
+ * declare they throw {@code SuspendExecution}.
+ *
  * @author pron
  */
-public interface SendPort<Message> extends Port<Message>, AutoCloseable {
+public class ThreadSendPort<Message> {
+    private final SendPort<Message> p;
+
+    public ThreadSendPort(SendPort<Message> p) {
+        this.p = p;
+    }
+
     /**
      * Sends a message to the channel, possibly blocking until there's room available in the channel.
      *
@@ -31,10 +39,18 @@ public interface SendPort<Message> extends Port<Message>, AutoCloseable {
      * @param message
      * @throws SuspendExecution
      */
-    void send(Message message) throws SuspendExecution, InterruptedException;
+    public void send(Message message) throws InterruptedException {
+        if (Strand.isCurrentFiber())
+            throw new IllegalStateException("This method cannot be called on a fiber");
+        try {
+            p.send(message);
+        } catch (SuspendExecution e) {
+            throw new AssertionError(e);
+        }
+    }
 
     /**
-     * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the 
+     * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the
      * specified timeout.
      *
      * If the channel is full, this method may block, throw an exception, silently drop the message, or displace an old message from
@@ -46,18 +62,45 @@ public interface SendPort<Message> extends Port<Message>, AutoCloseable {
      * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has expired.
      * @throws SuspendExecution
      */
-    boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
+    public boolean send(Message message, long timeout, TimeUnit unit) throws InterruptedException {
+        if (Strand.isCurrentFiber())
+            throw new IllegalStateException("This method cannot be called on a fiber");
+        try {
+            return p.send(message, timeout, unit);
+        } catch (SuspendExecution e) {
+            throw new AssertionError(e);
+        }
+    }
 
     /**
      * Sends a message to the channel if the channel has room available. This method never blocks.
+     *
      * @param message
      * @return {@code true} if the message has been sent; {@code false} otherwise.
      */
-    boolean trySend(Message message);
+    public boolean trySend(Message message) {
+        return p.trySend(message);
+    }
 
     /**
      * Closes the channel so that no more messages could be sent to it.
      */
+    public void close() {
+        p.close();
+    }
+
     @Override
-    void close();
+    public int hashCode() {
+        return p.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return p.equals(obj);
+    }
+
+    @Override
+    public String toString() {
+        return p.toString();
+    }
 }
