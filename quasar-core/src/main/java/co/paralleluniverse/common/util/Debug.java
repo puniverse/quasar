@@ -13,7 +13,9 @@
 package co.paralleluniverse.common.util;
 
 import co.paralleluniverse.common.monitoring.FlightRecorder;
+import co.paralleluniverse.strands.Strand;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -87,7 +89,8 @@ public class Debug {
 
     public static void exit(int code) {
         if (flightRecorder != null) {
-            flightRecorder.record(1, "DEBUG EXIT REQUEST");
+            Strand currentStrand = Strand.currentStrand();
+            flightRecorder.record(1, "DEBUG EXIT REQUEST ON STRAND " + currentStrand + ": " + Arrays.toString(currentStrand.getStackTrace()));
             flightRecorder.stop();
         }
 
