@@ -67,6 +67,12 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
     private final Fiber fiber;
     private final boolean immediateExec;
     private long timeoutNanos;
+    private volatile boolean completed;
+    private Throwable exception;
+    private V result;
+    private Thread registrationThread;
+    private volatile boolean registrationComplete;
+    private A attachment;
 
     /**
      * Same as `FiberAsync(false)`
@@ -99,12 +105,21 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
         if (fiber == null)
             return requestSync();
 
+        fiber.record(1, "FiberAsync", "run", "Blocking fiber %s on FibeAsync %s", fiber, this);
         while (!Fiber.park(this, new Fiber.ParkAction() {
             @Override
             public void run(Fiber current) {
+                current.record(1, "FiberAsync", "run", "Calling requestAsync on class %s", this);
+                registrationThread = Thread.currentThread();
                 attachment = requestAsync();
+                registrationThread = null;
+                registrationComplete = true;
+                current.record(1, "FiberAsync", "run", "requestAsync on %s returned attachment %s", FiberAsync.this, attachment);
             }
         })); // make sure we actually park and run PostParkActions
+
+        if (Thread.currentThread() != registrationThread)
+            while (!registrationComplete); // spin
 
         if (Fiber.interrupted())
             throw new InterruptedException();
@@ -139,16 +154,24 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
         if (timeout <= 0)
             throw new TimeoutException();
 
-
         final long deadline = System.nanoTime() + unit.toNanos(timeout);
 
+        fiber.record(1, "FiberAsync", "run", "Blocking fiber %s on FibeAsync %s", fiber, this);
         while (!Fiber.park(this, new Fiber.ParkAction() {
             @Override
             public void run(Fiber current) {
                 current.timeoutService.schedule(current, FiberAsync.this, timeout, unit);
+                current.record(1, "FiberAsync", "run", "Calling requestAsync on class %s", this);
+                registrationThread = Thread.currentThread();
                 attachment = requestAsync();
+                registrationThread = null;
+                registrationComplete = true;
+                current.record(1, "FiberAsync", "run", "requestAsync on %s returned attachment %s", FiberAsync.this, attachment);
             }
         })); // make sure we actually park and run PostParkActions
+
+        if (Thread.currentThread() != registrationThread)
+            while (!registrationComplete); // spin
 
         if (!isCompleted()) {
             if (Fiber.interrupted())
@@ -157,6 +180,7 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
             assert System.nanoTime() >= deadline;
             exception = new TimeoutException();
             completed = true;
+            fiber.record(1, "FiberAsync", "run", "FibeAsync %s on fiber %s has timed out", this, fiber);
             throw (TimeoutException) exception;
         }
 
@@ -183,11 +207,6 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
     protected V requestSync() throws E, InterruptedException {
         throw new IllegalThreadStateException("Method called not from within a fiber");
     }
-    //
-    private volatile boolean completed;
-    private Throwable exception;
-    private V result;
-    private A attachment;
 
     /**
      * This method must be called by the callback upon successful completion of the asynchronous operation.
@@ -220,7 +239,11 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
     }
 
     private void fire(Fiber fiber) {
+//        if (Thread.currentThread() != registrationThread)
+//            while (!registrationComplete); // spin
+        
         if (immediateExec) {
+            fiber.record(1, "FiberAsync", "fire", "%s - Immediate exec of fiber %s", this, fiber);
             if (!fiber.exec(this, new Fiber.ParkAction() {
                 public void run(Fiber current) {
                     prepark();
