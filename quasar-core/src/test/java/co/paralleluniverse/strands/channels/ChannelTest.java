@@ -520,10 +520,14 @@ public class ChannelTest {
         Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                for (int i = 1; i <= 5; i++) {
-                    int m = ch.receiveInt();
+                try {
+                    for (int i = 1; i <= 5; i++) {
+                        int m = ch.receiveInt();
 
-                    assertThat(m, is(i));
+                        assertThat(m, is(i));
+                    }
+                } catch (QueueChannel.EOFException e) {
+                    fail();
                 }
 
                 try {

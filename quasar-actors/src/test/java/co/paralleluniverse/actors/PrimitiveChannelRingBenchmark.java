@@ -4,9 +4,9 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.IntChannel;
+import co.paralleluniverse.strands.channels.ReceivePort;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import jsr166e.ForkJoinPool;
 
 public class PrimitiveChannelRingBenchmark {
     static final int N = 1000;
@@ -32,19 +32,22 @@ public class PrimitiveChannelRingBenchmark {
         for (int i = 0; i < N - 1; i++)
             a = createRelayActor(a);
         final IntChannel lastChannel = a;
-        
+
         Fiber<Integer> manager = new Fiber<Integer>() {
             @Override
             protected Integer run() throws InterruptedException, SuspendExecution {
                 lastChannel.send(1); // start things off
 
                 int msg = 0;
-                for (int i = 0; i < M; i++) {
-                    msg = managerChannel.receiveInt();
-                    lastChannel.send(msg + 1);
+                try {
+                    for (int i = 0; i < M; i++) {
+                        msg = managerChannel.receiveInt();
+                        lastChannel.send(msg + 1);
+                    }
+                    return msg;
+                } catch (ReceivePort.EOFException e) {
+                    return null;
                 }
-
-                return msg;
             }
         };
         //managerChannel.setStrand(manager);
@@ -60,8 +63,12 @@ public class PrimitiveChannelRingBenchmark {
         Fiber<Void> fiber = new Fiber<Void>() {
             @Override
             protected Void run() throws InterruptedException, SuspendExecution {
-                for (;;)
-                    prev.send(channel.receiveInt() + 1);
+                try {
+                    for (;;)
+                        prev.send(channel.receiveInt() + 1);
+                } catch (ReceivePort.EOFException e) {
+                    return null;
+                }
             }
         };
         //channel.setStrand(fiber);
