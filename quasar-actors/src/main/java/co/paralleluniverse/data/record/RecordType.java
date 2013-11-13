@@ -149,79 +149,155 @@ public class RecordType<R> {
     }
 
     public Field.BooleanField<R> booleanField(String name) {
-        return addField(new Field.BooleanField<R>(name, -1));
+        return booleanField(name, false);
+    }
+
+    public Field.BooleanField<R> booleanField(String name, boolean trnsient) {
+        return addField(new Field.BooleanField<R>(name, -1, trnsient));
     }
 
     public Field.ByteField<R> byteField(String name) {
-        return addField(new Field.ByteField<R>(name, -1));
+        return byteField(name, false);
+    }
+
+    public Field.ByteField<R> byteField(String name, boolean trnsient) {
+        return addField(new Field.ByteField<R>(name, -1, trnsient));
     }
 
     public Field.ShortField<R> shortField(String name) {
-        return addField(new Field.ShortField<R>(name, -1));
+        return shortField(name, false);
+    }
+
+    public Field.ShortField<R> shortField(String name, boolean trnsient) {
+        return addField(new Field.ShortField<R>(name, -1, trnsient));
     }
 
     public Field.IntField<R> intField(String name) {
-        return addField(new Field.IntField<R>(name, -1));
+        return intField(name, false);
+    }
+
+    public Field.IntField<R> intField(String name, boolean trnsient) {
+        return addField(new Field.IntField<R>(name, -1, trnsient));
     }
 
     public Field.LongField<R> longField(String name) {
-        return addField(new Field.LongField<R>(name, -1));
+        return longField(name, false);
+    }
+
+    public Field.LongField<R> longField(String name, boolean trnsient) {
+        return addField(new Field.LongField<R>(name, -1, trnsient));
     }
 
     public Field.FloatField<R> floatField(String name) {
-        return addField(new Field.FloatField<R>(name, -1));
+        return floatField(name, false);
+    }
+
+    public Field.FloatField<R> floatField(String name, boolean trnsient) {
+        return addField(new Field.FloatField<R>(name, -1, trnsient));
     }
 
     public Field.DoubleField<R> doubleField(String name) {
-        return addField(new Field.DoubleField<R>(name, -1));
+        return doubleField(name, false);
+    }
+
+    public Field.DoubleField<R> doubleField(String name, boolean trnsient) {
+        return addField(new Field.DoubleField<R>(name, -1, trnsient));
     }
 
     public Field.CharField<R> charField(String name) {
-        return addField(new Field.CharField<R>(name, -1));
+        return charField(name, false);
+    }
+
+    public Field.CharField<R> charField(String name, boolean trnsient) {
+        return addField(new Field.CharField<R>(name, -1, trnsient));
     }
 
     public <V> Field.ObjectField<R, V> objectField(String name, Class<V> type) {
-        return addField(new Field.ObjectField<R, V>(name, type, -1));
+        return objectField(name, type, false);
+    }
+
+    public <V> Field.ObjectField<R, V> objectField(String name, Class<V> type, boolean trnsient) {
+        return addField(new Field.ObjectField<R, V>(name, type, -1, trnsient));
     }
 
     public <V> Field.ObjectField<R, V> objectField(String name, TypeToken<V> type) {
-        return addField(new Field.ObjectField<R, V>(name, type.getRawType(), -1));
+        return objectField(name, type, false);
+    }
+
+    public <V> Field.ObjectField<R, V> objectField(String name, TypeToken<V> type, boolean trnsient) {
+        return addField(new Field.ObjectField<R, V>(name, type.getRawType(), -1, trnsient));
     }
 
     public Field.BooleanArrayField<R> booleanArrayField(String name, int length) {
-        return addField(new Field.BooleanArrayField<R>(name, length, -1));
+        return booleanArrayField(name, length, false);
+    }
+
+    public Field.BooleanArrayField<R> booleanArrayField(String name, int length, boolean trnsient) {
+        return addField(new Field.BooleanArrayField<R>(name, length, -1, trnsient));
     }
 
     public Field.ByteArrayField<R> byteArrayField(String name, int length) {
-        return addField(new Field.ByteArrayField<R>(name, length, -1));
+        return byteArrayField(name, length, false);
+    }
+
+    public Field.ByteArrayField<R> byteArrayField(String name, int length, boolean trnsient) {
+        return addField(new Field.ByteArrayField<R>(name, length, -1, trnsient));
     }
 
     public Field.ShortArrayField<R> shortArrayField(String name, int length) {
-        return addField(new Field.ShortArrayField<R>(name, length, -1));
+        return shortArrayField(name, length, false);
+    }
+
+    public Field.ShortArrayField<R> shortArrayField(String name, int length, boolean trnsient) {
+        return addField(new Field.ShortArrayField<R>(name, length, -1, trnsient));
     }
 
     public Field.IntArrayField<R> intArrayField(String name, int length) {
-        return addField(new Field.IntArrayField<R>(name, length, -1));
+        return intArrayField(name, length, false);
+    }
+
+    public Field.IntArrayField<R> intArrayField(String name, int length, boolean trnsient) {
+        return addField(new Field.IntArrayField<R>(name, length, -1, trnsient));
     }
 
     public Field.LongArrayField<R> longArrayField(String name, int length) {
-        return addField(new Field.LongArrayField<R>(name, length, -1));
+        return longArrayField(name, length, false);
+    }
+
+    public Field.LongArrayField<R> longArrayField(String name, int length, boolean trnsient) {
+        return addField(new Field.LongArrayField<R>(name, length, -1, trnsient));
     }
 
     public Field.FloatArrayField<R> floatArrayField(String name, int length) {
-        return addField(new Field.FloatArrayField<R>(name, length, -1));
+        return floatArrayField(name, length, false);
+    }
+
+    public Field.FloatArrayField<R> floatArrayField(String name, int length, boolean trnsient) {
+        return addField(new Field.FloatArrayField<R>(name, length, -1, trnsient));
     }
 
     public Field.DoubleArrayField<R> doubleArrayField(String name, int length) {
-        return addField(new Field.DoubleArrayField<R>(name, length, -1));
+        return doubleArrayField(name, length, false);
+    }
+
+    public Field.DoubleArrayField<R> doubleArrayField(String name, int length, boolean trnsient) {
+        return addField(new Field.DoubleArrayField<R>(name, length, -1, trnsient));
     }
 
     public Field.CharArrayField<R> charArrayField(String name, int length) {
-        return addField(new Field.CharArrayField<R>(name, length, -1));
+        return charArrayField(name, length, false);
+    }
+
+    public Field.CharArrayField<R> charArrayField(String name, int length, boolean trnsient) {
+        return addField(new Field.CharArrayField<R>(name, length, -1, trnsient));
     }
 
     public <V> Field.ObjectArrayField<R, V> objectArrayField(String name, Class<V> type, int length) {
-        return addField(new Field.ObjectArrayField<R, V>(name, type, length, -1));
+        return objectArrayField(name, type, length, false);
+    }
+
+    public <V> Field.ObjectArrayField<R, V> objectArrayField(String name, Class<V> type, int length, boolean trnsient) {
+        return addField(new Field.ObjectArrayField<R, V>(name, type, length, -1, trnsient));
     }
 
     private <F extends Field<R, ?>> F addField(F field) {
@@ -235,58 +311,58 @@ public class RecordType<R> {
         final Field<R, ?> f;
         switch (field.type()) {
             case Field.BOOLEAN:
-                f = Field.booleanField(field.name(), id);
+                f = Field.booleanField(field.name(), id, field.isTransient());
                 break;
             case Field.BYTE:
-                f = Field.byteField(field.name(), id);
+                f = Field.byteField(field.name(), id, field.isTransient());
                 break;
             case Field.SHORT:
-                f = Field.shortField(field.name(), id);
+                f = Field.shortField(field.name(), id, field.isTransient());
                 break;
             case Field.INT:
-                f = Field.intField(field.name(), id);
+                f = Field.intField(field.name(), id, field.isTransient());
                 break;
             case Field.LONG:
-                f = Field.longField(field.name(), id);
+                f = Field.longField(field.name(), id, field.isTransient());
                 break;
             case Field.FLOAT:
-                f = Field.floatField(field.name(), id);
+                f = Field.floatField(field.name(), id, field.isTransient());
                 break;
             case Field.DOUBLE:
-                f = Field.doubleField(field.name(), id);
+                f = Field.doubleField(field.name(), id, field.isTransient());
                 break;
             case Field.CHAR:
-                f = Field.charField(field.name(), id);
+                f = Field.charField(field.name(), id, field.isTransient());
                 break;
             case Field.BOOLEAN_ARRAY:
-                f = Field.booleanArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id);
+                f = Field.booleanArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id, field.isTransient());
                 break;
             case Field.BYTE_ARRAY:
-                f = Field.byteArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id);
+                f = Field.byteArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id, field.isTransient());
                 break;
             case Field.SHORT_ARRAY:
-                f = Field.shortArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id);
+                f = Field.shortArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id, field.isTransient());
                 break;
             case Field.INT_ARRAY:
-                f = Field.intArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id);
+                f = Field.intArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id, field.isTransient());
                 break;
             case Field.LONG_ARRAY:
-                f = Field.longArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id);
+                f = Field.longArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id, field.isTransient());
                 break;
             case Field.FLOAT_ARRAY:
-                f = Field.floatArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id);
+                f = Field.floatArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id, field.isTransient());
                 break;
             case Field.DOUBLE_ARRAY:
-                f = Field.doubleArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id);
+                f = Field.doubleArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id, field.isTransient());
                 break;
             case Field.CHAR_ARRAY:
-                f = Field.charArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id);
+                f = Field.charArrayField(field.name(), ((Field.ArrayField<R, ?>) field).length, id, field.isTransient());
                 break;
             case Field.OBJECT:
-                f = Field.objectField(field.name(), (Class) field.typeClass(), id);
+                f = Field.objectField(field.name(), (Class) field.typeClass(), id, field.isTransient());
                 break;
             case Field.OBJECT_ARRAY:
-                f = Field.objectArrayField(field.name(), field.typeClass().getComponentType(), ((Field.ArrayField<R, ?>) field).length, id);
+                f = Field.objectArrayField(field.name(), field.typeClass().getComponentType(), ((Field.ArrayField<R, ?>) field).length, id, field.isTransient());
                 break;
             default:
                 throw new AssertionError();
