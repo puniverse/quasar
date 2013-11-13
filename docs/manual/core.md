@@ -182,6 +182,14 @@ Note that this has no effect on other calls to `I.f`. The instrumentation module
 
 ## Channels {#channels}
 
+Channels are queues used to pass messages between strands (remember, strands are a general name for threads and fibers). If you are familiar with Go, Quasar channels are like Go channels. 
+
+A [Channel]({{javadoc}}/strands/channels/Channel.html) is an interface that extends two other interfaces: [SendPort]({{javadoc}}/strands/channels/SendPort.html), which defines the methods used to send messages to a channel, and [ReceivePort]({{javadoc}}/strands/channels/ReceivePort.html), which defines the methods used to receive messages from a channel.
+
+
+### Rx
+
+### Primitive Channels
 
 
 
