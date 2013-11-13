@@ -29,7 +29,7 @@ public class QueueLongChannel extends QueuePrimitiveChannel<Long> implements Lon
     }
 
     @Override
-    public long receiveLong() throws SuspendExecution, InterruptedException {
+    public long receiveLong() throws SuspendExecution, InterruptedException, EOFException {
         if (isClosed())
             throw new EOFException();
         awaitItem();
@@ -39,7 +39,7 @@ public class QueueLongChannel extends QueuePrimitiveChannel<Long> implements Lon
     }
 
     @Override
-    public long receiveLong(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+    public long receiveLong(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
         if (isClosed())
             throw new EOFException();
         if (!awaitItem(timeout, unit))

@@ -29,7 +29,7 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
     }
 
     @Override
-    public int receiveInt() throws SuspendExecution, InterruptedException {
+    public int receiveInt() throws SuspendExecution, InterruptedException, EOFException {
         if (isClosed())
             throw new EOFException();
         awaitItem();
@@ -39,7 +39,7 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
     }
 
     @Override
-    public int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+    public int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
         if (isClosed())
             throw new EOFException();
         if (!awaitItem(timeout, unit))

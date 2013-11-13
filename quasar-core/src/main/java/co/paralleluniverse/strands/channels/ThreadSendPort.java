@@ -26,6 +26,11 @@ import java.util.concurrent.TimeUnit;
 public class ThreadSendPort<Message> {
     private final SendPort<Message> p;
 
+    /**
+     * Creates a new convenience wrapper for using a {@link SendPort} in a thread.
+     *
+     * @param p the {@link SendPort} to wrap.
+     */
     public ThreadSendPort(SendPort<Message> p) {
         this.p = p;
     }
@@ -90,17 +95,17 @@ public class ThreadSendPort<Message> {
     }
 
     @Override
-    public int hashCode() {
+    public final int hashCode() {
         return p.hashCode();
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public final boolean equals(Object obj) {
         return p.equals(obj);
     }
 
     @Override
-    public String toString() {
+    public final String toString() {
         return p.toString();
     }
 }

@@ -14,9 +14,9 @@
 package co.paralleluniverse.strands.channels;
 
 /**
+ * A channel for primitive {@code double} messages.
  *
  * @author pron
  */
 public interface DoubleChannel extends DoubleSendPort, DoubleReceivePort {
-    
 }

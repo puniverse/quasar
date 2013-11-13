@@ -180,5 +180,8 @@ When the instrumentation module instruments `h`, it will find `I.f` in the file,
 
 Note that this has no effect on other calls to `I.f`. The instrumentation module only cares that `I.f` has suspendable implementations when it finds it called in suspendable methods (in our case: `h`).
 
+## Channels {#channels}
+
+
 
 

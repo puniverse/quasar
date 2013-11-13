@@ -14,9 +14,9 @@
 package co.paralleluniverse.strands.channels;
 
 /**
+ * A channel for primitive {@code int} messages.
  *
  * @author pron
  */
 public interface IntChannel extends IntSendPort, IntReceivePort {
-    
 }

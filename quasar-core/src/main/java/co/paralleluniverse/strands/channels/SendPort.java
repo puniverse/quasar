@@ -18,7 +18,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A channel's producer-side interface.
- * 
+ *
+ * @param Message the type of messages that can be sent to this channel.
  * @author pron
  */
 public interface SendPort<Message> extends Port<Message>, AutoCloseable {
@@ -56,7 +57,7 @@ public interface SendPort<Message> extends Port<Message>, AutoCloseable {
     boolean trySend(Message message);
 
     /**
-     * Closes the channel so that no more messages could be sent to it.
+     * Closes the channel so that no more messages could be sent to it. Messages already sent to the channel will still be received.
      */
     @Override
     void close();

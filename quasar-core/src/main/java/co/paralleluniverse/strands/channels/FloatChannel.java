@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 /**
+ * A channel for primitive {@code float} messages.
  *
  * @author pron
  */

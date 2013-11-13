@@ -29,7 +29,7 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
     }
 
     @Override
-    public double receiveDouble() throws SuspendExecution, InterruptedException {
+    public double receiveDouble() throws SuspendExecution, InterruptedException, EOFException {
         if (isClosed())
             throw new EOFException();
         awaitItem();
@@ -39,7 +39,7 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
     }
 
     @Override
-    public double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+    public double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
         if (isClosed())
             throw new EOFException();
         if (!awaitItem(timeout, unit))

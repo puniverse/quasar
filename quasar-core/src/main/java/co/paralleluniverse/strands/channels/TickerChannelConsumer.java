@@ -52,7 +52,7 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         this.receiveClosed = true;
     }
 
-    void attemptReceive() throws SuspendExecution, InterruptedException {
+    void attemptReceive() throws EOFException, SuspendExecution, InterruptedException {
         if (isClosed())
             throw new EOFException();
         final Condition sync = channel.sync;
@@ -71,7 +71,7 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         }
     }
 
-    void attemptReceive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+    void attemptReceive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
         if (isClosed())
             throw new EOFException();
         final Condition sync = channel.sync;
@@ -179,13 +179,13 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         }
 
         @Override
-        public int receiveInt() throws SuspendExecution, InterruptedException {
+        public int receiveInt() throws SuspendExecution, InterruptedException, EOFException {
             attemptReceive();
             return consumer().getIntValue();
         }
 
         @Override
-        public int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+        public int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
             attemptReceive(timeout, unit);
             return consumer().getIntValue();
         }
@@ -201,13 +201,13 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         }
 
         @Override
-        public long receiveLong() throws SuspendExecution, InterruptedException {
+        public long receiveLong() throws SuspendExecution, InterruptedException, EOFException {
             attemptReceive();
             return consumer().getLongValue();
         }
 
         @Override
-        public long receiveLong(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+        public long receiveLong(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
             attemptReceive(timeout, unit);
             return consumer().getLongValue();
         }
@@ -223,13 +223,13 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         }
 
         @Override
-        public float receiveFloat() throws SuspendExecution, InterruptedException {
+        public float receiveFloat() throws SuspendExecution, InterruptedException, EOFException {
             attemptReceive();
             return consumer().getFloatValue();
         }
 
         @Override
-        public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+        public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
             attemptReceive(timeout, unit);
             return consumer().getFloatValue();
         }
@@ -245,13 +245,13 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         }
 
         @Override
-        public double receiveDouble() throws SuspendExecution, InterruptedException {
+        public double receiveDouble() throws SuspendExecution, InterruptedException, EOFException {
             attemptReceive();
             return consumer().getDoubleValue();
         }
 
         @Override
-        public double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+        public double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
             attemptReceive(timeout, unit);
             return consumer().getDoubleValue();
         }

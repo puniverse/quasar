@@ -29,7 +29,7 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
     }
 
     @Override
-    public float receiveFloat() throws SuspendExecution, InterruptedException {
+    public float receiveFloat() throws SuspendExecution, InterruptedException, EOFException {
         if (isClosed())
             throw new EOFException();
         awaitItem();
@@ -39,7 +39,7 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
     }
 
     @Override
-    public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+    public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
         if (isClosed())
             throw new EOFException();
         if (!awaitItem(timeout, unit))

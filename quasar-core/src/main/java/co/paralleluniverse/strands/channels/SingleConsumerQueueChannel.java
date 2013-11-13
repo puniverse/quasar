@@ -63,7 +63,7 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
         return queue().pk();
     }
 
-    Object receiveNode() throws SuspendExecution, InterruptedException {
+    Object receiveNode() throws EOFException, SuspendExecution, InterruptedException {
         maybeSetCurrentStrandAsOwner();
         Object n;
         sync.register();
@@ -79,7 +79,7 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
         return n;
     }
 
-    Object receiveNode(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    Object receiveNode(long timeout, TimeUnit unit) throws EOFException, SuspendExecution, InterruptedException {
         if (unit == null)
             return receiveNode();
         if (timeout <= 0)

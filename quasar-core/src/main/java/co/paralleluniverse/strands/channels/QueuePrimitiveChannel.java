@@ -52,7 +52,7 @@ public class QueuePrimitiveChannel<Message> extends QueueChannel<Message> implem
         }
     }
 
-    boolean awaitItem() throws SuspendExecution, InterruptedException {
+    boolean awaitItem() throws SuspendExecution, InterruptedException, EOFException {
         maybeSetCurrentStrandAsOwner();
         Object n;
         sync.register();
@@ -67,7 +67,7 @@ public class QueuePrimitiveChannel<Message> extends QueueChannel<Message> implem
         return true;
     }
 
-    boolean awaitItem(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    boolean awaitItem(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, EOFException {
         if (unit == null)
             return awaitItem();
         if (timeout <= 0)
