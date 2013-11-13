@@ -15,7 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 /**
  * A message-passing channel.
- * 
+ * @param Message the type of messages that can be sent to this channel.
  * @author pron
  */
 public interface Channel<Message> extends SendPort<Message>, ReceivePort<Message> {

@@ -43,10 +43,14 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 
 /**
+ * A utility class for creating and manipulating channels.
  *
  * @author pron
  */
 public final class Channels {
+    /**
+     * Determines how a channel behaves when its internal buffer (if it has one) overflows.
+     */
     public enum OverflowPolicy {
         /**
          * The sender will get an exception (except if the channel is an actor's mailbox)
@@ -73,135 +77,352 @@ public final class Channels {
     private static final boolean defaultSingleProducer = false;
     private static final boolean defaultSingleConsumer = true;
 
-    public static <Message> Channel<Message> newChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
-        if (mailboxSize == 0) {
+    /**
+     * Creates a new channel with the given properties.
+     * <p/>
+     * Some combinations of properties are unsupported, and will throw an {@code IllegalArgumentException} if requested:
+     *
+     * <ul>
+     * <li>unbounded channel with multiple consumers</li>
+     * <li>a transfer channel with any overflow policy other than {@link OverflowPolicy#BLOCK BLOCK}</li>
+     * <li>An overflow policy of {@link OverflowPolicy#DISPLACE DISPLACE} with multiple consumers.</li>
+     * </ul>
+     * An unbounded channel ignores its overflow policy as it never overflows.
+     *
+     *
+     * @param <Message>      the type of messages that can be sent to this channel.
+     * @param bufferSize     if positive, the number of messages that the channel can hold in an internal buffer;
+     *                       {@code 0} for a <i>transfer</i> channel, i.e. a channel with no internal buffer.
+     *                       {@code -1} for a channel with an unbounded (infinite) buffer.
+     * @param policy         the {@link OverflowPolicy} specifying how the channel (if bounded) will behave if its internal buffer overflows.
+     * @param singleProducer whether the channel will be used by a single producer strand.
+     * @param singleConsumer whether the channel will be used by a single consumer strand.
+     * @return The newly created channel
+     */
+    public static <Message> Channel<Message> newChannel(int bufferSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
+        if (bufferSize == 0) {
             if (policy != OverflowPolicy.BLOCK)
                 throw new IllegalArgumentException("Cannot use policy " + policy + " for channel with size 0 (only BLOCK supported");
             return new TransferChannel<Message>();
         }
 
         final BasicQueue<Message> queue;
-        if (mailboxSize < 0) {
+        if (bufferSize < 0) {
             if (!singleConsumer)
-                throw new UnsupportedOperationException("Unbounded queue with multiple consumers is unsupported");
+                throw new IllegalArgumentException("Unbounded queue with multiple consumers is unsupported");
             queue = new SingleConsumerLinkedArrayObjectQueue<Message>();
-        } else if (mailboxSize == 1)
+        } else if (bufferSize == 1)
             queue = new BoxQueue<Message>(policy == OverflowPolicy.DISPLACE, singleConsumer);
         else if (policy == OverflowPolicy.DISPLACE) {
             if (!singleConsumer)
-                throw new UnsupportedOperationException("Channel with DISPLACE policy configuration is not supported for multiple consumers");
-            queue = new CircularObjectBuffer<Message>(mailboxSize, singleProducer);
+                throw new IllegalArgumentException("Channel with DISPLACE policy configuration is not supported for multiple consumers");
+            queue = new CircularObjectBuffer<Message>(bufferSize, singleProducer);
         } else if (singleConsumer)
-            queue = new SingleConsumerArrayObjectQueue<Message>(mailboxSize);
+            queue = new SingleConsumerArrayObjectQueue<Message>(bufferSize);
         else
-            queue = new ArrayQueue<Message>(mailboxSize);
+            queue = new ArrayQueue<Message>(bufferSize);
 
 
         return new QueueObjectChannel(queue, policy, singleConsumer);
     }
 
-    public static <Message> Channel<Message> newChannel(int mailboxSize, OverflowPolicy policy) {
-        return newChannel(mailboxSize, policy, defaultSingleProducer, defaultSingleConsumer);
+    /**
+     * Creates a new channel with the given mailbox size and {@link OverflowPolicy}, with other properties set to their default values.
+     * Specifically, {@code singleProducer} will be set to {@code false}, while {@code singleConsumer} will be set to {@code true}.
+     *
+     * @param <Message>  the type of messages that can be sent to this channel.
+     * @param bufferSize if positive, the number of messages that the channel can hold in an internal buffer;
+     *                   {@code 0} for a <i>transfer</i> channel, i.e. a channel with no internal buffer.
+     *                   {@code -1} for a channel with an unbounded (infinite) buffer.
+     * @param policy     the {@link OverflowPolicy} specifying how the channel (if bounded) will behave if its internal buffer overflows.
+     * @return The newly created channel
+     * @see #newChannel(int, co.paralleluniverse.strands.channels.Channels.OverflowPolicy, boolean, boolean)
+     */
+    public static <Message> Channel<Message> newChannel(int bufferSize, OverflowPolicy policy) {
+        return newChannel(bufferSize, policy, defaultSingleProducer, defaultSingleConsumer);
     }
 
-    public static <Message> Channel<Message> newChannel(int mailboxSize) {
-        return newChannel(mailboxSize, mailboxSize == 0 ? OverflowPolicy.BLOCK : defaultPolicy);
+    /**
+     * Creates a new channel with the given mailbox size with other properties set to their default values.
+     * Specifically, the {@link OverflowPolicy} will be set to {@link OverflowPolicy#BLOCK BLOCK},
+     * {@code singleProducer} will be set to {@code false}, and {@code singleConsumer} will be set to {@code true}.
+     *
+     * @param <Message>  the type of messages that can be sent to this channel.
+     * @param bufferSize if positive, the number of messages that the channel can hold in an internal buffer;
+     *                   {@code 0} for a <i>transfer</i> channel, i.e. a channel with no internal buffer.
+     *                   {@code -1} for a channel with an unbounded (infinite) buffer.
+     * @return The newly created channel
+     * @see #newChannel(int, co.paralleluniverse.strands.channels.Channels.OverflowPolicy, boolean, boolean)
+     */
+    public static <Message> Channel<Message> newChannel(int bufferSize) {
+        return newChannel(bufferSize, bufferSize == 0 ? OverflowPolicy.BLOCK : defaultPolicy);
     }
 
-    ///
-    public static IntChannel newIntChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
+    /**
+     * Creates a new primitive {@code int} channel with the given properties.
+     * <p/>
+     * Some combinations of properties are unsupported, and will throw an {@code IllegalArgumentException} if requested:
+     *
+     * <ul>
+     * <li>multiple consumers</li>
+     * <li>a transfer channel with any overflow policy other than {@link OverflowPolicy#BLOCK BLOCK}</li>
+     * <li>An overflow policy of {@link OverflowPolicy#DISPLACE DISPLACE} with multiple consumers.</li>
+     * </ul>
+     * An unbounded channel ignores its overflow policy as it never overflows.
+     *
+     * @param bufferSize     if positive, the number of messages that the channel can hold in an internal buffer;
+     *                       {@code 0} for a <i>transfer</i> channel, i.e. a channel with no internal buffer.
+     *                       {@code -1} for a channel with an unbounded (infinite) buffer.
+     * @param policy         the {@link OverflowPolicy} specifying how the channel (if bounded) will behave if its internal buffer overflows.
+     * @param singleProducer whether the channel will be used by a single producer strand.
+     * @param singleConsumer whether the channel will be used by a single consumer strand. Currently primitive channels only support a single
+     *                       consumer, so this argument must be set to {@code false}.
+     * @return The newly created channel
+     */
+    public static IntChannel newIntChannel(int bufferSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
         if (!singleConsumer)
-            throw new UnsupportedOperationException("Primitive queue with multiple consumers is unsupported");
+            throw new IllegalArgumentException("Primitive queue with multiple consumers is unsupported");
 
         final BasicSingleConsumerIntQueue queue;
-        if (mailboxSize < 0) {
+        if (bufferSize < 0) {
             queue = new SingleConsumerLinkedArrayIntQueue();
         } else if (policy == OverflowPolicy.DISPLACE) {
-            queue = new CircularIntBuffer(mailboxSize, singleProducer);
+            queue = new CircularIntBuffer(bufferSize, singleProducer);
         } else
-            queue = new SingleConsumerArrayIntQueue(mailboxSize);
+            queue = new SingleConsumerArrayIntQueue(bufferSize);
 
         return new QueueIntChannel(queue, policy);
     }
 
-    public static IntChannel newIntChannel(int mailboxSize, OverflowPolicy policy) {
-        return newIntChannel(mailboxSize, policy, defaultSingleProducer, defaultSingleConsumer);
+    /**
+     * Creates a new primitive {@code int} channel with the given mailbox size and {@link OverflowPolicy}, with other properties set to their default values.
+     * Specifically, {@code singleProducer} will be set to {@code false}, while {@code singleConsumer} will be set to {@code true}.
+     *
+     * @param bufferSize if positive, the number of messages that the channel can hold in an internal buffer;
+     *                   {@code 0} for a <i>transfer</i> channel, i.e. a channel with no internal buffer.
+     *                   {@code -1} for a channel with an unbounded (infinite) buffer.
+     * @param policy     the {@link OverflowPolicy} specifying how the channel (if bounded) will behave if its internal buffer overflows.
+     * @return The newly created channel
+     * @see #newIntChannel(int, co.paralleluniverse.strands.channels.Channels.OverflowPolicy, boolean, boolean)
+     */
+    public static IntChannel newIntChannel(int bufferSize, OverflowPolicy policy) {
+        return newIntChannel(bufferSize, policy, defaultSingleProducer, defaultSingleConsumer);
     }
 
-    public static IntChannel newIntChannel(int mailboxSize) {
-        return newIntChannel(mailboxSize, defaultPolicy);
+    /**
+     * Creates a new primitive {@code int} channel with the given mailbox size with other properties set to their default values.
+     * Specifically, the {@link OverflowPolicy} will be set to {@link OverflowPolicy#BLOCK BLOCK},
+     * {@code singleProducer} will be set to {@code false}, and {@code singleConsumer} will be set to {@code true}.
+     *
+     * @param bufferSize if positive, the number of messages that the channel can hold in an internal buffer;
+     *                   {@code 0} for a <i>transfer</i> channel, i.e. a channel with no internal buffer.
+     *                   {@code -1} for a channel with an unbounded (infinite) buffer.
+     * @return The newly created channel
+     * @see #newIntChannel(int, co.paralleluniverse.strands.channels.Channels.OverflowPolicy, boolean, boolean)
+     */
+    public static IntChannel newIntChannel(int bufferSize) {
+        return newIntChannel(bufferSize, defaultPolicy);
     }
 
     ///
-    public static LongChannel newLongChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
+    /**
+     * Creates a new primitive {@code long} channel with the given properties.
+     * <p/>
+     * Some combinations of properties are unsupported, and will throw an {@code IllegalArgumentException} if requested:
+     *
+     * <ul>
+     * <li>multiple consumers</li>
+     * <li>a transfer channel with any overflow policy other than {@link OverflowPolicy#BLOCK BLOCK}</li>
+     * <li>An overflow policy of {@link OverflowPolicy#DISPLACE DISPLACE} with multiple consumers.</li>
+     * </ul>
+     * An unbounded channel ignores its overflow policy as it never overflows.
+     *
+     * @param bufferSize     if positive, the number of messages that the channel can hold in an internal buffer;
+     *                       {@code 0} for a <i>transfer</i> channel, i.e. a channel with no internal buffer.
+     *                       {@code -1} for a channel with an unbounded (infinite) buffer.
+     * @param policy         the {@link OverflowPolicy} specifying how the channel (if bounded) will behave if its internal buffer overflows.
+     * @param singleProducer whether the channel will be used by a single producer strand.
+     * @param singleConsumer whether the channel will be used by a single consumer strand. Currently primitive channels only support a single
+     *                       consumer, so this argument must be set to {@code false}.
+     * @return The newly created channel
+     */
+    public static LongChannel newLongChannel(int bufferSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
         if (!singleConsumer)
-            throw new UnsupportedOperationException("Primitive queue with multiple consumers is unsupported");
+            throw new IllegalArgumentException("Primitive queue with multiple consumers is unsupported");
 
         final BasicSingleConsumerLongQueue queue;
-        if (mailboxSize < 0) {
+        if (bufferSize < 0) {
             queue = new SingleConsumerLinkedArrayLongQueue();
         } else if (policy == OverflowPolicy.DISPLACE) {
-            queue = new CircularLongBuffer(mailboxSize, singleProducer);
+            queue = new CircularLongBuffer(bufferSize, singleProducer);
         } else
-            queue = new SingleConsumerArrayLongQueue(mailboxSize);
+            queue = new SingleConsumerArrayLongQueue(bufferSize);
 
         return new QueueLongChannel(queue, policy);
     }
 
-    public static LongChannel newLongChannel(int mailboxSize, OverflowPolicy policy) {
-        return newLongChannel(mailboxSize, policy, defaultSingleProducer, defaultSingleConsumer);
+    /**
+     * Creates a new primitive {@code long} channel with the given mailbox size and {@link OverflowPolicy}, with other properties set to their default values.
+     * Specifically, {@code singleProducer} will be set to {@code false}, while {@code singleConsumer} will be set to {@code true}.
+     *
+     * @param bufferSize if positive, the number of messages that the channel can hold in an internal buffer;
+     *                   {@code 0} for a <i>transfer</i> channel, i.e. a channel with no internal buffer.
+     *                   {@code -1} for a channel with an unbounded (infinite) buffer.
+     * @param policy     the {@link OverflowPolicy} specifying how the channel (if bounded) will behave if its internal buffer overflows.
+     * @return The newly created channel
+     * @see #newLongChannel(int, co.paralleluniverse.strands.channels.Channels.OverflowPolicy, boolean, boolean)
+     */
+    public static LongChannel newLongChannel(int bufferSize, OverflowPolicy policy) {
+        return newLongChannel(bufferSize, policy, defaultSingleProducer, defaultSingleConsumer);
     }
 
-    public static LongChannel newLongChannel(int mailboxSize) {
-        return newLongChannel(mailboxSize, defaultPolicy);
+    /**
+     * Creates a new primitive {@code long} channel with the given mailbox size with other properties set to their default values.
+     * Specifically, the {@link OverflowPolicy} will be set to {@link OverflowPolicy#BLOCK BLOCK},
+     * {@code singleProducer} will be set to {@code false}, and {@code singleConsumer} will be set to {@code true}.
+     *
+     * @param bufferSize if positive, the number of messages that the channel can hold in an internal buffer;
+     *                   {@code 0} for a <i>transfer</i> channel, i.e. a channel with no internal buffer.
+     *                   {@code -1} for a channel with an unbounded (infinite) buffer.
+     * @return The newly created channel
+     * @see #newLongChannel(int, co.paralleluniverse.strands.channels.Channels.OverflowPolicy, boolean, boolean)
+     */
+    public static LongChannel newLongChannel(int bufferSize) {
+        return newLongChannel(bufferSize, defaultPolicy);
     }
 
     ///
-    public static FloatChannel newFloatChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
+    /**
+     * Creates a new primitive {@code float} channel with the given properties.
+     * <p/>
+     * Some combinations of properties are unsupported, and will throw an {@code IllegalArgumentException} if requested:
+     *
+     * <ul>
+     * <li>multiple consumers</li>
+     * <li>a transfer channel with any overflow policy other than {@link OverflowPolicy#BLOCK BLOCK}</li>
+     * <li>An overflow policy of {@link OverflowPolicy#DISPLACE DISPLACE} with multiple consumers.</li>
+     * </ul>
+     * An unbounded channel ignores its overflow policy as it never overflows.
+     *
+     * @param bufferSize     if positive, the number of messages that the channel can hold in an internal buffer;
+     *                       {@code 0} for a <i>transfer</i> channel, i.e. a channel with no internal buffer.
+     *                       {@code -1} for a channel with an unbounded (infinite) buffer.
+     * @param policy         the {@link OverflowPolicy} specifying how the channel (if bounded) will behave if its internal buffer overflows.
+     * @param singleProducer whether the channel will be used by a single producer strand.
+     * @param singleConsumer whether the channel will be used by a single consumer strand. Currently primitive channels only support a single
+     *                       consumer, so this argument must be set to {@code false}.
+     * @return The newly created channel
+     */
+    public static FloatChannel newFloatChannel(int bufferSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
         if (!singleConsumer)
-            throw new UnsupportedOperationException("Primitive queue with multiple consumers is unsupported");
+            throw new IllegalArgumentException("Primitive queue with multiple consumers is unsupported");
 
         final BasicSingleConsumerFloatQueue queue;
-        if (mailboxSize < 0) {
+        if (bufferSize < 0) {
             queue = new SingleConsumerLinkedArrayFloatQueue();
         } else if (policy == OverflowPolicy.DISPLACE) {
-            queue = new CircularFloatBuffer(mailboxSize, singleProducer);
+            queue = new CircularFloatBuffer(bufferSize, singleProducer);
         } else
-            queue = new SingleConsumerArrayFloatQueue(mailboxSize);
+            queue = new SingleConsumerArrayFloatQueue(bufferSize);
 
         return new QueueFloatChannel(queue, policy);
     }
 
-    public static FloatChannel newFloatChannel(int mailboxSize, OverflowPolicy policy) {
-        return newFloatChannel(mailboxSize, policy, defaultSingleProducer, defaultSingleConsumer);
+    /**
+     * Creates a new primitive {@code float} channel with the given mailbox size and {@link OverflowPolicy}, with other properties set to their default values.
+     * Specifically, {@code singleProducer} will be set to {@code false}, while {@code singleConsumer} will be set to {@code true}.
+     *
+     * @param bufferSize if positive, the number of messages that the channel can hold in an internal buffer;
+     *                   {@code 0} for a <i>transfer</i> channel, i.e. a channel with no internal buffer.
+     *                   {@code -1} for a channel with an unbounded (infinite) buffer.
+     * @param policy     the {@link OverflowPolicy} specifying how the channel (if bounded) will behave if its internal buffer overflows.
+     * @return The newly created channel
+     * @see #newFloatChannel(int, co.paralleluniverse.strands.channels.Channels.OverflowPolicy, boolean, boolean)
+     */
+    public static FloatChannel newFloatChannel(int bufferSize, OverflowPolicy policy) {
+        return newFloatChannel(bufferSize, policy, defaultSingleProducer, defaultSingleConsumer);
     }
 
-    public static FloatChannel newFloatChannel(int mailboxSize) {
-        return newFloatChannel(mailboxSize, defaultPolicy);
+    /**
+     * Creates a new primitive {@code float} channel with the given mailbox size with other properties set to their default values.
+     * Specifically, the {@link OverflowPolicy} will be set to {@link OverflowPolicy#BLOCK BLOCK},
+     * {@code singleProducer} will be set to {@code false}, and {@code singleConsumer} will be set to {@code true}.
+     *
+     * @param bufferSize if positive, the number of messages that the channel can hold in an internal buffer;
+     *                   {@code 0} for a <i>transfer</i> channel, i.e. a channel with no internal buffer.
+     *                   {@code -1} for a channel with an unbounded (infinite) buffer.
+     * @return The newly created channel
+     * @see #newFloatChannel(int, co.paralleluniverse.strands.channels.Channels.OverflowPolicy, boolean, boolean)
+     */
+    public static FloatChannel newFloatChannel(int bufferSize) {
+        return newFloatChannel(bufferSize, defaultPolicy);
     }
 
     ///
-    public static DoubleChannel newDoubleChannel(int mailboxSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
+    /**
+     * Creates a new primitive {@code double} channel with the given properties.
+     * <p/>
+     * Some combinations of properties are unsupported, and will throw an {@code IllegalArgumentException} if requested:
+     *
+     * <ul>
+     * <li>multiple consumers</li>
+     * <li>a transfer channel with any overflow policy other than {@link OverflowPolicy#BLOCK BLOCK}</li>
+     * <li>An overflow policy of {@link OverflowPolicy#DISPLACE DISPLACE} with multiple consumers.</li>
+     * </ul>
+     * An unbounded channel ignores its overflow policy as it never overflows.
+     *
+     * @param bufferSize     if positive, the number of messages that the channel can hold in an internal buffer;
+     *                       {@code 0} for a <i>transfer</i> channel, i.e. a channel with no internal buffer.
+     *                       {@code -1} for a channel with an unbounded (infinite) buffer.
+     * @param policy         the {@link OverflowPolicy} specifying how the channel (if bounded) will behave if its internal buffer overflows.
+     * @param singleProducer whether the channel will be used by a single producer strand.
+     * @param singleConsumer whether the channel will be used by a single consumer strand. Currently primitive channels only support a single
+     *                       consumer, so this argument must be set to {@code false}.
+     * @return The newly created channel
+     */
+    public static DoubleChannel newDoubleChannel(int bufferSize, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
         if (!singleConsumer)
-            throw new UnsupportedOperationException("Primitive queue with multiple consumers is unsupported");
+            throw new IllegalArgumentException("Primitive queue with multiple consumers is unsupported");
 
         final BasicSingleConsumerDoubleQueue queue;
-        if (mailboxSize < 0) {
+        if (bufferSize < 0) {
             queue = new SingleConsumerLinkedArrayDoubleQueue();
         } else if (policy == OverflowPolicy.DISPLACE) {
-            queue = new CircularDoubleBuffer(mailboxSize, singleProducer);
+            queue = new CircularDoubleBuffer(bufferSize, singleProducer);
         } else
-            queue = new SingleConsumerArrayDoubleQueue(mailboxSize);
+            queue = new SingleConsumerArrayDoubleQueue(bufferSize);
 
         return new QueueDoubleChannel(queue, policy);
     }
 
-    public static DoubleChannel newDoubleChannel(int mailboxSize, OverflowPolicy policy) {
-        return newDoubleChannel(mailboxSize, policy, defaultSingleProducer, defaultSingleConsumer);
+    /**
+     * Creates a new primitive {@code double} channel with the given mailbox size and {@link OverflowPolicy}, with other properties set to their default values.
+     * Specifically, {@code singleProducer} will be set to {@code false}, while {@code singleConsumer} will be set to {@code true}.
+     *
+     * @param bufferSize if positive, the number of messages that the channel can hold in an internal buffer;
+     *                   {@code 0} for a <i>transfer</i> channel, i.e. a channel with no internal buffer.
+     *                   {@code -1} for a channel with an unbounded (infinite) buffer.
+     * @param policy     the {@link OverflowPolicy} specifying how the channel (if bounded) will behave if its internal buffer overflows.
+     * @return The newly created channel
+     * @see #newDoubleChannel(int, co.paralleluniverse.strands.channels.Channels.OverflowPolicy, boolean, boolean)
+     */
+    public static DoubleChannel newDoubleChannel(int bufferSize, OverflowPolicy policy) {
+        return newDoubleChannel(bufferSize, policy, defaultSingleProducer, defaultSingleConsumer);
     }
 
-    public static DoubleChannel newDoubleChannel(int mailboxSize) {
-        return newDoubleChannel(mailboxSize, defaultPolicy);
+    /**
+     * Creates a new primitive {@code double} channel with the given mailbox size with other properties set to their default values.
+     * Specifically, the {@link OverflowPolicy} will be set to {@link OverflowPolicy#BLOCK BLOCK},
+     * {@code singleProducer} will be set to {@code false}, and {@code singleConsumer} will be set to {@code true}.
+     *
+     * @param bufferSize if positive, the number of messages that the channel can hold in an internal buffer;
+     *                   {@code 0} for a <i>transfer</i> channel, i.e. a channel with no internal buffer.
+     *                   {@code -1} for a channel with an unbounded (infinite) buffer.
+     * @return The newly created channel
+     * @see #newDoubleChannel(int, co.paralleluniverse.strands.channels.Channels.OverflowPolicy, boolean, boolean)
+     */
+    public static DoubleChannel newDoubleChannel(int bufferSize) {
+        return newDoubleChannel(bufferSize, defaultPolicy);
     }
 
     ///
