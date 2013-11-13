@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 /**
+ * An empty super-interface of {@link SendPort} and {@link ReceivePort} extend.
  *
  * @author pron
  */

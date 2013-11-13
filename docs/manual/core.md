@@ -186,7 +186,19 @@ Channels are queues used to pass messages between strands (remember, strands are
 
 A [channel]({{javadoc}}/strands/channels/Channel.html) is an interface that extends two other interfaces: [`SendPort`]({{javadoc}}/strands/channels/SendPort.html), which defines the methods used to send messages to a channel, and [`ReceivePort`]({{javadoc}}/strands/channels/ReceivePort.html), which defines the methods used to receive messages from a channel.
 
-Channels are normally created by calling any of the `newChannel` static methods of the [`Channels`]({{javadoc}}/strands/channels/Channels.html) class. 
+Channels are normally created by calling any of the `newChannel` static methods of the [`Channels`]({{javadoc}}/strands/channels/Channels.html) class. The `newChannel` methods create a channel with a specified set of properties. Those properties are:
+
+* `bufferSize` – if positive, the number of messages that the channel can hold in an internal buffer; `0` for a *transfer* channel, i.e. a channel with no internal buffer.
+*                 or `-1` for a channel with an unbounded (infinite) buffer.
+* `policy`         – the [`OverflowPolicy`]({{javadoc}}/strands/channels/OverflowPolicy.html) specifying how the channel (if bounded) will behave if its internal buffer overflows.
+* `singleProducer` – whether the channel will be used by a single producer strand.
+* `singleConsumer` – whether the channel will be used by a single consumer strand.
+
+Note that not all property combinations are supported. Consult the [`Javadoc`]({{javadoc}}/strands/channels/Channels.html) for details.
+
+### Sending and Receiving Messages
+
+Messages are sent to a channel using the [`SendPort.send`]({{javadoc}}/strands/channels/SendPort.html#send(Message)) method. The `send` method blocks if the channel's buffer
 
 ### Rx
 
