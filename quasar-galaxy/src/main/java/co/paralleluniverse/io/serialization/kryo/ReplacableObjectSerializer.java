@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.io.serialization;
+package co.paralleluniverse.io.serialization.kryo;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
@@ -26,7 +26,7 @@ import java.lang.reflect.Modifier;
  *
  * @author pron
  */
-public class ReplacableObjectSerializer extends FieldSerializer<Object> {
+class ReplacableObjectSerializer extends FieldSerializer<Object> {
     public ReplacableObjectSerializer(Kryo kryo, Class type) {
         super(kryo, type);
     }

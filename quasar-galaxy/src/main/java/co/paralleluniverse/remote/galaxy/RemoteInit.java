@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.remote.galaxy;
 
-import co.paralleluniverse.io.serialization.KryoSerializer;
+import co.paralleluniverse.io.serialization.kryo.KryoSerializer;
 
 /**
  *

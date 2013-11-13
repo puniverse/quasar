@@ -11,10 +11,8 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.io.serialization;
+package co.paralleluniverse.io.serialization.kryo;
 
-import co.paralleluniverse.io.serialization.KryoSerializer.KryoObjectInputStream;
-import co.paralleluniverse.io.serialization.KryoSerializer.KryoObjectOutputStream;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
@@ -31,8 +29,7 @@ public class ExternalizableKryoSerializer<T extends Externalizable> extends com.
     @Override
     public void write(Kryo kryo, Output output, T obj) {
         try {
-            KryoObjectOutputStream oos = (KryoObjectOutputStream)output;
-            obj.writeExternal(oos);
+            obj.writeExternal(KryoUtil.asObjectOutput(output, kryo));
         } catch (IOException e) {
             throw new AssertionError(e);
         }
@@ -41,9 +38,8 @@ public class ExternalizableKryoSerializer<T extends Externalizable> extends com.
     @Override
     public T read(Kryo kryo, Input input, Class<T> type) {
         try {
-            KryoObjectInputStream ois = (KryoObjectInputStream)input;
-            T obj = ks.kryo.newInstance(type);
-            obj.readExternal(ois);
+            T obj = kryo.newInstance(type);
+            obj.readExternal(KryoUtil.asObjectInput(input, kryo));
             return obj;
         } catch (IOException e) {
             throw new AssertionError(e);

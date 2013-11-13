@@ -12,6 +12,7 @@
  */
 package co.paralleluniverse.io.serialization;
 
+import co.paralleluniverse.io.serialization.kryo.KryoSerializer;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;

@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.io.serialization;
+package co.paralleluniverse.io.serialization.kryo;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Registration;
@@ -25,6 +25,10 @@ import java.lang.reflect.Modifier;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * A subclass of {@link Kryo} that respects {@link Serializable java.io.Serializable}'s {@code writeReplace} and {@code readResolve}.
+ * @author pron
+ */
 public class ReplaceableObjectKryo extends Kryo {
     private final static Map<Class, ReplaceMethods> replaceMethodsCache = new ConcurrentHashMap<>();
     private static final String WRITE_REPLACE = "writeReplace";
