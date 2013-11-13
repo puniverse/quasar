@@ -367,7 +367,21 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>A <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channel.html">channel</a> is an interface that extends two other interfaces: <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/SendPort.html"><code>SendPort</code></a>, which defines the methods used to send messages to a channel, and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ReceivePort.html"><code>ReceivePort</code></a>, which defines the methods used to receive messages from a&nbsp;channel.</p>
 
-<p>Channels are normally created by calling any of the <code>newChannel</code> static methods of the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html"><code>Channels</code></a>&nbsp;class. </p>
+<p>Channels are normally created by calling any of the <code>newChannel</code> static methods of the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html"><code>Channels</code></a> class. The <code>newChannel</code> methods create a channel with a specified set of properties. Those properties&nbsp;are:</p>
+
+<ul>
+  <li><code>bufferSize</code> – if positive, the number of messages that the channel can hold in an internal buffer; <code>0</code> for a <em>transfer</em> channel, i.e. a channel with no internal&nbsp;buffer.</li>
+  <li>or <code>-1</code> for a channel with an unbounded (infinite)&nbsp;buffer.</li>
+  <li><code>policy</code>         – the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/OverflowPolicy.html"><code>OverflowPolicy</code></a> specifying how the channel (if bounded) will behave if its internal buffer&nbsp;overflows.</li>
+  <li><code>singleProducer</code> – whether the channel will be used by a single producer&nbsp;strand.</li>
+  <li><code>singleConsumer</code> – whether the channel will be used by a single consumer&nbsp;strand.</li>
+</ul>
+
+<p>Note that not all property combinations are supported. Consult the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html"><code>Javadoc</code></a> for&nbsp;details.</p>
+
+<h3 id="sending-and-receiving-messages">Sending and Receiving&nbsp;Messages</h3>
+
+<p>Messages are sent to a channel using the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/SendPort.html#send(Message)"><code>SendPort.send</code></a> method. The <code>send</code> method blocks if the channel’s&nbsp;buffer</p>
 
 <h3 id="rx">Rx</h3>
 
