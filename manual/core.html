@@ -58,6 +58,13 @@
           
           
           
+        
+          
+          
+            
+          
+          
+          
             <li>
               <a  href="/quasar/getting-started.html">
                 Getting Started
@@ -101,22 +108,8 @@
             </li>
           
         
-          
-          
-            
-          
-          
-          
-        
       
         <li class="nav-header">User Manual</li>
-        
-          
-          
-            
-          
-          
-          
         
           
           
@@ -129,9 +122,16 @@
                 Quasar Core
               </a>
               
-              <ul class="nav nav-list"><li><a href="#fibers">Fibers</a></li><li><a href="#strands">Strands</a></li><li><a href="#transforming-any-asynchronous-callback-to-a-fiber-blocking-operation">Transforming any Asynchronous Callback to A Fiber-Blocking&nbsp;Operation</a></li><li><a href="#advanced-fibers">Advanced Fiber&nbsp;Usage</a></li></ul>
+              <ul class="nav nav-list"><li><a href="#fibers">Fibers</a></li><li><a href="#strands">Strands</a></li><li><a href="#transforming-any-asynchronous-callback-to-a-fiber-blocking-operation">Transforming any Asynchronous Callback to A Fiber-Blocking&nbsp;Operation</a></li><li><a href="#advanced-fibers">Advanced Fiber&nbsp;Usage</a></li><li><a href="#channels">Channels</a></li></ul>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
           
@@ -168,19 +168,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/manual/examples.html">
                 Examples
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
       
@@ -360,6 +360,8 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 <p>When the instrumentation module instruments <code>h</code>, it will find <code>I.f</code> in the file, and, knowing it might suspend, inject the appropriate&nbsp;code.</p>
 
 <p>Note that this has no effect on other calls to <code>I.f</code>. The instrumentation module only cares that <code>I.f</code> has suspendable implementations when it finds it called in suspendable methods (in our case:&nbsp;<code>h</code>).</p>
+
+<h2 id="channels">Channels</h2>
 
 </div>
 
