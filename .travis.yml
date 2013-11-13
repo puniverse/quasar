@@ -1,6 +1,6 @@
 language: java
 install: gradle -q assemble
-script: gradle -i clean check | sed 's/\e\[?.*?[\@-~]//g'
+script: set -o pipefail; gradle -i clean check | sed 's/\e\[?.*?[\@-~]//g'
 jdk:
   - oraclejdk7
 branches:
