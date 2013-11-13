@@ -193,6 +193,8 @@ public abstract class AbstractRecord<R> implements Record<R> {
     @Override
     public void write(ObjectOutput out) throws IOException {
         for (Field<? super R, ?> field : fields()) {
+            if (field.isTransient())
+                continue;
             switch (field.type()) {
                 case Field.BOOLEAN:
                     out.writeBoolean(get((Field.BooleanField<? super R>) field));
@@ -303,6 +305,8 @@ public abstract class AbstractRecord<R> implements Record<R> {
     public void read(ObjectInput in) throws IOException {
         try {
             for (Field<? super R, ?> field : fields()) {
+                if (field.isTransient())
+                    continue;
                 switch (field.type()) {
                     case Field.BOOLEAN:
                         set((Field.BooleanField<? super R>) field, in.readBoolean());

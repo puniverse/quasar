@@ -21,156 +21,158 @@ import java.util.Objects;
  * @author pron
  */
 public abstract class Field<R, V> {
-    public static <R> BooleanField<R> booleanField(String name, int id, boolean trnsient) {
-        return new BooleanField<R>(name, id, trnsient);
+    public static final int TRANSIENT = 1;
+    
+    public static <R> BooleanField<R> booleanField(String name, int id, int flags) {
+        return new BooleanField<R>(name, id, flags);
     }
 
     public static <R> BooleanField<R> booleanField(String name, int id) {
-        return booleanField(name, id, false);
+        return booleanField(name, id, 0);
     }
 
-    public static <R> ByteField<R> byteField(String name, int id, boolean trnsient) {
-        return new ByteField<R>(name, id, trnsient);
+    public static <R> ByteField<R> byteField(String name, int id, int flags) {
+        return new ByteField<R>(name, id, flags);
     }
 
     public static <R> ByteField<R> byteField(String name, int id) {
-        return byteField(name, id, false);
+        return byteField(name, id, 0);
     }
 
-    public static <R> ShortField<R> shortField(String name, int id, boolean trnsient) {
-        return new ShortField<R>(name, id, trnsient);
+    public static <R> ShortField<R> shortField(String name, int id, int flags) {
+        return new ShortField<R>(name, id, flags);
     }
 
     public static <R> ShortField<R> shortField(String name, int id) {
-        return shortField(name, id, false);
+        return shortField(name, id, 0);
     }
 
-    public static <R> IntField<R> intField(String name, int id, boolean trnsient) {
-        return new IntField<R>(name, id, trnsient);
+    public static <R> IntField<R> intField(String name, int id, int flags) {
+        return new IntField<R>(name, id, flags);
     }
 
     public static <R> IntField<R> intField(String name, int id) {
-        return intField(name, id, false);
+        return intField(name, id, 0);
     }
 
-    public static <R> LongField<R> longField(String name, int id, boolean trnsient) {
-        return new LongField<R>(name, id, trnsient);
+    public static <R> LongField<R> longField(String name, int id, int flags) {
+        return new LongField<R>(name, id, flags);
     }
 
     public static <R> LongField<R> longField(String name, int id) {
-        return longField(name, id, false);
+        return longField(name, id, 0);
     }
 
-    public static <R> FloatField<R> floatField(String name, int id, boolean trnsient) {
-        return new FloatField<R>(name, id, trnsient);
+    public static <R> FloatField<R> floatField(String name, int id, int flags) {
+        return new FloatField<R>(name, id, flags);
     }
 
     public static <R> FloatField<R> floatField(String name, int id) {
-        return floatField(name, id, false);
+        return floatField(name, id, 0);
     }
 
-    public static <R> DoubleField<R> doubleField(String name, int id, boolean trnsient) {
-        return new DoubleField<R>(name, id, trnsient);
+    public static <R> DoubleField<R> doubleField(String name, int id, int flags) {
+        return new DoubleField<R>(name, id, flags);
     }
 
     public static <R> DoubleField<R> doubleField(String name, int id) {
-        return doubleField(name, id, false);
+        return doubleField(name, id, 0);
     }
 
-    public static <R> CharField<R> charField(String name, int id, boolean trnsient) {
-        return new CharField<R>(name, id, trnsient);
+    public static <R> CharField<R> charField(String name, int id, int flags) {
+        return new CharField<R>(name, id, flags);
     }
 
     public static <R> CharField<R> charField(String name, int id) {
-        return charField(name, id, false);
+        return charField(name, id, 0);
     }
 
-    public static <R, V> ObjectField<R, V> objectField(String name, TypeToken<V> type, int id, boolean trnsient) {
-        return new ObjectField<R, V>(name, type.getRawType(), id, trnsient);
+    public static <R, V> ObjectField<R, V> objectField(String name, TypeToken<V> type, int id, int flags) {
+        return new ObjectField<R, V>(name, type.getRawType(), id, flags);
     }
 
     public static <R, V> ObjectField<R, V> objectField(String name, TypeToken<V> type, int id) {
-        return objectField(name, type, id, false);
+        return objectField(name, type, id, 0);
     }
 
-    public static <R, V> ObjectField<R, V> objectField(String name, Class<V> type, int id, boolean trnsient) {
-        return new ObjectField<R, V>(name, type, id, trnsient);
+    public static <R, V> ObjectField<R, V> objectField(String name, Class<V> type, int id, int flags) {
+        return new ObjectField<R, V>(name, type, id, flags);
     }
 
     public static <R, V> ObjectField<R, V> objectField(String name, Class<V> type, int id) {
-        return objectField(name, type, id, false);
+        return objectField(name, type, id, 0);
     }
 
-    public static <R> BooleanArrayField<R> booleanArrayField(String name, int length, int id, boolean trnsient) {
-        return new BooleanArrayField<R>(name, length, id, trnsient);
+    public static <R> BooleanArrayField<R> booleanArrayField(String name, int length, int id, int flags) {
+        return new BooleanArrayField<R>(name, length, id, flags);
     }
 
     public static <R> BooleanArrayField<R> booleanArrayField(String name, int length, int id) {
-        return booleanArrayField(name, length, id, false);
+        return booleanArrayField(name, length, id, 0);
     }
 
-    public static <R> ByteArrayField<R> byteArrayField(String name, int length, int id, boolean trnsient) {
-        return new ByteArrayField<R>(name, length, id, trnsient);
+    public static <R> ByteArrayField<R> byteArrayField(String name, int length, int id, int flags) {
+        return new ByteArrayField<R>(name, length, id, flags);
     }
 
     public static <R> ByteArrayField<R> byteArrayField(String name, int length, int id) {
-        return byteArrayField(name, length, id, false);
+        return byteArrayField(name, length, id, 0);
     }
 
-    public static <R> ShortArrayField<R> shortArrayField(String name, int length, int id, boolean trnsient) {
-        return new ShortArrayField<R>(name, length, id, trnsient);
+    public static <R> ShortArrayField<R> shortArrayField(String name, int length, int id, int flags) {
+        return new ShortArrayField<R>(name, length, id, flags);
     }
 
     public static <R> ShortArrayField<R> shortArrayField(String name, int length, int id) {
-        return shortArrayField(name, length, id, false);
+        return shortArrayField(name, length, id, 0);
     }
 
-    public static <R> IntArrayField<R> intArrayField(String name, int length, int id, boolean trnsient) {
-        return new IntArrayField<R>(name, length, id, trnsient);
+    public static <R> IntArrayField<R> intArrayField(String name, int length, int id, int flags) {
+        return new IntArrayField<R>(name, length, id, flags);
     }
 
     public static <R> IntArrayField<R> intArrayField(String name, int length, int id) {
-        return intArrayField(name, length, id, false);
+        return intArrayField(name, length, id, 0);
     }
 
-    public static <R> LongArrayField<R> longArrayField(String name, int length, int id, boolean trnsient) {
-        return new LongArrayField<R>(name, length, id, trnsient);
+    public static <R> LongArrayField<R> longArrayField(String name, int length, int id, int flags) {
+        return new LongArrayField<R>(name, length, id, flags);
     }
 
     public static <R> LongArrayField<R> longArrayField(String name, int length, int id) {
-        return longArrayField(name, length, id, false);
+        return longArrayField(name, length, id, 0);
     }
 
-    public static <R> FloatArrayField<R> floatArrayField(String name, int length, int id, boolean trnsient) {
-        return new FloatArrayField<R>(name, length, id, trnsient);
+    public static <R> FloatArrayField<R> floatArrayField(String name, int length, int id, int flags) {
+        return new FloatArrayField<R>(name, length, id, flags);
     }
 
     public static <R> FloatArrayField<R> floatArrayField(String name, int length, int id) {
-        return floatArrayField(name, length, id, false);
+        return floatArrayField(name, length, id, 0);
     }
 
-    public static <R> DoubleArrayField<R> doubleArrayField(String name, int length, int id, boolean trnsient) {
-        return new DoubleArrayField<R>(name, length, id, trnsient);
+    public static <R> DoubleArrayField<R> doubleArrayField(String name, int length, int id, int flags) {
+        return new DoubleArrayField<R>(name, length, id, flags);
     }
 
     public static <R> DoubleArrayField<R> doubleArrayField(String name, int length, int id) {
-        return doubleArrayField(name, length, id, false);
+        return doubleArrayField(name, length, id, 0);
     }
 
-    public static <R> CharArrayField<R> charArrayField(String name, int length, int id, boolean trnsient) {
-        return new CharArrayField<R>(name, length, id, trnsient);
+    public static <R> CharArrayField<R> charArrayField(String name, int length, int id, int flags) {
+        return new CharArrayField<R>(name, length, id, flags);
     }
 
     public static <R> CharArrayField<R> charArrayField(String name, int length, int id) {
-        return charArrayField(name, length, id, false);
+        return charArrayField(name, length, id, 0);
     }
 
-    public static <R, V> ObjectArrayField<R, V> objectArrayField(String name, Class<V> type, int length, int id, boolean trnsient) {
-        return new ObjectArrayField<R, V>(name, type, length, id, trnsient);
+    public static <R, V> ObjectArrayField<R, V> objectArrayField(String name, Class<V> type, int length, int id, int flags) {
+        return new ObjectArrayField<R, V>(name, type, length, id, flags);
     }
 
     public static <R, V> ObjectArrayField<R, V> objectArrayField(String name, Class<V> type, int length, int id) {
-        return ObjectArrayField.objectArrayField(name, type, length, id, false);
+        return ObjectArrayField.objectArrayField(name, type, length, id, 0);
     }
     ///////////////////////////////////
     static final int BOOLEAN = 1;
@@ -203,12 +205,12 @@ public abstract class Field<R, V> {
     //
     final String name;
     final int id;
-    final boolean trnsient;
+    final int flags;
 
-    Field(String name, int id, boolean trnsient) {
+    Field(String name, int id, int flags) {
         this.name = name;
         this.id = id;
-        this.trnsient = trnsient;
+        this.flags = flags;
     }
 
     public final int id() {
@@ -221,8 +223,13 @@ public abstract class Field<R, V> {
         return name;
     }
 
+    public int flags() {
+        return flags;
+    }
+
+    
     public boolean isTransient() {
-        return trnsient;
+        return (flags & TRANSIENT) != 0;
     }
 
     abstract int type();
@@ -261,16 +268,16 @@ public abstract class Field<R, V> {
 
     //////////////
     public static abstract class ScalarField<R, V> extends Field<R, V> {
-        ScalarField(String name, int id, boolean trnsient) {
-            super(name, id, trnsient);
+        ScalarField(String name, int id, int flags) {
+            super(name, id, flags);
         }
     }
 
     public static abstract class ArrayField<R, V> extends Field<R, V[]> {
         public final int length;
 
-        ArrayField(String name, int length, int id, boolean trnsient) {
-            super(name, id, trnsient);
+        ArrayField(String name, int length, int id, int flags) {
+            super(name, id, flags);
             this.length = length;
         }
 
@@ -297,8 +304,8 @@ public abstract class Field<R, V> {
 
     ////////////////
     public static final class BooleanField<R> extends ScalarField<R, Boolean> {
-        BooleanField(String name, int id, boolean trnsient) {
-            super(name, id, trnsient);
+        BooleanField(String name, int id, int flags) {
+            super(name, id, flags);
         }
 
         @Override
@@ -328,8 +335,8 @@ public abstract class Field<R, V> {
     }
 
     public static final class ByteField<R> extends ScalarField<R, Byte> {
-        ByteField(String name, int id, boolean trnsient) {
-            super(name, id, trnsient);
+        ByteField(String name, int id, int flags) {
+            super(name, id, flags);
         }
 
         @Override
@@ -359,8 +366,8 @@ public abstract class Field<R, V> {
     }
 
     public static final class ShortField<R> extends ScalarField<R, Short> {
-        ShortField(String name, int id, boolean trnsient) {
-            super(name, id, trnsient);
+        ShortField(String name, int id, int flags) {
+            super(name, id, flags);
         }
 
         @Override
@@ -390,8 +397,8 @@ public abstract class Field<R, V> {
     }
 
     public static final class IntField<R> extends ScalarField<R, Integer> {
-        IntField(String name, int id, boolean trnsient) {
-            super(name, id, trnsient);
+        IntField(String name, int id, int flags) {
+            super(name, id, flags);
         }
 
         @Override
@@ -421,8 +428,8 @@ public abstract class Field<R, V> {
     }
 
     public static final class LongField<R> extends ScalarField<R, Long> {
-        LongField(String name, int id, boolean trnsient) {
-            super(name, id, trnsient);
+        LongField(String name, int id, int flags) {
+            super(name, id, flags);
         }
 
         @Override
@@ -452,8 +459,8 @@ public abstract class Field<R, V> {
     }
 
     public static final class FloatField<R> extends ScalarField<R, Float> {
-        FloatField(String name, int id, boolean trnsient) {
-            super(name, id, trnsient);
+        FloatField(String name, int id, int flags) {
+            super(name, id, flags);
         }
 
         @Override
@@ -483,8 +490,8 @@ public abstract class Field<R, V> {
     }
 
     public static final class DoubleField<R> extends ScalarField<R, Double> {
-        DoubleField(String name, int id, boolean trnsient) {
-            super(name, id, trnsient);
+        DoubleField(String name, int id, int flags) {
+            super(name, id, flags);
         }
 
         @Override
@@ -514,8 +521,8 @@ public abstract class Field<R, V> {
     }
 
     public static final class CharField<R> extends ScalarField<R, Character> {
-        CharField(String name, int id, boolean trnsient) {
-            super(name, id, trnsient);
+        CharField(String name, int id, int flags) {
+            super(name, id, flags);
         }
 
         @Override
@@ -547,8 +554,8 @@ public abstract class Field<R, V> {
     public static class ObjectField<R, V> extends ScalarField<R, V> {
         private final Class<?> clazz;
 
-        ObjectField(String name, Class<?> clazz, int id, boolean trnsient) {
-            super(name, id, trnsient);
+        ObjectField(String name, Class<?> clazz, int id, int flags) {
+            super(name, id, flags);
             this.clazz = clazz;
         }
 
@@ -580,8 +587,8 @@ public abstract class Field<R, V> {
     //////////////////////////
 
     public static final class BooleanArrayField<R> extends ArrayField<R, Boolean> {
-        BooleanArrayField(String name, int length, int id, boolean trnsient) {
-            super(name, length, id, trnsient);
+        BooleanArrayField(String name, int length, int id, int flags) {
+            super(name, length, id, flags);
         }
 
         @Override
@@ -623,8 +630,8 @@ public abstract class Field<R, V> {
     }
 
     public static final class ByteArrayField<R> extends ArrayField<R, Byte> {
-        ByteArrayField(String name, int length, int id, boolean trnsient) {
-            super(name, length, id, trnsient);
+        ByteArrayField(String name, int length, int id, int flags) {
+            super(name, length, id, flags);
         }
 
         @Override
@@ -666,8 +673,8 @@ public abstract class Field<R, V> {
     }
 
     public static final class ShortArrayField<R> extends ArrayField<R, Short> {
-        ShortArrayField(String name, int length, int id, boolean trnsient) {
-            super(name, length, id, trnsient);
+        ShortArrayField(String name, int length, int id, int flags) {
+            super(name, length, id, flags);
         }
 
         @Override
@@ -709,8 +716,8 @@ public abstract class Field<R, V> {
     }
 
     public static final class IntArrayField<R> extends ArrayField<R, Integer> {
-        IntArrayField(String name, int length, int id, boolean trnsient) {
-            super(name, length, id, trnsient);
+        IntArrayField(String name, int length, int id, int flags) {
+            super(name, length, id, flags);
         }
 
         @Override
@@ -752,8 +759,8 @@ public abstract class Field<R, V> {
     }
 
     public static final class LongArrayField<R> extends ArrayField<R, Long> {
-        LongArrayField(String name, int length, int id, boolean trnsient) {
-            super(name, length, id, trnsient);
+        LongArrayField(String name, int length, int id, int flags) {
+            super(name, length, id, flags);
         }
 
         @Override
@@ -795,8 +802,8 @@ public abstract class Field<R, V> {
     }
 
     public static final class FloatArrayField<R> extends ArrayField<R, Float> {
-        FloatArrayField(String name, int length, int id, boolean trnsient) {
-            super(name, length, id, trnsient);
+        FloatArrayField(String name, int length, int id, int flags) {
+            super(name, length, id, flags);
         }
 
         @Override
@@ -838,8 +845,8 @@ public abstract class Field<R, V> {
     }
 
     public static final class DoubleArrayField<R> extends ArrayField<R, Double> {
-        DoubleArrayField(String name, int length, int id, boolean trnsient) {
-            super(name, length, id, trnsient);
+        DoubleArrayField(String name, int length, int id, int flags) {
+            super(name, length, id, flags);
         }
 
         @Override
@@ -881,8 +888,8 @@ public abstract class Field<R, V> {
     }
 
     public static final class CharArrayField<R> extends ArrayField<R, Character> {
-        CharArrayField(String name, int length, int id, boolean trnsient) {
-            super(name, length, id, trnsient);
+        CharArrayField(String name, int length, int id, int flags) {
+            super(name, length, id, flags);
         }
 
         @Override
@@ -926,8 +933,8 @@ public abstract class Field<R, V> {
     public static final class ObjectArrayField<R, V> extends ArrayField<R, V> {
         private final Class<V[]> clazz;
 
-        ObjectArrayField(String name, Class<V> elemClazz, int length, int id, boolean trnsient) {
-            super(name, length, id, trnsient);
+        ObjectArrayField(String name, Class<V> elemClazz, int length, int id, int flags) {
+            super(name, length, id, flags);
             this.clazz = (Class<V[]>) Array.newInstance(elemClazz, 0).getClass();
         }
 
