@@ -32,6 +32,9 @@ import co.paralleluniverse.data.record.Field.ObjectArrayField;
 import co.paralleluniverse.data.record.Field.ObjectField;
 import co.paralleluniverse.data.record.Field.ShortArrayField;
 import co.paralleluniverse.data.record.Field.ShortField;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Set;
 
 /**
@@ -83,6 +86,16 @@ final class RecordDelegate<R> implements Record<R>, DelegatingEquals {
     @Override
     public Set<Field<? super R, ?>> fields() {
         return r.fields();
+    }
+
+    @Override
+    public void write(ObjectOutput out) throws IOException {
+        r.write(out);;
+    }
+
+    @Override
+    public void read(ObjectInput in) throws IOException {
+        r.read(in);
     }
 
     @Override

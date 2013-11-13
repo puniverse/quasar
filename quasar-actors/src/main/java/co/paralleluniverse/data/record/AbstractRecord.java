@@ -13,6 +13,9 @@
 package co.paralleluniverse.data.record;
 
 import co.paralleluniverse.common.util.DelegatingEquals;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Set;
 
 /**
@@ -30,7 +33,7 @@ public abstract class AbstractRecord<R> implements Record<R> {
     public RecordType<R> type() {
         return type;
     }
-    
+
     @Override
     public final Set<Field<? super R, ?>> fields() {
         return type.fields();
@@ -185,6 +188,228 @@ public abstract class AbstractRecord<R> implements Record<R> {
             sb.delete(sb.length() - 2, sb.length());
         sb.append('}');
         return sb.toString();
+    }
+
+    @Override
+    public void write(ObjectOutput out) throws IOException {
+        for (Field<? super R, ?> field : fields()) {
+            switch (field.type()) {
+                case Field.BOOLEAN:
+                    out.writeBoolean(get((Field.BooleanField<? super R>) field));
+                    break;
+                case Field.BYTE:
+                    out.writeByte(get((Field.ByteField<? super R>) field));
+                    break;
+                case Field.SHORT:
+                    out.writeShort(get((Field.ShortField<? super R>) field));
+                    break;
+                case Field.INT:
+                    out.writeInt(get((Field.IntField<? super R>) field));
+                    break;
+                case Field.LONG:
+                    out.writeLong(get((Field.LongField<? super R>) field));
+                    break;
+                case Field.FLOAT:
+                    out.writeFloat(get((Field.FloatField<? super R>) field));
+                    break;
+                case Field.DOUBLE:
+                    out.writeDouble(get((Field.DoubleField<? super R>) field));
+                    break;
+                case Field.CHAR:
+                    out.writeChar(get((Field.CharField<? super R>) field));
+                    break;
+                case Field.OBJECT:
+                    out.writeObject(get((Field.ObjectField<? super R, ?>) field));
+                    break;
+                case Field.BOOLEAN_ARRAY: {
+                    Field.BooleanArrayField<? super R> f = (Field.BooleanArrayField<? super R>) field;
+                    if (f.length > 0) {
+                        for (int i = 0; i < f.length; i++)
+                            out.writeBoolean(get(f, i));
+                    }
+                    break;
+                }
+                case Field.BYTE_ARRAY: {
+                    Field.ByteArrayField<? super R> f = (Field.ByteArrayField<? super R>) field;
+                    if (f.length > 0) {
+                        for (int i = 0; i < f.length; i++)
+                            out.writeByte(get(f, i));
+                    }
+                    break;
+                }
+                case Field.SHORT_ARRAY: {
+                    Field.ShortArrayField<? super R> f = (Field.ShortArrayField<? super R>) field;
+                    if (f.length > 0) {
+                        for (int i = 0; i < f.length; i++)
+                            out.writeShort(get(f, i));
+                    }
+                    break;
+                }
+                case Field.INT_ARRAY: {
+                    Field.IntArrayField<? super R> f = (Field.IntArrayField<? super R>) field;
+                    if (f.length > 0) {
+                        for (int i = 0; i < f.length; i++)
+                            out.writeInt(get(f, i));
+                    }
+                    break;
+                }
+                case Field.LONG_ARRAY: {
+                    Field.LongArrayField<? super R> f = (Field.LongArrayField<? super R>) field;
+                    if (f.length > 0) {
+                        for (int i = 0; i < f.length; i++)
+                            out.writeLong(get(f, i));
+                    }
+                    break;
+                }
+                case Field.FLOAT_ARRAY: {
+                    Field.FloatArrayField<? super R> f = (Field.FloatArrayField<? super R>) field;
+                    if (f.length > 0) {
+                        for (int i = 0; i < f.length; i++)
+                            out.writeFloat(get(f, i));
+                    }
+                    break;
+                }
+                case Field.DOUBLE_ARRAY: {
+                    Field.DoubleArrayField<? super R> f = (Field.DoubleArrayField<? super R>) field;
+                    if (f.length > 0) {
+                        for (int i = 0; i < f.length; i++)
+                            out.writeDouble(get(f, i));
+                    }
+                    break;
+                }
+                case Field.CHAR_ARRAY: {
+                    Field.CharArrayField<? super R> f = (Field.CharArrayField<? super R>) field;
+                    if (f.length > 0) {
+                        for (int i = 0; i < f.length; i++)
+                            out.writeChar(get(f, i));
+                    }
+                    break;
+                }
+                case Field.OBJECT_ARRAY: {
+                    Field.ObjectArrayField<? super R, ?> f = (Field.ObjectArrayField<? super R, ?>) field;
+                    if (f.length > 0) {
+                        for (int i = 0; i < f.length; i++)
+                            out.writeObject(get(f, i));
+                    }
+                    break;
+                }
+                default:
+                    throw new AssertionError();
+            }
+        }
+    }
+
+    @Override
+    public void read(ObjectInput in) throws IOException {
+        try {
+            for (Field<? super R, ?> field : fields()) {
+                switch (field.type()) {
+                    case Field.BOOLEAN:
+                        set((Field.BooleanField<? super R>) field, in.readBoolean());
+                        break;
+                    case Field.BYTE:
+                        set((Field.ByteField<? super R>) field, in.readByte());
+                        break;
+                    case Field.SHORT:
+                        set((Field.ShortField<? super R>) field, in.readShort());
+                        break;
+                    case Field.INT:
+                        set((Field.IntField<? super R>) field, in.readInt());
+                        break;
+                    case Field.LONG:
+                        set((Field.LongField<? super R>) field, in.readLong());
+                        break;
+                    case Field.FLOAT:
+                        set((Field.FloatField<? super R>) field, in.readFloat());
+                        break;
+                    case Field.DOUBLE:
+                        set((Field.DoubleField<? super R>) field, in.readDouble());
+                        break;
+                    case Field.CHAR:
+                        set((Field.CharField<? super R>) field, in.readChar());
+                        break;
+                    case Field.OBJECT:
+                        set((Field.ObjectField) field, in.readObject());
+                        break;
+                    case Field.BOOLEAN_ARRAY: {
+                        Field.BooleanArrayField<? super R> f = (Field.BooleanArrayField<? super R>) field;
+                        if (f.length > 0) {
+                            for (int i = 0; i < f.length; i++)
+                                set(f, i, in.readBoolean());
+                        }
+                        break;
+                    }
+                    case Field.BYTE_ARRAY: {
+                        Field.ByteArrayField<? super R> f = (Field.ByteArrayField<? super R>) field;
+                        if (f.length > 0) {
+                            for (int i = 0; i < f.length; i++)
+                                set(f, i, in.readByte());
+                        }
+                        break;
+                    }
+                    case Field.SHORT_ARRAY: {
+                        Field.ShortArrayField<? super R> f = (Field.ShortArrayField<? super R>) field;
+                        if (f.length > 0) {
+                            for (int i = 0; i < f.length; i++)
+                                set(f, i, in.readShort());
+                        }
+                        break;
+                    }
+                    case Field.INT_ARRAY: {
+                        Field.IntArrayField<? super R> f = (Field.IntArrayField<? super R>) field;
+                        if (f.length > 0) {
+                            for (int i = 0; i < f.length; i++)
+                                set(f, i, in.readInt());
+                        }
+                        break;
+                    }
+                    case Field.LONG_ARRAY: {
+                        Field.LongArrayField<? super R> f = (Field.LongArrayField<? super R>) field;
+                        if (f.length > 0) {
+                            for (int i = 0; i < f.length; i++)
+                                set(f, i, in.readLong());
+                        }
+                        break;
+                    }
+                    case Field.FLOAT_ARRAY: {
+                        Field.FloatArrayField<? super R> f = (Field.FloatArrayField<? super R>) field;
+                        if (f.length > 0) {
+                            for (int i = 0; i < f.length; i++)
+                                set(f, i, in.readFloat());
+                        }
+                        break;
+                    }
+                    case Field.DOUBLE_ARRAY: {
+                        Field.DoubleArrayField<? super R> f = (Field.DoubleArrayField<? super R>) field;
+                        if (f.length > 0) {
+                            for (int i = 0; i < f.length; i++)
+                                set(f, i, in.readDouble());
+                        }
+                        break;
+                    }
+                    case Field.CHAR_ARRAY: {
+                        Field.CharArrayField<? super R> f = (Field.CharArrayField<? super R>) field;
+                        if (f.length > 0) {
+                            for (int i = 0; i < f.length; i++)
+                                set(f, i, in.readChar());
+                        }
+                        break;
+                    }
+                    case Field.OBJECT_ARRAY: {
+                        Field.ObjectArrayField<? super R, ?> f = (Field.ObjectArrayField<? super R, ?>) field;
+                        if (f.length > 0) {
+                            for (int i = 0; i < f.length; i++)
+                                set((Field.ObjectArrayField) f, i, in.readObject());
+                        }
+                        break;
+                    }
+                    default:
+                        throw new AssertionError();
+                }
+            }
+        } catch (ClassNotFoundException e) {
+            throw new IOException(e);
+        }
     }
 
     @Override

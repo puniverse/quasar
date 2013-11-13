@@ -20,8 +20,12 @@ import java.util.Set;
  */
 public interface Record<R> {
     RecordType<R> type();
-    
+
     Set<Field<? super R, ?>> fields();
+
+    void write(java.io.ObjectOutput out) throws java.io.IOException;
+
+    void read(java.io.ObjectInput in) throws java.io.IOException;
 
     <V> V get(Field<? super R, V> field);
 
