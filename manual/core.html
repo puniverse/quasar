@@ -365,7 +365,9 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>Channels are queues used to pass messages between strands (remember, strands are a general name for threads and fibers). If you are familiar with Go, Quasar channels are like Go&nbsp;channels. </p>
 
-<p>A <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channel.html">Channel</a> is an interface that extends two other interfaces: <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/SendPort.html">SendPort</a>, which defines the methods used to send messages to a channel, and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ReceivePort.html">ReceivePort</a>, which defines the methods used to receive messages from a&nbsp;channel.</p>
+<p>A <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channel.html">channel</a> is an interface that extends two other interfaces: <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/SendPort.html"><code>SendPort</code></a>, which defines the methods used to send messages to a channel, and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ReceivePort.html"><code>ReceivePort</code></a>, which defines the methods used to receive messages from a&nbsp;channel.</p>
+
+<p>Channels are normally created by calling any of the <code>newChannel</code> static methods of the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html"><code>Channels</code></a>&nbsp;class. </p>
 
 <h3 id="rx">Rx</h3>
 
