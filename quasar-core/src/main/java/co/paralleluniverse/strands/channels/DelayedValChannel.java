@@ -110,6 +110,6 @@ public class DelayedValChannel<V> implements ReceivePort<V>, Selectable<V> {
             return;
         Condition sync = dv.getSync();
         if (sync != null)
-            sync.unregister();
+            sync.unregister(null);
     }
 }

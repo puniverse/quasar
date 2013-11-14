@@ -66,7 +66,7 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
     Object receiveNode() throws EOFException, SuspendExecution, InterruptedException {
         maybeSetCurrentStrandAsOwner();
         Object n;
-        sync.register();
+        Object token = sync.register();
         for (int i = 0; (n = queue().pk()) == null; i++) {
             if (isSendClosed()) {
                 setReceiveClosed();
@@ -74,7 +74,7 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
             }
             sync.await(i);
         }
-        sync.unregister();
+        sync.unregister(token);
 
         return n;
     }
@@ -91,7 +91,7 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
         long left = unit.toNanos(timeout);
         final long deadline = System.nanoTime() + left;
         
-        sync.register();
+        Object token = sync.register();
         try {
             for (int i = 0; (n = queue().pk()) == null; i++) {
                 if (isSendClosed()) {
@@ -105,7 +105,7 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
                     return null;
             }
         } finally {
-            sync.unregister();
+            sync.unregister(token);
         }
         return n;
     }

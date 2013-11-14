@@ -56,7 +56,7 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         if (isClosed())
             throw new EOFException();
         final Condition sync = channel.sync;
-        sync.register();
+        Object token = sync.register();
         try {
             for (int i = 0; !consumer.hasNext(); i++) {
                 if (channel.isSendClosed()) {
@@ -67,7 +67,7 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
             }
             consumer.poll0();
         } finally {
-            sync.unregister();
+            sync.unregister(token);
         }
     }
 
@@ -77,7 +77,7 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         final Condition sync = channel.sync;
         long left = unit.toNanos(timeout);
         final long deadline = System.nanoTime() + left;
-        sync.register();
+        Object token = sync.register();
         try {
             for (int i = 0; !consumer.hasNext(); i++) {
                 if (channel.isSendClosed()) {
@@ -91,7 +91,7 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
             }
             consumer.poll0();
         } finally {
-            sync.unregister();
+            sync.unregister(token);
         }
     }
 

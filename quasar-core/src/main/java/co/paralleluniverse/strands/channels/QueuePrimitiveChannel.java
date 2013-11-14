@@ -55,7 +55,7 @@ public class QueuePrimitiveChannel<Message> extends QueueChannel<Message> implem
     boolean awaitItem() throws SuspendExecution, InterruptedException, EOFException {
         maybeSetCurrentStrandAsOwner();
         Object n;
-        sync.register();
+        Object token = sync.register();
         for (int i = 0; !queue().hasNext(); i++) {
             if (isSendClosed()) {
                 setReceiveClosed();
@@ -63,7 +63,7 @@ public class QueuePrimitiveChannel<Message> extends QueueChannel<Message> implem
             }
             sync.await(i);
         }
-        sync.unregister();
+        sync.unregister(token);
         return true;
     }
 
@@ -79,7 +79,7 @@ public class QueuePrimitiveChannel<Message> extends QueueChannel<Message> implem
         long left = unit.toNanos(timeout);
         final long deadline = System.nanoTime() + left;
 
-        sync.register();
+        Object token = sync.register();
         try {
             for (int i = 0; !queue().hasNext(); i++) {
                 if (isSendClosed()) {
@@ -93,7 +93,7 @@ public class QueuePrimitiveChannel<Message> extends QueueChannel<Message> implem
                     return false;
             }
         } finally {
-            sync.unregister();
+            sync.unregister(token);
         }
         return true;
     }

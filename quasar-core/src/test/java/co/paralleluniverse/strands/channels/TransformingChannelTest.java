@@ -404,7 +404,7 @@ public class TransformingChannelTest {
             public void run() throws SuspendExecution, InterruptedException {
                 Integer m1 = ch.receive();
                 Integer m0 = ch.receive(30, TimeUnit.MILLISECONDS);
-                Integer m2 = ch.receive(50, TimeUnit.MILLISECONDS);
+                Integer m2 = ch.receive(80, TimeUnit.MILLISECONDS);
                 Integer m3 = ch.receive();
 
                 assertThat(m1, equalTo(2));

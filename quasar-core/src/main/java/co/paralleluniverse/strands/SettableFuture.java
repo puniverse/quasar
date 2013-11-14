@@ -92,12 +92,12 @@ public class SettableFuture<V> implements Future<V> {
             if (done)
                 return getValue();
 
-            sync.register();
+            Object token = sync.register();
             try {
                 for (int i = 0; !done; i++)
                     sync.await(i);
             } finally {
-                sync.unregister();
+                sync.unregister(token);
             }
             return getValue();
         } catch (SuspendExecution e) {
@@ -115,8 +115,7 @@ public class SettableFuture<V> implements Future<V> {
             long left = unit.toNanos(timeout);
             final long deadline = System.nanoTime() + left;
 
-            sync.register();
-
+            Object token = sync.register();
             try {
                 for (int i = 0; !done; i++) {
                     sync.await(i, left, TimeUnit.NANOSECONDS);
@@ -126,7 +125,7 @@ public class SettableFuture<V> implements Future<V> {
                         throw new TimeoutException();
                 }
             } finally {
-                sync.unregister();
+                sync.unregister(token);
             }
             return getValue();
         } catch (SuspendExecution e) {

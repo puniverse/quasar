@@ -24,6 +24,7 @@ package co.paralleluniverse.strands.channels;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.Synchronization;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -32,7 +33,7 @@ import java.util.concurrent.TimeUnit;
  * @author Doug Lea
  * @author pron
  */
-public class TransferChannel<Message> implements Channel<Message>, Selectable<Message> {
+public class TransferChannel<Message> implements Channel<Message>, Selectable<Message>, Synchronization {
     private volatile boolean sendClosed;
     private boolean receiveClosed;
     private static final Object CHANNEL_CLOSED = new Object();
@@ -98,6 +99,12 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
         if (m == CHANNEL_CLOSED)
             return null;
         return (Message) m;
+    }
+
+    @Override
+    public Object register() {
+        // for queues, a simple registration is always a receive
+        return receive0();
     }
 
     @Override
@@ -414,10 +421,10 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
     /**
      * Implements all queuing methods. See above for explanation.
      *
-     * @param e the item or null for take
+     * @param e        the item or null for take
      * @param haveData true if this is a put, else a take
-     * @param how NOW, ASYNC, SYNC, or TIMED
-     * @param nanos timeout in nanosecs, used only if mode is TIMED
+     * @param how      NOW, ASYNC, SYNC, or TIMED
+     * @param nanos    timeout in nanosecs, used only if mode is TIMED
      * @return an item if matched, else e
      * @throws NullPointerException if haveData mode but e is null
      */
@@ -439,8 +446,8 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
             Node pred = tryAppend(s, haveData);
             if (pred == null)
                 continue retry;           // lost race vs opposite mode
-            
-            if(!haveData && sendClosed) {
+
+            if (!haveData && sendClosed) {
                 s.item = CHANNEL_CLOSED;
                 unsplice(pred, s);
                 setReceiveClosed();
@@ -448,6 +455,33 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
             }
 
             return awaitMatch(s, pred, e, (how == TIMED), nanos);
+        }
+    }
+
+    private Token receive0() {
+        Node s = new Node(null, false);      // the node to append
+
+        retry:
+        for (;;) {                            // restart on append race
+            Object item = tryMatch(null, null, false);
+            if (item != NO_MATCH) {
+                s.item = item;
+                return new Token(s, null);
+            }
+
+            Node pred = tryAppend(s, false);
+            if (pred == null)
+                continue retry;           // lost race vs opposite mode
+
+            if (sendClosed) {
+                s.item = CHANNEL_CLOSED;
+                unsplice(pred, s);
+                setReceiveClosed();
+                return new Token(s, null);
+            }
+
+            requestUnpark(s, Strand.currentStrand());
+            return new Token(s, pred);
         }
     }
 
@@ -478,7 +512,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
 
             if (s == null) {
                 s = new Node(e);
-                s.waiter = e.selector().getWaiter();
+                requestUnpark(s, e.selector().getWaiter());
             }
             Node pred = tryAppend(s, haveData);
             if (pred == null)
@@ -549,11 +583,11 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
     /**
      * Tries to append node s as tail.
      *
-     * @param s the node to append
+     * @param s        the node to append
      * @param haveData true if appending in data mode
      * @return null on failure due to losing race with append in
-     * different mode, else s's predecessor, or s itself if no
-     * predecessor
+     *         different mode, else s's predecessor, or s itself if no
+     *         predecessor
      */
     private Node tryAppend(Node s, boolean haveData) {
         for (Node t = tail, p = t;;) {        // move p to last node and append
@@ -583,11 +617,11 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
     /**
      * Spins/yields/blocks until node s is matched or caller gives up.
      *
-     * @param s the waiting node
-     * @param pred the predecessor of s, or s itself if it has no
-     * predecessor, or null if unknown (the null case does not occur
-     * in any current calls but may in possible future extensions)
-     * @param e the comparison value for checking match
+     * @param s     the waiting node
+     * @param pred  the predecessor of s, or s itself if it has no
+     *              predecessor, or null if unknown (the null case does not occur
+     *              in any current calls but may in possible future extensions)
+     * @param e     the comparison value for checking match
      * @param timed if true, wait only until timeout elapses
      * @param nanos timeout in nanosecs, used only if timed is true
      * @return matched item, or e if unmatched on interrupt or timeout
@@ -597,10 +631,10 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
         Strand w = Strand.currentStrand();
         int spins = (w.isFiber() ? 0 : -1); // no spins in fiber; otherwise, initialized after first item and cancel checks
         ThreadLocalRandom randomYields = null; // bound if needed
-        
-        if(spins == 0)
-            s.waiter = w;
-        
+
+        if (spins == 0)
+            requestUnpark(s, w);
+
         for (;;) {
             Object item = s.item;
 
@@ -613,7 +647,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
                 return this.<Message>cast(item);
             }
             if ((w.isInterrupted() || (timed && nanos <= 0))
-                    && s.casItem(e, s)) {        // cancel
+                    && s.casItem(e, s)) {     // cancel
                 unsplice(pred, s);
                 return e;
             }
@@ -621,12 +655,12 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
             if (spins < 0) {                  // establish spins at/near front
                 if ((spins = spinsFor(pred, s.isData)) > 0)
                     randomYields = ThreadLocalRandom.current();
-            } else if (spins > 0) {             // spin
+            } else if (spins > 0) {           // spin
                 --spins;
                 if (randomYields.nextInt(CHAINED_SPINS) == 0)
                     Strand.yield();           // occasionally yield
             } else if (s.waiter == null) {
-                s.waiter = w;                 // request unpark then recheck
+                requestUnpark(s, w);          // request unpark then recheck
             } else if (timed) {
                 long now = System.nanoTime();
                 if ((nanos -= now - lastTime) > 0)
@@ -636,6 +670,10 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
                 Strand.park(this);
             }
         }
+    }
+
+    private void requestUnpark(Node s, Strand waiter) {
+        s.waiter = waiter;
     }
 
     /**
@@ -707,8 +745,8 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
      * the given predecessor.
      *
      * @param pred a node that was at one time known to be the
-     * predecessor of s, or null or s itself if s is/was at head
-     * @param s the node to be unspliced
+     *             predecessor of s, or null or s itself if s is/was at head
+     * @param s    the node to be unspliced
      */
     final void unsplice(Node pred, Node s) {
         s.forgetContents(); // forget unneeded fields

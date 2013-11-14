@@ -19,6 +19,7 @@ import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.Synchronization;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,7 +33,7 @@ import sun.misc.Unsafe;
  *
  * @author pron
  */
-public class Selector<Message> {
+public class Selector<Message> implements Synchronization {
     public static <Message> SelectAction<Message> select(boolean priority, SelectAction<Message>... actions) throws InterruptedException, SuspendExecution {
         return new Selector<Message>(priority, Arrays.asList(actions)).select();
     }
@@ -99,7 +100,9 @@ public class Selector<Message> {
     private volatile Object winner;
     private Strand waiter;
     private final List<SelectAction<Message>> actions;
+    private int lastRegistered;
     private final boolean priority;
+    SelectAction<Message> res;
 
     Selector(boolean priority, List<SelectAction<Message>> actions) {
         this.id = selectorId.incrementAndGet();
@@ -115,16 +118,101 @@ public class Selector<Message> {
     }
 
     private void selectInit() {
-        this.waiter = Strand.currentStrand();
-
         if (!priority)
             Collections.shuffle(actions, ThreadLocalRandom.current());
     }
 
     void reset() {
+        waiter = null;
         for (SelectAction<Message> sa : actions)
             sa.resetReceive();
         winner = null;
+    }
+
+    SelectAction<Message> select() throws InterruptedException, SuspendExecution {
+        return select(-1, null);
+    }
+
+    @Override
+    public Object register() {
+        Strand s = Strand.currentStrand();
+        if (waiter != null && waiter != s)
+            throw new IllegalMonitorStateException("A strand is already registered");
+        this.waiter = Strand.currentStrand();
+
+        final int n = actions.size();
+        res = null;
+
+        // register
+        lastRegistered = -1;
+        for (int i = 0; i < n; i++) {
+            SelectAction<Message> sa = actions.get(i);
+
+            sa.token = sa.port.register(sa);
+            lastRegistered = i;
+            if (sa.isDone()) {
+                assert winner == sa;
+                res = sa;
+                break;
+            } else {
+                Object w = winner;
+                if (w != null & w != LEASED)
+                    break;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public void unregister(Object registrationToken) {
+        for (int i = 0; i <= lastRegistered; i++) {
+            SelectAction sa = actions.get(i);
+            sa.port.unregister(sa.token);
+            sa.token = null; // for GC
+        }
+        this.waiter = null;
+    }
+
+    SelectAction<Message> select(long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
+        if (timeout == 0 && unit != null)
+            return trySelect();
+
+        selectInit();
+
+        final boolean timed = (timeout > 0 && unit != null);
+        long lastTime = timed ? System.nanoTime() : 0L;
+        long nanos = timed ? unit.toNanos(timeout) : 0L;
+
+        Object token = register();
+        try {
+            if (res == null) {
+                tryloop:
+                for (;;) {
+                    if (timed && nanos <= 0)
+                        break;
+
+                    for (int i = 0; i <= lastRegistered; i++) {
+                        SelectAction<Message> sa = actions.get(i);
+
+                        if (sa.port.tryNow(sa.token)) {
+                            res = sa;
+                            break tryloop;
+                        }
+                    }
+
+                    if (timed) {
+                        long now = System.nanoTime();
+                        if ((nanos -= now - lastTime) > 0)
+                            Strand.parkNanos(this, nanos);
+                        lastTime = now;
+                    } else
+                        Strand.park(this);
+                }
+            }
+        } finally {
+            unregister(token);
+        }
+        return res;
     }
 
     public SelectAction<Message> trySelect() {
@@ -144,76 +232,6 @@ public class Selector<Message> {
             }
         }
         return null;
-    }
-
-    SelectAction<Message> select() throws InterruptedException, SuspendExecution {
-        return select(-1, null);
-    }
-
-    SelectAction<Message> select(long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
-        if (timeout == 0 && unit != null)
-            return trySelect();
-
-        selectInit();
-
-        final boolean timed = (timeout > 0 && unit != null);
-        long lastTime = timed ? System.nanoTime() : 0L;
-        long nanos = timed ? unit.toNanos(timeout) : 0L;
-
-        final int n = actions.size();
-        SelectAction<Message> res = null;
-
-        // register
-        int lastRegistered = -1;
-        for (int i = 0; i < n; i++) {
-            SelectAction<Message> sa = actions.get(i);
-
-            sa.token = sa.port.register(sa);
-            lastRegistered = i;
-            if (sa.isDone()) {
-                assert winner == sa;
-                res = sa;
-                break;
-            } else {
-                Object w = winner;
-                if (w != null & w != LEASED)
-                    break;
-            }
-        }
-
-        // try
-        if (res == null) {
-            tryloop:
-            for (;;) {
-                if (timed && nanos <= 0)
-                    break;
-
-                for (int i = 0; i <= lastRegistered; i++) {
-                    SelectAction<Message> sa = actions.get(i);
-
-                    if (sa.port.tryNow(sa.token)) {
-                        res = sa;
-                        break tryloop;
-                    }
-                }
-
-                if (timed) {
-                    long now = System.nanoTime();
-                    if ((nanos -= now - lastTime) > 0)
-                        Strand.parkNanos(this, nanos);
-                    lastTime = now;
-                } else
-                    Strand.park(this);
-            }
-        }
-
-        // unregister
-        for (int i = 0; i <= lastRegistered; i++) {
-            SelectAction sa = actions.get(i);
-            sa.port.unregister(sa.token);
-            sa.token = null; // for GC
-        }
-        return res;
     }
     // private volatile StackTraceElement st[];
 

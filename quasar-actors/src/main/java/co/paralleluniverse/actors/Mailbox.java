@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
  */
 public final class Mailbox<Message> extends SingleConsumerQueueChannel<Message> {
     private transient Actor<?, ?> actor;
+    private Object registrationToken;
 
     Mailbox(MailboxConfig config) {
         super(mailboxSize(config) > 0
@@ -83,11 +84,11 @@ public final class Mailbox<Message> extends SingleConsumerQueueChannel<Message> 
     }
 
     public void lock() {
-        sync().register();
+        registrationToken = sync().register();
     }
 
     public void unlock() {
-        sync().unregister();
+        sync().unregister(registrationToken);
     }
 
     public void await(int iter) throws SuspendExecution, InterruptedException {
@@ -102,7 +103,7 @@ public final class Mailbox<Message> extends SingleConsumerQueueChannel<Message> 
     protected Object writeReplace() throws java.io.ObjectStreamException {
         return RemoteChannelProxyFactoryService.create(this, actor.getGlobalId());
     }
-    
+
     List<Message> getSnapshot() {
         return queue().snapshot();
     }

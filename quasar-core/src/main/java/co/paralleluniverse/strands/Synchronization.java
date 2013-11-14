@@ -13,25 +13,12 @@
  */
 package co.paralleluniverse.strands;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-import java.util.concurrent.TimeUnit;
-
 /**
  *
  * @author pron
  */
-public interface Condition extends Synchronization {
-    @Override
+public interface Synchronization {
     public Object register();
 
-    @Override
     public void unregister(Object registrationToken);
-
-    public void await(int iter) throws InterruptedException, SuspendExecution;
-
-    public void await(int iter, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution;
-
-    public void signal();
-
-    public void signalAll();
 }

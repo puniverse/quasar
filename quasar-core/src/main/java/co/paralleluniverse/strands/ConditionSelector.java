@@ -33,15 +33,16 @@ public class ConditionSelector extends ConditionSynchronizer implements Conditio
     }
 
     @Override
-    public void register() {
+    public Object register() {
         for(Condition cond : conditions)
             cond.register();
+        return null;
     }
 
     @Override
-    public void unregister() {
+    public void unregister(Object registrationToken) {
         for(Condition cond : conditions)
-            cond.unregister();
+            cond.unregister(null);
     }
 
     @Override

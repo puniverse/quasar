@@ -20,6 +20,7 @@ import co.paralleluniverse.strands.Condition;
 import co.paralleluniverse.strands.OwnedSynchronizer;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.Synchronization;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.BasicQueue;
 import co.paralleluniverse.strands.queues.CircularBuffer;
@@ -31,7 +32,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public abstract class QueueChannel<Message> implements Channel<Message>, Selectable<Message>, java.io.Serializable {
+public abstract class QueueChannel<Message> implements Channel<Message>, Selectable<Message>, Synchronization, java.io.Serializable {
     private static final int MAX_SEND_RETRIES = 10;
     final Condition sync;
     final Condition sendersSync;
@@ -87,6 +88,12 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     }
 
     @Override
+    public Object register() {
+        // for queues, a simple registration is always a receive
+        return sync.register();
+    }
+
+    @Override
     public boolean tryNow(Object token) {
         SelectAction<Message> action = (SelectAction<Message>) token;
         if (!action.lease())
@@ -118,9 +125,9 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         SelectAction<Message> action = (SelectAction<Message>) token;
         if (action.isData()) {
             if (sendersSync != null)
-                sendersSync.unregister();
+                sendersSync.unregister(null);
         } else
-            sync.unregister();
+            sync.unregister(null);
     }
 
     public void sendNonSuspendable(Message message) throws QueueCapacityExceededException {
@@ -189,7 +196,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
             return false;
         } finally {
             if (overflowPolicy == OverflowPolicy.BLOCK)
-                sendersSync.unregister();
+                sendersSync.unregister(null);
         }
         if (sync)
             signalAndWait();
@@ -268,7 +275,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
         Message m;
         boolean closed;
-        sync.register();
+        Object token = sync.register();
         for (int i = 0;; i++) {
             closed = isSendClosed(); // must be read BEFORE queue.poll()
             if ((m = queue.poll()) != null)
@@ -280,7 +287,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
             sync.await(i);
         }
-        sync.unregister();
+        sync.unregister(token);
 
         assert m != null;
         signalSenders();
@@ -301,7 +308,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
         Message m;
         boolean closed;
-        sync.register();
+        Object token = sync.register();
         try {
             for (int i = 0;; i++) {
                 closed = isSendClosed(); // must be read BEFORE queue.poll()
@@ -319,7 +326,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
                     return null;
             }
         } finally {
-            sync.unregister();
+            sync.unregister(token);
         }
 
         if (m != null)

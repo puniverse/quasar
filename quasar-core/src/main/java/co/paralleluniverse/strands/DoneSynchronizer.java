@@ -13,16 +13,18 @@ import java.util.concurrent.TimeUnit;
  */
 public class DoneSynchronizer implements Condition {
     public static final DoneSynchronizer instance = new DoneSynchronizer();
-    
+
     private DoneSynchronizer() {
-    }
-    @Override
-    public void register() {
-        Strand.unpark(Strand.currentStrand());
     }
 
     @Override
-    public void unregister() {
+    public Object register() {
+        Strand.unpark(Strand.currentStrand());
+        return null;
+    }
+
+    @Override
+    public void unregister(Object registrationToken) {
     }
 
     @Override
@@ -40,5 +42,4 @@ public class DoneSynchronizer implements Condition {
     @Override
     public void signalAll() {
     }
-    
 }

@@ -56,12 +56,12 @@ public class DelayedVal<V> implements Future<V> {
         try {
             final SimpleConditionSynchronizer s = sync;
             if (s != null) {
-                s.register();
+                Object token = s.register();
                 try {
                     for (int i = 0; sync != null; i++)
                         s.await(i);
                 } finally {
-                    s.unregister();
+                    s.unregister(token);
                 }
             }
             return value;
@@ -76,7 +76,7 @@ public class DelayedVal<V> implements Future<V> {
         try {
             final SimpleConditionSynchronizer s = sync;
             if (s != null) {
-                s.register();
+                Object token = s.register();
                 try {
                     final long start = System.nanoTime();
                     long left = unit.toNanos(timeout);
@@ -88,7 +88,7 @@ public class DelayedVal<V> implements Future<V> {
                             throw new TimeoutException();
                     }
                 } finally {
-                    s.unregister();
+                    s.unregister(token);
                 }
             }
             return value;

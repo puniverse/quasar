@@ -29,14 +29,15 @@ public class OwnedSynchronizer extends ConditionSynchronizer implements Conditio
     }
 
     @Override
-    public void register() {
+    public Object register() {
         final Strand currentStrand = Strand.currentStrand();
         if (!casWaiter(null, currentStrand))
             throw new IllegalMonitorStateException("attempt by " + currentStrand + " but owned by " + waiter);
+        return null;
     }
 
     @Override
-    public void unregister() {
+    public void unregister(Object registrationToken) {
         if (!Strand.equals(waiter, Strand.currentStrand()))
             throw new IllegalMonitorStateException("attempt by " + Strand.currentStrand() + " but owned by " + waiter);
         waiter = null;

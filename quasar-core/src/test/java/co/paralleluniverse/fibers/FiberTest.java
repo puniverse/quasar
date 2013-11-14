@@ -343,13 +343,13 @@ public class FiberTest {
             }
 
             private void foo() throws InterruptedException, SuspendExecution {
-                cond.register();
+                Object token = cond.register();
                 try {
                     for (int i = 0; !flag.get(); i++) {
                         cond.await(i);
                     }
                 } finally {
-                    cond.unregister();
+                    cond.unregister(token);
                 }
             }
         }).start();
@@ -390,13 +390,13 @@ public class FiberTest {
             }
 
             private void foo() throws InterruptedException, SuspendExecution {
-                cond.register();
+                Object token = cond.register();
                 try {
                     for (int i = 0; !flag.get(); i++) {
                         cond.await(i);
                     }
                 } finally {
-                    cond.unregister();
+                    cond.unregister(token);
                 }
             }
         }).start();
