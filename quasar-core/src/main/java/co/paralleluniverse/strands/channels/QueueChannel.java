@@ -64,9 +64,9 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         sync.signalAll();
     }
 
-    protected void signalAndTryToExecNow() {
+    protected void signalAndWait() throws SuspendExecution, InterruptedException {
         if (sync instanceof OwnedSynchronizer)
-            ((OwnedSynchronizer) sync).signalAndTryToExecNow();
+            ((OwnedSynchronizer) sync).signalAndWait();
         else
             sync.signalAll();
     }
@@ -192,7 +192,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
                 sendersSync.unregister();
         }
         if (sync)
-            signalAndTryToExecNow();
+            signalAndWait();
         else
             signalReceivers();
         return true;

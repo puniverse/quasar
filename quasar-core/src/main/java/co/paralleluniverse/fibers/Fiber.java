@@ -125,11 +125,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     /**
      * Creates a new Fiber from the given {@link SuspendableCallable}.
      *
-     * @param name The name of the fiber (may be null)
-     * @param fjPool The fork/join pool in which the fiber should run.
+     * @param name      The name of the fiber (may be null)
+     * @param fjPool    The fork/join pool in which the fiber should run.
      * @param stackSize the initial size of the data stack.
-     * @param target the SuspendableRunnable for the Fiber.
-     * @throws NullPointerException when proto is null
+     * @param target    the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     @SuppressWarnings("LeakingThisInConstructor")
@@ -242,10 +242,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * Creates a new Fiber from the given {@link SuspendableCallable}.
      * The new fiber uses the default initial stack size.
      *
-     * @param name The name of the fiber (may be null)
+     * @param name      The name of the fiber (may be null)
      * @param scheduler The scheduler pool in which the fiber should run.
-     * @param target the SuspendableRunnable for the Fiber.
-     * @throws NullPointerException when proto is null
+     * @param target    the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(String name, FiberScheduler scheduler, SuspendableCallable<V> target) {
@@ -257,8 +257,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * The new fiber has no name, and uses the default initial stack size.
      *
      * @param scheduler The scheduler pool in which the fiber should run.
-     * @param target the SuspendableRunnable for the Fiber.
-     * @throws NullPointerException when proto is null
+     * @param target    the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(FiberScheduler scheduler, SuspendableCallable<V> target) {
@@ -268,11 +268,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     /**
      * Creates a new Fiber from the given {@link SuspendableRunnable}.
      *
-     * @param name The name of the fiber (may be null)
+     * @param name      The name of the fiber (may be null)
      * @param scheduler The scheduler pool in which the fiber should run.
      * @param stackSize the initial size of the data stack.
-     * @param target the SuspendableRunnable for the Fiber.
-     * @throws NullPointerException when proto is null
+     * @param target    the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(String name, FiberScheduler scheduler, int stackSize, SuspendableRunnable target) {
@@ -283,10 +283,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * Creates a new Fiber from the given {@link SuspendableRunnable}.
      * The new fiber uses the default initial stack size.
      *
-     * @param name The name of the fiber (may be null)
+     * @param name      The name of the fiber (may be null)
      * @param scheduler The scheduler pool in which the fiber should run.
-     * @param target the SuspendableRunnable for the Fiber.
-     * @throws NullPointerException when proto is null
+     * @param target    the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(String name, FiberScheduler scheduler, SuspendableRunnable target) {
@@ -298,8 +298,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * The new fiber has no name, and uses the default initial stack size.
      *
      * @param scheduler The scheduler pool in which the fiber should run.
-     * @param target the SuspendableRunnable for the Fiber.
-     * @throws NullPointerException when proto is null
+     * @param target    the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(FiberScheduler scheduler, SuspendableRunnable target) {
@@ -309,10 +309,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     /**
      * Creates a new Fiber subclassing the Fiber class and overriding the {@link #run() run} method.
      *
-     * @param name The name of the fiber (may be null)
+     * @param name      The name of the fiber (may be null)
      * @param scheduler The scheduler pool in which the fiber should run.
      * @param stackSize the initial size of the data stack.
-     * @throws NullPointerException when proto is null
+     * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(String name, FiberScheduler scheduler, int stackSize) {
@@ -323,9 +323,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * Creates a new Fiber subclassing the Fiber class and overriding the {@link #run() run} method.
      * The new fiber uses the default initial stack size.
      *
-     * @param name The name of the fiber (may be null)
+     * @param name      The name of the fiber (may be null)
      * @param scheduler The scheduler pool in which the fiber should run.
-     * @throws NullPointerException when proto is null
+     * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(String name, FiberScheduler scheduler) {
@@ -337,7 +337,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * The new fiber has no name, and uses the default initial stack size.
      *
      * @param scheduler The scheduler pool in which the fiber should run.
-     * @throws NullPointerException when proto is null
+     * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(FiberScheduler scheduler) {
@@ -349,7 +349,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * This constructor may only be called from within another fiber. This fiber will use the same fork/join pool as the creating fiber.
      * The new fiber uses the default initial stack size.
      *
-     * @param name The name of the fiber (may be null)
+     * @param name   The name of the fiber (may be null)
      * @param target the SuspendableRunnable for the Fiber.
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
@@ -373,10 +373,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * Creates a new child Fiber from the given {@link SuspendableRunnable}.
      * This constructor may only be called from within another fiber. This fiber will use the same fork/join pool as the creating fiber.
      *
-     * @param name The name of the fiber (may be null)
+     * @param name      The name of the fiber (may be null)
      * @param stackSize the initial size of the data stack.
-     * @param target the SuspendableRunnable for the Fiber.
-     * @throws NullPointerException when proto is null
+     * @param target    the SuspendableRunnable for the Fiber.
+     * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(String name, int stackSize, SuspendableRunnable target) {
@@ -388,9 +388,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * This constructor may only be called from within another fiber. This fiber will use the same fork/join pool as the creating fiber.
      * The new fiber uses the default initial stack size.
      *
-     * @param name The name of the fiber (may be null)
+     * @param name   The name of the fiber (may be null)
      * @param target the SuspendableRunnable for the Fiber.
-     * @throws NullPointerException when proto is null
+     * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(String name, SuspendableRunnable target) {
@@ -403,7 +403,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * The new fiber has no name, and uses the default initial stack size.
      *
      * @param target the SuspendableRunnable for the Fiber.
-     * @throws NullPointerException when proto is null
+     * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(SuspendableRunnable target) {
@@ -414,9 +414,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * Creates a new child Fiber subclassing the Fiber class and overriding the {@link #run() run} method.
      * This constructor may only be called from within another fiber. This fiber will use the same fork/join pool as the creating fiber.
      *
-     * @param name The name of the fiber (may be null)
+     * @param name      The name of the fiber (may be null)
      * @param stackSize the initial size of the data stack.
-     * @throws NullPointerException when proto is null
+     * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(String name, int stackSize) {
@@ -429,7 +429,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * The new fiber uses the default initial stack size.
      *
      * @param name The name of the fiber (may be null)
-     * @throws NullPointerException when proto is null
+     * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(String name) {
@@ -441,7 +441,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * This constructor may only be called from within another fiber. This fiber will use the same fork/join pool as the creating fiber.
      * The new fiber has no name, and uses the default initial stack size.
      *
-     * @throws NullPointerException when proto is null
+     * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber() {
@@ -474,9 +474,18 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return getCurrentFiber();
     }
 
+    /**
+     * This method <i>might</i> be faster than {@code Fiber.currentFiber() != null}.
+     *
+     * @return
+     */
+    public static boolean isCurrentFiber() {
+        return FiberScheduler.isFiberThread(Thread.currentThread()) || getCurrentFiber() != null;
+    }
+
     public static long getCurrentRun() {
         Fiber f = currentFiber();
-        if(f == null)
+        if (f == null)
             throw new IllegalStateException("Not in fiber");
         return f.getRun();
     }
@@ -497,7 +506,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * <p/>
      * Returns {@code true} iff we've been suspended and then resumed.
      *
-     * @throws SuspendExecution This exception is used for control transfer and must never be caught.
+     * @throws SuspendExecution      This exception is used for control transfer and must never be caught.
      * @throws IllegalStateException If not called from a Fiber
      */
     static boolean park(Object blocker, ParkAction postParkActions, long timeout, TimeUnit unit) throws SuspendExecution {
@@ -526,6 +535,22 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     public static void yield() throws SuspendExecution {
         verifySuspend().yield1();
+    }
+
+    public static void parkAndUnpark(Fiber other) throws SuspendExecution {
+        parkAndUnpark(other, null);
+    }
+
+    public static void parkAndUnpark(Fiber other, Object blocker) throws SuspendExecution {
+        verifySuspend().parkAndUnpark1(other, blocker, 0, TimeUnit.NANOSECONDS);
+    }
+
+    public static void yieldAndUnpark(Fiber other, Object blocker) throws SuspendExecution {
+        verifySuspend().yieldAndUnpark1(other, blocker, 0, TimeUnit.NANOSECONDS);
+    }
+
+    public static void yieldAndUnpark(Fiber other) throws SuspendExecution {
+        yieldAndUnpark(other, null);
     }
 
     public static void sleep(long millis) throws InterruptedException, SuspendExecution {
@@ -579,6 +604,21 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (prePark != null)
             prePark.run(this);
         fjTask.yield1();
+    }
+
+    private void parkAndUnpark1(Fiber other, Object blocker, long timeout, TimeUnit unit) throws SuspendExecution {
+        record(1, "Fiber", "parkAndUnpark", "Parking %s and unparking %s blocker: %s", this, other, blocker);
+        if (!other.exec(blocker, timeout, unit))
+            other.unpark(blocker);
+        park1(blocker, null, -1, null);
+    }
+
+    private void yieldAndUnpark1(Fiber other, Object blocker, long timeout, TimeUnit unit) throws SuspendExecution {
+        record(1, "Fiber", "yieldAndUnpark", "Yielding %s and unparking %s blocker: %s", this, other, blocker);
+        if (!other.exec(blocker, timeout, unit)) {
+            other.unpark(blocker);
+            yield1();
+        }
     }
 
     void preempt() throws SuspendExecution {
@@ -987,8 +1027,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 //    public final Strand getParent() {
 //        return parent;
 //    }
-
-    public final boolean exec(Object blocker, long timeout, TimeUnit unit) {
+    final boolean exec(Object blocker, long timeout, TimeUnit unit) {
         if (ForkJoinTask.getPool() != fjPool)
             return false;
         record(1, "Fiber", "exec", "Blocker %s attempting to immediately execute %s", blocker, this);
@@ -1060,7 +1099,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         long start = 0;
         for (int i = 0;; i++) {
             Object b = getBlocker();
-            boolean tu = true;
+            boolean tu;
             if ((unblocker != null ? b == unblocker : true) && (tu = fjTask.tryUnpark(unblocker)))
                 return true;
             if ((start = isTimeoutExpired(i, start, timeout, unit)) < 0)
@@ -1186,7 +1225,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     Thread getRunningThread() {
         return runningThread;
     }
-    
+
     @Override
     public final StackTraceElement[] getStackTrace() {
         StackTraceElement[] threadStack = null;

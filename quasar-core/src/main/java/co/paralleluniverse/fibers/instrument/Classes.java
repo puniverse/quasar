@@ -4,6 +4,9 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodInsnNode;
 
@@ -28,8 +31,11 @@ final class Classes {
     static final String EXCEPTION_DESC = "L" + EXCEPTION_NAME + ";";
     static final String ANNOTATION_DESC = "L" + ANNOTATION_NAME + ";";
 
+    private static final Set<String> yieldMethods = new HashSet<>(Arrays.asList(new String[] {
+        "park", "yield", "parkAndUnpark", "yieldAndUnpark"
+    }));
     static boolean isYieldMethod(String className, String methodName) {
-        return COROUTINE_NAME.equals(className) && ("park".equals(methodName) || "yield".equals(methodName));
+        return COROUTINE_NAME.equals(className) && yieldMethods.contains(methodName);
     }
 
     public static boolean isAllowedToBlock(String className, String methodName) {

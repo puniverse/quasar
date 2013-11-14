@@ -105,10 +105,11 @@ subprojects {
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
         // systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
 	    
-        // systemProperty "co.paralleluniverse.debugMode", "true"
-        // systemProperty "co.paralleluniverse.globalFlightRecorder", "true"
-        // systemProperty "co.paralleluniverse.flightRecorderDumpFile", "~/quasar.log"
-        // systemProperty "co.paralleluniverse.monitoring.flightRecorderSize","200000"    
+        // systemProperty 'co.paralleluniverse.debugMode', 'true'
+        systemProperty 'co.paralleluniverse.globalFlightRecorder', 'true'
+        systemProperty 'co.paralleluniverse.flightRecorderDumpFile', 'quasar.log'
+        systemProperty 'co.paralleluniverse.monitoring.flightRecorderSize', '200000'
+        
         jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
         jvmArgs "-Xmx2048m"
         doLast() {
@@ -277,21 +278,21 @@ project (':quasar-core') {
         }
     }
     
-//    task scanSuspendables(dependsOn: compileJava) { // runs SuspendableScanner
-//        inputs.files compileJava.outputs.files
-//        outputs.files file("$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers")
-//        doFirst {
-//            ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner', classpath: "build/classes/main:" + configurations.compile.asPath)
-//            ant.scanSuspendables(outputFile:outputs.files.asPath) {
-//                fileset(dir: sourceSets.main.output.classesDir) {
-//                    include(name: 'co/paralleluniverse/fibers/**/*.class')
-//                    include(name: 'co/paralleluniverse/strands/**/*.class')
-//                }
-//            }
-//        }
-//    }
+    //    task scanSuspendables(dependsOn: compileJava) { // runs SuspendableScanner
+    //        inputs.files compileJava.outputs.files
+    //        outputs.files file("$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers")
+    //        doFirst {
+    //            ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner', classpath: "build/classes/main:" + configurations.compile.asPath)
+    //            ant.scanSuspendables(outputFile:outputs.files.asPath) {
+    //                fileset(dir: sourceSets.main.output.classesDir) {
+    //                    include(name: 'co/paralleluniverse/fibers/**/*.class')
+    //                    include(name: 'co/paralleluniverse/strands/**/*.class')
+    //                }
+    //            }
+    //        }
+    //    }
 
-//    tasks.jar.dependsOn scanSuspendables
+    //    tasks.jar.dependsOn scanSuspendables
     
     jar {
         from zipTree("${baselib}/jsr166e.jar")  // include non-Maven jars

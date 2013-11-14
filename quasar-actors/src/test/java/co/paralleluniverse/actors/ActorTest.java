@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
@@ -28,6 +29,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -36,6 +38,11 @@ import org.junit.Test;
  * @author pron
  */
 public class ActorTest {
+    @BeforeClass
+    public static void beforeClass() {
+        Debug.dumpAfter(10000);
+    }
+    
     static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channels.OverflowPolicy.THROW);
     private FiberScheduler scheduler;
 

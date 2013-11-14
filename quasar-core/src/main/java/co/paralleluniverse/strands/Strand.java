@@ -120,8 +120,8 @@ public abstract class Strand {
      * Awaits the termination of this strand.
      * This method blocks until this strand terminates.
      *
-     * @throws ExecutionException if this strand has terminated as a result of an uncaught exception
-     * (which will be the {@link Throwable#getCause() cause} of the thrown {@code ExecutionException}.
+     * @throws ExecutionException   if this strand has terminated as a result of an uncaught exception
+     *                              (which will be the {@link Throwable#getCause() cause} of the thrown {@code ExecutionException}.
      * @throws InterruptedException
      */
     public abstract void join() throws ExecutionException, InterruptedException;
@@ -131,11 +131,11 @@ public abstract class Strand {
      * This method blocks until this strand terminates or the timeout elapses.
      *
      * @param timeout the maximum duration to wait for the strand to terminate in the time unit specified by {@code unit}.
-     * @param unit the time unit of {@code timeout}.
+     * @param unit    the time unit of {@code timeout}.
      *
-     * @throws TimeoutException if this strand did not terminate by the time the timeout has elapsed.
-     * @throws ExecutionException if this strand has terminated as a result of an uncaught exception
-     * (which will be the {@link Throwable#getCause() cause} of the thrown {@code ExecutionException}.
+     * @throws TimeoutException     if this strand did not terminate by the time the timeout has elapsed.
+     * @throws ExecutionException   if this strand has terminated as a result of an uncaught exception
+     *                              (which will be the {@link Throwable#getCause() cause} of the thrown {@code ExecutionException}.
      * @throws InterruptedException
      */
     public abstract void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException;
@@ -160,12 +160,12 @@ public abstract class Strand {
     /**
      * Returns an {@link InterruptedException} that was created when the {@link #interrupt()} method was called, and can be used
      * to retrieve the stack trace of the strand that interrupted this strand.
-     * This method is only intended to assist in debugging. 
+     * This method is only intended to assist in debugging.
      * This method may return {@code null} if this information is not available. The current implementation always returns {@code null}
      * if this strand is a thread.
      */
     public abstract InterruptedException getInterruptStack();
-    
+
     /**
      * Makes available the permit for this strand, if it
      * was not already available. If this strand was blocked on
@@ -249,12 +249,12 @@ public abstract class Strand {
     }
 
     /**
-     * Tests whether this function is called within a fiber.
+     * Tests whether this function is called within a fiber. This method <i>might</i> be faster than {@code Fiber.currentFiber() != null}.
      *
      * @return {@code true} iff the code that called this method is executing in a fiber.
      */
     public static boolean isCurrentFiber() {
-        return Fiber.currentFiber() != null;
+        return Fiber.isCurrentFiber();
     }
 
     /**
@@ -270,7 +270,7 @@ public abstract class Strand {
      * @see #isInterrupted()
      */
     public static boolean interrupted() {
-        if (Fiber.currentFiber() != null)
+        if (isCurrentFiber())
             return Fiber.interrupted();
         else
             return Thread.interrupted();
@@ -280,12 +280,12 @@ public abstract class Strand {
      * Awaits the termination of a given strand.
      * This method blocks until this strand terminates.
      *
-     * @param strand the strand to join. May be an object of type {@code Strand}, {@code Fiber} or {@code Thread}.
+     * @param strand  the strand to join. May be an object of type {@code Strand}, {@code Fiber} or {@code Thread}.
      * @param timeout the maximum duration to wait for the strand to terminate in the time unit specified by {@code unit}.
-     * @param unit the time unit of {@code timeout}.
+     * @param unit    the time unit of {@code timeout}.
      *
-     * @throws ExecutionException if this strand has terminated as a result of an uncaught exception
-     * (which will be the {@link Throwable#getCause() cause} of the thrown {@code ExecutionException}.
+     * @throws ExecutionException   if this strand has terminated as a result of an uncaught exception
+     *                              (which will be the {@link Throwable#getCause() cause} of the thrown {@code ExecutionException}.
      * @throws InterruptedException
      */
     public static void join(Object strand) throws ExecutionException, InterruptedException {
@@ -301,13 +301,13 @@ public abstract class Strand {
      * Awaits the termination of a given strand, at most for the timeout duration specified.
      * This method blocks until this strand terminates or the timeout elapses.
      *
-     * @param strand the strand to join. May be an object of type {@code Strand}, {@code Fiber} or {@code Thread}.
+     * @param strand  the strand to join. May be an object of type {@code Strand}, {@code Fiber} or {@code Thread}.
      * @param timeout the maximum duration to wait for the strand to terminate in the time unit specified by {@code unit}.
-     * @param unit the time unit of {@code timeout}.
+     * @param unit    the time unit of {@code timeout}.
      *
-     * @throws TimeoutException if this strand did not terminate by the time the timeout has elapsed.
-     * @throws ExecutionException if this strand has terminated as a result of an uncaught exception
-     * (which will be the {@link Throwable#getCause() cause} of the thrown {@code ExecutionException}.
+     * @throws TimeoutException     if this strand did not terminate by the time the timeout has elapsed.
+     * @throws ExecutionException   if this strand has terminated as a result of an uncaught exception
+     *                              (which will be the {@link Throwable#getCause() cause} of the thrown {@code ExecutionException}.
      * @throws InterruptedException
      */
     public static void join(Object strand, long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
@@ -330,7 +330,7 @@ public abstract class Strand {
      * ensure that it actually has the desired effect.
      */
     public static void yield() throws SuspendExecution {
-        if (Fiber.currentFiber() != null)
+        if (isCurrentFiber())
             Fiber.yield();
         else
             Thread.yield();
@@ -344,12 +344,12 @@ public abstract class Strand {
      * @param millis the length of time to sleep in milliseconds
      *
      * @throws IllegalArgumentException if the value of {@code millis} is negative
-     * @throws InterruptedException if any strand has interrupted the current strand. The
-     * <i>interrupted status</i> of the current strand is
-     * cleared when this exception is thrown.
+     * @throws InterruptedException     if any strand has interrupted the current strand. The
+     *                                  <i>interrupted status</i> of the current strand is
+     *                                  cleared when this exception is thrown.
      */
     public static void sleep(long millis) throws SuspendExecution, InterruptedException {
-        if (Fiber.currentFiber() != null)
+        if (isCurrentFiber())
             Fiber.sleep(millis);
         else
             Thread.sleep(millis);
@@ -362,16 +362,16 @@ public abstract class Strand {
      * timers and schedulers.
      *
      * @param millis the length of time to sleep in milliseconds
-     * @param nanos {@code 0-999999} additional nanoseconds to sleep
+     * @param nanos  {@code 0-999999} additional nanoseconds to sleep
      *
      * @throws IllegalArgumentException if the value of {@code millis} is negative,
-     * or the value of {@code nanos} is not in the range {@code 0-999999}
-     * @throws InterruptedException if any strand has interrupted the current strand. The
-     * <i>interrupted status</i> of the current strand is
-     * cleared when this exception is thrown.
+     *                                  or the value of {@code nanos} is not in the range {@code 0-999999}
+     * @throws InterruptedException     if any strand has interrupted the current strand. The
+     *                                  <i>interrupted status</i> of the current strand is
+     *                                  cleared when this exception is thrown.
      */
     public static void sleep(long millis, int nanos) throws SuspendExecution, InterruptedException {
-        if (Fiber.currentFiber() != null)
+        if (isCurrentFiber())
             Fiber.sleep(millis, nanos);
         else
             Thread.sleep(millis, nanos);
@@ -383,14 +383,14 @@ public abstract class Strand {
      * the precision and accuracy of system timers and schedulers.
      *
      * @param duration the length of time to sleep in the time unit specified by {@code unit}.
-     * @param unit the time unit of {@code duration}.
+     * @param unit     the time unit of {@code duration}.
      *
      * @throws InterruptedException if any strand has interrupted the current strand. The
-     * <i>interrupted status</i> of the current strand is
-     * cleared when this exception is thrown.
+     *                              <i>interrupted status</i> of the current strand is
+     *                              cleared when this exception is thrown.
      */
     public static void sleep(long duration, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        if (Fiber.currentFiber() != null)
+        if (isCurrentFiber())
             Fiber.sleep(duration, unit);
         else
             unit.sleep(duration);
@@ -421,7 +421,7 @@ public abstract class Strand {
      * for example, the interrupt status of the strand upon return.
      */
     public static void park() throws SuspendExecution {
-        if (Fiber.currentFiber() != null)
+        if (isCurrentFiber())
             Fiber.park();
         else
             LockSupport.park();
@@ -454,10 +454,62 @@ public abstract class Strand {
      * @param blocker the synchronization object responsible for this strand parking
      */
     public static void park(Object blocker) throws SuspendExecution {
-        if (Fiber.currentFiber() != null)
+        if (isCurrentFiber())
             Fiber.park(blocker);
         else
             LockSupport.park(blocker);
+    }
+
+    public static void parkAndUnpark(Strand other, Object blocker) throws SuspendExecution {
+        if (other.isFiber() && isCurrentFiber())
+            Fiber.parkAndUnpark((Fiber) other, blocker);
+        else if (!other.isFiber() && !isCurrentFiber()) {
+            // might be made faster on Linux if SwitchTo syscall is introduced into the kernel.
+            other.unpark(blocker);
+            LockSupport.park(blocker);
+        } else {
+            other.unpark(blocker);
+            park(blocker);
+        }
+    }
+
+    public static void parkAndUnpark(Strand other) throws SuspendExecution {
+        if (other.isFiber() && isCurrentFiber())
+            Fiber.parkAndUnpark((Fiber) other);
+        else if (!other.isFiber() && !isCurrentFiber()) {
+            // might be made faster on Linux if SwitchTo syscall is introduced into the kernel.
+            other.unpark();
+            LockSupport.park();
+        } else {
+            other.unpark();
+            park();
+        }
+    }
+
+    public static void yieldAndUnpark(Strand other, Object blocker) throws SuspendExecution {
+        if (other.isFiber() && isCurrentFiber())
+            Fiber.yieldAndUnpark((Fiber) other, blocker);
+        else if (!other.isFiber() && !isCurrentFiber()) {
+            // might be made faster on Linux if SwitchTo syscall is introduced into the kernel.
+            other.unpark(blocker);
+            Thread.yield();
+        } else {
+            other.unpark(blocker);
+            yield();
+        }
+    }
+
+    public static void yieldAndUnpark(Strand other) throws SuspendExecution {
+        if (other.isFiber() && isCurrentFiber())
+            Fiber.yieldAndUnpark((Fiber) other);
+        else if (!other.isFiber() && !isCurrentFiber()) {
+            // might be made faster on Linux if SwitchTo syscall is introduced into the kernel.
+            other.unpark();
+            Thread.yield();
+        } else {
+            other.unpark();
+            yield();
+        }
     }
 
     /**
@@ -490,7 +542,7 @@ public abstract class Strand {
      * @param nanos the maximum number of nanoseconds to wait
      */
     public static void parkNanos(long nanos) throws SuspendExecution {
-        if (Fiber.currentFiber() != null)
+        if (isCurrentFiber())
             Fiber.park(nanos, TimeUnit.NANOSECONDS);
         else
             LockSupport.parkNanos(nanos);
@@ -524,10 +576,10 @@ public abstract class Strand {
      * upon return.
      *
      * @param blocker the synchronization object responsible for this strand parking
-     * @param nanos the maximum number of nanoseconds to wait
+     * @param nanos   the maximum number of nanoseconds to wait
      */
     public static void parkNanos(Object blocker, long nanos) throws SuspendExecution {
-        if (Fiber.currentFiber() != null)
+        if (isCurrentFiber())
             Fiber.park(blocker, nanos, TimeUnit.NANOSECONDS);
         else
             LockSupport.parkNanos(blocker, nanos);
@@ -560,11 +612,11 @@ public abstract class Strand {
      * for example, the interrupt status of the strand, or the current time
      * upon return.
      *
-     * @param blocker the synchronization object responsible for this strand parking
+     * @param blocker  the synchronization object responsible for this strand parking
      * @param deadline the absolute time, in milliseconds from the Epoch, to wait until
      */
     public static void parkUntil(Object blocker, long deadline) throws SuspendExecution {
-        if (Fiber.currentFiber() != null) {
+        if (isCurrentFiber()) {
             final long delay = deadline - System.currentTimeMillis();
             if (delay > 0)
                 Fiber.park(blocker, delay, TimeUnit.MILLISECONDS);
@@ -595,7 +647,7 @@ public abstract class Strand {
      * is not guaranteed to have any effect at all if the given
      * strand has not been started.
      *
-     * @param strand the strand to unpark, or {@code null}, in which case this operation has no effect
+     * @param strand    the strand to unpark, or {@code null}, in which case this operation has no effect
      * @param unblocker the synchronization object responsible for the strand unparking
      */
     public static void unpark(Strand strand, Object unblocker) {
@@ -623,7 +675,7 @@ public abstract class Strand {
      */
     @SuppressWarnings({"CallToThreadDumpStack", "CallToPrintStackTrace"})
     public static void dumpStack() {
-        if (Fiber.currentFiber() != null)
+        if (isCurrentFiber())
             Fiber.dumpStack();
         else
             Thread.dumpStack();
@@ -631,6 +683,7 @@ public abstract class Strand {
 
     /**
      * Tests whether two strands represent the same fiber or thread.
+     *
      * @param strand1 May be an object of type {@code Strand}, {@code Fiber} or {@code Thread}.
      * @param strand2 May be an object of type {@code Strand}, {@code Fiber} or {@code Thread}.
      * @return {@code true} if the two strands represent the same fiber or the same thread; {@code false} otherwise.
@@ -715,7 +768,7 @@ public abstract class Strand {
      * This utility method prints a stack-trace into a {@link java.io.PrintStream}
      *
      * @param trace a stack trace (such as returned from {@link #getStackTrace()}.
-     * @param out the {@link java.io.PrintStream} into which the stack trace will be printed.
+     * @param out   the {@link java.io.PrintStream} into which the stack trace will be printed.
      */
     public static void printStackTrace(StackTraceElement[] trace, java.io.PrintStream out) {
         for (StackTraceElement traceElement : trace)
@@ -726,7 +779,7 @@ public abstract class Strand {
      * This utility method prints a stack-trace into a {@link java.io.PrintWriter}
      *
      * @param trace a stack trace (such as returned from {@link #getStackTrace()}.
-     * @param out the {@link java.io.PrintWriter} into which the stack trace will be printed.
+     * @param out   the {@link java.io.PrintWriter} into which the stack trace will be printed.
      */
     public static void printStackTrace(StackTraceElement[] trace, java.io.PrintWriter out) {
         for (StackTraceElement traceElement : trace)
@@ -823,7 +876,7 @@ public abstract class Strand {
         public InterruptedException getInterruptStack() {
             return null;
         }
-        
+
         @Override
         public void unpark() {
             LockSupport.unpark(thread);
@@ -946,7 +999,7 @@ public abstract class Strand {
         public InterruptedException getInterruptStack() {
             return fiber.getInterruptStack();
         }
-        
+
         @Override
         public void unpark() {
             fiber.unpark();

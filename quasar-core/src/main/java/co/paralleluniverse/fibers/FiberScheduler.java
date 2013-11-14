@@ -127,6 +127,10 @@ public class FiberScheduler {
         return fibersMonitor;
     }
 
+    static boolean isFiberThread(Thread t) {
+        return t instanceof FiberWorkerThread;
+    }
+    
     private class FiberWorkerThread extends ExtendedForkJoinWorkerThread {
         public FiberWorkerThread(ForkJoinPool pool) {
             super(pool);

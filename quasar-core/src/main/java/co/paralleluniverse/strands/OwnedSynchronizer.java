@@ -14,8 +14,7 @@
 package co.paralleluniverse.strands;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
-import co.paralleluniverse.fibers.Fiber;
-import java.util.concurrent.TimeUnit;
+import co.paralleluniverse.fibers.SuspendExecution;
 import sun.misc.Unsafe;
 
 /**
@@ -57,12 +56,11 @@ public class OwnedSynchronizer extends ConditionSynchronizer implements Conditio
         }
     }
 
-    public void signalAndTryToExecNow() {
+    public void signalAndWait() throws SuspendExecution {
         final Strand s = waiter;
         if (s != null) {
-            if (s instanceof Fiber && ((Fiber) s).exec(this, 0, TimeUnit.NANOSECONDS))
-                return;
-            signal();
+            record("signal", "signalling %s", s);
+            Strand.yieldAndUnpark(s, owner);
         }
     }
     private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
