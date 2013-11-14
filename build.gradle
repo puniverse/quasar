@@ -259,6 +259,12 @@ project (':quasar-core') {
         compile "org.ow2.asm:asm-analysis:4.2"
         compile "org.ow2.asm:asm-commons:4.2"
         compile "org.ow2.asm:asm-util:4.2"
+        compile("com.esotericsoftware.kryo:kryo:2.22") {
+            exclude group: "org.ow2.asm", module: '*'
+        }
+        compile("de.javakaffee:kryo-serializers:0.25") {
+            exclude group: "com.esotericsoftware.kryo", module: '*'
+        }
     }
     
     compileJava {
@@ -326,12 +332,6 @@ project (':quasar-galaxy') {
         compile project(':quasar-actors')
         
         compile ("co.paralleluniverse:galaxy:1.2.1") 
-        compile("com.esotericsoftware.kryo:kryo:2.22") {
-            exclude group: "org.ow2.asm", module: '*'
-        }
-        compile("de.javakaffee:kryo-serializers:0.25") {
-            exclude group: "com.esotericsoftware.kryo", module: '*'
-        }
     }
     
     tasks.withType(JavaExec) {
