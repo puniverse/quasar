@@ -37,24 +37,21 @@ public class Supervisor extends GenBehavior {
         if (isInActor())
             return (T) SupervisorActor.currentSupervisor().addChild(spec);
 
-        final GenResponseMessage res = call(this, new AddChildMessage(RequestReplyHelper.from(), null, spec));
-        return (T) ((GenValueResponseMessage<ActorRef>) res).getValue();
+        return (T) call(this, new AddChildMessage(RequestReplyHelper.from(), null, spec));
     }
 
     public final <T extends ActorRef<M>, M> T getChild(Object id) throws SuspendExecution, InterruptedException {
         if (isInActor())
             return SupervisorActor.currentSupervisor().getChild(id);
 
-        final GenResponseMessage res = call(this, new GetChildMessage(RequestReplyHelper.from(), null, id));
-        return (T) ((GenValueResponseMessage<ActorRef>) res).getValue();
+        return (T) call(this, new GetChildMessage(RequestReplyHelper.from(), null, id));
     }
 
     public final boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException {
         if (isInActor())
             return SupervisorActor.currentSupervisor().removeChild(id, terminate);
 
-        final GenResponseMessage res = call(this, new RemoveChildMessage(RequestReplyHelper.from(), null, id, terminate));
-        return ((GenValueResponseMessage<Boolean>) res).getValue();
+        return (Boolean) call(this, new RemoveChildMessage(RequestReplyHelper.from(), null, id, terminate));
     }
 
     public enum ChildMode {

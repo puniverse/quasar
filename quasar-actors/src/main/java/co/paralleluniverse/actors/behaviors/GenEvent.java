@@ -36,16 +36,14 @@ public class GenEvent<Event> extends GenBehavior {
         if(isInActor())
             return GenEventActor.<Event>currentGenEvent().addHandler(handler);
         
-        final GenResponseMessage res = call(this, new GenEventActor.HandlerMessage(RequestReplyHelper.from(), null, handler, true));
-        return ((GenValueResponseMessage<Boolean>) res).getValue();
+        return (Boolean)call(this, new GenEventActor.HandlerMessage(RequestReplyHelper.from(), null, handler, true));
     }
 
     public boolean removeHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
         if(isInActor())
             return GenEventActor.<Event>currentGenEvent().removeHandler(handler);
         
-        final GenResponseMessage res = call(this, new GenEventActor.HandlerMessage(RequestReplyHelper.from(), null, handler, false));
-        return ((GenValueResponseMessage<Boolean>) res).getValue();
+        return (Boolean)call(this, new GenEventActor.HandlerMessage(RequestReplyHelper.from(), null, handler, false));
     }
 
     public void notify(Event event) throws SuspendExecution {

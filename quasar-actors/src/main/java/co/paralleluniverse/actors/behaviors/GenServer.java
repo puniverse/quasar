@@ -42,8 +42,7 @@ public class GenServer<CallMessage, V, CastMessage> extends GenBehavior {
     }
 
     public final V call(CallMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
-        final GenResponseMessage response = RequestReplyHelper.call(ref, new GenServerRequest(from(), null, MessageType.CALL, m), timeout, unit);
-        final V res = ((GenValueResponseMessage<V>) response).getValue();
+        final V res = RequestReplyHelper.call(ref, new GenServerRequest(from(), null, MessageType.CALL, m), timeout, unit);
         return res;
     }
 
