@@ -370,8 +370,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 <p>Channels are normally created by calling any of the <code>newChannel</code> static methods of the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html"><code>Channels</code></a> class. The <code>newChannel</code> methods create a channel with a specified set of properties. Those properties&nbsp;are:</p>
 
 <ul>
-  <li><code>bufferSize</code> – if positive, the number of messages that the channel can hold in an internal buffer; <code>0</code> for a <em>transfer</em> channel, i.e. a channel with no internal&nbsp;buffer.</li>
-  <li>or <code>-1</code> for a channel with an unbounded (infinite)&nbsp;buffer.</li>
+  <li><code>bufferSize</code> – if positive, the number of messages that the channel can hold in an internal buffer; <code>0</code> for a <em>transfer</em> channel, i.e. a channel with no internal buffer. or <code>-1</code> for a channel with an unbounded (infinite)&nbsp;buffer.</li>
   <li><code>policy</code>         – the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/OverflowPolicy.html"><code>OverflowPolicy</code></a> specifying how the channel (if bounded) will behave if its internal buffer&nbsp;overflows.</li>
   <li><code>singleProducer</code> – whether the channel will be used by a single producer&nbsp;strand.</li>
   <li><code>singleConsumer</code> – whether the channel will be used by a single consumer&nbsp;strand.</li>
@@ -381,7 +380,11 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <h3 id="sending-and-receiving-messages">Sending and Receiving&nbsp;Messages</h3>
 
-<p>Messages are sent to a channel using the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/SendPort.html#send(Message)"><code>SendPort.send</code></a> method. The <code>send</code> method blocks if the channel’s&nbsp;buffer</p>
+<p>Messages are sent to a channel using the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/SendPort.html#send(Message)"><code>SendPort.send</code></a> method. The <code>send</code> method blocks if the channel’s buffer is full and the channel has been configured with the <code>BLOCK</code> overflow policy. There are versions of <code>send</code> that block indefinitely or up to a given timeout, and the <code>trySend</code> method sends a message if the channel’s buffer has room, or returns immediately, without blocking, if not. Consult the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/SendPort.html">Javadoc</a> for&nbsp;details.</p>
+
+<p>Messages are received from a channel using the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ReceivePort.html#receive()"><code>ReceivePort.receive</code></a> method. There are versions of <code>receive</code> that block indefinitely or up to a given timeout, and the <code>tryReceive</code> method receives a message if one is available, or returns immediately, without blocking, if not. Consult the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ReceivePort.html">Javadoc</a> for&nbsp;details.</p>
+
+<p class="alert alert-info"><strong>Note</strong>: As usual, while the blocking channel methods declare to throw <code>SuspendExecution</code>, this exception will never actually be thrown. If using channels in a plain thread, you should <code>catch(SuspendExecution e) { throw AssertionError(); }</code>. Alternatively, you can use the convenience wrappers <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ThreadReceivePort.html"><code>ThreadReceivePort</code></a> and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ThreadSendPort.html"><code>ThreadSendPort</code></a>.</p>
 
 <h3 id="rx">Rx</h3>
 
