@@ -426,22 +426,68 @@ public final class Channels {
     }
 
     ///
+    /**
+     * Creates a {@link ReceivePort} that can be used to receive messages from a a <i>ticker channel</i>:
+     * a channel of bounded capacity and the {@link OverflowPolicy#DISPLACE DISPLACE} overflow policy.
+     * Each ticker consumer will yield monotonic messages, namely no message will be received more than once, and the messages will
+     * be received in the order they're sent, but if the consumer is too slow, messages could be lost.
+     *
+     * @param <Message> the message type
+     * @param channel   a channel of bounded capacity and the {@link OverflowPolicy#DISPLACE DISPLACE} overflow policy.
+     * @return a new {@link ReceivePort} which provides a view to the supplied ticker channel.
+     */
     public static <Message> ReceivePort<Message> newTickerConsumerFor(Channel<Message> channel) {
         return TickerChannelConsumer.newFor((QueueChannel<Message>) channel);
     }
 
+    /**
+     * Creates an {@link IntReceivePort} that can be used to receive messages from a a <i>ticker channel</i>:
+     * a channel of bounded capacity and the {@link OverflowPolicy#DISPLACE DISPLACE} overflow policy.
+     * Each ticker consumer will yield monotonic messages, namely no message will be received more than once, and the messages will
+     * be received in the order they're sent, but if the consumer is too slow, messages could be lost.
+     *
+     * @param channel an {@code int} channel of bounded capacity and the {@link OverflowPolicy#DISPLACE DISPLACE} overflow policy.
+     * @return a new {@link IntReceivePort} which provides a view to the supplied ticker channel.
+     */
     public static IntReceivePort newTickerConsumerFor(IntChannel channel) {
         return TickerChannelConsumer.newFor((QueueIntChannel) channel);
     }
 
+    /**
+     * Creates a {@link LongReceivePort} that can be used to receive messages from a a <i>ticker channel</i>:
+     * a channel of bounded capacity and the {@link OverflowPolicy#DISPLACE DISPLACE} overflow policy.
+     * Each ticker consumer will yield monotonic messages, namely no message will be received more than once, and the messages will
+     * be received in the order they're sent, but if the consumer is too slow, messages could be lost.
+     *
+     * @param channel a {@code long} channel of bounded capacity and the {@link OverflowPolicy#DISPLACE DISPLACE} overflow policy.
+     * @return a new {@link LongReceivePort} which provides a view to the supplied ticker channel.
+     */
     public static LongReceivePort newTickerConsumerFor(LongChannel channel) {
         return TickerChannelConsumer.newFor((QueueLongChannel) channel);
     }
 
+    /**
+     * Creates a {@link FloatReceivePort} that can be used to receive messages from a a <i>ticker channel</i>:
+     * a channel of bounded capacity and the {@link OverflowPolicy#DISPLACE DISPLACE} overflow policy.
+     * Each ticker consumer will yield monotonic messages, namely no message will be received more than once, and the messages will
+     * be received in the order they're sent, but if the consumer is too slow, messages could be lost.
+     *
+     * @param channel a {@code float} channel of bounded capacity and the {@link OverflowPolicy#DISPLACE DISPLACE} overflow policy.
+     * @return a new {@link FloatReceivePort} which provides a view to the supplied ticker channel.
+     */
     public static FloatReceivePort newTickerConsumerFor(FloatChannel channel) {
         return TickerChannelConsumer.newFor((QueueFloatChannel) channel);
     }
 
+    /**
+     * Creates a {@link DoubleReceivePort} that can be used to receive messages from a a <i>ticker channel</i>:
+     * a channel of bounded capacity and the {@link OverflowPolicy#DISPLACE DISPLACE} overflow policy.
+     * Each ticker consumer will yield monotonic messages, namely no message will be received more than once, and the messages will
+     * be received in the order they're sent, but if the consumer is too slow, messages could be lost.
+     *
+     * @param channel a {@code double} channel of bounded capacity and the {@link OverflowPolicy#DISPLACE DISPLACE} overflow policy.
+     * @return a new {@link DoubleReceivePort} which provides a view to the supplied ticker channel.
+     */
     public static DoubleReceivePort newTickerConsumerFor(DoubleChannel channel) {
         return TickerChannelConsumer.newFor((QueueDoubleChannel) channel);
     }

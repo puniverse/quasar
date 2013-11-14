@@ -208,12 +208,36 @@ Messages are received from a channel using the [`ReceivePort.receive`]({{javadoc
 {:.alert .alert-info}
 **Note**: As usual, while the blocking channel methods declare to throw `SuspendExecution`, this exception will never actually be thrown. If using channels in a plain thread, you should `catch(SuspendExecution e) { throw AssertionError(); }`. Alternatively, you can use the convenience wrappers [`ThreadReceivePort`]({{javadoc}}/strands/channels/ThreadReceivePort.html) and [`ThreadSendPort`]({{javadoc}}/strands/channels/ThreadSendPort.html).
 
-### Rx
+### Primitive Channels
 
+Quasar provides 4 types of channels for primitive data types: `int`, `long`, `float` and `double`. Consult the Javadoc of, for example, [`IntSendPort`]({{javadoc}}/strands/channels/IntSendPort.html) [`IntReceivePort`]({{javadoc}}/strands/channels/IntReceivePort.html) and for details.
+
+All primitive channels do not support multiple consumers.
+
+
+### Ticker Channels
+
+A channel created with the `DISPLACE` overflow policy is called a *ticker channel* because it provides guarantees similar to that of a digital stock-ticker: you can start watching at any time, the messages you read are always read in order, but because of the limited screen size, if you look away or read to slowly you may miss some messages.
+
+The ticker channel is useful when a program component continually broadcasts some information. The size channel's circular buffer, its "screen" if you like, gives the subscribers some leeway if they occasionally fall behind reading.
+
+A ticker channel is single-consumer, i.e. only one strand is allowed to consume messages from the channel. On the other hand, it is possible, and useful, to create several views of the channel, each used by a different consumer strand. A view (which is of type [`TickerChannelConsumer`]({{javadoc}}/strands/channels/TickerChannelConsumer.html) is created with the [`Channels.newTickerConsumerFor`]({{javadoc}}/strands/channels/Channel.html#newTickerConsumerFor(Channel)) method.
+
+The method returns a `ReceivePort` that can be used to receive messages from `channel`. Each ticker-consumer will yield monotonic messages, namely no message will be received more than once, and the messages will be received in the order they're sent, but if the consumer is too slow, messages could be lost. 
+
+Each consumer strand will use its own `ticker-consumer`, and each can consume messages at its own pace, and each `TickerChannelConsumer` port will return the same messages (messages consumed from one will not be removed from the other views), subject possibly to different messages being missed by different consumers depending on their pace.
+
+### Transofrming Channels Rx
+
+The [`Channels`]({{javadoc}}/strands/channels/Channels.html) class has several static methods that can be used to transform the values sent to or received off channels:
+
+* map 
+* filter
+* zip
 
 ### Channel Selection
 
-### Primitive Channels
+
 
 
 

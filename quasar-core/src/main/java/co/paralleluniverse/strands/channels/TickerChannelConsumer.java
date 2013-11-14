@@ -1,6 +1,15 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Quasar: lightweight strands and actors for the JVM.
+ * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
+ * 
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *  
+ *   or (per the licensee's choosing)
+ *  
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.strands.channels;
 
@@ -15,6 +24,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
+ * A {@link ReceivePort} which is a view of a {@link Channels#newTickerConsumerFor(co.paralleluniverse.strands.channels.Channel) <i>ticker channel</i>}.
+ * Each ticker-consumer will yield monotonic messages, namely no message will be received more than once, and the messages will be
+ * received in the order they're sent, but if the consumer is too slow, messages could be lost.
  *
  * @author pron
  */
