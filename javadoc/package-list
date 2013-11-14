@@ -9,6 +9,8 @@ co.paralleluniverse.fibers
 co.paralleluniverse.fibers.futures
 co.paralleluniverse.fibers.instrument
 co.paralleluniverse.fibers.io
+co.paralleluniverse.io.serialization
+co.paralleluniverse.io.serialization.kryo
 co.paralleluniverse.remote
 co.paralleluniverse.strands
 co.paralleluniverse.strands.channels
