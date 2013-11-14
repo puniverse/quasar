@@ -188,17 +188,21 @@ A [channel]({{javadoc}}/strands/channels/Channel.html) is an interface that exte
 
 Channels are normally created by calling any of the `newChannel` static methods of the [`Channels`]({{javadoc}}/strands/channels/Channels.html) class. The `newChannel` methods create a channel with a specified set of properties. Those properties are:
 
-* `bufferSize` – if positive, the number of messages that the channel can hold in an internal buffer; `0` for a *transfer* channel, i.e. a channel with no internal buffer.
-*                 or `-1` for a channel with an unbounded (infinite) buffer.
+* `bufferSize` – if positive, the number of messages that the channel can hold in an internal buffer; `0` for a *transfer* channel, i.e. a channel with no internal buffer. or `-1` for a channel with an unbounded (infinite) buffer.
 * `policy`         – the [`OverflowPolicy`]({{javadoc}}/strands/channels/OverflowPolicy.html) specifying how the channel (if bounded) will behave if its internal buffer overflows.
 * `singleProducer` – whether the channel will be used by a single producer strand.
 * `singleConsumer` – whether the channel will be used by a single consumer strand.
 
 Note that not all property combinations are supported. Consult the [`Javadoc`]({{javadoc}}/strands/channels/Channels.html) for details.
-
+ 
 ### Sending and Receiving Messages
 
-Messages are sent to a channel using the [`SendPort.send`]({{javadoc}}/strands/channels/SendPort.html#send(Message)) method. The `send` method blocks if the channel's buffer
+Messages are sent to a channel using the [`SendPort.send`]({{javadoc}}/strands/channels/SendPort.html#send(Message)) method. The `send` method blocks if the channel's buffer is full and the channel has been configured with the `BLOCK` overflow policy. There are versions of `send` that block indefinitely or up to a given timeout, and the `trySend` method sends a message if the channel's buffer has room, or returns immediately, without blocking, if not. Consult the [Javadoc]({{javadoc}}/strands/channels/SendPort.html) for details.
+
+Messages are received from a channel using the [`ReceivePort.receive`]({{javadoc}}/strands/channels/ReceivePort.html#receive()) method. There are versions of `receive` that block indefinitely or up to a given timeout, and the `tryReceive` method receives a message if one is available, or returns immediately, without blocking, if not. Consult the [Javadoc]({{javadoc}}/strands/channels/ReceivePort.html) for details.
+
+{:.alert .alert-info}
+**Note**: As usual, while the blocking channel methods declare to throw `SuspendExecution`, this exception will never actually be thrown. If using channels in a plain thread, you should `catch(SuspendExecution e) { throw AssertionError(); }`. Alternatively, you can use the convenience wrappers [`ThreadReceivePort`]({{javadoc}}/strands/channels/ThreadReceivePort.html) and [`ThreadSendPort`]({{javadoc}}/strands/channels/ThreadSendPort.html).
 
 ### Rx
 
