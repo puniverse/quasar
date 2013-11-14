@@ -239,6 +239,10 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>Other than <code>Fiber</code>’s constructor and <code>start</code> method, and possibly the <code>join</code> and <code>get</code> methods, you will not access the <code>Fiber</code> class directly much. To perform operations you would normally want to do on a thread, it is better to use the <code>Strand</code> class (discussed later), which is a generalizations of both threads and&nbsp;fibers.</p>
 
+<h3 id="thread-locals">Thread&nbsp;Locals</h3>
+
+<p>Using <code>ThreadLocal</code>s in a fiber works as you’d expect – the values are local to the fiber. An <code>InheritableThreadLocal</code> inherits its value from the fiber’s parent, i.e. the thread or the fiber that spawned&nbsp;it.</p>
+
 <h3 id="suspendable-this-suspendable-that">Suspendable This, Suspendable&nbsp;That</h3>
 
 <p>The <code>run</code> method in <code>Fiber</code>, <code>SuspendableRunnable</code> and <code>SuspendableCallable</code> declares that it may throw a <code>SuspendExecution</code> exception. This is not a real exception, but part of the inner working of fibers. Any method that may run in a fiber and may block, declares to throw this exception or is annotated with the <code>@Suspendable</code> annotation. Such a method is called a <em>suspendable method</em>. When a method you write calls a suspendable method, it, too, is a suspendable method, and must therefore declare to throw <code>SuspendExecution</code> (if you cannot add this exception to your method’s <code>throws</code> clause, say, because you’re implementing an interface that does not throw it, you can annotate your method with the <code>@Suspendable</code> annotation, but this requires extra consideration; please see the <a href="#advanced-fibers">Advanced Fiber Usage</a> section). Adding <code>SuspendExecution</code> to the <code>throws</code> clause is convenient because it makes the compiler force you to add the exception to any method that calls your method, which you&nbsp;should.</p>
@@ -386,9 +390,35 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p class="alert alert-info"><strong>Note</strong>: As usual, while the blocking channel methods declare to throw <code>SuspendExecution</code>, this exception will never actually be thrown. If using channels in a plain thread, you should <code>catch(SuspendExecution e) { throw AssertionError(); }</code>. Alternatively, you can use the convenience wrappers <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ThreadReceivePort.html"><code>ThreadReceivePort</code></a> and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ThreadSendPort.html"><code>ThreadSendPort</code></a>.</p>
 
-<h3 id="rx">Rx</h3>
-
 <h3 id="primitive-channels">Primitive&nbsp;Channels</h3>
+
+<p>Quasar provides 4 types of channels for primitive data types: <code>int</code>, <code>long</code>, <code>float</code> and <code>double</code>. Consult the Javadoc of, for example, <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/IntSendPort.html"><code>IntSendPort</code></a> <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/IntReceivePort.html"><code>IntReceivePort</code></a> and for&nbsp;details.</p>
+
+<p>All primitive channels do not support multiple&nbsp;consumers.</p>
+
+<h3 id="ticker-channels">Ticker&nbsp;Channels</h3>
+
+<p>A channel created with the <code>DISPLACE</code> overflow policy is called a <em>ticker channel</em> because it provides guarantees similar to that of a digital stock-ticker: you can start watching at any time, the messages you read are always read in order, but because of the limited screen size, if you look away or read to slowly you may miss some&nbsp;messages.</p>
+
+<p>The ticker channel is useful when a program component continually broadcasts some information. The size channel’s circular buffer, its “screen” if you like, gives the subscribers some leeway if they occasionally fall behind&nbsp;reading.</p>
+
+<p>A ticker channel is single-consumer, i.e. only one strand is allowed to consume messages from the channel. On the other hand, it is possible, and useful, to create several views of the channel, each used by a different consumer strand. A view (which is of type <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/TickerChannelConsumer.html"><code>TickerChannelConsumer</code></a> is created with the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channel.html#newTickerConsumerFor(Channel)"><code>Channels.newTickerConsumerFor</code></a>&nbsp;method.</p>
+
+<p>The method returns a <code>ReceivePort</code> that can be used to receive messages from <code>channel</code>. Each ticker-consumer will yield monotonic messages, namely no message will be received more than once, and the messages will be received in the order they’re sent, but if the consumer is too slow, messages could be&nbsp;lost. </p>
+
+<p>Each consumer strand will use its own <code>ticker-consumer</code>, and each can consume messages at its own pace, and each <code>TickerChannelConsumer</code> port will return the same messages (messages consumed from one will not be removed from the other views), subject possibly to different messages being missed by different consumers depending on their&nbsp;pace.</p>
+
+<h3 id="transofrming-channels-rx">Transofrming Channels&nbsp;Rx</h3>
+
+<p>The <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html"><code>Channels</code></a> class has several static methods that can be used to transform the values sent to or received off&nbsp;channels:</p>
+
+<ul>
+  <li>map </li>
+  <li>filter</li>
+  <li>zip</li>
+</ul>
+
+<h3 id="channel-selection">Channel&nbsp;Selection</h3>
 
 </div>
 
