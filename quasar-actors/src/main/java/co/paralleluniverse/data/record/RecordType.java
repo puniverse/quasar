@@ -107,6 +107,8 @@ public class RecordType<R> {
     }
 
     private static boolean isCompatible(RecordType<?> oldType, RecordType<?> newType) {
+        if(true)
+            return true;
         List<Field> oldFields = new ArrayList<Field>(oldType.fields());
         List<Field> newFileds = new ArrayList<Field>(newType.fields());
         if (newFileds.size() < oldFields.size())
