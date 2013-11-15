@@ -196,7 +196,7 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
                 if (p.prev == null)
                     break;
             }
-            list.add(value(p));
+            list.add((E)value(p));
         }
         return Lists.reverse(list);
     }

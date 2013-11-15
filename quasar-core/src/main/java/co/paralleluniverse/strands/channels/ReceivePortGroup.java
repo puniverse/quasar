@@ -14,7 +14,6 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import static co.paralleluniverse.strands.channels.Selector.receive;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -32,7 +31,7 @@ public class ReceivePortGroup<Message> implements ReceivePort<Message> {
         this.ports = ports;
         ArrayList<SelectAction<Message>> actions = new ArrayList<>(ports.size());
         for (ReceivePort<? extends Message> port : ports)
-            actions.add(receive(port));
+            actions.add(Selector.receive(port));
         this.selector = new Selector<>(false, actions);
     }
 

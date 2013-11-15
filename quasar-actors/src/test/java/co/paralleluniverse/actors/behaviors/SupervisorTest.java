@@ -149,7 +149,7 @@ public class SupervisorTest {
 //        return a;
 //    }
     private <Message> ActorRef<Message> getChild(Supervisor sup, String name, long timeout) throws InterruptedException, SuspendExecution {
-        return sup.getChild(name);
+        return (ActorRef<Message>)sup.getChild(name);
 //        Actor<Message, V> a;
 //        final long start = System.nanoTime();
 //        while ((a = sup.getChild(name)) == null || a.isDone()) {
