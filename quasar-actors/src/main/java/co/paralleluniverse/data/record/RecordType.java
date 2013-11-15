@@ -20,8 +20,11 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import jsr166e.ConcurrentHashMapV8;
 
 /**
  *
@@ -60,6 +63,8 @@ public class RecordType<R> {
     private int[] offsets;
     private final ThreadLocal<Mode> currentMode = new ThreadLocal<Mode>();
     private final ClassValue<ClassInfo> vtables;
+    //
+    private static final ConcurrentMap<String, RecordType<?>> loadedTypes = new ConcurrentHashMapV8<>();
 
     public static <R> RecordType<R> newType(Class<R> type, RecordType<? super R> parent) {
         return new RecordType<R>(type, parent);
@@ -75,6 +80,42 @@ public class RecordType<R> {
 
     public static <R> RecordType<R> newType(String name) {
         return newType(name, null);
+    }
+
+    public static RecordType<?> forName(String name) {
+        return loadedTypes.get(name);
+    }
+
+    public static <T> RecordType<T> forClass(Class<T> clazz) {
+        return (RecordType<T>) forName(clazz.getName());
+    }
+
+    private static void addType(String name, RecordType<?> type) {
+        for (;;) {
+            RecordType<?> oldType = loadedTypes.get(name);
+            if (oldType == null) {
+                oldType = loadedTypes.putIfAbsent(name, type);
+                if (oldType == null)
+                    break;
+            } else if (isCompatible(oldType, type)) {
+                if (loadedTypes.replace(name, oldType, type))
+                    break;
+            } else {
+                throw new RuntimeException("RecordType " + type + " incompatible with an already loaded type of the same name: " + oldType);
+            }
+        }
+    }
+
+    private static boolean isCompatible(RecordType<?> oldType, RecordType<?> newType) {
+        List<Field> oldFields = new ArrayList<Field>(oldType.fields());
+        List<Field> newFileds = new ArrayList<Field>(newType.fields());
+        if (newFileds.size() < oldFields.size())
+            return false;
+        for (int i = 0; i < oldFields.size(); i++) {
+            if (!oldFields.get(i).equals(newFileds.get(i)))
+                return false;
+        }
+        return true;
     }
 
     public RecordType(String name, RecordType<? super R> parent) {
@@ -100,6 +141,7 @@ public class RecordType<R> {
                 return new ClassInfo(currentMode.get(), type, RecordType.this);
             }
         };
+        addType(name, this);
     }
 
     public RecordType(Class<R> type, RecordType<? super R> parent) {
@@ -137,6 +179,10 @@ public class RecordType<R> {
 
     @Override
     public String toString() {
+        return name + fields.toString();
+    }
+
+    public String getName() {
         return name;
     }
 

@@ -22,7 +22,7 @@ import java.util.Objects;
  */
 public abstract class Field<R, V> {
     public static final int TRANSIENT = 1;
-    
+
     public static <R> BooleanField<R> booleanField(String name, int id, int flags) {
         return new BooleanField<R>(name, id, flags);
     }
@@ -227,7 +227,6 @@ public abstract class Field<R, V> {
         return flags;
     }
 
-    
     public boolean isTransient() {
         return (flags & TRANSIENT) != 0;
     }
@@ -252,16 +251,6 @@ public abstract class Field<R, V> {
     }
 
     @Override
-    public final boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (!(obj instanceof Field))
-            return false;
-        final Field other = (Field) obj;
-        return id == other.id && type() == other.type() && Objects.equals(name(), other.name());
-    }
-
-    @Override
     public String toString() {
         return name;
     }
@@ -270,6 +259,16 @@ public abstract class Field<R, V> {
     public static abstract class ScalarField<R, V> extends Field<R, V> {
         ScalarField(String name, int id, int flags) {
             super(name, id, flags);
+        }
+
+        @Override
+        public final boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (!(obj instanceof Field))
+                return false;
+            final Field other = (Field) obj;
+            return id == other.id && type() == other.type() && Objects.equals(name(), other.name());
         }
     }
 
@@ -299,6 +298,16 @@ public abstract class Field<R, V> {
         @Override
         final void set(Record<? extends R> record, V[] array) {
             set(record, array, 0);
+        }
+
+        @Override
+        public final boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (!(obj instanceof ArrayField))
+                return false;
+            final ArrayField other = (ArrayField) obj;
+            return id == other.id && type() == other.type() && length == other.length && Objects.equals(name(), other.name());
         }
     }
 

@@ -90,12 +90,17 @@ final class RecordDelegate<R> implements Record<R>, DelegatingEquals {
 
     @Override
     public void write(ObjectOutput out) throws IOException {
-        r.write(out);;
+        r.write(out);
     }
 
     @Override
     public void read(ObjectInput in) throws IOException {
         r.read(in);
+    }
+
+    @Override
+    public void read(ObjectInput in, int numFields) throws IOException {
+        r.read(in, numFields);
     }
 
     @Override

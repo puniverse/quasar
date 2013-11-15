@@ -27,6 +27,8 @@ public interface Record<R> {
 
     void read(java.io.ObjectInput in) throws java.io.IOException;
 
+    void read(java.io.ObjectInput in, int numFields) throws java.io.IOException;
+
     <V> V get(Field<? super R, V> field);
 
     <V> void set(Field<? super R, V> field, V value);

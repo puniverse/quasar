@@ -237,6 +237,8 @@ The [`Channels`]({{javadoc}}/strands/channels/Channels.html) class has several s
 
 ### Channel Selection
 
+## Delay Variables
+
 
 
 

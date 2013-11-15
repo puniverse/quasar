@@ -13,16 +13,13 @@
 package co.paralleluniverse.data.record;
 
 import co.paralleluniverse.common.util.DelegatingEquals;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Set;
 
 /**
  *
  * @author pron
  */
-public abstract class AbstractRecord<R> implements Record<R> {
+public abstract class AbstractRecord<R> implements Record<R>, java.io.Serializable {
     public final RecordType<R> type;
 
     protected AbstractRecord(RecordType<R> type) {
@@ -35,7 +32,7 @@ public abstract class AbstractRecord<R> implements Record<R> {
     }
 
     @Override
-    public final Set<Field<? super R, ?>> fields() {
+    public Set<Field<? super R, ?>> fields() {
         return type.fields();
     }
 
@@ -191,7 +188,7 @@ public abstract class AbstractRecord<R> implements Record<R> {
     }
 
     @Override
-    public void write(ObjectOutput out) throws IOException {
+    public void write(java.io.ObjectOutput out) throws java.io.IOException {
         for (Field<? super R, ?> field : fields()) {
             if (field.isTransient())
                 continue;
@@ -302,9 +299,18 @@ public abstract class AbstractRecord<R> implements Record<R> {
     }
 
     @Override
-    public void read(ObjectInput in) throws IOException {
+    public void read(java.io.ObjectInput in) throws java.io.IOException {
+        read(in, fields().size());
+    }
+
+    @Override
+    public void read(java.io.ObjectInput in, int numFields) throws java.io.IOException {
         try {
+            int k = 0;
             for (Field<? super R, ?> field : fields()) {
+                if (k == numFields)
+                    break;
+                k++;
                 if (field.isTransient())
                     continue;
                 switch (field.type()) {
@@ -412,10 +418,14 @@ public abstract class AbstractRecord<R> implements Record<R> {
                 }
             }
         } catch (ClassNotFoundException e) {
-            throw new IOException(e);
+            throw new java.io.IOException(e);
         }
     }
 
+    protected Object writeReplace() throws java.io.ObjectStreamException {
+        return new SerializedRecord<>(this);
+    }
+    
     @Override
     public <V> V get(Field<? super R, V> field) {
         return field.get(this);
