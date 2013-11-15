@@ -20,7 +20,6 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
@@ -70,24 +69,31 @@ public class RecordType<R> {
         return new RecordType<R>(type, parent);
     }
 
-    public static <R> RecordType<R> newType(String name, RecordType<? super R> parent) {
-        return new RecordType<R>(name, parent);
-    }
-
     public static <R> RecordType<R> newType(Class<R> type) {
         return newType(type, null);
     }
 
-    public static <R> RecordType<R> newType(String name) {
-        return newType(name, null);
-    }
-
-    public static RecordType<?> forName(String name) {
-        return loadedTypes.get(name);
+    public static RecordType<?> forName(String name) throws ClassNotFoundException {
+        return forClass(Class.forName(name));
     }
 
     public static <T> RecordType<T> forClass(Class<T> clazz) {
-        return (RecordType<T>) forName(clazz.getName());
+        sealClassType(clazz);
+        return (RecordType<T>) loadedTypes.get(clazz.getName());
+    }
+
+    private static void sealClassType(Class<?> clazz) {
+        java.lang.reflect.Field[] fs = clazz.getDeclaredFields();
+        try {
+            for (java.lang.reflect.Field f : fs) {
+                if (Modifier.isStatic(f.getModifiers()) && RecordType.class.isAssignableFrom(f.getType())) {
+                    f.setAccessible(true);
+                    ((RecordType<?>) f.get(null)).seal();
+                }
+            }
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static void addType(String name, RecordType<?> type) {
@@ -107,8 +113,6 @@ public class RecordType<R> {
     }
 
     private static boolean isCompatible(RecordType<?> oldType, RecordType<?> newType) {
-        if(true)
-            return true;
         List<Field> oldFields = new ArrayList<Field>(oldType.fields());
         List<Field> newFileds = new ArrayList<Field>(newType.fields());
         if (newFileds.size() < oldFields.size())
@@ -120,8 +124,8 @@ public class RecordType<R> {
         return true;
     }
 
-    public RecordType(String name, RecordType<? super R> parent) {
-        this.name = name.intern();
+    public RecordType(Class<R> type, RecordType<? super R> parent) {
+        this.name = type.getName().intern();
         this.parent = parent;
         if (parent != null) {
             parent.seal();
@@ -143,15 +147,6 @@ public class RecordType<R> {
                 return new ClassInfo(currentMode.get(), type, RecordType.this);
             }
         };
-        addType(name, this);
-    }
-
-    public RecordType(Class<R> type, RecordType<? super R> parent) {
-        this(type.getName(), parent);
-    }
-
-    public RecordType(String name) {
-        this(name, null);
     }
 
     public RecordType(Class<R> type) {
@@ -437,6 +432,7 @@ public class RecordType<R> {
                 }
                 offsets[field.id()] = offset;
             }
+            addType(name, this);
         }
     }
 

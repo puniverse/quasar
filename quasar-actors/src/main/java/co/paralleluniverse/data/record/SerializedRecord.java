@@ -44,7 +44,7 @@ final class SerializedRecord<R> implements Serializable {
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         final String typeName = in.readUTF();
         final int numFields = in.readInt();
-        RecordType<R> type = (RecordType<R>) RecordType.forClass(Class.forName(typeName));
+        RecordType<R> type = (RecordType<R>) RecordType.forName(typeName);
         r = type.newInstance();
         r.read(in, numFields);
     }
