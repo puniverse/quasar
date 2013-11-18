@@ -423,9 +423,15 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <h3 id="channel-selection">Channel&nbsp;Selection</h3>
 
-<p>A powerful tool when working with channels is the ability to wait on several channel operations at&nbsp;once.</p>
+<p>A powerful tool when working with channels is the ability to wait on several channel operations at once. If you are familiar with the Go programming language, this capability is provided by the <code>select</code>&nbsp;statement.</p>
 
-<p>The <code>sel</code> function takes a collection containing <em>channel operation descriptors</em>. A descriptor is either a channel or a pair (vector) of a channel and a message. Each channel in the sequence represents a <code>rcv</code> attempt, and each channel-message pair represents a <code>snd</code> attempt. The <code>sel</code> function performs at most one operation on the sequence, a <code>rcv</code> or a <code>snd</code>, which is determined by the first operation that can succeed. If no operation can be carried out immediately, <code>sel</code> will block until an operation can be&nbsp;performed.</p>
+<p>The <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Selector.html"><code>Selector</code></a> class exposes several static methods that allow <em>channel selection</em>. The basic idea is this: you declare several channel operations (sends and receives), each possibly operating on a different channel, and then use <code>Selector</code> to perform at most&nbsp;one.</p>
+
+<p>Here is an example of using <code>Selector</code>. For details, please consult the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Selector.html">Javadoc</a>:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="n">SelectAction</span> <span class="n">sa</span> <span class="o">=</span> <span class="n">Selector</span><span class="o">.</span><span class="na">select</span><span class="o">(</span><span class="n">Selector</span><span class="o">.</span><span class="na">receive</span><span class="o">(</span><span class="n">ch1</span><span class="o">),</span> <span class="n">Selector</span><span class="o">.</span><span class="na">send</span><span class="o">(</span><span class="n">ch2</span><span class="o">,</span> <span class="n">msg</span><span class="o">));</span>
+</span></code></pre></div>
+<p>The example will do exactly one of the following operations: send <code>msg</code> to <code>ch1</code> or receive a message from&nbsp;<code>ch2</code>.</p>
 
 <h2 id="delay-variables">Delay&nbsp;Variables</h2>
 
