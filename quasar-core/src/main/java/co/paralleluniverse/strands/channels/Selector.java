@@ -259,7 +259,7 @@ public class Selector<Message> implements Synchronization {
     @Override
     public Object register() {
         Strand s = Strand.currentStrand();
-        if (waiter != null && waiter != s)
+        if (waiter != null && !waiter.equals(s))
             throw new IllegalMonitorStateException("A strand is already registered");
         this.waiter = Strand.currentStrand();
 
