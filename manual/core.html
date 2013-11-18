@@ -58,19 +58,19 @@
           
           
           
-            <li>
-              <a  href="/quasar/getting-started.html">
-                Getting Started
-              </a>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a  href="/quasar/getting-started.html">
+                Getting Started
+              </a>
+              
+            </li>
           
         
           
@@ -117,13 +117,6 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a class="active" href="/quasar/manual/core.html">
                 Quasar Core
@@ -132,6 +125,13 @@
               <ul class="nav nav-list"><li><a href="#fibers">Fibers</a></li><li><a href="#strands">Strands</a></li><li><a href="#transforming-any-asynchronous-callback-to-a-fiber-blocking-operation">Transforming any Asynchronous Callback to A Fiber-Blocking&nbsp;Operation</a></li><li><a href="#advanced-fibers">Advanced Fiber&nbsp;Usage</a></li><li><a href="#channels">Channels</a></li><li><a href="#delay-variables">Delay&nbsp;Variables</a></li></ul>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
           
@@ -388,6 +388,8 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>Messages are received from a channel using the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ReceivePort.html#receive()"><code>ReceivePort.receive</code></a> method. There are versions of <code>receive</code> that block indefinitely or up to a given timeout, and the <code>tryReceive</code> method receives a message if one is available, or returns immediately, without blocking, if not. Consult the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ReceivePort.html">Javadoc</a> for&nbsp;details.</p>
 
+<p>Close&nbsp;<span class="caps">XXXXX</span></p>
+
 <p class="alert alert-info"><strong>Note</strong>: As usual, while the blocking channel methods declare to throw <code>SuspendExecution</code>, this exception will never actually be thrown. If using channels in a plain thread, you should <code>catch(SuspendExecution e) { throw AssertionError(); }</code>. Alternatively, you can use the convenience wrappers <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ThreadReceivePort.html"><code>ThreadReceivePort</code></a> and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ThreadSendPort.html"><code>ThreadSendPort</code></a>.</p>
 
 <h3 id="primitive-channels">Primitive&nbsp;Channels</h3>
@@ -402,20 +404,21 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>The ticker channel is useful when a program component continually broadcasts some information. The size channel’s circular buffer, its “screen” if you like, gives the subscribers some leeway if they occasionally fall behind&nbsp;reading.</p>
 
-<p>A ticker channel is single-consumer, i.e. only one strand is allowed to consume messages from the channel. On the other hand, it is possible, and useful, to create several views of the channel, each used by a different consumer strand. A view (which is of type <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/TickerChannelConsumer.html"><code>TickerChannelConsumer</code></a> is created with the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channel.html#newTickerConsumerFor(Channel)"><code>Channels.newTickerConsumerFor</code></a>&nbsp;method.</p>
+<p>A ticker channel is single-consumer, i.e. only one strand is allowed to consume messages from the channel. On the other hand, it is possible, and useful, to create several views of the channel, each used by a different consumer strand. A view (which is of type <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/TickerChannelConsumer.html"><code>TickerChannelConsumer</code></a> is created with the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#newTickerConsumerFor(Channel)"><code>Channels.newTickerConsumerFor</code></a>&nbsp;method.</p>
 
 <p>The method returns a <code>ReceivePort</code> that can be used to receive messages from <code>channel</code>. Each ticker-consumer will yield monotonic messages, namely no message will be received more than once, and the messages will be received in the order they’re sent, but if the consumer is too slow, messages could be&nbsp;lost. </p>
 
 <p>Each consumer strand will use its own <code>ticker-consumer</code>, and each can consume messages at its own pace, and each <code>TickerChannelConsumer</code> port will return the same messages (messages consumed from one will not be removed from the other views), subject possibly to different messages being missed by different consumers depending on their&nbsp;pace.</p>
 
-<h3 id="transofrming-channels-rx">Transofrming Channels&nbsp;Rx</h3>
+<h3 id="transofrming-channels">Transofrming&nbsp;Channels</h3>
 
-<p>The <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html"><code>Channels</code></a> class has several static methods that can be used to transform the values sent to or received off&nbsp;channels:</p>
+<p>The <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html"><code>Channels</code></a> class has several static methods that can be used to manipulate and compose values sent to or received off&nbsp;channels:</p>
 
 <ul>
-  <li>map </li>
-  <li>filter</li>
-  <li>zip</li>
+  <li>map - returns a channel that transforms messages by applying a given mapping function. There are two versions of <code>map</code>: <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#map(co.paralleluniverse.strands.channels.ReceivePort, com.google.common.base.Function)">one that operates</a> on <code>ReceivePort</code> and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#map(co.paralleluniverse.strands.channels.SendPort, com.google.common.base.Function)">one that operates</a> on&nbsp;<code>SendPort</code>.</li>
+  <li><code>filter</code> - returns a channel that only lets messages that satisfy a predicate through. There are two versions of <code>filter</code>: <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#filter(co.paralleluniverse.strands.channels.ReceivePort, com.google.common.base.Predicate)">one that operates</a> on <code>ReceivePort</code> and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#filter(co.paralleluniverse.strands.channels.SendPort, com.google.common.base.Predicate)">one that operates</a> on&nbsp;<code>SendPort</code>.</li>
+  <li><a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#zip(com.google.common.base.Function, co.paralleluniverse.strands.channels.ReceivePort...)"><code>zip</code></a> - returns a channel that combines each vector of messages from a vector of channels into a single combined&nbsp;message.</li>
+  <li><a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#group(co.paralleluniverse.strands.channels.ReceivePort...)"><code>group</code></a> - returns a channel that funnels messages from a set of given&nbsp;channels.</li>
 </ul>
 
 <h3 id="channel-selection">Channel&nbsp;Selection</h3>
