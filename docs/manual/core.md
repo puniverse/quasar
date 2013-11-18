@@ -241,9 +241,13 @@ The [`Channels`]({{javadoc}}/strands/channels/Channels.html) class has several s
 
 ### Channel Selection
 
+A powerful tool when working with channels is the ability to wait on several channel operations at once.
+
+The `sel` function takes a collection containing *channel operation descriptors*. A descriptor is either a channel or a pair (vector) of a channel and a message. Each channel in the sequence represents a `rcv` attempt, and each channel-message pair represents a `snd` attempt. The `sel` function performs at most one operation on the sequence, a `rcv` or a `snd`, which is determined by the first operation that can succeed. If no operation can be carried out immediately, `sel` will block until an operation can be performed.
+
 ## Delay Variables
 
-
+Delay variables, delayed values, or dataflow variables (represented by the [`DelayedVal`]({{javadoc}}/strands/channels/DelayedVal.html) class) are a simple and effective strand coordination mechanism. A `DelayedVal` can have its value set once, and when read, blocks until the value is set. `DelayVal` implements `j.u.c.Future`.
 
 
 

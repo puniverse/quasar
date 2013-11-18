@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import sun.misc.Unsafe;
 
 /**
- *
+ * Attempts to perform at most one channel operation (send or receive) of a given set.
  * @author pron
  */
 public class Selector<Message> implements Synchronization {
@@ -82,13 +82,29 @@ public class Selector<Message> implements Synchronization {
         return trySelect(false, actions);
     }
 
+    //////////////////////
+    /**
+     * Creates a {@link SelectAction} for a send operation
+     *
+     * @param <Message>
+     * @param port      The channel to which the operation tries to send the message
+     * @param message   the message.
+     */
     public static <Message> SelectAction<Message> send(SendPort<? super Message> port, Message message) {
         return new SelectAction<Message>((SendPort) port, message);
     }
 
+    /**
+     * Creates a {@link SelectAction} for a receive operation
+     *
+     * @param <Message>
+     * @param port      the channel from which the operation tries to receive
+     * @return
+     */
     public static <Message> SelectAction<Message> receive(ReceivePort<? extends Message> port) {
         return new SelectAction(port, null);
     }
+    ///////////////////
     private static final AtomicLong selectorId = new AtomicLong(); // used to break symmetry to prevent deadlock in transfer channel
     private static final Object LEASED = new Object() {
         @Override

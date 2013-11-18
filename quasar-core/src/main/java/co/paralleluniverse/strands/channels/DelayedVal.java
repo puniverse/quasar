@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
+ * Represents a delayed value that can be set at most once, and when read, blocks until a value has been set.
  *
  * @author pron
  */
@@ -28,6 +29,11 @@ public class DelayedVal<V> implements Future<V> {
     private V value;
     private volatile SimpleConditionSynchronizer sync = new SimpleConditionSynchronizer(this);
 
+    /**
+     * Sets the value
+     * @param value the value
+     * @throws IllegalStateException if the value has already been set.
+     */
     public final void set(V value) {
         if (sync == null)
             throw new IllegalStateException("Value has already been set (and can only be set once)");
@@ -50,6 +56,12 @@ public class DelayedVal<V> implements Future<V> {
         return value;
     }
 
+    /**
+     * Returns the delayed value, blocking until it has been set.
+     *
+     * @return the value
+     * @throws InterruptedException
+     */
     @Override
     @Suspendable
     public V get() throws InterruptedException {
@@ -70,6 +82,15 @@ public class DelayedVal<V> implements Future<V> {
         }
     }
 
+    /**
+     * Returns the delayed value, blocking until it has been set, but no longer than the given timeout.
+     *
+     * @param timeout The maximum duration to block waiting for the value to be set.
+     * @param unit The time unit of the timeout value.
+     * @return the value
+     * @throws TimeoutException if the timeout expires before the value is set.
+     * @throws InterruptedException
+     */
     @Override
     @Suspendable
     public V get(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
@@ -97,6 +118,9 @@ public class DelayedVal<V> implements Future<V> {
         }
     }
 
+    /**
+     * Throws {@code UnsupportedOperationException}.
+     */
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         throw new UnsupportedOperationException();
