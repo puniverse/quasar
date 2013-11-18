@@ -31,54 +31,161 @@ import sun.misc.Unsafe;
 
 /**
  * Attempts to perform at most one channel operation (send or receive) of a given set.
+ *
  * @author pron
  */
 public class Selector<Message> implements Synchronization {
+    /**
+     * Performs exactly one channel operation of a given set, blocking until any of the actions completes.
+     *
+     * @param priority If {@code true} and more than one operation can complete at the same time, the one that appears in the given list first will be the one performed.
+     *                 If {@code false} the order of the operations is ignored.
+     * @param actions  a list of actions, one of which will be performed.
+     * @return the action that has completed successfully
+     * @throws InterruptedException
+     */
     public static <Message> SelectAction<Message> select(boolean priority, SelectAction<Message>... actions) throws InterruptedException, SuspendExecution {
         return new Selector<Message>(priority, Arrays.asList(actions)).select();
     }
 
+    /**
+     * Performs exactly one channel operation of a given set, blocking until any of the actions completes, but no longer than the given timeout.
+     *
+     * @param priority If {@code true} and more than one operation can complete at the same time, the one that appears in the given list first will be the one performed.
+     *                 If {@code false} the order of the operations is ignored.
+     * @param timeout  the maximum duration to block waiting for an operation to complete.
+     * @param unit     the time unit of the given timeout
+     * @param actions  a list of actions, one of which will be performed.
+     * @return the action that has completed successfully, or {@code null} if the timeout expired before an operation could complete.
+     * @throws InterruptedException
+     */
     public static <Message> SelectAction<Message> select(boolean priority, long timeout, TimeUnit unit, SelectAction<Message>... actions) throws InterruptedException, SuspendExecution {
         return new Selector<Message>(priority, Arrays.asList(actions)).select(timeout, unit);
     }
 
+    /**
+     * Performs exactly one channel operation of a given set, blocking until any of the actions completes.
+     *
+     * @param priority If {@code true} and more than one operation can complete at the same time, the one that appears in the given list first will be the one performed.
+     *                 If {@code false} the order of the operations is ignored.
+     * @param actions  a list of actions, one of which will be performed.
+     * @return the action that has completed successfully
+     * @throws InterruptedException
+     */
     public static <Message> SelectAction<Message> select(boolean priority, List<SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
         return new Selector<Message>(priority, actions instanceof ArrayList ? actions : new ArrayList<>(actions)).select();
     }
 
+    /**
+     * Performs exactly one channel operation of a given set, blocking until any of the actions completes.
+     *
+     * @param priority If {@code true} and more than one operation can complete at the same time, the one that appears in the given list first will be the one performed.
+     *                 If {@code false} the order of the operations is ignored.
+     * @param actions  a list of actions, one of which will be performed.
+     * @return the action that has completed successfully
+     * @throws InterruptedException
+     */
     public static <Message> SelectAction<Message> select(boolean priority, long timeout, TimeUnit unit, List<SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
         return new Selector<Message>(priority, actions instanceof ArrayList ? actions : new ArrayList<>(actions)).select(timeout, unit);
     }
 
+    /**
+     * Performs exactly one channel operation of a given set, blocking until any of the actions completes.
+     * Same as calling {@link #select(boolean, co.paralleluniverse.strands.channels.SelectAction<Message>[]) select(false, actions)}.
+     *
+     * @param actions a list of actions, one of which will be performed.
+     * @return the action that has completed successfully
+     * @throws InterruptedException
+     */
     public static <Message> SelectAction<Message> select(SelectAction<Message>... actions) throws InterruptedException, SuspendExecution {
         return select(false, actions);
     }
 
+    /**
+     * Performs exactly one channel operation of a given set, blocking until any of the actions completes, but no longer than the given timeout.
+     * Same as calling {@link #select(boolean, long, java.util.concurrent.TimeUnit, co.paralleluniverse.strands.channels.SelectAction<Message>[]) select(false, timeout, unit, actions)}.
+     *
+     * @param timeout the maximum duration to block waiting for an operation to complete.
+     * @param unit    the time unit of the given timeout
+     * @param actions a list of actions, one of which will be performed.
+     * @return the action that has completed successfully, or {@code null} if the timeout expired before an operation could complete.
+     * @throws InterruptedException
+     */
     public static <Message> SelectAction<Message> select(long timeout, TimeUnit unit, SelectAction<Message>... actions) throws InterruptedException, SuspendExecution {
         return select(false, timeout, unit, actions);
     }
 
+    /**
+     * Performs exactly one channel operation of a given set, blocking until any of the actions completes.
+     * Same as calling {@link #select(boolean, java.util.List) select(false, actions)}.
+     *
+     * @param actions a list of actions, one of which will be performed.
+     * @return the action that has completed successfully
+     * @throws InterruptedException
+     */
     public static <Message> SelectAction<Message> select(List<SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
         return select(false, actions);
     }
 
+    /**
+     * Performs exactly one channel operation of a given set, blocking until any of the actions completes, but no longer than the given timeout.
+     * Same as calling {@link #select(boolean, long, java.util.concurrent.TimeUnit, java.util.List) select(false, timeout, unit, actions)}.
+     *
+     * @param timeout the maximum duration to block waiting for an operation to complete.
+     * @param unit    the time unit of the given timeout
+     * @param actions a list of actions, one of which will be performed.
+     * @return the action that has completed successfully, or {@code null} if the timeout expired before an operation could complete.
+     * @throws InterruptedException
+     */
     public static <Message> SelectAction<Message> select(long timeout, TimeUnit unit, List<SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
         return select(false, timeout, unit, actions);
     }
 
-    public static <Message> SelectAction<Message> trySelect(boolean priority, SelectAction<Message>... actions) throws InterruptedException, SuspendExecution {
+    /**
+     * Attempts to performs exactly one channel operation of a given set if one can be completed without blocking.
+     * This method never blocks.
+     *
+     * @param priority If {@code true} and more than one operation can complete at the same time, the one that appears in the given list first will be the one performed.
+     *                 If {@code false} the order of the operations is ignored.
+     * @param actions  a list of actions, one of which will be performed.
+     * @return the action that has completed successfully
+     */
+    public static <Message> SelectAction<Message> trySelect(boolean priority, SelectAction<Message>... actions) {
         return new Selector<Message>(priority, Arrays.asList(actions)).trySelect();
     }
 
-    public static <Message> SelectAction<Message> trySelect(boolean priority, List<SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
+    /**
+     * Attempts to performs exactly one channel operation of a given set if one can be completed without blocking.
+     * This method never blocks.
+     *
+     * @param priority If {@code true} and more than one operation can complete at the same time, the one that appears in the given list first will be the one performed.
+     *                 If {@code false} the order of the operations is ignored.
+     * @param actions  a list of actions, one of which will be performed.
+     * @return the action that has completed successfully
+     */
+    public static <Message> SelectAction<Message> trySelect(boolean priority, List<SelectAction<Message>> actions) {
         return new Selector<Message>(priority, actions instanceof ArrayList ? actions : new ArrayList<>(actions)).trySelect();
     }
 
-    public static <Message> SelectAction<Message> trySelect(SelectAction<Message>... actions) throws InterruptedException, SuspendExecution {
+    /**
+     * Attempts to performs exactly one channel operation of a given set if one can be completed without blocking.
+     * This method never blocks. Same as calling {@link #trySelect(boolean, co.paralleluniverse.strands.channels.SelectAction<Message>[]) trySelect(false, actions)}.
+     *
+     * @param actions a list of actions, one of which will be performed.
+     * @return the action that has completed successfully
+     */
+    public static <Message> SelectAction<Message> trySelect(SelectAction<Message>... actions) {
         return trySelect(false, actions);
     }
 
-    public static <Message> SelectAction<Message> trySelect(List<SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
+    /**
+     * Attempts to performs exactly one channel operation of a given set if one can be completed without blocking.
+     * This method never blocks. Same as calling {@link #trySelect(boolean, java.util.List) trySelect(false, actions)}.
+     *
+     * @param actions a list of actions, one of which will be performed.
+     * @return the action that has completed successfully
+     */
+    public static <Message> SelectAction<Message> trySelect(List<SelectAction<Message>> actions) {
         return trySelect(false, actions);
     }
 
@@ -87,22 +194,22 @@ public class Selector<Message> implements Synchronization {
      * Creates a {@link SelectAction} for a send operation
      *
      * @param <Message>
-     * @param port      The channel to which the operation tries to send the message
+     * @param ch        The channel to which the operation tries to send the message
      * @param message   the message.
      */
-    public static <Message> SelectAction<Message> send(SendPort<? super Message> port, Message message) {
-        return new SelectAction<Message>((SendPort) port, message);
+    public static <Message> SelectAction<Message> send(SendPort<? super Message> ch, Message message) {
+        return new SelectAction<Message>((SendPort) ch, message);
     }
 
     /**
      * Creates a {@link SelectAction} for a receive operation
      *
      * @param <Message>
-     * @param port      the channel from which the operation tries to receive
+     * @param ch        the channel from which the operation tries to receive
      * @return
      */
-    public static <Message> SelectAction<Message> receive(ReceivePort<? extends Message> port) {
-        return new SelectAction(port, null);
+    public static <Message> SelectAction<Message> receive(ReceivePort<? extends Message> ch) {
+        return new SelectAction(ch, null);
     }
     ///////////////////
     private static final AtomicLong selectorId = new AtomicLong(); // used to break symmetry to prevent deadlock in transfer channel

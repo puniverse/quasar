@@ -241,9 +241,17 @@ The [`Channels`]({{javadoc}}/strands/channels/Channels.html) class has several s
 
 ### Channel Selection
 
-A powerful tool when working with channels is the ability to wait on several channel operations at once.
+A powerful tool when working with channels is the ability to wait on several channel operations at once. If you are familiar with the Go programming language, this capability is provided by the `select` statement.
 
-The `sel` function takes a collection containing *channel operation descriptors*. A descriptor is either a channel or a pair (vector) of a channel and a message. Each channel in the sequence represents a `rcv` attempt, and each channel-message pair represents a `snd` attempt. The `sel` function performs at most one operation on the sequence, a `rcv` or a `snd`, which is determined by the first operation that can succeed. If no operation can be carried out immediately, `sel` will block until an operation can be performed.
+The [`Selector`]({{javadoc}}/strands/channels/Selector.html) class exposes several static methods that allow *channel selection*. The basic idea is this: you declare several channel operations (sends and receives), each possibly operating on a different channel, and then use `Selector` to perform at most one.
+
+Here is an example of using `Selector`. For details, please consult the [Javadoc]({{javadoc}}/strands/channels/Selector.html):
+
+~~~ java
+SelectAction sa = Selector.select(Selector.receive(ch1), Selector.send(ch2, msg));
+~~~
+
+The example will do exactly one of the following operations: send `msg` to `ch1` or receive a message from `ch2`.
 
 ## Delay Variables
 
