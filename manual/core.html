@@ -58,13 +58,6 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/getting-started.html">
                 Getting Started
@@ -108,8 +101,22 @@
             </li>
           
         
+          
+          
+            
+          
+          
+          
+        
       
         <li class="nav-header">User Manual</li>
+        
+          
+          
+            
+          
+          
+          
         
           
           
@@ -125,13 +132,6 @@
               <ul class="nav nav-list"><li><a href="#fibers">Fibers</a></li><li><a href="#strands">Strands</a></li><li><a href="#transforming-any-asynchronous-callback-to-a-fiber-blocking-operation">Transforming any Asynchronous Callback to A Fiber-Blocking&nbsp;Operation</a></li><li><a href="#advanced-fibers">Advanced Fiber&nbsp;Usage</a></li><li><a href="#channels">Channels</a></li><li><a href="#delay-variables">Delay&nbsp;Variables</a></li></ul>
               
             </li>
-          
-        
-          
-          
-            
-          
-          
           
         
           
@@ -168,19 +168,19 @@
           
           
           
-            <li>
-              <a  href="/quasar/manual/examples.html">
-                Examples
-              </a>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a  href="/quasar/manual/examples.html">
+                Examples
+              </a>
+              
+            </li>
           
         
       
@@ -388,7 +388,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>Messages are received from a channel using the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ReceivePort.html#receive()"><code>ReceivePort.receive</code></a> method. There are versions of <code>receive</code> that block indefinitely or up to a given timeout, and the <code>tryReceive</code> method receives a message if one is available, or returns immediately, without blocking, if not. Consult the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ReceivePort.html">Javadoc</a> for&nbsp;details.</p>
 
-<p>Close&nbsp;<span class="caps">XXXXX</span></p>
+<p>A channel can be closed with the <code>close</code> method, found in both <code>RecivePort</code> and <code>SendPort</code>. All messages sent to the channel after the <code>close</code> method has been called will be silently ignored, but all those sent before will still be available (when calling <code>receive</code>). After all messages sent before the channel closed are consumed, the <code>receive</code> function will return <code>null</code>, and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ReceivePort.html#isClosed()"><code>ReceivePort.isClosed()</code></a> will return&nbsp;<code>true</code>.</p>
 
 <p class="alert alert-info"><strong>Note</strong>: As usual, while the blocking channel methods declare to throw <code>SuspendExecution</code>, this exception will never actually be thrown. If using channels in a plain thread, you should <code>catch(SuspendExecution e) { throw AssertionError(); }</code>. Alternatively, you can use the convenience wrappers <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ThreadReceivePort.html"><code>ThreadReceivePort</code></a> and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ThreadSendPort.html"><code>ThreadSendPort</code></a>.</p>
 
