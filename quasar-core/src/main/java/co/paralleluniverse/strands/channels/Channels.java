@@ -493,22 +493,63 @@ public final class Channels {
     }
 
     ////////////////////
+    /**
+     * Returns a {@link ReceivePort} that receives messages from a set of channels. Messages from all given channels are funneled into
+     * the returned channel.
+     *
+     * @param <M>
+     * @param channels
+     * @return
+     */
     public static <M> ReceivePort<M> group(ReceivePort<? extends M>... channels) {
         return new ReceivePortGroup<M>(channels);
     }
 
+    /**
+     * Returns a {@link ReceivePort} that filters messages that satisfy a predicate from a given channel.
+     * All messages (even those not satisfying the predicate) will be consumed from the original channel; those that don't satisfy the predicate will be silently discarded.
+     *
+     * @param <M>     the message type.
+     * @param channel The channel to filter
+     * @param pred    the filtering predicate
+     * @return A {@link ReceivePort} that will receive all those messages from the original channel which satisfy the predicate (i.e. the predicate returns {@code true}).
+     */
     public static <M> ReceivePort<M> filter(ReceivePort<M> channel, Predicate<M> pred) {
         return new FilteringReceivePort<M>(channel, pred);
     }
 
+    /**
+     * Returns a {@link ReceivePort} that receives messages that are transformed by a given mapping function from a given channel.
+     *
+     * @param <S>     the message type of the source (given) channel.
+     * @param <T>     the message type of the target (returned) channel.
+     * @param channel the channel to transform
+     * @param f       the mapping function
+     * @return a {@link ReceivePort} that returns messages that are the result of applying the mapping function to the messages received on the given channel.
+     */
     public static <S, T> ReceivePort<T> map(ReceivePort<S> channel, Function<S, T> f) {
         return new MappingReceivePort<S, T>(channel, f);
     }
 
+    /**
+     * Returns a {@link ReceivePort} that combines each vector of messages from a vector of channels into a single combined message.
+     *
+     * @param <M> The type of the combined message
+     * @param f   The combining function
+     * @param cs  A vector of channels
+     * @return A zipping {@link ReceivePort}
+     */
     public static <M> ReceivePort<M> zip(Function<Object[], M> f, ReceivePort<?>... cs) {
         return new ZippingReceivePort<M>(f, cs);
     }
 
+    /**
+     * Returns a {@link ReceivePort} that combines each vector of messages from a vector of channels into a single combined message.
+     *
+     * @param <M> The type of the combined message
+     * @param f   The combining function
+     * @return A zipping {@link ReceivePort}
+     */
     public static <M, S1, S2> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S2> c2, final Function2<S1, S2, M> f) {
         return new ZippingReceivePort<M>(c1, c2) {
             @Override
@@ -518,6 +559,13 @@ public final class Channels {
         };
     }
 
+    /**
+     * Returns a {@link ReceivePort} that combines each vector of messages from a vector of channels into a single combined message.
+     *
+     * @param <M> The type of the combined message
+     * @param f   The combining function
+     * @return A zipping {@link ReceivePort}
+     */
     public static <M, S1, S2, S3> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S2> c2, ReceivePort<S3> c3, final Function3<S1, S2, S3, M> f) {
         return new ZippingReceivePort<M>(c1, c2, c3) {
             @Override
@@ -527,6 +575,13 @@ public final class Channels {
         };
     }
 
+    /**
+     * Returns a {@link ReceivePort} that combines each vector of messages from a vector of channels into a single combined message.
+     *
+     * @param <M> The type of the combined message
+     * @param f   The combining function
+     * @return A zipping {@link ReceivePort}
+     */
     public static <M, S1, S2, S3, S4> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S2> c2, ReceivePort<S3> c3, ReceivePort<S4> c4,
             final Function4<S1, S2, S3, S4, M> f) {
         return new ZippingReceivePort<M>(c1, c2, c3, c4) {
@@ -537,6 +592,13 @@ public final class Channels {
         };
     }
 
+    /**
+     * Returns a {@link ReceivePort} that combines each vector of messages from a vector of channels into a single combined message.
+     *
+     * @param <M> The type of the combined message
+     * @param f   The combining function
+     * @return A zipping {@link ReceivePort}
+     */
     public static <M, S1, S2, S3, S4, S5> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S2> c2, ReceivePort<S3> c3, ReceivePort<S4> c4, ReceivePort<S5> c5,
             final Function5<S1, S2, S3, S4, S5, M> f) {
         return new ZippingReceivePort<M>(c1, c2, c3, c4, c5) {
@@ -547,10 +609,28 @@ public final class Channels {
         };
     }
 
+    /**
+     * Returns a {@link SendPort} that filters messages that satisfy a predicate before sending to a given channel.
+     * Messages that don't satisfy the predicate will be silently discarded when sent.
+     *
+     * @param <M>     the message type.
+     * @param channel The channel to filter
+     * @param pred    the filtering predicate
+     * @return A {@link SendPort} that will send only those messages which satisfy the predicate (i.e. the predicate returns {@code true}) to the given channel.
+     */
     public static <M> SendPort<M> filter(SendPort<M> channel, Predicate<M> pred) {
         return new FilteringSendPort<M>(channel, pred);
     }
 
+    /**
+     * Returns a {@link SendPort} that transforms messages by applying a given mapping function before sending them to a given channel.
+     *
+     * @param <S>     the message type of the source (returned) channel.
+     * @param <T>     the message type of the target (given) channel.
+     * @param channel the channel to transform
+     * @param f       the mapping function
+     * @return a {@link SendPort} that passes messages to the given channel after transforming them by applying the mapping function.
+     */
     public static <S, T> SendPort<S> map(SendPort<T> channel, Function<S, T> f) {
         return new MappingSendPort<S, T>(channel, f);
     }
