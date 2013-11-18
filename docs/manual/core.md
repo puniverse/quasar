@@ -205,7 +205,7 @@ Messages are sent to a channel using the [`SendPort.send`]({{javadoc}}/strands/c
 
 Messages are received from a channel using the [`ReceivePort.receive`]({{javadoc}}/strands/channels/ReceivePort.html#receive()) method. There are versions of `receive` that block indefinitely or up to a given timeout, and the `tryReceive` method receives a message if one is available, or returns immediately, without blocking, if not. Consult the [Javadoc]({{javadoc}}/strands/channels/ReceivePort.html) for details.
 
-Close XXXXX
+A channel can be closed with the `close` method, found in both `RecivePort` and `SendPort`. All messages sent to the channel after the `close` method has been called will be silently ignored, but all those sent before will still be available (when calling `receive`). After all messages sent before the channel closed are consumed, the `receive` function will return `null`, and [`ReceivePort.isClosed()`]({{javadoc}}/strands/channels/ReceivePort.html#isClosed()) will return `true`.
 
 {:.alert .alert-info}
 **Note**: As usual, while the blocking channel methods declare to throw `SuspendExecution`, this exception will never actually be thrown. If using channels in a plain thread, you should `catch(SuspendExecution e) { throw AssertionError(); }`. Alternatively, you can use the convenience wrappers [`ThreadReceivePort`]({{javadoc}}/strands/channels/ThreadReceivePort.html) and [`ThreadSendPort`]({{javadoc}}/strands/channels/ThreadSendPort.html).
