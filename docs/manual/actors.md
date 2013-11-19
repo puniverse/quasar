@@ -169,10 +169,27 @@ The actor model does not only make concurrency easy; it also helps build fault-t
 
 In fact, when using actors, it is often best to to follow the [philosophy laid out by Joe Armstrong](http://www.erlang.org/download/armstrong_thesis_2003.pdf), Erlang's chief designer, of "let it crash". The idea is not to try and catch exceptions inside an actor, because attempting to catch and handle all exceptions is futile. Instead, we just let the actor crash, monitor its death elsewhere, and then take some action.
 
-The principle of actor error handling is that an actor can be asked to be notified of another actor's death. This is done through *linking* and *watching*. 
+The principle of actor error handling is that an actor can be asked to be notified of another actor's death and its cause. This is done through *linking* or *watching*. 
 
 ### Linking actors
 
+XXXXXXXX 
+
+### Watching Actors
+
+XXXXXXXX
+
+### Lifecycle Messages and Lifecycle Exceptions
+
+When actor B that is linked to or watched by actor A dies, it automatically sends an [`ExitMessage`]({{javadoc}}/actors/ExitMessage.html) to A. The message is put in A's mailbox and retrieved when A calls `receive` or `tryReceive`, but it isn't actually returned by those methods. 
+
+When `receive` (or `tryRecive`) is called, it takes the next message in the mailbox, and passes it to a protected method called [`filterMessage`]({{javadoc}}/actors/Actor.html#filterMessage(java.lang.Object)). Whatever `filterMessage` returns, that's the message actually returned by `receive` (or `tryReceive`), but it `filterMessage` returns `null`, `receive` will not return and wait for the next message (and `tryReceive` will check if another message is already available, or otherwise return `null`). The default implementation of `filterMessage` always returns the message it received unless it is of type [`LifecycleMessage`]({{javadoc}}/actors/LifecycleMessage.html), in which case it passes it to the protected [`handleLifecycleMessage`]({{javadoc}}/actors/Actor.html#handleLifecycleMessage(co.paralleluniverse.actors.LifecycleMessage)) method.
+
+[`handleLifecycleMessage`]({{javadoc}}/actors/Actor.html#handleLifecycleMessage(co.paralleluniverse.actors.LifecycleMessage)) examines the message. If it is an [`ExitMessage`]({{javadoc}}/actors/ExitMessage.html) (which extends `LifecycleMessage`), it checks to see if it's been sent as a result of a *watch* (by testing whether its [`getWatch`]({{javadoc}}/actors/ExitMessage.html#getWatch()) method returns a non-null value). If it is, it's silently ignored. But if it's a result of a *linked* actor dying (`getWatch()` returns `null`), the method throws a [`LifecycleException`]({{javadoc}}/actors/LifecycleException.html). This exception is thrown, in turn, by actor A's call to `receive` (or `tryReceive`). You can override `handleLifecycleMessage` to change this behavior.
+
+If you do not want actor A to die if linked actor B does, you should surround the call to `receive` or `tryReceive` with a `try {} catch(LifecycleException) {}` block.
+
+While you *can* override the `filterMessage` or the `handleLifecycleMessage` method, but will seldom have reason to override the latter, and almost never should override the former.
 
 {% comment %}
 
@@ -211,34 +228,6 @@ Here's an example from the tests:
 
 Remember, linking is symmetrical, so if `actor2` were to die, `actor1` would get the exception.
 
-What if `actor2` wants to be notified when `actor1` dies, but doesn't want to die itself? The `:trap` flag for the `spawn` macro, tells is to trap lifecycle exceptions and turn them into messages:
-
-~~~ clojure
-(let [actor1 (spawn #(Strand/sleep 100))
-      actor2 (spawn :trap true
-                    (fn []
-                      (link! actor1)
-                      (receive [m]
-                               [:exit _ actor reason] actor)))]
-  (join actor1)
-  (join actor2)) ; => actor1
-~~~
-
-Now, when `actor1` dies, `actor2` receives an `:exit` message, telling it which actor has died and how. We'll look into the `:exit` message in a second.
-
-We can undo the link by calling
-
-~~~ clojure
-(unlink! actor1 actor2)
-~~~
-
-or 
-
-~~~ clojure
-(unlink! actor2)
-~~~
-
-from within `actor1`.
 
 ### Watching actors
 
