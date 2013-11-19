@@ -58,6 +58,13 @@
           
           
           
+        
+          
+          
+            
+          
+          
+          
             <li>
               <a  href="/quasar/getting-started.html">
                 Getting Started
@@ -101,22 +108,8 @@
             </li>
           
         
-          
-          
-            
-          
-          
-          
-        
       
         <li class="nav-header">User Manual</li>
-        
-          
-          
-            
-          
-          
-          
         
           
           
@@ -138,12 +131,19 @@
           
           
           
+        
+          
+          
+            
+          
+          
+          
             <li>
               <a class="active" href="/quasar/manual/actors.html">
                 Quasar's Actor System
               </a>
               
-              <ul class="nav nav-list"><li></li></ul>
+              <ul class="nav nav-list"><li></li><li><a href="#error-handling">Error&nbsp;Handling</a></li></ul>
               
             </li>
           
@@ -168,19 +168,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/manual/examples.html">
                 Examples
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
       
@@ -344,6 +344,16 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 <p>There are several actor systems that do not support selective receive, but Erlang does, and so does Quasar. <a href="http://www.infoq.com/presentations/Death-by-Accidental-Complexity">The talk <em>Death by Accidental Complexity</em></a>, by Ulf Wiger, shows how using selective receive avoids implementing a full, complicated and error-prone transition matrix. <a href="http://www.infoq.com/presentations/1000-Year-old-Design-Patterns">In a different talk</a>, Wiger compared non-selective (<span class="caps">FIFO</span>) receive to a tetris game where you must fit each piece into the puzzle as it comes, while selective receive turns the problem into a jigsaw puzzle, where you can look for a piece that you know will&nbsp;fit.</p>
 
 <p class="alert alert-warn"><strong>A word of caution</strong>: Using selective receive in your code may lead to deadlocks (because you’re essentially saying, I’m going to wait here until a specific message arrives). This can be easily avoided by always specifying a timeout (with the <code>:after millis</code> clause) when doing a selective receive. Selective receive is a powerful tool that can greatly help writing readable, maintainable message-handling code, but don’t over-use&nbsp;it.</p>
+
+<h2 id="error-handling">Error&nbsp;Handling</h2>
+
+<p>The actor model does not only make concurrency easy; it also helps build fault-tolerant systems by compartmentalizing failure. Each actor is it’s own execution context - if it encounters an exception, only the actor is directly affected (like a thread, only actors are lightweight). Unlike regular functions/objects, where an exception has to be caught and handled immediately on the callstack, with actors we can completely separate code execution from error&nbsp;handling.</p>
+
+<p>In fact, when using actors, it is often best to to follow the <a href="http://www.erlang.org/download/armstrong_thesis_2003.pdf">philosophy laid out by Joe Armstrong</a>, Erlang’s chief designer, of “let it crash”. The idea is not to try and catch exceptions inside an actor, because attempting to catch and handle all exceptions is futile. Instead, we just let the actor crash, monitor its death elsewhere, and then take some&nbsp;action.</p>
+
+<p>The principle of actor error handling is that an actor can be asked to be notified of another actor’s death. This is done through <em>linking</em> and <em>watching</em>. </p>
+
+<h3 id="linking-actors">Linking&nbsp;actors</h3>
 
 </div>
 
