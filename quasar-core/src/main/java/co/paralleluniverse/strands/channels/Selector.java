@@ -72,7 +72,7 @@ public class Selector<Message> implements Synchronization {
      * @return the action that has completed successfully
      * @throws InterruptedException
      */
-    public static <Message> SelectAction<Message> select(boolean priority, List<SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
+    public static <Message> SelectAction<Message> select(boolean priority, List<? extends SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
         return new Selector<Message>(priority, actions instanceof ArrayList ? actions : new ArrayList<>(actions)).select();
     }
 
@@ -85,7 +85,7 @@ public class Selector<Message> implements Synchronization {
      * @return the action that has completed successfully
      * @throws InterruptedException
      */
-    public static <Message> SelectAction<Message> select(boolean priority, long timeout, TimeUnit unit, List<SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
+    public static <Message> SelectAction<Message> select(boolean priority, long timeout, TimeUnit unit, List<? extends SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
         return new Selector<Message>(priority, actions instanceof ArrayList ? actions : new ArrayList<>(actions)).select(timeout, unit);
     }
 
@@ -123,7 +123,7 @@ public class Selector<Message> implements Synchronization {
      * @return the action that has completed successfully
      * @throws InterruptedException
      */
-    public static <Message> SelectAction<Message> select(List<SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
+    public static <Message> SelectAction<Message> select(List<? extends SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
         return select(false, actions);
     }
 
@@ -137,7 +137,7 @@ public class Selector<Message> implements Synchronization {
      * @return the action that has completed successfully, or {@code null} if the timeout expired before an operation could complete.
      * @throws InterruptedException
      */
-    public static <Message> SelectAction<Message> select(long timeout, TimeUnit unit, List<SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
+    public static <Message> SelectAction<Message> select(long timeout, TimeUnit unit, List<? extends SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
         return select(false, timeout, unit, actions);
     }
 
@@ -163,7 +163,7 @@ public class Selector<Message> implements Synchronization {
      * @param actions  a list of actions, one of which will be performed.
      * @return the action that has completed successfully
      */
-    public static <Message> SelectAction<Message> trySelect(boolean priority, List<SelectAction<Message>> actions) {
+    public static <Message> SelectAction<Message> trySelect(boolean priority, List<? extends SelectAction<Message>> actions) {
         return new Selector<Message>(priority, actions instanceof ArrayList ? actions : new ArrayList<>(actions)).trySelect();
     }
 
@@ -185,7 +185,7 @@ public class Selector<Message> implements Synchronization {
      * @param actions a list of actions, one of which will be performed.
      * @return the action that has completed successfully
      */
-    public static <Message> SelectAction<Message> trySelect(List<SelectAction<Message>> actions) {
+    public static <Message> SelectAction<Message> trySelect(List<? extends SelectAction<Message>> actions) {
         return trySelect(false, actions);
     }
 
@@ -222,18 +222,18 @@ public class Selector<Message> implements Synchronization {
     final long id;
     private volatile Object winner;
     private Strand waiter;
-    private final List<SelectAction<Message>> actions;
+    private final List<? extends SelectAction<Message>> actions;
     private int lastRegistered;
     private final boolean priority;
     SelectAction<Message> res;
 
-    Selector(boolean priority, List<SelectAction<Message>> actions) {
+    Selector(boolean priority, List<? extends SelectAction<Message>> actions) {
         this.id = selectorId.incrementAndGet();
         this.waiter = Strand.currentStrand();
         this.actions = actions;
         this.priority = priority;
         for (int i = 0; i < actions.size(); i++) {
-            SelectAction<Message> sa = actions.get(i);
+            SelectAction<? extends Message> sa = actions.get(i);
             sa.setSelector(this);
             sa.setIndex(i);
             record("<init>", "%s added %s", this, sa);
@@ -271,7 +271,7 @@ public class Selector<Message> implements Synchronization {
         for (int i = 0; i < n; i++) {
             SelectAction<Message> sa = actions.get(i);
 
-            sa.token = sa.port.register(sa);
+            sa.token = sa.port.register((SelectAction)sa);
             lastRegistered = i;
             if (sa.isDone()) {
                 assert winner == sa;

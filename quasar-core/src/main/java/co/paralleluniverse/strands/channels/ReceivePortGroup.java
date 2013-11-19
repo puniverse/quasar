@@ -32,7 +32,7 @@ public class ReceivePortGroup<Message> implements ReceivePort<Message> {
         ArrayList<SelectAction<Message>> actions = new ArrayList<>(ports.size());
         for (ReceivePort<? extends Message> port : ports)
             actions.add(Selector.receive(port));
-        this.selector = new Selector<>(false, actions);
+        this.selector = new Selector(false, actions);
     }
 
     public ReceivePortGroup(ReceivePort<? extends Message>... ports) {
@@ -58,7 +58,7 @@ public class ReceivePortGroup<Message> implements ReceivePort<Message> {
     @Override
     public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         selector.reset();
-        SelectAction<Message> sa = selector.select(timeout, unit);
+        SelectAction<? extends Message> sa = selector.select(timeout, unit);
         if (sa != null)
             return sa.message();
         return null;
