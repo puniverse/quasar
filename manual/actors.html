@@ -58,19 +58,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/getting-started.html">
                 Getting Started
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
           
@@ -117,19 +117,19 @@
           
           
           
-            <li>
-              <a  href="/quasar/manual/core.html">
-                Quasar Core
-              </a>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a  href="/quasar/manual/core.html">
+                Quasar Core
+              </a>
+              
+            </li>
           
         
           
@@ -351,9 +351,27 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <p>In fact, when using actors, it is often best to to follow the <a href="http://www.erlang.org/download/armstrong_thesis_2003.pdf">philosophy laid out by Joe Armstrong</a>, Erlang’s chief designer, of “let it crash”. The idea is not to try and catch exceptions inside an actor, because attempting to catch and handle all exceptions is futile. Instead, we just let the actor crash, monitor its death elsewhere, and then take some&nbsp;action.</p>
 
-<p>The principle of actor error handling is that an actor can be asked to be notified of another actor’s death. This is done through <em>linking</em> and <em>watching</em>. </p>
+<p>The principle of actor error handling is that an actor can be asked to be notified of another actor’s death and its cause. This is done through <em>linking</em> or <em>watching</em>. </p>
 
 <h3 id="linking-actors">Linking&nbsp;actors</h3>
+
+<p><span class="caps">XXXXXXXX</span> </p>
+
+<h3 id="watching-actors">Watching&nbsp;Actors</h3>
+
+<p><span class="caps">XXXXXXXX</span></p>
+
+<h3 id="lifecycle-messages-and-lifecycle-exceptions">Lifecycle Messages and Lifecycle&nbsp;Exceptions</h3>
+
+<p>When actor B that is linked to or watched by actor A dies, it automatically sends an <a href="/quasar/javadoc/co/paralleluniverse/actors/ExitMessage.html"><code>ExitMessage</code></a> to A. The message is put in A’s mailbox and retrieved when A calls <code>receive</code> or <code>tryReceive</code>, but it isn’t actually returned by those&nbsp;methods. </p>
+
+<p>When <code>receive</code> (or <code>tryRecive</code>) is called, it takes the next message in the mailbox, and passes it to a protected method called <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#filterMessage(java.lang.Object)"><code>filterMessage</code></a>. Whatever <code>filterMessage</code> returns, that’s the message actually returned by <code>receive</code> (or <code>tryReceive</code>), but it <code>filterMessage</code> returns <code>null</code>, <code>receive</code> will not return and wait for the next message (and <code>tryReceive</code> will check if another message is already available, or otherwise return <code>null</code>). The default implementation of <code>filterMessage</code> always returns the message it received unless it is of type <a href="/quasar/javadoc/co/paralleluniverse/actors/LifecycleMessage.html"><code>LifecycleMessage</code></a>, in which case it passes it to the protected <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#handleLifecycleMessage(co.paralleluniverse.actors.LifecycleMessage)"><code>handleLifecycleMessage</code></a>&nbsp;method.</p>
+
+<p><a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#handleLifecycleMessage(co.paralleluniverse.actors.LifecycleMessage)"><code>handleLifecycleMessage</code></a> examines the message. If it is an <a href="/quasar/javadoc/co/paralleluniverse/actors/ExitMessage.html"><code>ExitMessage</code></a> (which extends <code>LifecycleMessage</code>), it checks to see if it’s been sent as a result of a <em>watch</em> (by testing whether its <a href="/quasar/javadoc/co/paralleluniverse/actors/ExitMessage.html#getWatch()"><code>getWatch</code></a> method returns a non-null value). If it is, it’s silently ignored. But if it’s a result of a <em>linked</em> actor dying (<code>getWatch()</code> returns <code>null</code>), the method throws a <a href="/quasar/javadoc/co/paralleluniverse/actors/LifecycleException.html"><code>LifecycleException</code></a>. This exception is thrown, in turn, by actor A’s call to <code>receive</code> (or <code>tryReceive</code>). You can override <code>handleLifecycleMessage</code> to change this&nbsp;behavior.</p>
+
+<p>If you do not want actor A to die if linked actor B does, you should surround the call to <code>receive</code> or <code>tryReceive</code> with a <code>try {} catch(LifecycleException) {}</code>&nbsp;block.</p>
+
+<p>While you <em>can</em> override the <code>filterMessage</code> or the <code>handleLifecycleMessage</code> method, but will seldom have reason to override the latter, and almost never should override the&nbsp;former.</p>
 
 </div>
 
