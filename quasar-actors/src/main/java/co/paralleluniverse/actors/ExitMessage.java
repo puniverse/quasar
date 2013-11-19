@@ -16,6 +16,8 @@ package co.paralleluniverse.actors;
 import java.util.Objects;
 
 /**
+ * A {@link LifecycleMessage} signifying an actor's death. This message is automatically sent by a dying actor to its {@link Actor#watch(ActorRef) watchers} or
+ * {@link Actor#link(ActorRef) linked actors}.
  *
  * @author pron
  */
@@ -24,6 +26,11 @@ public class ExitMessage implements LifecycleMessage {
     public final Throwable cause;
     public final Object watch;
 
+    /**
+     *
+     * @param actor the dying actor
+     * @param cause the exception that caused the actor's death, or {@code null} if the actor terminated normally.
+     */
     public ExitMessage(ActorRef actor, Throwable cause) {
         this(actor, cause, null);
     }
@@ -34,21 +41,34 @@ public class ExitMessage implements LifecycleMessage {
         this.watch = watch;
     }
 
+    /**
+     * Returns the actor that originated this message (the dying actor).
+     * @return the actor that originated this message (the dying actor).
+     */
     public ActorRef getActor() {
         return actor;
     }
 
+    /**
+     * Returns the actor's cause of death exception, or {@code null} if the actor terminated normally.
+     * @return the actor's cause of death exception, or {@code null} if the actor terminated normally.
+     */
     public Throwable getCause() {
         return cause;
     }
 
+    /**
+     * Returns the watch object that is the reason for this message being sent to the receiving actor, returned by the {@link Actor#watch(ActorRef) watch} method,
+     * or {@code null} if the message is sent as a result of a {@link Actor#link(ActorRef) link}.
+     * @return the watch object that is the reason for this message being sent or {@code null}
+     */
     public Object getWatch() {
         return watch;
     }
 
     @Override
     public String toString() {
-        return "ExitMessage{" + "actor=" + actor + ", reason=" + cause + '}';
+        return "ExitMessage{" + "actor: " + actor + ", cause: " + cause + '}';
     }
 
     @Override

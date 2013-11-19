@@ -42,7 +42,7 @@ import jsr166e.ConcurrentHashMapV8;
  * An actor has a channel used as a mailbox, and can be monitored for errors.
  *
  * @param <Message> The message type the actor can receive. It is often {@link Object}.
- * @param <V> The actor's return value type. Use {@link Void} if the actor does not return a result.
+ * @param <V>       The actor's return value type. Use {@link Void} if the actor does not return a result.
  * @author pron
  */
 public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joinable<V>, Stranded, ReceivePort<Message> {
@@ -50,11 +50,11 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      * Creates a new actor.
      * The actor must have a public constructor that can take the given parameters.
      *
-     * @param <T> The actor's type
+     * @param <T>       The actor's type
      * @param <Message> The actor's message type.
-     * @param <V> The actor's return value type.
-     * @param clazz The actor's class
-     * @param params Parameters that will be passed to the actor class's constructor in order to construct a new instance.
+     * @param <V>       The actor's return value type.
+     * @param clazz     The actor's class
+     * @param params    Parameters that will be passed to the actor class's constructor in order to construct a new instance.
      * @return A new actor of type T.
      */
     public static <T extends Actor<Message, V>, Message, V> T newActor(Class<T> clazz, Object... params) {
@@ -64,10 +64,10 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     /**
      * Creates a new actor from an {@link ActorSpec}.
      *
-     * @param <T> The actor's type
+     * @param <T>       The actor's type
      * @param <Message> The actor's message type.
-     * @param <V> The actor's return value type.
-     * @param spec The ActorSpec that defines how to build the actor.
+     * @param <V>       The actor's return value type.
+     * @param spec      The ActorSpec that defines how to build the actor.
      * @return A new actor of type T.
      */
     public static <T extends Actor<Message, V>, Message, V> T newActor(ActorSpec<T, Message, V> spec) {
@@ -92,7 +92,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     /**
      * Creates a new actor.
      *
-     * @param name The actor's name (may be {@code null}).
+     * @param name          The actor's name (may be {@code null}).
      * @param mailboxConfig Actor's mailbox settings.
      */
     @SuppressWarnings({"OverridableMethodCallInConstructor", "LeakingThisInConstructor"})
@@ -337,7 +337,6 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      * Returns the next message from the mailbox. If no message is currently available, this method blocks until a message arrives.
      *
      * @return a message sent to this actor.
-     * @throws SuspendExecution
      * @throws InterruptedException
      */
     @Override
@@ -359,6 +358,15 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         }
     }
 
+    /**
+     * Returns the next message from the mailbox. If no message is currently available, this method blocks until a message arrives,
+     * but no longer than the given timeout.
+     *
+     * @param timeout the maximum duration to block waiting for a message.
+     * @param unit    the time unit of the timeout.
+     * @return a message sent to this actor, or {@code null} if the timeout has expired.
+     * @throws InterruptedException
+     */
     @Override
     public final Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         if (unit == null)
@@ -399,6 +407,11 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         }
     }
 
+    /**
+     * Retrieves a message from the mailbox if one is available. This method never blocks.
+     *
+     * @return a message, or {@code null} if one is not immediately available.
+     */
     @Override
     public final Message tryReceive() {
         for (;;) {
@@ -415,6 +428,15 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         }
     }
 
+    /**
+     * All messages received from the mailbox are passed to this method. If this method returns a non-null value, this value will be returned
+     * from the {@code receive} methods. If it returns {@code null}, then {@code receive} will keep waiting.
+     * <p/>
+     * By default, this message passes all {@link LifecycleMessage} messages to {@link #handleLifecycleMessage(LifecycleMessage) handleLifecycleMessage}, while
+     * other messages are returned (and will be returned by {@code receive}.
+     *
+     * @param m the message
+     */
     protected Message filterMessage(Object m) {
         if (m instanceof LifecycleMessage) {
             return handleLifecycleMessage((LifecycleMessage) m);
@@ -471,20 +493,34 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         strand.join(timeout, unit);
     }
 
+    /**
+     * Tests whether this actor has been started, i.e. whether the strand executing it has been started.
+     */
     public final boolean isStarted() {
         return strand != null && strand.getState().compareTo(Strand.State.STARTED) >= 0;
     }
 
+    /**
+     * Tests whether this actor has terminated.
+     */
     @Override
     public final boolean isDone() {
         return deathCause != null || strand.isTerminated();
     }
 
+    /**
+     * Tests whether this code is executing in this actor's strand, and throws a {@link ConcurrencyException} if not.
+     *
+     * @see #isInActor()
+     */
     protected final void verifyInActor() {
         if (!isInActor())
             throw new ConcurrencyException("Operation not called from within the actor (" + this + ", but called in " + currentActor() + ")");
     }
 
+    /**
+     * Tests whether this code is executing in this actor's strand.
+     */
     protected final boolean isInActor() {
         return (currentActor() == this);
     }
@@ -540,6 +576,15 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      */
     protected abstract V doRun() throws InterruptedException, SuspendExecution;
 
+    /**
+     * This method is called by this class during a call to any of the {@code receive} methods if a {@link LifecycleMessage} is found in the mailbox.
+     * By default, if the message is an {@link ExitMessage} and its {@link ExitMessage#getWatch() watch} is {@code null}, i.e. it's a result
+     * of a {@link #link(ActorRef) link} rather than a {@link #watch(ActorRef) watch}, it will throw a {@link LifecycleException}, which will,
+     * in turn, cause this exception to be thrown by the call to {@code receive}.
+     *
+     * @param m the message
+     * @return {@code null} if the message has been processed and should not be returned by {@code receive}
+     */
     protected Message handleLifecycleMessage(LifecycleMessage m) {
         record(1, "Actor", "handleLifecycleMessage", "%s got LifecycleMessage %s", this, m);
         if (m instanceof ExitMessage) {
@@ -601,45 +646,85 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         }
     }
 
-
-    public final Actor link(ActorRef other1) {
-        final ActorRefImpl other = getActorRefImpl(other1);
-        record(1, "Actor", "link", "Linking actors %s, %s", this, other);
+    /**
+     * Links this actor to another.
+     *
+     * A link is symmetrical. When two actors are linked and one of them dies, the other receives an {@link ExitMessage}, that is
+     * handled by {@link #handleLifecycleMessage(LifecycleMessage) handleLifecycleMessage}, which, be default, throws a {@link LifecycleException}
+     * as a response. The exception will be thrown by any of the {@code receive} methods.
+     *
+     * @param other the other actor
+     * @return {@code this}
+     * @see #watch(ActorRef) 
+     * @see #unlink(ActorRef) 
+     */
+    public final Actor link(ActorRef other) {
+        final ActorRefImpl other1 = getActorRefImpl(other);
+        record(1, "Actor", "link", "Linking actors %s, %s", this, other1);
         if (this.isDone()) {
-            other.getLifecycleListener().dead(ref, getDeathCause());
+            other1.getLifecycleListener().dead(ref, getDeathCause());
         } else {
-            addLifecycleListener(other.getLifecycleListener());
-            other.addLifecycleListener(myRef().getLifecycleListener());
+            addLifecycleListener(other1.getLifecycleListener());
+            other1.addLifecycleListener(myRef().getLifecycleListener());
         }
         return this;
     }
 
-    public final Actor unlink(ActorRef other1) {
-        final ActorRefImpl other = getActorRefImpl(other1);
-        record(1, "Actor", "unlink", "Uninking actors %s, %s", this, other);
-        removeLifecycleListener(other.getLifecycleListener());
-        other.removeLifecycleListener(myRef().getLifecycleListener());
+    /**
+     * Un-links this actor from another. This operation is symmetric.
+     *
+     * @param other the other actor
+     * @return {@code this}
+     * @see #link(ActorRef)
+     */
+    public final Actor unlink(ActorRef other) {
+        final ActorRefImpl other1 = getActorRefImpl(other);
+        record(1, "Actor", "unlink", "Uninking actors %s, %s", this, other1);
+        removeLifecycleListener(other1.getLifecycleListener());
+        other1.removeLifecycleListener(myRef().getLifecycleListener());
         return this;
     }
 
-    public final Object watch(ActorRef other1) {
+    /**
+     * Makes this actor watch another actor.
+     * 
+     * When the other actor dies, this actor receives an {@link ExitMessage}, that is
+     * handled by {@link #handleLifecycleMessage(LifecycleMessage) handleLifecycleMessage}. This message does not cause an exception to be thrown,
+     * unlike the case where it is received as a result of a linked actor's death.
+     * <p/>
+     * Unlike a link, a watch is asymmetric, and it is also composable, namely, calling this method twice with the same argument would result in two different values
+     * returned, and in an {@link ExitMessage} to be received twice.
+     *
+     * @param other the other actor
+     * @return a {@code watchId} object that identifies this watch in messages, and used to remove the watch by the {@link #unwatch(ActorRef, Object) unwatch} method.
+     * @see #link(ActorRef) 
+     * @see #unwatch(ActorRef, Object) 
+     */
+    public final Object watch(ActorRef other) {
         final Object id = ActorUtil.randtag();
 
-        final ActorRefImpl other = getActorRefImpl(other1);
+        final ActorRefImpl other1 = getActorRefImpl(other);
         final LifecycleListener listener = new ActorLifecycleListener(ref, id);
-        record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other, listener);
+        record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other1, listener);
 
-        other.addLifecycleListener(listener);
-        observed.add(other);
+        other1.addLifecycleListener(listener);
+        observed.add(other1);
         return id;
     }
 
-    public final void unwatch(ActorRef other1, Object watchId) {
-        final ActorRefImpl other = getActorRefImpl(other1);
+    /**
+     * Un-watches another actor.
+     *
+     * @param other   the other actor
+     * @param watchId the object returned from the call to {@link #watch(ActorRef) watch(other)
+     * @see #watch(ActorRef)
+     */
+    public final void unwatch(ActorRef other, Object watchId) {
+        final ActorRefImpl other1 = getActorRefImpl(other);
         final LifecycleListener listener = new ActorLifecycleListener(ref, watchId);
-        record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other, listener);
-        other.removeLifecycleListener(listener);
-        observed.remove(getActorRefImpl(other1));
+        record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other1, listener);
+        other1.removeLifecycleListener(listener);
+        observed.remove(getActorRefImpl(other));
     }
 
     public final Actor register(String name) {

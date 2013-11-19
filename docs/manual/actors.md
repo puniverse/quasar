@@ -163,10 +163,6 @@ There are several actor systems that do not support selective receive, but Erlan
 {:.alert .alert-warn}
 **A word of caution**: Using selective receive in your code may lead to deadlocks (because you're essentially saying, I'm going to wait here until a specific message arrives). This can be easily avoided by always specifying a timeout (with the `:after millis` clause) when doing a selective receive. Selective receive is a powerful tool that can greatly help writing readable, maintainable message-handling code, but don't over-use it.
 
-{% comment %}
-
-
-
 ## Error Handling
 
 The actor model does not only make concurrency easy; it also helps build fault-tolerant systems by compartmentalizing failure. Each actor is it's own execution context - if it encounters an exception, only the actor is directly affected (like a thread, only actors are lightweight). Unlike regular functions/objects, where an exception has to be caught and handled immediately on the callstack, with actors we can completely separate code execution from error handling.
@@ -176,6 +172,12 @@ In fact, when using actors, it is often best to to follow the [philosophy laid o
 The principle of actor error handling is that an actor can be asked to be notified of another actor's death. This is done through *linking* and *watching*. 
 
 ### Linking actors
+
+
+{% comment %}
+
+
+
 
 You link two actors with the `link!` function like this:
 
