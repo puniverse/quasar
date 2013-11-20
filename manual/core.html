@@ -243,7 +243,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>Fibers are scheduled by a <a href="/quasar/javadoc/co/paralleluniverse/fibers/FiberScheduler.html"><code>FiberScheduler</code></a> in a thread pool (actually a <code>ForkJoinPool</code>). When constructing a fiber, you can specify which scheduler should schedule it. If you don’t a <a href="/quasar/javadoc/co/paralleluniverse/fibers/DefaultFiberScheduler.html">default scheduler</a> is used. You can set the default scheduler’s properties by <a href="/quasar/javadoc/co/paralleluniverse/fibers/DefaultFiberScheduler.html">setting some system properties</a>.</p>
 
-<p>Every scheduler creates a <a href="/quasar/javadoc/co/paralleluniverse/fibers/FibersMXBean.html">MXBean</a> that monitors the fibers scheduled by that scheduler. The MXBean’s name is&nbsp;<code>"co.paralleluniverse:type=Fibers,name=SCHEDULER_NAME"</code>.</p>
+<p>Every scheduler creates a <a href="/quasar/javadoc/co/paralleluniverse/fibers/FibersMXBean.html">MXBean</a> that monitors the fibers scheduled by that scheduler. The MXBean’s name is <code>"co.paralleluniverse:type=Fibers,name=SCHEDULER_NAME"</code>, and you can find more details in teh <a href="/quasar/javadoc/co/paralleluniverse/fibers/FibersMXBean.html">Javadoc</a>.</p>
 
 <h3 id="thread-locals">Thread&nbsp;Locals</h3>
 
