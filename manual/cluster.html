@@ -58,19 +58,19 @@
           
           
           
-            <li>
-              <a  href="/quasar/getting-started.html">
-                Getting Started
-              </a>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a  href="/quasar/getting-started.html">
+                Getting Started
+              </a>
+              
+            </li>
           
         
           
@@ -117,19 +117,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/manual/core.html">
                 Quasar Core
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
           
@@ -157,7 +157,7 @@
                 Clustering
               </a>
               
-              <ul class="nav nav-list"><li><a href="#enabling-clustering">Enabling&nbsp;Clustering</a></li></ul>
+              <ul class="nav nav-list"><li><a href="#enabling-clustering">Enabling&nbsp;Clustering</a></li><li><a href="#examples">Examples</a></li><li><a href="#cluster-configuration">Cluster&nbsp;Configuration</a></li></ul>
               
             </li>
           
@@ -211,9 +211,35 @@
 
 <h2 id="enabling-clustering">Enabling&nbsp;Clustering</h2>
 
-<p>First, you will need to add <code>quasar-galaxy</code> as a dependency to your&nbsp;project:</p>
+<p>First, you will need to add the <code>co.paralleluniverse:quasar-galaxy</code> artifact as a dependency to your&nbsp;project:</p>
 
-<p>T B&nbsp;D</p>
+<p>Then, to make an actor discoverable cluster-wide, all you need to do is register it with the <a href="/actors/Actor.html#register()"><code>register</code></a> method of the <code>Actor</code>&nbsp;class.</p>
+
+<p>That&#8217;s it. The actor is now known throughout the cluster, and can be accessed by calling <a href="/actors/ActorRegistry.html#getActor(java.lang.String)"><code>ActorRegistry.getActor</code></a> on any&nbsp;node. </p>
+
+<p>An actor doesn&#8217;t have to be registered in order to be reachable on the network. Registering it simply makes it <em>discoverable</em>. If we pass an <code>ActorRef</code> of local actor in a message to a remote actor, the remote actor will be able to send messages to the local actor as&nbsp;well.</p>
+
+<h2 id="examples">Examples</h2>
+
+<p>There are a few examples of distributed actors in the <a href="https://github.com/puniverse/quasar/tree/master/quasar-galaxy/src/main/java/co/paralleluniverse/galaxy/example">example package</a>.
+You can run them after cloning the&nbsp;repository. </p>
+
+<p>In order to run the ping pong example, start the Pong actor&nbsp;by:</p>
+
+<div class="highlight"><pre><code><span id="line-1">./gradlew :quasar-galaxy:run -PmainClass<span class="o">=</span>co.paralleluniverse.galaxy.example.pingpong.Pong
+</span></code></pre></div>
+<p>Start the Ping actor in a different terminal&nbsp;by:</p>
+
+<pre><code>./gradlew :quasar-galaxy:run -PmainClass=co.paralleluniverse.galaxy.example.pingpong.Ping
+</code></pre>
+<p>To run the actors on different computers, change the following lines in the build.gradle file to the apropriate network&nbsp;configuration:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="n">systemProperty</span> <span class="s2">&quot;jgroups.bind_addr&quot;</span><span class="o">,</span> <span class="s2">&quot;127.0.0.1&quot;</span>
+</span><span id="line-2"><span class="n">systemProperty</span> <span class="s2">&quot;galaxy.multicast.address&quot;</span><span class="o">,</span> <span class="s2">&quot;225.0.0.1&quot;</span>
+</span></code></pre></div>
+<h2 id="cluster-configuration">Cluster&nbsp;Configuration</h2>
+
+<p>For instructions on how to configure the Galaxy cluster, please refere to Galaxy&#8217;s <a href="http://puniverse.github.io/galaxy/start/getting-started.html">getting started guide</a>.</p>
 
 </div>
 
