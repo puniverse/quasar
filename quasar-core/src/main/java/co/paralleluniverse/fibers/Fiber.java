@@ -123,14 +123,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private final DummyRunnable fiberRef = new DummyRunnable(this);
 
     /**
-     * Creates a new Fiber from the given {@link SuspendableCallable}.
+     * Creates a new fiber from the given {@link SuspendableCallable}.
      *
-     * @param name      The name of the fiber (may be null)
-     * @param fjPool    The fork/join pool in which the fiber should run.
+     * @param name      The name of the fiber (may be {@code null})
+     * @param scheduler The {@link FiberScheduler} that will schedule the fiber.
      * @param stackSize the initial size of the data stack.
-     * @param target    the SuspendableRunnable for the Fiber.
-     * @throws NullPointerException     when proto is null
-     * @throws IllegalArgumentException when stackSize is &lt;= 0
+     * @param target    the {@link SuspendableRunnable} for the fiber. May {@code null} if the {@link #run() run} method is overriden.
      */
     @SuppressWarnings("LeakingThisInConstructor")
     public Fiber(String name, FiberScheduler scheduler, int stackSize, SuspendableCallable<V> target) {
@@ -168,6 +166,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         record(1, "Fiber", "<init>", "Created fiber %s", this);
     }
 
+    /**
+     * Creates a new fiber from the given {@link SuspendableCallable} scheduled in the {@link DefaultFiberScheduler default fiber scheduler}
+     *
+     * @param name      The name of the fiber (may be {@code null})
+     * @param stackSize the initial size of the data stack.
+     * @param target    the {@link SuspendableRunnable} for the fiber. May {@code null} if the {@link #run() run} method is overriden.
+     */
     public Fiber(String name, int stackSize, SuspendableCallable<V> target) {
         this(name, defaultScheduler(), stackSize, target);
     }
@@ -475,9 +480,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     /**
+     * Tests whether current code is executing in a fiber.
      * This method <i>might</i> be faster than {@code Fiber.currentFiber() != null}.
      *
-     * @return
+     * @return {@code true} if called in a fiber; {@code false} otherwise.
      */
     public static boolean isCurrentFiber() {
         return FiberScheduler.isFiberThread(Thread.currentThread()) || getCurrentFiber() != null;
@@ -662,7 +668,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             //stack.dump();
             stack.resumeStack();
             runningThread = null;
-            state = State.WAITING;
+            state = timeoutTask != null ? State.TIMED_WAITING : State.WAITING;
 
             final ParkAction ppa = postPark;
             clearRunSettings();
@@ -1282,10 +1288,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                             return fi;
                         }
                     } else {
-                        if (state == State.WAITING) {
+                        State s;
+                        if ((s = state) == State.WAITING || s == State.TIMED_WAITING) {
                             Object blocker = getBlocker();
-                            if (state == State.WAITING)
-                                return makeFiberInfo(State.WAITING, blocker, null);
+                            if ((s = state) == State.WAITING || s == State.TIMED_WAITING)
+                                return makeFiberInfo(s, blocker, null);
                         }
                     }
 

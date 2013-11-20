@@ -74,6 +74,10 @@ public abstract class Strand {
          */
         WAITING,
         /**
+         * Strand is blocked with a timeout
+         */
+        TIMED_WAITING,
+        /**
          * Strand has terminated.
          */
         TERMINATED
@@ -833,8 +837,9 @@ public abstract class Strand {
                     return State.STARTED;
                 case BLOCKED:
                 case WAITING:
-                case TIMED_WAITING:
                     return State.WAITING;
+                case TIMED_WAITING:
+                    return State.TIMED_WAITING;
                 case TERMINATED:
                     return State.TERMINATED;
                 default:

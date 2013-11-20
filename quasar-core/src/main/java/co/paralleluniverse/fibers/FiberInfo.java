@@ -13,11 +13,13 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Strand.State;
 import java.beans.ConstructorProperties;
 //import javax.management.openmbean.CompositeData;
 
 /**
+ * Current information about a fiber returned by {@link FibersMXBean}.
  *
  * @author pron
  */
@@ -39,7 +41,6 @@ public class FiberInfo {
 //                (String) cd.get("blocker"),
 //                stackTrace);
 //    }
-    
     private final long id;
     private final String name;
     private final State state;
@@ -66,14 +67,23 @@ public class FiberInfo {
         this.stackTrace = stackTrace;
     }
 
+    /**
+     * The fiber's ID.
+     */
     public long getId() {
         return id;
     }
 
+    /**
+     * The fiber's name.
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * The fiber's current {@link State state}.
+     */
     public State getState() {
         return state;
     }
@@ -81,14 +91,19 @@ public class FiberInfo {
 //    public Object getBlockerObject() {
 //        return blocker;
 //    }
-
+    /**
+     * The fiber's current {@link Strand#getBlocker() blocker}.
+     */
     public String getBlocker() {
-        if(blocker == null)
+        if (blocker == null)
             return blockerName;
         else
             return blocker.toString();
     }
 
+    /**
+     * The fiber's current call stack.
+     */
     public StackTraceElement[] getStackTrace() {
         return stackTrace;
     }

@@ -29,6 +29,7 @@ import jsr166e.ConcurrentHashMapV8;
 import jsr166e.ForkJoinPool;
 
 /**
+ * A thread-pool based scheduler for fibers. Internally, this scheduler uses a {@code ForkJoinPool} to schedule fiber execution.
  *
  * @author pron
  */
@@ -39,6 +40,15 @@ public class FiberScheduler {
     private final FibersMonitor fibersMonitor;
     private final Set<FiberWorkerThread> activeThreads = Collections.newSetFromMap(new ConcurrentHashMapV8<FiberWorkerThread, Boolean>());
 
+    /**
+     * Creates a new fiber scheduler.
+     *
+     * @param name             the scheuler's name. This name is used in naming the scheduler's threads.
+     * @param parallelism      the number of threads in the pool
+     * @param exceptionHandler an {@link Thread#UncaughtExceptionHandler UncaughtExceptionHandler} to be used for exceptions thrown in fibers that aren't caught.
+     * @param monitorType      the {@link MonitorType} type to use for the {@code ForkJoinPool}.
+     * @param detailedInfo     whether detailed information about the fibers is collected by the fibers monitor.
+     */
     public FiberScheduler(String name, int parallelism, Thread.UncaughtExceptionHandler exceptionHandler, MonitorType monitorType, boolean detailedInfo) {
         this.fjPool = createForkJoinPool(name, parallelism, exceptionHandler, monitorType);
 
@@ -50,6 +60,14 @@ public class FiberScheduler {
         this.timer = createTimer(fjPool, fibersMonitor);
     }
 
+    /**
+     * Creates a new fiber scheduler using a default {@link Thread#UncaughtExceptionHandler UncaughtExceptionHandler}.
+     *
+     * @param name             the scheuler's name. This name is used in naming the scheduler's threads.
+     * @param parallelism      the number of threads in the pool
+     * @param monitorType      the {@link MonitorType} type to use for the {@code ForkJoinPool}.
+     * @param detailedInfo     whether detailed information about the fibers is collected by the fibers monitor.
+     */
     public FiberScheduler(String name, int parallelism, MonitorType monitorType, boolean detailedInfo) {
         this(name, parallelism, null, monitorType, detailedInfo);
     }
@@ -130,7 +148,7 @@ public class FiberScheduler {
     static boolean isFiberThread(Thread t) {
         return t instanceof FiberWorkerThread;
     }
-    
+
     private class FiberWorkerThread extends ExtendedForkJoinWorkerThread {
         public FiberWorkerThread(ForkJoinPool pool) {
             super(pool);

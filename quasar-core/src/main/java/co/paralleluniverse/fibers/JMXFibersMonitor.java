@@ -28,7 +28,7 @@ import jsr166e.ForkJoinPool;
 import jsr166e.LongAdder;
 
 /**
- *
+ * A JMX Mbean that monitors fibers runningin a single {@link FiberScheduler}.
  * @author pron
  */
 class JMXFibersMonitor implements FibersMonitor, NotificationListener, FibersMXBean {

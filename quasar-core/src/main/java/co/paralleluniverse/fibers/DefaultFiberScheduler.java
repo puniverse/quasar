@@ -13,13 +13,20 @@
  */
 package co.paralleluniverse.fibers;
 
-import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitor;
 import co.paralleluniverse.common.monitoring.MonitorType;
-import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
-import co.paralleluniverse.concurrent.forkjoin.ExtendedForkJoinWorkerFactory;
-import jsr166e.ForkJoinPool;
 
 /**
+ * The default {@link FiberScheduler} used to schedule fibers that do not specify a particular scheduler.
+ * The properties of the default scheduler can be set with system properties:
+ * <ul>
+ * <li>{@code "co.paralleluniverse.fibers.DefaultFiberPool.parallelism"} - the number of threads in the default scheduler. By default, set equal to the number of available cores.</li>
+ * <li>{@code "co.paralleluniverse.fibers.DefaultFiberPool.exceptionHandler"} - the name of the class to be used as the {@link Thread#UncaughtExceptionHandler UncaughtExceptionHandler}
+ * (an instance is constructed using a public default constructor)</li>
+ * <li>{@code "co.paralleluniverse.fibers.DefaultFiberPool.monitor"} - the {@link MonitorType monitor type} used to monitor the underlying {@code ForkJoinPool}.
+ * May be {@code "JMX"} (the defualt), {@code "METRICS"}, or {@code "NONE"}.</li>
+ * <li>{@code "co.paralleluniverse.fibers.DefaultFiberPool.detailedFiberInfo"} - whether the fibers monitor collects detailed information about running fibers.
+ * May be {@code "true"} or {@code "false"} (the default)</li>
+ * <ul>
  *
  * @author pron
  */
@@ -72,6 +79,11 @@ public class DefaultFiberScheduler {
         instance = new FiberScheduler(name, par, handler, monitorType, detailedFiberInfo);
     }
 
+    /**
+     * Returns the The default {@link FiberScheduler} instance.
+     *
+     * @return the default {@link FiberScheduler} instance.
+     */
     public static FiberScheduler getInstance() {
         return instance;
     }
