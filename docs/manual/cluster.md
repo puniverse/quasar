@@ -12,8 +12,41 @@ In this version, clustering is pretty rudimentary, but essential features should
 
 ## Enabling Clustering
 
-First, you will need to add `quasar-galaxy` as a dependency to your project:
+First, you will need to add the `co.paralleluniverse:quasar-galaxy` artifact as a dependency to your project:
+
+Then, to make an actor discoverable cluster-wide, all you need to do is register it with the [`register`]({{javadoc}}/actors/Actor.html#register()) method of the `Actor` class.
+
+That's it. The actor is now known throughout the cluster, and can be accessed by calling [`ActorRegistry.getActor`]({{javadoc}}/actors/ActorRegistry.html#getActor(java.lang.String)) on any node. 
+
+An actor doesn't have to be registered in order to be reachable on the network. Registering it simply makes it *discoverable*. If we pass an `ActorRef` of local actor in a message to a remote actor, the remote actor will be able to send messages to the local actor as well.
+
+## Examples
+
+There are a few examples of distributed actors in the [example package](https://github.com/puniverse/quasar/tree/master/quasar-galaxy/src/main/java/co/paralleluniverse/galaxy/example).
+You can run them after cloning the repository. 
+
+In order to run the ping pong example, start the Pong actor by:
+
+~~~ sh
+./gradlew :quasar-galaxy:run -PmainClass=co.paralleluniverse.galaxy.example.pingpong.Pong
+~~~
+
+Start the Ping actor in a different terminal by:
+
+~~~
+./gradlew :quasar-galaxy:run -PmainClass=co.paralleluniverse.galaxy.example.pingpong.Ping
+~~~
+
+To run the actors on different computers, change the following lines in the build.gradle file to the apropriate network configuration:
+
+~~~ groovy
+systemProperty "jgroups.bind_addr", "127.0.0.1"
+systemProperty "galaxy.multicast.address", "225.0.0.1"
+~~~
+
+## Cluster Configuration
+
+For instructions on how to configure the Galaxy cluster, please refere to Galaxy's [getting started guide](http://puniverse.github.io/galaxy/start/getting-started.html).
 
 
-T B D
 
