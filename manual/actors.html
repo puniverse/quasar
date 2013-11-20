@@ -143,7 +143,7 @@
                 Quasar's Actor System
               </a>
               
-              <ul class="nav nav-list"><li></li><li><a href="#error-handling">Error&nbsp;Handling</a></li></ul>
+              <ul class="nav nav-list"><li></li><li><a href="#error-handling">Error&nbsp;Handling</a></li><li><a href="#registering-actors">Registering&nbsp;Actors</a></li><li><a href="#monitoring-actors">Monitoring&nbsp;Actors</a></li></ul>
               
             </li>
           
@@ -353,13 +353,11 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <p>The principle of actor error handling is that an actor can be asked to be notified of another actor’s death and its cause. This is done through <em>linking</em> or <em>watching</em>. </p>
 
-<h3 id="linking-actors">Linking&nbsp;actors</h3>
+<h3 id="linking-and-watching-actors">Linking and Watching&nbsp;Actors</h3>
 
-<p><span class="caps">XXXXXXXX</span> </p>
+<p><em>Linking</em> two actors causes the death of one to throw an exception in the other. Two actors are linked with the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#link(co.paralleluniverse.actors.ActorRef)"><code>link</code></a> method of the <code>Actor</code> class, and can be unlinked with the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#unlink(co.paralleluniverse.actors.ActorRef)"><code>unlink</code></a> method. A link is symmetric: <code>a.link(b)</code> has the exact same effect of <code>b.link(a)</code>. The next section explains in detail how the linking mechanism&nbsp;works.</p>
 
-<h3 id="watching-actors">Watching&nbsp;Actors</h3>
-
-<p><span class="caps">XXXXXXXX</span></p>
+<p>A more robust way of being notified of actor death than linking is with a <em>watch</em> (called <em>monitor</em> in Erlang; this is one of the very few occasions we have abandoned the Erlang function names). To make an actor watch another you use the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#watch(co.paralleluniverse.actors.ActorRef)"><code>watch</code></a> method. When a watched actor, its watcher actor (or many watching actors) receives an <code>ExitMessage</code>, explained in the next section. Unlike links, watches are asymmetric (if A watches B, B does not necessarily watch A), and they are also composable: the <code>watch</code> method returns a <em>watch-id</em> object that identifies the particular watch; every <code>ExitMessage</code> contains that <em>watch-id</em> object that uniquely identifies the watch that caused the message to be received. If an actor calls the <code>watch</code> method several times with the same argument (i.e. it watches the same actor more than once), a message will be received for each of these different watches. A watch can be undone with the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#unwatch(co.paralleluniverse.actors.ActorRef, java.lang.Object)"><code>unwatch</code></a>&nbsp;method.</p>
 
 <h3 id="lifecycle-messages-and-lifecycle-exceptions">Lifecycle Messages and Lifecycle&nbsp;Exceptions</h3>
 
@@ -372,6 +370,14 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 <p>If you do not want actor A to die if linked actor B does, you should surround the call to <code>receive</code> or <code>tryReceive</code> with a <code>try {} catch(LifecycleException) {}</code>&nbsp;block.</p>
 
 <p>While you <em>can</em> override the <code>filterMessage</code> or the <code>handleLifecycleMessage</code> method, but will seldom have reason to override the latter, and almost never should override the&nbsp;former.</p>
+
+<h2 id="registering-actors">Registering&nbsp;Actors</h2>
+
+<h2 id="monitoring-actors">Monitoring&nbsp;Actors</h2>
+
+<p>All actors running in a <span class="caps">JVM</span> instance are monitored by a <a href="/quasar/javadoc/co/paralleluniverse/actors/ActorsMXBean.html">MXBean</a> registered with the name <code>"co.paralleluniverse:type=Actors"</code>. For details, please consult the <a href="/quasar/javadoc/co/paralleluniverse/actors/ActorsMXBean.html">Javadoc</a>.</p>
+
+<p>In addition, registered&nbsp;actor….</p>
 
 </div>
 
