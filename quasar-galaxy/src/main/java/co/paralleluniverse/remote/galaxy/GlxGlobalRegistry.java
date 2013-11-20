@@ -48,6 +48,10 @@ public class GlxGlobalRegistry implements GlobalRegistry {
         }
     }
 
+    public GlxGlobalRegistry(co.paralleluniverse.galaxy.Grid grid) {
+        this.grid = new Grid(grid);
+    }
+
     @Override
     public Object register(ActorRef<?> actor) throws SuspendExecution {
         final String rootName = actor.getName();
