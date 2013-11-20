@@ -655,8 +655,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      *
      * @param other the other actor
      * @return {@code this}
-     * @see #watch(ActorRef) 
-     * @see #unlink(ActorRef) 
+     * @see #watch(ActorRef)
+     * @see #unlink(ActorRef)
      */
     public final Actor link(ActorRef other) {
         final ActorRefImpl other1 = getActorRefImpl(other);
@@ -687,7 +687,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     /**
      * Makes this actor watch another actor.
-     * 
+     *
      * When the other actor dies, this actor receives an {@link ExitMessage}, that is
      * handled by {@link #handleLifecycleMessage(LifecycleMessage) handleLifecycleMessage}. This message does not cause an exception to be thrown,
      * unlike the case where it is received as a result of a linked actor's death.
@@ -697,8 +697,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      *
      * @param other the other actor
      * @return a {@code watchId} object that identifies this watch in messages, and used to remove the watch by the {@link #unwatch(ActorRef, Object) unwatch} method.
-     * @see #link(ActorRef) 
-     * @see #unwatch(ActorRef, Object) 
+     * @see #link(ActorRef)
+     * @see #unwatch(ActorRef, Object)
      */
     public final Object watch(ActorRef other) {
         final Object id = ActorUtil.randtag();
@@ -727,6 +727,13 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         observed.remove(getActorRefImpl(other));
     }
 
+    /**
+     * Registers this actor in the actor registry under the given name and sets this actor's name.
+     * This also creates a {@link #monitor() monitor} for this actor.
+     *
+     * @param name the name of the actor in the registry, must be equal to the {@link #getName() actor's name} if it has one.
+     * @return {@code this}
+     */
     public final Actor register(String name) {
         if (getName() != null && !name.equals(name))
             throw new RegistrationException("Cannot register actor named " + getName() + " under a different name (" + name + ")");
@@ -734,12 +741,23 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return register();
     }
 
+    /**
+     * Registers this actor in the actor registry under its name.
+     * This also creates a {@link #monitor() monitor} for this actor.
+     *
+     * @return {@code this}
+     */
     public final Actor register() {
         record(1, "Actor", "register", "Registering actor %s as %s", this, getName());
         this.globalId = ActorRegistry.register(this);
         return this;
     }
 
+    /**
+     * Unregisters this actor from the actor registry.
+     *
+     * @return {@code this}
+     */
     public final Actor unregister() {
         if (!isRegistered())
             return this;
@@ -785,6 +803,11 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     //<editor-fold defaultstate="collapsed" desc="Monitoring">
     /////////// Monitoring ///////////////////////////////////
+    /**
+     * Starts a monitor that exposes information about this actor via a JMX MBean.
+     *
+     * @return the monitor
+     */
     public final ActorMonitor monitor() {
         if (monitor != null)
             return monitor;
@@ -794,6 +817,11 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return monitor;
     }
 
+    /**
+     * Sets the actor's monitor
+     *
+     * @param monitor the monitor
+     */
     public final void setMonitor(ActorMonitor monitor) {
         if (this.monitor == monitor)
             return;
@@ -803,6 +831,9 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         monitor.setActor(ref);
     }
 
+    /**
+     * Shuts down the actor's monitor.
+     */
     public final void stopMonitor() {
         if (monitor != null) {
             monitor.shutdown();

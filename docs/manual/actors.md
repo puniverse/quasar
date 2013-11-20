@@ -175,7 +175,7 @@ The principle of actor error handling is that an actor can be asked to be notifi
 
 *Linking* two actors causes the death of one to throw an exception in the other. Two actors are linked with the [`link`]({{javadoc}}/actors/Actor.html#link(co.paralleluniverse.actors.ActorRef)) method of the `Actor` class, and can be unlinked with the [`unlink`]({{javadoc}}/actors/Actor.html#unlink(co.paralleluniverse.actors.ActorRef)) method. A link is symmetric: `a.link(b)` has the exact same effect of `b.link(a)`. The next section explains in detail how the linking mechanism works.
 
-A more robust way of being notified of actor death than linking is with a *watch* (called *monitor* in Erlang; this is one of the very few occasions we have abandoned the Erlang function names). To make an actor watch another you use the [`watch`]({{javadoc}}/actors/Actor.html#watch(co.paralleluniverse.actors.ActorRef)) method. When a watched actor, its watcher actor (or many watching actors) receives an `ExitMessage`, explained in the next section. Unlike links, watches are asymmetric (if A watches B, B does not necessarily watch A), and they are also composable: the `watch` method returns a *watch-id* object that identifies the particular watch; every `ExitMessage` contains that *watch-id* object that uniquely identifies the watch that caused the message to be received. If an actor calls the `watch` method several times with the same argument (i.e. it watches the same actor more than once), a message will be received for each of these different watches. A watch can be undone with the [`unwatch`]({{javadoc}}/actors/Actor.html#unwatch(co.paralleluniverse.actors.ActorRef, java.lang.Object)) method.
+A more robust way of being notified of actor death than linking is with a *watch* (called *monitor* in Erlang; this is one of the few occasions we have abandoned the Erlang function names). To make an actor watch another you use the [`watch`]({{javadoc}}/actors/Actor.html#watch(co.paralleluniverse.actors.ActorRef)) method. When a watched actor, its watcher actor (or many watching actors) receives an `ExitMessage`, explained in the next section. Unlike links, watches are asymmetric (if A watches B, B does not necessarily watch A), and they are also composable: the `watch` method returns a *watch-id* object that identifies the particular watch; every `ExitMessage` contains that *watch-id* object that uniquely identifies the watch that caused the message to be received. If an actor calls the `watch` method several times with the same argument (i.e. it watches the same actor more than once), a message will be received for each of these different watches. A watch can be undone with the [`unwatch`]({{javadoc}}/actors/Actor.html#unwatch(co.paralleluniverse.actors.ActorRef, java.lang.Object)) method.
 
 ### Lifecycle Messages and Lifecycle Exceptions
 
@@ -191,69 +191,22 @@ While you *can* override the `filterMessage` or the `handleLifecycleMessage` met
 
 ## Registering Actors
 
+*Registering* an actor gives it a public name that can be used to locate the actor. You register an actor with the [`register`]({{javadoc}}/actors/Actor.html#register()) method of the `Actor` class, and unregister with the [`unregister`]({{javadoc}}/actors/Actor.html#unregister()) method. To find an actor by its name, use the [`ActorRegistry.getActor`]({{javadoc}}/actors/ActorRegistry.html#getActor(java.lang.String)) static method.
+
+If you're running Quasar in a cluster configuration (see [Clustering](cluster.html)), registering an actor makes it globally available in the cluster. Calling `ActorRegistry.getActor` on any remote node would return a remote reference to the actor.
+
+In addition, registering an actor automatically sets up monitoring for the actor, as explained in the next section.
 
 ## Monitoring Actors
 
 All actors running in a JVM instance are monitored by a [MXBean]({{javadoc}}/actors/ActorsMXBean.html) registered with the name `"co.paralleluniverse:type=Actors"`. For details, please consult the [Javadoc]({{javadoc}}/actors/ActorsMXBean.html).
 
-In addition, registered actor....
+In addition, you can create a an [MXBean]({{javadoc}}/actors/ActorMXBean.html) that monitors a specific actor by calling the actor's [`monitor`]({{javadoc}}/actors/Actor.html#monitor()) method. That MBean will be registered as `"co.paralleluniverse:type=quasar,monitor=actor,name=ACTOR_NAME"`.This happens automatically when an actor is registered.
+
+A monitored actor (either as a result of it being registered or of having called the `monitor` method) can have its MBean removed by calling the [`stopMonitor`]({{javadoc}}/actors/Actor.html#stopMonitor()) method.
 
 {% comment %}
 
-
-## Actor registration
-
-*Registering* an actor gives it a public name that can be used to locate the actor. You register an actor like so:
-
-~~~ clojure
-(register! actor name)
-~~~
-
-or:
-
-~~~ clojure
-(register! actor)
-~~~
-
-in which case the name will be the one given to the actor when it was `spawn`ed. `name` can be a string, or any object with a nice string representation (like a keyword).
-
-You obtain a reference to a registered actor with:
-
-~~~ clojure
-(whois name)
-~~~
-
-but most actor-related functions can work directly with the registered name. For example, instead of this:
-
-~~~ clojure
-(register! actor :foo)
-(! (whois :foo) "hi foo!")
-~~~
-
-you can write:
-
-~~~ clojure
-(register !actor :foo)
-(! :foo "hi foo!")
-~~~
-
-You unregister an actor like so:
-
-~~~ clojure
-(unregister! actor)
-~~~
-
-### Registration and Monitoring
-
-When you register an actor, Pulsar automatically creates a JMX MBean to monitor it. Look for it using JConsole or VisualVM.
-
-Details TBD.
-
-### Registration and Clustering
-
-If you're running in a Galaxy cluster, registering an actor will make it globally available on the cluster (so the name must be unique to the entire cluster).
-
-Details TBD.
 
 ## Behaviors
 

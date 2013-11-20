@@ -14,15 +14,41 @@
 package co.paralleluniverse.actors;
 
 /**
+ * An MXBean monitoring a single actor. This MBean is created for the actor when it is {@link Actor#register() registered}, or when its
+ * {@link Actor#monitor() monitor} method is called.
  *
  * @author pron
  */
 public interface ActorMXBean {
     void refresh();
-    long getTotalReceivedMessages();
+
+    /**
+     * The number of messages this actor has received.
+     */
+    long getReceivedMessages();
+
+    /**
+     * The number of messages currently waiting in the actor's mailbox.
+     */
     int getQueueLength();
-    int getTotalRestarts();
+
+    /**
+     * The number of times this actor has been restarted by a {@link SupervisorActor}.
+     */
+    int getRestarts();
+
+    /**
+     * The latest few death-causes for this actor (relevant if it's been restarted by a {@link SupervisorActor}.
+     */
     String[] getLastDeathCauses();
+
+    /**
+     * The messages currently waiting in the actor's mailbox
+     */
     String[] mailbox();
+
+    /**
+     * The actor's current call-stack
+     */
     String stackTrace();
 }

@@ -88,7 +88,7 @@ public class ActorInfo {
     }
 
     /**
-     * The few latest death-causes for this actor (relevant if it's been restarted by a {@link SupervisorActor}.
+     * The latest few death-causes for this actor (relevant if it's been restarted by a {@link SupervisorActor}.
      */
     public String[] getLastDeathCauses() {
         return lastDeathCauses;

@@ -14,9 +14,9 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.common.util.ServiceUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.common.util.ServiceUtil;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import jsr166e.ConcurrentHashMapV8;
@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * A registry used to find registered actors by name. Actors are registered with the {@link Actor#register() } method.
  *
  * @author pron
  */
@@ -56,7 +57,7 @@ public class ActorRegistry {
 
         if (old != null && !registeredActors.remove(name, old))
             throw new RegistrationException("Concurrent registration under the name " + name);
-        
+
         final Entry entry = new Entry(null, ref);
         if (registeredActors.putIfAbsent(name, entry) != null)
             throw new RegistrationException("Concurrent registration under the name " + name);
@@ -65,7 +66,7 @@ public class ActorRegistry {
 
         final Object globalId = globalRegistry != null ? registerGlobal(actor.ref()) : name;
         entry.globalId = globalId;
-        
+
         actor.monitor();
 
         return globalId;
@@ -109,9 +110,15 @@ public class ActorRegistry {
         registeredActors.remove(name);
     }
 
+    /**
+     * Locates a registered actor by name.
+     *
+     * @param name the actor's name.
+     * @return the actor, or {@code null} if no actor by that name is currently registered.
+     */
     public static <Message> ActorRef<Message> getActor(final String name) {
         Entry entry = registeredActors.get(name);
-        ActorRef<Message> actor = entry != null ? (ActorRef<Message>)entry.actor : null;
+        ActorRef<Message> actor = entry != null ? (ActorRef<Message>) entry.actor : null;
 
         if (actor == null && globalRegistry != null) {
             // TODO: will only work if called from a fiber
@@ -132,10 +139,15 @@ public class ActorRegistry {
         return actor;
     }
 
+    /**
+     * Checks whether the registry is global to the entire cluster.
+     *
+     * @return {@code true} if the registry is global to the entire cluster, or {@code false} if it is local to this JVM instance.
+     */
     public static boolean hasGlobalRegistry() {
         return globalRegistry != null;
     }
-    
+
     private static class Entry {
         Object globalId;
         final ActorRef<?> actor;

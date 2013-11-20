@@ -216,12 +216,12 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
     }
 
     @Override
-    public long getTotalReceivedMessages() {
+    public long getReceivedMessages() {
         return messages;
     }
 
     @Override
-    public int getTotalRestarts() {
+    public int getRestarts() {
         return (int) restartCounter.get();
     }
 
