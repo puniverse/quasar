@@ -58,19 +58,19 @@
           
           
           
-            <li>
-              <a  href="/quasar/getting-started.html">
-                Getting Started
-              </a>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a  href="/quasar/getting-started.html">
+                Getting Started
+              </a>
+              
+            </li>
           
         
           
@@ -117,13 +117,6 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a class="active" href="/quasar/manual/core.html">
                 Quasar Core
@@ -132,6 +125,13 @@
               <ul class="nav nav-list"><li><a href="#fibers">Fibers</a></li><li><a href="#strands">Strands</a></li><li><a href="#transforming-any-asynchronous-callback-to-a-fiber-blocking-operation">Transforming any Asynchronous Callback to A Fiber-Blocking&nbsp;Operation</a></li><li><a href="#advanced-fibers">Advanced Fiber&nbsp;Usage</a></li><li><a href="#channels">Channels</a></li><li><a href="#delay-variables">Delay&nbsp;Variables</a></li></ul>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
           
@@ -238,6 +238,12 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 <p>You can join a fiber much as you’d do a thread with the <code>join</code> method. To obtain the value returned by the fiber (if any), you call the <code>get</code> method, which joins the fiber and returns its&nbsp;result.</p>
 
 <p>Other than <code>Fiber</code>’s constructor and <code>start</code> method, and possibly the <code>join</code> and <code>get</code> methods, you will not access the <code>Fiber</code> class directly much. To perform operations you would normally want to do on a thread, it is better to use the <code>Strand</code> class (discussed later), which is a generalizations of both threads and&nbsp;fibers.</p>
+
+<h3 id="the-fiber-scheduler-and-runtime-fiber-monitoring">The Fiber Scheduler and Runtime Fiber&nbsp;Monitoring</h3>
+
+<p>Fibers are scheduled by a <a href="/quasar/javadoc/co/paralleluniverse/fibers/FiberScheduler.html"><code>FiberScheduler</code></a> in a thread pool (actually a <code>ForkJoinPool</code>). When constructing a fiber, you can specify which scheduler should schedule it. If you don’t a <a href="/quasar/javadoc/co/paralleluniverse/fibers/DefaultFiberScheduler.html">default scheduler</a> is used. You can set the default scheduler’s properties by <a href="/quasar/javadoc/co/paralleluniverse/fibers/DefaultFiberScheduler.html">setting some system properties</a>.</p>
+
+<p>Every scheduler creates a <a href="/quasar/javadoc/co/paralleluniverse/fibers/FibersMXBean.html">MXBean</a> that monitors the fibers scheduled by that scheduler. The MXBean’s name is&nbsp;<code>"co.paralleluniverse:type=Fibers,name=SCHEDULER_NAME"</code>.</p>
 
 <h3 id="thread-locals">Thread&nbsp;Locals</h3>
 
