@@ -91,7 +91,7 @@ public class Selector<Message> implements Synchronization {
 
     /**
      * Performs exactly one channel operation of a given set, blocking until any of the actions completes.
-     * Same as calling {@link #select(boolean, co.paralleluniverse.strands.channels.SelectAction<Message>[]) select(false, actions)}.
+     * Same as calling {@link #select(boolean, co.paralleluniverse.strands.channels.SelectAction[]) select(false, actions)}.
      *
      * @param actions a list of actions, one of which will be performed.
      * @return the action that has completed successfully
@@ -169,7 +169,7 @@ public class Selector<Message> implements Synchronization {
 
     /**
      * Attempts to performs exactly one channel operation of a given set if one can be completed without blocking.
-     * This method never blocks. Same as calling {@link #trySelect(boolean, co.paralleluniverse.strands.channels.SelectAction<Message>[]) trySelect(false, actions)}.
+     * This method never blocks. Same as calling {@link #trySelect(boolean, co.paralleluniverse.strands.channels.SelectAction[]) trySelect(false, actions)}.
      *
      * @param actions a list of actions, one of which will be performed.
      * @return the action that has completed successfully
