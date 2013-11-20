@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 /**
+ * A channel operation that is selected by a {@link Selector}.
  *
  * @author pron
  */
@@ -29,7 +30,7 @@ public final class SelectAction<Message> {
     SelectAction(Selector selector, int index, Port<Message> port, Message message) {
         this.selector = selector;
         this.index = index;
-        this.port = (Selectable<Message>)port;
+        this.port = (Selectable<Message>) port;
         this.item = message;
         this.isData = message != null;
     }
@@ -46,8 +47,14 @@ public final class SelectAction<Message> {
         assert this.selector == null;
         this.selector = selector;
     }
-    
 
+    /**
+     * Returns the message to send if this is a send operation, or the message that has been received if this is a receive operation and has been
+     * successfully completed by the selector.
+     *
+     * @return the message to send if this is a send operation, or the message that has been received if this is a receive operation and has been
+     *         successfully completed by the selector.
+     */
     public Message message() {
         return item;
     }
@@ -55,13 +62,17 @@ public final class SelectAction<Message> {
     void setIndex(int index) {
         this.index = index;
     }
-    
+
     public int index() {
         return index;
     }
 
+    /**
+     * Returns the channel for this operation.
+     * @return the channel for this operation.
+     */
     public Port<Message> port() {
-        return (Port<Message>)port;
+        return (Port<Message>) port;
     }
 
     boolean isData() {
@@ -73,6 +84,10 @@ public final class SelectAction<Message> {
         this.done = true;
     }
 
+    /**
+     * Tests whether this operation is the one operation that has been selected and completed by the selector.
+     * @return {@code true} if this operation is the one operation that has been selected and completed by the selector; {@code false} otherwise.
+     */
     public boolean isDone() {
         return done;
     }
@@ -82,7 +97,7 @@ public final class SelectAction<Message> {
         item = null;
         done = false;
     }
-    
+
     boolean lease() {
         if (selector == null)
             return true;
@@ -102,8 +117,7 @@ public final class SelectAction<Message> {
     @Override
     public String toString() {
         return "SelectAction{" + (isData ? ("send " + item + " to") : "receive from") + " " + port
-                + (isDone() ? (" " + (isData ? "done" : (" -> " + item))) : "") + '}' 
-                + " " + selector
-                ;
+                + (isDone() ? (" " + (isData ? "done" : (" -> " + item))) : "") + '}'
+                + " " + selector;
     }
 }

@@ -239,8 +239,6 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
     /**
      * This method must only be called by the channel's owner (the receiver)
-     *
-     * @return
      */
     @Override
     public boolean isClosed() {

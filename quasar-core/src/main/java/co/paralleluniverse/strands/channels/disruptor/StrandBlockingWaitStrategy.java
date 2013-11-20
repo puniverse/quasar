@@ -31,6 +31,7 @@ package co.paralleluniverse.strands.channels.disruptor;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import com.lmax.disruptor.AlertException;
+import com.lmax.disruptor.EventProcessor;
 import com.lmax.disruptor.Sequence;
 import com.lmax.disruptor.WaitStrategy;
 import java.util.concurrent.TimeUnit;

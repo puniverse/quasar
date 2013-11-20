@@ -30,7 +30,7 @@ public interface LongReceivePort extends ReceivePort<Long> {
      * If the channel has been closed and no more messages await, this method throws an {@link EOFException}.
      *
      * @return a message.
-     * @throws EOFException if the channel has been closed and no more messages await
+     * @throws ReceivePort.EOFException if the channel has been closed and no more messages await
      * @throws InterruptedException
      */
     long receiveLong() throws SuspendExecution, InterruptedException, EOFException;
@@ -43,7 +43,7 @@ public interface LongReceivePort extends ReceivePort<Long> {
      * @param unit the time unit of the timeout.
      * @return a message. (see {@link #isClosed()}), or if the timeout has expired.
      * @throws TimeoutException if the timeout has expired
-     * @throws EOFException if the channel has been closed and no more messages await
+     * @throws ReceivePort.EOFException if the channel has been closed and no more messages await
      * @throws InterruptedException
      */
     long receiveLong(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException;

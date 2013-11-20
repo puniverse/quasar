@@ -499,7 +499,7 @@ public final class Channels {
      *
      * @param <M>
      * @param channels
-     * @return
+     * @return a {@link ReceivePort} that receives messages from {@code channels}.
      */
     public static <M> ReceivePort<M> group(ReceivePort<? extends M>... channels) {
         return new ReceivePortGroup<M>(channels);

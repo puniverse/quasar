@@ -45,7 +45,7 @@ public class FiberScheduler {
      *
      * @param name             the scheuler's name. This name is used in naming the scheduler's threads.
      * @param parallelism      the number of threads in the pool
-     * @param exceptionHandler an {@link Thread#UncaughtExceptionHandler UncaughtExceptionHandler} to be used for exceptions thrown in fibers that aren't caught.
+     * @param exceptionHandler an {@link Thread.UncaughtExceptionHandler UncaughtExceptionHandler} to be used for exceptions thrown in fibers that aren't caught.
      * @param monitorType      the {@link MonitorType} type to use for the {@code ForkJoinPool}.
      * @param detailedInfo     whether detailed information about the fibers is collected by the fibers monitor.
      */
@@ -61,7 +61,7 @@ public class FiberScheduler {
     }
 
     /**
-     * Creates a new fiber scheduler using a default {@link Thread#UncaughtExceptionHandler UncaughtExceptionHandler}.
+     * Creates a new fiber scheduler using a default {@link Thread.UncaughtExceptionHandler UncaughtExceptionHandler}.
      *
      * @param name             the scheuler's name. This name is used in naming the scheduler's threads.
      * @param parallelism      the number of threads in the pool

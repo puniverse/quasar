@@ -155,7 +155,7 @@ public abstract class Strand {
     /**
      * Tests whether this strand has been interrupted.
      *
-     * @return
+     * @return {@code true} if the strand has been interrupted; {@code false} otherwise.
      * @see #interrupt()
      * @see #interrupted()
      */
@@ -284,9 +284,7 @@ public abstract class Strand {
      * Awaits the termination of a given strand.
      * This method blocks until this strand terminates.
      *
-     * @param strand  the strand to join. May be an object of type {@code Strand}, {@code Fiber} or {@code Thread}.
-     * @param timeout the maximum duration to wait for the strand to terminate in the time unit specified by {@code unit}.
-     * @param unit    the time unit of {@code timeout}.
+     * @param strand the strand to join. May be an object of type {@code Strand}, {@code Fiber} or {@code Thread}.
      *
      * @throws ExecutionException   if this strand has terminated as a result of an uncaught exception
      *                              (which will be the {@link Throwable#getCause() cause} of the thrown {@code ExecutionException}.

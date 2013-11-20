@@ -25,23 +25,26 @@ import java.util.concurrent.TimeoutException;
  *
  * ```java
  * interface FooCompletion {
- *    void success(String result);
- *    void failure(FooException exception);
+ * void success(String result);
+ * void failure(FooException exception);
  * }
  * ```
  * We then define the following subclass:
  *
  * ```java
  * class FooAsync extends FiberAsync<String, Void, FooException> implements FooCompletion {
- *     {@literal @}Override
- *     public void success(String result) {
- *         asyncCompleted(result);
- *     }
+ * {@literal
  *
- *     {@literal @}Override
- *     public void failure(FooException exception) {
- *         asyncFailed(exception);
- *     }
+ * @}Override
+ * public void success(String result) {
+ * asyncCompleted(result);
+ * }
+ *
+ * {@literal
+ * @}Override
+ * public void failure(FooException exception) {
+ * asyncFailed(exception);
+ * }
  * }
  * ```
  *
@@ -49,11 +52,11 @@ import java.util.concurrent.TimeoutException;
  *
  * ```java
  * String op() {
- *     return new FooAsync() {
- *         protected Void requestAsync() {
- *             Foo.asyncOp(this);
- *         }
- *     }.run();
+ * return new FooAsync() {
+ * protected Void requestAsync() {
+ * Foo.asyncOp(this);
+ * }
+ * }.run();
  * }
  * ```
  *
@@ -96,8 +99,8 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
      * In immediate exec mode, when this method returns we are running within the handler, and will need to call {@link Fiber#yield()}
      * to return from the handler.
      *
-     * @return the result of the async operation as set in the call to {@link #completed(Object, Fiber) completed}.
-     * @throws E if the async computation failed and an exception was set in a call to {@link #failed(Throwable, Fiber) failed}.
+     * @return the result of the async operation as set in the call to {@link #asyncCompleted(java.lang.Object) asyncCompleted}.
+     * @throws E                    if the async computation failed and an exception was set in a call to {@link #asyncFailed(java.lang.Throwable) asyncFailed}.
      * @throws InterruptedException
      */
     @SuppressWarnings("empty-statement")
@@ -140,9 +143,9 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
      * In immediate exec mode, when this method returns we are running within the handler, and will need to call {@link Fiber#yield()}
      * to return from the handler.
      *
-     * @return the result of the async operation as set in the call to {@link #completed(Object, Fiber) completed}.
-     * @throws E if the async computation failed and an exception was set in a call to {@link #failed(Throwable, Fiber) failed}.
-     * @throws TimeoutException if the operation had not completed by the time the timeout has elapsed.
+     * @return the result of the async operation as set in the call to {@link #asyncCompleted(java.lang.Object) asyncCompleted}.
+     * @throws E                    if the async computation failed and an exception was set in a call to {@link #asyncFailed(java.lang.Throwable) asyncFailed}.
+     * @throws TimeoutException     if the operation had not completed by the time the timeout has elapsed.
      * @throws InterruptedException
      */
     @SuppressWarnings("empty-statement")
@@ -241,7 +244,7 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
     private void fire(Fiber fiber) {
 //        if (Thread.currentThread() != registrationThread)
 //            while (!registrationComplete); // spin
-        
+
         if (immediateExec) {
             fiber.record(1, "FiberAsync", "fire", "%s - Immediate exec of fiber %s", this, fiber);
             if (!fiber.exec(this, new Fiber.ParkAction() {
@@ -268,7 +271,7 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
     }
 
     /**
-     * Returns the attachment object that was returned by the call to {@link #requestAsync(Fiber, Object) requestAsync}.
+     * Returns the attachment object that was returned by the call to {@link #requestAsync() requestAsync}.
      */
     protected final A getAttachment() {
         return attachment;
@@ -285,9 +288,9 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
      * Returns the result of the asynchronous operation if it has completed, or throws an exception if it completed unsuccessfully.
      * If the operation has not yet completed, this method throws an `IllegalStateException`.
      *
-     * @return
-     * @throws E if the async computation failed and an exception was set in a call to {@link #failed(Throwable, Fiber) failed}.
-     * @throw IllegalStateException if the operation has not yet completed.
+     * @return the result of the asynchronous operation if it has completed.
+     * @throws E                     if the async computation failed and an exception was set in a call to {@link #asyncFailed(java.lang.Throwable) asyncFailed}.
+     * @throws IllegalStateException if the operation has not yet completed.
      */
     public final V getResult() throws E {
         if (!completed)

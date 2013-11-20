@@ -588,7 +588,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * @param postParkAction
      * @param timeout
      * @param unit
-     * @return
+     * @return {@code true} if this fiber actually parked; {@code false} otherwise (if the lease was already available).
      * @throws SuspendExecution
      */
     private boolean park1(Object blocker, ParkAction postParkAction, long timeout, TimeUnit unit) throws SuspendExecution {

@@ -89,7 +89,7 @@ public class ThreadReceivePort<Message> {
     /**
      * Tests whether the channel has been closed and no more messages await in the channel. If this method returns {@code true} all
      * future calls to {@link #receive() } are guaranteed to return {@code null}, and calls to {@code receive} on a primitive channel
-     * will throw a {@link EOFException}.
+     * will throw an {@link RecievePort.EOFException EOFException}.
      *
      * @return {@code true} if the channels has been closed and no more messages will be received; {@code false} otherwise.
      */

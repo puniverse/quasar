@@ -20,7 +20,7 @@ import co.paralleluniverse.common.monitoring.MonitorType;
  * The properties of the default scheduler can be set with system properties:
  * <ul>
  * <li>{@code "co.paralleluniverse.fibers.DefaultFiberPool.parallelism"} - the number of threads in the default scheduler. By default, set equal to the number of available cores.</li>
- * <li>{@code "co.paralleluniverse.fibers.DefaultFiberPool.exceptionHandler"} - the name of the class to be used as the {@link Thread#UncaughtExceptionHandler UncaughtExceptionHandler}
+ * <li>{@code "co.paralleluniverse.fibers.DefaultFiberPool.exceptionHandler"} - the name of the class to be used as the {@link Thread.UncaughtExceptionHandler UncaughtExceptionHandler}
  * (an instance is constructed using a public default constructor)</li>
  * <li>{@code "co.paralleluniverse.fibers.DefaultFiberPool.monitor"} - the {@link MonitorType monitor type} used to monitor the underlying {@code ForkJoinPool}.
  * May be {@code "JMX"} (the defualt), {@code "METRICS"}, or {@code "NONE"}.</li>

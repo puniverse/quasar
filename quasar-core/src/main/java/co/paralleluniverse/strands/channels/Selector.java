@@ -103,7 +103,7 @@ public class Selector<Message> implements Synchronization {
 
     /**
      * Performs exactly one channel operation of a given set, blocking until any of the actions completes, but no longer than the given timeout.
-     * Same as calling {@link #select(boolean, long, java.util.concurrent.TimeUnit, co.paralleluniverse.strands.channels.SelectAction<Message>[]) select(false, timeout, unit, actions)}.
+     * Same as calling {@link #select(long, java.util.concurrent.TimeUnit, co.paralleluniverse.strands.channels.SelectAction[]) select(false, timeout, unit, actions)}.
      *
      * @param timeout the maximum duration to block waiting for an operation to complete.
      * @param unit    the time unit of the given timeout
@@ -195,7 +195,8 @@ public class Selector<Message> implements Synchronization {
      *
      * @param <Message>
      * @param ch        The channel to which the operation tries to send the message
-     * @param message   the message.
+     * @param message   the message to send.
+     * @return a <i>send</i> {@link SelectAction} that can be selected by the selector.
      */
     public static <Message> SelectAction<Message> send(SendPort<? super Message> ch, Message message) {
         return new SelectAction<Message>((SendPort) ch, message);
@@ -206,7 +207,7 @@ public class Selector<Message> implements Synchronization {
      *
      * @param <Message>
      * @param ch        the channel from which the operation tries to receive
-     * @return
+     * @return a <i>receive</i> {@link SelectAction} that can be selected by the selector.
      */
     public static <Message> SelectAction<Message> receive(ReceivePort<? extends Message> ch) {
         return new SelectAction(ch, null);
@@ -271,7 +272,7 @@ public class Selector<Message> implements Synchronization {
         for (int i = 0; i < n; i++) {
             SelectAction<Message> sa = actions.get(i);
 
-            sa.token = sa.port.register((SelectAction)sa);
+            sa.token = sa.port.register((SelectAction) sa);
             lastRegistered = i;
             if (sa.isDone()) {
                 assert winner == sa;
