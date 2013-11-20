@@ -171,13 +171,11 @@ In fact, when using actors, it is often best to to follow the [philosophy laid o
 
 The principle of actor error handling is that an actor can be asked to be notified of another actor's death and its cause. This is done through *linking* or *watching*. 
 
-### Linking actors
+### Linking and Watching Actors
 
-XXXXXXXX 
+*Linking* two actors causes the death of one to throw an exception in the other. Two actors are linked with the [`link`]({{javadoc}}/actors/Actor.html#link(co.paralleluniverse.actors.ActorRef)) method of the `Actor` class, and can be unlinked with the [`unlink`]({{javadoc}}/actors/Actor.html#unlink(co.paralleluniverse.actors.ActorRef)) method. A link is symmetric: `a.link(b)` has the exact same effect of `b.link(a)`. The next section explains in detail how the linking mechanism works.
 
-### Watching Actors
-
-XXXXXXXX
+A more robust way of being notified of actor death than linking is with a *watch* (called *monitor* in Erlang; this is one of the very few occasions we have abandoned the Erlang function names). To make an actor watch another you use the [`watch`]({{javadoc}}/actors/Actor.html#watch(co.paralleluniverse.actors.ActorRef)) method. When a watched actor, its watcher actor (or many watching actors) receives an `ExitMessage`, explained in the next section. Unlike links, watches are asymmetric (if A watches B, B does not necessarily watch A), and they are also composable: the `watch` method returns a *watch-id* object that identifies the particular watch; every `ExitMessage` contains that *watch-id* object that uniquely identifies the watch that caused the message to be received. If an actor calls the `watch` method several times with the same argument (i.e. it watches the same actor more than once), a message will be received for each of these different watches. A watch can be undone with the [`unwatch`]({{javadoc}}/actors/Actor.html#unwatch(co.paralleluniverse.actors.ActorRef, java.lang.Object)) method.
 
 ### Lifecycle Messages and Lifecycle Exceptions
 
@@ -191,82 +189,17 @@ If you do not want actor A to die if linked actor B does, you should surround th
 
 While you *can* override the `filterMessage` or the `handleLifecycleMessage` method, but will seldom have reason to override the latter, and almost never should override the former.
 
+## Registering Actors
+
+
+## Monitoring Actors
+
+All actors running in a JVM instance are monitored by a [MXBean]({{javadoc}}/actors/ActorsMXBean.html) registered with the name `"co.paralleluniverse:type=Actors"`. For details, please consult the [Javadoc]({{javadoc}}/actors/ActorsMXBean.html).
+
+In addition, registered actor....
+
 {% comment %}
 
-
-
-
-You link two actors with the `link!` function like this:
-
-~~~ clojure
-(link! actor1 actor2)
-~~~
-
-Better yet, is to call the function from within one of the actors, say `actor1`, in which case it will be called like so:
-
-~~~ clojure
-(link! actor2)
-~~~
-
-A link is symmetrical. When two actors are linked, when one of them dies, the other throws an exception which, unless caught, kills it as well.
-
-Here's an example from the tests:
-
-~~~ clojure
-(let [actor1 (spawn #(Fiber/sleep 100))
-      actor2 (spawn
-               (fn []
-                 (link! actor1)
-                 (try
-                   (loop [] (receive [m] :foo :bar) (recur))
-                   (catch co.paralleluniverse.actors.LifecycleException e
-                     true))))]
-  
-  (join actor1)
-  (join actor2)) ; => true
-~~~
-
-Remember, linking is symmetrical, so if `actor2` were to die, `actor1` would get the exception.
-
-
-### Watching actors
-
-A more robust way than linking of being notified of actor death is with a *watch* (called *monitor* in Erlang; this is one of the very few occasions we have abandoned the Erlang function names):
-
-~~~ clojure
-(let [actor1 (spawn #(Fiber/sleep 200))
-      actor2 (spawn
-               #(let [w (watch! actor1)]
-                  (receive
-                    [:exit w actor reason] actor)))]
-  (join actor1)
-  (join actor2)) ; => actor1
-~~~
-
-Watches are asymmetrical. Here, `actor2` watches for `actor1`'s death, but not vice-versa. When `actor1` dies, `actor2` gets an `:exit` message, of the exact same structure of the message sent when we used a link and a `:trap` flag.
-
-The `watch!` function returns a watch object. Because an actor can potentially set many watches on another actor (say, it calls a library function which calls `watch!`), we could potentially get several copies of the exit message, each for a different watch.
-
-The message is a vector of 4 elements:
-
-1. `:exit`
-2. The watch interested in the message (or `nil` when linking). Note how in the example we pattern-match on the second element (with the `w` value, which contains the watch object), to ensure that we only process the message belonging to our watch.
-3. The actor that just died.
-4. The dead actor's death cause: `nil` for a natural death (no exception thrown, just like in our example), or the throwable responsible for the actor's death.
-
-We can remove a watch by calling
-
-~~~ clojure
-(unwatch! actor1 actor2)
-~~~
-
-or 
-
-~~~ clojure
-(unwatch! actor2)
-~~~
-
-from within `actor1`.
 
 ## Actor registration
 

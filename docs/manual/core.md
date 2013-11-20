@@ -49,7 +49,7 @@ Other than `Fiber`'s constructor and `start` method, and possibly the `join` and
 
 Fibers are scheduled by a [`FiberScheduler`]({{javadoc}}/fibers/FiberScheduler.html) in a thread pool (actually a `ForkJoinPool`). When constructing a fiber, you can specify which scheduler should schedule it. If you don't a [default scheduler]({{javadoc}}/fibers/DefaultFiberScheduler.html) is used. You can set the default scheduler's properties by [setting some system properties]({{javadoc}}/fibers/DefaultFiberScheduler.html).
 
-Every scheduler creates a [MXBean]({{javadoc}}/fibers/FibersMXBean.html) that monitors the fibers scheduled by that scheduler. The MXBean's name is `"co.paralleluniverse:type=Fibers,name=SCHEDULER_NAME"`, and you can find more details in teh [Javadoc]({{javadoc}}/fibers/FibersMXBean.html).
+Every scheduler creates a [MXBean]({{javadoc}}/fibers/FibersMXBean.html) that monitors the fibers scheduled by that scheduler. The MXBean's name is `"co.paralleluniverse:type=Fibers,name=SCHEDULER_NAME"`, and you can find more details in the [Javadoc]({{javadoc}}/fibers/FibersMXBean.html).
 
 ### Thread Locals
 
