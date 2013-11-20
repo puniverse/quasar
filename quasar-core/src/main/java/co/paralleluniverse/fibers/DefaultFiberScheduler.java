@@ -14,13 +14,14 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.MonitorType;
+import java.lang.Thread.UncaughtExceptionHandler;
 
 /**
  * The default {@link FiberScheduler} used to schedule fibers that do not specify a particular scheduler.
  * The properties of the default scheduler can be set with system properties:
  * <ul>
  * <li>{@code "co.paralleluniverse.fibers.DefaultFiberPool.parallelism"} - the number of threads in the default scheduler. By default, set equal to the number of available cores.</li>
- * <li>{@code "co.paralleluniverse.fibers.DefaultFiberPool.exceptionHandler"} - the name of the class to be used as the {@link Thread.UncaughtExceptionHandler UncaughtExceptionHandler}
+ * <li>{@code "co.paralleluniverse.fibers.DefaultFiberPool.exceptionHandler"} - the name of the class to be used as the {@link UncaughtExceptionHandler UncaughtExceptionHandler}
  * (an instance is constructed using a public default constructor)</li>
  * <li>{@code "co.paralleluniverse.fibers.DefaultFiberPool.monitor"} - the {@link MonitorType monitor type} used to monitor the underlying {@code ForkJoinPool}.
  * May be {@code "JMX"} (the defualt), {@code "METRICS"}, or {@code "NONE"}.</li>
@@ -43,7 +44,7 @@ public class DefaultFiberScheduler {
         // defaults
         final String name = "default-fiber-pool";
         int par = 0;
-        Thread.UncaughtExceptionHandler handler = null;
+        UncaughtExceptionHandler handler = null;
         // ForkJoinPool.ForkJoinWorkerThreadFactory fac = new NamingForkJoinWorkerFactory(name);
         MonitorType monitorType = MonitorType.JMX;
         boolean detailedFiberInfo = false;
@@ -56,7 +57,7 @@ public class DefaultFiberScheduler {
 //            if (fp != null)
 //                fac = ((ForkJoinPool.ForkJoinWorkerThreadFactory) ClassLoader.getSystemClassLoader().loadClass(fp).newInstance());
             if (hp != null)
-                handler = ((Thread.UncaughtExceptionHandler) ClassLoader.getSystemClassLoader().loadClass(hp).newInstance());
+                handler = ((UncaughtExceptionHandler) ClassLoader.getSystemClassLoader().loadClass(hp).newInstance());
             if (pp != null)
                 par = Integer.parseInt(pp);
         } catch (Exception ignore) {

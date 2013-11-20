@@ -716,7 +716,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      * Un-watches another actor.
      *
      * @param other   the other actor
-     * @param watchId the object returned from the call to {@link #watch(ActorRef) watch(other)
+     * @param watchId the object returned from the call to {@link #watch(ActorRef) watch(other)}
      * @see #watch(ActorRef)
      */
     public final void unwatch(ActorRef other, Object watchId) {

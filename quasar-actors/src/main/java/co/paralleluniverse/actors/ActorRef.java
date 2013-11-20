@@ -14,6 +14,7 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.channels.SendPort;
 import java.util.concurrent.TimeUnit;
 
@@ -54,9 +55,9 @@ public abstract class ActorRef<Message> implements SendPort<Message> {
      * specified timeout.
      *
      * If the channel is full, this method may block, throw an exception, silently drop the message, or displace an old message from
-     * the channel. The behavior is determined by the channel's {@link Channels.OverflowPolicy OverflowPolicy}, set at construction time.
+     * the channel. The behavior is determined by the channel's {@link OverflowPolicy OverflowPolicy}, set at construction time.
      *
-     * @param message
+     * @param msg the message
      * @param timeout the maximum duration this method is allowed to wait.
      * @param unit the timeout's time unit
      * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has elapsed.
@@ -68,9 +69,8 @@ public abstract class ActorRef<Message> implements SendPort<Message> {
     /**
      * Sends a message to the channel if the channel has room available. This method never blocks.
      *
-     * @param message
+     * @param msg the message
      * @return {@code true} if the message has been sent; {@code false} otherwise.
-     * @return
      */
     @Override
     public abstract boolean trySend(Message msg);
@@ -93,7 +93,7 @@ public abstract class ActorRef<Message> implements SendPort<Message> {
      *
      * @param <T>
      * @param <M>
-     * @return
+     * @return The {@link ActorRef} of the current actor (caller of this method)
      */
     public static <T extends ActorRef<M>, M> T self() {
         final Actor a = Actor.currentActor();

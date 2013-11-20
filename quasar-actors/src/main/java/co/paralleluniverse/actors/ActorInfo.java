@@ -13,14 +13,15 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.actors.behaviors.SupervisorActor;
 import java.beans.ConstructorProperties;
 //import javax.management.openmbean.CompositeData;
 
 /**
- *
+ * Information about an actor returned by {@link ActorsMXBean}.
  * @author pron
  */
-public class ActorInfo {    
+public class ActorInfo {
     private final long id;
     private final String name;
     private final boolean fiber;
@@ -44,38 +45,65 @@ public class ActorInfo {
         this.stackTrace = stackTrace;
     }
 
+    /**
+     * The actor's strand's ID
+     */
     public long getId() {
         return id;
     }
 
+    /**
+     * The actor's name
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Whether the actor's strand is a fiber
+     */
     public boolean isFiber() {
         return fiber;
     }
 
+    /**
+     * The number of messages this actor has received.
+     */
     public long getReceivedMessages() {
         return receivedMessages;
     }
 
+    /**
+     * The number of messages currently waiting in the actor's mailbox.
+     */
     public int getQueueLength() {
         return queueLength;
     }
 
+    /**
+     * The number of times this actor has been restarted by a {@link SupervisorActor}.
+     */
     public int getRestarts() {
         return restarts;
     }
 
+    /**
+     * The few latest death-causes for this actor (relevant if it's been restarted by a {@link SupervisorActor}.
+     */
     public String[] getLastDeathCauses() {
         return lastDeathCauses;
     }
 
+    /**
+     * The messages currently waiting in the actor's mailbox
+     */
     public String[] getMailbox() {
         return mailbox;
     }
 
+    /**
+     * The actor's current call-stack
+     */
     public String getStackTrace() {
         return stackTrace;
     }

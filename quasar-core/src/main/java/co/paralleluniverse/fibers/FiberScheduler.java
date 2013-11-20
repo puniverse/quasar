@@ -21,6 +21,7 @@ import co.paralleluniverse.concurrent.forkjoin.ExtendedForkJoinWorkerFactory;
 import co.paralleluniverse.concurrent.forkjoin.ExtendedForkJoinWorkerThread;
 import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,11 +46,11 @@ public class FiberScheduler {
      *
      * @param name             the scheuler's name. This name is used in naming the scheduler's threads.
      * @param parallelism      the number of threads in the pool
-     * @param exceptionHandler an {@link Thread.UncaughtExceptionHandler UncaughtExceptionHandler} to be used for exceptions thrown in fibers that aren't caught.
+     * @param exceptionHandler an {@link UncaughtExceptionHandler UncaughtExceptionHandler} to be used for exceptions thrown in fibers that aren't caught.
      * @param monitorType      the {@link MonitorType} type to use for the {@code ForkJoinPool}.
      * @param detailedInfo     whether detailed information about the fibers is collected by the fibers monitor.
      */
-    public FiberScheduler(String name, int parallelism, Thread.UncaughtExceptionHandler exceptionHandler, MonitorType monitorType, boolean detailedInfo) {
+    public FiberScheduler(String name, int parallelism, UncaughtExceptionHandler exceptionHandler, MonitorType monitorType, boolean detailedInfo) {
         this.fjPool = createForkJoinPool(name, parallelism, exceptionHandler, monitorType);
 
         if (fjPool instanceof MonitoredForkJoinPool && ((MonitoredForkJoinPool) fjPool).getMonitor() != null)
@@ -61,7 +62,7 @@ public class FiberScheduler {
     }
 
     /**
-     * Creates a new fiber scheduler using a default {@link Thread.UncaughtExceptionHandler UncaughtExceptionHandler}.
+     * Creates a new fiber scheduler using a default {@link UncaughtExceptionHandler UncaughtExceptionHandler}.
      *
      * @param name             the scheuler's name. This name is used in naming the scheduler's threads.
      * @param parallelism      the number of threads in the pool
