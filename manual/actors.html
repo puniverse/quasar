@@ -58,19 +58,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/getting-started.html">
                 Getting Started
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
           
@@ -117,19 +117,19 @@
           
           
           
-            <li>
-              <a  href="/quasar/manual/core.html">
-                Quasar Core
-              </a>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a  href="/quasar/manual/core.html">
+                Quasar Core
+              </a>
+              
+            </li>
           
         
           
@@ -357,7 +357,7 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <p><em>Linking</em> two actors causes the death of one to throw an exception in the other. Two actors are linked with the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#link(co.paralleluniverse.actors.ActorRef)"><code>link</code></a> method of the <code>Actor</code> class, and can be unlinked with the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#unlink(co.paralleluniverse.actors.ActorRef)"><code>unlink</code></a> method. A link is symmetric: <code>a.link(b)</code> has the exact same effect of <code>b.link(a)</code>. The next section explains in detail how the linking mechanism&nbsp;works.</p>
 
-<p>A more robust way of being notified of actor death than linking is with a <em>watch</em> (called <em>monitor</em> in Erlang; this is one of the very few occasions we have abandoned the Erlang function names). To make an actor watch another you use the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#watch(co.paralleluniverse.actors.ActorRef)"><code>watch</code></a> method. When a watched actor, its watcher actor (or many watching actors) receives an <code>ExitMessage</code>, explained in the next section. Unlike links, watches are asymmetric (if A watches B, B does not necessarily watch A), and they are also composable: the <code>watch</code> method returns a <em>watch-id</em> object that identifies the particular watch; every <code>ExitMessage</code> contains that <em>watch-id</em> object that uniquely identifies the watch that caused the message to be received. If an actor calls the <code>watch</code> method several times with the same argument (i.e. it watches the same actor more than once), a message will be received for each of these different watches. A watch can be undone with the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#unwatch(co.paralleluniverse.actors.ActorRef, java.lang.Object)"><code>unwatch</code></a>&nbsp;method.</p>
+<p>A more robust way of being notified of actor death than linking is with a <em>watch</em> (called <em>monitor</em> in Erlang; this is one of the few occasions we have abandoned the Erlang function names). To make an actor watch another you use the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#watch(co.paralleluniverse.actors.ActorRef)"><code>watch</code></a> method. When a watched actor, its watcher actor (or many watching actors) receives an <code>ExitMessage</code>, explained in the next section. Unlike links, watches are asymmetric (if A watches B, B does not necessarily watch A), and they are also composable: the <code>watch</code> method returns a <em>watch-id</em> object that identifies the particular watch; every <code>ExitMessage</code> contains that <em>watch-id</em> object that uniquely identifies the watch that caused the message to be received. If an actor calls the <code>watch</code> method several times with the same argument (i.e. it watches the same actor more than once), a message will be received for each of these different watches. A watch can be undone with the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#unwatch(co.paralleluniverse.actors.ActorRef, java.lang.Object)"><code>unwatch</code></a>&nbsp;method.</p>
 
 <h3 id="lifecycle-messages-and-lifecycle-exceptions">Lifecycle Messages and Lifecycle&nbsp;Exceptions</h3>
 
@@ -373,11 +373,19 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <h2 id="registering-actors">Registering&nbsp;Actors</h2>
 
+<p><em>Registering</em> an actor gives it a public name that can be used to locate the actor. You register an actor with the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#register()"><code>register</code></a> method of the <code>Actor</code> class, and unregister with the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#unregister()"><code>unregister</code></a> method. To find an actor by its name, use the <a href="/quasar/javadoc/co/paralleluniverse/actors/ActorRegistry.html#getActor(java.lang.String)"><code>ActorRegistry.getActor</code></a> static&nbsp;method.</p>
+
+<p>If you’re running Quasar in a cluster configuration (see <a href="cluster.html">Clustering</a>), registering an actor makes it globally available in the cluster. Calling <code>ActorRegistry.getActor</code> on any remote node would return a remote reference to the&nbsp;actor.</p>
+
+<p>In addition, registering an actor automatically sets up monitoring for the actor, as explained in the next&nbsp;section.</p>
+
 <h2 id="monitoring-actors">Monitoring&nbsp;Actors</h2>
 
 <p>All actors running in a <span class="caps">JVM</span> instance are monitored by a <a href="/quasar/javadoc/co/paralleluniverse/actors/ActorsMXBean.html">MXBean</a> registered with the name <code>"co.paralleluniverse:type=Actors"</code>. For details, please consult the <a href="/quasar/javadoc/co/paralleluniverse/actors/ActorsMXBean.html">Javadoc</a>.</p>
 
-<p>In addition, registered&nbsp;actor….</p>
+<p>In addition, you can create a an <a href="/quasar/javadoc/co/paralleluniverse/actors/ActorMXBean.html">MXBean</a> that monitors a specific actor by calling the actor’s <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#monitor()"><code>monitor</code></a> method. That MBean will be registered as <code>"co.paralleluniverse:type=quasar,monitor=actor,name=ACTOR_NAME"</code>.This happens automatically when an actor is&nbsp;registered.</p>
+
+<p>A monitored actor (either as a result of it being registered or of having called the <code>monitor</code> method) can have its MBean removed by calling the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#stopMonitor()"><code>stopMonitor</code></a>&nbsp;method.</p>
 
 </div>
 
