@@ -58,26 +58,19 @@
           
           
           
+        
+          
+          
+            
+          
+          
+          
             <li>
               <a  href="/quasar/getting-started.html">
                 Getting Started
               </a>
               
             </li>
-          
-        
-          
-          
-            
-          
-          
-          
-        
-          
-          
-            
-          
-          
           
         
           
@@ -108,15 +101,15 @@
             </li>
           
         
-      
-        <li class="nav-header">User Manual</li>
-        
           
           
             
           
           
           
+        
+      
+        <li class="nav-header">User Manual</li>
         
           
           
@@ -138,12 +131,19 @@
           
           
           
+        
+          
+          
+            
+          
+          
+          
             <li>
               <a class="active" href="/quasar/manual/actors.html">
                 Quasar's Actor System
               </a>
               
-              <ul class="nav nav-list"><li></li><li><a href="#error-handling">Error&nbsp;Handling</a></li><li><a href="#registering-actors">Registering&nbsp;Actors</a></li><li><a href="#monitoring-actors">Monitoring&nbsp;Actors</a></li></ul>
+              <ul class="nav nav-list"><li></li><li><a href="#error-handling">Error&nbsp;Handling</a></li><li><a href="#registering-actors">Registering&nbsp;Actors</a></li><li><a href="#monitoring-actors">Monitoring&nbsp;Actors</a></li><li><a href="#behaviors">Behaviors</a></li></ul>
               
             </li>
           
@@ -168,19 +168,19 @@
           
           
           
-            <li>
-              <a  href="/quasar/manual/examples.html">
-                Examples
-              </a>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a  href="/quasar/manual/examples.html">
+                Examples
+              </a>
+              
+            </li>
           
         
       
@@ -386,6 +386,10 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 <p>In addition, you can create a an <a href="/quasar/javadoc/co/paralleluniverse/actors/ActorMXBean.html">MXBean</a> that monitors a specific actor by calling the actor’s <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#monitor()"><code>monitor</code></a> method. That MBean will be registered as <code>"co.paralleluniverse:type=quasar,monitor=actor,name=ACTOR_NAME"</code>.This happens automatically when an actor is&nbsp;registered.</p>
 
 <p>A monitored actor (either as a result of it being registered or of having called the <code>monitor</code> method) can have its MBean removed by calling the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#stopMonitor()"><code>stopMonitor</code></a>&nbsp;method.</p>
+
+<h2 id="behaviors">Behaviors</h2>
+
+<p>Erlang’s designers have realized that many actors follow some common patterns - like an actor that receives requests for work and then sends back a result to the requester. They’ve turned those patterns into actor templates, called behaviors, in order to save poeple work and avoid some common errors. Erlang serves as the main inspiration to Quasar Actors, so some of these behaviors have been ported to&nbsp;Quasar. </p>
 
 </div>
 
