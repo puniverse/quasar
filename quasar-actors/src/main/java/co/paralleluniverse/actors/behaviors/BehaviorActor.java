@@ -28,11 +28,11 @@ import org.slf4j.Logger;
  *
  * @author pron
  */
-public abstract class GenBehaviorActor extends Actor<Object, Void> implements java.io.Serializable {
+public abstract class BehaviorActor extends Actor<Object, Void> implements java.io.Serializable {
     private final Initializer initializer;
     private boolean run;
 
-    protected GenBehaviorActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
+    protected BehaviorActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
         super(strand, name, mailboxConfig);
         this.initializer = initializer;
         this.run = true;
@@ -41,62 +41,62 @@ public abstract class GenBehaviorActor extends Actor<Object, Void> implements ja
     //<editor-fold defaultstate="collapsed" desc="Behavior boilerplate">
     /////////// Behavior boilerplate ///////////////////////////////////
     @Override
-    protected GenBehavior makeRef(ActorRef<Object> ref) {
-        return new GenBehavior.Local(ref);
+    protected Behavior makeRef(ActorRef<Object> ref) {
+        return new Behavior.Local(ref);
     }
 
     @Override
-    public GenBehavior ref() {
-        return (GenBehavior) super.ref();
+    public Behavior ref() {
+        return (Behavior) super.ref();
     }
 
     @Override
-    protected GenBehavior self() {
+    protected Behavior self() {
         return ref();
     }
 
     @Override
-    public GenBehavior spawn(FiberScheduler scheduler) {
-        return (GenBehavior) super.spawn(scheduler);
+    public Behavior spawn(FiberScheduler scheduler) {
+        return (Behavior) super.spawn(scheduler);
     }
 
     @Override
-    public GenBehavior spawn() {
-        return (GenBehavior) super.spawn();
+    public Behavior spawn() {
+        return (Behavior) super.spawn();
     }
     //</editor-fold>
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-    public GenBehaviorActor(String name, Initializer initializer, MailboxConfig mailboxConfig) {
+    public BehaviorActor(String name, Initializer initializer, MailboxConfig mailboxConfig) {
         this(name, initializer, null, mailboxConfig);
     }
 
-    public GenBehaviorActor(String name, Initializer initializer) {
+    public BehaviorActor(String name, Initializer initializer) {
         this(name, initializer, null, null);
     }
 
-    public GenBehaviorActor(Initializer initializer, MailboxConfig mailboxConfig) {
+    public BehaviorActor(Initializer initializer, MailboxConfig mailboxConfig) {
         this(null, initializer, null, mailboxConfig);
     }
 
-    public GenBehaviorActor(Initializer initializer) {
+    public BehaviorActor(Initializer initializer) {
         this(null, initializer, null, null);
     }
 
-    public GenBehaviorActor(String name, MailboxConfig mailboxConfig) {
+    public BehaviorActor(String name, MailboxConfig mailboxConfig) {
         this(name, null, null, mailboxConfig);
     }
 
-    public GenBehaviorActor(String name) {
+    public BehaviorActor(String name) {
         this(name, null, null, null);
     }
 
-    public GenBehaviorActor(MailboxConfig mailboxConfig) {
+    public BehaviorActor(MailboxConfig mailboxConfig) {
         this(null, null, null, mailboxConfig);
     }
 
-    public GenBehaviorActor() {
+    public BehaviorActor() {
         this(null, null, null, null);
     }
     //</editor-fold>

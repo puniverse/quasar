@@ -20,12 +20,20 @@ import java.beans.ConstructorProperties;
  *
  * @author pron
  */
-public abstract class GenFromMessage extends GenMessage implements FromMessage {
+public abstract class RequestMessage extends ActorMessage implements FromMessage, IdMessage {
     private final ActorRef from;
+    private Object id;
 
-    @ConstructorProperties("from")
-    public GenFromMessage(ActorRef<?> from) {
+    @ConstructorProperties({"from", "id"})
+    public RequestMessage(ActorRef<?> from, Object id) {
         this.from = from;
+        this.id = id;
+    }
+
+    @ConstructorProperties({"from"})
+    public RequestMessage(ActorRef<?> from) {
+        this.from = from;
+        this.id = null;
     }
 
     @Override
@@ -33,8 +41,22 @@ public abstract class GenFromMessage extends GenMessage implements FromMessage {
         return from;
     }
 
+    /**
+     * Called only by RequestReplyHelper
+     *
+     * @param id
+     */
+    void setId(Object id) {
+        this.id = id;
+    }
+
+    @Override
+    public Object getId() {
+        return id;
+    }
+
     @Override
     protected String contentString() {
-        return super.contentString() + "from: " + from;
+        return super.contentString() + "from: " + from + " id: " + id;
     }
 }

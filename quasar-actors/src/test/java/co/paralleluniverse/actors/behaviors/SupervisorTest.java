@@ -395,7 +395,7 @@ public class SupervisorTest {
 
         @Override
         protected Integer doRun() throws SuspendExecution, InterruptedException {
-            final GenServer<Message1, Integer, Void> adder = new GenServerActor<Message1, Integer, Void>() {
+            final Server<Message1, Integer, Void> adder = new ServerActor<Message1, Integer, Void>() {
                 @Override
                 protected void init() throws SuspendExecution {
                     started.incrementAndGet();

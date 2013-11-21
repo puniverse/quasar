@@ -20,7 +20,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
  *
  * @author pron
  */
-public class AbstractServer<CallMessage, V, CastMessage> implements Server<CallMessage, V, CastMessage> {
+public class AbstractServerHandler<CallMessage, V, CastMessage> implements ServerHandler<CallMessage, V, CastMessage> {
     @Override
     public void init() throws SuspendExecution {
     }

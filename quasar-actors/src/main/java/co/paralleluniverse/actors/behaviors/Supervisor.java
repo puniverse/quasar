@@ -28,7 +28,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class Supervisor extends GenBehavior {
+public class Supervisor extends Behavior {
     Supervisor(ActorRef<Object> actor) {
         super(actor);
     }
@@ -116,7 +116,7 @@ public class Supervisor extends GenBehavior {
     }
 
     ///////// Messages
-    static class AddChildMessage extends GenRequestMessage {
+    static class AddChildMessage extends RequestMessage {
         final ChildSpec spec;
 
         public AddChildMessage(ActorRef from, Object id, ChildSpec info) {
@@ -130,7 +130,7 @@ public class Supervisor extends GenBehavior {
         }
     }
 
-    static class GetChildMessage extends GenRequestMessage {
+    static class GetChildMessage extends RequestMessage {
         final Object name;
 
         public GetChildMessage(ActorRef from, Object id, Object name) {
@@ -144,7 +144,7 @@ public class Supervisor extends GenBehavior {
         }
     }
 
-    static class RemoveChildMessage extends GenRequestMessage {
+    static class RemoveChildMessage extends RequestMessage {
         final Object name;
         final boolean terminate;
 

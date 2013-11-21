@@ -72,8 +72,8 @@ public class GenEventTest {
     public GenEventTest() {
     }
 
-    private GenEvent<String> spawnGenEvent(Initializer initializer) {
-        return new GenEventActor<String>("genevent", initializer).spawn();
+    private EventSource<String> spawnGenEvent(Initializer initializer) {
+        return new EventSourceActor<String>("genevent", initializer).spawn();
     }
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
@@ -92,7 +92,7 @@ public class GenEventTest {
     @Test
     public void testInitializationAndTermination() throws Exception {
         final Initializer init = mock(Initializer.class);
-        GenEvent<String> ge = spawnGenEvent(init);
+        EventSource<String> ge = spawnGenEvent(init);
 
         Thread.sleep(100);
         verify(init).init();
@@ -108,7 +108,7 @@ public class GenEventTest {
         final EventHandler<String> handler1 = mock(EventHandler.class);
         final EventHandler<String> handler2 = mock(EventHandler.class);
 
-        final GenEvent<String> ge = spawnGenEvent(null);
+        final EventSource<String> ge = spawnGenEvent(null);
 
         ge.addHandler(handler1);
         ge.addHandler(handler2);
@@ -141,7 +141,7 @@ public class GenEventTest {
         final Exception myException = new RuntimeException("haha!");
         doThrow(myException).when(handler1).handleEvent(anyString());
 
-        final GenEvent<String> ge = spawnGenEvent(init);
+        final EventSource<String> ge = spawnGenEvent(init);
 
         ge.addHandler(handler1);
         ge.addHandler(handler2);

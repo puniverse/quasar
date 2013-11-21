@@ -19,22 +19,21 @@ import java.beans.ConstructorProperties;
  *
  * @author pron
  */
-public class GenErrorResponseMessage extends GenResponseMessage implements ErrorMessage {
-    private final Throwable error;
+public class ValueResponseMessage<V> extends ResponseMessage implements IdMessage {
+    private final V value;
     
-    @ConstructorProperties({"id", "error"})
-    public GenErrorResponseMessage(Object id, Throwable error) {
+    @ConstructorProperties({"id", "value"})
+    public ValueResponseMessage(Object id, V value) {
         super(id);
-        this.error = error;
+        this.value = value;
     }
 
-    @Override
-    public Throwable getError() {
-        return error;
+    public V getValue() {
+        return value;
     }
 
     @Override
     protected String contentString() {
-        return super.contentString() + " error: " + error;
+        return super.contentString() + " value: " + value;
     }
 }

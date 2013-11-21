@@ -16,7 +16,7 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.MailboxConfig;
-import co.paralleluniverse.actors.behaviors.GenServer.GenServerRequest;
+import co.paralleluniverse.actors.behaviors.Server.GenServerRequest;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -28,12 +28,12 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
-public class GenServerActor<CallMessage, V, CastMessage> extends GenBehaviorActor {
-    private static final Logger LOG = LoggerFactory.getLogger(GenServerActor.class);
+public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
+    private static final Logger LOG = LoggerFactory.getLogger(ServerActor.class);
     private TimeUnit timeoutUnit;
     private long timeout;
 
-    public GenServerActor(String name, Server<CallMessage, V, CastMessage> server, long timeout, TimeUnit unit, Strand strand, MailboxConfig mailboxConfig) {
+    public ServerActor(String name, ServerHandler<CallMessage, V, CastMessage> server, long timeout, TimeUnit unit, Strand strand, MailboxConfig mailboxConfig) {
         super(name, server, strand, mailboxConfig);
         this.timeoutUnit = timeout > 0 ? unit : null;
         this.timeout = timeout;
@@ -42,68 +42,68 @@ public class GenServerActor<CallMessage, V, CastMessage> extends GenBehaviorActo
     //<editor-fold defaultstate="collapsed" desc="Behavior boilerplate">
     /////////// Behavior boilerplate ///////////////////////////////////
     @Override
-    protected GenServer<CallMessage, V, CastMessage> makeRef(ActorRef<Object> ref) {
-        return new GenServer.Local<CallMessage, V, CastMessage>(ref);
+    protected Server<CallMessage, V, CastMessage> makeRef(ActorRef<Object> ref) {
+        return new Server.Local<CallMessage, V, CastMessage>(ref);
     }
 
     @Override
-    public GenServer<CallMessage, V, CastMessage> ref() {
-        return (GenServer<CallMessage, V, CastMessage>) super.ref();
+    public Server<CallMessage, V, CastMessage> ref() {
+        return (Server<CallMessage, V, CastMessage>) super.ref();
     }
 
     @Override
-    protected GenServer<CallMessage, V, CastMessage> self() {
+    protected Server<CallMessage, V, CastMessage> self() {
         return ref();
     }
 
     @Override
-    public GenServer<CallMessage, V, CastMessage> spawn(FiberScheduler scheduler) {
-        return (GenServer<CallMessage, V, CastMessage>) super.spawn(scheduler);
+    public Server<CallMessage, V, CastMessage> spawn(FiberScheduler scheduler) {
+        return (Server<CallMessage, V, CastMessage>) super.spawn(scheduler);
     }
 
     @Override
-    public GenServer<CallMessage, V, CastMessage> spawn() {
-        return (GenServer<CallMessage, V, CastMessage>) super.spawn();
+    public Server<CallMessage, V, CastMessage> spawn() {
+        return (Server<CallMessage, V, CastMessage>) super.spawn();
     }
     //</editor-fold>
     
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-    public GenServerActor(String name, Server<CallMessage, V, CastMessage> server, MailboxConfig mailboxConfig) {
+    public ServerActor(String name, ServerHandler<CallMessage, V, CastMessage> server, MailboxConfig mailboxConfig) {
         this(name, server, -1, null, null, mailboxConfig);
     }
 
-    public GenServerActor(String name, Server<CallMessage, V, CastMessage> server) {
+    public ServerActor(String name, ServerHandler<CallMessage, V, CastMessage> server) {
         this(name, server, -1, null, null, null);
     }
 
-    public GenServerActor(Server<CallMessage, V, CastMessage> server, MailboxConfig mailboxConfig) {
+    public ServerActor(ServerHandler<CallMessage, V, CastMessage> server, MailboxConfig mailboxConfig) {
         this(null, server, -1, null, null, mailboxConfig);
     }
 
-    public GenServerActor(Server<CallMessage, V, CastMessage> server) {
+    public ServerActor(ServerHandler<CallMessage, V, CastMessage> server) {
         this(null, server, -1, null, null, null);
     }
 
-    public GenServerActor(String name, MailboxConfig mailboxConfig) {
+    public ServerActor(String name, MailboxConfig mailboxConfig) {
         this(name, null, -1, null, null, mailboxConfig);
     }
 
-    public GenServerActor(String name) {
+    public ServerActor(String name) {
         this(name, null, -1, null, null, null);
     }
 
-    public GenServerActor(MailboxConfig mailboxConfig) {
+    public ServerActor(MailboxConfig mailboxConfig) {
         this(null, null, -1, null, null, mailboxConfig);
     }
 
-    public GenServerActor() {
+    public ServerActor() {
         this(null, null, -1, null, null, null);
     }
     //</editor-fold>
 
-    protected Server<CallMessage, V, CastMessage> server() {
-        return (Server<CallMessage, V, CastMessage>) getInitializer();
+    protected ServerHandler<CallMessage, V, CastMessage> server() {
+        return (ServerHandler<CallMessage, V, CastMessage>) getInitializer();
     }
 
     @Override
@@ -111,8 +111,8 @@ public class GenServerActor<CallMessage, V, CastMessage> extends GenBehaviorActo
         return LOG;
     }
 
-    public static <CallMessage, V, CastMessage> GenServerActor<CallMessage, V, CastMessage> currentGenServer() {
-        return (GenServerActor<CallMessage, V, CastMessage>) Actor.<Object, Void>currentActor();
+    public static <CallMessage, V, CastMessage> ServerActor<CallMessage, V, CastMessage> currentGenServer() {
+        return (ServerActor<CallMessage, V, CastMessage>) Actor.<Object, Void>currentActor();
     }
 
     @Override
@@ -156,12 +156,12 @@ public class GenServerActor<CallMessage, V, CastMessage> extends GenBehaviorActo
 
     public final void reply(ActorRef to, Object id, V message) throws SuspendExecution {
         verifyInActor();
-        to.send(new GenValueResponseMessage<V>(id, message));
+        to.send(new ValueResponseMessage<V>(id, message));
     }
 
     public final void replyError(ActorRef to, Object id, Throwable error) throws SuspendExecution {
         verifyInActor();
-        to.send(new GenErrorResponseMessage(id, error));
+        to.send(new ErrorResponseMessage(id, error));
     }
 
     public final void setTimeout(long timeout, TimeUnit unit) {

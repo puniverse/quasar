@@ -87,8 +87,8 @@ public class GenServerTest {
         scheduler = new FiberScheduler("test", 4, null, false);
     }
 
-    private GenServer<Message, Integer, Message> spawnGenServer(Server<Message, Integer, Message> server) {
-        return new GenServerActor<>("server", server).spawn(scheduler);
+    private Server<Message, Integer, Message> spawnGenServer(ServerHandler<Message, Integer, Message> server) {
+        return new ServerActor<>("server", server).spawn(scheduler);
     }
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
@@ -106,8 +106,8 @@ public class GenServerTest {
 
     @Test
     public void whenGenServerStartsThenInitIsCalled() throws Exception {
-        final Server<Message, Integer, Message> server = mock(Server.class);
-        GenServer<Message, Integer, Message> gs = spawnGenServer(server);
+        final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
+        Server<Message, Integer, Message> gs = spawnGenServer(server);
 
         try {
             LocalActorUtil.join(gs, 100, TimeUnit.MILLISECONDS);
@@ -120,10 +120,10 @@ public class GenServerTest {
 
     @Test
     public void whenShutdownIsCalledInInitThenServerStops() throws Exception {
-        GenServer<Message, Integer, Message> gs = spawnGenServer(new AbstractServer<Message, Integer, Message>() {
+        Server<Message, Integer, Message> gs = spawnGenServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
             public void init() {
-                GenServerActor.currentGenServer().shutdown();
+                ServerActor.currentGenServer().shutdown();
             }
         });
 
@@ -132,10 +132,10 @@ public class GenServerTest {
 
     @Test
     public void whenCalledThenResultIsReturned() throws Exception {
-        final GenServer<Message, Integer, Message> gs = spawnGenServer(new AbstractServer<Message, Integer, Message>() {
+        final Server<Message, Integer, Message> gs = spawnGenServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
             public Integer handleCall(ActorRef<Integer> from, Object id, Message m) {
-                GenServerActor.currentGenServer().shutdown();
+                ServerActor.currentGenServer().shutdown();
                 return m.a + m.b;
             }
         });
@@ -154,10 +154,10 @@ public class GenServerTest {
 
     @Test
     public void whenCalledFromThreadThenResultIsReturned() throws Exception {
-        GenServer<Message, Integer, Message> gs = spawnGenServer(new AbstractServer<Message, Integer, Message>() {
+        Server<Message, Integer, Message> gs = spawnGenServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
             public Integer handleCall(ActorRef<Integer> from, Object id, Message m) {
-                GenServerActor.currentGenServer().shutdown();
+                ServerActor.currentGenServer().shutdown();
                 return m.a + m.b;
             }
         });
@@ -171,12 +171,12 @@ public class GenServerTest {
 
     @Test
     public void whenCalledAndTimeoutThenThrowTimeout() throws Exception {
-        GenServer<Message, Integer, Message> gs = spawnGenServer(new AbstractServer<Message, Integer, Message>() {
+        Server<Message, Integer, Message> gs = spawnGenServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
             public Integer handleCall(ActorRef<Integer> from, Object id, Message m) throws SuspendExecution {
                 try {
                     Strand.sleep(50);
-                    GenServerActor.currentGenServer().shutdown();
+                    ServerActor.currentGenServer().shutdown();
                     return m.a + m.b;
                 } catch (InterruptedException ex) {
                     System.out.println("?????: " + Arrays.toString(ex.getStackTrace()));
@@ -196,10 +196,10 @@ public class GenServerTest {
 
     @Test
     public void whenHandleCallThrowsExceptionThenItPropagatesToCaller() throws Exception {
-        final Server<Message, Integer, Message> server = mock(Server.class);
+        final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
         when(server.handleCall(any(ActorRef.class), anyObject(), any(Message.class))).thenThrow(new RuntimeException("my exception"));
 
-        final GenServer<Message, Integer, Message> gs = spawnGenServer(server);
+        final Server<Message, Integer, Message> gs = spawnGenServer(server);
 
         Actor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             protected Void doRun() throws SuspendExecution, InterruptedException {
@@ -223,10 +223,10 @@ public class GenServerTest {
 
     @Test
     public void whenHandleCallThrowsExceptionThenItPropagatesToThreadCaller() throws Exception {
-        final Server<Message, Integer, Message> server = mock(Server.class);
+        final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
         when(server.handleCall(any(ActorRef.class), anyObject(), any(Message.class))).thenThrow(new RuntimeException("my exception"));
 
-        final GenServer<Message, Integer, Message> gs = spawnGenServer(server);
+        final Server<Message, Integer, Message> gs = spawnGenServer(server);
 
         try {
             int res = gs.call(new Message(3, 4));
@@ -244,10 +244,10 @@ public class GenServerTest {
 
     @Test
     public void whenActorDiesThenCausePropagatesToThreadCaller() throws Exception {
-        final Server<Message, Integer, Message> server = mock(Server.class);
+        final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
         doThrow(new RuntimeException("my exception")).when(server).init();
 
-        final GenServer<Message, Integer, Message> gs = spawnGenServer(server);
+        final Server<Message, Integer, Message> gs = spawnGenServer(server);
 
         try {
             int res = gs.call(new Message(3, 4));
@@ -268,7 +268,7 @@ public class GenServerTest {
     public void whenTimeoutThenHandleTimeoutIsCalled() throws Exception {
         final AtomicInteger counter = new AtomicInteger(0);
 
-        GenServerActor<Message, Integer, Message> gs = spawnActor(new GenServerActor<Message, Integer, Message>() {
+        ServerActor<Message, Integer, Message> gs = spawnActor(new ServerActor<Message, Integer, Message>() {
             @Override
             protected void init() {
                 setTimeout(20, TimeUnit.MILLISECONDS);
@@ -288,7 +288,7 @@ public class GenServerTest {
 
     @Test
     public void whenCalledThenDeferredResultIsReturned() throws Exception {
-        final GenServer<Message, Integer, Message> gs = new GenServerActor<Message, Integer, Message>() {
+        final Server<Message, Integer, Message> gs = new ServerActor<Message, Integer, Message>() {
             private int a, b;
             private ActorRef<Integer> from;
             private Object id;
@@ -333,7 +333,7 @@ public class GenServerTest {
 
     @Test
     public void whenCalledFromThreadThenDeferredResultIsReturned() throws Exception {
-        final GenServer<Message, Integer, Message> gs = new GenServerActor<Message, Integer, Message>() {
+        final Server<Message, Integer, Message> gs = new ServerActor<Message, Integer, Message>() {
             private int a, b;
             private ActorRef<Integer> from;
             private Object id;
@@ -372,7 +372,7 @@ public class GenServerTest {
 
     @Test
     public void whenActorDiesDuringDeferredHandlingThenCausePropagatesToThreadCaller() throws Exception {
-        final GenServer<Message, Integer, Message> gs = new GenServerActor<Message, Integer, Message>() {
+        final Server<Message, Integer, Message> gs = new ServerActor<Message, Integer, Message>() {
             private boolean received;
 
             @Override
@@ -410,8 +410,8 @@ public class GenServerTest {
 
     @Test
     public void whenCastThenHandleCastIsCalled() throws Exception {
-        final Server<Message, Integer, Message> server = mock(Server.class);
-        final GenServer<Message, Integer, Message> gs = spawnGenServer(server);
+        final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
+        final Server<Message, Integer, Message> gs = spawnGenServer(server);
 
         gs.cast(new Message(3, 4));
 
@@ -423,8 +423,8 @@ public class GenServerTest {
 
     @Test
     public void whenSentMessageHandleInfoIsCalled() throws Exception {
-        final Server<Message, Integer, Message> server = mock(Server.class);
-        final GenServer<Message, Integer, Message> gs = spawnGenServer(server);
+        final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
+        final Server<Message, Integer, Message> gs = spawnGenServer(server);
 
         gs.send("foo");
 
@@ -436,8 +436,8 @@ public class GenServerTest {
 
     @Test
     public void whenSentShutdownThenTerminateIsCalledAndServerStopped() throws Exception {
-        final Server<Message, Integer, Message> server = mock(Server.class);
-        final GenServer<Message, Integer, Message> gs = spawnGenServer(server);
+        final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
+        final Server<Message, Integer, Message> gs = spawnGenServer(server);
 
         gs.shutdown();
         LocalActorUtil.join(gs);
@@ -447,11 +447,11 @@ public class GenServerTest {
 
     @Test
     public void whenHandleInfoThrowsExceptionThenTerminateIsCalled() throws Exception {
-        final Server<Message, Integer, Message> server = mock(Server.class);
+        final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
 
         final Exception myException = new RuntimeException("my exception");
         doThrow(myException).when(server).handleInfo(anyObject());
-        final GenServer<Message, Integer, Message> gs = spawnGenServer(server);
+        final Server<Message, Integer, Message> gs = spawnGenServer(server);
 
         gs.send("foo");
 

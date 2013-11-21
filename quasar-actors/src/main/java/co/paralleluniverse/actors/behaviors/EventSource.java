@@ -16,8 +16,7 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
-import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.from;
-import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.makeId;
+import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.ExecutionException;
@@ -28,63 +27,37 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class GenServer<CallMessage, V, CastMessage> extends GenBehavior {
-    public GenServer(ActorRef<Object> actor) {
+public class EventSource<Event> extends Behavior {
+    EventSource(ActorRef<Object> actor) {
         super(actor);
     }
 
-    public final V call(CallMessage m) throws InterruptedException, SuspendExecution {
-        try {
-            return call(m, 0, null);
-        } catch (TimeoutException ex) {
-            throw new AssertionError(ex);
-        }
+    public boolean addHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
+        if(isInActor())
+            return EventSourceActor.<Event>currentGenEvent().addHandler(handler);
+        
+        return (Boolean)call(this, new EventSourceActor.HandlerMessage(RequestReplyHelper.from(), null, handler, true));
     }
 
-    public final V call(CallMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
-        final V res = RequestReplyHelper.call(ref, new GenServerRequest(from(), null, MessageType.CALL, m), timeout, unit);
-        return res;
+    public boolean removeHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
+        if(isInActor())
+            return EventSourceActor.<Event>currentGenEvent().removeHandler(handler);
+        
+        return (Boolean)call(this, new EventSourceActor.HandlerMessage(RequestReplyHelper.from(), null, handler, false));
     }
 
-    public final void cast(CastMessage m) throws SuspendExecution {
-        ref.send(new GenServerRequest(ActorRef.self(), makeId(), MessageType.CAST, m));
+    public void notify(Event event) throws SuspendExecution {
+        send(event);
     }
 
-    public static void cast(ActorRef server, Object m) throws SuspendExecution {
-        server.send(new GenServerRequest(ActorRef.self(), makeId(), MessageType.CAST, m));
-    }
-
-    enum MessageType {
-        CALL, CAST
-    };
-
-    static class GenServerRequest extends GenRequestMessage {
-        private final MessageType type;
-        private final Object message;
-
-        public GenServerRequest(ActorRef sender, Object id, MessageType type, Object message) {
-            super(sender, id);
-            this.type = type;
-            this.message = message;
-        }
-
-        public MessageType getType() {
-            return type;
-        }
-
-        public Object getMessage() {
-            return message;
-        }
-    }
-
-    static final class Local<CallMessage, V, CastMessage> extends GenServer<CallMessage, V, CastMessage> implements LocalBehavior<GenServer<CallMessage, V, CastMessage>> {
+    static final class Local<Event> extends EventSource<Event> implements LocalBehavior<EventSource<Event>> {
         Local(ActorRef<Object> actor) {
             super(actor);
         }
 
         @Override
-        public GenServer<CallMessage, V, CastMessage> writeReplace() throws java.io.ObjectStreamException {
-            return new GenServer<>(ref);
+        public EventSource<Event> writeReplace() throws java.io.ObjectStreamException {
+            return new EventSource<>(ref);
         }
 
         @Override

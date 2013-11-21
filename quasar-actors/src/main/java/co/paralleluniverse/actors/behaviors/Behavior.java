@@ -16,9 +16,10 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
-import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
+import co.paralleluniverse.actors.ActorRefDelegate;
+import co.paralleluniverse.actors.ActorUtil;
+import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.fibers.Joinable;
-import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -27,37 +28,29 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class GenEvent<Event> extends GenBehavior {
-    GenEvent(ActorRef<Object> actor) {
+public class Behavior extends ActorRefDelegate<Object> implements java.io.Serializable {
+    protected Behavior(ActorRef<Object> actor) {
         super(actor);
     }
 
-    public boolean addHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
-        if(isInActor())
-            return GenEventActor.<Event>currentGenEvent().addHandler(handler);
-        
-        return (Boolean)call(this, new GenEventActor.HandlerMessage(RequestReplyHelper.from(), null, handler, true));
+    public void shutdown() {
+        final ShutdownMessage message = new ShutdownMessage(ActorRef.self());
+        ActorUtil.sendOrInterrupt(ref, message);
     }
 
-    public boolean removeHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
-        if(isInActor())
-            return GenEventActor.<Event>currentGenEvent().removeHandler(handler);
-        
-        return (Boolean)call(this, new GenEventActor.HandlerMessage(RequestReplyHelper.from(), null, handler, false));
+    @Override
+    public void close() {
+        throw new UnsupportedOperationException();
     }
 
-    public void notify(Event event) throws SuspendExecution {
-        send(event);
-    }
-
-    static final class Local<Event> extends GenEvent<Event> implements LocalBehavior<GenEvent<Event>> {
+    static final class Local extends Behavior implements LocalBehavior<Behavior> {
         Local(ActorRef<Object> actor) {
             super(actor);
         }
 
         @Override
-        public GenEvent<Event> writeReplace() throws java.io.ObjectStreamException {
-            return new GenEvent<>(ref);
+        public Behavior writeReplace() throws java.io.ObjectStreamException {
+            return new Behavior(ref);
         }
 
         @Override

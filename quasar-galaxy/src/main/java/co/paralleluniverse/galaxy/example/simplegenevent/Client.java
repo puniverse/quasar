@@ -21,7 +21,7 @@ package co.paralleluniverse.galaxy.example.simplegenevent;
 
 import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.BasicActor;
-import co.paralleluniverse.actors.behaviors.GenEvent;
+import co.paralleluniverse.actors.behaviors.EventSource;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -41,8 +41,8 @@ public class Client {
         new Fiber<>(new BasicActor<String, Void>() {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
-                GenEvent<String> ge;
-                while ((ge = (GenEvent<String>) ActorRegistry.getActor("myEventServer")) == null) {
+                EventSource<String> ge;
+                while ((ge = (EventSource<String>) ActorRegistry.getActor("myEventServer")) == null) {
                     System.out.println("waiting for myEventServer");
                     Strand.sleep(3000);
                 }

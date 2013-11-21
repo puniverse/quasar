@@ -13,17 +13,16 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
+import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.fibers.SuspendExecution;
+
 /**
  *
  * @author pron
  */
-public abstract class GenMessage implements java.io.Serializable {
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + "[" + contentString() + "]";
-    }
-
-    protected String contentString() {
-        return "";
-    }
+public interface ServerHandler<CallMessage, V, CastMessage> extends Initializer {
+    V handleCall(ActorRef<V> from, Object id, CallMessage m) throws Exception, SuspendExecution;
+    void handleCast(ActorRef<V> from, Object id, CastMessage m) throws SuspendExecution;
+    void handleInfo(Object m) throws SuspendExecution;
+    void handleTimeout() throws SuspendExecution;
 }

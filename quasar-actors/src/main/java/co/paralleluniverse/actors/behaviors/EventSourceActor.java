@@ -30,73 +30,73 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
-public class GenEventActor<Event> extends GenBehaviorActor {
-    private static final Logger LOG = LoggerFactory.getLogger(GenEventActor.class);
+public class EventSourceActor<Event> extends BehaviorActor {
+    private static final Logger LOG = LoggerFactory.getLogger(EventSourceActor.class);
     private final List<EventHandler<Event>> handlers = new ArrayList<>();
 
-    public GenEventActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
+    public EventSourceActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
         super(name, initializer, strand, mailboxConfig);
     }
 
     //<editor-fold defaultstate="collapsed" desc="Behavior boilerplate">
     /////////// Behavior boilerplate ///////////////////////////////////
     @Override
-    protected GenEvent<Event> makeRef(ActorRef<Object> ref) {
-        return new GenEvent.Local<Event>(ref);
+    protected EventSource<Event> makeRef(ActorRef<Object> ref) {
+        return new EventSource.Local<Event>(ref);
     }
 
     @Override
-    public GenEvent<Event> ref() {
-        return (GenEvent<Event>) super.ref();
+    public EventSource<Event> ref() {
+        return (EventSource<Event>) super.ref();
     }
 
     @Override
-    protected GenEvent<Event> self() {
+    protected EventSource<Event> self() {
         return ref();
     }
 
     @Override
-    public GenEvent<Event> spawn(FiberScheduler scheduler) {
-        return (GenEvent<Event>) super.spawn(scheduler);
+    public EventSource<Event> spawn(FiberScheduler scheduler) {
+        return (EventSource<Event>) super.spawn(scheduler);
     }
 
     @Override
-    public GenEvent<Event> spawn() {
-        return (GenEvent<Event>) super.spawn();
+    public EventSource<Event> spawn() {
+        return (EventSource<Event>) super.spawn();
     }
     //</editor-fold>
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-    public GenEventActor(String name, Initializer initializer, MailboxConfig mailboxConfig) {
+    public EventSourceActor(String name, Initializer initializer, MailboxConfig mailboxConfig) {
         this(name, initializer, null, mailboxConfig);
     }
 
-    public GenEventActor(String name, Initializer initializer) {
+    public EventSourceActor(String name, Initializer initializer) {
         this(name, initializer, null, null);
     }
 
-    public GenEventActor(Initializer initializer, MailboxConfig mailboxConfig) {
+    public EventSourceActor(Initializer initializer, MailboxConfig mailboxConfig) {
         this(null, initializer, null, mailboxConfig);
     }
 
-    public GenEventActor(Initializer initializer) {
+    public EventSourceActor(Initializer initializer) {
         this(null, initializer, null, null);
     }
 
-    public GenEventActor(String name, MailboxConfig mailboxConfig) {
+    public EventSourceActor(String name, MailboxConfig mailboxConfig) {
         this(name, null, null, mailboxConfig);
     }
 
-    public GenEventActor(String name) {
+    public EventSourceActor(String name) {
         this(name, null, null, null);
     }
 
-    public GenEventActor(MailboxConfig mailboxConfig) {
+    public EventSourceActor(MailboxConfig mailboxConfig) {
         this(null, null, null, mailboxConfig);
     }
 
-    public GenEventActor() {
+    public EventSourceActor() {
         this(null, null, null, null);
     }
     //</editor-fold>
@@ -124,8 +124,8 @@ public class GenEventActor<Event> extends GenBehaviorActor {
 
     @Override
     protected final void handleMessage(Object m1) throws InterruptedException, SuspendExecution {
-        if (m1 instanceof GenRequestMessage) {
-            final GenRequestMessage req = (GenRequestMessage) m1;
+        if (m1 instanceof RequestMessage) {
+            final RequestMessage req = (RequestMessage) m1;
             try {
                 if (m1 instanceof HandlerMessage) {
                     final HandlerMessage m = (HandlerMessage) m1;
@@ -147,8 +147,8 @@ public class GenEventActor<Event> extends GenBehaviorActor {
         handlers.clear();
     }
 
-    public static <Event> GenEventActor<Event> currentGenEvent() {
-        return (GenEventActor<Event>) Actor.<Object, Void>currentActor();
+    public static <Event> EventSourceActor<Event> currentGenEvent() {
+        return (EventSourceActor<Event>) Actor.<Object, Void>currentActor();
     }
 
     private void notifyHandlers(Event event) {
@@ -157,7 +157,7 @@ public class GenEventActor<Event> extends GenBehaviorActor {
             handler.handleEvent(event);
     }
 
-    static class HandlerMessage<Event> extends GenRequestMessage {
+    static class HandlerMessage<Event> extends RequestMessage {
         final EventHandler<Event> handler;
         final boolean add;
 

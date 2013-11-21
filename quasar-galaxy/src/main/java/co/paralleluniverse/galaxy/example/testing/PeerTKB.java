@@ -24,14 +24,14 @@ import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.MailboxConfig;
-import co.paralleluniverse.actors.behaviors.AbstractServer;
+import co.paralleluniverse.actors.behaviors.AbstractServerHandler;
 import co.paralleluniverse.actors.behaviors.EventHandler;
-import co.paralleluniverse.actors.behaviors.GenEvent;
-import co.paralleluniverse.actors.behaviors.GenEventActor;
-import co.paralleluniverse.actors.behaviors.GenServer;
-import co.paralleluniverse.actors.behaviors.GenServerActor;
-import co.paralleluniverse.actors.behaviors.Initializer;
+import co.paralleluniverse.actors.behaviors.EventSource;
+import co.paralleluniverse.actors.behaviors.EventSourceActor;
 import co.paralleluniverse.actors.behaviors.Server;
+import co.paralleluniverse.actors.behaviors.ServerActor;
+import co.paralleluniverse.actors.behaviors.Initializer;
+import co.paralleluniverse.actors.behaviors.ServerHandler;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
 import co.paralleluniverse.fibers.Fiber;
@@ -100,11 +100,11 @@ public class PeerTKB {
                 break;
             case testGenServer:
                 if (i == 1) {
-                    spawnGenServer(new AbstractServer<Message, Integer, Message>() {
+                    spawnGenServer(new AbstractServerHandler<Message, Integer, Message>() {
                         @Override
                         public void init() throws SuspendExecution {
                             super.init();
-                            GenServerActor.currentGenServer().register("myServer");
+                            ServerActor.currentGenServer().register("myServer");
                         }
 
                         @Override
@@ -115,7 +115,7 @@ public class PeerTKB {
                 } else {
                     Integer get = spawnActor(new BasicActor<Message, Integer>(new MailboxConfig(10, Channels.OverflowPolicy.THROW)) {
                         protected Integer doRun() throws SuspendExecution, InterruptedException {
-                            final GenServer<Message, Integer, Message> gs = (GenServer) ActorRegistry.getActor("myServer");
+                            final Server<Message, Integer, Message> gs = (Server) ActorRegistry.getActor("myServer");
                             return gs.call(new Message(3, 4));
                         }
                     }).get();
@@ -130,9 +130,9 @@ public class PeerTKB {
                     spawnGenEvent(new Initializer() {
                         @Override
                         public void init() throws SuspendExecution {
-                            GenEventActor.currentGenEvent().register("myEventServer");
+                            EventSourceActor.currentGenEvent().register("myEventServer");
                             try {
-                                final GenEvent<String> ge = ActorRef.self();
+                                final EventSource<String> ge = ActorRef.self();
                                 ge.addHandler(new EventHandler<String>() {
                                     @Override
                                     public void handleEvent(String event) {
@@ -157,7 +157,7 @@ public class PeerTKB {
                 } else {
                     spawnActor(new BasicActor<Message, Void>() {
                         protected Void doRun() throws SuspendExecution, InterruptedException {
-                            final GenEvent<String> ge = (GenEvent) ActorRegistry.getActor("myEventServer");
+                            final EventSource<String> ge = (EventSource) ActorRegistry.getActor("myEventServer");
                             ge.notify("hello world");
                             return null;
                         }
@@ -173,7 +173,7 @@ public class PeerTKB {
                         public void init() throws SuspendExecution {
                             Actor.currentActor().register("myEventServer");
                             try {
-                                final GenEvent<String> ge = ActorRef.self();
+                                final EventSource<String> ge = ActorRef.self();
                                 ge.addHandler(new EventHandler<String>() {
                                     @Override
                                     public void handleEvent(String event) {
@@ -196,7 +196,7 @@ public class PeerTKB {
                         final BasicActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>("actor-" + j) {
                             protected Void doRun() throws SuspendExecution, InterruptedException {
                                 try {
-                                    final GenEvent<String> ge = (GenEvent) ActorRegistry.getActor("myEventServer");
+                                    final EventSource<String> ge = (EventSource) ActorRegistry.getActor("myEventServer");
                                     ge.notify("hwf " + getName());
                                 } catch (Exception e) {
                                     System.out.println("error in " + getName());
@@ -221,9 +221,9 @@ public class PeerTKB {
 
                         @Override
                         public void init() throws SuspendExecution {
-                            GenEventActor.currentGenEvent().register("myEventServer");
+                            EventSourceActor.currentGenEvent().register("myEventServer");
                             try {
-                                GenEventActor<String> ge = GenEventActor.currentGenEvent();
+                                EventSourceActor<String> ge = EventSourceActor.currentGenEvent();
                                 ge.ref().addHandler(new EventHandler<String>() {
                                     @Override
                                     public void handleEvent(String event) {
@@ -246,7 +246,7 @@ public class PeerTKB {
                         final BasicActor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>("actor-" + j) {
                             protected Void doRun() throws SuspendExecution, InterruptedException {
                                 try {
-                                    final GenEvent<String> ge = (GenEvent) ActorRegistry.getActor("myEventServer");
+                                    final EventSource<String> ge = (EventSource) ActorRegistry.getActor("myEventServer");
                                     for (int k = 0; k < 3000; k++)
                                         ge.notify("hw " + k + " f" + getName());
                                 } catch (Exception e) {
@@ -287,12 +287,12 @@ public class PeerTKB {
         testOrdering,
         test,}
 
-    private GenServerActor<Message, Integer, Message> spawnGenServer(Server<Message, Integer, Message> server) {
-        return spawnActor(new GenServerActor<>(server));
+    private ServerActor<Message, Integer, Message> spawnGenServer(ServerHandler<Message, Integer, Message> server) {
+        return spawnActor(new ServerActor<>(server));
     }
 
-    private GenEventActor<String> spawnGenEvent(Initializer initializer) {
-        return spawnActor(new GenEventActor<String>(initializer));
+    private EventSourceActor<String> spawnGenEvent(Initializer initializer) {
+        return spawnActor(new EventSourceActor<String>(initializer));
     }
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {

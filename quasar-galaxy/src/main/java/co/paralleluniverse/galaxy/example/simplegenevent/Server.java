@@ -23,8 +23,8 @@ import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.LocalActorUtil;
 import co.paralleluniverse.actors.behaviors.EventHandler;
-import co.paralleluniverse.actors.behaviors.GenEvent;
-import co.paralleluniverse.actors.behaviors.GenEventActor;
+import co.paralleluniverse.actors.behaviors.EventSource;
+import co.paralleluniverse.actors.behaviors.EventSourceActor;
 import co.paralleluniverse.actors.behaviors.Initializer;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.DelayedVal;
@@ -43,11 +43,11 @@ public class Server {
         System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
 
         final DelayedVal<String> dv = new DelayedVal<>();
-        GenEvent<String> ge = new GenEventActor<String>(new Initializer() {
+        EventSource<String> ge = new EventSourceActor<String>(new Initializer() {
             @Override
             public void init() throws SuspendExecution {
                 Actor.currentActor().register("myEventServer");
-                final GenEvent<String> ge = ActorRef.self();
+                final EventSource<String> ge = ActorRef.self();
                 try {
                     ge.addHandler(new EventHandler<String>() {
                         @Override

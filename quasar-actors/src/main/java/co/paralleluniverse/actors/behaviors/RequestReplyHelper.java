@@ -52,7 +52,7 @@ public class RequestReplyHelper {
         return getCurrentActor(); // new TempActor<Message>(getCurrentActor());
     }
 
-    public static <V> V call(final ActorRef actor, GenRequestMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
+    public static <V> V call(final ActorRef actor, RequestMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
         assert !actor.equals(ActorRef.self()) : "Can't \"call\" self - deadlock guaranteed";
         
         final Actor currentActor;
@@ -83,24 +83,24 @@ public class RequestReplyHelper {
         };
         try {
             actor.sendSync(m);
-            final GenResponseMessage response = (GenResponseMessage) helper.receive(timeout, unit, new MessageProcessor<Object, Object>() {
+            final ResponseMessage response = (ResponseMessage) helper.receive(timeout, unit, new MessageProcessor<Object, Object>() {
                 @Override
                 public Object process(Object m) throws SuspendExecution, InterruptedException {
-                    return (m instanceof GenResponseMessage && id.equals(((GenResponseMessage) m).getId())) ? m : null;
+                    return (m instanceof ResponseMessage && id.equals(((ResponseMessage) m).getId())) ? m : null;
                 }
             });
             currentActor.unwatch(actor, watch); // no need to unwatch in case of receiver death, so not doen in finally block
 
-            if (response instanceof GenErrorResponseMessage)
-                throw Exceptions.rethrow(((GenErrorResponseMessage) response).getError());
-            return ((GenValueResponseMessage<V>)response).getValue();
+            if (response instanceof ErrorResponseMessage)
+                throw Exceptions.rethrow(((ErrorResponseMessage) response).getError());
+            return ((ValueResponseMessage<V>)response).getValue();
         } finally {
             if (m.getFrom() instanceof TempActor)
                 ((TempActor) m.getFrom()).done();
         }
     }
 
-    public static <V> V call(ActorRef actor, GenRequestMessage m) throws InterruptedException, SuspendExecution {
+    public static <V> V call(ActorRef actor, RequestMessage m) throws InterruptedException, SuspendExecution {
         Long timeout = null;
         try {
             timeout = defaultTimeout.get();
@@ -116,12 +116,12 @@ public class RequestReplyHelper {
         }
     }
 
-    public static <V> void reply(GenRequestMessage req, V result) throws SuspendExecution {
-        req.getFrom().send(new GenValueResponseMessage<V>(req.getId(), result));
+    public static <V> void reply(RequestMessage req, V result) throws SuspendExecution {
+        req.getFrom().send(new ValueResponseMessage<V>(req.getId(), result));
     }
 
-    public static <V> void replyError(GenRequestMessage req, Throwable e) throws SuspendExecution {
-        req.getFrom().send(new GenErrorResponseMessage(req.getId(), e));
+    public static <V> void replyError(RequestMessage req, Throwable e) throws SuspendExecution {
+        req.getFrom().send(new ErrorResponseMessage(req.getId(), e));
     }
 
     private static ActorRef getCurrentActor() {

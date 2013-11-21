@@ -61,7 +61,7 @@ import org.slf4j.MDC;
  *
  * @author pron
  */
-public class SupervisorActor extends GenBehaviorActor {
+public class SupervisorActor extends BehaviorActor {
     private static final Logger LOG = LoggerFactory.getLogger(SupervisorActor.class);
     private final RestartStrategy restartStrategy;
     private List<ChildSpec> childSpec;
@@ -206,8 +206,8 @@ public class SupervisorActor extends GenBehaviorActor {
 
     @Override
     protected final void handleMessage(Object m1) throws InterruptedException, SuspendExecution {
-        if (m1 instanceof GenRequestMessage) {
-            final GenRequestMessage req = (GenRequestMessage) m1;
+        if (m1 instanceof RequestMessage) {
+            final RequestMessage req = (RequestMessage) m1;
             try {
                 if (req instanceof GetChildMessage) {
                     reply(req, getChild(((GetChildMessage) req).name));

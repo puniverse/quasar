@@ -19,11 +19,11 @@ import java.beans.ConstructorProperties;
  *
  * @author pron
  */
-public abstract class GenResponseMessage extends GenMessage implements IdMessage {
+public abstract class ResponseMessage extends ActorMessage implements IdMessage {
     private final Object id;
     
     @ConstructorProperties({"id"})
-    public GenResponseMessage(Object id) {
+    public ResponseMessage(Object id) {
         this.id = id;
     }
 
