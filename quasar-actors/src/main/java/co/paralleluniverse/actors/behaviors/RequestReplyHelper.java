@@ -68,7 +68,7 @@ public final class RequestReplyHelper {
     }
 
     /**
-     * Sends a request message to an actor, awaits a response value and returns it. 
+     * Sends a request message to an actor, awaits a response value and returns it.
      * This method can be called by any code, even non-actor code.
      * If the actor responds with an error message, a {@link RuntimeException} will be thrown by this method.
      * <br/>
@@ -105,7 +105,7 @@ public final class RequestReplyHelper {
     }
 
     /**
-     * Sends a request message to an actor, awaits a response value (but no longer than the given timeout) and returns it. 
+     * Sends a request message to an actor, awaits a response value (but no longer than the given timeout) and returns it.
      * This method can be called by any code, even non-actor code.
      * If the actor responds with an error message, a {@link RuntimeException} will be thrown by this method.
      * <br/>
@@ -183,6 +183,8 @@ public final class RequestReplyHelper {
      * If the request has been sent by a call to {@link #call(ActorRef, RequestMessage) call}, the
      * {@code result} argument will be the value returned by {@link #call(ActorRef, RequestMessage) call}.
      * This method should only be called by an actor.
+     * <p/>
+     * Internally this method uses a {@link ValueResponseMessage} to send the reply.
      *
      * @param req    the request we're responding to
      * @param result the result of the request
@@ -197,7 +199,9 @@ public final class RequestReplyHelper {
      * If the request has been sent by a call to {@link #call(ActorRef, RequestMessage) call}, the
      * {@code e} argument will be the exception thrown by {@link #call(ActorRef, RequestMessage) call} (possibly wrapped by a {@link RuntimeException}).
      * This method should only be called by an actor.
-     *
+     * <p/>
+     * Internally this method uses an {@link ErrorResponseMessage} to send the reply.
+     * 
      * @param req the request we're responding to
      * @param e   the error the request has caused
      * @throws SuspendExecution

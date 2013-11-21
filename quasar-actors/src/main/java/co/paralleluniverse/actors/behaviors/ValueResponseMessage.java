@@ -16,18 +16,28 @@ package co.paralleluniverse.actors.behaviors;
 import java.beans.ConstructorProperties;
 
 /**
+ * A simple subclass of {@link ResponseMessage} that contains a single response value.
  *
  * @author pron
  */
 public class ValueResponseMessage<V> extends ResponseMessage implements IdMessage {
     private final V value;
-    
+
+    /**
+     * Constructs a {@code ValueResponseMessage}.
+     *
+     * @param id    the {@link RequestMessage#getId() id} of the {@link RequestMessage} this is a response to.
+     * @param value the response value, i.e. the result of the request
+     */
     @ConstructorProperties({"id", "value"})
     public ValueResponseMessage(Object id, V value) {
         super(id);
         this.value = value;
     }
 
+    /**
+     * The response value, i.e. the result of the request.
+     */
     public V getValue() {
         return value;
     }

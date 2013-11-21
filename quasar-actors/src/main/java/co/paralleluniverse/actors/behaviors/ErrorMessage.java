@@ -14,9 +14,12 @@
 package co.paralleluniverse.actors.behaviors;
 
 /**
- *
+ * An actor message signifying some error
  * @author pron
  */
 public interface ErrorMessage {
+    /**
+     * The error
+     */
     Throwable getError();
 }

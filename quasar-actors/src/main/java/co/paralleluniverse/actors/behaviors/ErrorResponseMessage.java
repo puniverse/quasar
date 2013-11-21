@@ -16,18 +16,28 @@ package co.paralleluniverse.actors.behaviors;
 import java.beans.ConstructorProperties;
 
 /**
+ * A simple subclass of {@link ResponseMessage} that represents an error in processing the request.
  *
  * @author pron
  */
 public class ErrorResponseMessage extends ResponseMessage implements ErrorMessage {
     private final Throwable error;
-    
+
+    /**
+     * Constructs a {@code ErrorResponseMessage}.
+     *
+     * @param id    the {@link RequestMessage#getId() id} of the {@link RequestMessage} this is a response to.
+     * @param error the error that occurred while processing the request.
+     */
     @ConstructorProperties({"id", "error"})
     public ErrorResponseMessage(Object id, Throwable error) {
         super(id);
         this.error = error;
     }
 
+    /**
+     * The error that occurred while processing the request.
+     */
     @Override
     public Throwable getError() {
         return error;

@@ -16,17 +16,26 @@ package co.paralleluniverse.actors.behaviors;
 import java.beans.ConstructorProperties;
 
 /**
+ * A message type used as a superclass by responses to {@link RequestMessage}.
  *
  * @author pron
  */
 public abstract class ResponseMessage extends ActorMessage implements IdMessage {
     private final Object id;
-    
+
+    /**
+     * Constructs a {@code ResponseMessage}.
+     *
+     * @param id the {@link RequestMessage#getId() id} of the {@link RequestMessage} this is a response to.
+     */
     @ConstructorProperties({"id"})
     public ResponseMessage(Object id) {
         this.id = id;
     }
 
+    /**
+     * The {@link RequestMessage#getId() id} of the {@link RequestMessage} this is a response to.
+     */
     @Override
     public Object getId() {
         return id;
