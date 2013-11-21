@@ -51,7 +51,7 @@ public class Server {
             public Integer handleCall(ActorRef<Integer> from, Object id, SumRequest m) {
                 System.out.println(this.toString() + " is handling " + m);
                 if (m.a == 0 && m.b == 0)
-                    ServerActor.currentGenServer().shutdown();
+                    ServerActor.currentServerActor().shutdown();
                 return m.a + m.b;
             }
         })).start().join();

@@ -34,14 +34,14 @@ public class EventSource<Event> extends Behavior {
 
     public boolean addHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
         if(isInActor())
-            return EventSourceActor.<Event>currentGenEvent().addHandler(handler);
+            return EventSourceActor.<Event>currentEventSourceActor().addHandler(handler);
         
         return (Boolean)call(this, new EventSourceActor.HandlerMessage(RequestReplyHelper.from(), null, handler, true));
     }
 
     public boolean removeHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
         if(isInActor())
-            return EventSourceActor.<Event>currentGenEvent().removeHandler(handler);
+            return EventSourceActor.<Event>currentEventSourceActor().removeHandler(handler);
         
         return (Boolean)call(this, new EventSourceActor.HandlerMessage(RequestReplyHelper.from(), null, handler, false));
     }

@@ -147,7 +147,7 @@ public class EventSourceActor<Event> extends BehaviorActor {
         handlers.clear();
     }
 
-    public static <Event> EventSourceActor<Event> currentGenEvent() {
+    public static <Event> EventSourceActor<Event> currentEventSourceActor() {
         return (EventSourceActor<Event>) Actor.<Object, Void>currentActor();
     }
 

@@ -111,7 +111,7 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
         return LOG;
     }
 
-    public static <CallMessage, V, CastMessage> ServerActor<CallMessage, V, CastMessage> currentGenServer() {
+    public static <CallMessage, V, CastMessage> ServerActor<CallMessage, V, CastMessage> currentServerActor() {
         return (ServerActor<CallMessage, V, CastMessage>) Actor.<Object, Void>currentActor();
     }
 

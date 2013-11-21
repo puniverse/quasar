@@ -123,7 +123,7 @@ public class GenServerTest {
         Server<Message, Integer, Message> gs = spawnGenServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
             public void init() {
-                ServerActor.currentGenServer().shutdown();
+                ServerActor.currentServerActor().shutdown();
             }
         });
 
@@ -135,7 +135,7 @@ public class GenServerTest {
         final Server<Message, Integer, Message> gs = spawnGenServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
             public Integer handleCall(ActorRef<Integer> from, Object id, Message m) {
-                ServerActor.currentGenServer().shutdown();
+                ServerActor.currentServerActor().shutdown();
                 return m.a + m.b;
             }
         });
@@ -157,7 +157,7 @@ public class GenServerTest {
         Server<Message, Integer, Message> gs = spawnGenServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
             public Integer handleCall(ActorRef<Integer> from, Object id, Message m) {
-                ServerActor.currentGenServer().shutdown();
+                ServerActor.currentServerActor().shutdown();
                 return m.a + m.b;
             }
         });
@@ -176,7 +176,7 @@ public class GenServerTest {
             public Integer handleCall(ActorRef<Integer> from, Object id, Message m) throws SuspendExecution {
                 try {
                     Strand.sleep(50);
-                    ServerActor.currentGenServer().shutdown();
+                    ServerActor.currentServerActor().shutdown();
                     return m.a + m.b;
                 } catch (InterruptedException ex) {
                     System.out.println("?????: " + Arrays.toString(ex.getStackTrace()));

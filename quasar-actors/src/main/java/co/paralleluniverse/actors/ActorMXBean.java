@@ -33,12 +33,12 @@ public interface ActorMXBean {
     int getQueueLength();
 
     /**
-     * The number of times this actor has been restarted by a {@link SupervisorActor}.
+     * The number of times this actor has been restarted by a {@link co.paralleluniverse.actors.behaviors.SupervisorActor SupervisorActor}.
      */
     int getRestarts();
 
     /**
-     * The latest few death-causes for this actor (relevant if it's been restarted by a {@link SupervisorActor}.
+     * The latest few death-causes for this actor (relevant if it's been restarted by a {@link co.paralleluniverse.actors.behaviors.SupervisorActor SupervisorActor}.
      */
     String[] getLastDeathCauses();
 

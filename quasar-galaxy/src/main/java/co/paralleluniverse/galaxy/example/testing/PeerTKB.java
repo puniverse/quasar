@@ -104,7 +104,7 @@ public class PeerTKB {
                         @Override
                         public void init() throws SuspendExecution {
                             super.init();
-                            ServerActor.currentGenServer().register("myServer");
+                            ServerActor.currentServerActor().register("myServer");
                         }
 
                         @Override
@@ -130,7 +130,7 @@ public class PeerTKB {
                     spawnGenEvent(new Initializer() {
                         @Override
                         public void init() throws SuspendExecution {
-                            EventSourceActor.currentGenEvent().register("myEventServer");
+                            EventSourceActor.currentEventSourceActor().register("myEventServer");
                             try {
                                 final EventSource<String> ge = ActorRef.self();
                                 ge.addHandler(new EventHandler<String>() {
@@ -221,9 +221,9 @@ public class PeerTKB {
 
                         @Override
                         public void init() throws SuspendExecution {
-                            EventSourceActor.currentGenEvent().register("myEventServer");
+                            EventSourceActor.currentEventSourceActor().register("myEventServer");
                             try {
-                                EventSourceActor<String> ge = EventSourceActor.currentGenEvent();
+                                EventSourceActor<String> ge = EventSourceActor.currentEventSourceActor();
                                 ge.ref().addHandler(new EventHandler<String>() {
                                     @Override
                                     public void handleEvent(String event) {
