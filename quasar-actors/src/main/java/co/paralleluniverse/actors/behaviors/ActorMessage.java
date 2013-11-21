@@ -14,7 +14,7 @@
 package co.paralleluniverse.actors.behaviors;
 
 /**
- *
+ * A class extended by all standard actor messages in this package.
  * @author pron
  */
 public abstract class ActorMessage implements java.io.Serializable {

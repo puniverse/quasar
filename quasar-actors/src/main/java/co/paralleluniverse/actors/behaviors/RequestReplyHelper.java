@@ -31,12 +31,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
+ * This class contains static methods that implement a request-reply pattern with actors. These methods can be used to communicate with
+ * actors by other actors, or even by non-actor strands.
  *
  * @author pron
  */
-public class RequestReplyHelper {
+public final class RequestReplyHelper {
     private static final ThreadLocal<Long> defaultTimeout = new ThreadLocal<Long>();
 
+    /**
+     * Generates a random, probably unique, message identifier. This method simply calls {@link ActorUtil#randtag() }.
+     *
+     * @return
+     */
     public static Object makeId() {
         return ActorUtil.randtag();
     }
@@ -48,13 +55,84 @@ public class RequestReplyHelper {
             defaultTimeout.set(unit.toNanos(timeout));
     }
 
+    /**
+     * Returns an {@link ActorRef} that should be used as the <i>from</i> property of a {@link RequestMessage}. If called
+     * from an actor strand, this method returns the current actor. If not, it creates a temporary faux-actor that will be used internally
+     * to receive the response, even if the current strand is not running an actor.
+     *
+     * @param <Message>
+     * @return an {@link ActorRef} that should be used as the <i>from</i> property of a request, even if not called from within an actor.
+     */
     public static <Message> ActorRef<Message> from() {
-        return getCurrentActor(); // new TempActor<Message>(getCurrentActor());
+        return getCurrentActor();
     }
 
+    /**
+     * Sends a request message to an actor, awaits a response value and returns it. 
+     * This method can be called by any code, even non-actor code.
+     * If the actor responds with an error message, a {@link RuntimeException} will be thrown by this method.
+     * <br/>
+     * The message's {@code id} and {@code from} properties may be left unset.
+     * <p/>
+     * This method should be used as in the following example (assuming a {@code String} return value:
+     * <pre> {@code
+     * String res = call(actor, new MyRequest());
+     * }</pre>
+     * In the example, {@code MyRequest} extends {@link RequestMessage}. Note how the result of the {@link #from() from} method is passed to the
+     * request's constructor, but the message ID isn't.
+     *
+     * @param <V>
+     * @param actor the actor to which the request is sent
+     * @param m     the {@link RequestMessage}, whose {@code id} and {@code from} properties may be left unset.
+     * @return the value sent by the actor as a response
+     * @throws RuntimeException     if the actor responds with an error message, its contained exception will be thrown, possible wrapped by a {@link RuntimeException}.
+     * @throws InterruptedException
+     */
+    public static <V> V call(ActorRef actor, RequestMessage m) throws InterruptedException, SuspendExecution {
+        Long timeout = null;
+        try {
+            timeout = defaultTimeout.get();
+            if (timeout != null)
+                return call(actor, m, timeout, TimeUnit.NANOSECONDS);
+            else
+                return call(actor, m, 0, null);
+        } catch (TimeoutException ex) {
+            if (timeout != null)
+                throw new RuntimeException(ex);
+            else
+                throw new AssertionError(ex);
+        }
+    }
+
+    /**
+     * Sends a request message to an actor, awaits a response value (but no longer than the given timeout) and returns it. 
+     * This method can be called by any code, even non-actor code.
+     * If the actor responds with an error message, a {@link RuntimeException} will be thrown by this method.
+     * <br/>
+     * The message's {@code id} and {@code from} properties may be left unset.
+     * <p/>
+     * This method should be used as in the following example (assuming a {@code String} return value:
+     * <pre> {@code
+     * String res = call(actor, new MyRequest());
+     * }</pre>
+     * In the example, {@code MyRequest} extends {@link RequestMessage}. Note how the result of the {@link #from() from} method is passed to the
+     * request's constructor, but the message ID isn't.
+     *
+     * @param <V>
+     * @param actor   the actor to which the request is sent
+     * @param timeout the maximum duration to wait for a response
+     * @param unit    the time unit of the timeout
+     * @return the value sent by the actor as a response
+     * @throws RuntimeException     if the actor responds with an error message, its contained exception will be thrown, possible wrapped by a {@link RuntimeException}.
+     * @throws TimeoutException     if the timeout expires before a response is received from the actor.
+     * @throws InterruptedException
+     */
     public static <V> V call(final ActorRef actor, RequestMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
         assert !actor.equals(ActorRef.self()) : "Can't \"call\" self - deadlock guaranteed";
-        
+
+        if (m.getFrom() == null)
+            m.setFrom(from());
+
         final Actor currentActor;
         if (m.getFrom() instanceof TempActor)
             currentActor = ((TempActor<?>) m.getFrom()).actor.get();
@@ -93,33 +171,37 @@ public class RequestReplyHelper {
 
             if (response instanceof ErrorResponseMessage)
                 throw Exceptions.rethrow(((ErrorResponseMessage) response).getError());
-            return ((ValueResponseMessage<V>)response).getValue();
+            return ((ValueResponseMessage<V>) response).getValue();
         } finally {
             if (m.getFrom() instanceof TempActor)
                 ((TempActor) m.getFrom()).done();
         }
     }
 
-    public static <V> V call(ActorRef actor, RequestMessage m) throws InterruptedException, SuspendExecution {
-        Long timeout = null;
-        try {
-            timeout = defaultTimeout.get();
-            if (timeout != null)
-                return call(actor, m, timeout, TimeUnit.NANOSECONDS);
-            else
-                return call(actor, m, 0, null);
-        } catch (TimeoutException ex) {
-            if (timeout != null)
-                throw new RuntimeException(ex);
-            else
-                throw new AssertionError(ex);
-        }
-    }
-
+    /**
+     * Replies with a result to a {@link RequestMessage}.
+     * If the request has been sent by a call to {@link #call(ActorRef, RequestMessage) call}, the
+     * {@code result} argument will be the value returned by {@link #call(ActorRef, RequestMessage) call}.
+     * This method should only be called by an actor.
+     *
+     * @param req    the request we're responding to
+     * @param result the result of the request
+     * @throws SuspendExecution
+     */
     public static <V> void reply(RequestMessage req, V result) throws SuspendExecution {
         req.getFrom().send(new ValueResponseMessage<V>(req.getId(), result));
     }
 
+    /**
+     * Replies with an exception to a {@link RequestMessage}.
+     * If the request has been sent by a call to {@link #call(ActorRef, RequestMessage) call}, the
+     * {@code e} argument will be the exception thrown by {@link #call(ActorRef, RequestMessage) call} (possibly wrapped by a {@link RuntimeException}).
+     * This method should only be called by an actor.
+     *
+     * @param req the request we're responding to
+     * @param e   the error the request has caused
+     * @throws SuspendExecution
+     */
     public static <V> void replyError(RequestMessage req, Throwable e) throws SuspendExecution {
         req.getFrom().send(new ErrorResponseMessage(req.getId(), e));
     }
@@ -207,7 +289,8 @@ public class RequestReplyHelper {
                 return a.trySend(message);
             return true;
         }
-        
-        
+    }
+
+    private RequestReplyHelper() {
     }
 }

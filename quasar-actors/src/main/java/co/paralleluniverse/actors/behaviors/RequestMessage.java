@@ -17,42 +17,90 @@ import co.paralleluniverse.actors.ActorRef;
 import java.beans.ConstructorProperties;
 
 /**
+ * A message that contains a sender reference (the {@code from} property} and a unique identifier (the {@code id} property) and may be used
+ * as a request by {@link RequestReplyHelper#call(ActorRef, RequestMessage) RequestReplyHelper.call()}.
  *
  * @author pron
  */
 public abstract class RequestMessage extends ActorMessage implements FromMessage, IdMessage {
-    private final ActorRef from;
+    private ActorRef from;
     private Object id;
 
+    /**
+     * Constructs a new {@code RequestMessage}.
+     * If the message is sent via {@link RequestReplyHelper#call(ActorRef, RequestMessage) RequestReplyHelper.call()}, both argument may be set to {@code null},
+     * or, preferably, the {@link #RequestMessage() default constructor} should be used instead.
+     *
+     * @param from the actor sending the request. Usually you should pass the result of {@link RequestReplyHelper#from() }.
+     * @param id   a unique message identifier. Usually you should pass the result of {@link RequestReplyHelper#makeId() }.
+     */
     @ConstructorProperties({"from", "id"})
     public RequestMessage(ActorRef<?> from, Object id) {
         this.from = from;
         this.id = id;
     }
 
+    /**
+     * Constructs a new {@code RequestMessage}.<br/>
+     * <i>This constructor may only be used if the message is to be sent via {@link RequestReplyHelper#call(ActorRef, RequestMessage) RequestReplyHelper.call()}<i>
+     *
+     * @param from the actor sending the request. Usually you should pass the result of {@link RequestReplyHelper#from() }.
+     */
     @ConstructorProperties({"from"})
     public RequestMessage(ActorRef<?> from) {
         this.from = from;
         this.id = null;
     }
 
+    /**
+     * Constructs a new {@code RequestMessage}.<br/>
+     * <i>This constructor may only be used if the message is to be sent via {@link RequestReplyHelper#call(ActorRef, RequestMessage) RequestReplyHelper.call()}<i>
+     *
+     * @param id a unique message identifier. Usually you should pass the result of {@link RequestReplyHelper#makeId() }.
+     */
+    @ConstructorProperties({"id"})
+    public RequestMessage(Object id) {
+        this.from = null;
+        this.id = id;
+    }
+
+    /**
+     * Constructs a new {@code RequestMessage}.<br/>
+     * <i>This constructor may only be used if the message is to be sent via {@link RequestReplyHelper#call(ActorRef, RequestMessage) RequestReplyHelper.call()}<i>
+     */
+    public RequestMessage() {
+        this.from = null;
+        this.id = null;
+    }
+
+    /**
+     * The actor that sent the request.
+     */
     @Override
     public ActorRef getFrom() {
         return from;
     }
 
     /**
+     * A unique message identifier.
+     */
+    @Override
+    public Object getId() {
+        return id;
+    }
+
+    /**
      * Called only by RequestReplyHelper
-     *
-     * @param id
      */
     void setId(Object id) {
         this.id = id;
     }
 
-    @Override
-    public Object getId() {
-        return id;
+    /**
+     * Called only by RequestReplyHelper
+     */
+    void setFrom(ActorRef from) {
+        this.from = from;
     }
 
     @Override

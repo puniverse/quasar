@@ -209,6 +209,9 @@ A monitored actor (either as a result of it being registered or of having called
 
 Erlang's designers have realized that many actors follow some common patterns - like an actor that receives requests for work and then sends back a result to the requester. They've turned those patterns into actor templates, called behaviors, in order to save poeple work and avoid some common errors. Erlang serves as the main inspiration to Quasar Actors, so some of these behaviors have been ported to Quasar. 
 
+### ServerActor and RequestReplyHelper
+
+
 {% comment %}
 
 All behaviors (gen-server, gen-event and supervisors) support the `shutdown!` function, which requests an orderly shutdown of the actor:

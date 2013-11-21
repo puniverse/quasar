@@ -16,9 +16,13 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.actors.ActorRef;
 
 /**
+ * An actor message that identifies its sender
  *
  * @author pron
  */
 public interface FromMessage {
+    /**
+     * The actor that sent the message.
+     */
     ActorRef<?> getFrom();
 }
