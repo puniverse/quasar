@@ -154,7 +154,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             if (target instanceof Stranded)
                 ((Stranded) target).setStrand(this);
         } else if (!isInstrumented(this.getClass())) {
-            throw new IllegalArgumentException("Fiber class " + this.getClass() + " has not been instrumented.");
+            throw new IllegalArgumentException("Fiber class " + this.getClass().getName() + " has not been instrumented.");
         }
 
         final Thread currentThread = Thread.currentThread();
