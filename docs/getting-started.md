@@ -68,6 +68,7 @@ First, setup the [maven-dependency-plugin](http://maven.apache.org/plugins/maven
      </executions>
 </plugin>
 ~~~ xml
+
 Later on, use the property it sets [as documented here](http://maven.apache.org/plugins/maven-dependency-plugin/properties-mojo.html) with the form:
 
 ~~~
