@@ -258,10 +258,11 @@
 </span><span id="line-10">        <span class="nt">&lt;/execution&gt;</span>
 </span><span id="line-11">     <span class="nt">&lt;/executions&gt;</span>
 </span><span id="line-12"><span class="nt">&lt;/plugin&gt;</span>
-</span><span id="line-13">~~~ xml
-</span><span id="line-14">Later on, use the property it sets [as documented here](http://maven.apache.org/plugins/maven-dependency-plugin/properties-mojo.html) with the form:
-</span></code></pre></div><p>groupId:artifactId:type:[classifier]&nbsp;~~~</p>
+</span></code></pre></div>
+<p>Later on, use the property it sets <a href="http://maven.apache.org/plugins/maven-dependency-plugin/properties-mojo.html">as documented here</a> with the&nbsp;form:</p>
 
+<pre><code>groupId:artifactId:type:[classifier]
+</code></pre>
 <p>like&nbsp;so</p>
 
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;argument&gt;</span>-javaagent:${co.paralleluniverse:quasar-core:jar}<span class="nt">&lt;/argument&gt;</span>
