@@ -17,10 +17,18 @@ import java.util.ArrayList;
 import java.util.ServiceLoader;
 
 /**
+ * A utility class for loading services with {@link ServiceLoader}.
  *
  * @author pron
  */
 public final class ServiceUtil {
+    /**
+     * Loads a service of the given type and ensures it has either one implementation or none.
+     *
+     * @param type The service's type.
+     * @return The service implementation if found, or {@code null} if not.
+     * @throws Error if more than one implementation of the service have been found.
+     */
     public static <T> T loadSingletonServiceOrNull(Class<T> type) {
         final ServiceLoader<T> loader = ServiceLoader.load(type);
 
@@ -38,9 +46,16 @@ public final class ServiceUtil {
         }
     }
 
+    /**
+     * Loads a service of the given type and ensures it has exactly one implementation.
+     *
+     * @param type The service's type.
+     * @return The service implementation.
+     * @throws Error if no implementation has been found or if more than one implementation of the service have been found.
+     */
     public static <T> T loadSingletonService(Class<T> type) {
         final T service = loadSingletonServiceOrNull(type);
-        if(service == null)
+        if (service == null)
             throw new Error("No implementation of " + type.getName() + " found!");
         return service;
     }

@@ -48,6 +48,15 @@ public final class RequestReplyHelper {
         return ActorUtil.randtag();
     }
 
+    /**
+     * Sets a default timeout for non-timed {@link #call(ActorRef, RequestMessage) call}s on this strand. Non-timed calls that take longer
+     * than the default timeout, will throw a {@link TimeoutException} wrapped in a {@link RuntimeException}.
+     * <p/>
+     * This method only affects the current strand.
+     *
+     * @param timeout the timeout duration
+     * @param unit    the time unit of the timeout, or {@code null} to unset.
+     */
     public static void setDefaultTimeout(long timeout, TimeUnit unit) {
         if (unit == null)
             defaultTimeout.remove();
@@ -85,7 +94,8 @@ public final class RequestReplyHelper {
      * @param actor the actor to which the request is sent
      * @param m     the {@link RequestMessage}, whose {@code id} and {@code from} properties may be left unset.
      * @return the value sent by the actor as a response
-     * @throws RuntimeException     if the actor responds with an error message, its contained exception will be thrown, possible wrapped by a {@link RuntimeException}.
+     * @throws RuntimeException     if the actor responds with an error message, its contained exception will be thrown, possibly wrapped by a {@link RuntimeException},
+     *                              or if a {@link #setDefaultTimeout(long, TimeUnit) default timeout} has been set and has expired.
      * @throws InterruptedException
      */
     public static <V> V call(ActorRef actor, RequestMessage m) throws InterruptedException, SuspendExecution {
@@ -123,7 +133,7 @@ public final class RequestReplyHelper {
      * @param timeout the maximum duration to wait for a response
      * @param unit    the time unit of the timeout
      * @return the value sent by the actor as a response
-     * @throws RuntimeException     if the actor responds with an error message, its contained exception will be thrown, possible wrapped by a {@link RuntimeException}.
+     * @throws RuntimeException     if the actor responds with an error message, its contained exception will be thrown, possibly wrapped by a {@link RuntimeException}.
      * @throws TimeoutException     if the timeout expires before a response is received from the actor.
      * @throws InterruptedException
      */
@@ -201,7 +211,7 @@ public final class RequestReplyHelper {
      * This method should only be called by an actor.
      * <p/>
      * Internally this method uses an {@link ErrorResponseMessage} to send the reply.
-     * 
+     *
      * @param req the request we're responding to
      * @param e   the error the request has caused
      * @throws SuspendExecution
