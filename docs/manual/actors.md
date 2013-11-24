@@ -209,8 +209,43 @@ A monitored actor (either as a result of it being registered or of having called
 
 Erlang's designers have realized that many actors follow some common patterns - like an actor that receives requests for work and then sends back a result to the requester. They've turned those patterns into actor templates, called behaviors, in order to save poeple work and avoid some common errors. Erlang serves as the main inspiration to Quasar Actors, so some of these behaviors have been ported to Quasar. 
 
-### ServerActor and RequestReplyHelper
+### RequestReplyHelper
 
+A very common pattern that emerges when working with patterns is request-response, whereby a *request* message is sent to an actor, and a *response* is sent back to the sender of the request. While simple, some care must be taken to ensure that the response is matched with the correct request. 
+
+This behavior is implemented for you in the [`RequestReplyHelper`]({{javadoc}}/actors/behaviors/RequestReplyHelper.html) class (in the `co.paralleluniverse.actors.behaviors` package). 
+
+To use it, the request message must extend [`co.paralleluniverse.actors.behaviors.RequestMessage`]({{javadoc}}/actors/behaviors/RequestMessage.html). Suppose we have a `IsDivisibleBy` message class that extends `RequestMessage`. We can interact with a divisor-checking actor like so:
+
+~~~ java
+boolean result = RequestReplyHelper.call(actor, new IsDivisibleBy(100, 50));
+~~~
+
+And define the actor thus:
+
+~~~ java
+ActorRef<IsDivisibleBy> actor = new Actor<IsDivisibleBy, Void>(null, null) {
+    protected Void doRun() {
+        for(;;) {
+            IsDivisibleBy msg = receive();
+            try {
+                boolean result = (msg.getNumber() % msg.getDivisor() == 0);
+                RequestReplyHelper.reply(msg, result);
+            } catch (ArithmeticException e) {
+                RequestReplyHelper.replyError(msg, e);
+            }
+        }
+    }
+}.spawn();
+~~~
+
+In the case of an `ArithmeticException` (if the divisor is 0), the exception will be thrown by `RequestReplyHelper.call`. 
+
+One of the nicest things about the `RequestReplyHelper` class, is that the code calling `call` does not have to be an actor. It can be called by a regular thread (or fiber). This is achieved by the `call` method creating a temporary virtual actor, that will receive the reply message.
+
+### Behavior Actors
+
+### ServerActor
 
 {% comment %}
 
