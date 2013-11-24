@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.fibers.SuspendExecution;
 
 /**
