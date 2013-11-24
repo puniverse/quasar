@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.WorkListEntry;
 import java.io.File;
 import java.io.FileInputStream;
@@ -46,6 +47,8 @@ public final class QuasarInstrumentor {
 
     boolean shouldInstrument(String className) {
         className = className.replace('.', '/');
+        if (className.startsWith("co/paralleluniverse/fibers/instrument/") && !Debug.isUnitTest())
+            return false;
         if (className.startsWith("org/objectweb/asm/"))
             return false;
         if (className.startsWith("org/netbeans/lib/"))
