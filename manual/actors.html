@@ -391,7 +391,39 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <p>Erlang’s designers have realized that many actors follow some common patterns - like an actor that receives requests for work and then sends back a result to the requester. They’ve turned those patterns into actor templates, called behaviors, in order to save poeple work and avoid some common errors. Erlang serves as the main inspiration to Quasar Actors, so some of these behaviors have been ported to&nbsp;Quasar. </p>
 
-<h3 id="serveractor-and-requestreplyhelper">ServerActor and&nbsp;RequestReplyHelper</h3>
+<h3 id="requestreplyhelper">RequestReplyHelper</h3>
+
+<p>A very common pattern that emerges when working with patterns is request-response, whereby a <em>request</em> message is sent to an actor, and a <em>response</em> is sent back to the sender of the request. While simple, some care must be taken to ensure that the response is matched with the correct&nbsp;request. </p>
+
+<p>This behavior is implemented for you in the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/RequestReplyHelper.html"><code>RequestReplyHelper</code></a> class (in the <code>co.paralleluniverse.actors.behaviors</code>&nbsp;package). </p>
+
+<p>To use it, the request message must extend <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/RequestMessage.html"><code>co.paralleluniverse.actors.behaviors.RequestMessage</code></a>. Suppose we have a <code>IsDivisibleBy</code> message class that extends <code>RequestMessage</code>. We can interact with a divisor-checking actor like&nbsp;so:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="kt">boolean</span> <span class="n">result</span> <span class="o">=</span> <span class="n">RequestReplyHelper</span><span class="o">.</span><span class="na">call</span><span class="o">(</span><span class="n">actor</span><span class="o">,</span> <span class="k">new</span> <span class="n">IsDivisibleBy</span><span class="o">(</span><span class="mi">100</span><span class="o">,</span> <span class="mi">50</span><span class="o">));</span>
+</span></code></pre></div>
+<p>And define the actor&nbsp;thus:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="n">ActorRef</span><span class="o">&lt;</span><span class="n">IsDivisibleBy</span><span class="o">&gt;</span> <span class="n">actor</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Actor</span><span class="o">&lt;</span><span class="n">IsDivisibleBy</span><span class="o">,</span> <span class="n">Void</span><span class="o">&gt;(</span><span class="kc">null</span><span class="o">,</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span id="line-2">    <span class="kd">protected</span> <span class="n">Void</span> <span class="nf">doRun</span><span class="o">()</span> <span class="o">{</span>
+</span><span id="line-3">        <span class="k">for</span><span class="o">(;;)</span> <span class="o">{</span>
+</span><span id="line-4">            <span class="n">IsDivisibleBy</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">receive</span><span class="o">();</span>
+</span><span id="line-5">            <span class="k">try</span> <span class="o">{</span>
+</span><span id="line-6">                <span class="kt">boolean</span> <span class="n">result</span> <span class="o">=</span> <span class="o">(</span><span class="n">msg</span><span class="o">.</span><span class="na">getNumber</span><span class="o">()</span> <span class="o">%</span> <span class="n">msg</span><span class="o">.</span><span class="na">getDivisor</span><span class="o">()</span> <span class="o">==</span> <span class="mi">0</span><span class="o">);</span>
+</span><span id="line-7">                <span class="n">RequestReplyHelper</span><span class="o">.</span><span class="na">reply</span><span class="o">(</span><span class="n">msg</span><span class="o">,</span> <span class="n">result</span><span class="o">);</span>
+</span><span id="line-8">            <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">ArithmeticException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span id="line-9">                <span class="n">RequestReplyHelper</span><span class="o">.</span><span class="na">replyError</span><span class="o">(</span><span class="n">msg</span><span class="o">,</span> <span class="n">e</span><span class="o">);</span>
+</span><span id="line-10">            <span class="o">}</span>
+</span><span id="line-11">        <span class="o">}</span>
+</span><span id="line-12">    <span class="o">}</span>
+</span><span id="line-13"><span class="o">}.</span><span class="na">spawn</span><span class="o">();</span>
+</span></code></pre></div>
+<p>In the case of an <code>ArithmeticException</code> (if the divisor is 0), the exception will be thrown by&nbsp;<code>RequestReplyHelper.call</code>. </p>
+
+<p>One of the nicest things about the <code>RequestReplyHelper</code> class, is that the code calling <code>call</code> does not have to be an actor. It can be called by a regular thread (or fiber). This is achieved by the <code>call</code> method creating a temporary virtual actor, that will receive the reply&nbsp;message.</p>
+
+<h3 id="behavior-actors">Behavior&nbsp;Actors</h3>
+
+<h3 id="serveractor">ServerActor</h3>
 
 </div>
 
