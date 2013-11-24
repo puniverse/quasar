@@ -241,7 +241,7 @@ ActorRef<IsDivisibleBy> actor = new Actor<IsDivisibleBy, Void>(null, null) {
 
 In the case of an `ArithmeticException` (if the divisor is 0), the exception will be thrown by `RequestReplyHelper.call`. 
 
-One of the nicest things about the `RequestReplyHelper` class, is that the code calling `call` does not have to be an actor. It can be called by a regular thread (or fiber). This is achieved by the `call` method creating a temporary virtual actor, that will receive the reply message.
+One of the nicest things about the `RequestReplyHelper` class, is that the code calling `call` does not have to be an actor. It can be called by a regular thread (or fiber). But if you examine the code of the `reply` method, you'll see that it simply sends a response message to the request's sender, which is an actor. This is achieved by the `call` method creating a temporary virtual actor, that will receive the reply message.
 
 ### Behavior Actors
 
