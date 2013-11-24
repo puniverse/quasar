@@ -12,7 +12,7 @@ In this version, clustering is pretty rudimentary, but essential features should
 
 ## Enabling Clustering
 
-First, you will need to add the `co.paralleluniverse:quasar-galaxy` artifact as a dependency to your project:
+First, you will need to add the `co.paralleluniverse:quasar-galaxy` artifact as a dependency to your project, and set some Galaxy cluster properties. At the very least you will need to set `"galaxy.nodeId"`, which will have to be a different `short` value for each master node. If you're running several nodes on the same machine, you will also need to set `"galaxy.port"` and `"galaxy.slave_port"`. These properties can be set in several ways. The simplest is to define them as JVM system properties (as `-D` command line arguments).However, you can also set them in the Galaxy configuration XML files or in a properties file. Please refer to the [Galaxy documentation](http://puniverse.github.io/galaxy/) for more detail
 
 Then, to make an actor discoverable cluster-wide, all you need to do is register it with the [`register`]({{javadoc}}/actors/Actor.html#register()) method of the `Actor` class.
 
