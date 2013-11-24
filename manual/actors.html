@@ -58,13 +58,6 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/getting-started.html">
                 Getting Started
@@ -108,8 +101,22 @@
             </li>
           
         
+          
+          
+            
+          
+          
+          
+        
       
         <li class="nav-header">User Manual</li>
+        
+          
+          
+            
+          
+          
+          
         
           
           
@@ -123,13 +130,6 @@
               </a>
               
             </li>
-          
-        
-          
-          
-            
-          
-          
           
         
           
@@ -168,19 +168,19 @@
           
           
           
-            <li>
-              <a  href="/quasar/manual/examples.html">
-                Examples
-              </a>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a  href="/quasar/manual/examples.html">
+                Examples
+              </a>
+              
+            </li>
           
         
       
@@ -419,7 +419,7 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 </span></code></pre></div>
 <p>In the case of an <code>ArithmeticException</code> (if the divisor is 0), the exception will be thrown by&nbsp;<code>RequestReplyHelper.call</code>. </p>
 
-<p>One of the nicest things about the <code>RequestReplyHelper</code> class, is that the code calling <code>call</code> does not have to be an actor. It can be called by a regular thread (or fiber). This is achieved by the <code>call</code> method creating a temporary virtual actor, that will receive the reply&nbsp;message.</p>
+<p>One of the nicest things about the <code>RequestReplyHelper</code> class, is that the code calling <code>call</code> does not have to be an actor. It can be called by a regular thread (or fiber). But if you examine the code of the <code>reply</code> method, you’ll see that it simply sends a response message to the request’s sender, which is an actor. This is achieved by the <code>call</code> method creating a temporary virtual actor, that will receive the reply&nbsp;message.</p>
 
 <h3 id="behavior-actors">Behavior&nbsp;Actors</h3>
 
