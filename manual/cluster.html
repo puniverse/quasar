@@ -58,19 +58,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/getting-started.html">
                 Getting Started
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
           
@@ -117,19 +117,19 @@
           
           
           
-            <li>
-              <a  href="/quasar/manual/core.html">
-                Quasar Core
-              </a>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a  href="/quasar/manual/core.html">
+                Quasar Core
+              </a>
+              
+            </li>
           
         
           
@@ -211,7 +211,7 @@
 
 <h2 id="enabling-clustering">Enabling&nbsp;Clustering</h2>
 
-<p>First, you will need to add the <code>co.paralleluniverse:quasar-galaxy</code> artifact as a dependency to your&nbsp;project:</p>
+<p>First, you will need to add the <code>co.paralleluniverse:quasar-galaxy</code> artifact as a dependency to your project, and set some Galaxy cluster properties. At the very least you will need to set <code>"galaxy.nodeId"</code>, which will have to be a different <code>short</code> value for each master node. If you&#8217;re running several nodes on the same machine, you will also need to set <code>"galaxy.port"</code> and <code>"galaxy.slave_port"</code>. These properties can be set in several ways. The simplest is to define them as <span class="caps">JVM</span> system properties (as <code>-D</code> command line arguments).However, you can also set them in the Galaxy configuration <span class="caps">XML</span> files or in a properties file. Please refer to the <a href="http://puniverse.github.io/galaxy/">Galaxy documentation</a> for more&nbsp;detail</p>
 
 <p>Then, to make an actor discoverable cluster-wide, all you need to do is register it with the <a href="/actors/Actor.html#register()"><code>register</code></a> method of the <code>Actor</code>&nbsp;class.</p>
 
