@@ -58,21 +58,21 @@
           
           
           
-            <li>
-              <a class="active" href="/quasar/getting-started.html">
-                Getting Started
-              </a>
-              
-              <ul class="nav nav-list"><li><a href="#system-requirements">System&nbsp;requirements</a></li><li><a href="#maven">Using&nbsp;Maven</a></li><li><a href="#build">Building&nbsp;Quasar</a></li></ul>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a class="active" href="/quasar/getting-started.html">
+                Getting Started
+              </a>
+              
+              <ul class="nav nav-list"><li><a href="#system-requirements">System&nbsp;requirements</a></li><li><a href="#maven">Using&nbsp;Maven</a></li><li><a href="#running-the-instrumentation-java-agent">Running the Instrumentation Java&nbsp;Agent</a></li><li><a href="#build">Building&nbsp;Quasar</a></li></ul>
+              
+            </li>
           
         
           
@@ -119,19 +119,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/manual/core.html">
                 Quasar Core
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
           
@@ -234,9 +234,57 @@
 </span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.3.0<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
-<p>Then, the following must be added to the java command line (or use your favorite build tool to add this as a <span class="caps">JVM</span>&nbsp;argument):</p>
+<h2 id="running-the-instrumentation-java-agent">Running the Instrumentation Java&nbsp;Agent</h2>
+
+<p>The following must be added to the java command line (or use your favorite build tool to add this as a <span class="caps">JVM</span>&nbsp;argument):</p>
 
 <div class="highlight"><pre><code><span id="line-1">-javaagent:path-to-quasar-jar.jar
+</span></code></pre></div>
+<h3 id="specifying-the-java-agent-with-maven">Specifying the Java Agent with&nbsp;Maven:</h3>
+
+<p>The best way to do this with Maven, as explained <a href="http://stackoverflow.com/questions/14777909/specify-javaagent-argument-with-maven-exec-plugin">here</a>,&nbsp;is:</p>
+
+<p>First, setup the <a href="http://maven.apache.org/plugins/maven-dependency-plugin/">maven-dependency-plugin</a> to always run the “properties”&nbsp;goal.</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;plugin&gt;</span>
+</span><span id="line-2">    <span class="nt">&lt;artifactId&gt;</span>maven-dependency-plugin<span class="nt">&lt;/artifactId&gt;</span>
+</span><span id="line-3">    <span class="nt">&lt;version&gt;</span>2.5.1<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;executions&gt;</span>
+</span><span id="line-5">        <span class="nt">&lt;execution&gt;</span>
+</span><span id="line-6">            <span class="nt">&lt;id&gt;</span>getClasspathFilenames<span class="nt">&lt;/id&gt;</span>
+</span><span id="line-7">            <span class="nt">&lt;goals&gt;</span>
+</span><span id="line-8">                <span class="nt">&lt;goal&gt;</span>properties<span class="nt">&lt;/goal&gt;</span>
+</span><span id="line-9">            <span class="nt">&lt;/goals&gt;</span>
+</span><span id="line-10">        <span class="nt">&lt;/execution&gt;</span>
+</span><span id="line-11">     <span class="nt">&lt;/executions&gt;</span>
+</span><span id="line-12"><span class="nt">&lt;/plugin&gt;</span>
+</span><span id="line-13">~~~ xml
+</span><span id="line-14">Later on, use the property it sets [as documented here](http://maven.apache.org/plugins/maven-dependency-plugin/properties-mojo.html) with the form:
+</span></code></pre></div><p>groupId:artifactId:type:[classifier]&nbsp;~~~</p>
+
+<p>like&nbsp;so</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;argument&gt;</span>-javaagent:${co.paralleluniverse:quasar-core:jar}<span class="nt">&lt;/argument&gt;</span>
+</span></code></pre></div>
+<h3 id="specifying-the-java-agent-with-gradle">Specifying the Java Agent with&nbsp;Gradle</h3>
+
+<p>The way to do this with Gradle is as follows. Add a <code>quasar</code> configuration to your <code>build.gradle</code>&nbsp;file:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="n">configurations</span> <span class="o">{</span>
+</span><span id="line-2">    <span class="c1">// ...</span>
+</span><span id="line-3">    <span class="n">quasar</span>
+</span><span id="line-4"><span class="o">}</span>
+</span></code></pre></div>
+<p>In your dependencies block, add (where <code>VERSION</code> stands for the Quasar&nbsp;version):</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="n">dependencies</span> <span class="o">{</span>
+</span><span id="line-2">    <span class="c1">// ....</span>
+</span><span id="line-3">    <span class="n">quasar</span>  <span class="s2">&quot;co.paralleluniverse:quasar-core:VERSION&quot;</span>
+</span><span id="line-4"><span class="o">}</span>
+</span></code></pre></div>
+<p>Finally, in your <code>run</code> task (or any task of type <code>JavaExec</code> or <code>Test</code>), add the system&nbsp;property:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="n">jvmArgs</span> <span class="s2">&quot;-javaagent:${configurations.quasar.iterator().next()}&quot;</span>
 </span></code></pre></div>
 <h2 id="build">Building&nbsp;Quasar</h2>
 
