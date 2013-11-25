@@ -58,19 +58,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/getting-started.html">
                 Getting Started
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
           
@@ -117,6 +117,13 @@
           
           
           
+        
+          
+          
+            
+          
+          
+          
             <li>
               <a  href="/quasar/manual/core.html">
                 Quasar Core
@@ -131,19 +138,12 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a class="active" href="/quasar/manual/actors.html">
                 Quasar's Actor System
               </a>
               
-              <ul class="nav nav-list"><li></li><li><a href="#error-handling">Error&nbsp;Handling</a></li><li><a href="#registering-actors">Registering&nbsp;Actors</a></li><li><a href="#monitoring-actors">Monitoring&nbsp;Actors</a></li><li><a href="#behaviors">Behaviors</a></li></ul>
+              <ul class="nav nav-list"><li></li><li><a href="#error-handling">Error&nbsp;Handling</a></li><li><a href="#registering-actors">Registering&nbsp;Actors</a></li><li><a href="#monitoring-actors">Monitoring&nbsp;Actors</a></li><li><a href="#behaviors">Behaviors</a></li><li><a href="#supervisors">Supervisors</a></li></ul>
               
             </li>
           
@@ -423,7 +423,19 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <h3 id="behavior-actors">Behavior&nbsp;Actors</h3>
 
+<p>Similarly to Erlang, Quasar includes “actor templates” for some common actor behaviors, called <em>behavior actors</em>. Their functionality is separated in two: the implementations, which extend <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/BehaviorActor.html"><code>BehaviorActor</code></a> and standardize handling of standard messages, and the interfaces, which extend <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/Behavior.html"><code>Behavior</code></a> (which, in turn, extends <code>ActorRef</code>), and include additional methods to those of <code>ActorRef</code>. It’s important to note that those interface methods do nothing more than assist in the creation and sending of said standard messages to the actor implementation. They employ no new&nbsp;construct.</p>
+
+<p>By itself, <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/BehaviorActor.html"><code>BehaviorActor</code></a> provides handling for <a href="/quasar/javadoc/co/paralleluniverse/actors/ShutdownMessage.html"><code>ShutdownMessage</code></a>, which, as its name suggests, requests an actor to shut itself down, along with the accompanying <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/Behavior.html#shutdown()"><code>shutdown</code></a> method in the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/Behavior.html"><code>Behavior</code></a> class (the “interface” side). In addition, <code>BehaviorActor</code> defines standard initialization and termination methods which may be overriden. You should consult the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/BehaviorActor.html">Javadoc</a> for more&nbsp;detail.</p>
+
 <h3 id="serveractor">ServerActor</h3>
+
+<h3 id="eventsourceactor">EventSourceActor</h3>
+
+<h3 id="supervisoractor">SupervisorActor</h3>
+
+<p>The last behavior actor, the <em>supervisor</em> deserves a separate chapter of its&nbsp;own.</p>
+
+<h2 id="supervisors">Supervisors</h2>
 
 </div>
 
