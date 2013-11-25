@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- *
+ * A general behavior-actor interface
  * @author pron
  */
 public class Behavior extends ActorRefDelegate<Object> implements java.io.Serializable {
@@ -33,6 +33,9 @@ public class Behavior extends ActorRefDelegate<Object> implements java.io.Serial
         super(actor);
     }
 
+    /**
+     * Asks this actor to shut down. Works by sending a {@link ShutdownMessage} via {@link ActorUtil#sendOrInterrupt(ActorRef, Object) ActorUtil.sendOrInterrupt}.
+     */
     public void shutdown() {
         final ShutdownMessage message = new ShutdownMessage(ActorRef.self());
         ActorUtil.sendOrInterrupt(ref, message);

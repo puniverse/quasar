@@ -64,6 +64,11 @@ public class EventSourceActor<Event> extends BehaviorActor {
     public EventSource<Event> spawn() {
         return (EventSource<Event>) super.spawn();
     }
+
+    @Override
+    public EventSource<Event> spawnThread() {
+        return (EventSource<Event>) super.spawnThread();
+    }
     //</editor-fold>
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">

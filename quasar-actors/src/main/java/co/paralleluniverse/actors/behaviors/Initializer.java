@@ -16,10 +16,12 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.fibers.SuspendExecution;
 
 /**
+ * Wraps code that can be run by a {@link BehaviorActor behavior} upon actor initialization and termination.
  *
  * @author pron
  */
 public interface Initializer {
     void init() throws InterruptedException, SuspendExecution;
+
     void terminate(Throwable cause) throws SuspendExecution;
 }

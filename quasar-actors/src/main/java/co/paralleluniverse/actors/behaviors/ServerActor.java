@@ -65,8 +65,13 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
     public Server<CallMessage, V, CastMessage> spawn() {
         return (Server<CallMessage, V, CastMessage>) super.spawn();
     }
+
+    @Override
+    public Server<CallMessage, V, CastMessage> spawnThread() {
+        return (Server<CallMessage, V, CastMessage>) super.spawnThread();
+    }
     //</editor-fold>
-    
+
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
     public ServerActor(String name, ServerHandler<CallMessage, V, CastMessage> server, MailboxConfig mailboxConfig) {

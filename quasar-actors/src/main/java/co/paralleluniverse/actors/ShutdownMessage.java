@@ -13,11 +13,10 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.actors.*;
 import java.util.Objects;
 
 /**
- *
+ * A message requesting the receiving actor to shut itself down.
  * @author pron
  */
 public class ShutdownMessage implements LifecycleMessage {
@@ -28,6 +27,9 @@ public class ShutdownMessage implements LifecycleMessage {
         this.requester = requestor;
     }
 
+    /**
+     * The actor requesting the shutdown (or {@code null} if requesting code isn't an actor.
+     */
     public ActorRef getRequester() {
         return requester;
     }

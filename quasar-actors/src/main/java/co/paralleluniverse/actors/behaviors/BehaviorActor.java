@@ -25,6 +25,8 @@ import co.paralleluniverse.strands.Strand;
 import org.slf4j.Logger;
 
 /**
+ * A general behavior-actor class, extended by all behaviors.
+ * This provides standard, sane, actor lifecycle methods, as well as other useful services (like a logger object).
  *
  * @author pron
  */
@@ -64,6 +66,11 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
     public Behavior spawn() {
         return (Behavior) super.spawn();
     }
+
+    @Override
+    public Behavior spawnThread() {
+        return (Behavior) super.spawnThread();
+    }
     //</editor-fold>
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
@@ -101,6 +108,9 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
     }
     //</editor-fold>
 
+    /**
+     * Causes this actor to shut down.
+     */
     protected void shutdown() {
         verifyInActor();
         log().debug("Shutdown requested.");
@@ -108,31 +118,60 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
         getStrand().interrupt();
     }
 
+    /**
+     * The {@link Initializer initializer} passed at construction which performs initialization and termination.
+     */
     protected Initializer getInitializer() {
         return initializer;
     }
 
+    /**
+     * This method is called by the {@link BehaviorActor} at the beginning of {@link #doRun()}.
+     * By default, this method calls {@link #init()}.
+     */
     protected void onStart() throws InterruptedException, SuspendExecution {
         init();
     }
 
+    /**
+     * This method is called by the {@link BehaviorActor} at the end of {@link #doRun()}.
+     * By default, this method calls {@link #terminate(Throwable) terminate()}.
+     */
     protected void onTerminate(Throwable cause) throws InterruptedException, SuspendExecution {
         log().info("{} shutting down.", this);
         terminate(cause);
     }
 
+    /**
+     * Called by {@link #onStart() onStart} to initialize the actor. By default, this method calls {@link #getInitializer() initializer}.{@link Initializer#init() init()}
+     * if the initializer in non-null; otherwise it does nothing.
+     */
     protected void init() throws InterruptedException, SuspendExecution {
         if (initializer != null)
             initializer.init();
     }
 
+    /**
+     * Called by {@link #onTerminate(Throwable) onTerminate} to terminate the actor. By default, this method calls {@link #getInitializer() initializer}.{@link Initializer#terminate(java.lang.Throwable) terminate}
+     * if the initializer in non-null; otherwise it does nothing.
+     */
     protected void terminate(Throwable cause) throws SuspendExecution {
         if (initializer != null)
             initializer.terminate(cause);
     }
 
+    /**
+     * The {@link Logger} object associated with this actor.
+     */
     public abstract Logger log();
 
+    /**
+     * Called by {@link #doRun()} as the body of the logic. By default, this implementation runs code similar to:
+     * <pre> {@code
+     *   while (isRunning())
+     *       handleMessage(receive());
+     * }</pre>
+     */
     protected void behavior() throws InterruptedException, SuspendExecution {
         while (isRunning()) {
             final Object m1 = receive();
@@ -140,6 +179,12 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
         }
     }
 
+    /**
+     * Called by the default {@link #behavior()} method to handle each incoming message.
+     * By default, this method does nothing.
+     *
+     * @param message the message received by the actor.
+     */
     protected void handleMessage(Object message) throws InterruptedException, SuspendExecution {
     }
 
@@ -147,6 +192,31 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
         return run;
     }
 
+    /**
+     * {@inheritDoc}
+     * <p/>
+     * This implementation calls {@link #onStart()} when it begins, {@link #behavior()} for the body, and
+     * {@link #onTerminate(Throwable) onTerminate()} upon termination. The implementation runs code similar to the following:
+     * <pre> {@code
+     *   try {
+     *       onStart();
+     *       behavior();
+     *   } catch (InterruptedException e) {
+     *       if (shutdownCalled) {
+     *           onTerminate(null);
+     *           return null;
+     *       } else {
+     *           onTerminate(e);
+     *           throw e;
+     *       }
+     *   } catch (Exception e) {
+     *       log().info("Exception!", e);
+     *       onTerminate(e);
+     *       throw Exceptions.rethrow(e);
+     *   }
+     *   onTerminate(null);
+     * }</pre>
+     */
     @Override
     protected Void doRun() throws InterruptedException, SuspendExecution {
         try {
@@ -170,6 +240,11 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     * <p/>
+     * This implementation respects {@link ShutdownMessage} and, upon receiving it, calls {@link #shutdown() shutdown()}.
+     */
     @Override
     protected Object handleLifecycleMessage(LifecycleMessage m) {
         if (m instanceof ShutdownMessage)

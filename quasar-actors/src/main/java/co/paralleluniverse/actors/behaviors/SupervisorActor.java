@@ -110,8 +110,13 @@ public class SupervisorActor extends BehaviorActor {
     public Supervisor spawn() {
         return (Supervisor) super.spawn();
     }
+
+    @Override
+    public Supervisor spawnThread() {
+        return (Supervisor) super.spawnThread();
+    }
     //</editor-fold>
-    
+
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
     public SupervisorActor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy) {
@@ -165,9 +170,9 @@ public class SupervisorActor extends BehaviorActor {
     //</editor-fold>
 
     public static SupervisorActor currentSupervisor() {
-        return (SupervisorActor)Actor.<Object, Void>currentActor();
+        return (SupervisorActor) Actor.<Object, Void>currentActor();
     }
-    
+
     @Override
     public Logger log() {
         return LOG;
