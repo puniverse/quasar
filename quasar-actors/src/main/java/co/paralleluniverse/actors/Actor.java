@@ -81,7 +81,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
     private final Set<ActorRefImpl> observed = Collections.newSetFromMap(new ConcurrentHashMapV8<ActorRefImpl, Boolean>());
     private volatile V result;
-    private volatile RuntimeException exception;
+    private volatile Throwable exception;
     private volatile Throwable deathCause;
     private volatile Object globalId;
     private volatile ActorMonitor monitor;
@@ -163,7 +163,9 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      * @return This actors' ActorRef
      */
     public ActorRef<Message> spawnThread() {
-        new Thread(Strand.toRunnable(this), getName()).start();
+        Thread t = (getName() != null ? new Thread(Strand.toRunnable(this), getName()) : new Thread(Strand.toRunnable(this)));
+        setStrand(Strand.of(t));
+        t.start();
         return ref();
     }
 
@@ -465,11 +467,17 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     @Override
     public final V get() throws InterruptedException, ExecutionException {
-        if (strand instanceof Fiber)
-            return ((Fiber<V>) strand).get();
+        final Strand s = strand;
+        if (s == null)
+            throw new IllegalStateException("Actor strand not set (not started?)");
+        if (s instanceof Fiber)
+            return ((Fiber<V>) s).get();
         else {
-            strand.join();
-            return result;
+            s.join();
+            if (exception == null)
+                return result;
+            else
+                throw new ExecutionException(exception);
         }
     }
 
@@ -479,7 +487,10 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             return ((Fiber<V>) strand).get(timeout, unit);
         else {
             strand.join(timeout, unit);
-            return result;
+            if (exception == null)
+                return result;
+            else
+                throw new ExecutionException(exception);
         }
     }
 
@@ -542,7 +553,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         } catch (InterruptedException e) {
             if (this.exception != null) {
                 die(exception);
-                throw exception;
+                throw (RuntimeException) exception;
             }
             die(e);
             throw e;
@@ -551,11 +562,12 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
                 InterruptedException ie = (InterruptedException) t.getCause();
                 if (this.exception != null) {
                     die(exception);
-                    throw exception;
+                    throw (RuntimeException) exception;
                 }
                 die(ie);
                 throw ie;
             }
+            this.exception = t;
             die(t);
             throw t;
         } finally {
@@ -642,7 +654,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         if (exception != null) {
             record(1, "Actor", "checkThrownIn", "%s detected thrown in exception %s", this, exception);
             exception.setStackTrace(new Throwable().getStackTrace());
-            throw exception;
+            throw (RuntimeException) exception;
         }
     }
 

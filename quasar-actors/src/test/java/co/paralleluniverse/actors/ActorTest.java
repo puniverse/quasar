@@ -42,7 +42,6 @@ public class ActorTest {
     public static void beforeClass() {
         Debug.dumpAfter(10000);
     }
-    
     static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channels.OverflowPolicy.THROW);
     private FiberScheduler scheduler;
 
@@ -65,13 +64,32 @@ public class ActorTest {
 
     @Test
     public void whenActorThrowsExceptionThenGetThrowsIt() throws Exception {
-
         Actor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
             @Override
             protected Integer doRun() throws SuspendExecution, InterruptedException {
                 throw new RuntimeException("foo");
             }
         });
+
+        try {
+            actor.get();
+            fail();
+        } catch (ExecutionException e) {
+            assertThat(e.getCause(), instanceOf(RuntimeException.class));
+            assertThat(e.getCause().getMessage(), is("foo"));
+        }
+    }
+
+    @Test
+    public void whenActorThrowsExceptionThenGetThrowsItThreadActor() throws Exception {
+        Actor<Message, Integer> actor = new BasicActor<Message, Integer>(mailboxConfig) {
+            @Override
+            protected Integer doRun() throws SuspendExecution, InterruptedException {
+                throw new RuntimeException("foo");
+            }
+        };
+
+        actor.spawnThread();
 
         try {
             actor.get();
@@ -95,6 +113,20 @@ public class ActorTest {
     }
 
     @Test
+    public void whenActorReturnsValueThenGetReturnsItThreadActor() throws Exception {
+        Actor<Message, Integer> actor = new BasicActor<Message, Integer>(mailboxConfig) {
+            @Override
+            protected Integer doRun() throws SuspendExecution, InterruptedException {
+                return 42;
+            }
+        };
+
+        actor.spawnThread();
+
+        assertThat(actor.get(), is(42));
+    }
+
+    @Test
     public void testReceive() throws Exception {
         ActorRef<Message> actor = new BasicActor<Message, Integer>(mailboxConfig) {
             @Override
@@ -103,6 +135,21 @@ public class ActorTest {
                 return m.num;
             }
         }.spawn();
+
+        actor.send(new Message(15));
+
+        assertThat(LocalActorUtil.<Integer>get(actor), is(15));
+    }
+
+    @Test
+    public void testReceiveThreadActor() throws Exception {
+        ActorRef<Message> actor = new BasicActor<Message, Integer>(mailboxConfig) {
+            @Override
+            protected Integer doRun() throws SuspendExecution, InterruptedException {
+                Message m = receive();
+                return m.num;
+            }
+        }.spawnThread();
 
         actor.send(new Message(15));
 
@@ -119,6 +166,24 @@ public class ActorTest {
                 return m1.num + m2.num;
             }
         }.spawn();
+
+        actor.send(new Message(25));
+        Thread.sleep(200);
+        actor.send(new Message(17));
+
+        assertThat(LocalActorUtil.<Integer>get(actor), is(42));
+    }
+
+    @Test
+    public void testReceiveAfterSleepThreadActor() throws Exception {
+        ActorRef<Message> actor = new BasicActor<Message, Integer>(mailboxConfig) {
+            @Override
+            protected Integer doRun() throws SuspendExecution, InterruptedException {
+                Message m1 = receive();
+                Message m2 = receive();
+                return m1.num + m2.num;
+            }
+        }.spawnThread();
 
         actor.send(new Message(25));
         Thread.sleep(200);
