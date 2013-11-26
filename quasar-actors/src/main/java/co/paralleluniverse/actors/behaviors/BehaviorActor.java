@@ -83,34 +83,77 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
+    /**
+     * Creates a new behavior actor.
+     *
+     * @param name          the actor name (may be {@code null}).
+     * @param initializer   an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
+     * @param mailboxConfig this actor's mailbox settings.
+     */
     public BehaviorActor(String name, Initializer initializer, MailboxConfig mailboxConfig) {
         this(name, initializer, null, mailboxConfig);
     }
 
+    /**
+     * Creates a new behavior actor.
+     *
+     * @param name        the actor name (may be {@code null}).
+     * @param initializer an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
+     */
     public BehaviorActor(String name, Initializer initializer) {
         this(name, initializer, null, null);
     }
 
+    /**
+     * Creates a new behavior actor.
+     *
+     * @param initializer   an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
+     * @param mailboxConfig this actor's mailbox settings.
+     */
     public BehaviorActor(Initializer initializer, MailboxConfig mailboxConfig) {
         this(null, initializer, null, mailboxConfig);
     }
 
+    /**
+     * Creates a new behavior actor.
+     *
+     * @param initializer an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
+     */
     public BehaviorActor(Initializer initializer) {
         this(null, initializer, null, null);
     }
 
+    /**
+     * Creates a new behavior actor.
+     *
+     * @param name          the actor name (may be {@code null}).
+     * @param mailboxConfig this actor's mailbox settings.
+     */
     public BehaviorActor(String name, MailboxConfig mailboxConfig) {
         this(name, null, null, mailboxConfig);
     }
 
+    /**
+     * Creates a new behavior actor.
+     *
+     * @param name the actor name (may be {@code null}).
+     */
     public BehaviorActor(String name) {
         this(name, null, null, null);
     }
 
+    /**
+     * Creates a new behavior actor.
+     *
+     * @param mailboxConfig this actor's mailbox settings.
+     */
     public BehaviorActor(MailboxConfig mailboxConfig) {
         this(null, null, null, mailboxConfig);
     }
 
+    /**
+     * Creates a new behavior actor.
+     */
     public BehaviorActor() {
         this(null, null, null, null);
     }

@@ -245,13 +245,28 @@ One of the nicest things about the `RequestReplyHelper` class, is that the code 
 
 ### Behavior Actors
 
-Similarly to Erlang, Quasar includes "actor templates" for some common actor behaviors, called *behavior actors*. Their functionality is separated in two: the implementations, which extend [`BehaviorActor`]({{javadoc}}/actors/behaviors/BehaviorActor.html) and standardize handling of standard messages, and the interfaces, which extend [`Behavior`]({{javadoc}}/actors/behaviors/Behavior.html) (which, in turn, extends `ActorRef`), and include additional methods to those of `ActorRef`. It's important to note that those interface methods do nothing more than assist in the creation and sending of said standard messages to the actor implementation. They employ no new construct.
+Similarly to Erlang, Quasar includes "actor templates" for some common actor behaviors, called *behavior actors*. Their functionality is separated in two: the implementation, which extends [`BehaviorActor`]({{javadoc}}/actors/behaviors/BehaviorActor.html) and standardize handling of standard messages, and the interface, which extends [`Behavior`]({{javadoc}}/actors/behaviors/Behavior.html) (which, in turn, extends `ActorRef`), and includes additional methods to those of `ActorRef`. It's important to note that those interface methods do nothing more than assist in the creation and sending of said standard messages to the actor implementation. They employ no new construct.
 
 By itself, [`BehaviorActor`]({{javadoc}}/actors/behaviors/BehaviorActor.html) provides handling for [`ShutdownMessage`]({{javadoc}}/actors/ShutdownMessage.html), which, as its name suggests, requests an actor to shut itself down, along with the accompanying [`shutdown`]({{javadoc}}/actors/behaviors/Behavior.html#shutdown()) method in the [`Behavior`]({{javadoc}}/actors/behaviors/Behavior.html) class (the "interface" side). In addition, `BehaviorActor` defines standard initialization and termination methods which may be overriden. You should consult the [Javadoc]({{javadoc}}/actors/behaviors/BehaviorActor.html) for more detail.
 
-### ServerActor
+### Server
 
-### EventSourceActor
+The *server* behavior is an actor that implements a request-reply model. The behavior implementation is found in [`ServerActor`]({{javadoc}}/actors/behaviors/ServerActor.html), and the interface is [`Server`]({{javadoc}}/actors/behaviors/Server.html).
+
+You can implement a server actor by subclassing `ServerActor` and overriding the some or all of the methods:
+ 
+* init
+* terminate 
+* handleCall
+* handleCast
+* handleInfo
+* handleTimeout
+
+or by providing an instance of [`ServerHandler`]({{javadoc}}/actors/behaviors/ServerHandler.html) which implements these methods to the `ServerActor` constructor. Please consult the `ServerActor` [JavaDoc]({{javadoc}}/actors/behaviors/ServerActor.html) for details.
+
+The interface, [`Server`]({{javadoc}}/actors/behaviors/Server.html), adds additional methods to `ActorRef`, such as `call` and `cast`, that allow sending synchronous (a request that waits for a response) or asynchronous (a request that does not wait for a response) requests to the server actor.
+
+### EventSource
 
 ### SupervisorActor
 

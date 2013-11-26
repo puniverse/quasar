@@ -26,6 +26,12 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A {@link BehaviorActor behavior} implementing a <i>server<i/> that responds to request messages.
+ * The {@code ServerActor}'s behavior is implemented by either 1) subclassing this class and overriding some or all of:
+ * {@link #init() init}, {@link #terminate(java.lang.Throwable) terminate}, 
+ * {@link #handleCall(ActorRef, Object, Object) handleCall}, {@link #handleCast(ActorRef, Object, Object) handleCast},
+ * {@link #handleInfo(Object) handleInfo}, and {@link #handleTimeout() handleTimeout};
+ * or 2) providing an instance of {@link ServerHandler} which implements these methods to the constructor.
+ * 
  *
  * @author pron
  */
@@ -34,14 +40,6 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
     private TimeUnit timeoutUnit;
     private long timeout;
 
-    /**
-     * Creates a new behavior actor.
-     *
-     * @param name          the actor name (may be {@code null}).
-     * @param initializer   an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
-     * @param strand        this actor's strand.
-     * @param mailboxConfig this actor's mailbox settings.
-     */
     /**
      * Creates a new server actor
      *
@@ -93,34 +91,77 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
+    /**
+     * Creates a new server actor
+     *
+     * @param name          the actor name (may be {@code null}).
+     * @param server        an optional delegate object that implements this server actor's behavior if this class is not subclassed. May be {@code null}.
+     * @param mailboxConfig this actor's mailbox settings.
+     */
     public ServerActor(String name, ServerHandler<CallMessage, V, CastMessage> server, MailboxConfig mailboxConfig) {
         this(name, server, -1, null, null, mailboxConfig);
     }
 
+    /**
+     * Creates a new server actor
+     *
+     * @param name   the actor name (may be {@code null}).
+     * @param server an optional delegate object that implements this server actor's behavior if this class is not subclassed. May be {@code null}.
+     */
     public ServerActor(String name, ServerHandler<CallMessage, V, CastMessage> server) {
         this(name, server, -1, null, null, null);
     }
 
+    /**
+     * Creates a new server actor
+     *
+     * @param server        an optional delegate object that implements this server actor's behavior if this class is not subclassed. May be {@code null}.
+     * @param mailboxConfig this actor's mailbox settings.
+     */
     public ServerActor(ServerHandler<CallMessage, V, CastMessage> server, MailboxConfig mailboxConfig) {
         this(null, server, -1, null, null, mailboxConfig);
     }
 
+    /**
+     * Creates a new server actor
+     *
+     * @param server an optional delegate object that implements this server actor's behavior if this class is not subclassed. May be {@code null}.
+     */
     public ServerActor(ServerHandler<CallMessage, V, CastMessage> server) {
         this(null, server, -1, null, null, null);
     }
 
+    /**
+     * Creates a new server actor
+     *
+     * @param name          the actor name (may be {@code null}).
+     * @param mailboxConfig this actor's mailbox settings.
+     */
     public ServerActor(String name, MailboxConfig mailboxConfig) {
         this(name, null, -1, null, null, mailboxConfig);
     }
 
+    /**
+     * Creates a new server actor
+     *
+     * @param name the actor name (may be {@code null}).
+     */
     public ServerActor(String name) {
         this(name, null, -1, null, null, null);
     }
 
+    /**
+     * Creates a new server actor
+     *
+     * @param mailboxConfig this actor's mailbox settings.
+     */
     public ServerActor(MailboxConfig mailboxConfig) {
         this(null, null, -1, null, null, mailboxConfig);
     }
 
+    /**
+     * Creates a new server actor
+     */
     public ServerActor() {
         this(null, null, -1, null, null, null);
     }
