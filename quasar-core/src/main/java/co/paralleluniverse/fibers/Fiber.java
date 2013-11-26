@@ -982,20 +982,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     protected void onException(Throwable t) {
-        if (uncaughtExceptionHandler != null) {
-            try {
+        try {
+            if (uncaughtExceptionHandler != null)
                 uncaughtExceptionHandler.uncaughtException(this, t);
-            } catch (Exception e) {
-                // ignore
-            }
-        } else if (defaultUncaughtExceptionHandler != null)
-            try {
+            else if (defaultUncaughtExceptionHandler != null)
                 defaultUncaughtExceptionHandler.uncaughtException(this, t);
-            } catch (Exception e) {
-                // ignore
-            }
-        else
-            throw Exceptions.rethrow(t);
+        } catch (Exception e) {
+        }
+        throw Exceptions.rethrow(t);
     }
 
     @Override
@@ -1230,6 +1224,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      *           handler. If <tt>null</tt> then this fiber has no explicit handler.
      * @see #setDefaultUncaughtExceptionHandler
      */
+    @Override
     public final void setUncaughtExceptionHandler(UncaughtExceptionHandler uncaughtExceptionHandler) {
         this.uncaughtExceptionHandler = uncaughtExceptionHandler;
     }
@@ -1238,6 +1233,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * Returns the handler invoked when this fiber abruptly terminates
      * due to an uncaught exception.
      */
+    @Override
     public final UncaughtExceptionHandler getUncaughtExceptionHandler() {
         return uncaughtExceptionHandler;
     }
