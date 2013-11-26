@@ -1,12 +1,9 @@
 co.paralleluniverse.actors
 co.paralleluniverse.actors.behaviors
-co.paralleluniverse.concurrent.util
 co.paralleluniverse.data.record
 co.paralleluniverse.fibers
 co.paralleluniverse.fibers.futures
 co.paralleluniverse.fibers.io
-co.paralleluniverse.io.serialization
-co.paralleluniverse.io.serialization.kryo
 co.paralleluniverse.strands
 co.paralleluniverse.strands.channels
 co.paralleluniverse.strands.concurrent
