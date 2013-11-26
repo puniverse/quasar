@@ -40,7 +40,7 @@ Or, build from sources by running:
 
 ## Usage
 
-The documentation for Qusar can be found [here](http://puniverse.github.io/quasar/). It is currently very incomplete, but we're working on it.
+The documentation for Qusar can be found [here](http://puniverse.github.io/quasar/). It is almost incomplete, and we're working on improving it.
 
 You can also study the examples [here](https://github.com/puniverse/quasar/tree/master/quasar-actors/src/test/java/co/paralleluniverse/actors).
 
@@ -51,28 +51,6 @@ When running code that uses Quasar, the instrumentation agent must be run by add
 ```
 -javaagent:path-to-quasar-jar.jar
 ```
-
-## Running the Distributed Examples
-
-There are a few examples of distributed actors in the [example package](https://github.com/puniverse/quasar/tree/master/quasar-galaxy/src/main/java/co/paralleluniverse/galaxy/example).
-You can run them after cloning the repository. 
-
-In order to run the ping pong example, start the Pong actor by:
-```
-./gradlew :quasar-galaxy:run -PmainClass=co.paralleluniverse.galaxy.example.pingpong.Pong
-```
-Start the Ping actor in a different terminal by:
-```
-./gradlew :quasar-galaxy:run -PmainClass=co.paralleluniverse.galaxy.example.pingpong.Ping
-```
-
-To run the actors on different computers, change the following lines in the build.gradle file to the apropriate network configuration:
-```
-systemProperty "jgroups.bind_addr", "127.0.0.1"
-systemProperty "galaxy.multicast.address", "225.0.0.1"
-```
-
-You can similarly run the other examples in the [co.paralleluniverse.galaxy.example.simplegenevent](https://github.com/puniverse/quasar/tree/master/quasar-galaxy/src/main/java/co/paralleluniverse/galaxy/example/simplegenevent) and [co.paralleluniverse.galaxy.example.simplegenserver](https://github.com/puniverse/quasar/tree/master/quasar-galaxy/src/main/java/co/paralleluniverse/galaxy/example/simplegenserver) packages.
 
 ## Getting help
 
