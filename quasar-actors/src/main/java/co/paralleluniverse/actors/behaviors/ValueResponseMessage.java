@@ -16,7 +16,7 @@ package co.paralleluniverse.actors.behaviors;
 import java.beans.ConstructorProperties;
 
 /**
- * A simple subclass of {@link ResponseMessage} that contains a single response value.
+ * A simple subclass of {@link ResponseMessage} that encapsulates a single response value.
  *
  * @author pron
  */

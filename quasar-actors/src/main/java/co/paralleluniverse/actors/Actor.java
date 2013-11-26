@@ -92,8 +92,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     /**
      * Creates a new actor.
      *
-     * @param name          The actor's name (may be {@code null}).
-     * @param mailboxConfig Actor's mailbox settings.
+     * @param name          the actor name (may be {@code null}).
+     * @param mailboxConfig the actor's mailbox settings.
      */
     @SuppressWarnings({"OverridableMethodCallInConstructor", "LeakingThisInConstructor"})
     public Actor(String name, MailboxConfig mailboxConfig) {

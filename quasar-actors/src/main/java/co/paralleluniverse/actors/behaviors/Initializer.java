@@ -16,7 +16,7 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.fibers.SuspendExecution;
 
 /**
- * Wraps code that can be run by a {@link BehaviorActor behavior} upon actor initialization and termination.
+ * A delegate object that can be used instead of subclassing {@link BehaviorActor} and overriding its methods.
  *
  * @author pron
  */

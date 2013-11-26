@@ -25,14 +25,29 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
+ * An interface to a {@link ServerActor}.
  *
  * @author pron
  */
 public class Server<CallMessage, V, CastMessage> extends Behavior {
+    /**
+     * If {@code actor} is known to be a {@link ServerActor}, creates a new {@link Server} interface to it.
+     *
+     * @param actor a {@link ServerActor}
+     */
     public Server(ActorRef<Object> actor) {
         super(actor);
     }
 
+    /**
+     * Sends a synchronous request to the actor, and awaits a response.
+     * <p/>
+     * This method may be safely called by actors and non-actor strands alike.
+     *
+     * @param m the request
+     * @return the value sent as a response from the actor
+     * @throws RuntimeException if the actor encountered an error while processing the request
+     */
     public final V call(CallMessage m) throws InterruptedException, SuspendExecution {
         try {
             return call(m, 0, null);
@@ -41,28 +56,44 @@ public class Server<CallMessage, V, CastMessage> extends Behavior {
         }
     }
 
+    /**
+     * Sends a synchronous request to the actor, and awaits a response, but no longer than the given timeout.
+     * <p/>
+     * This method may be safely called by actors and non-actor strands alike.
+     *
+     * @param m       the request
+     * @param timeout the maximum duration to wait for a response.
+     * @param unit    the time unit of the timeout
+     * @return the value sent as a response from the actor
+     * @throws RuntimeException if the actor encountered an error while processing the request
+     * @throws TimeoutException if the timeout expires before a response has been received.
+     */
     public final V call(CallMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
-        final V res = RequestReplyHelper.call(ref, new GenServerRequest(from(), null, MessageType.CALL, m), timeout, unit);
+        final V res = RequestReplyHelper.call(ref, new ServerRequest(from(), null, MessageType.CALL, m), timeout, unit);
         return res;
     }
 
+    /**
+     * Sends an asynchronous request to the actor and returns immediately (may block until there's room available in the actor's mailbox).
+     *
+     * @param m the request
+     */
     public final void cast(CastMessage m) throws SuspendExecution {
-        ref.send(new GenServerRequest(ActorRef.self(), makeId(), MessageType.CAST, m));
+        ref.send(new ServerRequest(ActorRef.self(), makeId(), MessageType.CAST, m));
     }
 
-    public static void cast(ActorRef server, Object m) throws SuspendExecution {
-        server.send(new GenServerRequest(ActorRef.self(), makeId(), MessageType.CAST, m));
-    }
-
+//    public static void cast(ActorRef server, Object m) throws SuspendExecution {
+//        server.send(new ServerRequest(ActorRef.self(), makeId(), MessageType.CAST, m));
+//    }
     enum MessageType {
         CALL, CAST
     };
 
-    static class GenServerRequest extends RequestMessage {
+    static class ServerRequest extends RequestMessage {
         private final MessageType type;
         private final Object message;
 
-        public GenServerRequest(ActorRef sender, Object id, MessageType type, Object message) {
+        public ServerRequest(ActorRef sender, Object id, MessageType type, Object message) {
             super(sender, id);
             this.type = type;
             this.message = message;

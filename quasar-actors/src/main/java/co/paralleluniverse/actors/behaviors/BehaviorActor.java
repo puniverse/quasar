@@ -25,7 +25,7 @@ import co.paralleluniverse.strands.Strand;
 import org.slf4j.Logger;
 
 /**
- * A general behavior-actor class, extended by all behaviors.
+ * A general behavior-actor class, extended by all behaviors. Behaviors are actor templates encapsulating common useful actor patterns.
  * This provides standard, sane, actor lifecycle methods, as well as other useful services (like a logger object).
  *
  * @author pron
@@ -34,6 +34,14 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
     private final Initializer initializer;
     private boolean run;
 
+    /**
+     * Creates a new behavior actor.
+     *
+     * @param name          the actor name (may be {@code null}).
+     * @param initializer   an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
+     * @param strand        this actor's strand.
+     * @param mailboxConfig this actor's mailbox settings.
+     */
     protected BehaviorActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
         super(strand, name, mailboxConfig);
         this.initializer = initializer;

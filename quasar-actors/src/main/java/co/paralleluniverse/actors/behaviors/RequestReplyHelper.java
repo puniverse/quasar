@@ -198,7 +198,6 @@ public final class RequestReplyHelper {
      *
      * @param req    the request we're responding to
      * @param result the result of the request
-     * @throws SuspendExecution
      */
     public static <V> void reply(RequestMessage req, V result) throws SuspendExecution {
         req.getFrom().send(new ValueResponseMessage<V>(req.getId(), result));
@@ -214,7 +213,6 @@ public final class RequestReplyHelper {
      *
      * @param req the request we're responding to
      * @param e   the error the request has caused
-     * @throws SuspendExecution
      */
     public static <V> void replyError(RequestMessage req, Throwable e) throws SuspendExecution {
         req.getFrom().send(new ErrorResponseMessage(req.getId(), e));
