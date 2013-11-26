@@ -19,12 +19,18 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * An {@link ActorRef} which delegates all operations to another {@code ActorRef}.
  *
  * @author pron
  */
 public abstract class ActorRefDelegate<Message> extends ActorRef<Message> implements SendPort<Message>, java.io.Serializable {
     protected final ActorRef<Message> ref;
 
+    /**
+     * Constructs an {@code ActorRefDelegate}
+     *
+     * @param ref the {@link ActorRef} to which all operations will be delegated
+     */
     public ActorRefDelegate(ActorRef<Message> ref) {
         this.ref = ref;
     }
@@ -64,12 +70,12 @@ public abstract class ActorRefDelegate<Message> extends ActorRef<Message> implem
     }
 
     public void sendOrInterrupt(Object message) {
-        if(ref instanceof ActorRefDelegate)
-            ((ActorRefDelegate)ref).sendOrInterrupt(message);
+        if (ref instanceof ActorRefDelegate)
+            ((ActorRefDelegate) ref).sendOrInterrupt(message);
         else
-            ((ActorRefImpl)ref).sendOrInterrupt(message);
+            ((ActorRefImpl) ref).sendOrInterrupt(message);
     }
-    
+
     @Override
     public void close() {
         ((SendPort<Message>) ref).close();

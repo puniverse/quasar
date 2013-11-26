@@ -632,10 +632,18 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         }
     }
 
+    /**
+     * Returns this actor's cause of death
+     * @return the {@link Throwable} that caused this actor's death, or {@code null} if it died by natural causes, or if it not dead.
+     */
     protected final Throwable getDeathCause() {
         return deathCause == NATURAL ? null : deathCause;
     }
 
+    /**
+     * Tests whether this actor has been {@link #register() registered}.
+     * @return {@code true} if the actor is registered; {@code false} otherwise.
+     */
     public final boolean isRegistered() {
         return globalId != null;
     }
@@ -783,6 +791,10 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return this;
     }
 
+    /**
+     * Called during this actor's death process.
+     * @param cause the cause of death; {@code null} for natural death.
+     */
     private void die(Throwable cause) {
         record(1, "Actor", "die", "Actor %s is dying of cause %s", this, cause);
         this.deathCause = (cause == null ? NATURAL : cause);

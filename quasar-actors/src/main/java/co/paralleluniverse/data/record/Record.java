@@ -19,14 +19,45 @@ import java.util.Set;
  * @author pron
  */
 public interface Record<R> {
+    /**
+     * Returns the record's {@link RecordType}.
+     *
+     * @return the record's {@link RecordType}
+     */
     RecordType<R> type();
 
+    /**
+     * Returns the record's fields.
+     *
+     * @return the record's fields.
+     */
     Set<Field<? super R, ?>> fields();
 
+    /**
+     * Serializes the record out to an {@link java.io.ObjectOutput}
+     *
+     * @param out
+     * @throws java.io.IOException
+     */
     void write(java.io.ObjectOutput out) throws java.io.IOException;
 
+    /**
+     * Reads the record's contents from a serialized form in an {@link java.io.ObjectInput}.
+     *
+     * @param in
+     * @throws java.io.IOException
+     */
     void read(java.io.ObjectInput in) throws java.io.IOException;
 
+    /**
+     * Reads the record's contents from a serialized form in an {@link java.io.ObjectInput}, only reading the first {@code numFields}
+     * fields from the stream. This is useful when dealing with reading a serialized form of a different version of the record, which has
+     * fields added.
+     *
+     * @param in
+     * @param numFields the number of fields to read from the stream
+     * @throws java.io.IOException
+     */
     void read(java.io.ObjectInput in, int numFields) throws java.io.IOException;
 
     <V> V get(Field<? super R, V> field);

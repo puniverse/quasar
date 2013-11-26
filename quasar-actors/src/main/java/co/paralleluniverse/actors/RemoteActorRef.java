@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * This class should be extended by implementations of remote actors.
  *
  * @author pron
  */
@@ -28,8 +29,8 @@ public class RemoteActorRef<Message> extends ActorRefImpl<Message> {
     private final transient ActorRefImpl<Message> actor;
 
     protected RemoteActorRef(ActorRef<Message> actor) {
-        super(actor.getName(), ((ActorRefImpl)actor).mailbox());
-        this.actor = (ActorRefImpl)actor;
+        super(actor.getName(), ((ActorRefImpl) actor).mailbox());
+        this.actor = (ActorRefImpl) actor;
     }
 
     protected void handleAdminMessage(RemoteActorAdminMessage msg) {
@@ -38,7 +39,7 @@ public class RemoteActorRef<Message> extends ActorRefImpl<Message> {
             actor.addLifecycleListener(((RemoteActorRegisterListenerAdminMessage) msg).getListener());
         } else if (msg instanceof RemoteActorUnregisterListenerAdminMessage) {
             RemoteActorUnregisterListenerAdminMessage unreg = (RemoteActorUnregisterListenerAdminMessage) msg;
-            if (unreg.getObserver()!= null)
+            if (unreg.getObserver() != null)
                 actor.removeObserverListeners(unreg.getObserver());
             else
                 actor.removeLifecycleListener(unreg.getListener());
@@ -71,7 +72,7 @@ public class RemoteActorRef<Message> extends ActorRefImpl<Message> {
 
     @Override
     protected void removeLifecycleListener(LifecycleListener listener) {
-        lifecycleListenerProxy.removeLifecycleListener(this,listener);
+        lifecycleListenerProxy.removeLifecycleListener(this, listener);
     }
 
     @Override

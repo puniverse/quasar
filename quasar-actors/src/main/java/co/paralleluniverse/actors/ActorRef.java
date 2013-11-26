@@ -19,6 +19,7 @@ import co.paralleluniverse.strands.channels.SendPort;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * An actor's external API (for use by code not part of the actor).
  *
  * @author pron
  */
@@ -57,9 +58,9 @@ public abstract class ActorRef<Message> implements SendPort<Message> {
      * If the channel is full, this method may block, throw an exception, silently drop the message, or displace an old message from
      * the channel. The behavior is determined by the channel's {@link OverflowPolicy OverflowPolicy}, set at construction time.
      *
-     * @param msg the message
+     * @param msg     the message
      * @param timeout the maximum duration this method is allowed to wait.
-     * @param unit the timeout's time unit
+     * @param unit    the timeout's time unit
      * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has elapsed.
      * @throws SuspendExecution
      */

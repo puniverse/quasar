@@ -368,6 +368,14 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
         "co/paralleluniverse/common/logging/**",
         "co/paralleluniverse/common/monitoring/**",
         "co/paralleluniverse/common/util/**",  
+        "co/paralleluniverse/actors/ActorMonitor.java",
+        "co/paralleluniverse/actors/GlobalRegistry.java",
+        "co/paralleluniverse/actors/JMXActorMonitor.java",
+        "co/paralleluniverse/actors/LifecycleListener.java",
+        "co/paralleluniverse/actors/LifecycleListenerProxy.java",
+        "co/paralleluniverse/actors/RemoteActorProxyFactoryService.java",
+        "co/paralleluniverse/actors/RemoteActorRef.java",
+        "co/paralleluniverse/actors/RemoteActorProxyFactory.java",
     ]
 }
 

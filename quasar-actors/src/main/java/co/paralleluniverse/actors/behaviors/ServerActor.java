@@ -27,11 +27,11 @@ import org.slf4j.LoggerFactory;
 /**
  * A {@link BehaviorActor behavior} implementing a <i>server<i/> that responds to request messages.
  * The {@code ServerActor}'s behavior is implemented by either 1) subclassing this class and overriding some or all of:
- * {@link #init() init}, {@link #terminate(java.lang.Throwable) terminate}, 
+ * {@link #init() init}, {@link #terminate(java.lang.Throwable) terminate},
  * {@link #handleCall(ActorRef, Object, Object) handleCall}, {@link #handleCast(ActorRef, Object, Object) handleCast},
  * {@link #handleInfo(Object) handleInfo}, and {@link #handleTimeout() handleTimeout};
  * or 2) providing an instance of {@link ServerHandler} which implements these methods to the constructor.
- * 
+ *
  *
  * @author pron
  */
@@ -282,8 +282,9 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * <p/>
      * Internally this method uses a {@link ValueResponseMessage} to send the reply.
      *
-     * @param req    the request we're responding to
-     * @param result the result of the request
+     * @param to    the actor we're responding to (the request's sender)
+     * @param id    the request's identifier
+     * @param value the result of the request
      */
     public final void reply(ActorRef to, Object id, V value) throws SuspendExecution {
         verifyInActor();
@@ -299,8 +300,9 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * <p/>
      * Internally this method uses an {@link ErrorResponseMessage} to send the reply.
      *
-     * @param req the request we're responding to
-     * @param e   the error the request has caused
+     * @param to    the actor we're responding to (the request's sender)
+     * @param id    the request's identifier
+     * @param error the error the request has caused
      */
     public final void replyError(ActorRef to, Object id, Throwable error) throws SuspendExecution {
         verifyInActor();
@@ -316,8 +318,6 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * @param from the sender of the request
      * @param id   the request's unique id
      * @param m    the request
-     * @return a value that will be sent as a response to the sender of the request, wrapped by a {@link ValueResponseMessage}.
-     * @throws Exception if thrown, it will be sent back to the sender of the request, wrapped by an {@link ErrorResponseMessage}.
      */
     protected void handleCast(ActorRef<V> from, Object id, CastMessage m) throws SuspendExecution {
         if (server() != null)

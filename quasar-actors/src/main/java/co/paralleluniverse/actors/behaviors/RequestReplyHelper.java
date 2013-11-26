@@ -42,7 +42,7 @@ public final class RequestReplyHelper {
     /**
      * Generates a random, probably unique, message identifier. This method simply calls {@link ActorUtil#randtag() }.
      *
-     * @return
+     * @return a newly allocated, probably unique, message identifier. 
      */
     public static Object makeId() {
         return ActorUtil.randtag();

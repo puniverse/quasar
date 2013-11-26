@@ -17,7 +17,7 @@ import co.paralleluniverse.actors.RemoteActorRef.RemoteActorRegisterListenerAdmi
 import co.paralleluniverse.actors.RemoteActorRef.RemoteActorUnregisterListenerAdminMessage;
 
 /**
- *
+ * Used by implementations of remote actors.
  * @author pron
  */
 abstract public class LifecycleListenerProxy {
