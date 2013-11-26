@@ -27,6 +27,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * A behavior actor that can be notified of *event* messages, which are delivered to *event handlers* which may be registered with the actor.
+ * The event handlers are called synchronously on the same strand as the actor's, so they may delay processing by other handlers if they block the strand.
  *
  * @author pron
  */
@@ -34,6 +36,14 @@ public class EventSourceActor<Event> extends BehaviorActor {
     private static final Logger LOG = LoggerFactory.getLogger(EventSourceActor.class);
     private final List<EventHandler<Event>> handlers = new ArrayList<>();
 
+    /**
+     * Creates a new event-source actor.
+     *
+     * @param name          the actor name (may be {@code null}).
+     * @param initializer   an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
+     * @param strand        this actor's strand.
+     * @param mailboxConfig this actor's mailbox settings.
+     */
     public EventSourceActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
         super(name, initializer, strand, mailboxConfig);
     }
@@ -73,34 +83,77 @@ public class EventSourceActor<Event> extends BehaviorActor {
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
+    /**
+     * Creates a new event-source actor.
+     *
+     * @param name          the actor name (may be {@code null}).
+     * @param initializer   an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
+     * @param mailboxConfig this actor's mailbox settings.
+     */
     public EventSourceActor(String name, Initializer initializer, MailboxConfig mailboxConfig) {
         this(name, initializer, null, mailboxConfig);
     }
 
+    /**
+     * Creates a new event-source actor.
+     *
+     * @param name          the actor name (may be {@code null}).
+     * @param initializer   an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
+     */
     public EventSourceActor(String name, Initializer initializer) {
         this(name, initializer, null, null);
     }
 
+    /**
+     * Creates a new event-source actor.
+     *
+     * @param initializer   an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
+     * @param mailboxConfig this actor's mailbox settings.
+     */
     public EventSourceActor(Initializer initializer, MailboxConfig mailboxConfig) {
         this(null, initializer, null, mailboxConfig);
     }
 
+    /**
+     * Creates a new event-source actor.
+     *
+     * @param initializer an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
+     */
     public EventSourceActor(Initializer initializer) {
         this(null, initializer, null, null);
     }
 
+    /**
+     * Creates a new event-source actor.
+     *
+     * @param name          the actor name (may be {@code null}).
+     * @param mailboxConfig this actor's mailbox settings.
+     */
     public EventSourceActor(String name, MailboxConfig mailboxConfig) {
         this(name, null, null, mailboxConfig);
     }
 
+    /**
+     * Creates a new event-source actor.
+     *
+     * @param name the actor name (may be {@code null}).
+     */
     public EventSourceActor(String name) {
         this(name, null, null, null);
     }
 
+    /**
+     * Creates a new event-source actor.
+     *
+     * @param mailboxConfig this actor's mailbox settings.
+     */
     public EventSourceActor(MailboxConfig mailboxConfig) {
         this(null, null, null, mailboxConfig);
     }
 
+    /**
+     * Creates a new event-source actor.
+     */
     public EventSourceActor() {
         this(null, null, null, null);
     }
