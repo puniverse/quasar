@@ -16,12 +16,24 @@ import co.paralleluniverse.common.util.DelegatingEquals;
 import java.util.Set;
 
 /**
+ * An abstract implementation of {@link Record}.
+ * <p/>
+ * For getters, this class always throws a {@link FieldNotFoundException}.<br/>
+ * For setters, this class tests if the field is in {@link #fields()}; if so – it throws a {@link ReadOnlyFieldException}, otherwise it throws a {@link FieldNotFoundException}.
+ * <p/>
+ * In addition, this class provides sensible implementations of {@link #toString() toString}, {@link #write(java.io.ObjectOutput) write} and {@link #read(java.io.ObjectInput) read}.
+ * Also, this class supports serialization.
  *
  * @author pron
  */
 public abstract class AbstractRecord<R> implements Record<R>, java.io.Serializable {
     public final RecordType<R> type;
 
+    /**
+     * Creates a record of the given {@link RecordType}.
+     *
+     * @param type this record's {@link RecordType type}.
+     */
     protected AbstractRecord(RecordType<R> type) {
         this.type = type;
     }
@@ -31,6 +43,11 @@ public abstract class AbstractRecord<R> implements Record<R>, java.io.Serializab
         return type;
     }
 
+    /**
+     * {@inheritDoc}
+     * <p/>
+     * This implementation returns this record's {@link #type() type}'s fields.
+     */
     @Override
     public Set<Field<? super R, ?>> fields() {
         return type.fields();
@@ -43,6 +60,11 @@ public abstract class AbstractRecord<R> implements Record<R>, java.io.Serializab
         return obj instanceof DelegatingEquals ? obj.equals(this) : obj == this;
     }
 
+    /**
+     * This implementation returns a string of all field names and their values.
+     *
+     * @return a string representation of this record
+     */
     @Override
     public String toString() {
         final StringBuffer sb = new StringBuffer();
@@ -425,7 +447,7 @@ public abstract class AbstractRecord<R> implements Record<R>, java.io.Serializab
     protected Object writeReplace() throws java.io.ObjectStreamException {
         return new SerializedRecord<>(this);
     }
-    
+
     @Override
     public <V> V get(Field<? super R, V> field) {
         return field.get(this);

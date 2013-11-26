@@ -13,6 +13,7 @@
 package co.paralleluniverse.data.record;
 
 /**
+ * Thrown by a {@link Record} when trying to set a field that is read-only.
  *
  * @author pron
  */

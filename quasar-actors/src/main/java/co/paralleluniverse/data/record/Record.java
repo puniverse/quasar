@@ -15,6 +15,8 @@ package co.paralleluniverse.data.record;
 import java.util.Set;
 
 /**
+ * A record made of some {@link Field}s with values.
+ * Field values are read and set with the {@code get(field}} and {@code set(field, value)} methods, respectively.
  *
  * @author pron
  */

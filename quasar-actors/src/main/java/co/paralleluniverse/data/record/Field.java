@@ -17,7 +17,10 @@ import java.lang.reflect.Array;
 import java.util.Objects;
 
 /**
+ * A {@link Record record}'s field.
  *
+ * @param <R> The {@link RecordType}
+ * @param <V> The field {@link #typeClass() type}.
  * @author pron
  */
 public abstract class Field<R, V> {
@@ -213,20 +216,34 @@ public abstract class Field<R, V> {
         this.flags = flags;
     }
 
+    /**
+     * The field's id. Ids are unique for fields of the same type in the same {@link RecordType}.
+     *
+     * @return the field's id
+     */
     public final int id() {
         if (id == -1)
             throw new UnsupportedOperationException("id not set");
         return id;
     }
 
+    /**
+     * The field's name
+     */
     public final String name() {
         return name;
     }
 
+    /**
+     * The field's flags.
+     */
     public int flags() {
         return flags;
     }
 
+    /**
+     * Whether or not the field is transient.
+     */
     public boolean isTransient() {
         return (flags & TRANSIENT) != 0;
     }
@@ -235,6 +252,9 @@ public abstract class Field<R, V> {
 
     abstract int size();
 
+    /**
+     * The field's type
+     */
     public abstract Class<?> typeClass();
 
     abstract void set(Record<? extends R> record, V value);
@@ -256,6 +276,12 @@ public abstract class Field<R, V> {
     }
 
     //////////////
+    /**
+     * Represents a scalar field
+     *
+     * @param <R> The {@link RecordType}
+     * @param <V> The field {@link #typeClass() type}.
+     */
     public static abstract class ScalarField<R, V> extends Field<R, V> {
         ScalarField(String name, int id, int flags) {
             super(name, id, flags);
@@ -272,7 +298,16 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * Represents an array field
+     *
+     * @param <R> The {@link RecordType}
+     * @param <V> The field {@link #typeClass() type}.
+     */
     public static abstract class ArrayField<R, V> extends Field<R, V[]> {
+        /**
+         * The array length
+         */
         public final int length;
 
         ArrayField(String name, int length, int id, int flags) {
@@ -312,6 +347,11 @@ public abstract class Field<R, V> {
     }
 
     ////////////////
+    /**
+     * A scalar {@code boolean} field
+     *
+     * @param <R> the record type
+     */
     public static final class BooleanField<R> extends ScalarField<R, Boolean> {
         BooleanField(String name, int id, int flags) {
             super(name, id, flags);
@@ -343,6 +383,11 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * A scalar {@code byte} field
+     *
+     * @param <R> the record type
+     */
     public static final class ByteField<R> extends ScalarField<R, Byte> {
         ByteField(String name, int id, int flags) {
             super(name, id, flags);
@@ -374,6 +419,11 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * A scalar {@code short} field
+     *
+     * @param <R> the record type
+     */
     public static final class ShortField<R> extends ScalarField<R, Short> {
         ShortField(String name, int id, int flags) {
             super(name, id, flags);
@@ -405,6 +455,11 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * A scalar {@code int} field
+     *
+     * @param <R> the record type
+     */
     public static final class IntField<R> extends ScalarField<R, Integer> {
         IntField(String name, int id, int flags) {
             super(name, id, flags);
@@ -436,6 +491,11 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * A scalar {@code long} field
+     *
+     * @param <R> the record type
+     */
     public static final class LongField<R> extends ScalarField<R, Long> {
         LongField(String name, int id, int flags) {
             super(name, id, flags);
@@ -467,6 +527,11 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * A scalar {@code flaot} field
+     *
+     * @param <R> the record type
+     */
     public static final class FloatField<R> extends ScalarField<R, Float> {
         FloatField(String name, int id, int flags) {
             super(name, id, flags);
@@ -498,6 +563,11 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * A scalar {@code double} field
+     *
+     * @param <R> the record type
+     */
     public static final class DoubleField<R> extends ScalarField<R, Double> {
         DoubleField(String name, int id, int flags) {
             super(name, id, flags);
@@ -529,6 +599,11 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * A scalar {@code char} field
+     *
+     * @param <R> the record type
+     */
     public static final class CharField<R> extends ScalarField<R, Character> {
         CharField(String name, int id, int flags) {
             super(name, id, flags);
@@ -560,6 +635,12 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * A scalar {@code Object} field
+     *
+     * @param <R> the record type
+     * @param <V> the field's type
+     */
     public static class ObjectField<R, V> extends ScalarField<R, V> {
         private final Class<?> clazz;
 
@@ -595,6 +676,11 @@ public abstract class Field<R, V> {
     }
     //////////////////////////
 
+    /**
+     * A {@code boolean} array field
+     *
+     * @param <R> the record type
+     */
     public static final class BooleanArrayField<R> extends ArrayField<R, Boolean> {
         BooleanArrayField(String name, int length, int id, int flags) {
             super(name, length, id, flags);
@@ -638,6 +724,11 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * A {@code byte} array field
+     *
+     * @param <R> the record type
+     */
     public static final class ByteArrayField<R> extends ArrayField<R, Byte> {
         ByteArrayField(String name, int length, int id, int flags) {
             super(name, length, id, flags);
@@ -681,6 +772,11 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * A {@code short} array field
+     *
+     * @param <R> the record type
+     */
     public static final class ShortArrayField<R> extends ArrayField<R, Short> {
         ShortArrayField(String name, int length, int id, int flags) {
             super(name, length, id, flags);
@@ -724,6 +820,11 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * An {@code int} array field
+     *
+     * @param <R> the record type
+     */
     public static final class IntArrayField<R> extends ArrayField<R, Integer> {
         IntArrayField(String name, int length, int id, int flags) {
             super(name, length, id, flags);
@@ -767,6 +868,11 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * A {@code long} array field
+     *
+     * @param <R> the record type
+     */
     public static final class LongArrayField<R> extends ArrayField<R, Long> {
         LongArrayField(String name, int length, int id, int flags) {
             super(name, length, id, flags);
@@ -810,6 +916,11 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * A {@code float} array field
+     *
+     * @param <R> the record type
+     */
     public static final class FloatArrayField<R> extends ArrayField<R, Float> {
         FloatArrayField(String name, int length, int id, int flags) {
             super(name, length, id, flags);
@@ -853,6 +964,11 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * A {@code double} array field
+     *
+     * @param <R> the record type
+     */
     public static final class DoubleArrayField<R> extends ArrayField<R, Double> {
         DoubleArrayField(String name, int length, int id, int flags) {
             super(name, length, id, flags);
@@ -896,6 +1012,11 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * A {@code char} array field
+     *
+     * @param <R> the record type
+     */
     public static final class CharArrayField<R> extends ArrayField<R, Character> {
         CharArrayField(String name, int length, int id, int flags) {
             super(name, length, id, flags);
@@ -939,6 +1060,12 @@ public abstract class Field<R, V> {
         }
     }
 
+    /**
+     * An {@code Object} array field
+     *
+     * @param <R> the record type
+     * @param <V> the field's element type
+     */
     public static final class ObjectArrayField<R, V> extends ArrayField<R, V> {
         private final Class<V[]> clazz;
 

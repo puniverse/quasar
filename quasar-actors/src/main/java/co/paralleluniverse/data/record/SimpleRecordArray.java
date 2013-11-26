@@ -14,13 +14,12 @@ package co.paralleluniverse.data.record;
 
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.Set;
 
 /**
  *
  * @author pron
  */
-public class SimpleRecordArray<R> implements RecordArray<R>, Iterable<Record<R>>, Cloneable {
+class SimpleRecordArray<R> implements RecordArray<R>, Iterable<Record<R>>, Cloneable {
     public final RecordType<R> type;
     public final int length;
     private final int osize;

@@ -14,7 +14,6 @@ package co.paralleluniverse.data.record;
 
 import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import java.util.Arrays;
-import java.util.Set;
 import sun.misc.Unsafe;
 
 /**

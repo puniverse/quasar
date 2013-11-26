@@ -179,10 +179,19 @@ public class RecordType<R> {
         return name + fields.toString();
     }
 
+    /**
+     * This type's name
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Test's whether a record is an instance of this type (or one of its subtypes).
+     *
+     * @param record the record to test
+     * @return {@code true} if {@code record} is an instance of this type (or one of its subtypes); {@code false} otherwise.
+     */
     public boolean isInstance(Record<?> record) {
         for (RecordType<?> t = record.type(); t != null; t = t.parent) {
             if (this.equals(t))
@@ -191,154 +200,431 @@ public class RecordType<R> {
         return false;
     }
 
+    /**
+     * Adds a {@code boolean} scalar field to the type
+     *
+     * @param name the field name
+     * @return the field
+     */
     public Field.BooleanField<R> booleanField(String name) {
         return booleanField(name, 0);
     }
 
+    /**
+     * Adds a {@code boolean} scalar field to the type
+     *
+     * @param name  the field name
+     * @param flags the field's flags
+     * @return the field
+     */
     public Field.BooleanField<R> booleanField(String name, int flags) {
         return addField(new Field.BooleanField<R>(name, -1, flags));
     }
 
+    /**
+     * Adds a {@code byte} scalar field to the type
+     *
+     * @param name the field name
+     * @return the field
+     */
     public Field.ByteField<R> byteField(String name) {
         return byteField(name, 0);
     }
 
+    /**
+     * Adds a {@code byte} scalar field to the type
+     *
+     * @param name  the field name
+     * @param flags the field's flags
+     * @return the field
+     */
     public Field.ByteField<R> byteField(String name, int flags) {
         return addField(new Field.ByteField<R>(name, -1, flags));
     }
 
+    /**
+     * Adds a {@code short} scalar field to the type
+     *
+     * @param name the field name
+     * @return the field
+     */
     public Field.ShortField<R> shortField(String name) {
         return shortField(name, 0);
     }
 
+    /**
+     * Adds a {@code short} scalar field to the type
+     *
+     * @param name  the field name
+     * @param flags the field's flags
+     * @return the field
+     */
     public Field.ShortField<R> shortField(String name, int flags) {
         return addField(new Field.ShortField<R>(name, -1, flags));
     }
 
+    /**
+     * Adds an {@code int} scalar field to the type
+     *
+     * @param name the field name
+     * @return the field
+     */
     public Field.IntField<R> intField(String name) {
         return intField(name, 0);
     }
 
+    /**
+     * Adds an {@code short} scalar field to the type
+     *
+     * @param name  the field name
+     * @param flags the field's flags
+     * @return the field
+     */
     public Field.IntField<R> intField(String name, int flags) {
         return addField(new Field.IntField<R>(name, -1, flags));
     }
 
+    /**
+     * Adds a {@code long} scalar field to the type
+     *
+     * @param name the field name
+     * @return the field
+     */
     public Field.LongField<R> longField(String name) {
         return longField(name, 0);
     }
 
+    /**
+     * Adds a {@code long} scalar field to the type
+     *
+     * @param name  the field name
+     * @param flags the field's flags
+     * @return the field
+     */
     public Field.LongField<R> longField(String name, int flags) {
         return addField(new Field.LongField<R>(name, -1, flags));
     }
 
+    /**
+     * Adds a {@code float} scalar field to the type
+     *
+     * @param name the field name
+     * @return the field
+     */
     public Field.FloatField<R> floatField(String name) {
         return floatField(name, 0);
     }
 
+    /**
+     * Adds a {@code float} scalar field to the type
+     *
+     * @param name  the field name
+     * @param flags the field's flags
+     * @return the field
+     */
     public Field.FloatField<R> floatField(String name, int flags) {
         return addField(new Field.FloatField<R>(name, -1, flags));
     }
 
+    /**
+     * Adds a {@code double} scalar field to the type
+     *
+     * @param name the field name
+     * @return the field
+     */
     public Field.DoubleField<R> doubleField(String name) {
         return doubleField(name, 0);
     }
 
+    /**
+     * Adds a {@code double} scalar field to the type
+     *
+     * @param name  the field name
+     * @param flags the field's flags
+     * @return the field
+     */
     public Field.DoubleField<R> doubleField(String name, int flags) {
         return addField(new Field.DoubleField<R>(name, -1, flags));
     }
 
+    /**
+     * Adds a {@code char} scalar field to the type
+     *
+     * @param name the field name
+     * @return the field
+     */
     public Field.CharField<R> charField(String name) {
         return charField(name, 0);
     }
 
+    /**
+     * Adds a {@code char} scalar field to the type
+     *
+     * @param name  the field name
+     * @param flags the field's flags
+     * @return the field
+     */
     public Field.CharField<R> charField(String name, int flags) {
         return addField(new Field.CharField<R>(name, -1, flags));
     }
 
+    /**
+     * Adds an {@code Object} scalar field to the type
+     *
+     * @param <V>  the fields type
+     * @param name the field name
+     * @param type the type of the field
+     * @return the field
+     */
     public <V> Field.ObjectField<R, V> objectField(String name, Class<V> type) {
         return objectField(name, type, 0);
     }
 
+    /**
+     * Adds a {@code Object} scalar field to the type
+     *
+     * @param <V>   the fields type
+     * @param name  the field name
+     * @param type  the type of the field
+     * @param flags the field's flags
+     * @return the field
+     */
     public <V> Field.ObjectField<R, V> objectField(String name, Class<V> type, int flags) {
         return addField(new Field.ObjectField<R, V>(name, type, -1, flags));
     }
 
+    /**
+     * Adds an {@code Object} scalar field to the type
+     *
+     * @param <V>  the fields type
+     * @param name the field name
+     * @param type the type of the field (as a {@link TypeToken})
+     * @return the field
+     */
     public <V> Field.ObjectField<R, V> objectField(String name, TypeToken<V> type) {
         return objectField(name, type, 0);
     }
 
+    /**
+     * Adds a {@code Object} scalar field to the type
+     *
+     * @param <V>   the fields type
+     * @param name  the field name
+     * @param type  the type of the field (as a {@link TypeToken})
+     * @param flags the field's flags
+     * @return the field
+     */
     public <V> Field.ObjectField<R, V> objectField(String name, TypeToken<V> type, int flags) {
         return addField(new Field.ObjectField<R, V>(name, type.getRawType(), -1, flags));
     }
 
+    /**
+     * Adds a {@code boolean} array field to the type
+     *
+     * @param name   the field name
+     * @param length the length of the array
+     * @return the field
+     */
     public Field.BooleanArrayField<R> booleanArrayField(String name, int length) {
         return booleanArrayField(name, length, 0);
     }
 
+    /**
+     * Adds a {@code boolean} array field to the type
+     *
+     * @param name   the field name
+     * @param length the length of the array
+     * @param flags  the field's flags
+     * @return the field
+     */
     public Field.BooleanArrayField<R> booleanArrayField(String name, int length, int flags) {
         return addField(new Field.BooleanArrayField<R>(name, length, -1, flags));
     }
 
+    /**
+     * Adds a {@code byte} array field to the type
+     *
+     * @param name   the field name
+     * @param length the length of the array
+     * @return the field
+     */
     public Field.ByteArrayField<R> byteArrayField(String name, int length) {
         return byteArrayField(name, length, 0);
     }
 
+    /**
+     * Adds a {@code byte} array field to the type
+     *
+     * @param name   the field name
+     * @param length the length of the array
+     * @param flags  the field's flags
+     * @return the field
+     */
     public Field.ByteArrayField<R> byteArrayField(String name, int length, int flags) {
         return addField(new Field.ByteArrayField<R>(name, length, -1, flags));
     }
 
+    /**
+     * Adds a {@code short} array field to the type
+     *
+     * @param name   the field name
+     * @param length the length of the array
+     * @return the field
+     */
     public Field.ShortArrayField<R> shortArrayField(String name, int length) {
         return shortArrayField(name, length, 0);
     }
 
+    /**
+     * Adds a {@code short} array field to the type
+     *
+     * @param name   the field name
+     * @param length the length of the array
+     * @param flags  the field's flags
+     * @return the field
+     */
     public Field.ShortArrayField<R> shortArrayField(String name, int length, int flags) {
         return addField(new Field.ShortArrayField<R>(name, length, -1, flags));
     }
 
+    /**
+     * Adds an {@code int} array field to the type
+     *
+     * @param name   the field name
+     * @param length the length of the array
+     * @return the field
+     */
     public Field.IntArrayField<R> intArrayField(String name, int length) {
         return intArrayField(name, length, 0);
     }
 
+    /**
+     * Adds an {@code int} array field to the type
+     *
+     * @param name   the field name
+     * @param length the length of the array
+     * @param flags  the field's flags
+     * @return the field
+     */
     public Field.IntArrayField<R> intArrayField(String name, int length, int flags) {
         return addField(new Field.IntArrayField<R>(name, length, -1, flags));
     }
 
+    /**
+     * Adds a {@code long} array field to the type
+     *
+     * @param name   the field name
+     * @param length the length of the array
+     * @return the field
+     */
     public Field.LongArrayField<R> longArrayField(String name, int length) {
         return longArrayField(name, length, 0);
     }
 
+    /**
+     * Adds a {@code long} array field to the type
+     *
+     * @param name   the field name
+     * @param length the length of the array
+     * @param flags  the field's flags
+     * @return the field
+     */
     public Field.LongArrayField<R> longArrayField(String name, int length, int flags) {
         return addField(new Field.LongArrayField<R>(name, length, -1, flags));
     }
 
+    /**
+     * Adds a {@code float} array field to the type
+     *
+     * @param name   the field name
+     * @param length the length of the array
+     * @return the field
+     */
     public Field.FloatArrayField<R> floatArrayField(String name, int length) {
         return floatArrayField(name, length, 0);
     }
 
+    /**
+     * Adds a {@code float} array field to the type
+     *
+     * @param name   the field name
+     * @param length the length of the array
+     * @param flags  the field's flags
+     * @return the field
+     */
     public Field.FloatArrayField<R> floatArrayField(String name, int length, int flags) {
         return addField(new Field.FloatArrayField<R>(name, length, -1, flags));
     }
 
+    /**
+     * Adds a {@code double} array field to the type
+     *
+     * @param name   the field name
+     * @param length the length of the array
+     * @return the field
+     */
     public Field.DoubleArrayField<R> doubleArrayField(String name, int length) {
         return doubleArrayField(name, length, 0);
     }
 
+    /**
+     * Adds a {@code double} array field to the type
+     *
+     * @param name   the field name
+     * @param length the length of the array
+     * @param flags  the field's flags
+     * @return the field
+     */
     public Field.DoubleArrayField<R> doubleArrayField(String name, int length, int flags) {
         return addField(new Field.DoubleArrayField<R>(name, length, -1, flags));
     }
 
+    /**
+     * Adds a {@code char} array field to the type
+     *
+     * @param name   the field name
+     * @param length the length of the array
+     * @return the field
+     */
     public Field.CharArrayField<R> charArrayField(String name, int length) {
         return charArrayField(name, length, 0);
     }
 
+    /**
+     * Adds a {@code char} array field to the type
+     *
+     * @param name   the field name
+     * @param length the length of the array
+     * @param flags  the field's flags
+     * @return the field
+     */
     public Field.CharArrayField<R> charArrayField(String name, int length, int flags) {
         return addField(new Field.CharArrayField<R>(name, length, -1, flags));
     }
 
+    /**
+     * Adds an {@code Object} array field to the type
+     *
+     * @param <V>    the field's element type
+     * @param name   the field name
+     * @param type   the type of the field
+     * @param length the length of the array
+     * @return the field
+     */
     public <V> Field.ObjectArrayField<R, V> objectArrayField(String name, Class<V> type, int length) {
         return objectArrayField(name, type, length, 0);
     }
 
+    /**
+     * Adds an {@code Object} array field to the type
+     *
+     * @param <V>    the field's element type
+     * @param name   the field name
+     * @param type   the type of the field
+     * @param length the length of the array
+     * @param flags  the field's flags
+     * @return the field
+     */
     public <V> Field.ObjectArrayField<R, V> objectArrayField(String name, Class<V> type, int length, int flags) {
         return addField(new Field.ObjectArrayField<R, V>(name, type, length, -1, flags));
     }
@@ -611,6 +897,11 @@ public class RecordType<R> {
         }
     }
 
+    /**
+     * The type's fields
+     *
+     * @return the type's fields
+     */
     public Set<Field<? super R, ?>> fields() {
         seal();
         return fieldSet;
@@ -640,15 +931,40 @@ public class RecordType<R> {
         return offsets;
     }
 
+    /**
+     * Creates an new record instance of this type.
+     * The returned implementation stores the record in an efficient memory representation.
+     *
+     * @return a newly constructed record of this type.
+     */
     public Record<R> newInstance() {
         seal();
         return new SimpleRecord<R>(this);
     }
 
+    /**
+     * Creates an new record instance of this type, which reflects the given object.
+     * The record's fields are mapped to the target's fields or getters/setters of the same name.
+     * Changes to the record will be reflected in the target object and vice versa.
+     * <p/>
+     * The record's implementation {@link Mode} mode will be the best (fastest) one available for the target's class.
+     *
+     * @param target the POJO to wrap as a record
+     * @return a newly constructed record of this type, which reflects {@code target}.
+     */
     public Record<R> newInstance(Object target) {
         return newInstance(target, null);
     }
 
+    /**
+     * Creates an new record instance of this type, which reflects the given object.
+     * The record's fields are mapped to the target's fields or getters/setters of the same name.
+     * Changes to the record will be reflected in the target object and vice versa.
+     *
+     * @param target the POJO to wrap as a record
+     * @param mode   the record's implementation {@link Mode} mode.
+     * @return a newly constructed record of this type, which reflects {@code target}.
+     */
     public Record<R> newInstance(Object target, Mode mode) {
         seal();
         currentMode.set(mode);
@@ -670,6 +986,12 @@ public class RecordType<R> {
         throw new AssertionError("unreachable");
     }
 
+    /**
+     * Creates an new {@link RecordArray} instance of this type.
+     * The returned implementation stores the record array in an efficient memory representation.
+     *
+     * @return a newly constructed record array of this type.
+     */
     public RecordArray<R> newArray(int size) {
         seal();
         return new SimpleRecordArray<R>(this, size);
