@@ -1,6 +1,17 @@
-/**
- * <h1>Coroutine library instrumentation ANT task</h1>
- * <pre>
+/*
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
+ * 
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *  
+ *   or (per the licensee's choosing)
+ *  
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
+ */
+/*
  * Copyright (c) 2008, Matthias Mann
  * All rights reserved.
  *
@@ -27,6 +38,8 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
- * </pre>
+ */
+/**
+ * Quasar continuations instrumentation
  */
 package co.paralleluniverse.fibers.instrument;

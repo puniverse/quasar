@@ -27,7 +27,7 @@ public final class Records {
      * @param owner  any object that can identify the owner of the newly created record and can be used to restrict modification of the delegate
      * @param record the record to which operations will be delegated
      * @return a new record object that delegates all operations to the given record.
-     * @see #setDelegate(Record, Object, Record)
+     * @see #setDelegateTarget(Record, Object, Record)
      */
     public static <R> Record<R> delegate(Object owner, Record<R> record) {
         return new RecordDelegate<R>(owner, record);

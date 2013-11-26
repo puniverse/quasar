@@ -1221,12 +1221,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * exceptions by having its uncaught exception handler explicitly set.
      *
      * @param eh the object to use as this fiber's uncaught exception
-     *           handler. If <tt>null</tt> then this fiber has no explicit handler.
+     *           handler. If {@code null} then this fiber has no explicit handler.
      * @see #setDefaultUncaughtExceptionHandler
      */
     @Override
-    public final void setUncaughtExceptionHandler(UncaughtExceptionHandler uncaughtExceptionHandler) {
-        this.uncaughtExceptionHandler = uncaughtExceptionHandler;
+    public final void setUncaughtExceptionHandler(UncaughtExceptionHandler eh) {
+        this.uncaughtExceptionHandler = eh;
     }
 
     /**
@@ -1240,7 +1240,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     /**
      * Returns the default handler invoked when a fiber abruptly terminates
-     * due to an uncaught exception. If the returned value is <tt>null</tt>,
+     * due to an uncaught exception. If the returned value is {@code null},
      * there is no default.
      *
      * @see #setDefaultUncaughtExceptionHandler
@@ -1255,13 +1255,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * for that fiber.
      *
      * @param eh the object to use as the default uncaught exception handler.
-     *           If <tt>null</tt> then there is no default handler.
+     *           If {@code null} then there is no default handler.
      *
      * @see #setUncaughtExceptionHandler
      * @see #getUncaughtExceptionHandler
      */
-    public static void setDefaultUncaughtExceptionHandler(UncaughtExceptionHandler defaultUncaughtExceptionHandler) {
-        Fiber.defaultUncaughtExceptionHandler = defaultUncaughtExceptionHandler;
+    public static void setDefaultUncaughtExceptionHandler(UncaughtExceptionHandler eh) {
+        Fiber.defaultUncaughtExceptionHandler = eh;
     }
 
     Thread getRunningThread() {

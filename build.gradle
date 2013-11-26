@@ -379,6 +379,7 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
         "co/paralleluniverse/common/monitoring/**",
         "co/paralleluniverse/common/util/**",  
         "co/paralleluniverse/concurrent/forkjoin/**",  
+        "co/paralleluniverse/concurrent/util/**",  
         "co/paralleluniverse/data/record/DynamicGeneratedRecord.java",
         "co/paralleluniverse/data/record/DynamicRecord.java",
         "co/paralleluniverse/fibers/DefaultFiberPool.java",
@@ -387,6 +388,7 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
         "co/paralleluniverse/fibers/Instrumented.java",
         "co/paralleluniverse/fibers/NoopFibersMonitor.java",
         "co/paralleluniverse/fibers/instrument/**",
+        "co/paralleluniverse/io/serialization/**",
         "co/paralleluniverse/remote/**",
         "co/paralleluniverse/strands/channels/disruptor/**", // not ready
         "co/paralleluniverse/strands/queues/**",

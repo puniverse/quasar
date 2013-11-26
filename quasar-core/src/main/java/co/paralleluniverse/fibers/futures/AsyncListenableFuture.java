@@ -20,21 +20,61 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import com.google.common.util.concurrent.ListenableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
+ * Turns Google Guava's {@link ListenableFuture}s into a fiber-blocking operation.
  *
  * @author pron
  */
 public class AsyncListenableFuture<V> extends FiberAsync<V, Void, ExecutionException> {
+    /**
+     * Blocks the current strand (either fiber or thread) until the given future completes, and returns its result.
+     *
+     * @param future the future
+     * @return the future's result
+     * @throws ExecutionException   if the future's computation threw an exception
+     * @throws InterruptedException if the current thread was interrupted while waiting
+     */
     public static <V> V get(ListenableFuture<V> future) throws ExecutionException, InterruptedException, SuspendExecution {
-        if (Fiber.currentFiber() != null && !future.isDone())
+        if (Fiber.isCurrentFiber() && !future.isDone())
             return new AsyncListenableFuture<>(future).run();
         else
             return future.get();
     }
 
+    /**
+     * Blocks the current strand (either fiber or thread) until the given future completes - but no longer than the given timeout - and returns its result.
+     *
+     * @param future  the future
+     * @param timeout the maximum duration to wait for the future's result
+     * @param unit    the timeout's time unit
+     * @return the future's result
+     * @throws ExecutionException   if the future's computation threw an exception
+     * @throws TimeoutException     if the timeout expired before the future completed
+     * @throws InterruptedException if the current thread was interrupted while waiting
+     */
+    public static <V> V get(ListenableFuture<V> future, long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, SuspendExecution, TimeoutException {
+        if (Fiber.isCurrentFiber() && !future.isDone())
+            return new AsyncListenableFuture<>(future).run(timeout, unit);
+        else
+            return future.get(timeout, unit);
+    }
+
+    /**
+     * Blocks the current strand (either fiber or thread) until the given future completes, and returns its result.
+     * <p/>
+     * Unlike {@link #get(ListenableFuture) get}, while this is a fiber-blocking operation, it is not suspendable. It blocks the fiber
+     * by other, less efficient means, and {@link #get(ListenableFuture) get} should be generally preferred over this method.
+     *
+     * @param future the future
+     * @return the future's result
+     * @throws ExecutionException   if the future's computation threw an exception
+     * @throws InterruptedException if the current thread was interrupted while waiting
+     */
     public static <V> V getNoSuspend(final ListenableFuture<V> future) throws ExecutionException, InterruptedException {
-        if (Fiber.currentFiber() != null && !future.isDone()) {
+        if (Fiber.isCurrentFiber() && !future.isDone()) {
             try {
                 return new Fiber<V>() {
                     @Override
@@ -56,7 +96,44 @@ public class AsyncListenableFuture<V> extends FiberAsync<V, Void, ExecutionExcep
         } else
             return future.get();
     }
-    
+
+    /**
+     * Blocks the current strand (either fiber or thread) until the given future completes - but no longer than the given timeout - and returns its result.
+     * <p/>
+     * Unlike {@link #get(ListenableFuture, long, TimeUnit)  get}, while this is a fiber-blocking operation, it is not suspendable. It blocks the fiber
+     * by other, less efficient means, and {@link #get(ListenableFuture, long, TimeUnit) get} should be generally preferred over this method.
+     *
+     * @param future  the future
+     * @param timeout the maximum duration to wait for the future's result
+     * @param unit    the timeout's time unit
+     * @return the future's result
+     * @throws ExecutionException   if the future's computation threw an exception
+     * @throws TimeoutException     if the timeout expired before the future completed
+     * @throws InterruptedException if the current thread was interrupted while waiting
+     */
+    public static <V> V getNoSuspend(final ListenableFuture<V> future, long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+        if (Fiber.isCurrentFiber() && !future.isDone()) {
+            try {
+                return new Fiber<V>() {
+                    @Override
+                    protected V run() throws SuspendExecution, InterruptedException {
+                        try {
+                            return new AsyncListenableFuture<>(future).run();
+                        } catch (ExecutionException e) {
+                            throw new RuntimeExecutionException(e.getCause());
+                        }
+                    }
+                }.start().get(timeout, unit);
+            } catch (ExecutionException e) {
+                Throwable t = e.getCause();
+                if (t instanceof RuntimeExecutionException)
+                    throw new ExecutionException(t.getCause());
+                else
+                    throw e;
+            }
+        } else
+            return future.get(timeout, unit);
+    }
     ///////////////////////////////////////////////////////////////////////
     private final ListenableFuture<V> fut;
 
@@ -87,7 +164,6 @@ public class AsyncListenableFuture<V> extends FiberAsync<V, Void, ExecutionExcep
     protected V requestSync() throws ExecutionException, InterruptedException {
         return fut.get();
     }
-    
     private static final Executor sameThreadExecutor = new Executor() {
         @Override
         public void execute(Runnable command) {

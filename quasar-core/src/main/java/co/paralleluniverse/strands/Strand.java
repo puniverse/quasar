@@ -689,10 +689,10 @@ public abstract class Strand {
      * <p>A strand can take full control of how it responds to uncaught
      * exceptions by having its uncaught exception handler explicitly set.
      *
-     * @param eh the object to use as this strand's uncaught exception
-     *           handler. If <tt>null</tt> then this strand has no explicit handler.
+     * @param eh the object to use as this strand's uncaught exception handler.
+     *           If {@code null} then this strand has no explicit handler.
      */
-    public abstract void setUncaughtExceptionHandler(UncaughtExceptionHandler uncaughtExceptionHandler);
+    public abstract void setUncaughtExceptionHandler(UncaughtExceptionHandler eh);
 
     /**
      * Returns the handler invoked when this strand abruptly terminates
@@ -814,8 +814,7 @@ public abstract class Strand {
      * <tt>uncaughtException</tt> method, passing the fiber and the
      * exception as arguments.
      *
-     * @see #setDefaultUncaughtExceptionHandler
-     * @see #setUncaughtExceptionHandler
+     * @see #setUncaughtExceptionHandler(UncaughtExceptionHandler)
      */
     public interface UncaughtExceptionHandler {
         /**
