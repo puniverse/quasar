@@ -58,19 +58,19 @@
           
           
           
-            <li>
-              <a  href="/quasar/getting-started.html">
-                Getting Started
-              </a>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a  href="/quasar/getting-started.html">
+                Getting Started
+              </a>
+              
+            </li>
           
         
           
@@ -117,19 +117,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/manual/core.html">
                 Quasar Core
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
           
@@ -448,11 +448,15 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <h3 id="eventsource">EventSource</h3>
 
-<h3 id="supervisoractor">SupervisorActor</h3>
+<p>The event-source behavior is an actor that can be notified of <em>event</em> messages, which are delivered to <em>event handlers</em> which may be registered with the&nbsp;actor.</p>
 
-<p>The last behavior actor, the <em>supervisor</em> deserves a separate chapter of its&nbsp;own.</p>
+<p>To create an event source actor, simply construct an instance of the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/EventSourceActor.html"><code>EventSourceActor</code></a> class. Event handlers are instances of <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/EventHandler.html"><code>EventHandler</code></a>. Event handlers can be registered or unregistered with the actor, and events sent to the actor, through the behavior’s interface, the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/EventSource.html"><code>EventSource</code></a>&nbsp;class.</p>
+
+<p>Event handlers are called synchronously on the same strand as the actor’s, so they may delay processing by other handlers if they block the&nbsp;strand.</p>
 
 <h2 id="supervisors">Supervisors</h2>
+
+<p>The last behavior actor, the <em>supervisor</em> deserves a chapter of its own, as it’s at the core of the actor model’s error handling&nbsp;philosophy.</p>
 
 </div>
 
