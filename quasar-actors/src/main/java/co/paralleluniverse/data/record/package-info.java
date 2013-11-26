@@ -24,6 +24,7 @@
  *     public static final ObjectField<A, List<String>> $emails = stateType.objectField("emails", new TypeToken<List<String>() {});
  * }
  * ```
+ * 
  * `A` is the type's *identifier class*. The fields are, by convention, given identifiers that begin with a {@code \$} to make it clear
  * that they identify fields rather than values.
  */
