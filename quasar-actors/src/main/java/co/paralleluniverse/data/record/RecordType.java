@@ -26,6 +26,26 @@ import java.util.concurrent.ConcurrentMap;
 import jsr166e.ConcurrentHashMapV8;
 
 /**
+ * Represents a record type, and includes a name, and a list of fields along with their names and types.
+ * <p/>
+ * A new record type must be declared as a static member of a class. The class must only include the definition of a single record type,
+ * and this class is called the type's <i>identifier class</i>, because it is used only to uniquely identify the record type (only its name is used internally).
+ * <p/>
+ * Here's an example record type definition:
+ *
+ * ```java
+ * class A {
+ *     public static final RecordType<A> aType = RecordType.newType(A.class);
+ *     public static final IntField<A> $id = stateType.intField("id");
+ *     public static final DoubleField<A> $foo = stateType.doubleField("id", Field.TRANSIENT);
+ *     public static final ObjectField<A, String> $name = stateType.objectField("name", String.class);
+ *     public static final ObjectField<A, List<String>> $emails = stateType.objectField("emails", new TypeToken<List<String>() {});
+ * }
+ * ```
+ * {@code A} is the type's <i>identifier class</i>. The fields are, by convention, given identifiers that begin with a {@code $} to make it clear
+ * that they identify fields rather than values.
+ * <br/>
+ * A new record is instantiated by calling one of the {@code newInstance} methods.
  *
  * @author pron
  */
@@ -65,10 +85,22 @@ public class RecordType<R> {
     //
     private static final ConcurrentMap<String, RecordType<?>> loadedTypes = new ConcurrentHashMapV8<>();
 
+    /**
+     * Creates a new record type, possibly extending a super type.
+     * If a supertype is provided, this type inherits its fields.
+     *
+     * @param type   the {@link RecordType <i>identifier class</i>} of this record type.
+     * @param parent the super-type of this type (may be {@code null}).
+     */
     public static <R> RecordType<R> newType(Class<R> type, RecordType<? super R> parent) {
         return new RecordType<R>(type, parent);
     }
 
+    /**
+     * Creates a new record type with no super type.
+     *
+     * @param type the {@link RecordType <i>identifier class</i>} of this record type.
+     */
     public static <R> RecordType<R> newType(Class<R> type) {
         return newType(type, null);
     }
@@ -77,9 +109,15 @@ public class RecordType<R> {
         return forClass(Class.forName(name));
     }
 
-    public static <T> RecordType<T> forClass(Class<T> clazz) {
-        sealClassType(clazz);
-        return (RecordType<T>) loadedTypes.get(clazz.getName());
+    /**
+     * Returns 
+     * @param <T>
+     * @param type
+     * @return 
+     */
+    public static <T> RecordType<T> forClass(Class<T> type) {
+        sealClassType(type);
+        return (RecordType<T>) loadedTypes.get(type.getName());
     }
 
     private static void sealClassType(Class<?> clazz) {
@@ -124,6 +162,13 @@ public class RecordType<R> {
         return true;
     }
 
+    /**
+     * Creates a new record type, possibly extending a super type.
+     * If a supertype is provided, this type inherits its fields.
+     *
+     * @param type   the {@link RecordType <i>identifier class</i>} of this record type.
+     * @param parent the super-type of this type (may be {@code null}).
+     */
     public RecordType(Class<R> type, RecordType<? super R> parent) {
         this.name = type.getName().intern();
         this.parent = parent;
@@ -149,6 +194,11 @@ public class RecordType<R> {
         };
     }
 
+    /**
+     * Creates a new record type with no super type.
+     *
+     * @param type the {@link RecordType <i>identifier class</i>} of this record type.
+     */
     public RecordType(Class<R> type) {
         this(type, null);
     }
