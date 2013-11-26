@@ -145,7 +145,6 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
      *
      * @param other the other actor
      * @return a {@code watchId} object that identifies this watch in messages, and used to remove the watch by the {@link #unwatch(ActorRef, Object) unwatch} method.
-     * @see #link(ActorRef)
      * @see #unwatch(ActorRef, Object)
      */
     public final Object watch(ActorRef other1) {

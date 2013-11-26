@@ -14,7 +14,7 @@
 package co.paralleluniverse.fibers;
 
 /**
- *
+ * Similar to {@link java.util.concurrent.ExecutionException} only as an unchecked, rather than a checked, exception.
  * @author pron
  */
 public class RuntimeExecutionException extends RuntimeException {

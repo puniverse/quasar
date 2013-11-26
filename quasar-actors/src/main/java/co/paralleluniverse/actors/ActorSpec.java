@@ -18,6 +18,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
 /**
+ * A specification of how to construct an actor
  *
  * @author pron
  */
@@ -28,10 +29,22 @@ public class ActorSpec<T extends Actor<Message, V>, Message, V> implements Actor
     final Constructor<T> ctor;
     final Object[] params;
 
+    /**
+     * Specifies an actor of a given type and given constructor parameters.
+     *
+     * @param type   the type of the actor
+     * @param params the parameters to pass to the actor's constructors
+     */
     public ActorSpec(Class<T> type, Object[] params) {
         this(matchingConstructor(type, params), params);
     }
 
+    /**
+     * Specifies an actor with given constructor and given constructor parameters.
+     *
+     * @param ctor   the actor's constructor
+     * @param params the parameters to pass to the actor's constructors
+     */
     public ActorSpec(Constructor<T> ctor, Object[] params) {
         this.ctor = ctor;
         this.params = Arrays.copyOf(params, params.length);

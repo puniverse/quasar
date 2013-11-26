@@ -14,9 +14,15 @@
 package co.paralleluniverse.actors;
 
 /**
+ * An object that can construct a new actor
  *
  * @author pron
  */
 public interface ActorBuilder<Message, V> {
+    /**
+     * Constructs a new actor
+     *
+     * @return a newly created actor.
+     */
     Actor<Message, V> build();
 }

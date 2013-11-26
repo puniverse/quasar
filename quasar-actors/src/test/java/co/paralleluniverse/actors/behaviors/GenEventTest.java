@@ -22,6 +22,7 @@ import co.paralleluniverse.actors.LocalActorUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.strands.Strand;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import org.junit.Ignore;
@@ -78,9 +79,9 @@ public class GenEventTest {
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
         Fiber fiber = new Fiber(actor);
-        fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
+        fiber.setUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
             @Override
-            public void uncaughtException(Fiber lwt, Throwable e) {
+            public void uncaughtException(Strand s, Throwable e) {
                 e.printStackTrace();
                 throw Exceptions.rethrow(e);
             }

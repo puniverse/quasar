@@ -93,9 +93,9 @@ public class GenServerTest {
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
         Fiber fiber = new Fiber(scheduler, actor);
-        fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
+        fiber.setUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
             @Override
-            public void uncaughtException(Fiber lwt, Throwable e) {
+            public void uncaughtException(Strand s, Throwable e) {
                 e.printStackTrace();
                 throw Exceptions.rethrow(e);
             }

@@ -40,6 +40,7 @@ import co.paralleluniverse.galaxy.Grid;
 import co.paralleluniverse.galaxy.Store;
 import co.paralleluniverse.galaxy.StoreTransaction;
 import co.paralleluniverse.galaxy.TimeoutException;
+import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.DelayedVal;
 import java.io.IOException;
@@ -297,9 +298,9 @@ public class PeerTKB {
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
         Fiber fiber = new Fiber(actor);
-        fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
+        fiber.setUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
             @Override
-            public void uncaughtException(Fiber lwt, Throwable e) {
+            public void uncaughtException(Strand s, Throwable e) {
                 e.printStackTrace();
                 throw Exceptions.rethrow(e);
             }

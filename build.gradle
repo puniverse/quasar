@@ -376,6 +376,13 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
         "co/paralleluniverse/actors/RemoteActorProxyFactoryService.java",
         "co/paralleluniverse/actors/RemoteActorRef.java",
         "co/paralleluniverse/actors/RemoteActorProxyFactory.java",
+        "co/paralleluniverse/data/record/DynamicGeneratedRecord.java",
+        "co/paralleluniverse/data/record/DynamicRecord.java",
+        "co/paralleluniverse/fibers/DefaultFiberPool.java",
+        "co/paralleluniverse/fibers/FibersMonitor.java",
+        "co/paralleluniverse/fibers/FiberTimedScheduler.java",
+        "co/paralleluniverse/fibers/Instrumented.java",
+        "co/paralleluniverse/fibers/NoopFibersMonitor.java",
     ]
 }
 

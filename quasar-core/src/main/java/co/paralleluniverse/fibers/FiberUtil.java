@@ -20,34 +20,101 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 /**
+ * Contains static utility methods for working with fibers.
  *
  * @author pron
  */
 public final class FiberUtil {
+    /**
+     * Turns a fiber into a {@link Future}.
+     *
+     * @param <V>
+     * @param fiber the fiber
+     * @return a {@link Future} representing the fiber.
+     */
     public static <V> Future<V> toFuture(Fiber<V> fiber) {
         return fiber;
     }
 
+    /**
+     * Runs an action in a new fiber, awaits the fiber's termination, and returns its result.
+     * The new fiber is scheduled by the {@link DefaultFiberScheduler default scheduler}.
+     *
+     * @param <V>
+     * @param target the operation
+     * @return the operations return value
+     * @throws ExecutionException
+     * @throws InterruptedException
+     */
     public static <V> V runInFiber(SuspendableCallable<V> target) throws ExecutionException, InterruptedException {
         return runInFiber(DefaultFiberScheduler.getInstance(), target);
     }
 
+    /**
+     * Runs an action in a new fiber, awaits the fiber's termination, and returns its result.
+     *
+     * @param <V>
+     * @param scheduler the {@link FiberScheduler} to use when scheduling the fiber.
+     * @param target    the operation
+     * @return the operations return value
+     * @throws ExecutionException
+     * @throws InterruptedException
+     */
     public static <V> V runInFiber(FiberScheduler scheduler, SuspendableCallable<V> target) throws ExecutionException, InterruptedException {
         return new Fiber<V>(scheduler, target).start().get();
     }
 
+    /**
+     * Runs an action in a new fiber and awaits the fiber's termination.
+     * The new fiber is scheduled by the {@link DefaultFiberScheduler default scheduler}.
+     * .
+     *
+     * @param target the operation
+     * @throws ExecutionException
+     * @throws InterruptedException
+     */
     public static void runInFiber(SuspendableRunnable target) throws ExecutionException, InterruptedException {
         runInFiber(DefaultFiberScheduler.getInstance(), target);
     }
 
+    /**
+     * Runs an action in a new fiber and awaits the fiber's termination.
+     *
+     * @param scheduler the {@link FiberScheduler} to use when scheduling the fiber.
+     * @param target    the operation
+     * @throws ExecutionException
+     * @throws InterruptedException
+     */
     public static void runInFiber(FiberScheduler scheduler, SuspendableRunnable target) throws ExecutionException, InterruptedException {
         new Fiber<Void>(scheduler, target).start().join();
     }
 
+    /**
+     * Runs an action in a new fiber, awaits the fiber's termination, and returns its result.
+     * Unlike {@link #runInFiber(SuspendableCallable) runInFiber} this method does not throw {@link ExecutionException}, but wraps
+     * any checked exception thrown by the operation in a {@link RuntimeException}.
+     * The new fiber is scheduled by the {@link DefaultFiberScheduler default scheduler}.
+     *
+     * @param <V>
+     * @param target the operation
+     * @return the operations return value
+     * @throws InterruptedException
+     */
     public static <V> V runInFiberRuntime(SuspendableCallable<V> target) throws InterruptedException {
         return runInFiberRuntime(DefaultFiberScheduler.getInstance(), target);
     }
 
+    /**
+     * Runs an action in a new fiber, awaits the fiber's termination, and returns its result.
+     * Unlike {@link #runInFiber(FiberScheduler, SuspendableCallable) runInFiber} this method does not throw {@link ExecutionException}, but wraps
+     * any checked exception thrown by the operation in a {@link RuntimeException}.
+     *
+     * @param <V>
+     * @param scheduler the {@link FiberScheduler} to use when scheduling the fiber.
+     * @param target    the operation
+     * @return the operations return value
+     * @throws InterruptedException
+     */
     public static <V> V runInFiberRuntime(FiberScheduler scheduler, SuspendableCallable<V> target) throws InterruptedException {
         try {
             return new Fiber<V>(scheduler, target).start().get();
@@ -56,10 +123,28 @@ public final class FiberUtil {
         }
     }
 
+    /**
+     * Runs an action in a new fiber and awaits the fiber's termination.
+     * Unlike {@link #runInFiber(SuspendableRunnable)  runInFiber} this method does not throw {@link ExecutionException}, but wraps
+     * any checked exception thrown by the operation in a {@link RuntimeException}.
+     * The new fiber is scheduled by the {@link DefaultFiberScheduler default scheduler}.
+     *
+     * @param target the operation
+     * @throws InterruptedException
+     */
     public static void runInFiberRuntime(SuspendableRunnable target) throws InterruptedException {
         runInFiberRuntime(DefaultFiberScheduler.getInstance(), target);
     }
 
+    /**
+     * Runs an action in a new fiber and awaits the fiber's termination.
+     * Unlike {@link #runInFiber(FiberScheduler, SuspendableRunnable)   runInFiber} this method does not throw {@link ExecutionException}, but wraps
+     * any checked exception thrown by the operation in a {@link RuntimeException}.
+     *
+     * @param scheduler the {@link FiberScheduler} to use when scheduling the fiber.
+     * @param target    the operation
+     * @throws InterruptedException
+     */
     public static void runInFiberRuntime(FiberScheduler scheduler, SuspendableRunnable target) throws InterruptedException {
         try {
             new Fiber<Void>(scheduler, target).start().join();
@@ -68,10 +153,34 @@ public final class FiberUtil {
         }
     }
 
+    /**
+     * Runs an action in a new fiber, awaits the fiber's termination, and returns its result.
+     * Unlike {@link #runInFiber(SuspendableCallable) runInFiber} this method does not throw {@link ExecutionException}, but wraps
+     * any checked exception thrown by the operation in a {@link RuntimeException}.
+     * The new fiber is scheduled by the {@link DefaultFiberScheduler default scheduler}.
+     *
+     * @param <V>
+     * @param target the operation
+     * @return the operations return value
+     * @throws InterruptedException
+     */
     public static <V, X extends Exception> V runInFiberChecked(SuspendableCallable<V> target, Class<X> exceptionType) throws X, InterruptedException {
         return runInFiberChecked(DefaultFiberScheduler.getInstance(), target, exceptionType);
     }
 
+    /**
+     * Runs an action in a new fiber, awaits the fiber's termination, and returns its result.
+     * Unlike {@link #runInFiber(FiberScheduler, SuspendableCallable) runInFiber} this method does not throw {@link ExecutionException}, but wraps
+     * any checked exception thrown by the operation in a {@link RuntimeException}, unless it is of the given {@code exception type}, in
+     * which case the checked exception is thrown as-is.
+     *
+     * @param <V>
+     * @param scheduler the {@link FiberScheduler} to use when scheduling the fiber.
+     * @param target    the operation
+     * @param exceptionType a checked exception type that will not be wrapped if thrown by the operation, but thrown as-is.
+     * @return the operations return value
+     * @throws InterruptedException
+     */
     public static <V, X extends Exception> V runInFiberChecked(FiberScheduler scheduler, SuspendableCallable<V> target, Class<X> exceptionType) throws X, InterruptedException {
         try {
             return new Fiber<V>(scheduler, target).start().get();
@@ -80,10 +189,32 @@ public final class FiberUtil {
         }
     }
 
+    /**
+     * Runs an action in a new fiber and awaits the fiber's termination.
+     * Unlike {@link #runInFiber(SuspendableRunnable)  runInFiber} this method does not throw {@link ExecutionException}, but wraps
+     * any checked exception thrown by the operation in a {@link RuntimeException}, unless it is of the given {@code exception type}, in
+     * which case the checked exception is thrown as-is.
+     * The new fiber is scheduled by the {@link DefaultFiberScheduler default scheduler}.
+     *
+     * @param target the operation
+     * @param exceptionType a checked exception type that will not be wrapped if thrown by the operation, but thrown as-is.
+     * @throws InterruptedException
+     */
     public static <X extends Exception> void runInFiberChecked(SuspendableRunnable target, Class<X> exceptionType) throws X, InterruptedException {
         runInFiberChecked(DefaultFiberScheduler.getInstance(), target, exceptionType);
     }
 
+    /**
+     * Runs an action in a new fiber and awaits the fiber's termination.
+     * Unlike {@link #runInFiber(SuspendableRunnable)  runInFiber} this method does not throw {@link ExecutionException}, but wraps
+     * any checked exception thrown by the operation in a {@link RuntimeException}, unless it is of the given {@code exception type}, in
+     * which case the checked exception is thrown as-is.
+     *
+     * @param scheduler the {@link FiberScheduler} to use when scheduling the fiber.
+     * @param target the operation
+     * @param exceptionType a checked exception type that will not be wrapped if thrown by the operation, but thrown as-is.
+     * @throws InterruptedException
+     */
     public static <X extends Exception> void runInFiberChecked(FiberScheduler scheduler, SuspendableRunnable target, Class<X> exceptionType) throws X, InterruptedException {
         try {
             new Fiber<Void>(scheduler, target).start().join();

@@ -18,6 +18,7 @@ import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.Channels;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -51,9 +52,9 @@ public class ActorTest {
 
     private <Message, V> Actor<Message, V> spawnActor(Actor<Message, V> actor) {
         Fiber fiber = new Fiber("actor", scheduler, actor);
-        fiber.setUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
+        fiber.setUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
             @Override
-            public void uncaughtException(Fiber lwt, Throwable e) {
+            public void uncaughtException(Strand s, Throwable e) {
                 e.printStackTrace();
                 throw Exceptions.rethrow(e);
             }

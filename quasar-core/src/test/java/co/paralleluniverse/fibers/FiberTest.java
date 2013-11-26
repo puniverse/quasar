@@ -43,9 +43,9 @@ public class FiberTest {
 
     @BeforeClass
     public static void setUpClass() {
-        Fiber.setDefaultUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
+        Fiber.setDefaultUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
             @Override
-            public void uncaughtException(Fiber lwt, Throwable e) {
+            public void uncaughtException(Strand s, Throwable e) {
                 Exceptions.rethrow(e);
             }
         });

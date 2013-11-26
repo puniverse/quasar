@@ -684,6 +684,23 @@ public abstract class Strand {
     }
 
     /**
+     * Set the handler invoked when this strand abruptly terminates
+     * due to an uncaught exception.
+     * <p>A strand can take full control of how it responds to uncaught
+     * exceptions by having its uncaught exception handler explicitly set.
+     *
+     * @param eh the object to use as this strand's uncaught exception
+     *           handler. If <tt>null</tt> then this strand has no explicit handler.
+     */
+    public abstract void setUncaughtExceptionHandler(UncaughtExceptionHandler uncaughtExceptionHandler);
+
+    /**
+     * Returns the handler invoked when this strand abruptly terminates
+     * due to an uncaught exception.
+     */
+    public abstract UncaughtExceptionHandler getUncaughtExceptionHandler();
+
+    /**
      * Tests whether two strands represent the same fiber or thread.
      *
      * @param strand1 May be an object of type {@code Strand}, {@code Fiber} or {@code Thread}.
@@ -786,6 +803,29 @@ public abstract class Strand {
     public static void printStackTrace(StackTraceElement[] trace, java.io.PrintWriter out) {
         for (StackTraceElement traceElement : trace)
             out.println("\tat " + traceElement);
+    }
+
+    /**
+     * Interface for handlers invoked when a {@code Strand} abruptly terminates due to an uncaught exception.
+     * <p>When a fiber is about to terminate due to an uncaught exception,
+     * the Java Virtual Machine will query the fiber for its
+     * <tt>UncaughtExceptionHandler</tt> using
+     * {@link #getUncaughtExceptionHandler} and will invoke the handler's
+     * <tt>uncaughtException</tt> method, passing the fiber and the
+     * exception as arguments.
+     *
+     * @see #setDefaultUncaughtExceptionHandler
+     * @see #setUncaughtExceptionHandler
+     */
+    public interface UncaughtExceptionHandler {
+        /**
+         * Method invoked when the given fiber terminates due to the given uncaught exception.
+         * <p>Any exception thrown by this method will be ignored.
+         *
+         * @param f the fiber
+         * @param e the exception
+         */
+        void uncaughtException(Strand f, Throwable e);
     }
 
     private static final class ThreadStrand extends Strand {
@@ -906,6 +946,21 @@ public abstract class Strand {
         }
 
         @Override
+        public void setUncaughtExceptionHandler(final UncaughtExceptionHandler uncaughtExceptionHandler) {
+            thread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+                @Override
+                public void uncaughtException(Thread t, Throwable e) {
+                    uncaughtExceptionHandler.uncaughtException(Strand.of(t), e);
+                }
+            });
+        }
+
+        @Override
+        public UncaughtExceptionHandler getUncaughtExceptionHandler() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public String toString() {
             return thread.toString();
         }
@@ -1021,6 +1076,16 @@ public abstract class Strand {
         @Override
         public StackTraceElement[] getStackTrace() {
             return fiber.getStackTrace();
+        }
+
+        @Override
+        public void setUncaughtExceptionHandler(UncaughtExceptionHandler uncaughtExceptionHandler) {
+            fiber.setUncaughtExceptionHandler(uncaughtExceptionHandler);
+        }
+
+        @Override
+        public UncaughtExceptionHandler getUncaughtExceptionHandler() {
+            return fiber.getUncaughtExceptionHandler();
         }
 
         @Override

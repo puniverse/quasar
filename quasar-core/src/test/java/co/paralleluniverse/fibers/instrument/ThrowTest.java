@@ -33,6 +33,7 @@ import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
+import co.paralleluniverse.strands.Strand;
 import java.util.ArrayList;
 import static org.junit.Assert.*;
 import org.junit.BeforeClass;
@@ -50,10 +51,10 @@ public class ThrowTest implements SuspendableRunnable {
     
     @BeforeClass
     public static void setupClass() {
-        Fiber.setDefaultUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
+        Fiber.setDefaultUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
 
             @Override
-            public void uncaughtException(Fiber lwt, Throwable e) {
+            public void uncaughtException(Strand s, Throwable e) {
                 Exceptions.rethrow(e);
             }
         });

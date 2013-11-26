@@ -982,10 +982,18 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     protected void onException(Throwable t) {
-        if (uncaughtExceptionHandler != null)
-            uncaughtExceptionHandler.uncaughtException(this, t);
-        else if (defaultUncaughtExceptionHandler != null)
-            defaultUncaughtExceptionHandler.uncaughtException(this, t);
+        if (uncaughtExceptionHandler != null) {
+            try {
+                uncaughtExceptionHandler.uncaughtException(this, t);
+            } catch (Exception e) {
+                // ignore
+            }
+        } else if (defaultUncaughtExceptionHandler != null)
+            try {
+                defaultUncaughtExceptionHandler.uncaughtException(this, t);
+            } catch (Exception e) {
+                // ignore
+            }
         else
             throw Exceptions.rethrow(t);
     }
@@ -1212,18 +1220,50 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         }
     }
 
+    /**
+     * Set the handler invoked when this fiber abruptly terminates
+     * due to an uncaught exception.
+     * <p>A fiber can take full control of how it responds to uncaught
+     * exceptions by having its uncaught exception handler explicitly set.
+     *
+     * @param eh the object to use as this fiber's uncaught exception
+     *           handler. If <tt>null</tt> then this fiber has no explicit handler.
+     * @see #setDefaultUncaughtExceptionHandler
+     */
     public final void setUncaughtExceptionHandler(UncaughtExceptionHandler uncaughtExceptionHandler) {
         this.uncaughtExceptionHandler = uncaughtExceptionHandler;
     }
 
+    /**
+     * Returns the handler invoked when this fiber abruptly terminates
+     * due to an uncaught exception.
+     */
     public final UncaughtExceptionHandler getUncaughtExceptionHandler() {
         return uncaughtExceptionHandler;
     }
 
+    /**
+     * Returns the default handler invoked when a fiber abruptly terminates
+     * due to an uncaught exception. If the returned value is <tt>null</tt>,
+     * there is no default.
+     *
+     * @see #setDefaultUncaughtExceptionHandler
+     */
     public static UncaughtExceptionHandler getDefaultUncaughtExceptionHandler() {
         return defaultUncaughtExceptionHandler;
     }
 
+    /**
+     * Set the default handler invoked when a fiber abruptly terminates
+     * due to an uncaught exception, and no other handler has been defined
+     * for that fiber.
+     *
+     * @param eh the object to use as the default uncaught exception handler.
+     *           If <tt>null</tt> then there is no default handler.
+     *
+     * @see #setUncaughtExceptionHandler
+     * @see #getUncaughtExceptionHandler
+     */
     public static void setDefaultUncaughtExceptionHandler(UncaughtExceptionHandler defaultUncaughtExceptionHandler) {
         Fiber.defaultUncaughtExceptionHandler = defaultUncaughtExceptionHandler;
     }
@@ -1482,10 +1522,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         }
     }
 
-    public interface UncaughtExceptionHandler {
-        void uncaughtException(Fiber lwt, Throwable e);
-    }
-
     //////////////////////////////////////////////////
     final Stack getStack() {
         return stack;
@@ -1497,9 +1533,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         out.defaultWriteObject();
     }
 
-    public static interface ParkAction {
+    /**
+     * An action to perform before or after a park (but always before the fiber has woken up)
+     */
+    static interface ParkAction {
         /**
-         * Called by Fiber immediately after park.
+         * Called by Fiber immediately before or after park.
          * This method may not use any ThreadLocals as they have been rest by the time the method is called.
          *
          * @param current

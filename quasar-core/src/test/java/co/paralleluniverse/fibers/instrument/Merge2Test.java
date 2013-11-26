@@ -9,6 +9,7 @@ import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.TestsHelper;
+import co.paralleluniverse.strands.Strand;
 import static org.junit.Assert.*;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -20,10 +21,10 @@ import org.junit.Test;
 public class Merge2Test implements SuspendableRunnable {
     @BeforeClass
     public static void setupClass() {
-        Fiber.setDefaultUncaughtExceptionHandler(new Fiber.UncaughtExceptionHandler() {
+        Fiber.setDefaultUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
 
             @Override
-            public void uncaughtException(Fiber lwt, Throwable e) {
+            public void uncaughtException(Strand s, Throwable e) {
                 Exceptions.rethrow(e);
             }
         });

@@ -19,7 +19,7 @@ import java.util.Set;
  * An abstract implementation of {@link Record}.
  * <p/>
  * For getters, this class always throws a {@link FieldNotFoundException}.<br/>
- * For setters, this class tests if the field is in {@link #fields()}; if so – it throws a {@link ReadOnlyFieldException}, otherwise it throws a {@link FieldNotFoundException}.
+ * For setters, this class tests if the field is in {@link #fields()}; if so, it throws a {@link ReadOnlyFieldException}, otherwise it throws a {@link FieldNotFoundException}.
  * <p/>
  * In addition, this class provides sensible implementations of {@link #toString() toString}, {@link #write(java.io.ObjectOutput) write} and {@link #read(java.io.ObjectInput) read}.
  * Also, this class supports serialization.
