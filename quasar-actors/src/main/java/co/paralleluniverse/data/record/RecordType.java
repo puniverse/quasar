@@ -42,7 +42,7 @@ import jsr166e.ConcurrentHashMapV8;
  *     public static final ObjectField<A, List<String>> $emails = stateType.objectField("emails", new TypeToken<List<String>() {});
  * }
  * ```
- * {@code A} is the type's <i>identifier class</i>. The fields are, by convention, given identifiers that begin with a {@code $} to make it clear
+ * {@code A} is the type's <i>identifier class</i>. The fields are, by convention, given identifiers that begin with a {@code \$} to make it clear
  * that they identify fields rather than values.
  * <br/>
  * A new record is instantiated by calling one of the {@code newInstance} methods.
