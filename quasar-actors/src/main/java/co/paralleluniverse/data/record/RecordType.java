@@ -35,11 +35,11 @@ import jsr166e.ConcurrentHashMapV8;
  *
  * ```java
  * class A {
- *     public static final RecordType<A> aType = RecordType.newType(A.class);
- *     public static final IntField<A> $id = stateType.intField("id");
- *     public static final DoubleField<A> $foo = stateType.doubleField("id", Field.TRANSIENT);
- *     public static final ObjectField<A, String> $name = stateType.objectField("name", String.class);
- *     public static final ObjectField<A, List<String>> $emails = stateType.objectField("emails", new TypeToken<List<String>() {});
+ * public static final RecordType<A> aType = RecordType.newType(A.class);
+ * public static final IntField<A> $id = stateType.intField("id");
+ * public static final DoubleField<A> $foo = stateType.doubleField("id", Field.TRANSIENT);
+ * public static final ObjectField<A, String> $name = stateType.objectField("name", String.class);
+ * public static final ObjectField<A, List<String>> $emails = stateType.objectField("emails", new TypeToken<List<String>() {});
  * }
  * ```
  * {@code A} is the type's <i>identifier class</i>. The fields are, by convention, given identifiers that begin with a {@code \$} to make it clear
@@ -105,15 +105,21 @@ public class RecordType<R> {
         return newType(type, null);
     }
 
+    /**
+     * Returns the {@link RecordType} whose <i>identifier class</i>'s name is the given name.
+     *
+     * @param type the {@link RecordType}'s <i>identifier class</i>'s name
+     * @return the {@link RecordType} whose <i>identifier class</i>'s name is the given name, or {@code null} if no such record type exists.
+     */
     public static RecordType<?> forName(String name) throws ClassNotFoundException {
         return forClass(Class.forName(name));
     }
 
     /**
-     * Returns 
-     * @param <T>
-     * @param type
-     * @return 
+     * Returns the {@link RecordType} whose <i>identifier class</i> is the given class.
+     *
+     * @param type the {@link RecordType}'s <i>identifier class</i>
+     * @return the {@link RecordType} whose <i>identifier class</i> is the given class, or {@code null} if no such record type exists.
      */
     public static <T> RecordType<T> forClass(Class<T> type) {
         sealClassType(type);
