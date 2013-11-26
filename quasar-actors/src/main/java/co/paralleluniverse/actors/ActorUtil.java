@@ -17,7 +17,7 @@ import java.math.BigInteger;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * General utility static methods for working with actors.
+ * Static utility methods for working with actors.
  *
  * @author pron
  */

@@ -16,30 +16,66 @@ import java.util.Collection;
 import java.util.Objects;
 
 /**
+ * Static utility methods for working with {@link Record records}.
  *
  * @author pron
  */
 public final class Records {
+    /**
+     * Creates a record object that delegates all operations to the given record.
+     *
+     * @param owner  any object that can identify the owner of the newly created record and can be used to restrict modification of the delegate
+     * @param record the record to which operations will be delegated
+     * @return a new record object that delegates all operations to the given record.
+     * @see #setDelegate(Record, Object, Record)
+     */
     public static <R> Record<R> delegate(Object owner, Record<R> record) {
         return new RecordDelegate<R>(owner, record);
     }
 
-    public static <R> void setDelegate(Record<R> record, Object owner, Record<R> newDelegate) {
+    /**
+     * Sets the target record of a record created with {@link #delegate(Object, Record) delegate()}.
+     *
+     * @param record      the delegate record returned from {@link #delegate(Object, Record) delegate()}.
+     * @param owner       the owner object passed to {@link #delegate(Object, Record) delegate()}.
+     * @param newDelegate the new target
+     */
+    public static <R> void setDelegateTarget(Record<R> record, Object owner, Record<R> newDelegate) {
         if (!(record instanceof RecordDelegate))
             throw new UnsupportedOperationException("Record " + record + " is not a record delegate");
         ((RecordDelegate<R>) record).setDelegate(owner, newDelegate);
     }
 
-    public static <R> Record<R> getDelegate(Record<R> record, Object owner) {
+    /**
+     * Returns the target record of a record created with {@link #delegate(Object, Record) delegate()}.
+     *
+     * @param record the delegate record returned from {@link #delegate(Object, Record) delegate()}.
+     * @param owner  the owner object passed to {@link #delegate(Object, Record) delegate()}.
+     * @return the target of the delegate record
+     */
+    public static <R> Record<R> getDelegateTarget(Record<R> record, Object owner) {
         if (!(record instanceof RecordDelegate))
             return record;
         return ((RecordDelegate<R>) record).getDelegate(owner);
     }
 
+    /**
+     * Copies the contents (all fields) of one record into another.
+     *
+     * @param source the source record
+     * @param target the target record
+     */
     public static <R> void copy(Record<R> source, Record<R> target) {
         copy(source, target, target.fields());
     }
 
+    /**
+     * Copies specified fields of one record into another.
+     *
+     * @param source the source record
+     * @param target the target record
+     * @param fields the fields to copy
+     */
     public static <R> void copy(Record<R> source, Record<R> target, Collection<Field<? super R, ?>> fields) {
         for (Field<? super R, ?> field : fields) {
             try {
@@ -106,6 +142,12 @@ public final class Records {
         }
     }
 
+    /**
+     * Clears a record. Sets all object fields and object array elements to {@code null}
+     * and all primitive fields and primitive array elements to {@code 0}.
+     *
+     * @param record the record
+     */
     public static <R> void clear(Record<R> record) {
         for (Field<? super R, ?> field : record.fields()) {
             try {
@@ -199,13 +241,25 @@ public final class Records {
         }
     }
 
+    /**
+     * Clears all elements of a {@link RecordArray} as in {@link #clear(Record)}.
+     *
+     * @param recordArray the {@link RecordArray}
+     */
     public static <R> void clear(RecordArray<R> recordArray) {
-        if(recordArray instanceof SimpleRecordArray) {
-            ((SimpleRecordArray<R>)recordArray).clear();
+        if (recordArray instanceof SimpleRecordArray) {
+            ((SimpleRecordArray<R>) recordArray).clear();
         } else
             throw new UnsupportedOperationException();
     }
-    
+
+    /**
+     * Perform a deep {@code equals} on two records.
+     *
+     * @param a the first record
+     * @param b the second record
+     * @return {@code true} if all fields of record {@code a} are recursively equal to the respective fields of record {@code b}.
+     */
     public static <R> boolean deepEquals(Record<R> a, Record<R> b) {
         if (a == b)
             return true;

@@ -20,7 +20,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 /**
- * Contains static utility methods for working with fibers.
+ * Static utility methods for working with fibers.
  *
  * @author pron
  */
