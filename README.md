@@ -40,7 +40,8 @@ Or, build from sources by running:
 
 ## Usage
 
-The documentation for Qusar can be found [here](http://puniverse.github.io/quasar/). It is almost incomplete, and we're working on improving it.
+* [Documentation](http://puniverse.github.io/quasar/) (almost complete)
+* [Javadoc](http://puniverse.github.io/quasar/javadoc) (almost complete)
 
 You can also study the examples [here](https://github.com/puniverse/quasar/tree/master/quasar-actors/src/test/java/co/paralleluniverse/actors).
 
