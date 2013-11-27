@@ -22,6 +22,7 @@ import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.NetworkChannel;
 import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.ShutdownChannelGroupException;
 import java.util.Set;
 
 /**

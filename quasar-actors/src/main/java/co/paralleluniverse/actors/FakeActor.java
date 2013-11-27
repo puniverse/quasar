@@ -147,15 +147,15 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
      * @return a {@code watchId} object that identifies this watch in messages, and used to remove the watch by the {@link #unwatch(ActorRef, Object) unwatch} method.
      * @see #unwatch(ActorRef, Object)
      */
-    public final Object watch(ActorRef other1) {
+    public final Object watch(ActorRef other) {
         final Object id = ActorUtil.randtag();
 
-        final ActorRefImpl other = getActorRefImpl(other1);
+        final ActorRefImpl other1 = getActorRefImpl(other);
         final LifecycleListener listener = new ActorLifecycleListener(this, id);
-        record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other, listener);
+        record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other1, listener);
 
-        other.addLifecycleListener(listener);
-        observed.add(other);
+        other1.addLifecycleListener(listener);
+        observed.add(other1);
         return id;
     }
 
@@ -166,12 +166,12 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
      * @param watchId the object returned from the call to {@link #watch(ActorRef) watch(other)}
      * @see #watch(ActorRef)
      */
-    public final void unwatch(ActorRef other1, Object watchId) {
-        final ActorRefImpl other = getActorRefImpl(other1);
+    public final void unwatch(ActorRef other, Object watchId) {
+        final ActorRefImpl other1 = getActorRefImpl(other);
         final LifecycleListener listener = new ActorLifecycleListener(this, watchId);
-        record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other, listener);
-        other.removeLifecycleListener(listener);
-        observed.remove(getActorRefImpl(other1));
+        record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other1, listener);
+        other1.removeLifecycleListener(listener);
+        observed.remove(getActorRefImpl(other));
     }
 
     protected abstract Message handleLifecycleMessage(LifecycleMessage m);

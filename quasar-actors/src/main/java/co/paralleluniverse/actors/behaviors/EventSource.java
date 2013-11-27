@@ -31,6 +31,7 @@ import java.util.concurrent.TimeoutException;
 public class EventSource<Event> extends Behavior {
     /**
      * If {@code actor} is known to be a {@link EventSourceActor}, creates a new {@link EventSource} interface to it.
+     * Normally, you don't use this constructor, but the {@code EventSource} instance returned by {@link EventSourceActor#spawn() }.
      *
      * @param actor an {@link EventSourceActor}
      */

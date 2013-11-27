@@ -32,6 +32,7 @@ import java.util.concurrent.TimeoutException;
 public class Server<CallMessage, V, CastMessage> extends Behavior {
     /**
      * If {@code actor} is known to be a {@link ServerActor}, creates a new {@link Server} interface to it.
+     * Normally, you don't use this constructor, but the {@code Server} instance returned by {@link ServerActor#spawn() }.
      *
      * @param actor a {@link ServerActor}
      */

@@ -93,7 +93,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      * Creates a new actor.
      *
      * @param name          the actor name (may be {@code null}).
-     * @param mailboxConfig the actor's mailbox settings.
+     * @param mailboxConfig the actor's mailbox settings; if {@code null}, the default config - unbounded mailbox - will be used.
      */
     @SuppressWarnings({"OverridableMethodCallInConstructor", "LeakingThisInConstructor"})
     public Actor(String name, MailboxConfig mailboxConfig) {
@@ -107,6 +107,13 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return ref;
     }
 
+    /**
+     * Creates a new actor.
+     *
+     * @param strand        the actor's strand
+     * @param name          the actor name (may be {@code null}).
+     * @param mailboxConfig the actor's mailbox settings; if {@code null}, the default config - unbounded mailbox - will be used.
+     */
     protected Actor(Strand strand, String name, MailboxConfig mailboxConfig) {
         this(name, mailboxConfig);
         if (strand != null)
@@ -634,6 +641,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     /**
      * Returns this actor's cause of death
+     *
      * @return the {@link Throwable} that caused this actor's death, or {@code null} if it died by natural causes, or if it not dead.
      */
     protected final Throwable getDeathCause() {
@@ -642,6 +650,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     /**
      * Tests whether this actor has been {@link #register() registered}.
+     *
      * @return {@code true} if the actor is registered; {@code false} otherwise.
      */
     public final boolean isRegistered() {
@@ -793,6 +802,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     /**
      * Called during this actor's death process.
+     *
      * @param cause the cause of death; {@code null} for natural death.
      */
     private void die(Throwable cause) {

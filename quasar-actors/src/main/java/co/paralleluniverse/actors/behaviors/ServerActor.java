@@ -32,7 +32,6 @@ import org.slf4j.LoggerFactory;
  * {@link #handleInfo(Object) handleInfo}, and {@link #handleTimeout() handleTimeout};
  * or 2) providing an instance of {@link ServerHandler} which implements these methods to the constructor.
  *
- *
  * @author pron
  */
 public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {

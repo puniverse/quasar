@@ -22,7 +22,9 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.ByteChannel;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.GatheringByteChannel;
+import java.nio.channels.InterruptedByTimeoutException;
 import java.nio.channels.NetworkChannel;
 import java.nio.channels.ScatteringByteChannel;
 import java.nio.channels.SocketChannel;
@@ -252,8 +254,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * read from the channel will cause an unspecific runtime exception to be
      * thrown.
      *
-     * <p> Otherwise this method works in the same manner as the {@link
-     * AsynchronousByteChannel#read(ByteBuffer,Object,CompletionHandler)}
+     * <p> Otherwise this method works in the same manner as the {@link #read(ByteBuffer)}.
      * method.
      *
      * @param dst     The buffer into which bytes are to be transferred
@@ -358,9 +359,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * to write to the channel will cause an unspecific runtime exception to be
      * thrown.
      *
-     * <p> Otherwise this method works in the same manner as the {@link
-     * AsynchronousByteChannel#write(ByteBuffer,Object,CompletionHandler)}
-     * method.
+     * <p> Otherwise this method works in the same manner as the {@link #write(ByteBuffer)} method.
      *
      * @param src     The buffer from which bytes are to be retrieved
      * @param timeout The maximum time for the I/O operation to complete

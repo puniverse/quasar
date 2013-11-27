@@ -25,14 +25,28 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
+ * An interface to a {@link SupervisorActor}.
  *
  * @author pron
  */
 public class Supervisor extends Behavior {
-    Supervisor(ActorRef<Object> actor) {
+    /**
+     * If {@code actor} is known to be a {@link ServerActor}, creates a new {@link Server} interface to it.
+     * Normally, you don't use this constructor, but the {@code Supervisor} instance returned by {@link SupervisorActor#spawn() }.
+     *
+     * @param actor a {@link ServerActor}
+     */
+    public Supervisor(ActorRef<Object> actor) {
         super(actor);
     }
 
+    /**
+     * Adds a new child actor to the supervisor. If the child has not been started, it will be started by the supervisor.
+     *
+     * @param spec the {@link ChildSpec child's spec}.
+     * @return the actor (possibly after it has been started by the supervisor).
+     * @throws InterruptedException
+     */
     public final <T extends ActorRef<M>, M> T addChild(ChildSpec spec) throws SuspendExecution, InterruptedException {
         if (isInActor())
             return (T) SupervisorActor.currentSupervisor().addChild(spec);
@@ -40,13 +54,29 @@ public class Supervisor extends Behavior {
         return (T) call(this, new AddChildMessage(RequestReplyHelper.from(), null, spec));
     }
 
+    /**
+     * Retrieves a child actor by its {@link ChildSpec#getId() id}
+     *
+     * @param id the child's {@link ChildSpec#getId() id} in the supervisor.
+     * @return the child, if found; {@code null} if the child was not found
+     * @throws SuspendExecution
+     * @throws InterruptedException
+     */
     public final <T extends ActorRef<M>, M> T getChild(Object id) throws SuspendExecution, InterruptedException {
         if (isInActor())
-            return (T)SupervisorActor.currentSupervisor().getChild(id);
+            return (T) SupervisorActor.currentSupervisor().getChild(id);
 
         return (T) call(this, new GetChildMessage(RequestReplyHelper.from(), null, id));
     }
 
+    /**
+     * Removes a child actor from the supervisor.
+     *
+     * @param id        the child's {@link ChildSpec#getId() id} in the supervisor.
+     * @param terminate whether or not the supervisor should terminate the actor
+     * @return {@code true} if the actor has been successfully removed from the supervisor; {@code false} if the child was not found.
+     * @throws InterruptedException
+     */
     public final boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException {
         if (isInActor())
             return SupervisorActor.currentSupervisor().removeChild(id, terminate);
@@ -54,10 +84,30 @@ public class Supervisor extends Behavior {
         return (Boolean) call(this, new RemoveChildMessage(RequestReplyHelper.from(), null, id, terminate));
     }
 
+    /**
+     * Determines whether a child (supervised) actor should be restarted if the supervisor's {@link SupervisorActor.RestartStrategy restart strategy}
+     * states that it should be restarted.
+     */
     public enum ChildMode {
-        PERMANENT, TRANSIENT, TEMPORARY
+        /**
+         * The child actor should be restarted if it dies for whatever reason if the supervisor's {@link SupervisorActor.RestartStrategy restart strategy}
+         * states that it should be restarted.
+         */
+        PERMANENT,
+        /**
+         * The child actor should be restarted if it dies of unnatural causes (an exception) if the supervisor's {@link SupervisorActor.RestartStrategy restart strategy}
+         * states that it should be restarted.
+         */
+        TRANSIENT,
+        /**
+         * The child actor should never be restarted.
+         */
+        TEMPORARY
     };
 
+    /**
+     * Describes a child actor's configuration in a supervisor
+     */
     public static class ChildSpec {
         final String id;
         final ActorBuilder<?, ?> builder;
@@ -67,6 +117,19 @@ public class Supervisor extends Behavior {
         final TimeUnit unit;
         final long shutdownDeadline;
 
+        /**
+         * A new spec.
+         *
+         * @param id               the child's (optional) identifier (name)
+         * @param mode             the child's {@link ChildMode mode}.
+         * @param maxRestarts      the maximum number of times the child actor is allowed to restart within the given {@code duration} before
+         *                         the supervisor gives up and kills itself.
+         * @param duration         the duration in which the number of restarts is counted towards {@code maxRestarts}.
+         * @param unit             the {@link TimeUnit time unit} of the {@code duration} for {@code maxRestarts}.
+         * @param shutdownDeadline the time in milliseconds the supervisor should wait for the child actor to terminate from the time it was requested to shutdown;
+         *                         after the deadline expires, the child actor is terminated forcefully.
+         * @param builder          the child's {@link ActorBuilder builder}
+         */
         public ChildSpec(String id, ChildMode mode, int maxRestarts, long duration, TimeUnit unit, long shutdownDeadline, ActorBuilder<?, ?> builder) {
             this.id = id;
             this.builder = builder;
@@ -77,34 +140,73 @@ public class Supervisor extends Behavior {
             this.shutdownDeadline = shutdownDeadline;
         }
 
+        /**
+         * A new spec.
+         * This constructor takes an {@link ActorRef} to the actor rather than an {@link ActorBuilder}. If the {@link ActorRef} also implements
+         * {@link ActorBuilder} it will be used to restart the actor. {@code ActorRef}s to local actors implement {@link ActorBuilder} using
+         * {@code Actor}'s {@link Actor#reinstantiate() reinstantiate} method.
+         *
+         * @param id               the child's (optional) identifier (name)
+         * @param mode             the child's {@link ChildMode mode}.
+         * @param maxRestarts      the maximum number of times the child actor is allowed to restart within the given {@code duration} before
+         *                         the supervisor gives up and kills itself.
+         * @param duration         the duration in which the number of restarts is counted towards {@code maxRestarts}.
+         * @param unit             the {@link TimeUnit time unit} of the {@code duration} for {@code maxRestarts}.
+         * @param shutdownDeadline the time in milliseconds the supervisor should wait for the child actor to terminate from the time it was requested to shutdown;
+         *                         after the deadline expires, the child actor is terminated forcefully.
+         * @param actor            the child actor
+         */
         public ChildSpec(String id, ChildMode mode, int maxRestarts, long duration, TimeUnit unit, long shutdownDeadline, ActorRef<?> actor) {
             this(id, mode, maxRestarts, duration, unit, shutdownDeadline, LocalActorUtil.toActorBuilder(actor));
         }
 
-        public Object getId() {
+        /**
+         * The child's (optional) identifier (name)
+         */
+        public String getId() {
             return id;
         }
 
+        /**
+         * The child's {@link ActorBuilder builder}
+         */
         public ActorBuilder<?, ?> getBuilder() {
             return builder;
         }
 
+        /**
+         * The child's {@link ChildMode mode}.
+         */
         public ChildMode getMode() {
             return mode;
         }
 
+        /**
+         * The maximum number of times the child actor is allowed to restart within a given {@link #getDuration() duration} before
+         * the supervisor gives up and kills itself.
+         */
         public int getMaxRestarts() {
             return maxRestarts;
         }
 
+        /**
+         * The duration in which the number of restarts is counted towards the {@link #getMaxRestarts() max restarts}.
+         */
         public long getDuration() {
             return duration;
         }
 
+        /**
+         * The {@link TimeUnit time unit} of the {@link #getDuration() duration} for {@link #getMaxRestarts() max restarts}.
+         */
         public TimeUnit getDurationUnit() {
             return unit;
         }
 
+        /**
+         * The time in milliseconds the supervisor should wait for the child actor to terminate from the time it was requested to shutdown;
+         * after the deadline expires, the child actor is terminated forcefully.
+         */
         public long getShutdownDeadline() {
             return shutdownDeadline;
         }

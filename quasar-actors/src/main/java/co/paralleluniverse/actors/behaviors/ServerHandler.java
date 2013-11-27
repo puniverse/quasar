@@ -50,8 +50,6 @@ public interface ServerHandler<CallMessage, V, CastMessage> extends Initializer 
      * @param from the sender of the request
      * @param id   the request's unique id
      * @param m    the request
-     * @return a value that will be sent as a response to the sender of the request, wrapped by a {@link ValueResponseMessage}.
-     * @throws Exception if thrown, it will be sent back to the sender of the request, wrapped by an {@link ErrorResponseMessage}.
      */
     void handleCast(ActorRef<V> from, Object id, CastMessage m) throws SuspendExecution;
 

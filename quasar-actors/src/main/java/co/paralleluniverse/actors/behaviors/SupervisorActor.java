@@ -32,7 +32,6 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.SuspendableCallable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -50,14 +49,13 @@ import org.slf4j.MDC;
 /**
  * An actor that supervises, and if necessary, restarts other actors.
  *
- *
  * <p/>
  * If an actor needs to know the identity of its siblings, it should add them to the supervisor manually. For that, it needs to know the identity
- * of its supervisor. To do that, pass {@link LocalActor#self self()} to that actor's constructor in the {@link #Supervisor(String, RestartStrategy, SuspendableCallable) initializer}
- * or the {@link #init() init} method. Alternatively, simply call {@link LocalActor#self self()} in the actor's constructor.
+ * of its supervisor. To do that, pass {@link Actor#self self()} to that actor's constructor in the {@link Initializer initializer}
+ * or the {@link #init() init} method. Alternatively, simply call {@link Actor#self self()}, which will return the supervisor actor, in the actor's constructor.
  *
  * This works because the children are constructed from specs (provided they have not been constructed by the caller) during the supervisor's run,
- * so calling {@link LocalActor#self self()} anywhere in the construction process would return the supervisor.
+ * so calling {@link Actor#self self()} anywhere in the construction process would return the supervisor.
  *
  * @author pron
  */
@@ -68,18 +66,45 @@ public class SupervisorActor extends BehaviorActor {
     private final List<ChildEntry> children = new ArrayList<ChildEntry>();
     private final ConcurrentMap<Object, ChildEntry> childrenById = new ConcurrentHashMapV8<Object, ChildEntry>();
 
+    /**
+     * Constructs a new supervisor with no children. Children may be added later via {@link Supervisor#addChild(Supervisor.ChildSpec) Supervisor.addChild}.
+     *
+     * @param strand          this actor's strand.
+     * @param name            the actor name (may be {@code null}).
+     * @param mailboxConfig   this actor's mailbox settings.
+     * @param restartStrategy the supervisor's {@link RestartStrategy restart strategy}
+     * @param initializer     an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
+     */
     public SupervisorActor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, Initializer initializer) {
         super(name, initializer, strand, mailboxConfig);
         this.restartStrategy = restartStrategy;
         this.childSpec = null;
     }
 
+    /**
+     * Constructs a new supervisor with a given list of children.
+     *
+     * @param strand          this actor's strand.
+     * @param name            the actor name (may be {@code null}).
+     * @param mailboxConfig   this actor's mailbox settings.
+     * @param restartStrategy the supervisor's {@link RestartStrategy restart strategy}
+     * @param childSpec       the supervisor's children
+     */
     public SupervisorActor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
         super(name, null, strand, mailboxConfig);
         this.restartStrategy = restartStrategy;
         this.childSpec = childSpec;
     }
 
+    /**
+     * Constructs a new supervisor with a given list of children.
+     *
+     * @param strand          this actor's strand.
+     * @param name            the actor name (may be {@code null}).
+     * @param mailboxConfig   this actor's mailbox settings.
+     * @param restartStrategy the supervisor's {@link RestartStrategy restart strategy}
+     * @param childSpec       the supervisor's children
+     */
     public SupervisorActor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, ChildSpec... childSpec) {
         this(strand, name, mailboxConfig, restartStrategy, Arrays.asList(childSpec));
     }
@@ -119,51 +144,134 @@ public class SupervisorActor extends BehaviorActor {
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
+    /**
+     * Constructs a new supervisor with no children. Children may be added later via {@link Supervisor#addChild(Supervisor.ChildSpec) Supervisor.addChild}.
+     *
+     * @param strand          this actor's strand.
+     * @param name            the actor name (may be {@code null}).
+     * @param mailboxConfig   this actor's mailbox settings.
+     * @param restartStrategy the supervisor's {@link RestartStrategy restart strategy}
+     */
     public SupervisorActor(Strand strand, String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy) {
         this(strand, name, mailboxConfig, restartStrategy, (Initializer) null);
     }
 
+    /**
+     * Constructs a new supervisor with no children. Children may be added later via {@link Supervisor#addChild(Supervisor.ChildSpec) Supervisor.addChild}.
+     *
+     * @param name            the actor name (may be {@code null}).
+     * @param mailboxConfig   this actor's mailbox settings.
+     * @param restartStrategy the supervisor's {@link RestartStrategy restart strategy}
+     */
     public SupervisorActor(String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy) {
         this(null, name, mailboxConfig, restartStrategy, (Initializer) null);
     }
 
+    /**
+     * Constructs a new supervisor with no children. Children may be added later via {@link Supervisor#addChild(Supervisor.ChildSpec) Supervisor.addChild}.
+     *
+     * @param name            the actor name (may be {@code null}).
+     * @param restartStrategy the supervisor's {@link RestartStrategy restart strategy}
+     */
     public SupervisorActor(String name, RestartStrategy restartStrategy) {
         this(null, name, null, restartStrategy, (Initializer) null);
     }
 
+    /**
+     * Constructs a new supervisor with no children. Children may be added later via {@link Supervisor#addChild(Supervisor.ChildSpec) Supervisor.addChild}.
+     *
+     * @param name            the actor name (may be {@code null}).
+     * @param mailboxConfig   this actor's mailbox settings.
+     * @param restartStrategy the supervisor's {@link RestartStrategy restart strategy}
+     * @param initializer     an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
+     */
     public SupervisorActor(String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, Initializer initializer) {
         this(null, name, mailboxConfig, restartStrategy, initializer);
     }
 
+    /**
+     * Constructs a new supervisor with no children. Children may be added later via {@link Supervisor#addChild(Supervisor.ChildSpec) Supervisor.addChild}.
+     *
+     * @param name            the actor name (may be {@code null}).
+     * @param restartStrategy the supervisor's {@link RestartStrategy restart strategy}
+     * @param initializer     an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
+     */
     public SupervisorActor(String name, RestartStrategy restartStrategy, Initializer initializer) {
         this(null, name, null, restartStrategy, initializer);
     }
 
+    /**
+     * Constructs a new supervisor with no children. Children may be added later via {@link Supervisor#addChild(Supervisor.ChildSpec) Supervisor.addChild}.
+     *
+     * @param restartStrategy the supervisor's {@link RestartStrategy restart strategy}
+     */
     public SupervisorActor(RestartStrategy restartStrategy) {
         this(null, null, null, restartStrategy, (Initializer) null);
     }
 
     ///
+    /**
+     * Constructs a new supervisor with a given list of children.
+     *
+     * @param name            the actor name (may be {@code null}).
+     * @param mailboxConfig   this actor's mailbox settings.
+     * @param restartStrategy the supervisor's {@link RestartStrategy restart strategy}
+     * @param childSpec       the supervisor's children
+     */
     public SupervisorActor(String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
         this(null, name, mailboxConfig, restartStrategy, childSpec);
     }
 
+    /**
+     * Constructs a new supervisor with a given list of children.
+     *
+     * @param name            the actor name (may be {@code null}).
+     * @param mailboxConfig   this actor's mailbox settings.
+     * @param restartStrategy the supervisor's {@link RestartStrategy restart strategy}
+     * @param childSpec       the supervisor's children
+     */
     public SupervisorActor(String name, MailboxConfig mailboxConfig, RestartStrategy restartStrategy, ChildSpec... childSpec) {
         this(null, name, mailboxConfig, restartStrategy, childSpec);
     }
 
+    /**
+     * Constructs a new supervisor with a given list of children.
+     *
+     * @param name            the actor name (may be {@code null}).
+     * @param restartStrategy the supervisor's {@link RestartStrategy restart strategy}
+     * @param childSpec       the supervisor's children
+     */
     public SupervisorActor(String name, RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
         this(null, name, null, restartStrategy, childSpec);
     }
 
+    /**
+     * Constructs a new supervisor with a given list of children.
+     *
+     * @param name            the actor name (may be {@code null}).
+     * @param restartStrategy the supervisor's {@link RestartStrategy restart strategy}
+     * @param childSpec       the supervisor's children
+     */
     public SupervisorActor(String name, RestartStrategy restartStrategy, ChildSpec... childSpec) {
         this(null, name, null, restartStrategy, childSpec);
     }
 
+    /**
+     * Constructs a new supervisor with a given list of children.
+     *
+     * @param restartStrategy the supervisor's {@link RestartStrategy restart strategy}
+     * @param childSpec       the supervisor's children
+     */
     public SupervisorActor(RestartStrategy restartStrategy, List<ChildSpec> childSpec) {
         this(null, null, null, restartStrategy, childSpec);
     }
 
+    /**
+     * Constructs a new supervisor with a given list of children.
+     *
+     * @param restartStrategy the supervisor's {@link RestartStrategy restart strategy}
+     * @param childSpec       the supervisor's children
+     */
     public SupervisorActor(RestartStrategy restartStrategy, ChildSpec... childSpec) {
         this(null, null, null, restartStrategy, childSpec);
     }
@@ -530,19 +638,33 @@ public class SupervisorActor extends BehaviorActor {
         return System.nanoTime() / 1000000;
     }
 
+    /**
+     * Specifies a supervisor's strategy in the event a child dies. Not every child death triggers the strategy. It is only triggered
+     * when a {@link Supervisor.ChildMode#PERMANENT PERMANENET} child dies of any cause, or a
+     * {@link Supervisor.ChildMode#TRANSIENT TRANSIENT} child dies an unnatural death (caused by an exception).
+     */
     public enum RestartStrategy {
+        /**
+         * Kill the supervisor along with all children.
+         */
         ESCALATE {
             @Override
             boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
                 return false;
             }
         },
+        /**
+         * Restart the dead actor.
+         */
         ONE_FOR_ONE {
             @Override
             boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
                 return supervisor.tryRestart(child, cause, supervisor.now(), null, true);
             }
         },
+        /**
+         * Kill all surviving children, and restart them all.
+         */
         ALL_FOR_ONE {
             @Override
             boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
@@ -561,6 +683,10 @@ public class SupervisorActor extends BehaviorActor {
                 return true;
             }
         },
+        /**
+         * Kill all children that were added to the supervisor <i>after</i> the addition of the dead actor, and restart them all
+         * (including the actor whose death triggered the strategy).
+         */
         REST_FOR_ONE {
             @Override
             boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {

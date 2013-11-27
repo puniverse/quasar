@@ -109,7 +109,7 @@ public class RecordType<R> {
     /**
      * Returns the {@link RecordType} whose <i>identifier class</i>'s name is the given name.
      *
-     * @param type the {@link RecordType}'s <i>identifier class</i>'s name
+     * @param name the {@link RecordType}'s <i>identifier class</i>'s name
      * @return the {@link RecordType} whose <i>identifier class</i>'s name is the given name, or {@code null} if no such record type exists.
      */
     public static RecordType<?> forName(String name) throws ClassNotFoundException {

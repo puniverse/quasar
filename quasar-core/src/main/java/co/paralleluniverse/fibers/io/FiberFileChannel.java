@@ -24,7 +24,9 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileAttribute;
+import java.nio.file.spi.FileSystemProvider;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
@@ -127,10 +129,10 @@ public class FiberFileChannel extends FileChannel {
      * FileSystemProvider#newFileChannel newFileChannel} method on the
      * provider that created the {@code Path}.
      *
-     * @param file     The path of the file to open or create
-     * @param options  Options specifying how the file is opened
-     * @param executor The thread pool or {@code null} to associate the channel with the default thread pool
-     * @param attrs    An optional list of file attributes to set atomically when creating the file
+     * @param path       The path of the file to open or create
+     * @param options    Options specifying how the file is opened
+     * @param ioExecutor The thread pool or {@code null} to associate the channel with the default thread pool
+     * @param attrs      An optional list of file attributes to set atomically when creating the file
      *
      * @return A new file channel
      *
@@ -168,7 +170,7 @@ public class FiberFileChannel extends FileChannel {
      * handlers that consume the result of asynchronous operations performed on
      * the resulting channel.
      *
-     * @param file    The path of the file to open or create
+     * @param path    The path of the file to open or create
      * @param options Options specifying how the file is opened
      *
      * @return A new file channel
