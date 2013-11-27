@@ -58,26 +58,19 @@
           
           
           
+        
+          
+          
+            
+          
+          
+          
             <li>
               <a  href="/quasar/getting-started.html">
                 Getting Started
               </a>
               
             </li>
-          
-        
-          
-          
-            
-          
-          
-          
-        
-          
-          
-            
-          
-          
           
         
           
@@ -115,15 +108,15 @@
             </li>
           
         
-      
-        <li class="nav-header">User Manual</li>
-        
           
           
             
           
           
           
+        
+      
+        <li class="nav-header">User Manual</li>
         
           
           
@@ -137,6 +130,13 @@
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
           
@@ -189,19 +189,19 @@
           
           
           
-            <li>
-              <a  href="/quasar/manual/examples.html">
-                Examples
-              </a>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a  href="/quasar/manual/examples.html">
+                Examples
+              </a>
+              
+            </li>
           
         
       
@@ -448,6 +448,10 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <p>By itself, <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/BehaviorActor.html"><code>BehaviorActor</code></a> provides handling for <a href="/quasar/javadoc/co/paralleluniverse/actors/ShutdownMessage.html"><code>ShutdownMessage</code></a>, which, as its name suggests, requests an actor to shut itself down, along with the accompanying <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/Behavior.html#shutdown()"><code>shutdown</code></a> method in the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/Behavior.html"><code>Behavior</code></a> class (the “interface” side). In addition, <code>BehaviorActor</code> defines standard initialization and termination methods which may be overriden. You should consult the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/BehaviorActor.html">Javadoc</a> for more&nbsp;detail.</p>
 
+<p>When a behavior actor is spawned, its <code>spawn</code> (or <code>spawnThread</code>) method returns its “interface” (which is also an&nbsp;<code>ActorRef</code>).</p>
+
+<p class="alert alert-info"><strong>Note:</strong> Behavior actors usually have different constructors for convenience. Those that do not take an explicit <code>MailboxConfig</code> parameter, use the default configuration of <em>an unbounded mailbox</em>. </p>
+
 <h3 id="server">Server</h3>
 
 <p>The <em>server</em> behavior is an actor that implements a request-reply model. The behavior implementation is found in <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/ServerActor.html"><code>ServerActor</code></a>, and the interface is <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/Server.html"><code>Server</code></a>.</p>
@@ -479,6 +483,30 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <p>The last behavior actor, the <em>supervisor</em> deserves a chapter of its own, as it’s at the core of the actor model’s error handling&nbsp;philosophy.</p>
 
+<p>Actors provide fault isolation. When an exception occurs in an actor it can only (directly) take down that actor. Actors also provide fault detection and identification. As we’ve seen, other actors can be notified of an actor’s deat, as well as its cause, via watches and&nbsp;links.</p>
+
+<p>Like other behaviors, the <em>supervisor</em> is a behavior that codifies and standardizes good actor practices; in this case: fault handling. As its name implies, a supervisor is an actor that supervises one or more other actors and watches them to detect their death. When a supervised (or <em>child</em>) actor dies, the supervisor can take several pre-configured actions such as restarting the dead actor or killing and restarting all children. The supervisor might also choose to kill itself and <em>escalate</em> the problem, possibly to its own&nbsp;supervisor.</p>
+
+<p>Actors performing business logic, “worker actors”, are supervised by a supervisor actor that detects when they die and takes one of several pre-configured actions. Supervisors may, in turn, be supervised by other supervisors, thus forming a <em>supervision hierarchy</em> that compartmentalizes failure and&nbsp;recovery. </p>
+
+<p>The basic philosophy behind supervisor-based fault handling was named “let it crash” by Erlang’s designer, Joe Armstrong. The idea is that instead of trying to fix the program state after every expected exception, we simply let an actor crash when it encounters an unexcpected condition and “reboot”&nbsp;it.</p>
+
+<p>A supervisors works as follows: it has a number of <em>children</em>, worker actors or other supervisors that are registered to be supervised wither at the supervisor’s construction time or at a later time. Each child has a mode (represented by the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/Supervisor.ChildMode.html"><code>Supervisor.ChildMode</code></a>&nbsp;class): 
+<code>PERMANENT</code>, <code>TRANSIENT</code> or <code>TEMPORARY</code> that determines whether its death will trigger the supervisor’s <em>recovery event</em>. When the recovery event is triggered, the supervisor takes action specified by its <em>restart strategy</em> - represented by the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/SupervisorActor.RestartStrategy.html"><code>SupervisorActor.RestartStrategy</code></a> class - or it will give up and fail, depending on predefined failure&nbsp;modes. </p>
+
+<p>When a child actor in the <code>PERMANENT</code> mode dies, it will always trigger its supervisor’s recovery event. When a child in the <code>TRANSIENT</code> mode dies, it will trigger a recovery event only if it has died as a result of an exception, but not if it has simply finished its operation. A <code>TEMPORARY</code> child never triggers it supervisor’s recovery&nbsp;event.</p>
+
+<p>A supervisor’s <em>restart strategy</em> determines what it does during a <em>recovery event</em>: A strategy of <code>ESCALATE</code> measns that the supervisor will shut down (“kill”) all its surviving children and then die; a <code>ONE_FOR_ONE</code> strategy will restart the dead child; an <code>ALL_FOR_ONE</code> strategy will shut down all children and then restart them all; a <code>REST_FOR_ONE</code> strategy will shut down and restart all those children added to the suervisor after the dead&nbsp;child.</p>
+
+<p>Children can be added to the supervisor actor either at construction time or later, with <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/Supervisor.html"><code>Supervisor</code></a>’s <code>addChild</code> method. A child is added by passing a <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/Supervisor.ChildSpec.html"><code>ChildSpec</code></a> to the supervisor. The <code>ChildSpec</code> contains the means of how to start the actor, usually in the form of an <a href="/quasar/javadoc/co/paralleluniverse/actors/actors/ActorSpec.html"><code>ActorSpec</code></a> (see the <a href="#actor-restarts">next section</a>), or as an already constructed actor; the childs mode; and how many times an actor is allowed to be restarted in a given amount of time. If the actor is restarted too many times within the specified duration, the supervisor gives up and terminates (along with all its children) causing an&nbsp;escalation.</p>
+
+<p>If an actor needs to know the identity of its siblings, it should add them to the supervisor manually (with <code>Supervisor</code>’s <code>addChild</code> method). For that, it needs to know the identity of its supervisor. To do that, you can construct the <code>ActorSpec</code> in the <code>SupervisorActor</code>’s <code>Initializer</code> or in <code>SupervisorActor.init()</code> method (subclass <code>SupervisorActor</code>), pass <code>Actor.self()</code> to the actor’s constructor, and add it to the supervisor with <code>addChild</code>. Alternatively, simply call <code>Actor.self()</code> in the child’s constructor. This works because the children are constructed from specs (provided they have not been constructed by the caller) during the supervisor’s run, so calling <code>Actor.self()</code> anywhere in the construction process would return the&nbsp;supervisor.</p>
+
+<h3 id="actor-restarts">Actor&nbsp;Restarts</h3>
+
+<p>Restarting an actor means construction a new actor and spawning it. That is why the supervisor’s <code>ChildSpec</code> takes an instance of <code>ActorBuilder</code>. Usually, you’ll use <a href="/quasar/javadoc/co/paralleluniverse/actors/actors/ActorSpec.html"><code>ActorSpec</code></a> as the builder instance. Sometimes, however, you’d like to add a running actor to the supervisor, and that is why <code>ChildSpec</code> has a constructor that takes an <code>ActorRef</code>. To restart such actors, the supervisor relies on the fact that <code>ActorRef</code>s to local actors implement <code>ActorBuilder</code>. When requested to build a new actor, they call the old actor’s <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#reinstantiate()"><code>reinstantiate</code></a> method to create a clone of the old&nbsp;actor.</p>
+
+<p>When an actor is restarted, the supervisor takes care to run it on the same type of strand (thread or fiber) as the old&nbsp;actor.</p>
 </div>
 
       <hr>
