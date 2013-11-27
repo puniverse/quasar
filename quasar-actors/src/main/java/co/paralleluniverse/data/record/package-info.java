@@ -11,7 +11,7 @@
  * as published by the Free Software Foundation.
  */
 /**
- * ## Records
+ * ## Records - managed shared mutable state
  *
  * Here's an example record type definition:
  *
@@ -25,7 +25,10 @@
  * }
  * ```
  * 
- * `A` is the type's *identifier class*. The fields are, by convention, given identifiers that begin with a {@code \$} to make it clear
- * that they identify fields rather than values.
+ * `A` is the type's *identifier class*. The fields are instances of {@link co.paralleluniverse.data.record.Field Field} and are, by convention, 
+ * given identifiers that begin with a `$` to make it clear that they identify fields rather than values.
+ * <br/>
+ * A new record is instantiated by calling one of {@link co.paralleluniverse.data.record.RecordType RecordType}'s {@code newInstance} methods.
+ * 
  */
 package co.paralleluniverse.data.record;
