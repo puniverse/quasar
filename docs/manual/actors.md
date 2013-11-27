@@ -249,6 +249,11 @@ Similarly to Erlang, Quasar includes "actor templates" for some common actor beh
 
 By itself, [`BehaviorActor`]({{javadoc}}/actors/behaviors/BehaviorActor.html) provides handling for [`ShutdownMessage`]({{javadoc}}/actors/ShutdownMessage.html), which, as its name suggests, requests an actor to shut itself down, along with the accompanying [`shutdown`]({{javadoc}}/actors/behaviors/Behavior.html#shutdown()) method in the [`Behavior`]({{javadoc}}/actors/behaviors/Behavior.html) class (the "interface" side). In addition, `BehaviorActor` defines standard initialization and termination methods which may be overriden. You should consult the [Javadoc]({{javadoc}}/actors/behaviors/BehaviorActor.html) for more detail.
 
+When a behavior actor is spawned, its `spawn` (or `spawnThread`) method returns its "interface" (which is also an `ActorRef`).
+
+{:.alert .alert-info}
+**Note:** Behavior actors usually have different constructors for convenience. Those that do not take an explicit `MailboxConfig` parameter, use the default configuration of *an unbounded mailbox*. 
+
 ### Server
 
 The *server* behavior is an actor that implements a request-reply model. The behavior implementation is found in [`ServerActor`]({{javadoc}}/actors/behaviors/ServerActor.html), and the interface is [`Server`]({{javadoc}}/actors/behaviors/Server.html).
@@ -278,59 +283,27 @@ Event handlers are called synchronously on the same strand as the actor's, so th
 
 The last behavior actor, the *supervisor* deserves a chapter of its own, as it's at the core of the actor model's error handling philosophy.
 
-{% comment %}
+Actors provide fault isolation. When an exception occurs in an actor it can only (directly) take down that actor. Actors also provide fault detection and identification. As we've seen, other actors can be notified of an actor's deat, as well as its cause, via watches and links.
 
-## Supervisors
+Like other behaviors, the *supervisor* is a behavior that codifies and standardizes good actor practices; in this case: fault handling. As its name implies, a supervisor is an actor that supervises one or more other actors and watches them to detect their death. When a supervised (or *child*) actor dies, the supervisor can take several pre-configured actions such as restarting the dead actor or killing and restarting all children. The supervisor might also choose to kill itself and *escalate* the problem, possibly to its own supervisor.
 
-A supervisor is an actor behavior designed to standardize error handling. Internally it uses watches and links, but it offers a more structured, standard, and simple way to react to errors.
+Actors performing business logic, "worker actors", are supervised by a supervisor actor that detects when they die and takes one of several pre-configured actions. Supervisors may, in turn, be supervised by other supervisors, thus forming a *supervision hierarchy* that compartmentalizes failure and recovery. 
 
-The general idea is that actors performing business logic, "worker actors", are supervised by a supervisor actor that detects when they die and takes one of several pre-configured actions. Supervisors may, in turn, be supervised by other supervisors, thus forming a supervision hierarchy that compartmentalizes failure and recovery. 
+The basic philosophy behind supervisor-based fault handling was named "let it crash" by Erlang's designer, Joe Armstrong. The idea is that instead of trying to fix the program state after every expected exception, we simply let an actor crash when it encounters an unexcpected condition and "reboot" it.
 
-A supervisors work as follows: it has a number of *children*, worker actors or other supervisors that are registered to be supervised wither at the supervisor's construction time or at a later time. Each child has a mode, `:permanent`, `:transient` or `:temporary` that determines whether its death will trigger the supervisor's *recovery event*. When the recovery event is triggered, the supervisor takes action specified by its *restart strategy*, or it will give up and fail, depending on predefined failure modes. 
+A supervisors works as follows: it has a number of *children*, worker actors or other supervisors that are registered to be supervised wither at the supervisor's construction time or at a later time. Each child has a mode (represented by the [`Supervisor.ChildMode`]({{javadoc}}/actors/behaviors/Supervisor.ChildMode.html) class): 
+`PERMANENT`, `TRANSIENT` or `TEMPORARY` that determines whether its death will trigger the supervisor's *recovery event*. When the recovery event is triggered, the supervisor takes action specified by its *restart strategy* - represented by the [`SupervisorActor.RestartStrategy`]({{javadoc}}/actors/behaviors/SupervisorActor.RestartStrategy.html) class - or it will give up and fail, depending on predefined failure modes. 
 
-When a child actor in the `:permanent` mode dies, it will always trigger its supervisor's recovery event. When a child in the `:transient` mode dies, it will trigger a recovery event only if it has died as a result of an exception, but not if it has simply finished its operation. A `:temporary` child never triggers it supervisor's recovery event.
+When a child actor in the `PERMANENT` mode dies, it will always trigger its supervisor's recovery event. When a child in the `TRANSIENT` mode dies, it will trigger a recovery event only if it has died as a result of an exception, but not if it has simply finished its operation. A `TEMPORARY` child never triggers it supervisor's recovery event.
 
-A supervisor's *restart strategy* determines what it does during a *recovery event*: A strategy of `:escalate` measns that the supervisor will shut down ("kill") all its surviving children and then die; a `:one-for-one` strategy will restart the dead child; an `:all-for-one` strategy will shut down all children and then restart them all; a `:rest-for-one` strategy will shut down and restart all those children added to the suervisor after the dead child.
+A supervisor's *restart strategy* determines what it does during a *recovery event*: A strategy of `ESCALATE` measns that the supervisor will shut down ("kill") all its surviving children and then die; a `ONE_FOR_ONE` strategy will restart the dead child; an `ALL_FOR_ONE` strategy will shut down all children and then restart them all; a `REST_FOR_ONE` strategy will shut down and restart all those children added to the suervisor after the dead child.
 
-A supervisor is spawned so:
+Children can be added to the supervisor actor either at construction time or later, with [`Supervisor`]({{javadoc}}/actors/behaviors/Supervisor.html)'s `addChild` method. A child is added by passing a [`ChildSpec`]({{javadoc}}/actors/behaviors/Supervisor.ChildSpec.html) to the supervisor. The `ChildSpec` contains the means of how to start the actor, usually in the form of an [`ActorSpec`]({{javadoc}}/actors/actors/ActorSpec.html) (see the [next section](#actor-restarts)), or as an already constructed actor; the childs mode; and how many times an actor is allowed to be restarted in a given amount of time. If the actor is restarted too many times within the specified duration, the supervisor gives up and terminates (along with all its children) causing an escalation.
 
-~~~ clojure
-(spawn (supervisor restart-strategy init))
-~~~
+If an actor needs to know the identity of its siblings, it should add them to the supervisor manually (with `Supervisor`'s `addChild` method). For that, it needs to know the identity of its supervisor. To do that, you can construct the `ActorSpec` in the `SupervisorActor`'s `Initializer` or in `SupervisorActor.init()` method (subclass `SupervisorActor`), pass `Actor.self()` to the actor's constructor, and add it to the supervisor with `addChild`. Alternatively, simply call `Actor.self()` in the child's constructor. This works because the children are constructed from specs (provided they have not been constructed by the caller) during the supervisor's run, so calling `Actor.self()` anywhere in the construction process would return the supervisor.
 
-where `restart-strategy` is one of: `:escalate`, `:one-for-one`, `:all-for-one`, or `:rest-for-one`, and `init` is a function that returns a sequence of *child specs* that will be used to add children to the supervisor when it's constructed.
+### Actor Restarts {#actor-restarts}
 
-A *child spec* is a vector of the following form:
+Restarting an actor means construction a new actor and spawning it. That is why the supervisor's `ChildSpec` takes an instance of `ActorBuilder`. Usually, you'll use [`ActorSpec`]({{javadoc}}/actors/actors/ActorSpec.html) as the builder instance. Sometimes, however, you'd like to add a running actor to the supervisor, and that is why `ChildSpec` has a constructor that takes an `ActorRef`. To restart such actors, the supervisor relies on the fact that `ActorRef`s to local actors implement `ActorBuilder`. When requested to build a new actor, they call the old actor's [`reinstantiate`]({{javadoc}}/actors/Actor.html#reinstantiate()) method to create a clone of the old actor.
 
-~~~ clojure
-[id mode max-restarts duration unit shutdown-deadline-millis actor-fn & actor-args]
-~~~
-
-where:
-
-* `id` is an optional identifier (usually a string) for the child actor. May be `nil`.
-* `mode` is one of `:permanent`, `:transient` or `:temporary`.
-* `max-restarts`, `duration` and `unit` are a triplet specifying how many times is the child allowed to restart in a given period of time before the supervisor should give up, kill all its children and die. For example `20 5 :sec` means at most 20 restarts in 5 seconds.
-* `shutdown-deadline-millis` is the maximal amount of time, in milliseconds that the child is allowed to spend from the time it's requested to shut down until the time it is terminated. Whenever a the supervisor shuts down a child, it does so by sending it the message `[:shutdown sup]`, with `sup` being the supervisor. If the shutdown deadline elapses, the supervisor will forcefully shut it down by interrupting the child's strand.
-* `actor-fn & actor-args` are the (suspendable) function (with optional arguments) that's to serve as the child actor's body.
-
-It is often useful to pass the supervisor to a child (so it could later dynamically add other children to the supervisor, for example). This is easily done because the `init` function is called inside the supervisor; therefore, any reference to `@self` insode the init function returns the supervisor. If you pass `@self`, then, as an argument to a child actor, it will receive the supervisor.
-
-Other than returning a sequence of child specs from the `init` function, you can also dynamically add a child to a supervisor by simply calling
-
-~~~ clojure
-(add-child! sup id mode max-restarts duration unit shutdown-deadline-millis actor-fn & actor-args)
-~~~
-
-with `sup` being the supervisor, and the rest of the arguments comprising the child spec for the actor, with the difference that if `actor-fn`, instead of an actor function, is a spawned actor (the value returned from `spawn`), then supervisor will supervise an already-spawned actor. Otherwise, (if it is a function), a new actor will be spawned.
-
-A supervised actor may be removed from the supervisor by calling
-
-~~~ clojure
-(remove-child! sup id)
-~~~
-
-with `id` being the one given to the actor in the child spec or the arguments to `add-child`.
-
-{% endcomment %}
-
+When an actor is restarted, the supervisor takes care to run it on the same type of strand (thread or fiber) as the old actor.

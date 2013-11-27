@@ -371,6 +371,13 @@ public class SupervisorActor extends BehaviorActor {
         return child;
     }
 
+    /**
+     * Adds a new child actor to the supervisor. If the child has not been started, it will be started by the supervisor.
+     *
+     * @param spec the {@link ChildSpec child's spec}.
+     * @return the actor (possibly after it has been started by the supervisor).
+     * @throws InterruptedException
+     */
     protected final <T extends ActorRef<M>, M> T addChild(ChildSpec spec) throws SuspendExecution, InterruptedException {
         verifyInActor();
         final ChildEntry child = addChild1(spec);
@@ -384,14 +391,28 @@ public class SupervisorActor extends BehaviorActor {
         return (T) actor;
     }
 
-    protected <T extends ActorRef<M>, M> T getChild(Object name) {
+    /**
+     * Retrieves a child actor by its {@link ChildSpec#getId() id}
+     *
+     * @param id the child's {@link ChildSpec#getId() id} in the supervisor.
+     * @return the child, if found; {@code null} if the child was not found
+     */
+    protected <T extends ActorRef<M>, M> T getChild(Object id) {
         verifyInActor();
-        final ChildEntry child = findEntryById(name);
+        final ChildEntry child = findEntryById(id);
         if (child == null)
             return null;
         return (T) child.actor;
     }
 
+    /**
+     * Removes a child actor from the supervisor.
+     *
+     * @param id        the child's {@link ChildSpec#getId() id} in the supervisor.
+     * @param terminate whether or not the supervisor should terminate the actor
+     * @return {@code true} if the actor has been successfully removed from the supervisor; {@code false} if the child was not found.
+     * @throws InterruptedException
+     */
     protected final boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException {
         verifyInActor();
         final ChildEntry child = findEntryById(id);
