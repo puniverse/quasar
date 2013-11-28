@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -68,6 +69,11 @@ public abstract class TransformingReceivePort<S, T> implements ReceivePort<T> {
         }
     }
 
+    @Override
+    public T receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+        return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
+    }
+    
     @Override
     public void close() {
         target.close();

@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.BasicSingleConsumerIntQueue;
 import java.util.concurrent.TimeUnit;
@@ -50,6 +51,11 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
     }
 
     @Override
+    public int receiveInt(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+        return receiveInt(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
+    }
+
+    @Override
     public boolean trySend(int message) {
         if (isSendClosed())
             return true;
@@ -78,6 +84,11 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
             return super.send(message, timeout, unit);
         signalReceivers();
         return true;
+    }
+
+    @Override
+    public boolean send(int message, Timeout timeout) throws SuspendExecution, InterruptedException {
+        return send(message, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     @Override

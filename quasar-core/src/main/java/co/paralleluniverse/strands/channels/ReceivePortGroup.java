@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -59,6 +60,15 @@ public class ReceivePortGroup<Message> implements ReceivePort<Message> {
     public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         selector.reset();
         SelectAction<? extends Message> sa = selector.select(timeout, unit);
+        if (sa != null)
+            return sa.message();
+        return null;
+    }
+
+    @Override
+    public Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+        selector.reset();
+        SelectAction<? extends Message> sa = selector.select(timeout);
         if (sa != null)
             return sa.message();
         return null;

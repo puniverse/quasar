@@ -17,6 +17,7 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberAsync;
 import co.paralleluniverse.fibers.RuntimeExecutionException;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -59,6 +60,20 @@ public class AsyncCompletableFuture<V> extends FiberAsync<V, Void, ExecutionExce
             return new AsyncCompletableFuture<>(future).run(timeout, unit);
         else
             return future.get(timeout, unit);
+    }
+
+    /**
+     * Blocks the current strand (either fiber or thread) until the given future completes - but no longer than the given timeout - and returns its result.
+     *
+     * @param future  the future
+     * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @return the future's result
+     * @throws ExecutionException   if the future's computation threw an exception
+     * @throws TimeoutException     if the timeout expired before the future completed
+     * @throws InterruptedException if the current thread was interrupted while waiting
+     */
+    public static <V> V get(CompletableFuture<V> future, Timeout timeout) throws ExecutionException, InterruptedException, SuspendExecution, TimeoutException {
+        return get(future, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     /**
@@ -132,6 +147,23 @@ public class AsyncCompletableFuture<V> extends FiberAsync<V, Void, ExecutionExce
             }
         } else
             return future.get(timeout, unit);
+    }
+
+    /**
+     * Blocks the current strand (either fiber or thread) until the given future completes - but no longer than the given timeout - and returns its result.
+     * <p/>
+     * Unlike {@link #get(ListenableFuture, long, TimeUnit)  get}, while this is a fiber-blocking operation, it is not suspendable. It blocks the fiber
+     * by other, less efficient means, and {@link #get(ListenableFuture, long, TimeUnit) get} should be generally preferred over this method.
+     *
+     * @param future  the future
+     * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @return the future's result
+     * @throws ExecutionException   if the future's computation threw an exception
+     * @throws TimeoutException     if the timeout expired before the future completed
+     * @throws InterruptedException if the current thread was interrupted while waiting
+     */
+    public static <V> V getNoSuspend(final CompletableFuture<V> future, Timeout timeout) throws ExecutionException, InterruptedException, TimeoutException {
+        return getNoSuspend(future, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
     ///////////////////////////////////////////////////////////////////////
     private final CompletableFuture<V> fut;

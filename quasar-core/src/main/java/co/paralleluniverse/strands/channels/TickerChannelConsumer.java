@@ -15,6 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Condition;
+import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.queues.CircularBuffer;
 import co.paralleluniverse.strands.queues.CircularDoubleBuffer;
 import co.paralleluniverse.strands.queues.CircularFloatBuffer;
@@ -141,6 +142,11 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
     }
 
     @Override
+    public Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+        return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
+    }
+
+    @Override
     public void close() {
         setReceiveClosed();
     }
@@ -202,6 +208,11 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
             return consumer().getIntValue();
         }
 
+        @Override
+        public int receiveInt(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+            return receiveInt(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
+        }
+
         private CircularIntBuffer.IntConsumer consumer() {
             return (CircularIntBuffer.IntConsumer) consumer;
         }
@@ -222,6 +233,11 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         public long receiveLong(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
             attemptReceive(timeout, unit);
             return consumer().getLongValue();
+        }
+
+        @Override
+        public long receiveLong(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+            return receiveLong(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
         }
 
         private CircularLongBuffer.LongConsumer consumer() {
@@ -246,6 +262,11 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
             return consumer().getFloatValue();
         }
 
+        @Override
+        public float receiveFloat(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+            return receiveFloat(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
+        }
+
         private CircularFloatBuffer.FloatConsumer consumer() {
             return (CircularFloatBuffer.FloatConsumer) consumer;
         }
@@ -266,6 +287,11 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         public double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
             attemptReceive(timeout, unit);
             return consumer().getDoubleValue();
+        }
+
+        @Override
+        public double receiveDouble(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+            return receiveDouble(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
         }
 
         private CircularDoubleBuffer.DoubleConsumer consumer() {

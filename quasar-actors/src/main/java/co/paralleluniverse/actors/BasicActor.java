@@ -15,6 +15,7 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -26,19 +27,39 @@ import java.util.concurrent.TimeoutException;
 public abstract class BasicActor<Message, V> extends Actor<Message, V> {
     private final SelectiveReceiveHelper<Message> helper;
 
+    /**
+     * Creates a new actor.
+     *
+     * @param name          the actor name (may be {@code null}).
+     * @param mailboxConfig the actor's mailbox settings; if {@code null}, the default config - unbounded mailbox - will be used.
+     */
     public BasicActor(String name, MailboxConfig mailboxConfig) {
         super(name, mailboxConfig);
         this.helper = new SelectiveReceiveHelper<>(this);
     }
 
+    /**
+     * Creates a new, unnamed actor.
+     *
+     * @param mailboxConfig the actor's mailbox settings; if {@code null}, the default config - unbounded mailbox - will be used.
+     */
     public BasicActor(MailboxConfig mailboxConfig) {
         this((String) null, mailboxConfig);
     }
 
+    /**
+     * Creates a new actor.
+     * The default mailbox config - unbounded mailbox - will be used.
+     *
+     * @param name the actor name (may be {@code null}).
+     */
     public BasicActor(String name) {
         this(name, null);
     }
 
+    /**
+     * Creates a new unnamed actor.
+     */
     public BasicActor() {
         this((String) null, null);
     }
@@ -89,6 +110,25 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
     }
 
     /**
+     * Performs a selective receive. This method blocks (but for no longer than the given timeout) until a message that is
+     * {@link MessageProcessor#process(java.lang.Object) selected} by the given {@link MessageProcessor} is available in the mailbox,
+     * and returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
+     * If the given timeout expires, this method returns {@code null}.
+     * <p/>
+     * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
+     * non-selective) retrieves them.
+     *
+     * @param <T>     The type of the returned value
+     * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @param proc    performs the selection.
+     * @return The non-null value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}, or {@code null} if the timeout expired.
+     * @throws InterruptedException
+     */
+    public final <T> T receive(Timeout timeout, MessageProcessor<? super Message, T> proc) throws TimeoutException, SuspendExecution, InterruptedException {
+        return helper.receive(timeout, proc);
+    }
+
+    /**
      * Tries to perform a selective receive. If a message {@link MessageProcessor#process(java.lang.Object) selected} by
      * the given {@link MessageProcessor} is immediately available in the mailbox, returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
      * This method never blocks.
@@ -127,14 +167,34 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
      * non-selective) retrieves them.
      *
-     * @param <T>  The type of the returned value
-     * @param type the type of the messages to select
+     * @param <T>     The type of the returned value
+     * @param timeout the duration to wait for a matching message to arrive.
+     * @param unit    timeout's time unit.
+     * @param type    the type of the messages to select
      * @return The next message of the wanted type, or {@code null} if the timeout expires.
      * @throws SuspendExecution
      * @throws InterruptedException
      */
     public final <T extends Message> T receive(long timeout, TimeUnit unit, final Class<T> type) throws SuspendExecution, InterruptedException, TimeoutException {
         return helper.receive(timeout, unit, SelectiveReceiveHelper.ofType(type));
+    }
+
+    /**
+     * Performs a selective receive based on type. This method blocks (but for no longer than the given timeout) until a message of the given type
+     * is available in the mailbox, and returns it. If the given timeout expires, this method returns {@code null}.
+     * <p/>
+     * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
+     * non-selective) retrieves them.
+     *
+     * @param <T>     The type of the returned value
+     * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @param type    the type of the messages to select
+     * @return The next message of the wanted type, or {@code null} if the timeout expires.
+     * @throws SuspendExecution
+     * @throws InterruptedException
+     */
+    public final <T extends Message> T receive(Timeout timeout, final Class<T> type) throws SuspendExecution, InterruptedException, TimeoutException {
+        return helper.receive(timeout, SelectiveReceiveHelper.ofType(type));
     }
 
     /**

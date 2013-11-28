@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -40,6 +41,15 @@ public interface ReceivePort<Message> extends Port<Message> {
      * @throws InterruptedException
      */
     Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
+
+    /**
+     * Retrieves a message from the channels, possibly blocking until one becomes available, but no longer than the specified timeout.
+     *
+     * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @return a message, or {@code null} if the channel has been closed and no more messages await (see {@link #isClosed()}), or if the timeout has expired.
+     * @throws InterruptedException
+     */
+    Message receive(Timeout timeout) throws SuspendExecution, InterruptedException;
 
     /**
      * Retrieves a message from the channel if one is available. This method never blocks.

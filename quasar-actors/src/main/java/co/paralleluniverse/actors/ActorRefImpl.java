@@ -17,6 +17,7 @@ import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.SendPort;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.Objects;
@@ -76,6 +77,12 @@ abstract class ActorRefImpl<Message> extends ActorRef<Message> implements SendPo
 
     @Override
     public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        send(message);
+        return true;
+    }
+
+    @Override
+    public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
         send(message);
         return true;
     }

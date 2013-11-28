@@ -16,6 +16,7 @@ package co.paralleluniverse.strands.channels;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
+import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -31,6 +32,7 @@ public class DelayedVal<V> implements Future<V> {
 
     /**
      * Sets the value
+     *
      * @param value the value
      * @throws IllegalStateException if the value has already been set.
      */
@@ -86,9 +88,9 @@ public class DelayedVal<V> implements Future<V> {
      * Returns the delayed value, blocking until it has been set, but no longer than the given timeout.
      *
      * @param timeout The maximum duration to block waiting for the value to be set.
-     * @param unit The time unit of the timeout value.
+     * @param unit    The time unit of the timeout value.
      * @return the value
-     * @throws TimeoutException if the timeout expires before the value is set.
+     * @throws TimeoutException     if the timeout expires before the value is set.
      * @throws InterruptedException
      */
     @Override
@@ -116,6 +118,10 @@ public class DelayedVal<V> implements Future<V> {
         } catch (SuspendExecution e) {
             throw new AssertionError(e);
         }
+    }
+
+    public V get(Timeout timeout) throws InterruptedException, TimeoutException {
+        return get(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     /**

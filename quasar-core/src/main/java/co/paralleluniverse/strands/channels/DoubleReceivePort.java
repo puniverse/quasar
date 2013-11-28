@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.ReceivePort.EOFException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -27,7 +28,7 @@ import java.util.concurrent.TimeoutException;
  */
 public interface DoubleReceivePort extends ReceivePort<Double> {
     /**
-     * Retrieves a message from the channels, possibly blocking until one becomes available. 
+     * Retrieves a message from the channels, possibly blocking until one becomes available.
      * If the channel has been closed and no more messages await, this method throws an {@link EOFException}.
      *
      * @return a message.
@@ -41,11 +42,23 @@ public interface DoubleReceivePort extends ReceivePort<Double> {
      * If the channel has been closed and no more messages await, this method throws an {@link EOFException}.
      *
      * @param timeout the maximum duration to block waiting for a message.
-     * @param unit the time unit of the timeout.
+     * @param unit    the time unit of the timeout.
      * @return a message. (see {@link #isClosed()}), or if the timeout has expired.
-     * @throws TimeoutException if the timeout has expired
+     * @throws TimeoutException         if the timeout has expired
      * @throws ReceivePort.EOFException if the channel has been closed and no more messages await
      * @throws InterruptedException
      */
     double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException;
+
+    /**
+     * Retrieves a message from the channels, possibly blocking until one becomes available, but no longer than the specified timeout.
+     * If the channel has been closed and no more messages await, this method throws an {@link EOFException}.
+     *
+     * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @return a message. (see {@link #isClosed()}), or if the timeout has expired.
+     * @throws TimeoutException         if the timeout has expired
+     * @throws ReceivePort.EOFException if the channel has been closed and no more messages await
+     * @throws InterruptedException
+     */
+    double receiveDouble(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException;
 }

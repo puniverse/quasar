@@ -13,6 +13,7 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -157,6 +158,25 @@ public class SelectiveReceiveHelper<Message> {
     }
 
     /**
+     * Performs a selective receive. This method blocks (but for no longer than the given timeout) until a message that is
+     * {@link MessageProcessor#process(java.lang.Object) selected} by the given {@link MessageProcessor} is available in the mailbox,
+     * and returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
+     * If the given timeout expires, this method returns {@code null}.
+     * <p/>
+     * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
+     * non-selective) retrieves them.
+     *
+     * @param <T>     The type of the returned value
+     * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @param proc    performs the selection.
+     * @return The non-null value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}, or {@code null} if the timeout expired.
+     * @throws InterruptedException
+     */
+    public final <T> T receive(Timeout timeout, MessageProcessor<? super Message, T> proc) throws TimeoutException, SuspendExecution, InterruptedException {
+        return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS, proc);
+    }
+
+    /**
      * Tries to perform a selective receive. If a message {@link MessageProcessor#process(java.lang.Object) selected} by
      * the given {@link MessageProcessor} is immediately available in the mailbox, returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
      * This method never blocks.
@@ -203,14 +223,34 @@ public class SelectiveReceiveHelper<Message> {
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
      * non-selective) retrieves them.
      *
-     * @param <T>  The type of the returned value
-     * @param type the type of the messages to select
+     * @param <T>     The type of the returned value
+     * @param timeout the duration to wait for a matching message to arrive.
+     * @param unit    timeout's time unit.
+     * @param type    the type of the messages to select
      * @return The next message of the wanted type, or {@code null} if the timeout expires.
      * @throws SuspendExecution
      * @throws InterruptedException
      */
     public final <M extends Message> M receive(long timeout, TimeUnit unit, final Class<M> type) throws SuspendExecution, InterruptedException, TimeoutException {
         return receive(timeout, unit, ofType(type));
+    }
+
+    /**
+     * Performs a selective receive based on type. This method blocks (but for no longer than the given timeout) until a message of the given type
+     * is available in the mailbox, and returns it. If the given timeout expires, this method returns {@code null}.
+     * <p/>
+     * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
+     * non-selective) retrieves them.
+     *
+     * @param <T>     The type of the returned value
+     * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @param type    the type of the messages to select
+     * @return The next message of the wanted type, or {@code null} if the timeout expires.
+     * @throws SuspendExecution
+     * @throws InterruptedException
+     */
+    public final <M extends Message> M receive(Timeout timeout, final Class<M> type) throws SuspendExecution, InterruptedException, TimeoutException {
+        return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS, type);
     }
 
     /**

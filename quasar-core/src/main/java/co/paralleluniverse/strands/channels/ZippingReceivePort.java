@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import com.google.common.base.Function;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -82,18 +83,23 @@ public class ZippingReceivePort<Message> implements ReceivePort<Message> {
         return transformAndReset();
     }
 
+    @Override
+    public Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+        return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
+    }
+
     private Message transformAndReset() {
         final Object[] ms1 = copy(ms);
         Arrays.fill(ms, null);
         return transform(ms1);
     }
-    
+
     private static Object[] copy(Object[] array) {
         Object[] array2 = new Object[array.length];
         System.arraycopy(array, 0, array2, 0, array.length);
         return array2;
-    } 
-    
+    }
+
     @Override
     public void close() {
         for (ReceivePort<?> c : targets)
@@ -110,7 +116,7 @@ public class ZippingReceivePort<Message> implements ReceivePort<Message> {
     }
 
     protected Message transform(Object[] ms) {
-        if(f != null)
+        if (f != null)
             return f.apply(ms);
         throw new UnsupportedOperationException();
     }

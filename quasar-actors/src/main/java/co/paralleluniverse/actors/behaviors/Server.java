@@ -20,6 +20,7 @@ import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.from;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.makeId;
 import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -72,6 +73,21 @@ public class Server<CallMessage, V, CastMessage> extends Behavior {
     public final V call(CallMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
         final V res = RequestReplyHelper.call(ref, new ServerRequest(from(), null, MessageType.CALL, m), timeout, unit);
         return res;
+    }
+
+    /**
+     * Sends a synchronous request to the actor, and awaits a response, but no longer than the given timeout.
+     * <p/>
+     * This method may be safely called by actors and non-actor strands alike.
+     *
+     * @param m       the request
+     * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @return the value sent as a response from the actor
+     * @throws RuntimeException if the actor encountered an error while processing the request
+     * @throws TimeoutException if the timeout expires before a response has been received.
+     */
+    public final V call(CallMessage m, Timeout timeout) throws TimeoutException, InterruptedException, SuspendExecution {
+        return call(m, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     /**

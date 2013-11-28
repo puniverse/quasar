@@ -5,6 +5,7 @@
 package co.paralleluniverse.strands.channels.disruptor;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import com.lmax.disruptor.AbstractSequencer;
 import com.lmax.disruptor.AlertException;
@@ -88,6 +89,11 @@ public class DisruptorReceiveChannel<Message> implements ReceivePort<Message> {
         } catch (TimeoutException e) {
             return null;
         }
+    }
+
+    @Override
+    public Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+        return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     @Override

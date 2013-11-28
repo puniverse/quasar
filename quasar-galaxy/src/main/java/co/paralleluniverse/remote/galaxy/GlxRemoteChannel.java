@@ -23,6 +23,7 @@ import co.paralleluniverse.galaxy.quasar.Messenger;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.remote.RemoteException;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.SendPort;
 import java.io.Serializable;
 import java.lang.ref.PhantomReference;
@@ -99,6 +100,11 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
+    @Override
+    public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
+        return send(message, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
+    }
+    
     @Override
     public boolean trySend(final Message message) {
         try {

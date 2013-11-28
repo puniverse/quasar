@@ -25,6 +25,7 @@ import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Synchronization;
+import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -64,6 +65,11 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
         if (!Strand.interrupted())
             return false;
         throw new InterruptedException();
+    }
+
+    @Override
+    public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
+        return send(message, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     @Override
@@ -160,6 +166,11 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
             return (Message) m;
         }
         throw new InterruptedException();
+    }
+
+    @Override
+    public Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+        return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     boolean isSendClosed() {

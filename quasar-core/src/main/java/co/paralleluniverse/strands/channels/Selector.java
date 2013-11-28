@@ -20,6 +20,7 @@ import co.paralleluniverse.concurrent.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Synchronization;
+import co.paralleluniverse.strands.Timeout;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -64,6 +65,20 @@ public class Selector<Message> implements Synchronization {
     }
 
     /**
+     * Performs exactly one channel operation of a given set, blocking until any of the actions completes, but no longer than the given timeout.
+     *
+     * @param priority If {@code true} and more than one operation can complete at the same time, the one that appears in the given list first will be the one performed.
+     *                 If {@code false} the order of the operations is ignored.
+     * @param timeout  the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @param actions  a list of actions, one of which will be performed.
+     * @return the action that has completed successfully, or {@code null} if the timeout expired before an operation could complete.
+     * @throws InterruptedException
+     */
+    public static <Message> SelectAction<Message> select(boolean priority, Timeout timeout, SelectAction<Message>... actions) throws InterruptedException, SuspendExecution {
+        return new Selector<Message>(priority, Arrays.asList(actions)).select(timeout);
+    }
+
+    /**
      * Performs exactly one channel operation of a given set, blocking until any of the actions completes.
      *
      * @param priority If {@code true} and more than one operation can complete at the same time, the one that appears in the given list first will be the one performed.
@@ -77,8 +92,10 @@ public class Selector<Message> implements Synchronization {
     }
 
     /**
-     * Performs exactly one channel operation of a given set, blocking until any of the actions completes.
+     * Performs exactly one channel operation of a given set, blocking until any of the actions completes, but no longer than the specified timeout.
      *
+     * @param timeout  the maximum duration to block waiting for an operation to complete.
+     * @param unit     the time unit of the given timeout
      * @param priority If {@code true} and more than one operation can complete at the same time, the one that appears in the given list first will be the one performed.
      *                 If {@code false} the order of the operations is ignored.
      * @param actions  a list of actions, one of which will be performed.
@@ -87,6 +104,20 @@ public class Selector<Message> implements Synchronization {
      */
     public static <Message> SelectAction<Message> select(boolean priority, long timeout, TimeUnit unit, List<? extends SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
         return new Selector<Message>(priority, actions instanceof ArrayList ? actions : new ArrayList<>(actions)).select(timeout, unit);
+    }
+
+    /**
+     * Performs exactly one channel operation of a given set, blocking until any of the actions completes, but no longer than the specified timeout.
+     *
+     * @param timeout  the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @param priority If {@code true} and more than one operation can complete at the same time, the one that appears in the given list first will be the one performed.
+     *                 If {@code false} the order of the operations is ignored.
+     * @param actions  a list of actions, one of which will be performed.
+     * @return the action that has completed successfully
+     * @throws InterruptedException
+     */
+    public static <Message> SelectAction<Message> select(boolean priority, Timeout timeout, List<? extends SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
+        return new Selector<Message>(priority, actions instanceof ArrayList ? actions : new ArrayList<>(actions)).select(timeout);
     }
 
     /**
@@ -116,6 +147,19 @@ public class Selector<Message> implements Synchronization {
     }
 
     /**
+     * Performs exactly one channel operation of a given set, blocking until any of the actions completes, but no longer than the given timeout.
+     * Same as calling {@link #select(long, java.util.concurrent.TimeUnit, co.paralleluniverse.strands.channels.SelectAction[]) select(false, timeout, unit, actions)}.
+     *
+     * @param timeout  the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @param actions a list of actions, one of which will be performed.
+     * @return the action that has completed successfully, or {@code null} if the timeout expired before an operation could complete.
+     * @throws InterruptedException
+     */
+    public static <Message> SelectAction<Message> select(Timeout timeout, SelectAction<Message>... actions) throws InterruptedException, SuspendExecution {
+        return select(false, timeout, actions);
+    }
+
+    /**
      * Performs exactly one channel operation of a given set, blocking until any of the actions completes.
      * Same as calling {@link #select(boolean, java.util.List) select(false, actions)}.
      *
@@ -139,6 +183,19 @@ public class Selector<Message> implements Synchronization {
      */
     public static <Message> SelectAction<Message> select(long timeout, TimeUnit unit, List<? extends SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
         return select(false, timeout, unit, actions);
+    }
+
+    /**
+     * Performs exactly one channel operation of a given set, blocking until any of the actions completes, but no longer than the given timeout.
+     * Same as calling {@link #select(boolean, long, java.util.concurrent.TimeUnit, java.util.List) select(false, timeout, unit, actions)}.
+     *
+     * @param timeout  the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @param actions a list of actions, one of which will be performed.
+     * @return the action that has completed successfully, or {@code null} if the timeout expired before an operation could complete.
+     * @throws InterruptedException
+     */
+    public static <Message> SelectAction<Message> select(Timeout timeout, List<? extends SelectAction<Message>> actions) throws InterruptedException, SuspendExecution {
+        return select(false, timeout, actions);
     }
 
     /**
@@ -295,6 +352,10 @@ public class Selector<Message> implements Synchronization {
             sa.token = null; // for GC
         }
         this.waiter = null;
+    }
+
+    SelectAction<Message> select(Timeout timeout) throws InterruptedException, SuspendExecution {
+        return select(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     SelectAction<Message> select(long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {

@@ -14,6 +14,7 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.SendPort;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -62,6 +63,11 @@ public abstract class ActorRefDelegate<Message> extends ActorRef<Message> implem
     @Override
     public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         return ((SendPort<Message>) ref).send(message, timeout, unit);
+    }
+
+   @Override
+    public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
+        return ((SendPort<Message>) ref).send(message, timeout);
     }
 
     @Override

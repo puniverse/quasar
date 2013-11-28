@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -140,6 +141,8 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
      * In immediate exec mode, when this method returns we are running within the handler, and will need to call {@link Fiber#yield()}
      * to return from the handler.
      *
+     * @param timeout the maximum duration to wait for the result
+     * @param unit    {@code timeout}'s time unit
      * @return the result of the async operation as set in the call to {@link #asyncCompleted(java.lang.Object) asyncCompleted}.
      * @throws E                    if the async computation failed and an exception was set in a call to {@link #asyncFailed(java.lang.Throwable) asyncFailed}.
      * @throws TimeoutException     if the operation had not completed by the time the timeout has elapsed.
@@ -185,6 +188,23 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
         }
 
         return getResult();
+    }
+
+    /**
+     * Runs the asynchronous operation, blocks until it completes (but only up to the given timeout duration) and returns its result.
+     * Throws an exception if the operation has failed.
+     * <p/>
+     * In immediate exec mode, when this method returns we are running within the handler, and will need to call {@link Fiber#yield()}
+     * to return from the handler.
+     *
+     * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @return the result of the async operation as set in the call to {@link #asyncCompleted(java.lang.Object) asyncCompleted}.
+     * @throws E                    if the async computation failed and an exception was set in a call to {@link #asyncFailed(java.lang.Throwable) asyncFailed}.
+     * @throws TimeoutException     if the operation had not completed by the time the timeout has elapsed.
+     * @throws InterruptedException
+     */
+    public V run(Timeout timeout) throws E, SuspendExecution, InterruptedException, TimeoutException {
+        return run(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     /**

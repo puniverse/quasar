@@ -26,6 +26,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
+import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import java.lang.reflect.Constructor;
 import java.util.Collections;
@@ -414,6 +415,19 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             checkThrownIn();
             throw e;
         }
+    }
+
+    /**
+     * Returns the next message from the mailbox. If no message is currently available, this method blocks until a message arrives,
+     * but no longer than the given timeout.
+     *
+     * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @return a message sent to this actor, or {@code null} if the timeout has expired.
+     * @throws InterruptedException
+     */
+    @Override
+    public final Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+        return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     /**

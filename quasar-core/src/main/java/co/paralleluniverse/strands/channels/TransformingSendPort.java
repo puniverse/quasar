@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -40,6 +41,11 @@ public abstract class TransformingSendPort<S, T> implements SendPort<S> {
         if (m != null)
             return target.send(m, timeout, unit);
         return true;
+    }
+
+    @Override
+    public boolean send(S message, Timeout timeout) throws SuspendExecution, InterruptedException {
+        return send(message, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     @Override

@@ -15,6 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Condition;
+import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -67,6 +68,12 @@ public class DelayedValChannel<V> implements ReceivePort<V>, Selectable<V> {
     }
 
     @Override
+    public V receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+        return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
+        
+    }
+
+    @Override
     public void close() {
         closed.set(true);
     }
@@ -94,9 +101,9 @@ public class DelayedValChannel<V> implements ReceivePort<V>, Selectable<V> {
 
     @Override
     public boolean tryNow(Object token) {
-        if(!dv.isDone())
+        if (!dv.isDone())
             return false;
-        SelectAction<V> action = (SelectAction<V>)token;
+        SelectAction<V> action = (SelectAction<V>) token;
         if (!action.lease())
             return false;
         action.setItem(dv.getValue());

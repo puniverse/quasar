@@ -21,6 +21,7 @@ import co.paralleluniverse.strands.OwnedSynchronizer;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Synchronization;
+import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.BasicQueue;
 import co.paralleluniverse.strands.queues.CircularBuffer;
@@ -146,6 +147,11 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     @Override
     public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         return send0(message, false, true, unit.toNanos(timeout));
+    }
+
+    @Override
+    public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
+        return send0(message, false, true, timeout.nanosLeft());
     }
 
     @Override
@@ -330,6 +336,11 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         if (m != null)
             signalSenders();
         return m;
+    }
+
+    @Override
+    public Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+        return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     public Message receiveFromThread() throws InterruptedException {

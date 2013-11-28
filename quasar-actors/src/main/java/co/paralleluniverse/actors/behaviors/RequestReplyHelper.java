@@ -24,6 +24,7 @@ import co.paralleluniverse.actors.SelectiveReceiveHelper;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import java.lang.ref.WeakReference;
 import java.util.Objects;
@@ -42,7 +43,7 @@ public final class RequestReplyHelper {
     /**
      * Generates a random, probably unique, message identifier. This method simply calls {@link ActorUtil#randtag() }.
      *
-     * @return a newly allocated, probably unique, message identifier. 
+     * @return a newly allocated, probably unique, message identifier.
      */
     public static Object makeId() {
         return ActorUtil.randtag();
@@ -189,6 +190,32 @@ public final class RequestReplyHelper {
     }
 
     /**
+     * Sends a request message to an actor, awaits a response value (but no longer than the given timeout) and returns it.
+     * This method can be called by any code, even non-actor code.
+     * If the actor responds with an error message, a {@link RuntimeException} will be thrown by this method.
+     * <br/>
+     * The message's {@code id} and {@code from} properties may be left unset.
+     * <p/>
+     * This method should be used as in the following example (assuming a {@code String} return value:
+     * <pre> {@code
+     * String res = call(actor, new MyRequest());
+     * }</pre>
+     * In the example, {@code MyRequest} extends {@link RequestMessage}. Note how the result of the {@link #from() from} method is passed to the
+     * request's constructor, but the message ID isn't.
+     *
+     * @param <V>
+     * @param actor   the actor to which the request is sent
+     * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @return the value sent by the actor as a response
+     * @throws RuntimeException     if the actor responds with an error message, its contained exception will be thrown, possibly wrapped by a {@link RuntimeException}.
+     * @throws TimeoutException     if the timeout expires before a response is received from the actor.
+     * @throws InterruptedException
+     */
+    public static <V> V call(final ActorRef actor, RequestMessage m, Timeout timeout) throws TimeoutException, InterruptedException, SuspendExecution {
+        return call(actor, m, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
+    }
+
+    /**
      * Replies with a result to a {@link RequestMessage}.
      * If the request has been sent by a call to {@link #call(ActorRef, RequestMessage) call}, the
      * {@code result} argument will be the value returned by {@link #call(ActorRef, RequestMessage) call}.
@@ -292,6 +319,11 @@ public final class RequestReplyHelper {
             if (a != null)
                 return a.send(message, timeout, unit);
             return true;
+        }
+
+        @Override
+        public boolean send(Message msg, Timeout timeout) throws SuspendExecution, InterruptedException {
+            return send(msg, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
         }
 
         @Override

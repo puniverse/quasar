@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -43,11 +44,25 @@ public interface LongSendPort extends SendPort<Long> {
      *
      * @param message
      * @param timeout the maximum duration this method is allowed to wait.
-     * @param unit the timeout's time unit
+     * @param unit    the timeout's time unit
      * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has expired.
      * @throws SuspendExecution
      */
     boolean send(long message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException;
+
+    /**
+     * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the
+     * specified timeout.
+     *
+     * If the channel is full, this method may block, throw an exception, silently drop the message, or displace an old message from
+     * the channel. The behavior is determined by the channel's {@link Channels.OverflowPolicy OverflowPolicy}, set at construction time.
+     *
+     * @param message
+     * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has expired.
+     * @throws SuspendExecution
+     */
+    boolean send(long message, Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException;
 
     /**
      * Sends a message to the channel if the channel has room available. This method never blocks.

@@ -14,6 +14,7 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.channels.SendPort;
 import java.util.concurrent.TimeUnit;
@@ -57,6 +58,9 @@ public abstract class ActorRef<Message> implements SendPort<Message> {
      *
      * If the channel is full, this method may block, throw an exception, silently drop the message, or displace an old message from
      * the channel. The behavior is determined by the channel's {@link OverflowPolicy OverflowPolicy}, set at construction time.
+     * <p/>
+     * <b/>Currently, this behavior is not yet supported. The message will be sent using {@link #send(Object)} and the timeout argument
+     * will be disregarded</b>
      *
      * @param msg     the message
      * @param timeout the maximum duration this method is allowed to wait.
@@ -66,6 +70,24 @@ public abstract class ActorRef<Message> implements SendPort<Message> {
      */
     @Override
     public abstract boolean send(Message msg, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
+
+    /**
+     * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the
+     * specified timeout.
+     *
+     * If the channel is full, this method may block, throw an exception, silently drop the message, or displace an old message from
+     * the channel. The behavior is determined by the channel's {@link OverflowPolicy OverflowPolicy}, set at construction time.
+     * <p/>
+     * <b/>Currently, this behavior is not yet supported. The message will be sent using {@link #send(Object)} and the timeout argument
+     * will be disregarded</b>
+     *
+     * @param msg     the message
+     * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has elapsed.
+     * @throws SuspendExecution
+     */
+    @Override
+    public abstract boolean send(Message msg, Timeout timeout) throws SuspendExecution, InterruptedException;
 
     /**
      * Sends a message to the channel if the channel has room available. This method never blocks.

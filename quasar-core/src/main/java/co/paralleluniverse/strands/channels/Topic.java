@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import java.util.Collection;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +41,7 @@ public class Topic<Message> implements SendPort<Message> {
 
     @Override
     public void send(Message message) throws SuspendExecution, InterruptedException {
-        if(sendClosed)
+        if (sendClosed)
             return;
         for (SendPort<? super Message> sub : subscribers)
             sub.send(message);
@@ -51,7 +52,11 @@ public class Topic<Message> implements SendPort<Message> {
         throw new UnsupportedOperationException();
     }
 
-    
+    @Override
+    public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
+        throw new UnsupportedOperationException();
+    }
+
     @Override
     public boolean trySend(Message message) {
         throw new UnsupportedOperationException();
