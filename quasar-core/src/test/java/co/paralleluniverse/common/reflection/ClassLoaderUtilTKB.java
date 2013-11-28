@@ -11,8 +11,9 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.fibers.instrument;
+package co.paralleluniverse.common.reflection;
 
+import co.paralleluniverse.common.reflection.ClassLoaderUtil;
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;

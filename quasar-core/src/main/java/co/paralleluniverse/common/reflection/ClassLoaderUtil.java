@@ -29,7 +29,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package co.paralleluniverse.fibers.instrument;
+package co.paralleluniverse.common.reflection;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
