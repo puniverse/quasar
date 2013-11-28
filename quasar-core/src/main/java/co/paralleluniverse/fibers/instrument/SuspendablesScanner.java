@@ -13,8 +13,9 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.common.reflection.ASMUtil;
 import co.paralleluniverse.fibers.Suspendable;
-import static co.paralleluniverse.fibers.instrument.ASMUtil.*;
+import static co.paralleluniverse.common.reflection.ASMUtil.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;

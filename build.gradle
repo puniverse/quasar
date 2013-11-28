@@ -377,6 +377,7 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
         "co/paralleluniverse/common/classloader/**",
         "co/paralleluniverse/common/logging/**",
         "co/paralleluniverse/common/monitoring/**",
+        "co/paralleluniverse/common/reflection/**",
         "co/paralleluniverse/common/util/**",  
         "co/paralleluniverse/concurrent/forkjoin/**",  
         "co/paralleluniverse/concurrent/util/**",  
