@@ -58,6 +58,13 @@
           
           
           
+            <li>
+              <a  href="/quasar/getting-started.html">
+                Getting Started
+              </a>
+              
+            </li>
+          
         
           
           
@@ -65,12 +72,12 @@
           
           
           
-            <li>
-              <a  href="/quasar/getting-started.html">
-                Getting Started
-              </a>
-              
-            </li>
+        
+          
+          
+            
+          
+          
           
         
           
@@ -108,15 +115,15 @@
             </li>
           
         
+      
+        <li class="nav-header">User Manual</li>
+        
           
           
             
           
           
           
-        
-      
-        <li class="nav-header">User Manual</li>
         
           
           
@@ -132,13 +139,6 @@
               <ul class="nav nav-list"><li><a href="#fibers">Fibers</a></li><li><a href="#strands">Strands</a></li><li><a href="#transforming-any-asynchronous-callback-to-a-fiber-blocking-operation">Transforming any Asynchronous Callback to A Fiber-Blocking&nbsp;Operation</a></li><li><a href="#advanced-fibers">Advanced Fiber&nbsp;Usage</a></li><li><a href="#channels">Channels</a></li><li><a href="#delay-variables">Delay&nbsp;Variables</a></li></ul>
               
             </li>
-          
-        
-          
-          
-            
-          
-          
           
         
           
@@ -189,19 +189,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/manual/examples.html">
                 Examples
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
       
@@ -260,11 +260,17 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>Other than <code>Fiber</code>’s constructor and <code>start</code> method, and possibly the <code>join</code> and <code>get</code> methods, you will not access the <code>Fiber</code> class directly much. To perform operations you would normally want to do on a thread, it is better to use the <code>Strand</code> class (discussed later), which is a generalizations of both threads and&nbsp;fibers.</p>
 
-<h3 id="the-fiber-scheduler-and-runtime-fiber-monitoring">The Fiber Scheduler and Runtime Fiber&nbsp;Monitoring</h3>
+<h3 id="runtime-monitoring">The Fiber Scheduler and Runtime Fiber&nbsp;Monitoring</h3>
 
 <p>Fibers are scheduled by a <a href="/quasar/javadoc/co/paralleluniverse/fibers/FiberScheduler.html"><code>FiberScheduler</code></a> in a thread pool (actually a <code>ForkJoinPool</code>). When constructing a fiber, you can specify which scheduler should schedule it. If you don’t a <a href="/quasar/javadoc/co/paralleluniverse/fibers/DefaultFiberScheduler.html">default scheduler</a> is used. You can set the default scheduler’s properties by <a href="/quasar/javadoc/co/paralleluniverse/fibers/DefaultFiberScheduler.html">setting some system properties</a>.</p>
 
 <p>Every scheduler creates a <a href="/quasar/javadoc/co/paralleluniverse/fibers/FibersMXBean.html">MXBean</a> that monitors the fibers scheduled by that scheduler. The MXBean’s name is <code>"co.paralleluniverse:type=Fibers,name=SCHEDULER_NAME"</code>, and you can find more details in the <a href="/quasar/javadoc/co/paralleluniverse/fibers/FibersMXBean.html">Javadoc</a>.</p>
+
+<h3 id="runaway-fibers">Runaway&nbsp;Fibers</h3>
+
+<p>A fiber that is stuck in a loop without blocking, or is blocking the thread its running on (by directly or indirectly performing a thread-blocking operation) is called a <em>runaway fiber</em>. It is <em>perfectly <span class="caps">OK</span></em> for fibers to do that spradically (as the work stealing scheduler will deal with that), but doing so frequently may severely impact system performance (as most of the scheduler’s threads might be tied up by runaway fibers). Quasar detects runaway fibers, and notifies you about which fibers are problematic, whether they’re blocking the thread or hogging the <span class="caps">CPU</span>, and gives you their stack trace, by printing this information to the console as well as reporting it to the runtime fiber monitor (exposed through a <span class="caps">JMX</span> MBean; see <a href="#runtime-monitoring">the previous section</a>).</p>
+
+<p>Note that this condition might happen when classes are encountered for the first time and need to be loaded from disk. This is alright because this happens only sporadically, but you may notice reports about problematic fibers during startup, as this when most class loading usually&nbsp;occurs.</p>
 
 <h3 id="thread-locals">Thread&nbsp;Locals</h3>
 
