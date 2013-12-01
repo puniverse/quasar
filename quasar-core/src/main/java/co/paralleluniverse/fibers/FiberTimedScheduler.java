@@ -42,7 +42,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class FiberTimedScheduler {
-    private static final long MAX_RUN_DURATION = NANOSECONDS.convert(100, MILLISECONDS);
+    /**
+     * The duration of a single fiber run that is considered a problem
+     */
+    private static final long MAX_RUN_DURATION = NANOSECONDS.convert(200, MILLISECONDS);
     /*
      * TODO:
      * We're currently feeding the fj-pool sequentially (from a single thread).
@@ -97,7 +100,7 @@ public class FiberTimedScheduler {
 
     /**
      * @throws RejectedExecutionException {@inheritDoc}
-     * @throws NullPointerException {@inheritDoc}
+     * @throws NullPointerException       {@inheritDoc}
      */
     public Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit) {
         if (fiber == null || unit == null)
@@ -372,10 +375,10 @@ public class FiberTimedScheduler {
      * fails to respond to interrupts may never terminate.
      *
      * @return list of tasks that never commenced execution.
-     * Each element of this list is a {@link ScheduledFuture},
-     * including those tasks submitted using {@code execute},
-     * which are for scheduling purposes used as the basis of a
-     * zero-delay {@code ScheduledFuture}.
+     *         Each element of this list is a {@link ScheduledFuture},
+     *         including those tasks submitted using {@code execute},
+     *         which are for scheduling purposes used as the basis of a
+     *         zero-delay {@code ScheduledFuture}.
      * @throws SecurityException {@inheritDoc}
      */
     public void shutdownNow() {
@@ -434,11 +437,13 @@ public class FiberTimedScheduler {
     }
 
     private void reportProblemFibers(Collection<Fiber> fs) {
+        scheduler.getFibersMonitor().setRunawayFibers(fs);
+
         for (Fiber f : fs) {
             Thread t = f.getRunningThread();
             if (t == null)
                 System.err.println("WARNING: fiber " + f + " is hogging the CPU or blocking a thread.");
-            else if(t.getState() == Thread.State.RUNNABLE)
+            else if (t.getState() == Thread.State.RUNNABLE)
                 System.err.println("WARNING: fiber " + f + " is hogging the CPU (" + t + ").");
             else
                 System.err.println("WARNING: fiber " + f + " is blocking a thread (" + t + ").");

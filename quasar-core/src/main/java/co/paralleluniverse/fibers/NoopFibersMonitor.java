@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitor;
+import java.util.Collection;
 
 /**
  *
@@ -48,4 +49,8 @@ public class NoopFibersMonitor extends ForkJoinPoolMonitor implements FibersMoni
     @Override
     public void timedParkLatency(long ns) {
     }
+
+    @Override
+    public void setRunawayFibers(Collection<Fiber> fs) {
+    } 
 }

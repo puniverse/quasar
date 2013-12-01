@@ -14,10 +14,15 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.Metrics;
+import co.paralleluniverse.strands.Strand;
 import com.codahale.metrics.Counter;
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import static com.codahale.metrics.MetricRegistry.name;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import jsr166e.ForkJoinPool;
 
 /**
@@ -30,12 +35,24 @@ class MetricsFibersMonitor implements FibersMonitor {
     private final Counter waitingCount;
     private final Meter spuriousWakeups;
     private final Histogram timedParkLatency;
+    private final Gauge<Map<String, String>> runawayFibers;
+    private Map<Fiber, StackTraceElement[]> problemFibers;
 
     public MetricsFibersMonitor(String name, ForkJoinPool fjPool) {
         this.activeCount = Metrics.counter(metric(name, "numActiveFibers"));
         this.waitingCount = Metrics.counter(metric(name, "numWaitingFibers"));
         this.spuriousWakeups = Metrics.meter(metric(name, "spuriousWakeups"));
         this.timedParkLatency = Metrics.histogram(metric(name, "timedParkLatency"));
+        this.runawayFibers = new Gauge<Map<String, String>>() {
+            @Override
+            public Map<String, String> getValue() {
+                Map<String, String> map = new HashMap<>();
+                for (Map.Entry<Fiber, StackTraceElement[]> e : problemFibers.entrySet())
+                    map.put(e.getKey().toString(), Strand.toString(e.getValue()));
+                return map;
+            }
+        };
+        Metrics.register("runawayFibers", runawayFibers);
     }
 
     protected final String metric(String poolName, String name) {
@@ -77,5 +94,16 @@ class MetricsFibersMonitor implements FibersMonitor {
     @Override
     public void timedParkLatency(long ns) {
         timedParkLatency.update(ns);
+    }
+
+    @Override
+    public void setRunawayFibers(Collection<Fiber> fs) {
+        if (fs.isEmpty())
+            this.problemFibers = null;
+        else {
+            this.problemFibers = new HashMap<>();
+            for (Fiber f : fs)
+                problemFibers.put(f, f.getStackTrace());
+        }
     }
 }

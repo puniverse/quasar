@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.strands.Strand.State;
+import java.util.Map;
 
 /**
  * An MXBean that monitors fibers scheduled by a single {@link FiberScheduler}.
@@ -38,6 +39,12 @@ public interface FibersMXBean {
      */
     int getNumWaitingFibers();
 
+    /**
+     * The fibers (and respective stack traces) that are currently holding their thread for a lengthy duration, either due to blocking
+     * or a lengthy loop.
+     */
+    Map<String, String> getRunawayFibers();
+    
     long getSpuriousWakeups();
 
     /**

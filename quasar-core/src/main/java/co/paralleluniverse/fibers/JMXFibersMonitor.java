@@ -14,24 +14,32 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.MonitoringServices;
+import co.paralleluniverse.strands.Strand;
 import java.lang.management.ManagementFactory;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.InstanceNotFoundException;
+import javax.management.MBeanNotificationInfo;
 import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.Notification;
+import javax.management.NotificationBroadcasterSupport;
 import javax.management.NotificationListener;
 import javax.management.ObjectName;
+import javax.management.StandardEmitterMBean;
 import jsr166e.ForkJoinPool;
 import jsr166e.LongAdder;
 
 /**
  * A JMX Mbean that monitors fibers runningin a single {@link FiberScheduler}.
+ *
  * @author pron
  */
-class JMXFibersMonitor implements FibersMonitor, NotificationListener, FibersMXBean {
+class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, NotificationListener, FibersMXBean {
     private final String mbeanName;
     private boolean registered;
     private long lastCollectTime;
@@ -44,8 +52,11 @@ class JMXFibersMonitor implements FibersMonitor, NotificationListener, FibersMXB
     private final LongAdder timedParkLatencyCounter = new LongAdder();
     private long spuriousWakeups;
     private long meanTimedWakeupLatency;
+    private Map<Fiber, StackTraceElement[]> problemFibers;
+    private long notificationSequenceNumber = 1;
 
     public JMXFibersMonitor(String name, ForkJoinPool fjPool, boolean detailedInfo) {
+        super(FibersMXBean.class, true, new NotificationBroadcasterSupport());
         this.mbeanName = "co.paralleluniverse:type=Fibers,name=" + name;
         registerMBean();
         lastCollectTime = nanoTime();
@@ -93,6 +104,17 @@ class JMXFibersMonitor implements FibersMonitor, NotificationListener, FibersMXB
     public void handleNotification(Notification notification, Object handback) {
         if ("perfTimer".equals(notification.getType()))
             refresh();
+    }
+
+    @Override
+    public MBeanNotificationInfo[] getNotificationInfo() {
+        String[] types = new String[]{
+            RunawayFiberNotification.NAME
+        };
+        String notifName = RunawayFiberNotification.class.getName();
+        String description = "Runaway fiber detected";
+        MBeanNotificationInfo info = new MBeanNotificationInfo(types, notifName, description);
+        return new MBeanNotificationInfo[]{info};
     }
 
     @Override
@@ -164,6 +186,44 @@ class JMXFibersMonitor implements FibersMonitor, NotificationListener, FibersMXB
     }
 
     @Override
+    public void setRunawayFibers(Collection<Fiber> fs) {
+        if (fs.isEmpty())
+            this.problemFibers = null;
+        else {
+            Map<Fiber, StackTraceElement[]> map = new HashMap<>();
+            for (Fiber f : fs) {
+                Thread t = f.getRunningThread();
+                final String status;
+                if (t == null)
+                    status = "hogging the CPU or blocking a thread";
+                else if (t.getState() == Thread.State.RUNNABLE)
+                    status = "hogging the CPU (" + t + ")";
+                else
+                    status = "blocking a thread (" + t + ")";
+                StackTraceElement[] st = f.getStackTrace();
+
+                if (!problemFibers.containsKey(f)) {
+                    Notification n = new RunawayFiberNotification(this, notificationSequenceNumber++, System.currentTimeMillis(),
+                            "Runaway fiber " + f.getName() + " is " + status + ":\n" + Strand.toString(st));
+                    sendNotification(n);
+                }
+
+                map.put(f, st);
+            }
+            this.problemFibers = map;
+
+        }
+    }
+
+    @Override
+    public Map<String, String> getRunawayFibers() {
+        Map<String, String> map = new HashMap<>();
+        for (Map.Entry<Fiber, StackTraceElement[]> e : problemFibers.entrySet())
+            map.put(e.getKey().toString(), Strand.toString(e.getValue()));
+        return map;
+    }
+
+    @Override
     public int getNumActiveFibers() {
         return activeCount.intValue();
     }
@@ -208,5 +268,17 @@ class JMXFibersMonitor implements FibersMonitor, NotificationListener, FibersMXB
         if (details == null)
             return null;
         return details.getFiberInfo(ids, stack);
+    }
+
+    private static class RunawayFiberNotification extends Notification {
+        static final String NAME = "co.paralleluniverse.fibers.runawayfiber";
+
+        public RunawayFiberNotification(String type, Object source, long sequenceNumber, String message) {
+            super(NAME, source, sequenceNumber, message);
+        }
+
+        public RunawayFiberNotification(Object source, long sequenceNumber, long timeStamp, String message) {
+            super(NAME, source, sequenceNumber, timeStamp, message);
+        }
     }
 }

@@ -784,6 +784,19 @@ public abstract class Strand {
     }
 
     /**
+     * This utility method turns a stack-trace into a human readable, multi-line string.
+     *
+     * @param trace a stack trace (such as returned from {@link #getStackTrace()}.
+     * @return a nice (multi-line) string representation of the stack trace.
+     */
+    public static String toString(StackTraceElement[] trace) {
+        StringBuilder sb = new StringBuilder();
+        for (StackTraceElement traceElement : trace)
+            sb.append("\tat ").append(traceElement).append('\n');
+        return sb.toString();
+    }
+
+    /**
      * This utility method prints a stack-trace into a {@link java.io.PrintStream}
      *
      * @param trace a stack trace (such as returned from {@link #getStackTrace()}.
