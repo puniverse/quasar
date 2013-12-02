@@ -447,7 +447,7 @@ public class RecordType<R> {
      * @return the field
      */
     public <V> Field.ObjectField<R, V> objectField(String name, Class<V> type, int flags) {
-        return addField(new Field.ObjectField<R, V>(name, type, -1, flags));
+        return addField(new Field.ObjectField<R, V>(name, checkMutability(type, name), -1, flags));
     }
 
     /**
@@ -472,7 +472,7 @@ public class RecordType<R> {
      * @return the field
      */
     public <V> Field.ObjectField<R, V> objectField(String name, TypeToken<V> type, int flags) {
-        return addField(new Field.ObjectField<R, V>(name, type.getRawType(), -1, flags));
+        return addField(new Field.ObjectField<R, V>(name, checkMutability(type.getRawType(), name), -1, flags));
     }
 
     /**
@@ -683,9 +683,35 @@ public class RecordType<R> {
      * @return the field
      */
     public <V> Field.ObjectArrayField<R, V> objectArrayField(String name, Class<V> type, int length, int flags) {
-        return addField(new Field.ObjectArrayField<R, V>(name, type, length, -1, flags));
+        return addField(new Field.ObjectArrayField<R, V>(name, checkMutability(type, name), length, -1, flags));
     }
 
+    private <T> Class<T> checkMutability(Class<T> clazz, String fieldName) {
+        List<java.lang.reflect.Field> mutableFields = new ArrayList<>();
+        for(java.lang.reflect.Field f : clazz.getFields()) {
+            if(!Modifier.isStatic(f.getModifiers()) && !Modifier.isFinal(f.getModifiers()))
+                mutableFields.add(f);
+        }
+        
+        List<Method> setters = new ArrayList<>();
+        for(Method m : clazz.getMethods()) {
+            if(!Modifier.isStatic(m.getModifiers()) && m.getName().startsWith("set"))
+                setters.add(m);
+        }
+        
+        if(!mutableFields.isEmpty() || !setters.isEmpty()) {
+            StringBuilder sb = new StringBuilder("WARNING: Field " + fieldName + " of record type " + name + " appears to be mutable.");
+            if(!mutableFields.isEmpty())
+                sb.append(' ').append("Public non-final fields: ").append(mutableFields).append('.');
+            if(!setters.isEmpty())
+                sb.append(' ').append("Public setters: ").append(setters).append('.');
+            
+            System.err.println(sb);
+        }
+        
+        return clazz;
+    }
+    
     private <F extends Field<R, ?>> F addField(F field) {
         if (sealed)
             throw new IllegalStateException("Cannot add fields once a record has been instantiated");
