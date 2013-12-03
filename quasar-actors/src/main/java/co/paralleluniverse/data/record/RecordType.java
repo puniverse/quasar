@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import java.util.regex.Pattern;
 import jsr166e.ConcurrentHashMapV8;
 
 /**
@@ -35,15 +36,15 @@ import jsr166e.ConcurrentHashMapV8;
  *
  * ```java
  * class A {
- *     public static final RecordType<A> aType = RecordType.newType(A.class);
- *     public static final IntField<A> $id = stateType.intField("id");
- *     public static final DoubleField<A> $foo = stateType.doubleField("id", Field.TRANSIENT);
- *     public static final ObjectField<A, String> $name = stateType.objectField("name", String.class);
- *     public static final ObjectField<A, List<String>> $emails = stateType.objectField("emails", new TypeToken<List<String>() {});
+ * public static final RecordType<A> aType = RecordType.newType(A.class);
+ * public static final IntField<A> $id = stateType.intField("id");
+ * public static final DoubleField<A> $foo = stateType.doubleField("id", Field.TRANSIENT);
+ * public static final ObjectField<A, String> $name = stateType.objectField("name", String.class);
+ * public static final ObjectField<A, List<String>> $emails = stateType.objectField("emails", new TypeToken<List<String>() {});
  * }
  * ```
- * 
- * {@code A} is the type's <i>identifier class</i>. The fields are instances of {@link Field} and are, by convention, 
+ *
+ * {@code A} is the type's <i>identifier class</i>. The fields are instances of {@link Field} and are, by convention,
  * given identifiers that begin with a {@code \$} to make it clear that they identify fields rather than values.
  * <br/>
  * A new record is instantiated by calling one of the {@code newInstance} methods.
@@ -687,31 +688,35 @@ public class RecordType<R> {
     }
 
     private <T> Class<T> checkMutability(Class<T> clazz, String fieldName) {
+        if (Record.class.isAssignableFrom(clazz))
+            return clazz;
+
         List<java.lang.reflect.Field> mutableFields = new ArrayList<>();
-        for(java.lang.reflect.Field f : clazz.getFields()) {
-            if(!Modifier.isStatic(f.getModifiers()) && !Modifier.isFinal(f.getModifiers()))
+        for (java.lang.reflect.Field f : clazz.getFields()) {
+            if (!Modifier.isStatic(f.getModifiers()) && !Modifier.isFinal(f.getModifiers()))
                 mutableFields.add(f);
         }
-        
+
+        Pattern setterPattern = Pattern.compile("set([^a-z].*)?");
         List<Method> setters = new ArrayList<>();
-        for(Method m : clazz.getMethods()) {
-            if(!Modifier.isStatic(m.getModifiers()) && m.getName().startsWith("set"))
+        for (Method m : clazz.getMethods()) {
+            if (!Modifier.isStatic(m.getModifiers()) && setterPattern.matcher(m.getName()).matches())
                 setters.add(m);
         }
-        
-        if(!mutableFields.isEmpty() || !setters.isEmpty()) {
+
+        if (!mutableFields.isEmpty() || !setters.isEmpty()) {
             StringBuilder sb = new StringBuilder("WARNING: Field " + fieldName + " of record type " + name + " appears to be mutable.");
-            if(!mutableFields.isEmpty())
+            if (!mutableFields.isEmpty())
                 sb.append(' ').append("Public non-final fields: ").append(mutableFields).append('.');
-            if(!setters.isEmpty())
+            if (!setters.isEmpty())
                 sb.append(' ').append("Public setters: ").append(setters).append('.');
-            
+
             System.err.println(sb);
         }
-        
+
         return clazz;
     }
-    
+
     private <F extends Field<R, ?>> F addField(F field) {
         if (sealed)
             throw new IllegalStateException("Cannot add fields once a record has been instantiated");
