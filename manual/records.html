@@ -100,19 +100,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/news.html">
                 News
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
       
@@ -189,19 +189,19 @@
           
           
           
-            <li>
-              <a  href="/quasar/manual/examples.html">
-                Examples
-              </a>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a  href="/quasar/manual/examples.html">
+                Examples
+              </a>
+              
+            </li>
           
         
       
@@ -251,6 +251,8 @@
 <p>So, instead of writing <code>obj.getX()</code>, or <code>obj.x</code> we write <code>obj.get($x)</code>. What does this get us other than re-inventing what is a basic Java functionality, minus the some type safety? Like actors, records give up some type safety (we preserve the type of the <code>x</code> field, but the compiler can’t tell us whether obj even has an <code>x</code> field; similarly, if we send message <code>m</code> to actor <code>a</code>, the compiler can’t know whether <code>a</code> supports an <code>m</code> operation), they do so at well-defined interface points between separate software components. What we gain is loose coupling. For example, among other things, we gain the ability to swap the implementation of the record or actor at runtime for maintenance (hot&nbsp;code-swapping).</p>
 
 <p>We gain other things by limiting component interaction to the narrow interfaces of actors and records, and that is the ability to insert cross-cutting concerns. For example, what happens if a method that consumes a resource is called too often? We need to explicitely insert load-handling code into the method. But if we communicate with the component through an actor interface, we can implement a general policy of handling too many messages that are thrown at any actor. Similarly with records. Parallel Universe’s database, SpaceBase, uses records to restrict read and writes of shared state to well-defined transactions. Attempts to read or write state outside a transaction will throw a runtime&nbsp;exception.</p>
+
+<p>Because records are intended to control mutability, an <code>ObjectField</code> should never reference a mutable object. <code>RecordType</code> will perform a very simple test on an <code>ObjectField</code> type and output a warning to the console if the class appears mutable. Conclusively determining whether a class is mutable or not is extremely difficult, so the test is a very simple one: it will warn if the class has public non-static, non-final fields, or if it has public methods whose name begins with&nbsp;“set”.</p>
 
 </div>
 

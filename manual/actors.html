@@ -100,19 +100,19 @@
           
           
           
-        
-          
-          
-            
-          
-          
-          
             <li>
               <a  href="/quasar/news.html">
                 News
               </a>
               
             </li>
+          
+        
+          
+          
+            
+          
+          
           
         
       
@@ -189,19 +189,19 @@
           
           
           
-            <li>
-              <a  href="/quasar/manual/examples.html">
-                Examples
-              </a>
-              
-            </li>
-          
         
           
           
             
           
           
+          
+            <li>
+              <a  href="/quasar/manual/examples.html">
+                Examples
+              </a>
+              
+            </li>
           
         
       
@@ -283,6 +283,8 @@
 </span><span id="line-9">    <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
 </span><span id="line-10"><span class="o">}</span>
 </span></code></pre></div>
+<p class="alert alert-warn">*Note**: Because messages can be read by the actor at any time, you must take great care to only send messages that are immutable, or, at the very least, ensure that the sender does not retain a reference to the message after it is sent. Failing to do so may result in nasty race-condition&nbsp;bugs.</p>
+
 <h3 id="actors-vs-channels">Actors vs.&nbsp;Channels</h3>
 
 <p>One of the reasons of providing a different <code>receive</code> function for actors is because programming with actors is conceptually different from just using fibers and channels. I think of channels as hoses pumping data into a function, or as sort of like asynchronous parameters. A fiber may pull many different kinds of data from many different channels, and combine the data in some&nbsp;way. </p>
