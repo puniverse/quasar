@@ -25,6 +25,11 @@ import org.openjdk.jmh.annotations.State;
 
 @State(Scope.Thread)
 public class RecordJMHBenchmark {
+    /*
+     * See: 
+     * http://psy-lob-saw.blogspot.co.il/2013/04/writing-java-micro-benchmarks-with-jmh.html
+     * http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/
+     */
     private static final String BENCHMARK = RecordJMHBenchmark.class.getName() + ".*";
 
     public static void main(String[] args) throws Exception {
@@ -39,9 +44,7 @@ public class RecordJMHBenchmark {
                     "-r", runForMilliseconds + "ms",
                     "-t", "" + nThreads,
                     "-w", "5000ms",
-                    "-wi", "3",
-                    "-v"
-                };
+                    "-wi", "3",};
     }
 
     public static class Foo {

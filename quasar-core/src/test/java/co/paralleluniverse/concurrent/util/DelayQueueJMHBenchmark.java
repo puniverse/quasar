@@ -43,11 +43,16 @@ import org.openjdk.jmh.logic.Control;
  * @autor pron
  */
 public class DelayQueueJMHBenchmark {
+    /*
+     * See: 
+     * http://psy-lob-saw.blogspot.co.il/2013/04/writing-java-micro-benchmarks-with-jmh.html
+     * http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/
+     */
     private static final String BENCHMARK = DelayQueueJMHBenchmark.class.getName() + ".*";
 
     public static void main(String[] args) throws Exception {
         // Main.main(new String[]{"-usage"});
-        Main.main(buildArguments(BENCHMARK, 5, 5000, 3));
+        Main.main(buildArguments(BENCHMARK, 5, 5000, 1));
     }
 
     private static String[] buildArguments(String className, int nRuns, int runForMilliseconds, int nProducers) {
@@ -58,7 +63,8 @@ public class DelayQueueJMHBenchmark {
                     "-tg", "1," + nProducers,
                     "-w", "5000ms",
                     "-wi", "3",
-                    "-v"
+                    //"--jvmargs", "-Xmx1024m",
+                    "-prof", "stack,hs_rt,hs_thr,gc"
                 };
     }
     public static final Integer TEST_VALUE = Integer.valueOf(777);

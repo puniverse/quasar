@@ -34,6 +34,11 @@ import org.openjdk.jmh.logic.Control;
  * @autor pron
  */
 public class QueueJMHBenchmark {
+    /*
+     * See: 
+     * http://psy-lob-saw.blogspot.co.il/2013/04/writing-java-micro-benchmarks-with-jmh.html
+     * http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/
+     */
     private static final String BENCHMARK = QueueJMHBenchmark.class.getName() + ".*";
 
     public static void main(String[] args) throws Exception {
@@ -48,9 +53,7 @@ public class QueueJMHBenchmark {
                     "-r", runForMilliseconds + "ms",
                     "-tg", "1," + nProducers,
                     "-w", "5000ms",
-                    "-wi", "3",
-                    "-v"
-                };
+                    "-wi", "3",};
     }
     private static final int QUEUE_CAPACITY = 32 * 1024;
     private static final Integer TEST_VALUE = Integer.valueOf(777);
