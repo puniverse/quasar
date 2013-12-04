@@ -36,11 +36,11 @@ import jsr166e.ConcurrentHashMapV8;
  *
  * ```java
  * class A {
- * public static final RecordType<A> aType = RecordType.newType(A.class);
- * public static final IntField<A> $id = stateType.intField("id");
- * public static final DoubleField<A> $foo = stateType.doubleField("id", Field.TRANSIENT);
- * public static final ObjectField<A, String> $name = stateType.objectField("name", String.class);
- * public static final ObjectField<A, List<String>> $emails = stateType.objectField("emails", new TypeToken<List<String>() {});
+ *     public static final RecordType<A> aType = RecordType.newType(A.class);
+ *     public static final IntField<A> $id = stateType.intField("id");
+ *     public static final DoubleField<A> $foo = stateType.doubleField("id", Field.TRANSIENT);
+ *     public static final ObjectField<A, String> $name = stateType.objectField("name", String.class);
+ *     public static final ObjectField<A, List<String>> $emails = stateType.objectField("emails", new TypeToken<List<String>() {});
  * }
  * ```
  *
@@ -705,7 +705,7 @@ public class RecordType<R> {
         }
 
         if (!mutableFields.isEmpty() || !setters.isEmpty()) {
-            StringBuilder sb = new StringBuilder("WARNING: Field " + fieldName + " of record type " + name + " appears to be mutable.");
+            StringBuilder sb = new StringBuilder("WARNING: Field " + fieldName + " of class " + clazz.getName() + " of record type " + name + " appears to be mutable.");
             if (!mutableFields.isEmpty())
                 sb.append(' ').append("Public non-final fields: ").append(mutableFields).append('.');
             if (!setters.isEmpty())
