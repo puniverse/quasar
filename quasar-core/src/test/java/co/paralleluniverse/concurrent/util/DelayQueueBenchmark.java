@@ -15,7 +15,6 @@
  */
 package co.paralleluniverse.concurrent.util;
 
-import co.paralleluniverse.concurrent.util.SingleConsumerNonblockingProducerDelayQueue;
 import java.util.Queue;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.ThreadLocalRandom;

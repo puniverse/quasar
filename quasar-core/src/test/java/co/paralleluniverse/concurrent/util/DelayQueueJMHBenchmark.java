@@ -11,21 +11,6 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-/*
- * Copyright 2012 Real Logic Ltd.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package co.paralleluniverse.concurrent.util;
 
 import java.util.Queue;
@@ -52,7 +37,7 @@ public class DelayQueueJMHBenchmark {
 
     public static void main(String[] args) throws Exception {
         // Main.main(new String[]{"-usage"});
-        Main.main(buildArguments(BENCHMARK, 5, 5000, 1));
+        Main.main(buildArguments(BENCHMARK, 5, 5000, 3));
     }
 
     private static String[] buildArguments(String className, int nRuns, int runForMilliseconds, int nProducers) {
@@ -77,6 +62,7 @@ public class DelayQueueJMHBenchmark {
     @State(Scope.Group)
     public static class Q {
         Queue<DelayedValue> delayQueue = new DelayQueue<DelayedValue>();
+//        Queue<DelayedValue> delayQueue1 = new co.paralleluniverse.strands.concurrent.DelayQueue<DelayedValue>();
         Queue<DelayedValue> singleConsumerNonblockingProducerDelayQueue = new SingleConsumerNonblockingProducerDelayQueue<DelayedValue>();
     }
 
@@ -104,6 +90,18 @@ public class DelayQueueJMHBenchmark {
     public void write_DelayQueue(Control cnt, BenchmarkState b, Q q) {
         write(cnt, b, q.delayQueue);
     }
+
+//    @GenerateMicroBenchmark
+//    @Group("delayQueue1")
+//    public Object read_DelayQueue1(Control cnt, BenchmarkState b, Q q) {
+//        return read(cnt, q.delayQueue1);
+//    }
+//
+//    @GenerateMicroBenchmark
+//    @Group("delayQueue1")
+//    public void write_DelayQueue1(Control cnt, BenchmarkState b, Q q) {
+//        write(cnt, b, q.delayQueue1);
+//    }
 
     @GenerateMicroBenchmark
     @Group("singleConsumerNonblockingProducerDelayQueue")

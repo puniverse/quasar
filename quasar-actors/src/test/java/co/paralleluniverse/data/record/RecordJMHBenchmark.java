@@ -44,7 +44,9 @@ public class RecordJMHBenchmark {
                     "-r", runForMilliseconds + "ms",
                     "-t", "" + nThreads,
                     "-w", "5000ms",
-                    "-wi", "3",};
+                    "-wi", "3",
+                    "-prof", "stack,hs_rt,gc"
+                };
     }
 
     public static class Foo {
@@ -88,15 +90,6 @@ public class RecordJMHBenchmark {
     }
 
     @GenerateMicroBenchmark
-    public Object timePojo() {
-        x.a = (int) x.c + r.nextInt(100);
-        x.b = x.a + r.nextDouble(100);
-        x.c = (long) x.b + r.nextLong(200);
-
-        return x;
-    }
-
-    @GenerateMicroBenchmark
     public Object timeSimple() {
         return foo(simple);
     }
@@ -125,6 +118,15 @@ public class RecordJMHBenchmark {
         x.set($a, (int) x.get($c) + r.nextInt(100));
         x.set($b, x.get($a) + r.nextDouble(100));
         x.set($c, (long) x.get($b) + r.nextLong(200));
+
+        return x;
+    }
+
+    @GenerateMicroBenchmark
+    public Object timePojo() {
+        x.a = (int) x.c + r.nextInt(100);
+        x.b = x.a + r.nextDouble(100);
+        x.c = (long) x.b + r.nextLong(200);
 
         return x;
     }
