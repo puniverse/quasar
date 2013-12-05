@@ -158,7 +158,7 @@ public class SuspendablesScanner extends Task {
         List<MethodNode> methods = cls.methods;
         for (MethodNode m : methods) {
             if (hasAnnotation(Suspendable.class, m)) {
-                log("Found annotated method: " + cls.name + "." + m.name + m.desc, Project.MSG_VERBOSE);
+                log("Found annotated method: " + cls.name + "." + m.name + m.signature, Project.MSG_VERBOSE);
                 findSuperDeclarations(cls, cls, m);
             }
         }
@@ -169,7 +169,7 @@ public class SuspendablesScanner extends Task {
             return;
 
         if (!ASMUtil.equals(cls, declaringClass) && hasMethod(method, cls)) {
-            log("Found parent of annotated method: " + declaringClass.name + "." + method.name + method.desc + " in " + cls.name, Project.MSG_VERBOSE);
+            log("Found parent of annotated method: " + declaringClass.name + "." + method.name + method.signature + " in " + cls.name, Project.MSG_VERBOSE);
             results.add(cls.name.replace('/', '.') + '.' + method.name);
         }
 

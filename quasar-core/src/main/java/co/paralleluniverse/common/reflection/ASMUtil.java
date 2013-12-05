@@ -19,6 +19,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Objects;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AnnotationNode;
@@ -114,11 +115,11 @@ public final class ASMUtil {
     }
 
     public static boolean equals(MethodNode m1, MethodNode m2) {
-        return m1.name.equals(m2.name) && m1.desc.equals(m2.desc);
+        return Objects.equals(m1.name, m2.name) && Objects.equals(m1.signature, m2.signature);
     }
 
     public static boolean equals(ClassNode c1, ClassNode c2) {
-        return c1.name.equals(c2.name);
+        return Objects.equals(c1.name, c2.name);
     }
 
     private ASMUtil() {
