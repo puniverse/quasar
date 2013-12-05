@@ -202,7 +202,8 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
                     status = "blocking a thread (" + t + ")";
                 StackTraceElement[] st = f.getStackTrace();
 
-                if (!problemFibers.containsKey(f)) {
+                Map<Fiber, StackTraceElement[]> pf = problemFibers;
+                if (pf == null || !pf.containsKey(f)) {
                     Notification n = new RunawayFiberNotification(this, notificationSequenceNumber++, System.currentTimeMillis(),
                             "Runaway fiber " + f.getName() + " is " + status + ":\n" + Strand.toString(st));
                     sendNotification(n);
