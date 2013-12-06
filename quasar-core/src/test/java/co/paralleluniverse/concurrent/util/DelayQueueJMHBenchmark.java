@@ -14,7 +14,6 @@
 package co.paralleluniverse.concurrent.util;
 
 import java.util.Queue;
-import java.util.concurrent.DelayQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.GenerateMicroBenchmark;
@@ -40,12 +39,12 @@ public class DelayQueueJMHBenchmark {
         Main.main(buildArguments(BENCHMARK, 5, 5000, 3));
     }
 
-    private static String[] buildArguments(String className, int nRuns, int runForMilliseconds, int nProducers) {
+    private static String[] buildArguments(String className, int iterations, int runForMilliseconds, int producers) {
         return new String[]{className,
                     "-f", "1",
-                    "-i", "" + nRuns,
+                    "-i", "" + iterations,
                     "-r", runForMilliseconds + "ms",
-                    "-tg", "1," + nProducers,
+                    "-tg", "1," + producers,
                     "-w", "5000ms",
                     "-wi", "3",
                     //"--jvmargs", "-Xmx1024m",
@@ -61,18 +60,18 @@ public class DelayQueueJMHBenchmark {
 
     @State(Scope.Group)
     public static class Q {
-        Queue<DelayedValue> delayQueue = new DelayQueue<DelayedValue>();
-//        Queue<DelayedValue> delayQueue1 = new co.paralleluniverse.strands.concurrent.DelayQueue<DelayedValue>();
-        Queue<DelayedValue> singleConsumerNonblockingProducerDelayQueue = new SingleConsumerNonblockingProducerDelayQueue<DelayedValue>();
+        Queue<DelayedValue1> delayQueue = new java.util.concurrent.DelayQueue<DelayedValue1>();
+        Queue<DelayedValue1> delayQueue1 = new co.paralleluniverse.strands.concurrent.DelayQueue<DelayedValue1>();
+        Queue<DelayedValue1> singleConsumerNonblockingProducerDelayQueue = new SingleConsumerNonblockingProducerDelayQueue<DelayedValue1>();
     }
 
-    public void write(Control cnt, BenchmarkState b, Queue<DelayedValue> queue) {
-        while (!cnt.stopMeasurement && !queue.offer(new DelayedValue(TEST_VALUE, b.rand.nextInt(0, 11))))
+    public void write(Control cnt, BenchmarkState b, Queue<DelayedValue1> queue) {
+        while (!cnt.stopMeasurement && !queue.offer(new DelayedValue1(TEST_VALUE, b.rand.nextInt(0, 11))))
             Thread.yield();
     }
 
-    public DelayedValue read(Control cnt, Queue<DelayedValue> queue) {
-        DelayedValue result = null;
+    public DelayedValue1 read(Control cnt, Queue<DelayedValue1> queue) {
+        DelayedValue1 result = null;
         while (!cnt.stopMeasurement && null == (result = queue.poll()))
             Thread.yield();
         return result;
@@ -91,17 +90,17 @@ public class DelayQueueJMHBenchmark {
         write(cnt, b, q.delayQueue);
     }
 
-//    @GenerateMicroBenchmark
-//    @Group("delayQueue1")
-//    public Object read_DelayQueue1(Control cnt, BenchmarkState b, Q q) {
-//        return read(cnt, q.delayQueue1);
-//    }
-//
-//    @GenerateMicroBenchmark
-//    @Group("delayQueue1")
-//    public void write_DelayQueue1(Control cnt, BenchmarkState b, Q q) {
-//        write(cnt, b, q.delayQueue1);
-//    }
+    @GenerateMicroBenchmark
+    @Group("delayQueue1")
+    public Object read_DelayQueue1(Control cnt, BenchmarkState b, Q q) {
+        return read(cnt, q.delayQueue1);
+    }
+
+    @GenerateMicroBenchmark
+    @Group("delayQueue1")
+    public void write_DelayQueue1(Control cnt, BenchmarkState b, Q q) {
+        write(cnt, b, q.delayQueue1);
+    }
 
     @GenerateMicroBenchmark
     @Group("singleConsumerNonblockingProducerDelayQueue")
