@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.concurrent.util;
 
-import co.paralleluniverse.strands.concurrent.DelayQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import static org.hamcrest.CoreMatchers.*;

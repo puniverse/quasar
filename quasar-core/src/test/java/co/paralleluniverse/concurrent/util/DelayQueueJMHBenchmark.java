@@ -61,7 +61,6 @@ public class DelayQueueJMHBenchmark {
     @State(Scope.Group)
     public static class Q {
         Queue<DelayedValue1> delayQueue = new java.util.concurrent.DelayQueue<DelayedValue1>();
-        Queue<DelayedValue1> delayQueue1 = new co.paralleluniverse.strands.concurrent.DelayQueue<DelayedValue1>();
         Queue<DelayedValue1> singleConsumerNonblockingProducerDelayQueue = new SingleConsumerNonblockingProducerDelayQueue<DelayedValue1>();
     }
 
@@ -88,18 +87,6 @@ public class DelayQueueJMHBenchmark {
     @Group("delayQueue")
     public void write_DelayQueue(Control cnt, BenchmarkState b, Q q) {
         write(cnt, b, q.delayQueue);
-    }
-
-    @GenerateMicroBenchmark
-    @Group("delayQueue1")
-    public Object read_DelayQueue1(Control cnt, BenchmarkState b, Q q) {
-        return read(cnt, q.delayQueue1);
-    }
-
-    @GenerateMicroBenchmark
-    @Group("delayQueue1")
-    public void write_DelayQueue1(Control cnt, BenchmarkState b, Q q) {
-        write(cnt, b, q.delayQueue1);
     }
 
     @GenerateMicroBenchmark
