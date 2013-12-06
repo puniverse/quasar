@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class FiberTimedScheduler {
+    private static final boolean USE_LOCKFREE_DELAY_QUEUE = Boolean.getBoolean("co.paralleluniverse.fibers.useLockFreeDelayQueue");
     /**
      * The duration of a single fiber run that is considered a problem
      */
@@ -76,7 +77,7 @@ public class FiberTimedScheduler {
                 work();
             }
         });
-        this.workQueue = new SingleConsumerNonblockingProducerDelayQueue<ScheduledFutureTask>(); // new co.paralleluniverse.concurrent.util.DelayQueue<ScheduledFutureTask>(); // 
+        this.workQueue = USE_LOCKFREE_DELAY_QUEUE ? new SingleConsumerNonblockingProducerDelayQueue<ScheduledFutureTask>() : new co.paralleluniverse.concurrent.util.DelayQueue<ScheduledFutureTask>();
 
         this.monitor = monitor;
 
