@@ -14,64 +14,47 @@ package co.paralleluniverse.concurrent.util;
 
 import java.util.AbstractQueue;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Iterator;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  *
  * @author pron
  */
-public class SingleConsumerNonblockingProducerPriorityQueue<E> extends AbstractQueue<E> implements BlockingQueue<E> {
-    final ConcurrentSkipListPriorityQueue<E> pq;
+public class SingleConsumerNonblockingProducerQueue<E> extends AbstractQueue<E> implements BlockingQueue<E> {
+    final Queue<E> q;
     //
-    final ReentrantLock lock = new ReentrantLock();
-    final Condition available = lock.newCondition();
-    volatile boolean consumerBlocking;
-//    private final Semaphore available = new Semaphore(0);
+    final OwnedSynchronizer sync = new OwnedSynchronizer2();
 
-    public SingleConsumerNonblockingProducerPriorityQueue() {
-        this.pq = new ConcurrentSkipListPriorityQueue<E>();
-    }
-
-    public SingleConsumerNonblockingProducerPriorityQueue(Comparator<? super E> comparator) {
-        this.pq = new ConcurrentSkipListPriorityQueue<E>(comparator);
+    public SingleConsumerNonblockingProducerQueue(Queue<E> q) {
+        this.q = q;
     }
 
     @Override
     public boolean offer(E e) {
-        final boolean res = pq.offer(e);
+        final boolean res = q.offer(e);
 //        if(res)
 //            available.release();
-        if (consumerBlocking && pq.peek() == e) { // if the consumer is not blocking, then it MUST check the queue again
-            lock.lock();
-            try {
-                available.signal();
-            } finally {
-                lock.unlock();
-            }
-        }
+        if (sync.shouldSignal() && q.peek() == e) // if the consumer is not blocking, then it MUST check the queue again
+            sync.signal();
         return res;
     }
 
     @Override
     public E take() throws InterruptedException {
-        E e = pq.poll();
+        E e = q.poll();
         if (e == null) {
-            consumerBlocking = true;
-            lock.lock();
+            sync.register();
             try {
-                e = pq.poll();
+                e = q.poll();
                 while (e == null) {
-                    available.await();
-                    e = pq.poll();
+                    sync.await();
+                    e = q.poll();
                 }
             } finally {
-                consumerBlocking = false;
-                lock.unlock();
+                sync.unregister();
             }
         }
         return e;
@@ -79,22 +62,20 @@ public class SingleConsumerNonblockingProducerPriorityQueue<E> extends AbstractQ
 
     @Override
     public E poll(long timeout, TimeUnit unit) throws InterruptedException {
-        E e = pq.poll();
+        E e = q.poll();
         if (e == null) {
-            consumerBlocking = true;
             long left = unit.toNanos(timeout);
-            lock.lock();
+            sync.register();
             try {
-                e = pq.poll();
+                e = q.poll();
                 while (e == null) {
-                    left = available.awaitNanos(left);
+                    left = sync.awaitNanos(left);
                     if (left < 0)
                         return null;
-                    e = pq.poll();
+                    e = q.poll();
                 }
             } finally {
-                consumerBlocking = false;
-                lock.unlock();
+                sync.unregister();
             }
         }
         return e;
@@ -113,7 +94,7 @@ public class SingleConsumerNonblockingProducerPriorityQueue<E> extends AbstractQ
 
     @Override
     public E poll() {
-        return pq.poll();
+        return q.poll();
     }
 
     @Override
@@ -124,11 +105,11 @@ public class SingleConsumerNonblockingProducerPriorityQueue<E> extends AbstractQ
     @Override
     public int drainTo(Collection<? super E> c) {
         int count = 0;
-        E e = pq.poll();
+        E e = q.poll();
         while (e != null) {
             c.add(e);
             count++;
-            e = pq.poll();
+            e = q.poll();
         }
         return count;
     }
@@ -138,12 +119,12 @@ public class SingleConsumerNonblockingProducerPriorityQueue<E> extends AbstractQ
         int count = 0;
         E e = null;
         if (count < maxElements)
-            e = pq.poll();
+            e = q.poll();
         while (e != null && count < maxElements) {
             c.add(e);
             count++;
             if (count < maxElements)
-                e = pq.poll();
+                e = q.poll();
         }
         return count;
     }
@@ -151,71 +132,71 @@ public class SingleConsumerNonblockingProducerPriorityQueue<E> extends AbstractQ
     //////////// Simple delegates ////////////////
     @Override
     public E peek() {
-        return pq.peek();
+        return q.peek();
     }
 
     @Override
     public String toString() {
-        return pq.toString();
+        return q.toString();
     }
 
     @Override
     public <T> T[] toArray(T[] a) {
-        return pq.toArray(a);
+        return q.toArray(a);
     }
 
     @Override
     public Iterator<E> iterator() {
-        return pq.iterator();
+        return q.iterator();
     }
 
     @Override
     public int size() {
-        return pq.size();
+        return q.size();
     }
 
     @Override
     public Object[] toArray() {
-        return pq.toArray();
+        return q.toArray();
     }
 
     @Override
     public boolean retainAll(Collection<?> c) {
-        return pq.retainAll(c);
+        return q.retainAll(c);
     }
 
     @Override
     public boolean containsAll(Collection<?> c) {
-        return pq.containsAll(c);
+        return q.containsAll(c);
     }
 
     @Override
     public boolean addAll(Collection<? extends E> c) {
-        return pq.addAll(c);
+        return q.addAll(c);
     }
 
     @Override
     public boolean removeAll(Collection<?> c) {
-        return pq.removeAll(c);
+        return q.removeAll(c);
     }
 
     @Override
     public boolean remove(Object o) {
-        return pq.remove(o);
+        return q.remove(o);
     }
 
     @Override
     public boolean isEmpty() {
-        return pq.isEmpty();
+        return q.isEmpty();
     }
 
     @Override
     public boolean contains(Object o) {
-        return pq.contains(o);
+        return q.contains(o);
     }
 
     @Override
     public void clear() {
-        pq.clear();
+        q.clear();
     }
 }

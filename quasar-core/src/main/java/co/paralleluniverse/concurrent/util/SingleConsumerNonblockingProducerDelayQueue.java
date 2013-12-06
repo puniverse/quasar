@@ -19,8 +19,9 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public class SingleConsumerNonblockingProducerDelayQueue<E extends Delayed> extends SingleConsumerNonblockingProducerPriorityQueue<E> {
+public class SingleConsumerNonblockingProducerDelayQueue<E extends Delayed> extends SingleConsumerNonblockingProducerQueue<E> {
     public SingleConsumerNonblockingProducerDelayQueue() {
+        super(new ConcurrentSkipListPriorityQueue<E>());
     }
 
     @Override
@@ -33,27 +34,25 @@ public class SingleConsumerNonblockingProducerDelayQueue<E extends Delayed> exte
 
     @Override
     public E take() throws InterruptedException {
-        E e = pq.peek();
+        E e = q.peek();
         long delayNanos;
         if (e == null || getDelay(e) > 0) {
-            consumerBlocking = true;
-            lock.lock();
+            sync.register();
             try {
-                e = pq.peek();
+                e = q.peek();
                 delayNanos = getDelay(e);
 
                 while (delayNanos > 0) {
-                    available.awaitNanos(delayNanos);
-                    e = pq.peek();
+                    sync.awaitNanos(delayNanos);
+                    e = q.peek();
                     delayNanos = getDelay(e);
                 }
-                return pq.poll(); // this may not be e, but if not, it must be an element with expiration <= e.
+                return q.poll(); // this may not be e, but if not, it must be an element with expiration <= e.
             } finally {
-                consumerBlocking = false;
-                lock.unlock();
+                sync.unregister();
             }
         } else {
-            e = pq.poll();
+            e = q.poll();
             assert e != null;
             return e;
         }
@@ -61,28 +60,26 @@ public class SingleConsumerNonblockingProducerDelayQueue<E extends Delayed> exte
 
     @Override
     public E poll(long timeout, TimeUnit unit) throws InterruptedException {
-        E e = pq.peek();
+        E e = q.peek();
         long delayNanos;
         if (e == null || getDelay(e) > 0) {
-            consumerBlocking = true;
             long left = unit.toNanos(timeout);
-            lock.lock();
+            sync.register();
             try {
-                e = pq.peek();
+                e = q.peek();
                 delayNanos = getDelay(e);
 
                 while (left > 0 & delayNanos > 0) {
-                    left = available.awaitNanos(Math.min(left, delayNanos));
-                    e = pq.peek();
+                    left = sync.awaitNanos(Math.min(left, delayNanos));
+                    e = q.peek();
                     delayNanos = getDelay(e);
                 }
-                return delayNanos > 0 ? null : pq.poll();
+                return delayNanos > 0 ? null : q.poll();
             } finally {
-                consumerBlocking = false;
-                lock.unlock();
+                sync.unregister();
             }
         } else {
-            e = pq.poll();
+            e = q.poll();
             assert e != null;
             return e;
         }

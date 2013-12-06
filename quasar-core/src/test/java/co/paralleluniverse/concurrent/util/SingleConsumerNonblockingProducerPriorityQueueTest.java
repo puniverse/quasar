@@ -31,7 +31,7 @@ public class SingleConsumerNonblockingProducerPriorityQueueTest {
 
     @Before
     public void setUp() {
-        q = new SingleConsumerNonblockingProducerPriorityQueue<Foo>();
+        q = new SingleConsumerNonblockingProducerQueue<Foo>(new ConcurrentSkipListPriorityQueue<Foo>());
     }
 
     @Test

@@ -36,7 +36,7 @@ public class DelayQueueJMHBenchmark {
 
     public static void main(String[] args) throws Exception {
         // Main.main(new String[]{"-usage"});
-        Main.main(buildArguments(BENCHMARK, 5, 5000, 3));
+        Main.main(buildArguments(BENCHMARK, 5, 5000, 2));
     }
 
     private static String[] buildArguments(String className, int iterations, int runForMilliseconds, int producers) {
