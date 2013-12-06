@@ -76,7 +76,7 @@ public class FiberTimedScheduler {
                 work();
             }
         });
-        this.workQueue = new SingleConsumerNonblockingProducerDelayQueue<ScheduledFutureTask>(); // new java.util.concurrent.DelayQueue<ScheduledFutureTask>(); // 
+        this.workQueue = new SingleConsumerNonblockingProducerDelayQueue<ScheduledFutureTask>(); // new co.paralleluniverse.concurrent.util.DelayQueue<ScheduledFutureTask>(); // 
 
         this.monitor = monitor;
 

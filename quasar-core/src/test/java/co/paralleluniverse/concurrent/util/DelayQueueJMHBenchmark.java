@@ -51,6 +51,8 @@ public class DelayQueueJMHBenchmark {
                     "-prof", "stack,hs_rt,hs_thr,gc"
                 };
     }
+    
+    private static final boolean SEQUENCED = false;
     public static final Integer TEST_VALUE = Integer.valueOf(777);
 
     @State(Scope.Benchmark)
@@ -60,17 +62,18 @@ public class DelayQueueJMHBenchmark {
 
     @State(Scope.Group)
     public static class Q {
-        Queue<DelayedValue1> delayQueue = new java.util.concurrent.DelayQueue<DelayedValue1>();
-        Queue<DelayedValue1> singleConsumerNonblockingProducerDelayQueue = new SingleConsumerNonblockingProducerDelayQueue<DelayedValue1>();
+        Queue<DelayedValue> delayQueue = new java.util.concurrent.DelayQueue<DelayedValue>();
+        Queue<DelayedValue> delayQueue1 = new co.paralleluniverse.concurrent.util.DelayQueue<DelayedValue>();
+        Queue<DelayedValue> singleConsumerNonblockingProducerDelayQueue = new SingleConsumerNonblockingProducerDelayQueue<DelayedValue>();
     }
 
-    public void write(Control cnt, BenchmarkState b, Queue<DelayedValue1> queue) {
-        while (!cnt.stopMeasurement && !queue.offer(new DelayedValue1(TEST_VALUE, b.rand.nextInt(0, 11))))
+    public void write(Control cnt, BenchmarkState b, Queue<DelayedValue> queue) {
+        while (!cnt.stopMeasurement && !queue.offer(DelayedValue.instance(SEQUENCED, TEST_VALUE, b.rand.nextInt(0, 11))))
             Thread.yield();
     }
 
-    public DelayedValue1 read(Control cnt, Queue<DelayedValue1> queue) {
-        DelayedValue1 result = null;
+    public DelayedValue read(Control cnt, Queue<DelayedValue> queue) {
+        DelayedValue result = null;
         while (!cnt.stopMeasurement && null == (result = queue.poll()))
             Thread.yield();
         return result;
@@ -87,6 +90,18 @@ public class DelayQueueJMHBenchmark {
     @Group("delayQueue")
     public void write_DelayQueue(Control cnt, BenchmarkState b, Q q) {
         write(cnt, b, q.delayQueue);
+    }
+
+    @GenerateMicroBenchmark
+    @Group("delayQueue1")
+    public Object read_DelayQueue1(Control cnt, BenchmarkState b, Q q) {
+        return read(cnt, q.delayQueue1);
+    }
+
+    @GenerateMicroBenchmark
+    @Group("delayQueue1")
+    public void write_DelayQueue1(Control cnt, BenchmarkState b, Q q) {
+        write(cnt, b, q.delayQueue1);
     }
 
     @GenerateMicroBenchmark
