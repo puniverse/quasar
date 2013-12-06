@@ -28,6 +28,7 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -38,7 +39,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class FiberTimedScheduler {
@@ -57,7 +57,7 @@ public class FiberTimedScheduler {
     private static final int BACKPRESSURE_PAUSE_MS = 1;
     private static final AtomicInteger nameSuffixSequence = new AtomicInteger();
     private final Thread worker;
-    private final SingleConsumerNonblockingProducerDelayQueue<ScheduledFutureTask> workQueue;
+    private final BlockingQueue<ScheduledFutureTask> workQueue;
     private static final int RUNNING = 0;
     private static final int SHUTDOWN = 1;
     private static final int STOP = 1;
@@ -175,11 +175,6 @@ public class FiberTimedScheduler {
         } catch (Exception e) {
         }
     }
-    /**
-     * Sequence number to break scheduling ties, and in turn to
-     * guarantee FIFO order among tied entries.
-     */
-    private final AtomicLong sequencer = new AtomicLong();
 
     /**
      * Returns current nanosecond time.
@@ -191,10 +186,6 @@ public class FiberTimedScheduler {
     private class ScheduledFutureTask implements Delayed, Future<Void> {
         final Fiber<?> fiber;
         final Object blocker;
-        /**
-         * Sequence number to break ties FIFO
-         */
-        private final long sequenceNumber;
         /**
          * The time the task is enabled to execute in nanoTime units
          */
@@ -209,7 +200,6 @@ public class FiberTimedScheduler {
             this.fiber = fiber;
             this.blocker = blocker;
             this.time = ns;
-            this.sequenceNumber = sequencer.getAndIncrement();
         }
 
         @Override
@@ -225,14 +215,13 @@ public class FiberTimedScheduler {
                 return 0;
             final ScheduledFutureTask x = (ScheduledFutureTask) other;
             final long diff = time - x.time;
+
             if (diff < 0)
                 return -1;
             else if (diff > 0)
                 return 1;
-            else if (sequenceNumber < x.sequenceNumber)
-                return -1;
             else
-                return 1;
+                return 0;
         }
 
         @Override
