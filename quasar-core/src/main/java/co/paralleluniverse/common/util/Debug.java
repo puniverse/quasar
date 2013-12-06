@@ -36,17 +36,19 @@ public class Debug {
         boolean ea = false;
         assert (ea = true);
         assertionsEnabled = ea;
-        
+
         boolean isUnitTest = false;
         StackTraceElement[] stack = Thread.currentThread().getStackTrace();
         for (StackTraceElement ste : stack) {
-            if (ste.getClassName().startsWith("org.junit") || ste.getClassName().startsWith("junit.framework")) {
+            if (ste.getClassName().startsWith("org.junit")
+                    || ste.getClassName().startsWith("junit.framework")
+                    || ste.getClassName().contains("JUnitTestClassExecuter")) {
                 isUnitTest = true;
                 break;
             }
         }
         unitTest = isUnitTest;
-        
+
 
         if (debugMode) {
             Runtime.getRuntime().addShutdownHook(new Thread() {
