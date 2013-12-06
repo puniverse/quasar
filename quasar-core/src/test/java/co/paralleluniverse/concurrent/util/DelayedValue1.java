@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @author pron
  */
-public class DelayedValue implements Delayed {
+public class DelayedValue1 implements Delayed {
     /**
      * Sequence number to break scheduling ties, and in turn to
      * guarantee FIFO order among tied entries.
@@ -31,7 +31,7 @@ public class DelayedValue implements Delayed {
     private long time;
     private final int value;
 
-    DelayedValue(int value, long millis) {
+    DelayedValue1(int value, long millis) {
         this.time = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(millis);
         this.sequenceNumber = sequencer.getAndIncrement();
         this.value = value;
@@ -50,8 +50,8 @@ public class DelayedValue implements Delayed {
     public int compareTo(Delayed other) {
         if (other == this) // compare zero if same object
             return 0;
-        if (other instanceof DelayedValue) {
-            DelayedValue x = (DelayedValue) other;
+        if (other instanceof DelayedValue1) {
+            DelayedValue1 x = (DelayedValue1) other;
             long diff = time - x.time;
             if (diff < 0)
                 return -1;

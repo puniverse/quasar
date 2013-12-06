@@ -33,27 +33,27 @@ public class SingleConsumerNonblockingProducerDelayQueue<E extends Delayed> exte
 
     @Override
     public E take() throws InterruptedException {
-        E e = sls.peekFirst();
+        E e = pq.peek();
         long delayNanos;
         if (e == null || getDelay(e) > 0) {
             consumerBlocking = true;
             lock.lock();
             try {
-                e = sls.peekFirst();
+                e = pq.peek();
                 delayNanos = getDelay(e);
 
                 while (delayNanos > 0) {
                     available.awaitNanos(delayNanos);
-                    e = sls.peekFirst();
+                    e = pq.peek();
                     delayNanos = getDelay(e);
                 }
-                return sls.pollFirst(); // this may not be e, but if not, it must be an element with expiration <= e.
+                return pq.poll(); // this may not be e, but if not, it must be an element with expiration <= e.
             } finally {
                 consumerBlocking = false;
                 lock.unlock();
             }
         } else {
-            e = sls.pollFirst();
+            e = pq.poll();
             assert e != null;
             return e;
         }
@@ -61,28 +61,28 @@ public class SingleConsumerNonblockingProducerDelayQueue<E extends Delayed> exte
 
     @Override
     public E poll(long timeout, TimeUnit unit) throws InterruptedException {
-        E e = sls.peekFirst();
+        E e = pq.peek();
         long delayNanos;
         if (e == null || getDelay(e) > 0) {
             consumerBlocking = true;
             long left = unit.toNanos(timeout);
             lock.lock();
             try {
-                e = sls.peekFirst();
+                e = pq.peek();
                 delayNanos = getDelay(e);
 
                 while (left > 0 & delayNanos > 0) {
                     left = available.awaitNanos(Math.min(left, delayNanos));
-                    e = sls.peekFirst();
+                    e = pq.peek();
                     delayNanos = getDelay(e);
                 }
-                return delayNanos > 0 ? null : sls.pollFirst();
+                return delayNanos > 0 ? null : pq.poll();
             } finally {
                 consumerBlocking = false;
                 lock.unlock();
             }
         } else {
-            e = sls.pollFirst();
+            e = pq.poll();
             assert e != null;
             return e;
         }

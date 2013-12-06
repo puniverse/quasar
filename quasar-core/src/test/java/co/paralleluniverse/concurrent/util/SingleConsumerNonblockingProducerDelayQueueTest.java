@@ -13,12 +13,12 @@
  */
 package co.paralleluniverse.concurrent.util;
 
+import co.paralleluniverse.strands.concurrent.DelayQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -28,20 +28,20 @@ import org.junit.Test;
 public class SingleConsumerNonblockingProducerDelayQueueTest {
     public SingleConsumerNonblockingProducerDelayQueueTest() {
     }
-    BlockingQueue<DelayedValue> q;
+    BlockingQueue<DelayedValue2> q;
 
     @Before
     public void setUp() {
-        q = new SingleConsumerNonblockingProducerDelayQueue<DelayedValue>();
+        q = new SingleConsumerNonblockingProducerDelayQueue<>(); // new DelayQueue<>(); // 
     }
 
     @Test
     public void testPoll() throws Exception {
-        q.offer(new DelayedValue(3, 150));
-        q.offer(new DelayedValue(1, 50));
-        q.offer(new DelayedValue(2, 100));
+        q.offer(new DelayedValue2(3, 150));
+        q.offer(new DelayedValue2(1, 50));
+        q.offer(new DelayedValue2(2, 100));
 
-        DelayedValue dv;
+        DelayedValue2 dv;
 
         Thread.sleep(30);
         dv = q.poll();
@@ -70,11 +70,11 @@ public class SingleConsumerNonblockingProducerDelayQueueTest {
 
     @Test
     public void testTimedPoll() throws Exception {
-        q.offer(new DelayedValue(2, 100));
-        q.offer(new DelayedValue(1, 50));
-        q.offer(new DelayedValue(3, 150));
+        q.offer(new DelayedValue2(2, 100));
+        q.offer(new DelayedValue2(1, 50));
+        q.offer(new DelayedValue2(3, 150));
 
-        DelayedValue dv;
+        DelayedValue2 dv;
 
         dv = q.poll(30, TimeUnit.MILLISECONDS);
         assertThat(dv, is(nullValue()));
@@ -97,11 +97,11 @@ public class SingleConsumerNonblockingProducerDelayQueueTest {
 
     @Test
     public void testTake() throws Exception {
-        q.offer(new DelayedValue(2, 100));
-        q.offer(new DelayedValue(1, 50));
-        q.offer(new DelayedValue(3, 150));
+        q.offer(new DelayedValue2(2, 100));
+        q.offer(new DelayedValue2(1, 50));
+        q.offer(new DelayedValue2(3, 150));
 
-        DelayedValue dv;
+        DelayedValue2 dv;
 
         final long start = System.nanoTime();
 
@@ -119,17 +119,17 @@ public class SingleConsumerNonblockingProducerDelayQueueTest {
 
     @Test
     public void testTimedPollWithSurpriseInsertions() throws Exception {
-        DelayedValue dv;
+        DelayedValue2 dv;
 
         dv = q.poll(30, TimeUnit.MILLISECONDS);
         assertThat(dv, is(nullValue()));
 
-        q.offer(new DelayedValue(2, 200));
+        q.offer(new DelayedValue2(2, 200));
 
         dv = q.poll(30, TimeUnit.MILLISECONDS);
         assertThat(dv, is(nullValue()));
 
-        q.offer(new DelayedValue(1, 20));
+        q.offer(new DelayedValue2(1, 20));
 
         dv = q.poll(30, TimeUnit.MILLISECONDS);
         assertThat(dv.getValue(), is(1));

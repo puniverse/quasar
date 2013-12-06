@@ -35,7 +35,7 @@ public class DelayQueueBenchmark {
     }
 
     private static void timeQueue(int type) throws Exception {
-        final Queue<DelayedValue> queue = createQueue(type);
+        final Queue<DelayedValue1> queue = createQueue(type);
         if (queue == null)
             return;
         System.out.println("===== " + queue.getClass().getSimpleName() + ", " + NUM_PRODUCERS + " producers ===");
@@ -46,12 +46,12 @@ public class DelayQueueBenchmark {
         }
     }
 
-    private static Queue<DelayedValue> createQueue(int type) {
+    private static Queue<DelayedValue1> createQueue(int type) {
         switch (type) {
             case 1:
-                return new DelayQueue<DelayedValue>();
+                return new DelayQueue<DelayedValue1>();
             case 2:
-                return new SingleConsumerNonblockingProducerDelayQueue<DelayedValue>();
+                return new SingleConsumerNonblockingProducerDelayQueue<DelayedValue1>();
 
             default:
                 throw new IllegalArgumentException("Invalid option: " + type);
@@ -59,7 +59,7 @@ public class DelayQueueBenchmark {
     }
 
 
-    private static void performanceRun(final int runNumber, final Queue<DelayedValue> queue) throws Exception {
+    private static void performanceRun(final int runNumber, final Queue<DelayedValue1> queue) throws Exception {
         final long start = System.nanoTime();
         final int repetitions = (REPETITIONS / NUM_PRODUCERS) * NUM_PRODUCERS;
         final Thread[] producers = new Thread[NUM_PRODUCERS];
@@ -71,7 +71,7 @@ public class DelayQueueBenchmark {
                     final ThreadLocalRandom rand = ThreadLocalRandom.current();
                     int i = REPETITIONS / NUM_PRODUCERS;
                     do {
-                        while (!queue.offer(new DelayedValue(TEST_VALUE, rand.nextInt(0, 11))))
+                        while (!queue.offer(new DelayedValue1(TEST_VALUE, rand.nextInt(0, 11))))
                             Thread.yield();
                     } while (0 != --i);
                 }
@@ -81,7 +81,7 @@ public class DelayQueueBenchmark {
         for (int t = 0; t < NUM_PRODUCERS; t++)
             producers[t].start();
 
-        DelayedValue result;
+        DelayedValue1 result;
         int i = repetitions;
         do {
             while (null == (result = queue.poll()))
