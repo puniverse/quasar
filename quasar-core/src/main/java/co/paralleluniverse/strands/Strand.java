@@ -18,6 +18,7 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FibersMonitor;
 import co.paralleluniverse.fibers.NoopFibersMonitor;
 import co.paralleluniverse.fibers.SuspendExecution;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -42,7 +43,7 @@ public abstract class Strand {
      * Returns a strand representing the given thread.
      */
     public static Strand of(Thread thread) {
-        return new ThreadStrand(thread);
+        return ThreadStrand.get(thread);
     }
 
     /**
@@ -249,7 +250,7 @@ public abstract class Strand {
         if (fiber != null)
             return of(fiber);
         else
-            return of(Thread.currentThread());
+            return ThreadStrand.currStrand();
     }
 
     /**
@@ -724,7 +725,7 @@ public abstract class Strand {
         if (strand instanceof Fiber)
             return new Fiber((Fiber) strand, target);
         else
-            return new ThreadStrand(cloneThread((Thread) strand.getUnderlying(), toRunnable(target)));
+            return ThreadStrand.get(cloneThread((Thread) strand.getUnderlying(), toRunnable(target)));
     }
 
     public static Strand clone(Strand strand, final SuspendableRunnable target) {
@@ -736,7 +737,7 @@ public abstract class Strand {
         if (strand instanceof Fiber)
             return new Fiber((Fiber) strand, target);
         else
-            return new ThreadStrand(cloneThread((Thread) strand.getUnderlying(), toRunnable(target)));
+            return ThreadStrand.get(cloneThread((Thread) strand.getUnderlying(), toRunnable(target)));
     }
 
     /**
@@ -841,6 +842,29 @@ public abstract class Strand {
     }
 
     private static final class ThreadStrand extends Strand {
+        private static ConcurrentMap<Thread, Strand> threadStrands = new com.google.common.collect.MapMaker().weakKeys().makeMap();
+
+        static Strand get(Thread t) {
+            Strand s = threadStrands.get(t);
+            if (s == null) {
+                s = new ThreadStrand(t);
+                Strand p = threadStrands.putIfAbsent(t, s);
+                if (p != null)
+                    s = p;
+            }
+            return s;
+        }
+        private static ThreadLocal<Strand> strand = new ThreadLocal<Strand>() {
+            @Override
+            protected Strand initialValue() {
+                return ThreadStrand.get(Thread.currentThread());
+            }
+        };
+        
+        static Strand currStrand() {
+            return strand.get();
+        }
+        
         private final Thread thread;
 
         public ThreadStrand(Thread owner) {
