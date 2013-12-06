@@ -54,7 +54,7 @@ public class FiberScheduler {
         this.fjPool = createForkJoinPool(name, parallelism, exceptionHandler, monitorType);
 
         if (fjPool instanceof MonitoredForkJoinPool && ((MonitoredForkJoinPool) fjPool).getMonitor() != null)
-            this.fibersMonitor = new JMXFibersMonitor(((MonitoredForkJoinPool) fjPool).getName(), fjPool, detailedInfo);
+            this.fibersMonitor = new JMXFibersMonitor(((MonitoredForkJoinPool) fjPool).getName(), this, detailedInfo);
         else
             this.fibersMonitor = NOOP_FIBERS_MONITOR;
 
@@ -79,7 +79,7 @@ public class FiberScheduler {
         this.fjPool = fjPool;
 
         if (fjPool instanceof MonitoredForkJoinPool && ((MonitoredForkJoinPool) fjPool).getMonitor() != null)
-            this.fibersMonitor = new JMXFibersMonitor(((MonitoredForkJoinPool) fjPool).getName(), fjPool, detailedInfo);
+            this.fibersMonitor = new JMXFibersMonitor(((MonitoredForkJoinPool) fjPool).getName(), this, detailedInfo);
         else
             this.fibersMonitor = NOOP_FIBERS_MONITOR;
 
@@ -97,12 +97,12 @@ public class FiberScheduler {
         return pool;
     }
 
-    private static FibersMonitor createFibersMonitor(String name, ForkJoinPool fjPool, MonitorType monitorType, boolean detailedInfo) {
+    private static FibersMonitor createFibersMonitor(String name, FiberScheduler scheduler, MonitorType monitorType, boolean detailedInfo) {
         switch (monitorType) {
             case JMX:
-                return new JMXFibersMonitor(name, fjPool, detailedInfo);
+                return new JMXFibersMonitor(name, scheduler, detailedInfo);
             case METRICS:
-                return new MetricsFibersMonitor(name, fjPool);
+                return new MetricsFibersMonitor(name, scheduler);
             case NONE:
                 return NOOP_FIBERS_MONITOR;
             default:
@@ -146,6 +146,9 @@ public class FiberScheduler {
         return fibersMonitor;
     }
 
+    int getTimedQueueLength() {
+        return timer.getQueueLength();
+    }
     static boolean isFiberThread(Thread t) {
         return t instanceof FiberWorkerThread;
     }

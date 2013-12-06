@@ -23,7 +23,6 @@ import static com.codahale.metrics.MetricRegistry.name;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import jsr166e.ForkJoinPool;
 
 /**
  *
@@ -38,7 +37,7 @@ class MetricsFibersMonitor implements FibersMonitor {
     private final Gauge<Map<String, String>> runawayFibers;
     private Map<Fiber, StackTraceElement[]> problemFibers;
 
-    public MetricsFibersMonitor(String name, ForkJoinPool fjPool) {
+    public MetricsFibersMonitor(String name, FiberScheduler scheduler) {
         this.activeCount = Metrics.counter(metric(name, "numActiveFibers"));
         this.waitingCount = Metrics.counter(metric(name, "numWaitingFibers"));
         this.spuriousWakeups = Metrics.meter(metric(name, "spuriousWakeups"));

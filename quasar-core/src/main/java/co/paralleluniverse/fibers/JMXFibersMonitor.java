@@ -41,6 +41,7 @@ import jsr166e.LongAdder;
  */
 class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, NotificationListener, FibersMXBean {
     private final String mbeanName;
+    private final FiberScheduler scheduler;
     private boolean registered;
     private long lastCollectTime;
     private final FibersDetailedMonitor details;
@@ -55,8 +56,9 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
     private Map<Fiber, StackTraceElement[]> problemFibers;
     private long notificationSequenceNumber = 1;
 
-    public JMXFibersMonitor(String name, ForkJoinPool fjPool, boolean detailedInfo) {
+    public JMXFibersMonitor(String name, FiberScheduler scheduler, boolean detailedInfo) {
         super(FibersMXBean.class, true, new NotificationBroadcasterSupport());
+        this.scheduler = scheduler;
         this.mbeanName = "co.paralleluniverse:type=Fibers,name=" + name;
         registerMBean();
         lastCollectTime = nanoTime();
@@ -240,6 +242,11 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
         return waitingCount.intValue();
     }
 
+    @Override
+    public int getTimedQueueLength() {
+        return scheduler.getTimedQueueLength();
+    }
+    
     @Override
     public long getSpuriousWakeups() {
         return spuriousWakeups;

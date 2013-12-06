@@ -39,6 +39,8 @@ public interface FibersMXBean {
      */
     int getNumWaitingFibers();
 
+    int getTimedQueueLength();
+    
     /**
      * The fibers (and respective stack traces) that are currently holding their thread for a lengthy duration, either due to blocking
      * or a lengthy loop.

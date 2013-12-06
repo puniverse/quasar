@@ -169,6 +169,10 @@ public class FiberTimedScheduler {
         }
     }
 
+    public int getQueueLength() {
+        return workQueue.size();
+    }
+    
     private void run(ScheduledFutureTask task) {
         try {
             final Fiber fiber = task.fiber;
