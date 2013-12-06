@@ -22,11 +22,11 @@
 package co.paralleluniverse.strands.concurrent;
 
 import co.paralleluniverse.fibers.Suspendable;
-import java.util.concurrent.locks.*;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
 
 /**
  * An unbounded {@linkplain BlockingQueue blocking queue} of
@@ -54,7 +54,7 @@ import java.util.concurrent.TimeUnit;
  * @author Doug Lea
  * @param <E> the type of elements held in this collection
  */
-public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
+public class DelayQueue<E extends Delayed>
         implements BlockingQueue<E> {
     private transient final ReentrantLock lock = new ReentrantLock();
     private final PriorityQueue<E> q = new PriorityQueue<E>();
@@ -86,18 +86,6 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
      * Creates a new <tt>DelayQueue</tt> that is initially empty.
      */
     public DelayQueue() {
-    }
-
-    /**
-     * Creates a <tt>DelayQueue</tt> initially containing the elements of the
-     * given collection of {@link Delayed} instances.
-     *
-     * @param c the collection of elements to initially contain
-     * @throws NullPointerException if the specified collection or any
-     *                              of its elements are null
-     */
-    public DelayQueue(Collection<? extends E> c) {
-        this.addAll(c);
     }
 
     /**
@@ -317,6 +305,78 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
         }
     }
 
+    @Override
+    @Suspendable
+    public boolean isEmpty() {
+        final ReentrantLock lock = this.lock;
+        lock.lock();
+        try {
+            return q.isEmpty();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    @Suspendable
+    public boolean addAll(Collection<? extends E> c) {
+        final ReentrantLock lock = this.lock;
+        lock.lock();
+        try {
+            return q.addAll(c);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    @Suspendable
+    public boolean contains(Object o) {
+        final ReentrantLock lock = this.lock;
+        lock.lock();
+        try {
+            return q.contains(o);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    @Suspendable
+    public E remove() {
+        E x = poll();
+        if (x != null)
+            return x;
+        else
+            throw new NoSuchElementException();
+    }
+
+    @Override
+    @Suspendable
+    public E element() {
+        E x = peek();
+        if (x != null)
+            return x;
+        else
+            throw new NoSuchElementException();
+    }
+
+    @Override
+    public boolean containsAll(Collection<?> c) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public boolean removeAll(Collection<?> c) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public boolean retainAll(Collection<?> c) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    
     /**
      * @throws UnsupportedOperationException {@inheritDoc}
      * @throws ClassCastException            {@inheritDoc}
@@ -510,6 +570,8 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
      *
      * @return an iterator over the elements in this queue
      */
+    @Override
+    @Suspendable
     public Iterator<E> iterator() {
         return new Itr(toArray());
     }
