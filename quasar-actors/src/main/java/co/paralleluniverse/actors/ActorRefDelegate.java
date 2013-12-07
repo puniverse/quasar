@@ -65,7 +65,7 @@ public abstract class ActorRefDelegate<Message> extends ActorRef<Message> implem
         return ((SendPort<Message>) ref).send(message, timeout, unit);
     }
 
-   @Override
+    @Override
     public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
         return ((SendPort<Message>) ref).send(message, timeout);
     }
@@ -107,5 +107,10 @@ public abstract class ActorRefDelegate<Message> extends ActorRef<Message> implem
         if (!Objects.equals(me, other))
             return false;
         return true;
+    }
+
+    @Override
+    public String toString() {
+        return ref.toString();
     }
 }

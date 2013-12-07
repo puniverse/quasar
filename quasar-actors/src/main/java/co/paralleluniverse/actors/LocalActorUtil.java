@@ -98,6 +98,10 @@ public final class LocalActorUtil {
         actorOf(actor1).unlink(actor2);
     }
 
+    public static String actorToString(ActorRef<?> actor) {
+        return actorOf(actor).toString();
+    }
+    
     public static <M, V> ActorBuilder<M, V> toActorBuilder(ActorRef<M> actor) {
         actor = stripDelegates(actor);
         if (!(actor instanceof LocalActorRef))

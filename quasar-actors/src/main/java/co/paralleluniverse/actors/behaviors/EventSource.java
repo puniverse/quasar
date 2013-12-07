@@ -74,6 +74,11 @@ public class EventSource<Event> extends Behavior {
         send(event);
     }
 
+    @Override
+    public String toString() {
+        return "EventSource{" + super.toString() + "}";
+    }
+
     static final class Local<Event> extends EventSource<Event> implements LocalBehavior<EventSource<Event>> {
         Local(ActorRef<Object> actor) {
             super(actor);

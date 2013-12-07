@@ -84,6 +84,11 @@ public class Supervisor extends Behavior {
         return (Boolean) call(this, new RemoveChildMessage(RequestReplyHelper.from(), null, id, terminate));
     }
 
+    @Override
+    public String toString() {
+        return "Supervisor{" + super.toString() + "}";
+    }
+
     /**
      * Determines whether a child (supervised) actor should be restarted if the supervisor's {@link SupervisorActor.RestartStrategy restart strategy}
      * states that it should be restarted.

@@ -102,6 +102,11 @@ public class Server<CallMessage, V, CastMessage> extends Behavior {
 //    public static void cast(ActorRef server, Object m) throws SuspendExecution {
 //        server.send(new ServerRequest(ActorRef.self(), makeId(), MessageType.CAST, m));
 //    }
+    @Override
+    public String toString() {
+        return "Server{" + super.toString() + "}";
+    }
+
     enum MessageType {
         CALL, CAST
     };
