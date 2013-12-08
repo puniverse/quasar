@@ -18,7 +18,6 @@ import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorRefDelegate;
 import co.paralleluniverse.actors.ActorUtil;
-import co.paralleluniverse.actors.LocalActorUtil;
 import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.fibers.Joinable;
 import java.util.concurrent.ExecutionException;
