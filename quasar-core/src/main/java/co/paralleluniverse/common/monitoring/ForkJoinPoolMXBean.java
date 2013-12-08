@@ -19,7 +19,7 @@ package co.paralleluniverse.common.monitoring;
 public interface ForkJoinPoolMXBean {
     boolean getAsyncMode();
 
-    int getParalellism();
+    int getParallelism();
 
     int getPoolSize();
 

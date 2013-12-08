@@ -107,7 +107,7 @@ public class JMXForkJoinPoolMonitor extends ForkJoinPoolMonitor implements ForkJ
     }
 
     @Override
-    public int getParalellism() {
+    public int getParallelism() {
         return fjPool().getParallelism(); // Returns the targeted parallelism level of this pool.
     }
 
