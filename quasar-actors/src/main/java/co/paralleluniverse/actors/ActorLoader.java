@@ -18,6 +18,14 @@ package co.paralleluniverse.actors;
  * @author pron
  */
 class ActorLoader {
+    private static final ClassValue<InstanceUpgrader> instanceUpgrader = new ClassValue<InstanceUpgrader>() {
+
+        @Override
+        protected InstanceUpgrader computeValue(Class<?> type) {
+            return new InstanceUpgrader(type);
+        }
+    };
+    
     public static <T> Class<T> currentClassFor(Class<T> clazz) {
         return clazz;
     }
