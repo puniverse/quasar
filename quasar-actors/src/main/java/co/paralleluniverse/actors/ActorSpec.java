@@ -36,7 +36,7 @@ public class ActorSpec<T extends Actor<Message, V>, Message, V> implements Actor
      * @param params the parameters to pass to the actor's constructors
      */
     public ActorSpec(Class<T> type, Object[] params) {
-        this(matchingConstructor(type, params), params);
+        this(matchingConstructor(ActorLoader.currentClassFor(type), params), params, false);
     }
 
     /**
@@ -46,6 +46,18 @@ public class ActorSpec<T extends Actor<Message, V>, Message, V> implements Actor
      * @param params the parameters to pass to the actor's constructors
      */
     public ActorSpec(Constructor<T> ctor, Object[] params) {
+        this(replacementConstructor(ctor), params, false);
+    }
+
+    private static <T> Constructor<T> replacementConstructor(Constructor<T> ctor) {
+        try {
+            return ctor.getDeclaringClass().getConstructor(ctor.getParameterTypes());
+        } catch (NoSuchMethodException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    private ActorSpec(Constructor<T> ctor, Object[] params, boolean ignore) {
         this.ctor = ctor;
         this.params = Arrays.copyOf(params, params.length);
         ctor.setAccessible(true);

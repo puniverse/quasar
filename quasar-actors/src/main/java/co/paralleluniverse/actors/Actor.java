@@ -89,6 +89,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private ActorSpec<?, Message, V> spec;
     private Object aux;
     protected transient final FlightRecorder flightRecorder;
+    private final Actor<Message, V> replacement;
 
     /**
      * Creates a new actor.
@@ -98,8 +99,10 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      */
     @SuppressWarnings({"OverridableMethodCallInConstructor", "LeakingThisInConstructor"})
     public Actor(String name, MailboxConfig mailboxConfig) {
-        this.ref = new LocalActorRef<Message, V>(this, name, new Mailbox(mailboxConfig));
-        mailbox().setActor(this);
+        final Actor<Message, V> impl = ActorLoader.getReplacementFor(this);
+        this.replacement = impl != this ? impl : null;
+        this.ref = new LocalActorRef<Message, V>(impl, name, new Mailbox(mailboxConfig));
+        mailbox().setActor(impl);
         this.flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
         this.wrapperRef = makeRef(ref);
     }
@@ -562,6 +565,9 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     /////////// Lifecycle ///////////////////////////////////
     @Override
     public final V run() throws InterruptedException, SuspendExecution {
+        if(replacement != null)
+            return replacement.doRun();
+        
         if (strand == null)
             setStrand(Strand.currentStrand());
         JMXActorsMonitor.getInstance().actorStarted(ref);
