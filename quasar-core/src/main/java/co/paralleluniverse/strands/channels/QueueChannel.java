@@ -13,6 +13,9 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.monitoring.FlightRecorder;
+import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.remote.RemoteChannelProxyFactoryService;
@@ -63,10 +66,12 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     }
 
     protected void signalReceivers() {
+        record("signalReceivers", "");
         sync.signalAll();
     }
 
     protected void signalAndWait() throws SuspendExecution, InterruptedException {
+        record("signalAndWait", "");
         if (sync instanceof OwnedSynchronizer)
             ((OwnedSynchronizer) sync).signalAndWait();
         else
@@ -74,8 +79,10 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     }
 
     void signalSenders() {
-        if (overflowPolicy == OverflowPolicy.BLOCK)
+        if (overflowPolicy == OverflowPolicy.BLOCK) {
+            record("signalSenders", "");
             sendersSync.signal();
+        }
     }
 
     @Override
@@ -131,14 +138,6 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
             sync.unregister(null);
     }
 
-    public void sendNonSuspendable(Message message) throws QueueCapacityExceededException {
-        if (isSendClosed())
-            return;
-        if (!queue.enq(message))
-            throw new QueueCapacityExceededException();
-        signalReceivers();
-    }
-
     @Override
     public void send(Message message) throws SuspendExecution, InterruptedException {
         send0(message, false, false, 0);
@@ -187,9 +186,13 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
             final long deadline = timed ? System.nanoTime() : 0L;
 
+            record("send0", "%s enqueing message %s", this, message);
             while (!queue.enq(message)) {
-                if (isSendClosed())
+                if (isSendClosed()) {
+                    record("send0", "%s channel is closed for send. Dropping message %s", this, message);
                     return true;
+                }
+                record("send0", "%s channel queue is full. policy: ", this, overflowPolicy);
                 onQueueFull(i++, timed, nanos);
 
                 if (timed) {
@@ -241,6 +244,17 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
             if (sendersSync != null)
                 sendersSync.signalAll();
         }
+    }
+
+    public void sendNonSuspendable(Message message) throws QueueCapacityExceededException {
+        if (isSendClosed()) {
+            record("sendNonSuspendable", "%s channel is closed for send. Dropping message %s", this, message);
+            return;
+        }
+        record("sendNonSuspendable", "%s enqueing message %s", this, message);
+        if (!queue.enq(message))
+            throw new QueueCapacityExceededException();
+        signalReceivers();
     }
 
     /**
@@ -375,5 +389,41 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
     protected Object writeReplace() throws java.io.ObjectStreamException {
         return RemoteChannelProxyFactoryService.create(this, null);
+    }
+    ////////////////////////////
+    public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
+
+    boolean isRecording() {
+        return RECORDER != null;
+    }
+
+    static void record(String method, String format) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("QueueChannel", method, format, null));
+    }
+
+    static void record(String method, String format, Object arg1) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("QueueChannel", method, format, new Object[]{arg1}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("QueueChannel", method, format, new Object[]{arg1, arg2}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2, Object arg3) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("QueueChannel", method, format, new Object[]{arg1, arg2, arg3}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("QueueChannel", method, format, new Object[]{arg1, arg2, arg3, arg4}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("QueueChannel", method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
     }
 }

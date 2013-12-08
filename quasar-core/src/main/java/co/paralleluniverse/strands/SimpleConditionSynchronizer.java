@@ -31,6 +31,7 @@ public class SimpleConditionSynchronizer extends ConditionSynchronizer implement
     @Override
     public Object register() {
         final Strand currentStrand = Strand.currentStrand();
+        record("register", "%s register %s", this, currentStrand);
         waiters.add(currentStrand);
         return null;
     }
@@ -38,6 +39,7 @@ public class SimpleConditionSynchronizer extends ConditionSynchronizer implement
     @Override
     public void unregister(Object registrationToken) {
         final Strand currentStrand = Strand.currentStrand();
+        record("unregister", "%s unregister %s", this, currentStrand);
         if (!waiters.remove(currentStrand))
             throw new IllegalMonitorStateException();
     }
@@ -46,7 +48,7 @@ public class SimpleConditionSynchronizer extends ConditionSynchronizer implement
     public void signalAll() {
         for (Iterator<Strand> it = waiters.iterator(); it.hasNext();) {
             final Strand s = it.next();
-            record("signalAll", "signalling %s", s);
+            record("signalAll", "%s signalling %s", this, s);
 
             Strand.unpark(s, owner);
         }
@@ -56,7 +58,7 @@ public class SimpleConditionSynchronizer extends ConditionSynchronizer implement
     public void signal() {
         final Strand s = waiters.peek();
         if (s != null) {
-            record("signal", "signalling %s", s);
+            record("signal", "%s signalling %s", this, s);
             Strand.unpark(s, owner);
         }
     }

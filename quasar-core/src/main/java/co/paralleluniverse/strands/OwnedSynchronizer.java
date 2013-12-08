@@ -31,6 +31,7 @@ public class OwnedSynchronizer extends ConditionSynchronizer implements Conditio
     @Override
     public Object register() {
         final Strand currentStrand = Strand.currentStrand();
+        record("register", "%s register %s", this, currentStrand);
         if (!casWaiter(null, currentStrand))
             throw new IllegalMonitorStateException("attempt by " + currentStrand + " but owned by " + waiter);
         return null;
@@ -38,7 +39,9 @@ public class OwnedSynchronizer extends ConditionSynchronizer implements Conditio
 
     @Override
     public void unregister(Object registrationToken) {
-        if (!Strand.equals(waiter, Strand.currentStrand()))
+        final Strand currentStrand = Strand.currentStrand();
+        record("unregister", "%s unregister %s", this, currentStrand);
+        if (!Strand.equals(waiter, currentStrand))
             throw new IllegalMonitorStateException("attempt by " + Strand.currentStrand() + " but owned by " + waiter);
         waiter = null;
     }
@@ -51,16 +54,15 @@ public class OwnedSynchronizer extends ConditionSynchronizer implements Conditio
     @Override
     public void signal() {
         final Strand s = waiter;
-        if (s != null) {
-            record("signal", "signalling %s", s);
+        record("signal", "%s signalling %s", this, s);
+        if (s != null)
             Strand.unpark(s, owner);
-        }
     }
 
     public void signalAndWait() throws SuspendExecution {
         final Strand s = waiter;
         if (s != null) {
-            record("signal", "signalling %s", s);
+            record("signal", "%s signalling %s", this, s);
             Strand.yieldAndUnpark(s, owner);
         }
     }
