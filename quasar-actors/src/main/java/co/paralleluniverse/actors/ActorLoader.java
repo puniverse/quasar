@@ -13,19 +13,37 @@
  */
 package co.paralleluniverse.actors;
 
+import com.google.common.collect.Lists;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentMap;
+import jsr166e.ConcurrentHashMapV8;
+
 /**
  * Loads actor classes
+ *
  * @author pron
  */
-class ActorLoader {
-    private static final ClassValue<InstanceUpgrader> instanceUpgrader = new ClassValue<InstanceUpgrader>() {
-
+class ActorLoader extends ClassLoader {
+    private static ActorLoader instance = new ActorLoader();
+    
+    private List<ModuleClassLoader> modules = new ArrayList<>();
+    private final ConcurrentMap<String, ModuleClassLoader> classLoaders = new ConcurrentHashMapV8<String, ModuleClassLoader>();
+    private final ClassValue<InstanceUpgrader> instanceUpgrader = new ClassValue<InstanceUpgrader>() {
         @Override
         protected InstanceUpgrader computeValue(Class<?> type) {
             return new InstanceUpgrader(type);
         }
     };
-    
+
+    public synchronized void loadModule(URL jarUrl) {
+        ModuleClassLoader module = new ModuleClassLoader(jarUrl, this);
+        modules.add(module);
+        for(String className : module.getUpgradeClasses())
+            classLoaders.put(className, module);
+    }
+
     public static <T> Class<T> currentClassFor(Class<T> clazz) {
         return clazz;
     }
@@ -33,8 +51,26 @@ class ActorLoader {
     public static <T> Class<T> currentClassFor(String className) {
         return null;
     }
-    
+
     public static <T extends Actor<?, ?>> T getReplacementFor(T actor) {
         return actor;
+    }
+
+    @Override
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
+        for (ModuleClassLoader mcl : Lists.reverse(modules)) {
+            if (mcl.getUpgradeClasses().contains(name)) {
+                try {
+                    return mcl.findClass(name);
+                } catch (ClassNotFoundException e) {
+                }
+            }
+        }
+        return super.findClass(name);
+    }
+
+    @Override
+    public URL getResource(String name) {
+        return super.getResource(name);
     }
 }

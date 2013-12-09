@@ -21,7 +21,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
@@ -150,10 +153,22 @@ class InstanceUpgrader {
             }
         }
     }
+    private static final List<String> infrastructure = Arrays.asList(new String[]{
+                "co.paralleluniverse.strands",
+                "co.paralleluniverse.fibers",
+                "co.paralleluniverse.actors",
+            });
+
+    private static boolean startsWithAnyOf(String str, Collection<String> prefixes) {
+        for (String prefix : prefixes) {
+            if (str.startsWith(prefix))
+                return true;
+        }
+        return false;
+    }
 
     private static Map<FieldDesc, Field> getInstanceFields(Class<?> clazz, Map<FieldDesc, Field> fields) {
-        if (clazz == null
-                || clazz.getPackage().getName().startsWith("co.paralleluniverse"))
+        if (clazz == null || startsWithAnyOf(clazz.getPackage().getName(), infrastructure))
             return fields;
         for (Field f : clazz.getDeclaredFields()) {
             if (!Modifier.isStatic(f.getModifiers()))
