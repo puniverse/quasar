@@ -19,27 +19,45 @@ import com.google.common.collect.MapMaker;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 
 /**
  * Copies fields from an instance of a previous version of a class to the current version
+ *
  * @author pron
  */
 class InstanceUpgrader {
     private final Class<?> toClass;
-    private final Map<FieldDesc, Field> fields;
+    private final Map<FieldDesc, FieldInfo> fields;
     private final ConcurrentMap<Class, Copier> copiers;
     private final Constructor<?> ctor;
 
     public InstanceUpgrader(Class<?> toClass) {
         this.toClass = toClass;
         this.copiers = new MapMaker().weakKeys().makeMap();
-        this.fields = ImmutableMap.copyOf(getFields(toClass, new HashMap<FieldDesc, Field>()));
-        for (Field f : fields.values())
+        Map<FieldDesc, Field> fs = getInstanceFields(toClass, new HashMap<FieldDesc, Field>());
+        ImmutableMap.Builder<FieldDesc, FieldInfo> builder = ImmutableMap.builder();
+        for (Map.Entry<FieldDesc, Field> entry : fs.entrySet()) {
+            Field f = entry.getValue();
             f.setAccessible(true);
+
+            Constructor innerClassCtor = null;
+            if (Objects.equals(f.getType().getEnclosingClass(), toClass)) {
+                try {
+                    innerClassCtor = f.getType().getConstructor(toClass);
+                } catch (NoSuchMethodException e) {
+                    throw new AssertionError(e);
+                }
+            }
+            builder.put(entry.getKey(), new FieldInfo(f, innerClassCtor));
+        }
+        this.fields = builder.build();
+
 
         Constructor<?> c;
         try {
@@ -82,22 +100,38 @@ class InstanceUpgrader {
     private class Copier {
         private final Field[] fromFields;
         private final Field[] toFields;
+        private final Constructor[] innerClassConstructor;
 
         Copier(Class<?> fromClass) {
-            Map<FieldDesc, Field> fs = getFields(toClass, new HashMap<FieldDesc, Field>());
+            if (!fromClass.getName().equals(toClass.getName()))
+                throw new IllegalArgumentException("'fromClass' " + fromClass.getName() + " is not a version of 'toClass' " + toClass.getName());
+
+            Map<FieldDesc, Field> fs = getInstanceFields(toClass, new HashMap<FieldDesc, Field>());
 
             ArrayList<Field> ffs = new ArrayList<>();
             ArrayList<Field> tfs = new ArrayList<>();
+            ArrayList<Constructor> ics = new ArrayList<>();
             for (Map.Entry<FieldDesc, Field> e : fs.entrySet()) {
                 Field ff = e.getValue();
-                Field tf = fields.get(e.getKey());
-                if (tf != null && ff.getType() == tf.getType()) {
-                    ffs.add(ff);
-                    tfs.add(tf);
+                FieldInfo tfi = fields.get(e.getKey());
+                Field tf = tfi != null ? tfi.field : null;
+
+                if (tf != null) {
+                    Constructor innerClassCtor = null;
+                    if (Objects.equals(ff.getType().getEnclosingClass(), fromClass)
+                            && Objects.equals(tf.getType().getEnclosingClass(), toClass)) {
+                        innerClassCtor = tfi.innerClassCtor;
+                    }
+                    if (innerClassCtor != null || tf.getType().isAssignableFrom(ff.getType())) {
+                        ffs.add(ff);
+                        tfs.add(tf);
+                        ics.add(innerClassCtor);
+                    }
                 }
             }
             this.fromFields = ffs.toArray(new Field[ffs.size()]);
             this.toFields = tfs.toArray(new Field[tfs.size()]);
+            this.innerClassConstructor = ics.toArray(new Constructor[ics.size()]);
 
             for (Field f : fromFields)
                 f.setAccessible(true);
@@ -105,22 +139,28 @@ class InstanceUpgrader {
 
         void copy(Object from, Object to) {
             try {
-                for (int i = 0; i < fromFields.length; i++)
-                    toFields[i].set(to, fromFields[i].get(from));
-            } catch (IllegalAccessException e) {
+                for (int i = 0; i < fromFields.length; i++) {
+                    if (innerClassConstructor[i] != null)
+                        toFields[i].set(to, innerClassConstructor[i].newInstance(to));
+                    else
+                        toFields[i].set(to, fromFields[i].get(from));
+                }
+            } catch (IllegalAccessException | InstantiationException | InvocationTargetException e) {
                 throw new AssertionError(e);
             }
         }
     }
 
-    private static Map<FieldDesc, Field> getFields(Class<?> clazz, Map<FieldDesc, Field> fields) {
+    private static Map<FieldDesc, Field> getInstanceFields(Class<?> clazz, Map<FieldDesc, Field> fields) {
         if (clazz == null
                 || clazz.getPackage().getName().startsWith("co.paralleluniverse"))
             return fields;
-        for (Field f : clazz.getDeclaredFields())
-            fields.put(new FieldDesc(f), f);
+        for (Field f : clazz.getDeclaredFields()) {
+            if (!Modifier.isStatic(f.getModifiers()))
+                fields.put(new FieldDesc(f), f);
+        }
 
-        return getFields(clazz.getSuperclass(), fields);
+        return getInstanceFields(clazz.getSuperclass(), fields);
     }
 
     private static class FieldDesc {
@@ -147,6 +187,16 @@ class InstanceUpgrader {
         @Override
         public int hashCode() {
             return declaringClass.hashCode() ^ name.hashCode();
+        }
+    }
+
+    private static class FieldInfo {
+        final Field field;
+        final Constructor innerClassCtor;
+
+        public FieldInfo(Field field, Constructor innerClassCtor) {
+            this.field = field;
+            this.innerClassCtor = innerClassCtor;
         }
     }
 }
