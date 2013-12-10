@@ -12,6 +12,7 @@
  */
 package co.paralleluniverse.concurrent.util;
 
+import co.paralleluniverse.common.util.UtilUnsafe;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;

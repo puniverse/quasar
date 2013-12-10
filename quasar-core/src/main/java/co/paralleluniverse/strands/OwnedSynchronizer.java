@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.strands;
 
-import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;
 import sun.misc.Unsafe;
 

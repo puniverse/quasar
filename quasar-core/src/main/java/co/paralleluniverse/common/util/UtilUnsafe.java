@@ -10,7 +10,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.concurrent.util;
+package co.paralleluniverse.common.util;
 
 import java.lang.reflect.Field;
 import sun.misc.Unsafe;

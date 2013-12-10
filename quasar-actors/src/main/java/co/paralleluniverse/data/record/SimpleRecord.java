@@ -12,7 +12,7 @@
  */
 package co.paralleluniverse.data.record;
 
-import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import co.paralleluniverse.common.util.UtilUnsafe;
 import java.util.Arrays;
 import sun.misc.Unsafe;
 

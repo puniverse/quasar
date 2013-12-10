@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.strands.queues;
 
-import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import co.paralleluniverse.common.util.UtilUnsafe;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Iterator;

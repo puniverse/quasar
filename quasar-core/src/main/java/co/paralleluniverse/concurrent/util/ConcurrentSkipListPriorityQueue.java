@@ -21,6 +21,7 @@
  */
 package co.paralleluniverse.concurrent.util;
 
+import co.paralleluniverse.common.util.UtilUnsafe;
 import java.util.*;
 
 public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>

@@ -12,7 +12,7 @@
  */
 package co.paralleluniverse.data.record;
 
-import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import co.paralleluniverse.common.util.UtilUnsafe;
 import sun.misc.Unsafe;
 
 /**
@@ -22,6 +22,7 @@ import sun.misc.Unsafe;
 final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
     static final Unsafe unsafe = UtilUnsafe.getUnsafe();
     private static final int base;
+    private static final int baseLong;
     private static final int shift;
 
     static {
@@ -44,6 +45,7 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
                 throw new AssertionError("Strange double array scale: " + unsafe.arrayIndexScale(double[].class));
 
             base = unsafe.arrayBaseOffset(byte[].class);
+            baseLong = unsafe.arrayBaseOffset(long[].class);
 
             if (unsafe.arrayBaseOffset(boolean[].class) != base)
                 throw new AssertionError("different array base");
@@ -55,9 +57,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
                 throw new AssertionError("different array base");
             if (unsafe.arrayBaseOffset(float[].class) != base)
                 throw new AssertionError("different array base");
-            if (unsafe.arrayBaseOffset(long[].class) != base)
+            if (unsafe.arrayBaseOffset(long[].class) != baseLong)
                 throw new AssertionError("different array base");
-            if (unsafe.arrayBaseOffset(double[].class) != base)
+            if (unsafe.arrayBaseOffset(double[].class) != baseLong)
                 throw new AssertionError("different array base");
 
             int scale = unsafe.arrayIndexScale(byte[].class);

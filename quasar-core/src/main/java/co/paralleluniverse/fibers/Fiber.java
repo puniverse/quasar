@@ -22,7 +22,7 @@ import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
-import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.fibers.instrument.Retransform;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;

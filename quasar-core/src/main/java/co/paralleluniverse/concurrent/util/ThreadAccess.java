@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.concurrent.util;
 
+import co.paralleluniverse.common.util.UtilUnsafe;
 import java.lang.ref.Reference;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;

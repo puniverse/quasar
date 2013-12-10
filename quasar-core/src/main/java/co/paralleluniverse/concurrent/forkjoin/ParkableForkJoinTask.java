@@ -17,7 +17,7 @@ import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
-import co.paralleluniverse.concurrent.util.UtilUnsafe;
+import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.fibers.Fiber;
 import jsr166e.ForkJoinTask;
 import jsr166e.ForkJoinWorkerThread;
