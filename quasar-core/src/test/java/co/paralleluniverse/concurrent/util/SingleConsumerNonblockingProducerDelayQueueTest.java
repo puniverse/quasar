@@ -91,7 +91,7 @@ public class SingleConsumerNonblockingProducerDelayQueueTest {
         dv = q.poll(20, TimeUnit.MILLISECONDS);
         assertThat(dv, is(nullValue()));
 
-        dv = q.poll(30, TimeUnit.MILLISECONDS);
+        dv = q.poll(40, TimeUnit.MILLISECONDS);
         assertThat(dv.getValue(), is(3));
     }
 
