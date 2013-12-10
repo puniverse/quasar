@@ -29,14 +29,18 @@ import java.util.jar.Manifest;
  * @author pron
  */
 class ModuleClassLoader extends URLClassLoader {
+    static {
+        ClassLoader.registerAsParallelCapable();
+    }
     private static final String UPGRADE_CLASSES_ATTR = "Upgrade-Classes";
+    private final URL url;
     private final ClassLoader parent;
     private final Set<String> upgradeClasses;
 
     public ModuleClassLoader(URL jarUrl, ClassLoader parent) {
         super(new URL[]{jarUrl}, null);
         this.parent = parent;
-
+        this.url = jarUrl;
         try {
             JarFile jar = new JarFile(new File(jarUrl.toURI()));
             Manifest manifest = jar.getManifest();
@@ -56,8 +60,19 @@ class ModuleClassLoader extends URLClassLoader {
         }
     }
 
+    public URL getURL() {
+        return url;
+    }
+
     public Set<String> getUpgradeClasses() {
         return upgradeClasses;
+    }
+
+    public Class<?> findClassInModule(String name) throws ClassNotFoundException {
+        Class<?> loaded = super.findLoadedClass(name);
+        if (loaded != null)
+            return loaded;
+        return super.findClass(name); // first try to use the URLClassLoader findClass
     }
 
     @Override
@@ -80,5 +95,10 @@ class ModuleClassLoader extends URLClassLoader {
         if (url == null && parent != null)
             url = parent.getResource(name);
         return url;
+    }
+
+    @Override
+    public String toString() {
+        return "ModuleClassLoader{" + "url=" + url + '}';
     }
 }
