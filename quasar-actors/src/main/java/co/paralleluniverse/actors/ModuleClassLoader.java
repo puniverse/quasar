@@ -68,11 +68,16 @@ class ModuleClassLoader extends URLClassLoader {
         return upgradeClasses;
     }
 
+    
     public Class<?> findClassInModule(String name) throws ClassNotFoundException {
         Class<?> loaded = super.findLoadedClass(name);
         if (loaded != null)
             return loaded;
         return super.findClass(name); // first try to use the URLClassLoader findClass
+    }
+    
+    public Class<?> findLoadedClassInModule(String name) {
+        return super.findLoadedClass(name);
     }
 
     @Override

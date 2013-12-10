@@ -37,14 +37,14 @@ class ActorLoader extends ClassLoader {
     private static final ClassValue<AtomicInteger> classVersion = new ClassValue<AtomicInteger>() {
         @Override
         protected AtomicInteger computeValue(Class<?> type) {
-            return new AtomicInteger(1);
+            return new AtomicInteger(0);
         }
     };
 
     public static boolean isUpgraded(Class<?> clazz, int version) {
         return classVersion.get(clazz).get() > version;
     }
-    
+
     public static <T extends Actor<?, ?>> Class<T> currentClassFor(Class<T> clazz) {
         return clazz;
     }
@@ -118,15 +118,17 @@ class ActorLoader extends ClassLoader {
         modules.add(module);
 
         for (String className : module.getUpgradeClasses()) {
-            Class<? extends Actor> oldClazz, newClazz;
+            Class<? extends Actor> oldClass, newClass;
             try {
-                newClazz = (Class<? extends Actor>) module.loadClass(className);
-                oldClazz = (Class<? extends Actor>) oldClasses.get(className);
+                newClass = (Class<? extends Actor>) module.loadClass(className);
+                oldClass = (Class<? extends Actor>) oldClasses.get(className);
             } catch (ClassNotFoundException e) {
                 throw new AssertionError();
             }
+            ModuleClassLoader oldModule = oldClass.getClassLoader() instanceof ModuleClassLoader ? (ModuleClassLoader) oldClass.getClassLoader() : null;
+            LOG.info("loadModule: Upgrading class {} of module {} to that in module {}", className, oldModule, module);
             upgradedClasses.put(className, module);
-            classVersion.get(oldClazz).incrementAndGet();
+            classVersion.get(oldClass).incrementAndGet();
         }
     }
 
@@ -136,17 +138,30 @@ class ActorLoader extends ClassLoader {
             LOG.warn("removeModule: module {} not loaded.", jarUrl);
             return;
         }
-        
-        LOG.info("loadModule: Removing module {}.", jarUrl);
-        
+
+        LOG.info("removeModule: Removing module {}.", jarUrl);
+
         modules.remove(module);
-        
-        ConcurrentMap<String, ModuleClassLoader> ucs = new ConcurrentHashMapV8<String, ModuleClassLoader>();
-        for (ModuleClassLoader m : modules) {
-            for (String className : module.getUpgradeClasses())
-                ucs.put(className, m);
+
+        for (String className : module.getUpgradeClasses()) {
+            if (upgradedClasses.get(className) == module) {
+                Class oldClass = module.findLoadedClassInModule(className);
+                ModuleClassLoader newModule = null;
+                for (ModuleClassLoader mcl : Lists.reverse(modules)) {
+                    if (mcl.getUpgradeClasses().contains(className)) {
+                        newModule = mcl;
+                        break;
+                    }
+                }
+                LOG.info("removeModule: Downgrading class {} of module {} to that in module {}", className, newModule);
+                if (newModule != null)
+                    upgradedClasses.put(className, newModule);
+                else
+                    upgradedClasses.remove(className);
+                if (oldClass != null)
+                    classVersion.get(oldClass).incrementAndGet();
+            }
         }
-        //this.upgradedClasses = ucs;
     }
 
     @Override
