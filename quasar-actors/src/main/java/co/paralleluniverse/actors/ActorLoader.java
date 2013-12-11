@@ -46,15 +46,15 @@ class ActorLoader extends ClassLoader {
     }
 
     public static <T extends Actor<?, ?>> Class<T> currentClassFor(Class<T> clazz) {
-        return clazz;
+        return instance.currentClassFor0(clazz);
     }
 
     public static <T extends Actor<?, ?>> Class<T> currentClassFor(String className) {
-        return null;
+        return instance.currentClassFor0(className);
     }
 
     public static <T extends Actor<?, ?>> T getReplacementFor(T actor) {
-        return actor;
+        return instance.getReplacementFor0(actor);
     }
     private static final Logger LOG = LoggerFactory.getLogger(ActorLoader.class);
     private static ActorLoader instance = new ActorLoader();
@@ -162,6 +162,40 @@ class ActorLoader extends ClassLoader {
                     classVersion.get(oldClass).incrementAndGet();
             }
         }
+    }
+
+    <T extends Actor<?, ?>> Class<T> currentClassFor0(Class<T> clazz) {
+        try {
+            final String className = clazz.getName();
+            ModuleClassLoader module = instance.upgradedClasses.get(className);
+            if (module != null)
+                clazz = (Class<T>) module.loadClass(className);
+            return clazz;
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    <T extends Actor<?, ?>> Class<T> currentClassFor0(String className) {
+        try {
+            ModuleClassLoader module = instance.upgradedClasses.get(className);
+            Class<?> clazz;
+            if (module == null)
+                clazz = Class.forName(className);
+            else
+                clazz = module.loadClass(className);
+            return (Class<T>) clazz;
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    <T extends Actor<?, ?>> T getReplacementFor0(T actor) {
+        Class<T> clazz = (Class<T>)actor.getClass();
+        Class<? extends T> newClazz = currentClassFor0(clazz);
+        if(newClazz == clazz)
+            return null;
+        return (T)instanceUpgrader.get(newClazz).copy(actor);
     }
 
     @Override

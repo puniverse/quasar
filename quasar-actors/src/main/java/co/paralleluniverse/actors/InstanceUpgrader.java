@@ -72,16 +72,16 @@ class InstanceUpgrader {
         this.ctor = c;
     }
 
-    public void copy(Object from, Object to) {
+    public Object copy(Object from, Object to) {
         assert toClass.isInstance(to);
-        getCopier(from.getClass()).copy(from, to);
+        return getCopier(from.getClass()).copy(from, to);
     }
 
-    public void copy(Object from) {
+    public Object copy(Object from) {
         if (ctor == null)
             throw new RuntimeException("Class " + toClass.getName() + " does not have a no-arg constructor.");
         try {
-            getCopier(from.getClass()).copy(from, ctor.newInstance());
+            return getCopier(from.getClass()).copy(from, ctor.newInstance());
         } catch (InstantiationException | InvocationTargetException ex) {
             throw Exceptions.rethrow(ex.getCause());
         } catch (IllegalAccessException ex) {
@@ -140,7 +140,7 @@ class InstanceUpgrader {
                 f.setAccessible(true);
         }
 
-        void copy(Object from, Object to) {
+        Object copy(Object from, Object to) {
             try {
                 for (int i = 0; i < fromFields.length; i++) {
                     if (innerClassConstructor[i] != null)
@@ -148,6 +148,7 @@ class InstanceUpgrader {
                     else
                         toFields[i].set(to, fromFields[i].get(from));
                 }
+                return to;
             } catch (IllegalAccessException | InstantiationException | InvocationTargetException e) {
                 throw new AssertionError(e);
             }
