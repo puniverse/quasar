@@ -13,8 +13,18 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.common.util.Exceptions;
 import com.google.common.collect.Lists;
+import java.io.IOException;
 import java.net.URL;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import static java.nio.file.StandardWatchEventKinds.*;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,9 +42,18 @@ import org.slf4j.LoggerFactory;
  */
 class ActorLoader extends ClassLoader {
     private static final String MODULE_DIR = "modules";
-    
+
     static {
         ClassLoader.registerAsParallelCapable();
+
+        instance = new ActorLoader();
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                monitorFilesystem();
+            }
+        }, "actor-loader-filesystem-monitor").start();
     }
     private static final ClassValue<AtomicInteger> classVersion = new ClassValue<AtomicInteger>() {
         @Override
@@ -59,7 +78,7 @@ class ActorLoader extends ClassLoader {
         return instance.getReplacementFor0(actor);
     }
     private static final Logger LOG = LoggerFactory.getLogger(ActorLoader.class);
-    private static ActorLoader instance = new ActorLoader();
+    private static final ActorLoader instance;
     //
     private final ThreadLocal<Boolean> recursive = new ThreadLocal<Boolean>();
     private List<ModuleClassLoader> modules = new CopyOnWriteArrayList<>();
@@ -110,12 +129,37 @@ class ActorLoader extends ClassLoader {
 
     public synchronized void loadModule(URL jarUrl) {
         if (getModule(jarUrl) != null) {
-            LOG.warn("loadModule: module {} already loaded.", jarUrl);
+            LOG.warn("ActorLoader loadModule: module {} already loaded.", jarUrl);
+            return;
+        }
+        LOG.info("ActorLoader: Loading module {}.", jarUrl);
+        addModule(new ModuleClassLoader(jarUrl, this));
+    }
+
+    public synchronized void removeModule(URL jarUrl) {
+        ModuleClassLoader module = getModule(jarUrl);
+        if (module == null) {
+            LOG.warn("ActorLoader removeModule: module {} not loaded.", jarUrl);
             return;
         }
 
-        LOG.info("loadModule: Loading module {}.", jarUrl);
-        ModuleClassLoader module = new ModuleClassLoader(jarUrl, this);
+        LOG.info("ActorLoader: Removing module {}.", jarUrl);
+        removeModule(module);
+    }
+
+    public synchronized void reloadModule(URL jarUrl) {
+        ModuleClassLoader oldModule = getModule(jarUrl);
+        if (oldModule == null) {
+            loadModule(jarUrl);
+            return;
+        }
+
+        LOG.info("updateModule: Updating module {}.", jarUrl);
+        addModule(new ModuleClassLoader(jarUrl, this));
+        removeModule(oldModule);
+    }
+
+    private synchronized void addModule(ModuleClassLoader module) {
         Map<String, Class<?>> oldClasses = checkModule(module);
         modules.add(module);
 
@@ -128,21 +172,13 @@ class ActorLoader extends ClassLoader {
                 throw new AssertionError();
             }
             ModuleClassLoader oldModule = oldClass.getClassLoader() instanceof ModuleClassLoader ? (ModuleClassLoader) oldClass.getClassLoader() : null;
-            LOG.info("loadModule: Upgrading class {} of module {} to that in module {}", className, oldModule, module);
+            LOG.info("ActorLoader: Upgrading class {} of module {} to that in module {}", className, oldModule, module);
             upgradedClasses.put(className, module);
             classVersion.get(oldClass).incrementAndGet();
         }
     }
 
-    public synchronized void removeModule(URL jarUrl) {
-        ModuleClassLoader module = getModule(jarUrl);
-        if (module == null) {
-            LOG.warn("removeModule: module {} not loaded.", jarUrl);
-            return;
-        }
-
-        LOG.info("removeModule: Removing module {}.", jarUrl);
-
+    private synchronized void removeModule(ModuleClassLoader module) {
         modules.remove(module);
 
         for (String className : module.getUpgradeClasses()) {
@@ -155,7 +191,7 @@ class ActorLoader extends ClassLoader {
                         break;
                     }
                 }
-                LOG.info("removeModule: Downgrading class {} of module {} to that in module {}", className, newModule);
+                LOG.info("ActorLoader: Downgrading class {} of module {} to that in module {}", className, newModule);
                 if (newModule != null)
                     upgradedClasses.put(className, newModule);
                 else
@@ -193,11 +229,11 @@ class ActorLoader extends ClassLoader {
     }
 
     <T extends Actor<?, ?>> T getReplacementFor0(T actor) {
-        Class<T> clazz = (Class<T>)actor.getClass();
+        Class<T> clazz = (Class<T>) actor.getClass();
         Class<? extends T> newClazz = currentClassFor0(clazz);
-        if(newClazz == clazz)
+        if (newClazz == clazz)
             return actor;
-        return (T)instanceUpgrader.get(newClazz).copy(actor);
+        return (T) instanceUpgrader.get(newClazz).copy(actor);
     }
 
     @Override
@@ -236,5 +272,63 @@ class ActorLoader extends ClassLoader {
             recursive.remove();
         }
         return super.getResource(name);
+    }
+
+    private static void monitorFilesystem() {
+        try (WatchService watcher = FileSystems.getDefault().newWatchService();) {
+            final Path moduleDir = Paths.get(MODULE_DIR).toRealPath();
+            Files.createDirectories(moduleDir);
+
+            moduleDir.register(watcher,
+                    ENTRY_CREATE,
+                    ENTRY_DELETE,
+                    ENTRY_MODIFY);
+            LOG.info("ActorLoader watching module directory " + moduleDir + " for changes.");
+
+            for (;;) {
+                final WatchKey key = watcher.take();
+                for (WatchEvent<?> event : key.pollEvents()) {
+                    final WatchEvent.Kind<?> kind = event.kind();
+
+                    // This key is not registered for OVERFLOW events, 
+                    // but an OVERFLOW event can occur regardless if events are lost or discarded.
+                    if (kind == OVERFLOW)
+                        continue;
+
+                    // The filename is the context of the event.
+                    WatchEvent<Path> ev = (WatchEvent<Path>) event;
+                    Path filename = ev.context();
+
+                    // Resolve the filename against the directory.
+                    final Path child = moduleDir.resolve(filename);
+                    try {
+                        if (!Files.isRegularFile(child)
+                                || !child.getFileName().endsWith(".jar")) {
+                            if (kind == ENTRY_CREATE)
+                                LOG.warn("ActorLoader filesystem monitor: A non-jar item " + child + " has been placed in the modules directory");
+                            continue;
+                        }
+
+                        final URL jarUrl = child.toUri().toURL();
+
+                        if (kind == ENTRY_CREATE)
+                            instance.loadModule(jarUrl);
+                        else if (kind == ENTRY_MODIFY)
+                            instance.reloadModule(jarUrl);
+                        else if (kind == ENTRY_DELETE)
+                            instance.removeModule(jarUrl);
+                    } catch (Exception e) {
+                        LOG.error("ActorLoader filesystem monitor: exception while processing " + child, e);
+                        continue;
+                    }
+
+                    if (!key.reset())
+                        throw new IOException("Directory " + moduleDir + " is no longer accessible");
+                }
+            }
+        } catch (Exception e) {
+            LOG.error("ActorLoader filesystem monitor thread terminated with an exception", e);
+            throw Exceptions.rethrow(e);
+        }
     }
 }
