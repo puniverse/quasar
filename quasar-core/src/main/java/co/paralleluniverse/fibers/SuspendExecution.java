@@ -23,12 +23,15 @@ package co.paralleluniverse.fibers;
  * <p/>
  * Quasar instrumentation will enhance the bytecode of these methods to
  * support suspension and continuation of their execution; they will not catch {@code SuspendExecution}.
+ * <p/>
+ * This class is for internal Quasar use. 
+ * Throwing an instance of this class or a subclass of it it will things to break in strange ways.
  */
-public final class SuspendExecution extends Exception { // InterruptedException {
+public class SuspendExecution extends Exception { // InterruptedException {
     static final SuspendExecution PARK = new SuspendExecution();
     static final SuspendExecution YIELD = new SuspendExecution();
 
-    SuspendExecution() {
+    protected SuspendExecution() {
     }
 
     @Override

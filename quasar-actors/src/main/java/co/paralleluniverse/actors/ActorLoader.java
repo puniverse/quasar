@@ -62,8 +62,12 @@ class ActorLoader extends ClassLoader {
         }
     };
 
+    public static int getClassVersion(Class<?> clazz) {
+        return classVersion.get(clazz).get();
+    }
+
     public static boolean isUpgraded(Class<?> clazz, int version) {
-        return classVersion.get(clazz).get() > version;
+        return getClassVersion(clazz) > version;
     }
 
     public static <T extends Actor<?, ?>> Class<T> currentClassFor(Class<T> clazz) {

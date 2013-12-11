@@ -89,7 +89,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private ActorSpec<?, Message, V> spec;
     private Object aux;
     protected transient final FlightRecorder flightRecorder;
-    private final Actor<Message, V> replacement;
+    private final int classVersion;
+    private final ActorRunner<V> runner;
 
     /**
      * Creates a new actor.
@@ -99,12 +100,26 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      */
     @SuppressWarnings({"OverridableMethodCallInConstructor", "LeakingThisInConstructor"})
     public Actor(String name, MailboxConfig mailboxConfig) {
-        final Actor<Message, V> impl = ActorLoader.getReplacementFor(this);
-        this.replacement = impl != this ? impl : null;
-        this.ref = new LocalActorRef<Message, V>(impl, name, new Mailbox(mailboxConfig));
-        mailbox().setActor(impl);
-        this.flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
+        int version;
+        Actor<Message, V> impl;
+        for (;;) {
+            version = ActorLoader.getClassVersion(getClass());
+            impl = ActorLoader.getReplacementFor(this);
+            if (!ActorLoader.isUpgraded(getClass(), version))
+                break;
+        }
+
+        this.classVersion = version;
+        if (impl == this) {
+            this.ref = new LocalActorRef<Message, V>(this, name, new Mailbox(mailboxConfig));
+            mailbox().setActor(this);
+        } else
+            this.ref = impl.ref;
+
+        this.runner = new ActorRunner<>(this);
         this.wrapperRef = makeRef(ref);
+
+        this.flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
     }
 
     protected ActorRef<Message> makeRef(ActorRef<Message> ref) {
@@ -152,7 +167,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      * @return This actors' ActorRef
      */
     public ActorRef<Message> spawn(FiberScheduler scheduler) {
-        new Fiber(getName(), scheduler, this).start();
+        new Fiber(getName(), scheduler, runner).start();
         return ref();
     }
 
@@ -163,7 +178,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      * @return This actors' ActorRef
      */
     public ActorRef<Message> spawn() {
-        new Fiber(getName(), this).start();
+        new Fiber(getName(), runner).start();
         return ref();
     }
 
@@ -174,10 +189,16 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      * @return This actors' ActorRef
      */
     public ActorRef<Message> spawnThread() {
-        Thread t = (getName() != null ? new Thread(Strand.toRunnable(this), getName()) : new Thread(Strand.toRunnable(this)));
+        Runnable runnable = Strand.toRunnable(runner);
+        Thread t = (getName() != null ? new Thread(runnable, getName()) : new Thread(runnable));
         setStrand(Strand.of(t));
         t.start();
         return ref();
+    }
+
+    @Override
+    public final V run() throws InterruptedException, SuspendExecution {
+        return runner.run();
     }
 
     /**
@@ -255,9 +276,13 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         if (currentFiber == null)
             return currentActor.get();
         final SuspendableCallable target = currentFiber.getTarget();
-        if (target == null || !(target instanceof Actor))
+        if (target == null)
             return null;
-        return (Actor<M, V>) target;
+        if (target instanceof Actor)
+            return (Actor<M, V>) target;
+        if (target instanceof ActorRunner)
+            return (Actor<M, V>)((ActorRunner<V>) target).getActor();
+        return null;
     }
 
     /**
@@ -563,11 +588,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     //<editor-fold desc="Lifecycle">
     /////////// Lifecycle ///////////////////////////////////
-    @Override
-    public final V run() throws InterruptedException, SuspendExecution {
-        if(replacement != null)
-            return replacement.doRun();
-        
+    final V run0() throws InterruptedException, SuspendExecution {
         if (strand == null)
             setStrand(Strand.currentStrand());
         JMXActorsMonitor.getInstance().actorStarted(ref);
@@ -608,6 +629,9 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     /**
      * An actor must implement this method, which contains the actor's logic. This method begins executing on the actor's
      * strand.
+     * <p/>
+     * Upon a hot code-swap, this method is re-executed, so it is this method's responsibility to check this actor's state
+     * (which may not be blank after a code-swap) when it begins.
      *
      * @return The actor's return value, which can be obtained with {@link #get() }.
      * @throws InterruptedException
@@ -633,6 +657,30 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
                 throw new LifecycleException(m);
         }
         return null;
+    }
+
+    /**
+     * Tests whether this actor has been upgraded via hot code-swapping.
+     * If a new version of this actor is found, this method never returns.
+     *
+     * @throws SuspendExecution
+     */
+    public void checkCodeSwap() throws SuspendExecution {
+        verifyInActor();
+        if (ActorLoader.isUpgraded(getClass(), classVersion)) {
+            record(1, "Actor", "checkCodeSwap", "Code swap detected for %s", this);
+            throw CodeSwap.CODE_SWAP;
+        }
+    }
+
+    /**
+     * This method is called on an actor instance replacing an active instance via hot code-swapping.
+     * When this method is called, the fields of the old instance have been shallow-copied to this instance,
+     * but this instance has not yet started to run.
+     * This method should initialize any relevant state not copied from the old instance.
+     */
+    protected void onCodeChange() {
+        record(1, "Actor", "onCodeChange", "%s", this);
     }
 
     final void addLifecycleListener(LifecycleListener listener) {
