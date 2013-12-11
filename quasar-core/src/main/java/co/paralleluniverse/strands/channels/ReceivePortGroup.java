@@ -25,10 +25,10 @@ import java.util.concurrent.TimeUnit;
  * @author pron
  */
 public class ReceivePortGroup<Message> implements ReceivePort<Message> {
-    private final Collection<ReceivePort<? extends Message>> ports;
+    private final Collection<? extends ReceivePort<? extends Message>> ports;
     private final Selector<Message> selector;
 
-    public ReceivePortGroup(Collection<ReceivePort<? extends Message>> ports) {
+    public ReceivePortGroup(Collection<? extends ReceivePort<? extends Message>> ports) {
         this.ports = ports;
         ArrayList<SelectAction<Message>> actions = new ArrayList<>(ports.size());
         for (ReceivePort<? extends Message> port : ports)

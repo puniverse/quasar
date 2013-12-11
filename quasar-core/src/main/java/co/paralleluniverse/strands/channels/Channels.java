@@ -41,6 +41,8 @@ import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayLongQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayObjectQueue;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * A utility class for creating and manipulating channels.
@@ -506,6 +508,18 @@ public final class Channels {
     }
 
     /**
+     * Returns a {@link ReceivePort} that receives messages from a set of channels. Messages from all given channels are funneled into
+     * the returned channel.
+     *
+     * @param <M>
+     * @param channels
+     * @return a {@link ReceivePort} that receives messages from {@code channels}.
+     */
+    public static <M> ReceivePort<M> group(Collection<? extends ReceivePort<? extends M>> channels) {
+        return new ReceivePortGroup<M>(channels);
+    }
+
+    /**
      * Returns a {@link ReceivePort} that filters messages that satisfy a predicate from a given channel.
      * All messages (even those not satisfying the predicate) will be consumed from the original channel; those that don't satisfy the predicate will be silently discarded.
      *
@@ -540,6 +554,18 @@ public final class Channels {
      * @return A zipping {@link ReceivePort}
      */
     public static <M> ReceivePort<M> zip(Function<Object[], M> f, ReceivePort<?>... cs) {
+        return new ZippingReceivePort<M>(f, cs);
+    }
+
+    /**
+     * Returns a {@link ReceivePort} that combines each vector of messages from a vector of channels into a single combined message.
+     *
+     * @param <M> The type of the combined message
+     * @param f   The combining function
+     * @param cs  A vector of channels
+     * @return A zipping {@link ReceivePort}
+     */
+    public static <M> ReceivePort<M> zip(Function<Object[], M> f, List<? extends ReceivePort<?>> cs) {
         return new ZippingReceivePort<M>(f, cs);
     }
 
