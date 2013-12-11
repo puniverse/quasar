@@ -546,26 +546,14 @@ public final class Channels {
     }
 
     /**
-     * Returns a {@link ReceivePort} that combines each vector of messages from a vector of channels into a single combined message.
+     * Returns a {@link ReceivePort} that combines each vector of messages from a list of channels into a single combined message.
      *
      * @param <M> The type of the combined message
      * @param f   The combining function
      * @param cs  A vector of channels
      * @return A zipping {@link ReceivePort}
      */
-    public static <M> ReceivePort<M> zip(Function<Object[], M> f, ReceivePort<?>... cs) {
-        return new ZippingReceivePort<M>(f, cs);
-    }
-
-    /**
-     * Returns a {@link ReceivePort} that combines each vector of messages from a vector of channels into a single combined message.
-     *
-     * @param <M> The type of the combined message
-     * @param f   The combining function
-     * @param cs  A vector of channels
-     * @return A zipping {@link ReceivePort}
-     */
-    public static <M> ReceivePort<M> zip(Function<Object[], M> f, List<? extends ReceivePort<?>> cs) {
+    public static <M> ReceivePort<M> zip(List<? extends ReceivePort<?>> cs, Function<Object[], M> f) {
         return new ZippingReceivePort<M>(f, cs);
     }
 
