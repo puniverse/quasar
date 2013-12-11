@@ -67,27 +67,30 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     static {
         ClassLoader.registerAsParallelCapable();
 
-        Path mdir = Paths.get(System.getProperty(MODULE_DIR_PROPERTY, DEFAULT_MODULE_DIR));
-        try {
-            mdir = mdir.toAbsolutePath();
-            Files.createDirectories(mdir);
-            mdir = mdir.toRealPath();
-        } catch (IOException e) {
-            LOG.error("ActorLoader: Error findong/creating module directory " + mdir, e);
-            mdir = null;
-        }
-        moduleDir = mdir;
-
         instance = new ActorLoader("co.parallelunierse:product=Quasar,name=ActorLoader");
 
-        loadModulesInModuleDir(instance, moduleDir);
-        if (moduleDir != null)
+        String moduleDirName = System.getProperty(MODULE_DIR_PROPERTY);
+        if (moduleDirName != null) {
+            Path mdir = Paths.get(moduleDirName);
+            try {
+                mdir = mdir.toAbsolutePath();
+                Files.createDirectories(mdir);
+                mdir = mdir.toRealPath();
+            } catch (IOException e) {
+                LOG.error("ActorLoader: Error findong/creating module directory " + mdir, e);
+                mdir = null;
+            }
+            moduleDir = mdir;
+
+            loadModulesInModuleDir(instance, moduleDir);
             new Thread(new Runnable() {
                 @Override
                 public void run() {
                     monitorFilesystem(instance, moduleDir);
                 }
             }, "actor-loader-filesystem-monitor").start();
+        } else
+            moduleDir = null;
     }
     private static final ClassValue<AtomicInteger> classVersion = new ClassValue<AtomicInteger>() {
         @Override
@@ -437,13 +440,13 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
                     if (isValidFile(child)) {
                         try {
                             final URL jarUrl = child.toUri().toURL();
-                            
-                            LOG.info("ActorLoader filesystem monitor: detected module file {} {}", child, 
+
+                            LOG.info("ActorLoader filesystem monitor: detected module file {} {}", child,
                                     kind == ENTRY_CREATE ? "created"
                                     : kind == ENTRY_MODIFY ? "modified"
                                     : kind == ENTRY_DELETE ? "deleted"
                                     : null);
-                            
+
                             if (kind == ENTRY_CREATE || kind == ENTRY_MODIFY)
                                 instance.reloadModule(jarUrl);
                             else if (kind == ENTRY_DELETE)
