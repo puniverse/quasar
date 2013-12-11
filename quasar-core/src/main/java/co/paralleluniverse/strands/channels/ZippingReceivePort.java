@@ -16,6 +16,7 @@ package co.paralleluniverse.strands.channels;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import com.google.common.base.Function;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -31,9 +32,7 @@ public class ZippingReceivePort<Message> implements ReceivePort<Message> {
     private Object[] ms;
 
     public ZippingReceivePort(Function<Object[], Message> f, ReceivePort<?>... targets) {
-        this.f = f;
-        this.targets = Arrays.copyOf(targets, targets.length);
-        this.ms = new Object[targets.length];
+        this(f, Arrays.asList(targets));
     }
 
     public ZippingReceivePort(Function<Object[], Message> f, List<? extends ReceivePort<?>> targets) {
