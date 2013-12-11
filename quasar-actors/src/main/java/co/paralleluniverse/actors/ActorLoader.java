@@ -58,7 +58,8 @@ import org.slf4j.LoggerFactory;
  * @author pron
  */
 class ActorLoader extends ClassLoader implements ActorLoaderMXBean, NotificationEmitter {
-    private static final String MODULE_DIR = "modules";
+    public static final String MODULE_DIR_PROPERTY = "co.paralleluniverse.actors.moduleDir";
+    private static final String DEFAULT_MODULE_DIR = "modules";
     private static final Path moduleDir;
     private static final Logger LOG = LoggerFactory.getLogger(ActorLoader.class);
     private static final ActorLoader instance;
@@ -66,7 +67,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     static {
         ClassLoader.registerAsParallelCapable();
 
-        Path mdir = Paths.get(MODULE_DIR);
+        Path mdir = Paths.get(System.getProperty(MODULE_DIR_PROPERTY, DEFAULT_MODULE_DIR));
         try {
             mdir = mdir.toAbsolutePath();
             Files.createDirectories(mdir);
@@ -436,7 +437,13 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
                     if (isValidFile(child)) {
                         try {
                             final URL jarUrl = child.toUri().toURL();
-
+                            
+                            LOG.info("ActorLoader filesystem monitor: detected module file {} {}", child, 
+                                    kind == ENTRY_CREATE ? "created"
+                                    : kind == ENTRY_MODIFY ? "modified"
+                                    : kind == ENTRY_DELETE ? "deleted"
+                                    : null);
+                            
                             if (kind == ENTRY_CREATE || kind == ENTRY_MODIFY)
                                 instance.reloadModule(jarUrl);
                             else if (kind == ENTRY_DELETE)
@@ -459,6 +466,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     }
 
     private static void loadModulesInModuleDir(ActorLoader instance, Path moduleDir) {
+        LOG.info("ActorLoader: scanning module directory " + moduleDir + " for modules.");
         try (DirectoryStream<Path> children = Files.newDirectoryStream(moduleDir)) {
             for (Path child : children) {
                 if (isValidFile(child)) {
@@ -472,7 +480,6 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
                     LOG.warn("ActorLoader: A non-jar item " + child + " found in the modules directory " + moduleDir);
                 }
             }
-
         } catch (Exception e) {
             LOG.error("ActorLoader: exception while loading modules in module directory " + moduleDir, e);
         }
