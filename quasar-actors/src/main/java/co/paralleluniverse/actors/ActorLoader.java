@@ -14,8 +14,11 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.util.Exceptions;
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
@@ -32,16 +35,29 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.ListenerNotFoundException;
+import javax.management.MBeanNotificationInfo;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.Notification;
+import javax.management.NotificationBroadcasterSupport;
+import javax.management.NotificationEmitter;
+import javax.management.NotificationFilter;
+import javax.management.NotificationListener;
+import javax.management.ObjectName;
 import jsr166e.ConcurrentHashMapV8;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Loads actor classes
+ * Loads actor classes for hot code-swapping.
  *
  * @author pron
  */
-class ActorLoader extends ClassLoader {
+class ActorLoader extends ClassLoader implements ActorLoaderMXBean, NotificationEmitter {
     private static final String MODULE_DIR = "modules";
     private static final Path moduleDir;
     private static final Logger LOG = LoggerFactory.getLogger(ActorLoader.class);
@@ -61,7 +77,7 @@ class ActorLoader extends ClassLoader {
         }
         moduleDir = mdir;
 
-        instance = new ActorLoader();
+        instance = new ActorLoader("co.parallelunierse:product=Quasar,name=ActorLoader");
 
         loadModulesInModuleDir(instance, moduleDir);
         if (moduleDir != null)
@@ -108,6 +124,33 @@ class ActorLoader extends ClassLoader {
             return new InstanceUpgrader(type);
         }
     };
+    private final NotificationBroadcasterSupport notificationBroadcaster;
+    private int notificationSequenceNumber;
+
+    private ActorLoader(String mbeanName) {
+        MBeanNotificationInfo info = new MBeanNotificationInfo(
+                new String[]{ModuleNotification.NAME},
+                ModuleNotification.class.getName(),
+                "Actor module change");
+        this.notificationBroadcaster = new NotificationBroadcasterSupport(info);
+        registerMBean(mbeanName);
+    }
+
+    private void registerMBean(String mbeanName) {
+        try {
+            final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+            final ObjectName mxbeanName = new ObjectName(mbeanName);
+            mbs.registerMBean(this, mxbeanName);
+        } catch (InstanceAlreadyExistsException ex) {
+            throw new RuntimeException(ex);
+        } catch (MBeanRegistrationException ex) {
+            LOG.error("ActorLoader: exception while registering MBean " + mbeanName, ex);
+        } catch (NotCompliantMBeanException ex) {
+            throw new AssertionError(ex);
+        } catch (MalformedObjectNameException ex) {
+            throw new AssertionError(ex);
+        }
+    }
 
     private ModuleClassLoader getModule(URL url) {
         for (ModuleClassLoader m : modules) {
@@ -146,33 +189,77 @@ class ActorLoader extends ClassLoader {
         }
     }
 
-    public synchronized void reloadModule(URL jarUrl) {
-        ModuleClassLoader oldModule = getModule(jarUrl);
+    @Override
+    public List<String> getLoadedModules() {
+        return Lists.transform(modules, new Function<ModuleClassLoader, String>() {
+            @Override
+            public String apply(ModuleClassLoader module) {
+                return module.getURL().toString();
+            }
+        });
+    }
 
-        LOG.info("ActorLoader: Loading module {}.", jarUrl);
-        addModule(new ModuleClassLoader(jarUrl, this));
+    @Override
+    public synchronized void reloadModule(String jarURL) {
+        try {
+            reloadModule(new URL(jarURL));
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    public synchronized void loadModule(String jarURL) {
+        try {
+            loadModule(new URL(jarURL));
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
+    public synchronized void unloadModule(String jarURL) {
+        try {
+            unloadModule(new URL(jarURL));
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    public synchronized void reloadModule(URL jarURL) {
+        ModuleClassLoader oldModule = getModule(jarURL);
+
+        LOG.info("ActorLoader: {} module {}.", oldModule == null ? "Loading" : "Reloading", jarURL);
+        ModuleClassLoader module = new ModuleClassLoader(jarURL, this);
+        addModule(module);
         if (oldModule != null)
             removeModule(oldModule);
+        LOG.info("ActorLoader: Module {} {}.", jarURL, oldModule == null ? "loaded" : "reloaded");
+        notify(module, oldModule == null ? "loaded" : "reloaded");
     }
 
-    public synchronized void loadModule(URL jarUrl) {
-        if (getModule(jarUrl) != null) {
-            LOG.warn("ActorLoader loadModule: module {} already loaded.", jarUrl);
+    public synchronized void loadModule(URL jarURL) {
+        if (getModule(jarURL) != null) {
+            LOG.warn("ActorLoader loadModule: module {} already loaded.", jarURL);
             return;
         }
-        LOG.info("ActorLoader: Loading module {}.", jarUrl);
-        addModule(new ModuleClassLoader(jarUrl, this));
+        LOG.info("ActorLoader: Loading module {}.", jarURL);
+        ModuleClassLoader module = new ModuleClassLoader(jarURL, this);
+        addModule(module);
+        LOG.info("ActorLoader: Module {} loaded.", jarURL);
+        notify(module, "loaded");
     }
 
-    public synchronized void removeModule(URL jarUrl) {
-        ModuleClassLoader module = getModule(jarUrl);
+    public synchronized void unloadModule(URL jarURL) {
+        ModuleClassLoader module = getModule(jarURL);
         if (module == null) {
-            LOG.warn("ActorLoader removeModule: module {} not loaded.", jarUrl);
+            LOG.warn("ActorLoader removeModule: module {} not loaded.", jarURL);
             return;
         }
 
-        LOG.info("ActorLoader: Removing module {}.", jarUrl);
+        LOG.info("ActorLoader: Removing module {}.", jarURL);
         removeModule(module);
+        LOG.info("ActorLoader: Module {} removed.", jarURL);
+        notify(module, "removed");
     }
 
     private synchronized void addModule(ModuleClassLoader module) {
@@ -290,6 +377,44 @@ class ActorLoader extends ClassLoader {
         return super.getResource(name);
     }
 
+    @Override
+    public MBeanNotificationInfo[] getNotificationInfo() {
+        return notificationBroadcaster.getNotificationInfo();
+    }
+
+    @Override
+    public void addNotificationListener(NotificationListener listener, NotificationFilter filter, Object handback) throws IllegalArgumentException {
+        notificationBroadcaster.addNotificationListener(listener, filter, handback);
+    }
+
+    @Override
+    public void removeNotificationListener(NotificationListener listener, NotificationFilter filter, Object handback) throws ListenerNotFoundException {
+        notificationBroadcaster.removeNotificationListener(listener, filter, handback);
+    }
+
+    @Override
+    public void removeNotificationListener(NotificationListener listener) throws ListenerNotFoundException {
+        notificationBroadcaster.removeNotificationListener(listener);
+    }
+
+    private synchronized void notify(ModuleClassLoader module, String action) {
+        final Notification n = new ModuleNotification(this, notificationSequenceNumber++, System.currentTimeMillis(),
+                "Module " + module + " has been " + action);
+        notificationBroadcaster.sendNotification(n);
+    }
+
+    private static class ModuleNotification extends Notification {
+        static final String NAME = "co.paralleluniverse.actors.module";
+
+        public ModuleNotification(String type, Object source, long sequenceNumber, String message) {
+            super(NAME, source, sequenceNumber, message);
+        }
+
+        public ModuleNotification(Object source, long sequenceNumber, long timeStamp, String message) {
+            super(NAME, source, sequenceNumber, timeStamp, message);
+        }
+    }
+
     private static void monitorFilesystem(ActorLoader instance, Path moduleDir) {
         try (WatchService watcher = FileSystems.getDefault().newWatchService();) {
             moduleDir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
@@ -315,7 +440,7 @@ class ActorLoader extends ClassLoader {
                             if (kind == ENTRY_CREATE || kind == ENTRY_MODIFY)
                                 instance.reloadModule(jarUrl);
                             else if (kind == ENTRY_DELETE)
-                                instance.removeModule(jarUrl);
+                                instance.unloadModule(jarUrl);
                         } catch (Exception e) {
                             LOG.error("ActorLoader filesystem monitor: exception while processing " + child, e);
                         }
