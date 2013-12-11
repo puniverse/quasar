@@ -13,6 +13,8 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.common.reflection.ASMUtil;
+import co.paralleluniverse.common.reflection.ClassLoaderUtil;
 import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.IOException;
@@ -39,8 +41,9 @@ class ModuleClassLoader extends URLClassLoader {
 
     public ModuleClassLoader(URL jarUrl, ClassLoader parent) {
         super(new URL[]{jarUrl}, null);
-        this.parent = parent;
         this.url = jarUrl;
+        
+        // determine upgrade classes
         try {
             JarFile jar = new JarFile(new File(jarUrl.toURI()));
             Manifest manifest = jar.getManifest();
@@ -51,13 +54,28 @@ class ModuleClassLoader extends URLClassLoader {
             if (ucstr.isEmpty())
                 throw new IllegalArgumentException("Module jar " + jarUrl + " " + UPGRADE_CLASSES_ATTR + " attribute does not contain entries");
 
-            ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-            for (String className : ucstr.split("\\s"))
-                builder.add(className);
+            final ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+            if (ucstr.trim().equals("*")) {
+                ClassLoaderUtil.accept(this, new ClassLoaderUtil.Visitor() {
+                    @Override
+                    public void visit(String resource, URL url, ClassLoader cl) {
+                        if (!ClassLoaderUtil.isClassfile(resource))
+                            return;
+                        final String className = ClassLoaderUtil.resourceToClass(resource);
+                        if(ASMUtil.isAssignableFrom(Actor.class, className, ModuleClassLoader.this))
+                            builder.add(className);
+                    }
+                });
+            } else {
+                for (String className : ucstr.split("\\s"))
+                    builder.add(className);
+            }
             this.upgradeClasses = builder.build();
         } catch (IOException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
+        
+        this.parent = parent;
     }
 
     public URL getURL() {
@@ -68,14 +86,13 @@ class ModuleClassLoader extends URLClassLoader {
         return upgradeClasses;
     }
 
-    
     public Class<?> findClassInModule(String name) throws ClassNotFoundException {
         Class<?> loaded = super.findLoadedClass(name);
         if (loaded != null)
             return loaded;
         return super.findClass(name); // first try to use the URLClassLoader findClass
     }
-    
+
     public Class<?> findLoadedClassInModule(String name) {
         return super.findLoadedClass(name);
     }

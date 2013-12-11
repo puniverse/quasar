@@ -52,7 +52,7 @@ public final class ASMUtil {
     public static ClassNode getClassNode(File classFile, boolean skipCode) throws IOException {
         if (classFile == null)
             return null;
-        if(!classFile.exists())
+        if (!classFile.exists())
             return null;
         try (InputStream is = new FileInputStream(classFile)) {
             ClassReader cr = new ClassReader(is);
@@ -101,7 +101,7 @@ public final class ASMUtil {
     }
 
     public static boolean hasMethod(MethodNode method, List<MethodNode> ms) {
-        if(ms == null)
+        if (ms == null)
             return false;
         for (MethodNode m : ms) {
             if (equals(method, m))
@@ -120,6 +120,37 @@ public final class ASMUtil {
 
     public static boolean equals(ClassNode c1, ClassNode c2) {
         return Objects.equals(c1.name, c2.name);
+    }
+
+    public static boolean isAssignableFrom(Class<?> supertype, String className, ClassLoader cl) {
+        return isAssignableFrom(supertype.getName(), className, cl);
+    }
+
+    public static boolean isAssignableFrom(String supertypeName, String className, ClassLoader cl) {
+        try {
+            if (className == null)
+                return false;
+            if (supertypeName.equals(className))
+                return true;
+            ClassNode cn = getClassNode(className, true, cl);
+
+            if (supertypeName.equals(cn.superName))
+                return true;
+            if (isAssignableFrom(supertypeName, cn.superName, cl))
+                return true;
+
+            if (cn.interfaces != null) {
+                for (String iface : (List<String>) cn.interfaces) {
+                    if (supertypeName.equals(iface))
+                        return true;
+                    if (isAssignableFrom(supertypeName, iface, cl))
+                        return true;
+                }
+            }
+            return false;
+        } catch (IOException e) {
+            throw new RuntimeException();
+        }
     }
 
     private ASMUtil() {
