@@ -278,53 +278,45 @@ class ActorLoader extends ClassLoader {
         try (WatchService watcher = FileSystems.getDefault().newWatchService();) {
             final Path moduleDir = Paths.get(MODULE_DIR).toRealPath();
             Files.createDirectories(moduleDir);
-
             moduleDir.register(watcher,
                     ENTRY_CREATE,
                     ENTRY_DELETE,
                     ENTRY_MODIFY);
+            
             LOG.info("ActorLoader watching module directory " + moduleDir + " for changes.");
-
             for (;;) {
                 final WatchKey key = watcher.take();
                 for (WatchEvent<?> event : key.pollEvents()) {
                     final WatchEvent.Kind<?> kind = event.kind();
 
-                    // This key is not registered for OVERFLOW events, 
-                    // but an OVERFLOW event can occur regardless if events are lost or discarded.
-                    if (kind == OVERFLOW)
-                        continue;
-
-                    // The filename is the context of the event.
-                    WatchEvent<Path> ev = (WatchEvent<Path>) event;
-                    Path filename = ev.context();
-
-                    // Resolve the filename against the directory.
-                    final Path child = moduleDir.resolve(filename);
-                    try {
-                        if (!Files.isRegularFile(child)
-                                || !child.getFileName().endsWith(".jar")) {
-                            if (kind == ENTRY_CREATE)
-                                LOG.warn("ActorLoader filesystem monitor: A non-jar item " + child + " has been placed in the modules directory");
-                            continue;
-                        }
-
-                        final URL jarUrl = child.toUri().toURL();
-
-                        if (kind == ENTRY_CREATE)
-                            instance.loadModule(jarUrl);
-                        else if (kind == ENTRY_MODIFY)
-                            instance.reloadModule(jarUrl);
-                        else if (kind == ENTRY_DELETE)
-                            instance.removeModule(jarUrl);
-                    } catch (Exception e) {
-                        LOG.error("ActorLoader filesystem monitor: exception while processing " + child, e);
+                    if (kind == OVERFLOW) { // An OVERFLOW event can occur regardless of registration if events are lost or discarded.
+                        LOG.warn("ActorLoader filesystem monitor: filesystem events may have been missed");
                         continue;
                     }
 
-                    if (!key.reset())
-                        throw new IOException("Directory " + moduleDir + " is no longer accessible");
+                    final WatchEvent<Path> ev = (WatchEvent<Path>) event;
+                    final Path filename = ev.context(); // The filename is the context of the event.
+                    final Path child = moduleDir.resolve(filename); // Resolve the filename against the directory.
+                    if (Files.isRegularFile(child) && child.getFileName().endsWith(".jar")) {
+                        try {
+                            final URL jarUrl = child.toUri().toURL();
+
+                            if (kind == ENTRY_CREATE)
+                                instance.loadModule(jarUrl);
+                            else if (kind == ENTRY_MODIFY)
+                                instance.reloadModule(jarUrl);
+                            else if (kind == ENTRY_DELETE)
+                                instance.removeModule(jarUrl);
+                        } catch (Exception e) {
+                            LOG.error("ActorLoader filesystem monitor: exception while processing " + child, e);
+                        }
+                    } else {
+                        if (kind == ENTRY_CREATE || kind == ENTRY_MODIFY)
+                            LOG.warn("ActorLoader filesystem monitor: A non-jar item " + child + " has been placed in the modules directory");
+                    }
                 }
+                if (!key.reset())
+                    throw new IOException("Directory " + moduleDir + " is no longer accessible");
             }
         } catch (Exception e) {
             LOG.error("ActorLoader filesystem monitor thread terminated with an exception", e);
