@@ -31,7 +31,6 @@ import javax.management.NotificationBroadcasterSupport;
 import javax.management.NotificationListener;
 import javax.management.ObjectName;
 import javax.management.StandardEmitterMBean;
-import jsr166e.ForkJoinPool;
 import jsr166e.LongAdder;
 
 /**
@@ -110,12 +109,10 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
 
     @Override
     public MBeanNotificationInfo[] getNotificationInfo() {
-        String[] types = new String[]{
-            RunawayFiberNotification.NAME
-        };
-        String notifName = RunawayFiberNotification.class.getName();
-        String description = "Runaway fiber detected";
-        MBeanNotificationInfo info = new MBeanNotificationInfo(types, notifName, description);
+        MBeanNotificationInfo info = new MBeanNotificationInfo(
+                new String[]{RunawayFiberNotification.NAME}, 
+                RunawayFiberNotification.class.getName(), 
+                "Runaway fiber detected");
         return new MBeanNotificationInfo[]{info};
     }
 
@@ -246,7 +243,7 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
     public int getTimedQueueLength() {
         return scheduler.getTimedQueueLength();
     }
-    
+
     @Override
     public long getSpuriousWakeups() {
         return spuriousWakeups;
