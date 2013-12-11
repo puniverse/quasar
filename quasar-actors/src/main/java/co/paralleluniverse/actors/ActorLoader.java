@@ -280,13 +280,11 @@ class ActorLoader extends ClassLoader {
 
     private static void monitorFilesystem() {
         try (WatchService watcher = FileSystems.getDefault().newWatchService();) {
-            final Path moduleDir = Paths.get(MODULE_DIR).toRealPath();
+            Path moduleDir = Paths.get(MODULE_DIR).toAbsolutePath();
             Files.createDirectories(moduleDir);
-            moduleDir.register(watcher,
-                    ENTRY_CREATE,
-                    ENTRY_DELETE,
-                    ENTRY_MODIFY);
-            
+            moduleDir = moduleDir.toRealPath();
+            moduleDir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+
             LOG.info("ActorLoader watching module directory " + moduleDir + " for changes.");
             for (;;) {
                 final WatchKey key = watcher.take();
