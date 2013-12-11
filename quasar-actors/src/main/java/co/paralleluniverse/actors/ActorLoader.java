@@ -17,6 +17,7 @@ import co.paralleluniverse.common.util.Exceptions;
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,18 +43,34 @@ import org.slf4j.LoggerFactory;
  */
 class ActorLoader extends ClassLoader {
     private static final String MODULE_DIR = "modules";
+    private static final Path moduleDir;
+    private static final Logger LOG = LoggerFactory.getLogger(ActorLoader.class);
+    private static final ActorLoader instance;
 
     static {
         ClassLoader.registerAsParallelCapable();
 
+        Path mdir = Paths.get(MODULE_DIR);
+        try {
+            mdir = mdir.toAbsolutePath();
+            Files.createDirectories(mdir);
+            mdir = mdir.toRealPath();
+        } catch (IOException e) {
+            LOG.error("ActorLoader: Error findong/creating module directory " + mdir, e);
+            mdir = null;
+        }
+        moduleDir = mdir;
+
         instance = new ActorLoader();
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                monitorFilesystem();
-            }
-        }, "actor-loader-filesystem-monitor").start();
+        loadModulesInModuleDir(instance, moduleDir);
+        if (moduleDir != null)
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    monitorFilesystem(instance, moduleDir);
+                }
+            }, "actor-loader-filesystem-monitor").start();
     }
     private static final ClassValue<AtomicInteger> classVersion = new ClassValue<AtomicInteger>() {
         @Override
@@ -81,8 +98,6 @@ class ActorLoader extends ClassLoader {
     public static <T extends Actor<?, ?>> T getReplacementFor(T actor) {
         return instance.getReplacementFor0(actor);
     }
-    private static final Logger LOG = LoggerFactory.getLogger(ActorLoader.class);
-    private static final ActorLoader instance;
     //
     private final ThreadLocal<Boolean> recursive = new ThreadLocal<Boolean>();
     private List<ModuleClassLoader> modules = new CopyOnWriteArrayList<>();
@@ -126,9 +141,18 @@ class ActorLoader extends ClassLoader {
             }
             return oldClasses;
         } catch (Exception e) {
-            LOG.error("Error while loading module " + module, e);
+            LOG.error("ActorLoader: Error while loading module " + module, e);
             throw e;
         }
+    }
+
+    public synchronized void reloadModule(URL jarUrl) {
+        ModuleClassLoader oldModule = getModule(jarUrl);
+
+        LOG.info("ActorLoader: Loading module {}.", jarUrl);
+        addModule(new ModuleClassLoader(jarUrl, this));
+        if (oldModule != null)
+            removeModule(oldModule);
     }
 
     public synchronized void loadModule(URL jarUrl) {
@@ -149,18 +173,6 @@ class ActorLoader extends ClassLoader {
 
         LOG.info("ActorLoader: Removing module {}.", jarUrl);
         removeModule(module);
-    }
-
-    public synchronized void reloadModule(URL jarUrl) {
-        ModuleClassLoader oldModule = getModule(jarUrl);
-        if (oldModule == null) {
-            loadModule(jarUrl);
-            return;
-        }
-
-        LOG.info("updateModule: Updating module {}.", jarUrl);
-        addModule(new ModuleClassLoader(jarUrl, this));
-        removeModule(oldModule);
     }
 
     private synchronized void addModule(ModuleClassLoader module) {
@@ -278,11 +290,8 @@ class ActorLoader extends ClassLoader {
         return super.getResource(name);
     }
 
-    private static void monitorFilesystem() {
+    private static void monitorFilesystem(ActorLoader instance, Path moduleDir) {
         try (WatchService watcher = FileSystems.getDefault().newWatchService();) {
-            Path moduleDir = Paths.get(MODULE_DIR).toAbsolutePath();
-            Files.createDirectories(moduleDir);
-            moduleDir = moduleDir.toRealPath();
             moduleDir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
 
             LOG.info("ActorLoader watching module directory " + moduleDir + " for changes.");
@@ -299,13 +308,11 @@ class ActorLoader extends ClassLoader {
                     final WatchEvent<Path> ev = (WatchEvent<Path>) event;
                     final Path filename = ev.context(); // The filename is the context of the event.
                     final Path child = moduleDir.resolve(filename); // Resolve the filename against the directory.
-                    if (Files.isRegularFile(child) && child.getFileName().endsWith(".jar")) {
+                    if (isValidFile(child)) {
                         try {
                             final URL jarUrl = child.toUri().toURL();
 
-                            if (kind == ENTRY_CREATE)
-                                instance.loadModule(jarUrl);
-                            else if (kind == ENTRY_MODIFY)
+                            if (kind == ENTRY_CREATE || kind == ENTRY_MODIFY)
                                 instance.reloadModule(jarUrl);
                             else if (kind == ENTRY_DELETE)
                                 instance.removeModule(jarUrl);
@@ -314,7 +321,7 @@ class ActorLoader extends ClassLoader {
                         }
                     } else {
                         if (kind == ENTRY_CREATE || kind == ENTRY_MODIFY)
-                            LOG.warn("ActorLoader filesystem monitor: A non-jar item " + child + " has been placed in the modules directory");
+                            LOG.warn("ActorLoader filesystem monitor: A non-jar item " + child + " has been placed in the modules directory " + moduleDir);
                     }
                 }
                 if (!key.reset())
@@ -324,5 +331,30 @@ class ActorLoader extends ClassLoader {
             LOG.error("ActorLoader filesystem monitor thread terminated with an exception", e);
             throw Exceptions.rethrow(e);
         }
+    }
+
+    private static void loadModulesInModuleDir(ActorLoader instance, Path moduleDir) {
+        try (DirectoryStream<Path> children = Files.newDirectoryStream(moduleDir)) {
+            for (Path child : children) {
+                if (isValidFile(child)) {
+                    try {
+                        final URL jarUrl = child.toUri().toURL();
+                        instance.reloadModule(jarUrl);
+                    } catch (Exception e) {
+                        LOG.error("ActorLoader: exception while processing " + child, e);
+                    }
+                } else {
+                    LOG.warn("ActorLoader: A non-jar item " + child + " found in the modules directory " + moduleDir);
+                }
+            }
+
+        } catch (Exception e) {
+            LOG.error("ActorLoader: exception while loading modules in module directory " + moduleDir, e);
+        }
+
+    }
+
+    private static boolean isValidFile(Path file) {
+        return Files.isRegularFile(file) && file.getFileName().endsWith(".jar");
     }
 }
