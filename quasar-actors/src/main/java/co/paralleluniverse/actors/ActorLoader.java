@@ -31,6 +31,8 @@ import org.slf4j.LoggerFactory;
  * @author pron
  */
 class ActorLoader extends ClassLoader {
+    private static final String MODULE_DIR = "modules";
+    
     static {
         ClassLoader.registerAsParallelCapable();
     }
@@ -194,7 +196,7 @@ class ActorLoader extends ClassLoader {
         Class<T> clazz = (Class<T>)actor.getClass();
         Class<? extends T> newClazz = currentClassFor0(clazz);
         if(newClazz == clazz)
-            return null;
+            return actor;
         return (T)instanceUpgrader.get(newClazz).copy(actor);
     }
 
