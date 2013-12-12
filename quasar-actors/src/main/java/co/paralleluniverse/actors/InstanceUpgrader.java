@@ -30,6 +30,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.reflect.ReflectionFactory;
 
 /**
  * Copies fields from an instance of a previous version of a class to the current version
@@ -38,6 +39,16 @@ import org.slf4j.LoggerFactory;
  */
 class InstanceUpgrader {
     private static final Logger LOG = LoggerFactory.getLogger(InstanceUpgrader.class);
+    private static final Object reflFactory;
+
+    static {
+        Object rf = null;
+        try {
+            rf = ReflectionFactory.getReflectionFactory();
+        } catch (Throwable t) {
+        }
+        reflFactory = rf;
+    }
     private final Class<?> toClass;
     private final Map<FieldDesc, FieldInfo> fields;
     private final ConcurrentMap<Class, Copier> copiers;
@@ -63,18 +74,48 @@ class InstanceUpgrader {
             builder.put(entry.getKey(), new FieldInfo(f, innerClassCtor));
         }
         this.fields = builder.build();
-
-
-        Constructor<?> c;
-        try {
-            c = toClass.getDeclaredConstructor();
-            c.setAccessible(true);
-        } catch (NoSuchMethodException e) {
-            c = null;
-        }
-        this.ctor = c;
+        this.ctor = getNoArgConstructor(toClass);
     }
 
+    private static Constructor<?> getNoArgConstructor(Class<?> cl) {
+        if (reflFactory == null)
+            return getNoArgConstructor1(cl);
+        else
+            return getNoArgConstructor2(cl);
+    }
+
+    private static Constructor<?> getNoArgConstructor1(Class<?> cl) {
+        try {
+            Constructor cons = cl.getDeclaredConstructor();
+            cons.setAccessible(true);
+            return cons;
+        } catch (NoSuchMethodException e) {
+            return null;
+        }
+    }
+
+    private static Constructor<?> getNoArgConstructor2(Class<?> cl) {
+        Class<?> initCl = Actor.class.isAssignableFrom(cl) ? Actor.class : Object.class;
+        try {
+            Constructor cons = initCl.getDeclaredConstructor();
+//                int mods = cons.getModifiers();
+//                if ((mods & Modifier.PRIVATE) != 0
+//                        || ((mods & (Modifier.PUBLIC | Modifier.PROTECTED)) == 0
+//                        && !packageEquals(cl, initCl))) {
+//                    return null;
+//                }
+            cons = ((ReflectionFactory) reflFactory).newConstructorForSerialization(cl, cons);
+            cons.setAccessible(true);
+            return cons;
+        } catch (NoSuchMethodException ex) {
+            return null;
+        }
+    }
+
+//    private static boolean packageEquals(Class<?> cl1, Class<?> cl2) {
+//        return cl1.getPackage().getName().equals(cl2.getPackage().getName()); // && cl1.getClassLoader() == cl2.getClassLoader();
+//    }
+    
     public Object copy(Object from, Object to) {
         assert toClass.isInstance(to);
         return getCopier(from.getClass()).copy(from, to);
@@ -165,8 +206,7 @@ class InstanceUpgrader {
     private static final List<String> infrastructure = Arrays.asList(new String[]{
                 "co.paralleluniverse.strands",
                 "co.paralleluniverse.fibers",
-                "co.paralleluniverse.actors",
-    });
+                "co.paralleluniverse.actors",});
 
     private static boolean startsWithAnyOf(String str, Collection<String> prefixes) {
         for (String prefix : prefixes) {
