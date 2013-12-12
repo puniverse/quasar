@@ -93,6 +93,16 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private final ActorRunner<V> runner;
 
     /**
+     * This constructor must only be used by hot code-swap upgrade actor classes.
+     */
+    protected Actor() {
+        this.ref = null;
+        this.wrapperRef = null;
+        this.flightRecorder = null;
+        this.classVersion = -1;
+        this.runner = null;
+    }
+    /**
      * Creates a new actor.
      *
      * @param name          the actor name (may be {@code null}).

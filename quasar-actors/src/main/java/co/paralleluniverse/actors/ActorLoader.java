@@ -62,6 +62,12 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     private static final Path moduleDir;
     private static final Logger LOG = LoggerFactory.getLogger(ActorLoader.class);
     private static final ActorLoader instance;
+    private static final ClassValue<AtomicInteger> classVersion = new ClassValue<AtomicInteger>() {
+        @Override
+        protected AtomicInteger computeValue(Class<?> type) {
+            return new AtomicInteger(0);
+        }
+    };
 
     static {
         ClassLoader.registerAsParallelCapable();
@@ -93,12 +99,6 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         } else
             moduleDir = null;
     }
-    private static final ClassValue<AtomicInteger> classVersion = new ClassValue<AtomicInteger>() {
-        @Override
-        protected AtomicInteger computeValue(Class<?> type) {
-            return new AtomicInteger(0);
-        }
-    };
 
     public static int getClassVersion(Class<?> clazz) {
         return classVersion.get(clazz).get();
@@ -281,6 +281,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
             }
             ModuleClassLoader oldModule = oldClass.getClassLoader() instanceof ModuleClassLoader ? (ModuleClassLoader) oldClass.getClassLoader() : null;
             LOG.info("ActorLoader: Upgrading class {} of module {} to that in module {}", className, oldModule, module);
+
             upgradedClasses.put(className, module);
             classVersion.get(oldClass).incrementAndGet();
         }
@@ -432,7 +433,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
                         LOG.error("ActorLoader: exception while processing " + child, e);
                     }
                 } else {
-                    LOG.warn("ActorLoader: A non-jar item " + child + " found in the modules directory " + moduleDir);
+                    LOG.warn("ActorLoader: A non-jar item " + child.getFileName() + " found in the modules directory " + moduleDir);
                 }
             }
         } catch (Exception e) {
@@ -477,7 +478,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
                         }
                     } else {
                         if (kind == ENTRY_CREATE || kind == ENTRY_MODIFY)
-                            LOG.warn("ActorLoader filesystem monitor: A non-jar item " + child + " has been placed in the modules directory " + moduleDir);
+                            LOG.warn("ActorLoader filesystem monitor: A non-jar item " + child.getFileName() + " has been placed in the modules directory " + moduleDir);
                     }
                 }
                 if (!key.reset())
@@ -490,6 +491,6 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     }
 
     private static boolean isValidFile(Path file) {
-        return Files.isRegularFile(file) && file.getFileName().endsWith(".jar");
+        return Files.isRegularFile(file) && file.getFileName().toString().endsWith(".jar");
     }
 }

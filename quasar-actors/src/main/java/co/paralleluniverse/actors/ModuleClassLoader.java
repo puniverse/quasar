@@ -14,10 +14,12 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.reflection.ASMUtil;
+import co.paralleluniverse.common.reflection.AnnotationUtil;
 import co.paralleluniverse.common.reflection.ClassLoaderUtil;
 import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -42,40 +44,54 @@ class ModuleClassLoader extends URLClassLoader {
     public ModuleClassLoader(URL jarUrl, ClassLoader parent) {
         super(new URL[]{jarUrl}, null);
         this.url = jarUrl;
-        
+
         // determine upgrade classes
         try {
             JarFile jar = new JarFile(new File(jarUrl.toURI()));
+            final ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+
             Manifest manifest = jar.getManifest();
             Attributes attributes = manifest.getMainAttributes();
             String ucstr = attributes.getValue(UPGRADE_CLASSES_ATTR);
-            if (ucstr == null)
-                throw new IllegalArgumentException("Module jar " + jarUrl + " does not contain a " + UPGRADE_CLASSES_ATTR + " attribute");
-            if (ucstr.isEmpty())
-                throw new IllegalArgumentException("Module jar " + jarUrl + " " + UPGRADE_CLASSES_ATTR + " attribute does not contain entries");
-
-            final ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-            if (ucstr.trim().equals("*")) {
-                ClassLoaderUtil.accept(this, new ClassLoaderUtil.Visitor() {
-                    @Override
-                    public void visit(String resource, URL url, ClassLoader cl) {
-                        if (!ClassLoaderUtil.isClassfile(resource))
-                            return;
-                        final String className = ClassLoaderUtil.resourceToClass(resource);
-                        if(ASMUtil.isAssignableFrom(Actor.class, className, ModuleClassLoader.this))
-                            builder.add(className);
-                    }
-                });
-            } else {
-                for (String className : ucstr.split("\\s"))
-                    builder.add(className);
+            if (ucstr != null && !ucstr.trim().isEmpty()) {
+                if (ucstr.trim().equals("*")) {
+                    ClassLoaderUtil.accept(this, new ClassLoaderUtil.Visitor() {
+                        @Override
+                        public void visit(String resource, URL url, ClassLoader cl) {
+                            if (!ClassLoaderUtil.isClassfile(resource))
+                                return;
+                            final String className = ClassLoaderUtil.resourceToClass(resource);
+                            if (ASMUtil.isAssignableFrom(Actor.class, className, ModuleClassLoader.this))
+                                builder.add(className);
+                        }
+                    });
+                } else {
+                    for (String className : ucstr.split("\\s"))
+                        builder.add(className);
+                }
             }
+
+            ClassLoaderUtil.accept(this, new ClassLoaderUtil.Visitor() {
+                @Override
+                public void visit(String resource, URL url, ClassLoader cl) {
+                    if (!ClassLoaderUtil.isClassfile(resource))
+                        return;
+                    final String className = ClassLoaderUtil.resourceToClass(resource);
+                    try (InputStream is = cl.getResourceAsStream(resource)) {
+                        if (AnnotationUtil.hasClassAnnotation(Upgrade.class, is))
+                            builder.add(className);
+                    } catch (IOException e) {
+                        throw new RuntimeException("Exception while scanning class " + className + " for Upgrade annotation", e);
+                    }
+                }
+            });
+
             this.upgradeClasses = builder.build();
         } catch (IOException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
-        
-        this.parent = parent;
+
+        this.parent = parent; // must be done last, after scanning
     }
 
     public URL getURL() {

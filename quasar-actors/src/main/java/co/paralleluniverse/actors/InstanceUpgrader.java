@@ -79,7 +79,9 @@ class InstanceUpgrader {
 
     public Object copy(Object from) {
         if (ctor == null)
-            throw new RuntimeException("Class " + toClass.getName() + " does not have a no-arg constructor.");
+            throw new RuntimeException("Class " + toClass.getName() 
+                    + " in module " + (toClass.getClassLoader() instanceof ModuleClassLoader ? toClass.getClassLoader() : null)
+                    + " does not have a no-arg constructor.");
         try {
             return getCopier(from.getClass()).copy(from, ctor.newInstance());
         } catch (InstantiationException | InvocationTargetException ex) {
@@ -169,7 +171,7 @@ class InstanceUpgrader {
     }
 
     private static Map<FieldDesc, Field> getInstanceFields(Class<?> clazz, Map<FieldDesc, Field> fields) {
-        if (clazz == null || startsWithAnyOf(clazz.getPackage().getName(), infrastructure))
+        if (clazz == null) //  || startsWithAnyOf(clazz.getPackage().getName(), infrastructure))
             return fields;
         for (Field f : clazz.getDeclaredFields()) {
             if (!Modifier.isStatic(f.getModifiers()))
