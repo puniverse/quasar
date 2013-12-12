@@ -14,9 +14,14 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.fibers.instrument.JavaAgent;
+import co.paralleluniverse.fibers.instrument.Retransform;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.common.io.ByteStreams;
 import java.io.IOException;
+import java.io.InputStream;
+import java.lang.instrument.ClassDefinition;
 import java.lang.management.ManagementFactory;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -29,9 +34,12 @@ import static java.nio.file.StandardWatchEventKinds.*;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -58,6 +66,7 @@ import org.slf4j.LoggerFactory;
  * @author pron
  */
 class ActorLoader extends ClassLoader implements ActorLoaderMXBean, NotificationEmitter {
+    private static final boolean TRY_RELOAD = Boolean.getBoolean("co.paralleluniverse.actors.tryHotSwapReload");
     public static final String MODULE_DIR_PROPERTY = "co.paralleluniverse.actors.moduleDir";
     private static final Path moduleDir;
     private static final Logger LOG = LoggerFactory.getLogger(ActorLoader.class);
@@ -82,7 +91,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
                 Files.createDirectories(mdir);
                 mdir = mdir.toRealPath();
             } catch (IOException e) {
-                LOG.error("ActorLoader: Error findong/creating module directory " + mdir, e);
+                LOG.error("Error findong/creating module directory " + mdir, e);
                 mdir = null;
             }
             moduleDir = mdir;
@@ -149,7 +158,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         } catch (InstanceAlreadyExistsException ex) {
             throw new RuntimeException(ex);
         } catch (MBeanRegistrationException ex) {
-            LOG.error("ActorLoader: exception while registering MBean " + mbeanName, ex);
+            LOG.error("exception while registering MBean " + mbeanName, ex);
         } catch (NotCompliantMBeanException ex) {
             throw new AssertionError(ex);
         } catch (MalformedObjectNameException ex) {
@@ -189,7 +198,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
             }
             return oldClasses;
         } catch (Exception e) {
-            LOG.error("ActorLoader: Error while loading module " + module, e);
+            LOG.error("Error while loading module " + module, e);
             throw e;
         }
     }
@@ -233,37 +242,37 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     public synchronized void reloadModule(URL jarURL) {
         ActorModule oldModule = getModule(jarURL);
 
-        LOG.info("ActorLoader: {} module {}.", oldModule == null ? "Loading" : "Reloading", jarURL);
+        LOG.info("{} module {}.", oldModule == null ? "Loading" : "Reloading", jarURL);
         ActorModule module = new ActorModule(jarURL, this);
         addModule(module);
         if (oldModule != null)
             removeModule(oldModule);
-        LOG.info("ActorLoader: Module {} {}.", jarURL, oldModule == null ? "loaded" : "reloaded");
+        LOG.info("Module {} {}.", jarURL, oldModule == null ? "loaded" : "reloaded");
         notify(module, oldModule == null ? "loaded" : "reloaded");
     }
 
     public synchronized void loadModule(URL jarURL) {
         if (getModule(jarURL) != null) {
-            LOG.warn("ActorLoader loadModule: module {} already loaded.", jarURL);
+            LOG.warn("loadModule: module {} already loaded.", jarURL);
             return;
         }
-        LOG.info("ActorLoader: Loading module {}.", jarURL);
+        LOG.info("Loading module {}.", jarURL);
         ActorModule module = new ActorModule(jarURL, this);
         addModule(module);
-        LOG.info("ActorLoader: Module {} loaded.", jarURL);
+        LOG.info("Module {} loaded.", jarURL);
         notify(module, "loaded");
     }
 
     public synchronized void unloadModule(URL jarURL) {
         ActorModule module = getModule(jarURL);
         if (module == null) {
-            LOG.warn("ActorLoader removeModule: module {} not loaded.", jarURL);
+            LOG.warn("removeModule: module {} not loaded.", jarURL);
             return;
         }
 
-        LOG.info("ActorLoader: Removing module {}.", jarURL);
+        LOG.info("Removing module {}.", jarURL);
         removeModule(module);
-        LOG.info("ActorLoader: Module {} removed.", jarURL);
+        LOG.info("Module {} removed.", jarURL);
         notify(module, "removed");
     }
 
@@ -280,16 +289,17 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
                 throw new AssertionError();
             }
             ActorModule oldModule = oldClass.getClassLoader() instanceof ActorModule ? (ActorModule) oldClass.getClassLoader() : null;
-            LOG.info("ActorLoader: Upgrading class {} of module {} to that in module {}", className, oldModule, module);
+            LOG.info("Upgrading class {} of module {} to that in module {}", className, oldModule, module);
 
             upgradedClasses.put(className, module);
-            classVersion.get(oldClass).incrementAndGet();
         }
+        performUpgrade(new HashSet<>(oldClasses.values()));
     }
 
     private synchronized void removeModule(ActorModule module) {
         modules.remove(module);
 
+        Set<Class<?>> oldClasses = new HashSet<>();
         for (String className : module.getUpgradeClasses()) {
             if (upgradedClasses.get(className) == module) {
                 Class oldClass = module.findLoadedClassInModule(className);
@@ -300,15 +310,38 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
                         break;
                     }
                 }
-                LOG.info("ActorLoader: Downgrading class {} of module {} to that in module {}", className, module, newModule);
+                LOG.info("Downgrading class {} of module {} to that in module {}", className, module, newModule);
                 if (newModule != null)
                     upgradedClasses.put(className, newModule);
                 else
                     upgradedClasses.remove(className);
                 if (oldClass != null)
-                    classVersion.get(oldClass).incrementAndGet();
+                    oldClasses.add(oldClass);
             }
         }
+        performUpgrade(oldClasses);
+    }
+
+    private void performUpgrade(Set<Class<?>> oldClasses) {
+        if (TRY_RELOAD && JavaAgent.isActive()) {
+            try {
+                LOG.info("Attempting to redefine classes");
+                List<ClassDefinition> classDefinitions = new ArrayList<>();
+                for (Class<?> oldClass : oldClasses) {
+                    byte[] classFile = null;
+                    try (InputStream is = getResourceAsStream(oldClass.getName().replace('.', '/') + ".class")) {
+                        classFile = ByteStreams.toByteArray(is);
+                    }
+                    classDefinitions.add(new ClassDefinition(oldClass, classFile));
+                }
+                Retransform.redefine(classDefinitions);
+                LOG.info("Class redefinition succeeded.");
+            } catch (Exception e) {
+                LOG.info("Class redefinition failed due to exception. Upgrading.", e);
+            }
+        }
+        for (Class<?> oldClass : oldClasses)
+            classVersion.get(oldClass).incrementAndGet();
     }
 
     <T extends Actor<?, ?>> Class<T> currentClassFor0(Class<T> clazz) {
@@ -422,7 +455,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     }
 
     private static void loadModulesInModuleDir(ActorLoader instance, Path moduleDir) {
-        LOG.info("ActorLoader: scanning module directory " + moduleDir + " for modules.");
+        LOG.info("scanning module directory " + moduleDir + " for modules.");
         try (DirectoryStream<Path> children = Files.newDirectoryStream(moduleDir)) {
             for (Path child : children) {
                 if (isValidFile(child, false)) {
@@ -430,14 +463,14 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
                         final URL jarUrl = child.toUri().toURL();
                         instance.reloadModule(jarUrl);
                     } catch (Exception e) {
-                        LOG.error("ActorLoader: exception while processing " + child, e);
+                        LOG.error("exception while processing " + child, e);
                     }
                 } else {
-                    LOG.warn("ActorLoader: A non-jar item " + child.getFileName() + " found in the modules directory " + moduleDir);
+                    LOG.warn("A non-jar item " + child.getFileName() + " found in the modules directory " + moduleDir);
                 }
             }
         } catch (Exception e) {
-            LOG.error("ActorLoader: exception while loading modules in module directory " + moduleDir, e);
+            LOG.error("exception while loading modules in module directory " + moduleDir, e);
         }
     }
 
@@ -445,14 +478,14 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         try (WatchService watcher = FileSystems.getDefault().newWatchService();) {
             moduleDir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
 
-            LOG.info("ActorLoader watching module directory " + moduleDir + " for changes.");
+            LOG.info("Filesystem monitor: Watching module directory " + moduleDir + " for changes.");
             for (;;) {
                 final WatchKey key = watcher.take();
                 for (WatchEvent<?> event : key.pollEvents()) {
                     final WatchEvent.Kind<?> kind = event.kind();
 
                     if (kind == OVERFLOW) { // An OVERFLOW event can occur regardless of registration if events are lost or discarded.
-                        LOG.warn("ActorLoader filesystem monitor: filesystem events may have been missed");
+                        LOG.warn("Filesystem monitor: filesystem events may have been missed");
                         continue;
                     }
 
@@ -463,7 +496,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
                         try {
                             final URL jarUrl = child.toUri().toURL();
 
-                            LOG.info("ActorLoader filesystem monitor: detected module file {} {}", child,
+                            LOG.info("Filesystem monitor: detected module file {} {}", child,
                                     kind == ENTRY_CREATE ? "created"
                                     : kind == ENTRY_MODIFY ? "modified"
                                     : kind == ENTRY_DELETE ? "deleted"
@@ -474,18 +507,18 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
                             else if (kind == ENTRY_DELETE)
                                 instance.unloadModule(jarUrl);
                         } catch (Exception e) {
-                            LOG.error("ActorLoader filesystem monitor: exception while processing " + child, e);
+                            LOG.error("Filesystem monitor: exception while processing " + child, e);
                         }
                     } else {
                         if (kind == ENTRY_CREATE || kind == ENTRY_MODIFY)
-                            LOG.warn("ActorLoader filesystem monitor: A non-jar item " + child.getFileName() + " has been placed in the modules directory " + moduleDir);
+                            LOG.warn("Filesystem monitor: A non-jar item " + child.getFileName() + " has been placed in the modules directory " + moduleDir);
                     }
                 }
                 if (!key.reset())
                     throw new IOException("Directory " + moduleDir + " is no longer accessible");
             }
         } catch (Exception e) {
-            LOG.error("ActorLoader filesystem monitor thread terminated with an exception", e);
+            LOG.error("Filesystem monitor thread terminated with an exception", e);
             throw Exceptions.rethrow(e);
         }
     }

@@ -16,9 +16,11 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.fibers.Instrumented;
 import java.io.PrintWriter;
+import java.lang.instrument.ClassDefinition;
 import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 import java.lang.ref.WeakReference;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
@@ -42,6 +44,14 @@ public class Retransform {
 
     public static void retransform(Class<?> clazz) throws UnmodifiableClassException {
         instrumentation.retransformClasses(clazz);
+    }
+
+    public static void redefine(Collection<ClassDefinition> classDefinitions) {
+        try {
+            instrumentation.redefineClasses(classDefinitions.toArray(new ClassDefinition[0]));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static MethodDatabase getMethodDB() {
