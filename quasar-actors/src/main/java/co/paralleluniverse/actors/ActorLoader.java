@@ -59,7 +59,6 @@ import org.slf4j.LoggerFactory;
  */
 class ActorLoader extends ClassLoader implements ActorLoaderMXBean, NotificationEmitter {
     public static final String MODULE_DIR_PROPERTY = "co.paralleluniverse.actors.moduleDir";
-    private static final String DEFAULT_MODULE_DIR = "modules";
     private static final Path moduleDir;
     private static final Logger LOG = LoggerFactory.getLogger(ActorLoader.class);
     private static final ActorLoader instance;
