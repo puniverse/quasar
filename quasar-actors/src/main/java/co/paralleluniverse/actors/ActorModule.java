@@ -32,7 +32,7 @@ import java.util.jar.Manifest;
  *
  * @author pron
  */
-class ModuleClassLoader extends URLClassLoader {
+class ActorModule extends URLClassLoader {
     static {
         ClassLoader.registerAsParallelCapable();
     }
@@ -41,7 +41,7 @@ class ModuleClassLoader extends URLClassLoader {
     private final ClassLoader parent;
     private final Set<String> upgradeClasses;
 
-    public ModuleClassLoader(URL jarUrl, ClassLoader parent) {
+    public ActorModule(URL jarUrl, ClassLoader parent) {
         super(new URL[]{jarUrl}, null);
         this.url = jarUrl;
 
@@ -61,7 +61,7 @@ class ModuleClassLoader extends URLClassLoader {
                             if (!ClassLoaderUtil.isClassfile(resource))
                                 return;
                             final String className = ClassLoaderUtil.resourceToClass(resource);
-                            if (ASMUtil.isAssignableFrom(Actor.class, className, ModuleClassLoader.this))
+                            if (ASMUtil.isAssignableFrom(Actor.class, className, ActorModule.this))
                                 builder.add(className);
                         }
                     });
@@ -137,6 +137,6 @@ class ModuleClassLoader extends URLClassLoader {
 
     @Override
     public String toString() {
-        return "ModuleClassLoader{" + "url=" + url + '}';
+        return "ActorModule{" + "url=" + url + '}';
     }
 }

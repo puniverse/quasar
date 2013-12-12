@@ -121,8 +121,8 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     }
     //
     private final ThreadLocal<Boolean> recursive = new ThreadLocal<Boolean>();
-    private List<ModuleClassLoader> modules = new CopyOnWriteArrayList<>();
-    private final ConcurrentMap<String, ModuleClassLoader> upgradedClasses = new ConcurrentHashMapV8<String, ModuleClassLoader>();
+    private List<ActorModule> modules = new CopyOnWriteArrayList<>();
+    private final ConcurrentMap<String, ActorModule> upgradedClasses = new ConcurrentHashMapV8<String, ActorModule>();
     private final ClassValue<InstanceUpgrader> instanceUpgrader = new ClassValue<InstanceUpgrader>() {
         @Override
         protected InstanceUpgrader computeValue(Class<?> type) {
@@ -157,15 +157,15 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         }
     }
 
-    private ModuleClassLoader getModule(URL url) {
-        for (ModuleClassLoader m : modules) {
+    private ActorModule getModule(URL url) {
+        for (ActorModule m : modules) {
             if (m.getURL().equals(url))
                 return m;
         }
         return null;
     }
 
-    private Map<String, Class<?>> checkModule(ModuleClassLoader module) {
+    private Map<String, Class<?>> checkModule(ActorModule module) {
         Map<String, Class<?>> oldClasses = new HashMap<>();
         try {
             for (String className : module.getUpgradeClasses()) {
@@ -196,9 +196,9 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
 
     @Override
     public List<String> getLoadedModules() {
-        return Lists.transform(modules, new Function<ModuleClassLoader, String>() {
+        return Lists.transform(modules, new Function<ActorModule, String>() {
             @Override
-            public String apply(ModuleClassLoader module) {
+            public String apply(ActorModule module) {
                 return module.getURL().toString();
             }
         });
@@ -231,10 +231,10 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     }
 
     public synchronized void reloadModule(URL jarURL) {
-        ModuleClassLoader oldModule = getModule(jarURL);
+        ActorModule oldModule = getModule(jarURL);
 
         LOG.info("ActorLoader: {} module {}.", oldModule == null ? "Loading" : "Reloading", jarURL);
-        ModuleClassLoader module = new ModuleClassLoader(jarURL, this);
+        ActorModule module = new ActorModule(jarURL, this);
         addModule(module);
         if (oldModule != null)
             removeModule(oldModule);
@@ -248,14 +248,14 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
             return;
         }
         LOG.info("ActorLoader: Loading module {}.", jarURL);
-        ModuleClassLoader module = new ModuleClassLoader(jarURL, this);
+        ActorModule module = new ActorModule(jarURL, this);
         addModule(module);
         LOG.info("ActorLoader: Module {} loaded.", jarURL);
         notify(module, "loaded");
     }
 
     public synchronized void unloadModule(URL jarURL) {
-        ModuleClassLoader module = getModule(jarURL);
+        ActorModule module = getModule(jarURL);
         if (module == null) {
             LOG.warn("ActorLoader removeModule: module {} not loaded.", jarURL);
             return;
@@ -267,7 +267,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         notify(module, "removed");
     }
 
-    private synchronized void addModule(ModuleClassLoader module) {
+    private synchronized void addModule(ActorModule module) {
         Map<String, Class<?>> oldClasses = checkModule(module);
         modules.add(module);
 
@@ -279,7 +279,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
             } catch (ClassNotFoundException e) {
                 throw new AssertionError();
             }
-            ModuleClassLoader oldModule = oldClass.getClassLoader() instanceof ModuleClassLoader ? (ModuleClassLoader) oldClass.getClassLoader() : null;
+            ActorModule oldModule = oldClass.getClassLoader() instanceof ActorModule ? (ActorModule) oldClass.getClassLoader() : null;
             LOG.info("ActorLoader: Upgrading class {} of module {} to that in module {}", className, oldModule, module);
 
             upgradedClasses.put(className, module);
@@ -287,14 +287,14 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         }
     }
 
-    private synchronized void removeModule(ModuleClassLoader module) {
+    private synchronized void removeModule(ActorModule module) {
         modules.remove(module);
 
         for (String className : module.getUpgradeClasses()) {
             if (upgradedClasses.get(className) == module) {
                 Class oldClass = module.findLoadedClassInModule(className);
-                ModuleClassLoader newModule = null;
-                for (ModuleClassLoader mcl : Lists.reverse(modules)) {
+                ActorModule newModule = null;
+                for (ActorModule mcl : Lists.reverse(modules)) {
                     if (mcl.getUpgradeClasses().contains(className)) {
                         newModule = mcl;
                         break;
@@ -314,7 +314,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     <T extends Actor<?, ?>> Class<T> currentClassFor0(Class<T> clazz) {
         try {
             final String className = clazz.getName();
-            ModuleClassLoader module = instance.upgradedClasses.get(className);
+            ActorModule module = instance.upgradedClasses.get(className);
             if (module != null)
                 clazz = (Class<T>) module.loadClass(className);
             return clazz;
@@ -325,7 +325,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
 
     <T extends Actor<?, ?>> Class<T> currentClassFor0(String className) {
         try {
-            ModuleClassLoader module = instance.upgradedClasses.get(className);
+            ActorModule module = instance.upgradedClasses.get(className);
             Class<?> clazz;
             if (module == null)
                 clazz = Class.forName(className);
@@ -351,7 +351,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
             throw new ClassNotFoundException(name);
         recursive.set(Boolean.TRUE);
         try {
-            for (ModuleClassLoader mcl : Lists.reverse(modules)) {
+            for (ActorModule mcl : Lists.reverse(modules)) {
                 if (mcl.getUpgradeClasses().contains(name)) {
                     try {
                         return mcl.findClassInModule(name);
@@ -372,7 +372,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
 
         recursive.set(Boolean.TRUE);
         try {
-            for (ModuleClassLoader mcl : Lists.reverse(modules)) {
+            for (ActorModule mcl : Lists.reverse(modules)) {
                 URL resource = mcl.getResource(name);
                 if (resource != null)
                     return resource;
@@ -403,7 +403,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         notificationBroadcaster.removeNotificationListener(listener);
     }
 
-    private synchronized void notify(ModuleClassLoader module, String action) {
+    private synchronized void notify(ActorModule module, String action) {
         final Notification n = new ModuleNotification(this, notificationSequenceNumber++, System.currentTimeMillis(),
                 "Module " + module + " has been " + action);
         notificationBroadcaster.sendNotification(n);

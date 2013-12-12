@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Copies fields from an instance of a previous version of a class to the current version
@@ -35,6 +37,7 @@ import java.util.concurrent.ConcurrentMap;
  * @author pron
  */
 class InstanceUpgrader {
+    private static final Logger LOG = LoggerFactory.getLogger(InstanceUpgrader.class);
     private final Class<?> toClass;
     private final Map<FieldDesc, FieldInfo> fields;
     private final ConcurrentMap<Class, Copier> copiers;
@@ -80,7 +83,7 @@ class InstanceUpgrader {
     public Object copy(Object from) {
         if (ctor == null)
             throw new RuntimeException("Class " + toClass.getName() 
-                    + " in module " + (toClass.getClassLoader() instanceof ModuleClassLoader ? toClass.getClassLoader() : null)
+                    + " in module " + (toClass.getClassLoader() instanceof ActorModule ? toClass.getClassLoader() : null)
                     + " does not have a no-arg constructor.");
         try {
             return getCopier(from.getClass()).copy(from, ctor.newInstance());
