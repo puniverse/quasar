@@ -29,7 +29,7 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
 /**
- *
+ * A module of actor code-upgrades contained in a jar file.
  * @author pron
  */
 class ActorModule extends URLClassLoader {
