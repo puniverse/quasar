@@ -82,11 +82,12 @@ class InstanceUpgrader {
 
     public Object copy(Object from) {
         if (ctor == null)
-            throw new RuntimeException("Class " + toClass.getName() 
+            throw new RuntimeException("Class " + toClass.getName()
                     + " in module " + (toClass.getClassLoader() instanceof ActorModule ? toClass.getClassLoader() : null)
                     + " does not have a no-arg constructor.");
         try {
-            return getCopier(from.getClass()).copy(from, ctor.newInstance());
+            Object to = ctor.newInstance();
+            return getCopier(from.getClass()).copy(from, to);
         } catch (InstantiationException | InvocationTargetException ex) {
             throw Exceptions.rethrow(ex.getCause());
         } catch (IllegalAccessException ex) {
@@ -150,8 +151,10 @@ class InstanceUpgrader {
                 for (int i = 0; i < fromFields.length; i++) {
                     if (innerClassConstructor[i] != null)
                         toFields[i].set(to, innerClassConstructor[i].newInstance(to));
-                    else
+                    else {
+                        // LOG.debug("== " + toFields[i] + " <- " + fromFields[i].get(from));
                         toFields[i].set(to, fromFields[i].get(from));
+                    }
                 }
                 return to;
             } catch (IllegalAccessException | InstantiationException | InvocationTargetException e) {
@@ -163,7 +166,7 @@ class InstanceUpgrader {
                 "co.paralleluniverse.strands",
                 "co.paralleluniverse.fibers",
                 "co.paralleluniverse.actors",
-            });
+    });
 
     private static boolean startsWithAnyOf(String str, Collection<String> prefixes) {
         for (String prefix : prefixes) {

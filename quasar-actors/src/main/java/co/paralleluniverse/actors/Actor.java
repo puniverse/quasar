@@ -75,8 +75,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return spec.build();
     }
     private static final Throwable NATURAL = new Throwable();
+    private static final Object DEFUNCT = new Object();
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
-    private Strand strand;
     private final LocalActorRef<Message, V> ref;
     private final ActorRef<Message> wrapperRef;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
@@ -89,19 +89,9 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private ActorSpec<?, Message, V> spec;
     private Object aux;
     protected transient final FlightRecorder flightRecorder;
-    private final int classVersion;
+    private int classVersion;
     private final ActorRunner<V> runner;
 
-    /**
-     * This constructor must only be used by hot code-swap upgrade actor classes.
-     */
-    protected Actor() {
-        this.ref = null;
-        this.wrapperRef = null;
-        this.flightRecorder = null;
-        this.classVersion = -1;
-        this.runner = null;
-    }
     /**
      * Creates a new actor.
      *
@@ -110,30 +100,25 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      */
     @SuppressWarnings({"OverridableMethodCallInConstructor", "LeakingThisInConstructor"})
     public Actor(String name, MailboxConfig mailboxConfig) {
-        int version;
-        Actor<Message, V> impl;
-        for (;;) {
-            version = ActorLoader.getClassVersion(getClass());
-            impl = ActorLoader.getReplacementFor(this);
-            if (!ActorLoader.isUpgraded(getClass(), version))
-                break;
-        }
+        // initialization order in this constructor matters because of replacement (code swap) instance constructor below
 
-        this.classVersion = version;
-        if (impl == this) {
-            this.ref = new LocalActorRef<Message, V>(this, name, new Mailbox(mailboxConfig));
-            mailbox().setActor(this);
-        } else
-            this.ref = impl.ref;
-
-        this.runner = new ActorRunner<>(this);
+        this.ref = new LocalActorRef<Message, V>(name, new Mailbox(mailboxConfig));
+        this.runner = new ActorRunner<>(ref);
         this.wrapperRef = makeRef(ref);
 
         this.flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
-    }
 
-    protected ActorRef<Message> makeRef(ActorRef<Message> ref) {
-        return ref;
+        Actor<Message, V> impl;
+        for (;;) {
+            this.classVersion = ActorLoader.getClassVersion(getClass());
+            impl = ActorLoader.getReplacementFor(this);
+            if (!ActorLoader.isUpgraded(getClass(), classVersion))
+                break;
+        }
+        ref.setActor(impl);
+
+        if (impl != this)
+            defunct();
     }
 
     /**
@@ -146,7 +131,36 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     protected Actor(Strand strand, String name, MailboxConfig mailboxConfig) {
         this(name, mailboxConfig);
         if (strand != null)
-            setStrand(strand);
+            runner.setStrand(strand);
+    }
+
+    /**
+     * This constructor must only be referenced by hot code-swap actors, and never, ever, called by application code.
+     */
+    protected Actor() {
+        this.ref = null;
+        this.wrapperRef = null;
+        this.flightRecorder = null;
+        this.runner = null;
+    }
+
+    void onCodeChange0() {
+        this.classVersion = ActorLoader.getClassVersion(getClass());
+        ref.setActor(this);
+        record(1, "Actor", "onCodeChange", "%s", this);
+        onCodeChange();
+    }
+
+    void defunct() {
+        this.aux = DEFUNCT;
+    }
+
+    boolean isDefunct() {
+        return aux == DEFUNCT;
+    }
+
+    protected ActorRef<Message> makeRef(ActorRef<Message> ref) {
+        return ref;
     }
 
     /**
@@ -264,7 +278,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             className = getClass().getName().substring(getClass().getPackage().getName().length() + 1);
         return className + "@"
                 + (getName() != null ? getName() : Integer.toHexString(System.identityHashCode(this)))
-                + "[owner: " + systemToStringWithSimpleName(strand) + ']';
+                + "[owner: " + systemToStringWithSimpleName(runner.getStrand()) + ']';
     }
 
     private static String systemToStringWithSimpleName(Object obj) {
@@ -291,7 +305,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         if (target instanceof Actor)
             return (Actor<M, V>) target;
         if (target instanceof ActorRunner)
-            return (Actor<M, V>)((ActorRunner<V>) target).getActor();
+            return (Actor<M, V>) ((ActorRunner<V>) target).getActor();
         return null;
     }
 
@@ -317,19 +331,16 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     @Override
     public final void setStrand(Strand strand) {
-        if (strand == this.strand)
-            return;
-        if (this.strand != null)
-            throw new IllegalStateException("Strand already set to " + strand);
-        this.strand = strand;
-        if (strand != null && getName() == null)
-            setName(strand.getName());
+        runner.setStrand(strand);
+    }
+
+    void setStrand0(Strand strand) {
         mailbox().setStrand(strand);
     }
 
     @Override
     public final Strand getStrand() {
-        return strand;
+        return runner.getStrand();
     }
 
     //<editor-fold desc="Mailbox methods">
@@ -520,54 +531,46 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     /////////// Strand helpers ///////////////////////////////////
     public final Actor<Message, V> start() {
         record(1, "Actor", "start", "Starting actor %s", this);
-        strand.start();
+        runner.getStrand().start();
         return this;
+    }
+
+    V getResult() throws ExecutionException {
+        if (exception == null)
+            return result;
+        else
+            throw new ExecutionException(exception);
+    }
+
+    Throwable getDeathCause0() {
+        return deathCause;
     }
 
     @Override
     public final V get() throws InterruptedException, ExecutionException {
-        final Strand s = strand;
-        if (s == null)
-            throw new IllegalStateException("Actor strand not set (not started?)");
-        if (s instanceof Fiber)
-            return ((Fiber<V>) s).get();
-        else {
-            s.join();
-            if (exception == null)
-                return result;
-            else
-                throw new ExecutionException(exception);
-        }
+        return runner.get();
     }
 
     @Override
     public final V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        if (strand instanceof Fiber)
-            return ((Fiber<V>) strand).get(timeout, unit);
-        else {
-            strand.join(timeout, unit);
-            if (exception == null)
-                return result;
-            else
-                throw new ExecutionException(exception);
-        }
+        return runner.get(timeout, unit);
     }
 
     @Override
     public final void join() throws ExecutionException, InterruptedException {
-        strand.join();
+        runner.join();
     }
 
     @Override
     public final void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
-        strand.join(timeout, unit);
+        runner.join(timeout, unit);
     }
 
     /**
      * Tests whether this actor has been started, i.e. whether the strand executing it has been started.
      */
     public final boolean isStarted() {
-        return strand != null && strand.getState().compareTo(Strand.State.STARTED) >= 0;
+        return runner.isStarted();
     }
 
     /**
@@ -575,7 +578,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      */
     @Override
     public final boolean isDone() {
-        return deathCause != null || strand.isTerminated();
+        return runner.isDone();
     }
 
     /**
@@ -599,10 +602,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     //<editor-fold desc="Lifecycle">
     /////////// Lifecycle ///////////////////////////////////
     final V run0() throws InterruptedException, SuspendExecution {
-        if (strand == null)
-            setStrand(Strand.currentStrand());
         JMXActorsMonitor.getInstance().actorStarted(ref);
-        if (!(strand instanceof Fiber))
+        if (!(runner.getStrand() instanceof Fiber))
             currentActor.set(this);
         try {
             result = doRun();
@@ -630,7 +631,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             throw t;
         } finally {
             record(1, "Actor", "die", "Actor %s is now dead of %s", this, getDeathCause());
-            if (!(strand instanceof Fiber))
+            if (!(runner.getStrand() instanceof Fiber))
                 currentActor.set(null);
             JMXActorsMonitor.getInstance().actorTerminated(ref);
         }
@@ -685,12 +686,11 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     /**
      * This method is called on an actor instance replacing an active instance via hot code-swapping.
-     * When this method is called, the fields of the old instance have been shallow-copied to this instance,
+     * When this method is called, the fields of the old instance have been shalZlow-copied to this instance,
      * but this instance has not yet started to run.
      * This method should initialize any relevant state not copied from the old instance.
      */
     protected void onCodeChange() {
-        record(1, "Actor", "onCodeChange", "%s", this);
     }
 
     final void addLifecycleListener(LifecycleListener listener) {
@@ -742,7 +742,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     public final void throwIn(RuntimeException e) {
         record(1, "Actor", "throwIn", "Exception %s thrown into actor %s", e, this);
         this.exception = e; // last exception thrown in wins
-        strand.interrupt();
+        runner.getStrand().interrupt();
     }
 
     final void checkThrownIn() {
@@ -982,7 +982,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
 
     StackTraceElement[] getStackTrace() {
-        return strand.getStackTrace();
+        return runner.getStrand().getStackTrace();
     }
     //</editor-fold>
 

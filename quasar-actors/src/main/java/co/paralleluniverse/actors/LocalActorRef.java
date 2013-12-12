@@ -16,17 +16,22 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 final class LocalActorRef<Message, V> extends ActorRefImpl<Message> implements ActorBuilder<Message, V>, Joinable<V>, java.io.Serializable {
-    private Actor<Message, V> actor;
+    private volatile Actor<Message, V> actor;
 
-    public LocalActorRef(Actor<Message, V> actor, String name, SendPort<Object> mailbox) {
+    public LocalActorRef(String name, SendPort<Object> mailbox) {
         super(name, mailbox);
-        this.actor = actor;
     }
 
     final Actor<Message, ?> getActor() {
         return actor;
     }
 
+    final void setActor(Actor<Message, V> actor) {
+        this.actor = actor;
+        if(mailbox() instanceof Mailbox)
+            ((Mailbox)mailbox()).setActor(actor);
+    }
+    
     @Override
     public final boolean trySend(Message message) {
         return actor.trySend(message);
