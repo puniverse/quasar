@@ -66,7 +66,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     static {
         ClassLoader.registerAsParallelCapable();
 
-        instance = new ActorLoader("co.parallelunierse:product=Quasar,name=ActorLoader");
+        instance = new ActorLoader("co.paralleluniverse:type=ActorLoader");
 
         String moduleDirName = System.getProperty(MODULE_DIR_PROPERTY);
         if (moduleDirName != null) {
