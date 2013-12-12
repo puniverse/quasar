@@ -83,12 +83,14 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
             moduleDir = mdir;
 
             loadModulesInModuleDir(instance, moduleDir);
-            new Thread(new Runnable() {
+            Thread t = new Thread(new Runnable() {
                 @Override
                 public void run() {
                     monitorFilesystem(instance, moduleDir);
                 }
-            }, "actor-loader-filesystem-monitor").start();
+            }, "actor-loader-filesystem-monitor");
+            t.setDaemon(true);
+            t.start();
         } else
             moduleDir = null;
     }
@@ -419,6 +421,26 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         }
     }
 
+    private static void loadModulesInModuleDir(ActorLoader instance, Path moduleDir) {
+        LOG.info("ActorLoader: scanning module directory " + moduleDir + " for modules.");
+        try (DirectoryStream<Path> children = Files.newDirectoryStream(moduleDir)) {
+            for (Path child : children) {
+                if (isValidFile(child)) {
+                    try {
+                        final URL jarUrl = child.toUri().toURL();
+                        instance.reloadModule(jarUrl);
+                    } catch (Exception e) {
+                        LOG.error("ActorLoader: exception while processing " + child, e);
+                    }
+                } else {
+                    LOG.warn("ActorLoader: A non-jar item " + child + " found in the modules directory " + moduleDir);
+                }
+            }
+        } catch (Exception e) {
+            LOG.error("ActorLoader: exception while loading modules in module directory " + moduleDir, e);
+        }
+    }
+
     private static void monitorFilesystem(ActorLoader instance, Path moduleDir) {
         try (WatchService watcher = FileSystems.getDefault().newWatchService();) {
             moduleDir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
@@ -466,27 +488,6 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
             LOG.error("ActorLoader filesystem monitor thread terminated with an exception", e);
             throw Exceptions.rethrow(e);
         }
-    }
-
-    private static void loadModulesInModuleDir(ActorLoader instance, Path moduleDir) {
-        LOG.info("ActorLoader: scanning module directory " + moduleDir + " for modules.");
-        try (DirectoryStream<Path> children = Files.newDirectoryStream(moduleDir)) {
-            for (Path child : children) {
-                if (isValidFile(child)) {
-                    try {
-                        final URL jarUrl = child.toUri().toURL();
-                        instance.reloadModule(jarUrl);
-                    } catch (Exception e) {
-                        LOG.error("ActorLoader: exception while processing " + child, e);
-                    }
-                } else {
-                    LOG.warn("ActorLoader: A non-jar item " + child + " found in the modules directory " + moduleDir);
-                }
-            }
-        } catch (Exception e) {
-            LOG.error("ActorLoader: exception while loading modules in module directory " + moduleDir, e);
-        }
-
     }
 
     private static boolean isValidFile(Path file) {
