@@ -300,7 +300,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
                         break;
                     }
                 }
-                LOG.info("ActorLoader: Downgrading class {} of module {} to that in module {}", className, newModule);
+                LOG.info("ActorLoader: Downgrading class {} of module {} to that in module {}", className, module, newModule);
                 if (newModule != null)
                     upgradedClasses.put(className, newModule);
                 else
@@ -425,7 +425,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         LOG.info("ActorLoader: scanning module directory " + moduleDir + " for modules.");
         try (DirectoryStream<Path> children = Files.newDirectoryStream(moduleDir)) {
             for (Path child : children) {
-                if (isValidFile(child)) {
+                if (isValidFile(child, false)) {
                     try {
                         final URL jarUrl = child.toUri().toURL();
                         instance.reloadModule(jarUrl);
@@ -459,7 +459,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
                     final WatchEvent<Path> ev = (WatchEvent<Path>) event;
                     final Path filename = ev.context(); // The filename is the context of the event.
                     final Path child = moduleDir.resolve(filename); // Resolve the filename against the directory.
-                    if (isValidFile(child)) {
+                    if (isValidFile(child, kind == ENTRY_DELETE)) {
                         try {
                             final URL jarUrl = child.toUri().toURL();
 
@@ -490,7 +490,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         }
     }
 
-    private static boolean isValidFile(Path file) {
-        return Files.isRegularFile(file) && file.getFileName().toString().endsWith(".jar");
+    private static boolean isValidFile(Path file, boolean delete) {
+        return (delete || Files.isRegularFile(file)) && file.getFileName().toString().endsWith(".jar");
     }
 }

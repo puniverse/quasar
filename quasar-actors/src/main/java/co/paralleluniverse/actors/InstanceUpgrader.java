@@ -152,7 +152,7 @@ class InstanceUpgrader {
                     if (innerClassConstructor[i] != null)
                         toFields[i].set(to, innerClassConstructor[i].newInstance(to));
                     else {
-                        // LOG.debug("== " + toFields[i] + " <- " + fromFields[i].get(from));
+                        LOG.debug("== " + toFields[i] + " <- " + fromFields[i].get(from));
                         toFields[i].set(to, fromFields[i].get(from));
                     }
                 }
