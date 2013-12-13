@@ -127,8 +127,7 @@ class ActorModule extends URLClassLoader {
             return loaded;
 
         boolean isUpgraded = upgradeClasses.contains(name);
-
-        if (parent != null) {
+        if (!isUpgraded && parent != null) {
             try {
                 URL parentUrl = parent.getResource(toClassFileName(name));
                 if (parentUrl != null) {

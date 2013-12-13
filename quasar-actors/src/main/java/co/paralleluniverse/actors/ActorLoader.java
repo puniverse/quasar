@@ -395,10 +395,16 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
 
         recursive.set(Boolean.TRUE);
         try {
-            for (ActorModule m : Lists.reverse(modules)) {
-                if (m.getUpgradeClasses().contains(name))
-                    return m.loadClassInModule(name);
-            }
+            ActorModule module = upgradedClasses.get(name);
+//            ActorModule module = null;
+//            for (ActorModule m : Lists.reverse(modules)) {
+//                if (m.getUpgradeClasses().contains(name)) {
+//                    module = m;
+//                    break;
+//                }
+//            }
+            if (module != null)
+                return module.loadClassInModule(name);
         } finally {
             recursive.remove();
         }
@@ -414,16 +420,17 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         try {
             if (isClassFileName(name)) {
                 String className = toDottedName(name);
-                for (ActorModule m : Lists.reverse(modules)) {
-                    if (m.getUpgradeClasses().contains(className))
-                        return m.getResource(className);
-                }
+                ActorModule module = upgradedClasses.get(className);
+//                ActorModule module = null;
+//                for (ActorModule m : Lists.reverse(modules)) {
+//                    if (m.getUpgradeClasses().contains(className)) {
+//                        module = m;
+//                        break;
+//                    }
+//                }
+                if (module != null)
+                    return module.getResource(name);
             }
-//            for (ActorModule mcl : Lists.reverse(modules)) {
-//                URL resource = mcl.getResource(name);
-//                if (resource != null)
-//                    return resource;
-//            }
         } finally {
             recursive.remove();
         }
