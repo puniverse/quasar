@@ -27,7 +27,6 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
 //    protected DynamicReflectionRecord(DynamicRecordType<R> recordType) {
 //        super(recordType);
 //    }
-
     private Method setter(Field<? super R, ?> field, RecordType.Entry entry) {
         final Method m = entry.setter;
         if (m == null)
@@ -52,6 +51,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     public void set(Field.BooleanField<? super R> field, boolean value) {
         try {
             final RecordType.Entry entry = entry(field);
+            checkReadOnly(entry, field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -78,6 +78,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     public void set(Field.ByteField<? super R> field, byte value) {
         try {
             final RecordType.Entry entry = entry(field);
+            checkReadOnly(entry, field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -104,6 +105,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     public void set(Field.ShortField<? super R> field, short value) {
         try {
             final RecordType.Entry entry = entry(field);
+            checkReadOnly(entry, field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -130,6 +132,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     public void set(Field.IntField<? super R> field, int value) {
         try {
             final RecordType.Entry entry = entry(field);
+            checkReadOnly(entry, field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -156,6 +159,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     public void set(Field.LongField<? super R> field, long value) {
         try {
             final RecordType.Entry entry = entry(field);
+            checkReadOnly(entry, field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -182,6 +186,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     public void set(Field.FloatField<? super R> field, float value) {
         try {
             final RecordType.Entry entry = entry(field);
+            checkReadOnly(entry, field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -208,6 +213,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     public void set(Field.DoubleField<? super R> field, double value) {
         try {
             final RecordType.Entry entry = entry(field);
+            checkReadOnly(entry, field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -234,6 +240,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     public void set(Field.CharField<? super R> field, char value) {
         try {
             final RecordType.Entry entry = entry(field);
+            checkReadOnly(entry, field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else
@@ -260,6 +267,7 @@ class DynamicReflectionRecord<R> extends DynamicRecord<R> {
     public <V> void set(Field.ObjectField<? super R, V> field, V value) {
         try {
             final RecordType.Entry entry = entry(field);
+            checkReadOnly(entry, field);
             if (entry.field != null)
                 entry.field.set(obj, value);
             else

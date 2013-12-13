@@ -40,6 +40,11 @@ public abstract class DynamicRecord<R> extends AbstractRecord<R> {
             throw new FieldNotFoundException(field, obj);
         }
     }
+    
+    void checkReadOnly(RecordType.Entry entry, Field<? super R, ?> field) {
+        if(entry.readOnly)
+            throw new ReadOnlyFieldException(field, this);
+    }
 
     abstract boolean[] get(Field.BooleanArrayField<? super R> field);
 

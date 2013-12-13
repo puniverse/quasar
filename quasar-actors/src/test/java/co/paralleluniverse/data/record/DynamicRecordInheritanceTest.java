@@ -66,7 +66,7 @@ public class DynamicRecordInheritanceTest {
     @Test
     public void test1() {
         B b1 = new B();
-        Record<B> b = BR.rt.newInstance(b1);
+        Record<B> b = BR.rt.wrap(b1);
         b.set(BR.$a, true);
         b.set(AR.$d, 15);
         b.set(BR.$str, "hi");

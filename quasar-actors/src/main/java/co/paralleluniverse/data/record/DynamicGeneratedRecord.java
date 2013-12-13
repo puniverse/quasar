@@ -13,6 +13,7 @@
 package co.paralleluniverse.data.record;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import static org.objectweb.asm.Opcodes.*;
@@ -109,8 +110,8 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
         return Type.getDescriptor(field.typeClass());
     }
 
-     private static String methodSigComponentTypeDesc(Field<?, ?> field) {
-         assert field instanceof Field.ArrayField;
+    private static String methodSigComponentTypeDesc(Field<?, ?> field) {
+        assert field instanceof Field.ArrayField;
         if (field instanceof Field.ObjectArrayField)
             return "Ljava/lang/Object;";
         return Type.getDescriptor(field.typeClass().getComponentType());
@@ -135,13 +136,20 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
 
         mv = cw.visitMethod(ACC_PUBLIC, "set", "(Ljava/lang/Object;" + methodSigTypeDesc(field) + ")V", null, null);
         mv.visitCode();
-        mv.visitVarInsn(ALOAD, 1);
-        mv.visitTypeInsn(CHECKCAST, typeName);
-        mv.visitVarInsn(loadOpcode(field), 2);
-        if (field instanceof Field.ObjectField)
-            mv.visitTypeInsn(CHECKCAST, fieldTypeName);
-        mv.visitFieldInsn(PUTFIELD, typeName, field.name(), fieldTypeDesc);
-        mv.visitInsn(RETURN);
+        if (Modifier.isFinal(f.getModifiers())) {
+            mv.visitTypeInsn(NEW, "co/paralleluniverse/data/record/ReadOnlyFieldException");
+            mv.visitInsn(DUP);
+            mv.visitMethodInsn(INVOKESPECIAL, "co/paralleluniverse/data/record/ReadOnlyFieldException", "<init>", "()V");
+            mv.visitInsn(ATHROW);
+        } else {
+            mv.visitVarInsn(ALOAD, 1);
+            mv.visitTypeInsn(CHECKCAST, typeName);
+            mv.visitVarInsn(loadOpcode(field), 2);
+            if (field instanceof Field.ObjectField)
+                mv.visitTypeInsn(CHECKCAST, fieldTypeName);
+            mv.visitFieldInsn(PUTFIELD, typeName, field.name(), fieldTypeDesc);
+            mv.visitInsn(RETURN);
+        }
         mv.visitEnd();
 
         cw.visitEnd();

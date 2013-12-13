@@ -83,10 +83,10 @@ public class RecordJMHBenchmark {
         r = ThreadLocalRandom.current();
         x = new Foo();
         simple = rt.newInstance();
-        dynamicMethodHandle = rt.newInstance(new Foo1(), RecordType.Mode.METHOD_HANDLE);
-        dynamicReflection = rt.newInstance(new Foo2(), RecordType.Mode.REFLECTION);
-        dynamicUnsafe = rt.newInstance(new Foo3(), RecordType.Mode.UNSAFE);
-        dynamicGeneration = rt.newInstance(new Foo4(), RecordType.Mode.GENERATION);
+        dynamicMethodHandle = rt.wrap(new Foo1(), RecordType.Mode.METHOD_HANDLE);
+        dynamicReflection = rt.wrap(new Foo2(), RecordType.Mode.REFLECTION);
+        dynamicUnsafe = rt.wrap(new Foo3(), RecordType.Mode.UNSAFE);
+        dynamicGeneration = rt.wrap(new Foo4(), RecordType.Mode.GENERATION);
     }
 
     @GenerateMicroBenchmark

@@ -36,11 +36,11 @@ import jsr166e.ConcurrentHashMapV8;
  *
  * ```java
  * class A {
- *     public static final RecordType<A> aType = RecordType.newType(A.class);
- *     public static final IntField<A> $id = stateType.intField("id");
- *     public static final DoubleField<A> $foo = stateType.doubleField("id", Field.TRANSIENT);
- *     public static final ObjectField<A, String> $name = stateType.objectField("name", String.class);
- *     public static final ObjectField<A, List<String>> $emails = stateType.objectField("emails", new TypeToken<List<String>() {});
+ * public static final RecordType<A> aType = RecordType.newType(A.class);
+ * public static final IntField<A> $id = stateType.intField("id");
+ * public static final DoubleField<A> $foo = stateType.doubleField("id", Field.TRANSIENT);
+ * public static final ObjectField<A, String> $name = stateType.objectField("name", String.class);
+ * public static final ObjectField<A, List<String>> $emails = stateType.objectField("emails", new TypeToken<List<String>() {});
  * }
  * ```
  *
@@ -828,7 +828,7 @@ public class RecordType<R> {
                         final java.lang.reflect.Field f = getter == null ? getField(type, field) : null;
 
                         if (f == null && getter == null)
-                            throw new RuntimeException("Field " + field.name() + " defined in record type " + recordType + " is neither a field or a getter of class " + type.getName());
+                            throw new RuntimeException("Field " + field.name() + " defined in record type " + recordType + " is neither an instance field or a getter of class " + type.getName());
 
                         if (f == null && getter != null)
                             unsafePossible = false;
@@ -851,7 +851,7 @@ public class RecordType<R> {
                 for (Field<?, ?> field : fields) {
                     final Method getter = field instanceof Field.ArrayField ? getIndexedGetter(type, field) : getGetter(type, field);
                     final Method setter = field instanceof Field.ArrayField ? getIndexedSetter(type, field) : getSetter(type, field);
-                    final java.lang.reflect.Field f = getter == null ? getField(type, field) : null;
+                    final java.lang.reflect.Field f = (getter == null ? getField(type, field) : null);
                     final boolean indexed = f == null && field instanceof Field.ArrayField;
 
                     final MethodHandle getterHandle;
@@ -907,56 +907,69 @@ public class RecordType<R> {
             f = type.getDeclaredField(field.name());
         } catch (NoSuchFieldException e) {
         }
-        if (f != null) {
-            f.setAccessible(true);
-        }
+        if (f == null || Modifier.isStatic(f.getModifiers()))
+            return null;
+        f.setAccessible(true);
         return f;
     }
 
     private static Method getGetter(Class<?> type, Field field) {
+        Method m = null;
         try {
-            return type.getMethod("get" + capitalize(field.name()));
+            m = type.getMethod("get" + capitalize(field.name()));
         } catch (NoSuchMethodException e) {
         }
-        if (field.type() == Field.BOOLEAN) {
+        if (m == null && field.type() == Field.BOOLEAN) {
             try {
-                return type.getMethod("is" + capitalize(field.name()));
+                m = type.getMethod("is" + capitalize(field.name()));
             } catch (NoSuchMethodException e) {
             }
         }
-        return null;
+        if (m == null || Modifier.isStatic(m.getModifiers()))
+            return null;
+        return m;
     }
 
     private static Method getSetter(Class<?> type, Field field) {
+        Method m = null;
         try {
-            return type.getMethod("set" + capitalize(field.name()), field.typeClass());
+            m = type.getMethod("set" + capitalize(field.name()), field.typeClass());
         } catch (NoSuchMethodException e) {
         }
-        return null;
+        if (m == null || Modifier.isStatic(m.getModifiers()))
+            return null;
+        return m;
     }
 
     private static Method getIndexedGetter(Class<?> type, Field field) {
         assert field instanceof Field.ArrayField;
+        Method m = null;
         try {
-            return type.getMethod("get" + capitalize(field.name()), int.class);
+            m = type.getMethod("get" + capitalize(field.name()), int.class);
         } catch (NoSuchMethodException e) {
         }
-        if (field.type() == Field.BOOLEAN_ARRAY) {
+        if (m == null && field.type() == Field.BOOLEAN_ARRAY) {
             try {
-                return type.getMethod("is" + capitalize(field.name()), int.class);
+                m = type.getMethod("is" + capitalize(field.name()), int.class);
             } catch (NoSuchMethodException e) {
             }
         }
-        return null;
+        if (m == null || Modifier.isStatic(m.getModifiers()))
+            return null;
+        return m;
+
     }
 
     private static Method getIndexedSetter(Class<?> type, Field field) {
         assert field instanceof Field.ArrayField;
+        Method m = null;
         try {
-            return type.getMethod("set" + capitalize(field.name()), int.class, field.typeClass().getComponentType());
+            m = type.getMethod("set" + capitalize(field.name()), int.class, field.typeClass().getComponentType());
         } catch (NoSuchMethodException e) {
         }
-        return null;
+        if (m == null || Modifier.isStatic(m.getModifiers()))
+            return null;
+        return m;
     }
 
     private static String capitalize(String str) {
@@ -969,6 +982,7 @@ public class RecordType<R> {
         final Method setter;
         final MethodHandle getterHandle;
         final MethodHandle setterHandle;
+        final boolean readOnly;
         final long offset;
         final DynamicGeneratedRecord.Accessor accessor;
         final boolean indexed;
@@ -982,6 +996,7 @@ public class RecordType<R> {
             this.offset = offset;
             this.accessor = accessor;
             this.indexed = indexed;
+            this.readOnly = setter == null && (field == null || (!indexed && Modifier.isFinal(field.getModifiers())));
         }
     }
 
@@ -1031,7 +1046,7 @@ public class RecordType<R> {
     }
 
     /**
-     * Creates an new record instance of this type, which reflects the given object.
+     * Wraps a given object with a record instance of this type.
      * The record's fields are mapped to the target's fields or getters/setters of the same name.
      * Changes to the record will be reflected in the target object and vice versa.
      * <p/>
@@ -1040,12 +1055,12 @@ public class RecordType<R> {
      * @param target the POJO to wrap as a record
      * @return a newly constructed record of this type, which reflects {@code target}.
      */
-    public Record<R> newInstance(Object target) {
-        return newInstance(target, null);
+    public Record<R> wrap(Object target) {
+        return wrap(target, null);
     }
 
     /**
-     * Creates an new record instance of this type, which reflects the given object.
+     * Wraps a given object with a record instance of this type.
      * The record's fields are mapped to the target's fields or getters/setters of the same name.
      * Changes to the record will be reflected in the target object and vice versa.
      *
@@ -1053,7 +1068,7 @@ public class RecordType<R> {
      * @param mode   the record's implementation {@link Mode} mode.
      * @return a newly constructed record of this type, which reflects {@code target}.
      */
-    public Record<R> newInstance(Object target, Mode mode) {
+    public Record<R> wrap(Object target, Mode mode) {
         seal();
         currentMode.set(mode);
         ClassInfo ci = vtables.get(target.getClass());

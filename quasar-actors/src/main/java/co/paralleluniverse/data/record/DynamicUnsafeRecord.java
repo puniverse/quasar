@@ -84,7 +84,6 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
 //    protected DynamicUnsafeRecord(DynamicRecordType<R> recordType) {
 //        super(recordType);
 //    }
-
     @Override
     public boolean get(Field.BooleanField<? super R> field) {
         return unsafe.getBoolean(obj, entry(field).offset);
@@ -92,7 +91,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.BooleanField<? super R> field, boolean value) {
-        unsafe.putBoolean(obj, entry(field).offset, value);
+        RecordType.Entry entry = entry(field);
+        checkReadOnly(entry, field);
+        unsafe.putBoolean(obj, entry.offset, value);
     }
 
     @Override
@@ -102,7 +103,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.ByteField<? super R> field, byte value) {
-        unsafe.putByte(obj, entry(field).offset, value);
+        RecordType.Entry entry = entry(field);
+        checkReadOnly(entry, field);
+        unsafe.putByte(obj, entry.offset, value);
     }
 
     @Override
@@ -112,7 +115,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.ShortField<? super R> field, short value) {
-        unsafe.putShort(obj, entry(field).offset, value);
+        RecordType.Entry entry = entry(field);
+        checkReadOnly(entry, field);
+        unsafe.putShort(obj, entry.offset, value);
     }
 
     @Override
@@ -122,7 +127,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.IntField<? super R> field, int value) {
-        unsafe.putInt(obj, entry(field).offset, value);
+        RecordType.Entry entry = entry(field);
+        checkReadOnly(entry, field);
+        unsafe.putInt(obj, entry.offset, value);
     }
 
     @Override
@@ -132,7 +139,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.LongField<? super R> field, long value) {
-        unsafe.putLong(obj, entry(field).offset, value);
+        RecordType.Entry entry = entry(field);
+        checkReadOnly(entry, field);
+        unsafe.putLong(obj, entry.offset, value);
     }
 
     @Override
@@ -142,7 +151,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.FloatField<? super R> field, float value) {
-        unsafe.putFloat(obj, entry(field).offset, value);
+        RecordType.Entry entry = entry(field);
+        checkReadOnly(entry, field);
+        unsafe.putFloat(obj, entry.offset, value);
     }
 
     @Override
@@ -152,7 +163,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.DoubleField<? super R> field, double value) {
-        unsafe.putDouble(obj, entry(field).offset, value);
+        RecordType.Entry entry = entry(field);
+        checkReadOnly(entry, field);
+        unsafe.putDouble(obj, entry.offset, value);
     }
 
     @Override
@@ -162,7 +175,9 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
 
     @Override
     public void set(Field.CharField<? super R> field, char value) {
-        unsafe.putChar(obj, entry(field).offset, value);
+        RecordType.Entry entry = entry(field);
+        checkReadOnly(entry, field);
+        unsafe.putChar(obj, entry.offset, value);
     }
 
     @Override
@@ -172,6 +187,8 @@ final class DynamicUnsafeRecord<R> extends DynamicRecord<R> {
 
     @Override
     public <V> void set(Field.ObjectField<? super R, V> field, V value) {
+        RecordType.Entry entry = entry(field);
+        checkReadOnly(entry, field);
         unsafe.putObject(obj, entry(field).offset, value);
     }
 
