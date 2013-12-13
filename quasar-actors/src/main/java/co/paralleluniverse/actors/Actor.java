@@ -109,14 +109,16 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         this.flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
         Actor<Message, V> impl;
+        int version;
         for (;;) {
-            this.classVersion = ActorLoader.getClassVersion(getClass());
+            version = ActorLoader.getClassVersion(getClass());
             impl = ActorLoader.getReplacementFor(this);
-            if (!ActorLoader.isUpgraded(getClass(), classVersion))
+            if (!ActorLoader.isUpgraded(getClass(), version))
                 break;
         }
-        ref.setActor(impl);
+        this.classVersion = version; // must be set after ActorLoader.getReplacementFor so that this value will not be copied to the replacement
 
+        ref.setActor(impl);
         if (impl != this)
             defunct();
     }
@@ -609,6 +611,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             result = doRun();
             die(null);
             return result;
+        } catch(CodeSwap cs) {
+            throw cs;
         } catch (InterruptedException e) {
             if (this.exception != null) {
                 die(exception);

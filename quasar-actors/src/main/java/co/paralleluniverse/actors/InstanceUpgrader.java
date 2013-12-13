@@ -156,7 +156,7 @@ class InstanceUpgrader {
             if (!fromClass.getName().equals(toClass.getName()))
                 throw new IllegalArgumentException("'fromClass' " + fromClass.getName() + " is not a version of 'toClass' " + toClass.getName());
 
-            Map<FieldDesc, Field> fs = getInstanceFields(toClass, new HashMap<FieldDesc, Field>());
+            Map<FieldDesc, Field> fs = getInstanceFields(fromClass, new HashMap<FieldDesc, Field>());
 
             ArrayList<Field> ffs = new ArrayList<>();
             ArrayList<Field> tfs = new ArrayList<>();
@@ -193,7 +193,7 @@ class InstanceUpgrader {
                     if (innerClassConstructor[i] != null)
                         toFields[i].set(to, innerClassConstructor[i].newInstance(to));
                     else {
-                        LOG.debug("== " + toFields[i] + " <- " + fromFields[i].get(from));
+                        // LOG.debug("== {} <- {} ({})",  toFields[i], fromFields[i], fromFields[i].get(from));
                         toFields[i].set(to, fromFields[i].get(from));
                     }
                 }

@@ -116,7 +116,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     }
 
     public static boolean isUpgraded(Class<?> clazz, int version) {
-        return getClassVersion(clazz) > version;
+        return instance.isUpgraded0(clazz, version);
     }
 
     public static <T extends Actor<?, ?>> Class<T> currentClassFor(Class<T> clazz) {
@@ -144,6 +144,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     private int notificationSequenceNumber;
 
     private ActorLoader(String mbeanName) {
+        super(ActorLoader.class.getClassLoader());
         MBeanNotificationInfo info = new MBeanNotificationInfo(
                 new String[]{ModuleNotification.NAME},
                 ModuleNotification.class.getName(),
@@ -290,8 +291,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
             } catch (ClassNotFoundException e) {
                 throw new AssertionError();
             }
-            ActorModule oldModule = oldClass.getClassLoader() instanceof ActorModule ? (ActorModule) oldClass.getClassLoader() : null;
-            LOG.info("Upgrading class {} of module {} to that in module {}", className, oldModule, module);
+            LOG.info("Upgrading class {} of module {} to that in module {}", className, getModule(oldClass), module);
 
             upgradedClasses.put(className, module);
         }
@@ -304,11 +304,10 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         Set<Class<?>> oldClasses = new HashSet<>();
         for (String className : module.getUpgradeClasses()) {
             if (upgradedClasses.get(className) == module) {
-                Class oldClass = module.findLoadedClassInModule(className);
                 ActorModule newModule = null;
-                for (ActorModule mcl : Lists.reverse(modules)) {
-                    if (mcl.getUpgradeClasses().contains(className)) {
-                        newModule = mcl;
+                for (ActorModule m : Lists.reverse(modules)) {
+                    if (m.getUpgradeClasses().contains(className)) {
+                        newModule = m;
                         break;
                     }
                 }
@@ -317,6 +316,8 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
                     upgradedClasses.put(className, newModule);
                 else
                     upgradedClasses.remove(className);
+
+                Class oldClass = module.findLoadedClassInModule(className);
                 if (oldClass != null)
                     oldClasses.add(oldClass);
             }
@@ -342,30 +343,37 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
 //                LOG.info("Class redefinition failed due to exception. Upgrading.", e);
 //            }
 //        }
-        for (Class<?> oldClass : oldClasses)
+        for (Class<?> oldClass : oldClasses) {
+            LOG.debug("Triggering replacement of {} ({})", oldClass, getModule(oldClass));
             classVersion.get(oldClass).incrementAndGet();
+        }
+    }
+
+    public static ActorModule getModule(Class<?> clazz) {
+        return clazz.getClassLoader() instanceof ActorModule ? (ActorModule) clazz.getClassLoader() : null;
+    }
+
+    boolean isUpgraded0(Class<?> clazz, int version) {
+//        return getClassVersion(clazz) > version;
+        int classVer = getClassVersion(clazz);
+        boolean res = classVer > version;
+        // LOG.debug("isUpgraded {} {} {} - {} ({})", clazz, getModule(clazz), version, res, classVer);
+        return res;
     }
 
     <T extends Actor<?, ?>> Class<T> currentClassFor0(Class<T> clazz) {
-        try {
-            final String className = clazz.getName();
-            ActorModule module = upgradedClasses.get(className);
-            if (module != null)
-                clazz = (Class<T>) module.loadClass(className);
-            return clazz;
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+        return currentClassFor0(clazz.getName());
     }
 
     <T extends Actor<?, ?>> Class<T> currentClassFor0(String className) {
         try {
             ActorModule module = upgradedClasses.get(className);
             Class<?> clazz;
-            if (module == null)
-                clazz = Class.forName(className);
+            if (module != null)
+                clazz = (Class<T>) module.loadClass(className);
             else
-                clazz = module.loadClass(className);
+                clazz = (Class<T>) getParent().loadClass(className);
+            LOG.debug("currentClassFor {} - {} {}", className, getModule(clazz), module);
             return (Class<T>) clazz;
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
@@ -387,14 +395,14 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
 
         recursive.set(Boolean.TRUE);
         try {
-            for (ActorModule mcl : Lists.reverse(modules)) {
-                if (mcl.getUpgradeClasses().contains(name))
-                    return mcl.loadClassInModule(name);
+            for (ActorModule m : Lists.reverse(modules)) {
+                if (m.getUpgradeClasses().contains(name))
+                    return m.loadClassInModule(name);
             }
         } finally {
             recursive.remove();
         }
-        return super.findClass(name);
+        return getParent().loadClass(name);
     }
 
     @Override
@@ -406,9 +414,9 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         try {
             if (isClassFileName(name)) {
                 String className = toDottedName(name);
-                for (ActorModule mcl : Lists.reverse(modules)) {
-                    if (mcl.getUpgradeClasses().contains(className))
-                        return mcl.getResource(className);
+                for (ActorModule m : Lists.reverse(modules)) {
+                    if (m.getUpgradeClasses().contains(className))
+                        return m.getResource(className);
                 }
             }
 //            for (ActorModule mcl : Lists.reverse(modules)) {
