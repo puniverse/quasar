@@ -13,15 +13,12 @@
  */
 package co.paralleluniverse.actors;
 
+import static co.paralleluniverse.common.reflection.ASMUtil.isClassFileName;
+import static co.paralleluniverse.common.reflection.ASMUtil.toDottedName;
 import co.paralleluniverse.common.util.Exceptions;
-import co.paralleluniverse.fibers.instrument.JavaAgent;
-import co.paralleluniverse.fibers.instrument.Retransform;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.google.common.io.ByteStreams;
 import java.io.IOException;
-import java.io.InputStream;
-import java.lang.instrument.ClassDefinition;
 import java.lang.management.ManagementFactory;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -34,7 +31,6 @@ import static java.nio.file.StandardWatchEventKinds.*;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -66,7 +62,13 @@ import org.slf4j.LoggerFactory;
  * @author pron
  */
 class ActorLoader extends ClassLoader implements ActorLoaderMXBean, NotificationEmitter {
-    private static final boolean TRY_RELOAD = Boolean.getBoolean("co.paralleluniverse.actors.tryHotSwapReload");
+    /*
+     * We load actor classes from the latest module.
+     * Non-actor classes are compared against those found in main. 
+     * If there's no match, they are loaded from the module that requested them, i.e., non-actor classes are not shared from one module
+     * to another.
+     */
+//    private static final boolean TRY_RELOAD = Boolean.getBoolean("co.paralleluniverse.actors.tryHotSwapReload");
     public static final String MODULE_DIR_PROPERTY = "co.paralleluniverse.actors.moduleDir";
     private static final Path moduleDir;
     private static final Logger LOG = LoggerFactory.getLogger(ActorLoader.class);
@@ -180,7 +182,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
             for (String className : module.getUpgradeClasses()) {
                 Class<?> newClass = null;
                 try {
-                    newClass = module.findClassInModule(className);
+                    newClass = module.loadClassInModule(className);
                 } catch (ClassNotFoundException e) {
                     throw new RuntimeException("Upgraded class " + className + " is not found in module " + module);
                 }
@@ -323,23 +325,23 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     }
 
     private void performUpgrade(Set<Class<?>> oldClasses) {
-        if (TRY_RELOAD && JavaAgent.isActive()) {
-            try {
-                LOG.info("Attempting to redefine classes");
-                List<ClassDefinition> classDefinitions = new ArrayList<>();
-                for (Class<?> oldClass : oldClasses) {
-                    byte[] classFile = null;
-                    try (InputStream is = getResourceAsStream(oldClass.getName().replace('.', '/') + ".class")) {
-                        classFile = ByteStreams.toByteArray(is);
-                    }
-                    classDefinitions.add(new ClassDefinition(oldClass, classFile));
-                }
-                Retransform.redefine(classDefinitions);
-                LOG.info("Class redefinition succeeded.");
-            } catch (Exception e) {
-                LOG.info("Class redefinition failed due to exception. Upgrading.", e);
-            }
-        }
+//        if (TRY_RELOAD && JavaAgent.isActive()) {
+//            try {
+//                LOG.info("Attempting to redefine classes");
+//                List<ClassDefinition> classDefinitions = new ArrayList<>();
+//                for (Class<?> oldClass : oldClasses) {
+//                    byte[] classFile = null;
+//                    try (InputStream is = getResourceAsStream(toClassFileName(oldClass))) {
+//                        classFile = ByteStreams.toByteArray(is);
+//                    }
+//                    classDefinitions.add(new ClassDefinition(oldClass, classFile));
+//                }
+//                Retransform.redefine(classDefinitions);
+//                LOG.info("Class redefinition succeeded.");
+//            } catch (Exception e) {
+//                LOG.info("Class redefinition failed due to exception. Upgrading.", e);
+//            }
+//        }
         for (Class<?> oldClass : oldClasses)
             classVersion.get(oldClass).incrementAndGet();
     }
@@ -347,7 +349,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     <T extends Actor<?, ?>> Class<T> currentClassFor0(Class<T> clazz) {
         try {
             final String className = clazz.getName();
-            ActorModule module = instance.upgradedClasses.get(className);
+            ActorModule module = upgradedClasses.get(className);
             if (module != null)
                 clazz = (Class<T>) module.loadClass(className);
             return clazz;
@@ -358,7 +360,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
 
     <T extends Actor<?, ?>> Class<T> currentClassFor0(String className) {
         try {
-            ActorModule module = instance.upgradedClasses.get(className);
+            ActorModule module = upgradedClasses.get(className);
             Class<?> clazz;
             if (module == null)
                 clazz = Class.forName(className);
@@ -382,15 +384,12 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         if (recursive.get() == Boolean.TRUE)
             throw new ClassNotFoundException(name);
+
         recursive.set(Boolean.TRUE);
         try {
             for (ActorModule mcl : Lists.reverse(modules)) {
-                if (mcl.getUpgradeClasses().contains(name)) {
-                    try {
-                        return mcl.findClassInModule(name);
-                    } catch (ClassNotFoundException e) {
-                    }
-                }
+                if (mcl.getUpgradeClasses().contains(name))
+                    return mcl.loadClassInModule(name);
             }
         } finally {
             recursive.remove();
@@ -405,11 +404,18 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
 
         recursive.set(Boolean.TRUE);
         try {
-            for (ActorModule mcl : Lists.reverse(modules)) {
-                URL resource = mcl.getResource(name);
-                if (resource != null)
-                    return resource;
+            if (isClassFileName(name)) {
+                String className = toDottedName(name);
+                for (ActorModule mcl : Lists.reverse(modules)) {
+                    if (mcl.getUpgradeClasses().contains(className))
+                        return mcl.getResource(className);
+                }
             }
+//            for (ActorModule mcl : Lists.reverse(modules)) {
+//                URL resource = mcl.getResource(name);
+//                if (resource != null)
+//                    return resource;
+//            }
         } finally {
             recursive.remove();
         }

@@ -14,9 +14,12 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.reflection.ASMUtil;
+import static co.paralleluniverse.common.reflection.ASMUtil.toClassFileName;
 import co.paralleluniverse.common.reflection.AnnotationUtil;
 import co.paralleluniverse.common.reflection.ClassLoaderUtil;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.Resources;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,21 +30,25 @@ import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A module of actor code-upgrades contained in a jar file.
+ *
  * @author pron
  */
 class ActorModule extends URLClassLoader {
     static {
         ClassLoader.registerAsParallelCapable();
     }
+    private static final Logger LOG = LoggerFactory.getLogger(ActorModule.class);
     private static final String UPGRADE_CLASSES_ATTR = "Upgrade-Classes";
     private final URL url;
     private final ClassLoader parent;
     private final Set<String> upgradeClasses;
 
-    public ActorModule(URL jarUrl, ClassLoader parent) {
+    public ActorModule(URL jarUrl, ActorLoader parent) {
         super(new URL[]{jarUrl}, null);
         this.url = jarUrl;
 
@@ -102,11 +109,11 @@ class ActorModule extends URLClassLoader {
         return upgradeClasses;
     }
 
-    public Class<?> findClassInModule(String name) throws ClassNotFoundException {
+    public Class<?> loadClassInModule(String name) throws ClassNotFoundException {
         Class<?> loaded = super.findLoadedClass(name);
         if (loaded != null)
             return loaded;
-        return super.findClass(name); // first try to use the URLClassLoader findClass
+        return super.loadClass(name); // first try to use the URLClassLoader findClass
     }
 
     public Class<?> findLoadedClassInModule(String name) {
@@ -118,8 +125,27 @@ class ActorModule extends URLClassLoader {
         Class<?> loaded = super.findLoadedClass(name);
         if (loaded != null)
             return loaded;
+
+        boolean isUpgraded = upgradeClasses.contains(name);
+
+        if (parent != null) {
+            try {
+                URL parentUrl = parent.getResource(toClassFileName(name));
+                if (parentUrl != null) {
+                    URL myUrl = super.getResource(name);
+                    if (myUrl == null || equalContent(parentUrl, myUrl))
+                        return parent.loadClass(name);
+                }
+            } catch (ClassNotFoundException e) {
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         try {
-            return super.findClass(name); // first try to use the URLClassLoader findClass
+            Class<?> clazz = super.findClass(name); // first try to use the URLClassLoader findClass
+            LOG.info("{} loaded class {}", this, name);
+            return clazz;
         } catch (ClassNotFoundException e) {
             if (parent != null)
                 return parent.loadClass(name);
@@ -130,6 +156,8 @@ class ActorModule extends URLClassLoader {
     @Override
     public URL getResource(String name) {
         URL url = super.getResource(name);
+        if (url != null)
+            LOG.info("{} - getResource {}", this, name);
         if (url == null && parent != null)
             url = parent.getResource(name);
         return url;
@@ -138,5 +166,9 @@ class ActorModule extends URLClassLoader {
     @Override
     public String toString() {
         return "ActorModule{" + "url=" + url + '}';
+    }
+
+    private static boolean equalContent(URL url1, URL url2) throws IOException {
+        return ByteStreams.equal(Resources.asByteSource(url1), Resources.asByteSource(url2));
     }
 }
