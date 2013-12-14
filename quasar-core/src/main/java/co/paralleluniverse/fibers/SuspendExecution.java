@@ -25,9 +25,9 @@ package co.paralleluniverse.fibers;
  * support suspension and continuation of their execution; they will not catch {@code SuspendExecution}.
  * <p/>
  * This class is for internal Quasar use. 
- * Throwing an instance of this class or a subclass of it it will things to break in strange ways.
+ * Throwing an instance of this class or a subclass of it will break things in strange ways.
  */
-public class SuspendExecution extends Exception { // InterruptedException {
+public final class SuspendExecution extends Exception { // InterruptedException {
     static final SuspendExecution PARK = new SuspendExecution();
     static final SuspendExecution YIELD = new SuspendExecution();
 
