@@ -69,7 +69,8 @@ class ActorModule extends URLClassLoader {
                             if (!isClassFile(resource))
                                 return;
                             final String className = ClassLoaderUtil.resourceToClass(resource);
-                            if (ASMUtil.isAssignableFrom(Actor.class, className, ActorModule.this))
+                            if (ASMUtil.isAssignableFrom(Actor.class, className, ActorModule.this)
+                                    && !equalContent(ActorModule.this.getParent().getResource(resource), url))
                                 builder.add(className);
                         }
                     });
@@ -137,8 +138,6 @@ class ActorModule extends URLClassLoader {
                         return parent.loadClass(name);
                 }
             } catch (ClassNotFoundException e) {
-            } catch (IOException e) {
-                throw new RuntimeException(e);
             }
         }
 
@@ -168,7 +167,11 @@ class ActorModule extends URLClassLoader {
         return "ActorModule{" + "url=" + url + '}';
     }
 
-    private static boolean equalContent(URL url1, URL url2) throws IOException {
-        return ByteStreams.equal(Resources.asByteSource(url1), Resources.asByteSource(url2));
+    private static boolean equalContent(URL url1, URL url2) {
+        try {
+            return ByteStreams.equal(Resources.asByteSource(url1), Resources.asByteSource(url2));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
