@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.common.reflection;
 
+import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToResource;
 import com.google.common.io.ByteStreams;
 import java.io.File;
 import java.io.FileInputStream;
@@ -32,36 +33,8 @@ import org.objectweb.asm.tree.MethodNode;
  * @author pron
  */
 public final class ASMUtil {
-    private static final String CLASSFILE_SUFFIX = ".class";
-    
-    public static boolean isClassFileName(String filename) {
-        return filename.endsWith(CLASSFILE_SUFFIX);
-    }
-
-    public static String toDottedName(String className) {
-        if (className.endsWith(CLASSFILE_SUFFIX))
-            className = className.substring(0, className.length() - CLASSFILE_SUFFIX.length());
-        return className.replace('/', '.');
-    }
-
-    public static String toSlashName(String className) {
-        return className.replace('.', '/');
-    }
-
-    public static String toClassFileName(String className) {
-        return toSlashName(className) + CLASSFILE_SUFFIX;
-    }
-
-    public static String toSlashName(Class<?> clazz) {
-        return toSlashName(clazz.getName());
-    }
-
-    public static String toClassFileName(Class<?> clazz) {
-        return toClassFileName(clazz.getName());
-    }
-
     public static byte[] getClass(String className, ClassLoader cl) throws IOException {
-        try (InputStream is = cl.getResourceAsStream(toClassFileName(className))) {
+        try (InputStream is = cl.getResourceAsStream(classToResource(className))) {
             return ByteStreams.toByteArray(is);
         }
     }
@@ -69,7 +42,7 @@ public final class ASMUtil {
     public static ClassNode getClassNode(String className, boolean skipCode, ClassLoader cl) throws IOException {
         if (className == null)
             return null;
-        try (InputStream is = cl.getResourceAsStream(toClassFileName(className))) {
+        try (InputStream is = cl.getResourceAsStream(classToResource(className))) {
             ClassReader cr = new ClassReader(is);
             ClassNode cn = new ClassNode();
             cr.accept(cn, ClassReader.SKIP_DEBUG | (skipCode ? 0 : ClassReader.SKIP_CODE));

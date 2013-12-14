@@ -58,12 +58,24 @@ public final class ClassLoaderUtil {
     private static final Splitter CLASS_PATH_ATTRIBUTE_SEPARATOR = Splitter.on(" ").omitEmptyStrings();
     private static final String CLASS_FILE_NAME_EXTENSION = ".class";
 
-    public static boolean isClassfile(String resourceName) {
+    public static boolean isClassFile(String resourceName) {
         return resourceName.endsWith(CLASS_FILE_NAME_EXTENSION);
     }
 
     public static String classToResource(String className) {
         return className.replace('.', '/') + CLASS_FILE_NAME_EXTENSION;
+    }
+
+    public static String classToResource(Class<?> clazz) {
+        return classToResource(clazz.getName());
+    }
+
+     public static String classToSlashed(String className) {
+        return className.replace('.', '/');
+    }
+
+    public static String classToSlashed(Class<?> clazz) {
+        return classToSlashed(clazz.getName());
     }
 
     public static String resourceToClass(String resourceName) {

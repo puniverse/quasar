@@ -13,8 +13,8 @@
  */
 package co.paralleluniverse.actors;
 
-import static co.paralleluniverse.common.reflection.ASMUtil.isClassFileName;
-import static co.paralleluniverse.common.reflection.ASMUtil.toDottedName;
+import static co.paralleluniverse.common.reflection.ClassLoaderUtil.isClassFile;
+import static co.paralleluniverse.common.reflection.ClassLoaderUtil.resourceToClass;
 import co.paralleluniverse.common.util.Exceptions;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -418,8 +418,8 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
 
         recursive.set(Boolean.TRUE);
         try {
-            if (isClassFileName(name)) {
-                String className = toDottedName(name);
+            if (isClassFile(name)) {
+                String className = resourceToClass(name);
                 ActorModule module = upgradedClasses.get(className);
 //                ActorModule module = null;
 //                for (ActorModule m : Lists.reverse(modules)) {

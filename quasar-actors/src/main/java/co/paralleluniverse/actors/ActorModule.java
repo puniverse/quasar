@@ -14,9 +14,10 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.reflection.ASMUtil;
-import static co.paralleluniverse.common.reflection.ASMUtil.toClassFileName;
 import co.paralleluniverse.common.reflection.AnnotationUtil;
 import co.paralleluniverse.common.reflection.ClassLoaderUtil;
+import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToResource;
+import static co.paralleluniverse.common.reflection.ClassLoaderUtil.isClassFile;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Resources;
@@ -65,7 +66,7 @@ class ActorModule extends URLClassLoader {
                     ClassLoaderUtil.accept(this, new ClassLoaderUtil.Visitor() {
                         @Override
                         public void visit(String resource, URL url, ClassLoader cl) {
-                            if (!ClassLoaderUtil.isClassfile(resource))
+                            if (!isClassFile(resource))
                                 return;
                             final String className = ClassLoaderUtil.resourceToClass(resource);
                             if (ASMUtil.isAssignableFrom(Actor.class, className, ActorModule.this))
@@ -81,7 +82,7 @@ class ActorModule extends URLClassLoader {
             ClassLoaderUtil.accept(this, new ClassLoaderUtil.Visitor() {
                 @Override
                 public void visit(String resource, URL url, ClassLoader cl) {
-                    if (!ClassLoaderUtil.isClassfile(resource))
+                    if (!isClassFile(resource))
                         return;
                     final String className = ClassLoaderUtil.resourceToClass(resource);
                     try (InputStream is = cl.getResourceAsStream(resource)) {
@@ -129,7 +130,7 @@ class ActorModule extends URLClassLoader {
         boolean isUpgraded = upgradeClasses.contains(name);
         if (!isUpgraded && parent != null) {
             try {
-                URL parentUrl = parent.getResource(toClassFileName(name));
+                URL parentUrl = parent.getResource(classToResource(name));
                 if (parentUrl != null) {
                     URL myUrl = super.getResource(name);
                     if (myUrl == null || equalContent(parentUrl, myUrl))
