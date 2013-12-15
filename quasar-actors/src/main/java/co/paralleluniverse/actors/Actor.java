@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import jsr166e.ConcurrentHashMapV8;
 
 /**
@@ -79,6 +80,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
     private final LocalActorRef<Message, V> ref;
     private final ActorRef<Message> wrapperRef;
+    private final AtomicReference<Class<? extends Actor<?,?>>> classRef;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
     private final Set<ActorRefImpl> observed = Collections.newSetFromMap(new ConcurrentHashMapV8<ActorRefImpl, Boolean>());
     private volatile V result;
@@ -89,7 +91,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private ActorSpec<?, Message, V> spec;
     private Object aux;
     protected transient final FlightRecorder flightRecorder;
-    private int classVersion;
+
     private final ActorRunner<V> runner;
 
     /**
@@ -105,19 +107,10 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         this.ref = new LocalActorRef<Message, V>(name, new Mailbox(mailboxConfig));
         this.runner = new ActorRunner<>(ref);
         this.wrapperRef = makeRef(ref);
-
+        this.classRef = ActorLoader.getActorClassRef(getClass());
         this.flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
-        Actor<Message, V> impl;
-        int version;
-        for (;;) {
-            version = ActorLoader.getClassVersion(getClass());
-            impl = ActorLoader.getReplacementFor(this);
-            if (!ActorLoader.isUpgraded(getClass(), version))
-                break;
-        }
-        this.classVersion = version; // must be set after ActorLoader.getReplacementFor so that this value will not be copied to the replacement
-
+        Actor<Message, V> impl = ActorLoader.getReplacementFor(this);
         ref.setActor(impl);
         if (impl != this)
             defunct();
@@ -144,10 +137,10 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         this.wrapperRef = null;
         this.flightRecorder = null;
         this.runner = null;
+        this.classRef = null;
     }
 
     void onCodeChange0() {
-        this.classVersion = ActorLoader.getClassVersion(getClass());
         ref.setActor(this);
         record(1, "Actor", "onCodeChange", "%s", this);
         onCodeChange();
@@ -681,8 +674,10 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      * @throws SuspendExecution
      */
     public void checkCodeSwap() throws SuspendExecution {
+        if(classRef == null)
+            return;
         verifyInActor();
-        if (ActorLoader.isUpgraded(getClass(), classVersion)) {
+        if (classRef.get() != getClass()) {
             record(1, "Actor", "checkCodeSwap", "Code swap detected for %s", this);
             throw CodeSwap.CODE_SWAP;
         }

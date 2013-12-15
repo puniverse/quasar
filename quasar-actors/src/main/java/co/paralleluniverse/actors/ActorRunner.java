@@ -25,6 +25,7 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * Responsible for running an actor in a strand, and responding to hot code swaps.
+ *
  * @author pron
  */
 class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
