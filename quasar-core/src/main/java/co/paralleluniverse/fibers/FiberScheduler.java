@@ -26,6 +26,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import jsr166e.ConcurrentHashMapV8;
 import jsr166e.ForkJoinPool;
 
@@ -138,10 +140,10 @@ public class FiberScheduler {
         return fjPool;
     }
 
-    FiberTimedScheduler getTimer() {
-        return timer;
+    public Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit) {
+        return timer.schedule(fiber, blocker, delay, unit);
     }
-
+    
     FibersMonitor getFibersMonitor() {
         return fibersMonitor;
     }

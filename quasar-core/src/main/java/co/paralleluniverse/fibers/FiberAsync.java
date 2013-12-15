@@ -163,7 +163,7 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
         while (!Fiber.park(this, new Fiber.ParkAction() {
             @Override
             public void run(Fiber current) {
-                current.timeoutService.schedule(current, FiberAsync.this, timeout, unit);
+                current.getScheduler().schedule(current, FiberAsync.this, timeout, unit);
                 current.record(1, "FiberAsync", "run", "Calling requestAsync on class %s", this);
                 registrationThread = Thread.currentThread();
                 attachment = requestAsync();
