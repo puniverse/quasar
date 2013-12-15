@@ -16,6 +16,7 @@ package co.paralleluniverse.actors;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A specification of how to construct an actor
@@ -26,8 +27,21 @@ public class ActorSpec<T extends Actor<Message, V>, Message, V> implements Actor
     public static <Message, V, T extends Actor<Message, V>> ActorSpec<T, Message, V> of(Class<T> type, Object... params) {
         return new ActorSpec<>(type, params);
     }
-    final Constructor<T> ctor;
-    final Object[] params;
+    private final AtomicReference<Class<T>> classRef;
+    private final String className;
+    private final Object[] params;
+    private Class<?>[] ctorParamTypes;
+    private Constructor<T> ctor;
+
+    /**
+     * Specifies an actor of a given type and given constructor parameters.
+     *
+     * @param className the name of the actor class
+     * @param params    the parameters to pass to the actor's constructors
+     */
+    public ActorSpec(String className, Object[] params) {
+        this((Constructor<T>) matchingConstructor(ActorLoader.currentClassFor(className), params), params, false);
+    }
 
     /**
      * Specifies an actor of a given type and given constructor parameters.
@@ -36,7 +50,7 @@ public class ActorSpec<T extends Actor<Message, V>, Message, V> implements Actor
      * @param params the parameters to pass to the actor's constructors
      */
     public ActorSpec(Class<T> type, Object[] params) {
-        this(matchingConstructor(ActorLoader.currentClassFor(type), params), params, false);
+        this(matchingConstructor(type, params), params, false);
     }
 
     /**
@@ -46,21 +60,25 @@ public class ActorSpec<T extends Actor<Message, V>, Message, V> implements Actor
      * @param params the parameters to pass to the actor's constructors
      */
     public ActorSpec(Constructor<T> ctor, Object[] params) {
-        this(replacementConstructor(ctor), params, false);
-    }
-
-    private static <T> Constructor<T> replacementConstructor(Constructor<T> ctor) {
-        try {
-            return ctor.getDeclaringClass().getConstructor(ctor.getParameterTypes());
-        } catch (NoSuchMethodException e) {
-            throw new AssertionError(e);
-        }
+        this(ctor, params, false);
     }
 
     private ActorSpec(Constructor<T> ctor, Object[] params, boolean ignore) {
-        this.ctor = ctor;
+        this.className = ctor.getDeclaringClass().getName();
+        this.classRef = (AtomicReference<Class<T>>) (Object) ActorLoader.getActorClassRef(className);
         this.params = Arrays.copyOf(params, params.length);
+
+        this.ctor = ctor;
         ctor.setAccessible(true);
+    }
+
+    private void updateConstructor() {
+        try {
+            this.ctor = ActorLoader.currentClassFor(ctor.getDeclaringClass()).getConstructor(ctor.getParameterTypes());
+            ctor.setAccessible(true);
+        } catch (NoSuchMethodException e) {
+            throw new AssertionError(e);
+        }
     }
 
     private static <T> Constructor<T> matchingConstructor(Class<T> type, Object[] params) {
@@ -72,6 +90,8 @@ public class ActorSpec<T extends Actor<Message, V>, Message, V> implements Actor
 
     @Override
     public T build() {
+        if (classRef.get() != ctor.getDeclaringClass())
+            updateConstructor();
         try {
             T instance = ctor.newInstance(params);
             instance.setSpec(this);
