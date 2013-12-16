@@ -166,11 +166,11 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         throw PARK;
     }
 
-    protected boolean park1(Object blocker) throws Exception {
-        return park1(blocker, false);
+    protected boolean park(Object blocker) throws Exception {
+        return park(blocker, false);
     }
 
-    protected boolean park1(Object blocker, boolean exclusive) throws Exception {
+    protected boolean park(Object blocker, boolean exclusive) throws Exception {
         int newState;
         int _state;
         do {
@@ -249,7 +249,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         return res;
     }
 
-    protected void yield1() throws Exception {
+    protected void yield() throws Exception {
         parking(true);
         onParked(true);
         throwPark(true);

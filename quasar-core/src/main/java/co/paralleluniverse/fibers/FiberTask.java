@@ -47,9 +47,9 @@ interface FiberTask<V> {
      */
     void quietlyComplete();
 
-    boolean park1(Object blocker, boolean exclusive) throws SuspendExecution;
+    boolean park(Object blocker, boolean exclusive) throws SuspendExecution;
 
-    void yield1() throws SuspendExecution;
+    void yield() throws SuspendExecution;
 
     void doPark(boolean yield);
 
