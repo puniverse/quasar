@@ -80,7 +80,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
     private final LocalActorRef<Message, V> ref;
     private final ActorRef<Message> wrapperRef;
-    private final AtomicReference<Class<? extends Actor<?,?>>> classRef;
+    private final AtomicReference<Class<? extends Actor<?, ?>>> classRef;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
     private final Set<ActorRefImpl> observed = Collections.newSetFromMap(new ConcurrentHashMapV8<ActorRefImpl, Boolean>());
     private volatile V result;
@@ -91,7 +91,6 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private ActorSpec<?, Message, V> spec;
     private Object aux;
     protected transient final FlightRecorder flightRecorder;
-
     private final ActorRunner<V> runner;
 
     /**
@@ -110,6 +109,11 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         this.classRef = ActorLoader.getActorClassRef(getClass());
         this.flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
+        // we cannot checkReplacement() here because the actor is not fully constructed yet (we're in the middle of the subclass's constructor)
+        ref.setActor(this);
+    }
+
+    private void checkReplacement() {
         Actor<Message, V> impl = ActorLoader.getReplacementFor(this);
         ref.setActor(impl);
         if (impl != this)
@@ -186,6 +190,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      * @return This actors' ActorRef
      */
     public ActorRef<Message> spawn(FiberScheduler scheduler) {
+        checkReplacement();
         new Fiber(getName(), scheduler, runner).start();
         return ref();
     }
@@ -197,6 +202,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      * @return This actors' ActorRef
      */
     public ActorRef<Message> spawn() {
+        checkReplacement();
         new Fiber(getName(), runner).start();
         return ref();
     }
@@ -208,6 +214,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      * @return This actors' ActorRef
      */
     public ActorRef<Message> spawnThread() {
+        checkReplacement();
         Runnable runnable = Strand.toRunnable(runner);
         Thread t = (getName() != null ? new Thread(runnable, getName()) : new Thread(runnable));
         setStrand(Strand.of(t));
@@ -217,6 +224,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     @Override
     public final V run() throws InterruptedException, SuspendExecution {
+        checkReplacement();
         return runner.run();
     }
 
@@ -604,7 +612,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             result = doRun();
             die(null);
             return result;
-        } catch(CodeSwap cs) {
+        } catch (CodeSwap cs) {
             throw cs;
         } catch (InterruptedException e) {
             if (this.exception != null) {
@@ -674,7 +682,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      * @throws SuspendExecution
      */
     public final void checkCodeSwap() throws SuspendExecution {
-        if(classRef == null)
+        if (classRef == null)
             return;
         verifyInActor();
         if (classRef.get() != getClass()) {
