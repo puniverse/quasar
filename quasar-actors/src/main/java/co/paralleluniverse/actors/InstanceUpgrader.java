@@ -58,6 +58,7 @@ class InstanceUpgrader<T> {
     }
     private final Class<T> toClass;
     private final Map<FieldDesc, FieldInfo> fields;
+    private final Map<FieldDesc, Field> staticFields;
     private final ConcurrentMap<Class, Copier> copiers;
     private final Constructor<T> ctor;
 
@@ -80,6 +81,11 @@ class InstanceUpgrader<T> {
             builder.put(entry.getKey(), new FieldInfo(f, innerClassCtor));
         }
         this.fields = builder.build();
+
+        this.staticFields = ImmutableMap.copyOf(getStaticFields(toClass, new HashMap<FieldDesc, Field>()));
+        for (Field sf : staticFields.values())
+            sf.setAccessible(true);
+
         this.ctor = getNoArgConstructor(toClass);
     }
 
@@ -151,6 +157,34 @@ class InstanceUpgrader<T> {
             if (!fromClass.getName().equals(toClass.getName()))
                 throw new IllegalArgumentException("'fromClass' " + fromClass.getName() + " is not a version of 'toClass' " + toClass.getName());
 
+            // static fields
+            try {
+                Map<FieldDesc, Field> sfs = getStaticFields(fromClass, new HashMap<FieldDesc, Field>());
+                for (Map.Entry<FieldDesc, Field> e : sfs.entrySet()) {
+                    Field tf = staticFields.get(e.getKey());
+                    
+                    Field ff = e.getValue();
+                    ff.setAccessible(true);
+
+                    if (tf != null && !Modifier.isFinal(tf.getModifiers())) {
+                        final Object fromFieldValue = ff.get(null);
+                        final Object toFieldValue;
+
+                        if (tf.getType().isAssignableFrom(ff.getType()))
+                            toFieldValue = fromFieldValue;
+                        else if (tf.getType().getName().equals(ff.getType().getName()))
+                            toFieldValue = instanceUpgrader.get(tf.getType()).getCopier(ff.getType()).copy(fromFieldValue);
+                        else
+                            continue;
+                        LOG.debug("== static: {} <- {}: {} ({})", tf, ff, toFieldValue, fromFieldValue);
+                        tf.set(null, toFieldValue);
+                    }
+                }
+            } catch (IllegalAccessException e) {
+                throw new AssertionError(e);
+            }
+
+            // instance fields
             Map<FieldDesc, Field> fs = getInstanceFields(fromClass, new HashMap<FieldDesc, Field>());
 
             ArrayList<Field> ffs = new ArrayList<>();
@@ -216,6 +250,8 @@ class InstanceUpgrader<T> {
         }
 
         Object copy(Object from) {
+            if(from == null)
+                return null;
             if (ctor == null)
                 throw new RuntimeException("Class " + toClass.getName()
                         + " in module " + (toClass.getClassLoader() instanceof ActorModule ? toClass.getClassLoader() : null)
@@ -240,6 +276,32 @@ class InstanceUpgrader<T> {
         }
 
         return getInstanceFields(clazz.getSuperclass(), fields);
+    }
+
+    private static Map<FieldDesc, Field> getStaticFields(Class<?> clazz, Map<FieldDesc, Field> fields) {
+        if (clazz == null)
+            return fields;
+        for (Field f : clazz.getDeclaredFields()) {
+            if (Modifier.isStatic(f.getModifiers()))
+                fields.put(new FieldDesc(f), f);
+        }
+
+        return getStaticFields(clazz.getSuperclass(), fields);
+    }
+
+    static void setFinalStatic(Field field, Object newValue) throws IllegalAccessException {
+        field.setAccessible(true);
+
+        try {
+            // remove final modifier from field
+            Field modifiersField = Field.class.getDeclaredField("modifiers");
+            modifiersField.setAccessible(true);
+            modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
+
+            field.set(null, newValue);
+        } catch (NoSuchFieldException e) {
+            throw new AssertionError(e);
+        }
     }
 
     private static class FieldDesc {
