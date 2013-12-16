@@ -128,12 +128,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     private final ConcurrentHashMapV8<String, AtomicReference<Class<? extends Actor<?, ?>>>> actorClasses = new ConcurrentHashMapV8<>();
     private final List<ActorModule> modules = new CopyOnWriteArrayList<>();
     private final ConcurrentMap<String, ActorModule> classModule = new ConcurrentHashMapV8<>();
-    private final ClassValue<InstanceUpgrader> instanceUpgrader = new ClassValue<InstanceUpgrader>() {
-        @Override
-        protected InstanceUpgrader computeValue(Class<?> type) {
-            return new InstanceUpgrader(type);
-        }
-    };
+    
     private final ThreadLocal<Boolean> recursive = new ThreadLocal<Boolean>();
     private final NotificationBroadcasterSupport notificationBroadcaster;
     private int notificationSequenceNumber;
@@ -370,7 +365,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         Class<? extends T> newClazz = getActorClass(clazz.getName());
         if (newClazz == clazz)
             return actor;
-        return (T) instanceUpgrader.get(newClazz).copy(actor);
+        return (T) InstanceUpgrader.get(newClazz).copy(actor);
     }
 
     <T extends Actor<?, ?>> Class<T> getActorClass(Class<T> clazz) {

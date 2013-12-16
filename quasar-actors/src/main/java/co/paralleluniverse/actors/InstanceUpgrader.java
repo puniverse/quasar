@@ -21,10 +21,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
@@ -37,9 +34,15 @@ import sun.reflect.ReflectionFactory;
  *
  * @author pron
  */
-class InstanceUpgrader {
+class InstanceUpgrader<T> {
     private static final Logger LOG = LoggerFactory.getLogger(InstanceUpgrader.class);
     private static final Object reflFactory;
+    static final ClassValue<InstanceUpgrader<?>> instanceUpgrader = new ClassValue<InstanceUpgrader<?>>() {
+        @Override
+        protected InstanceUpgrader<?> computeValue(Class<?> type) {
+            return new InstanceUpgrader(type);
+        }
+    };
 
     static {
         Object rf = null;
@@ -49,12 +52,16 @@ class InstanceUpgrader {
         }
         reflFactory = rf;
     }
-    private final Class<?> toClass;
+
+    public static <T> InstanceUpgrader<T> get(Class<T> clazz) {
+        return (InstanceUpgrader<T>) instanceUpgrader.get(clazz);
+    }
+    private final Class<T> toClass;
     private final Map<FieldDesc, FieldInfo> fields;
     private final ConcurrentMap<Class, Copier> copiers;
-    private final Constructor<?> ctor;
+    private final Constructor<T> ctor;
 
-    public InstanceUpgrader(Class<?> toClass) {
+    public InstanceUpgrader(Class<T> toClass) {
         this.toClass = toClass;
         this.copiers = new MapMaker().weakKeys().makeMap();
         Map<FieldDesc, Field> fs = getInstanceFields(toClass, new HashMap<FieldDesc, Field>());
@@ -77,14 +84,14 @@ class InstanceUpgrader {
         this.ctor = getNoArgConstructor(toClass);
     }
 
-    private static Constructor<?> getNoArgConstructor(Class<?> cl) {
+    private static <T> Constructor<T> getNoArgConstructor(Class<T> cl) {
         if (reflFactory == null)
             return getNoArgConstructor1(cl);
         else
             return getNoArgConstructor2(cl);
     }
 
-    private static Constructor<?> getNoArgConstructor1(Class<?> cl) {
+    private static <T> Constructor<T> getNoArgConstructor1(Class<T> cl) {
         try {
             Constructor cons = cl.getDeclaredConstructor();
             cons.setAccessible(true);
@@ -94,7 +101,7 @@ class InstanceUpgrader {
         }
     }
 
-    private static Constructor<?> getNoArgConstructor2(Class<?> cl) {
+    private static <T> Constructor<T> getNoArgConstructor2(Class<T> cl) {
         Class<?> initCl = Actor.class.isAssignableFrom(cl) ? Actor.class : Object.class;
         try {
             Constructor cons = initCl.getDeclaredConstructor();
@@ -115,28 +122,16 @@ class InstanceUpgrader {
 //    private static boolean packageEquals(Class<?> cl1, Class<?> cl2) {
 //        return cl1.getPackage().getName().equals(cl2.getPackage().getName()); // && cl1.getClassLoader() == cl2.getClassLoader();
 //    }
-    
     public Object copy(Object from, Object to) {
         assert toClass.isInstance(to);
-        return getCopier(from.getClass()).copy(from, to);
+        return getCopier((Class<T>) from.getClass()).copy(from, to);
     }
 
     public Object copy(Object from) {
-        if (ctor == null)
-            throw new RuntimeException("Class " + toClass.getName()
-                    + " in module " + (toClass.getClassLoader() instanceof ActorModule ? toClass.getClassLoader() : null)
-                    + " does not have a no-arg constructor.");
-        try {
-            Object to = ctor.newInstance();
-            return getCopier(from.getClass()).copy(from, to);
-        } catch (InstantiationException | InvocationTargetException ex) {
-            throw Exceptions.rethrow(ex.getCause());
-        } catch (IllegalAccessException ex) {
-            throw new AssertionError(ex);
-        }
+        return getCopier((Class<T>) from.getClass()).copy(from);
     }
 
-    private Copier getCopier(Class<?> fromClass) {
+    private Copier<T> getCopier(Class<?> fromClass) {
         Copier copier = copiers.get(fromClass);
         if (copier == null) {
             copier = new Copier(fromClass);
@@ -147,12 +142,13 @@ class InstanceUpgrader {
         return copier;
     }
 
-    private class Copier {
+    private class Copier<T> {
         private final Field[] fromFields;
         private final Field[] toFields;
         private final Constructor[] innerClassConstructor;
+        private final Copier[] fieldCopier;
 
-        Copier(Class<?> fromClass) {
+        Copier(Class<T> fromClass) {
             if (!fromClass.getName().equals(toClass.getName()))
                 throw new IllegalArgumentException("'fromClass' " + fromClass.getName() + " is not a version of 'toClass' " + toClass.getName());
 
@@ -161,26 +157,36 @@ class InstanceUpgrader {
             ArrayList<Field> ffs = new ArrayList<>();
             ArrayList<Field> tfs = new ArrayList<>();
             ArrayList<Constructor> ics = new ArrayList<>();
+            ArrayList<Copier> fcs = new ArrayList<>();
             for (Map.Entry<FieldDesc, Field> e : fs.entrySet()) {
                 Field ff = e.getValue();
                 FieldInfo tfi = fields.get(e.getKey());
                 Field tf = tfi != null ? tfi.field : null;
 
                 if (tf != null) {
+                    boolean assignable = false;
                     Constructor innerClassCtor = null;
+                    Copier fc = null;
+
                     if (Objects.equals(ff.getType().getEnclosingClass(), fromClass)
                             && Objects.equals(tf.getType().getEnclosingClass(), toClass)) {
                         innerClassCtor = tfi.innerClassCtor;
+                    } else if (tf.getType().isAssignableFrom(ff.getType())) {
+                        assignable = true;
+                    } else if (tf.getType().getName().equals(ff.getType().getName())) {
+                        fc = instanceUpgrader.get(tf.getType()).getCopier(ff.getType());
                     }
-                    if (innerClassCtor != null || tf.getType().isAssignableFrom(ff.getType())) {
+                    if (assignable || innerClassCtor != null || fc != null) {
                         ffs.add(ff);
                         tfs.add(tf);
+                        fcs.add(fc);
                         ics.add(innerClassCtor);
                     }
                 }
             }
             this.fromFields = ffs.toArray(new Field[ffs.size()]);
             this.toFields = tfs.toArray(new Field[tfs.size()]);
+            this.fieldCopier = fcs.toArray(new Copier[fcs.size()]);
             this.innerClassConstructor = ics.toArray(new Constructor[ics.size()]);
 
             for (Field f : fromFields)
@@ -190,34 +196,42 @@ class InstanceUpgrader {
         Object copy(Object from, Object to) {
             try {
                 for (int i = 0; i < fromFields.length; i++) {
+                    final Object fromFieldValue = fromFields[i].get(from);
+                    final Object toFieldValue;
                     if (innerClassConstructor[i] != null)
-                        toFields[i].set(to, innerClassConstructor[i].newInstance(to));
-                    else {
-                        // LOG.debug("== {} <- {} ({})",  toFields[i], fromFields[i], fromFields[i].get(from));
-                        toFields[i].set(to, fromFields[i].get(from));
-                    }
+                        toFieldValue = innerClassConstructor[i].newInstance(to);
+                    else if (fieldCopier[i] != null)
+                        toFieldValue = fieldCopier[i].copy(fromFieldValue);
+                    else
+                        toFieldValue = fromFieldValue;
+
+                    //LOG.debug("== {} <- {}: {} ({})", toFields[i], fromFields[i], toFieldValue, fromFieldValue);
+                    toFields[i].set(to, toFieldValue);
                 }
                 return to;
             } catch (IllegalAccessException | InstantiationException | InvocationTargetException e) {
                 throw new AssertionError(e);
             }
         }
-    }
-    private static final List<String> infrastructure = Arrays.asList(new String[]{
-                "co.paralleluniverse.strands",
-                "co.paralleluniverse.fibers",
-                "co.paralleluniverse.actors",});
 
-    private static boolean startsWithAnyOf(String str, Collection<String> prefixes) {
-        for (String prefix : prefixes) {
-            if (str.startsWith(prefix))
-                return true;
+        Object copy(Object from) {
+            if (ctor == null)
+                throw new RuntimeException("Class " + toClass.getName()
+                        + " in module " + (toClass.getClassLoader() instanceof ActorModule ? toClass.getClassLoader() : null)
+                        + " does not have a no-arg constructor.");
+            try {
+                Object to = ctor.newInstance();
+                return copy(from, to);
+            } catch (InstantiationException | InvocationTargetException ex) {
+                throw Exceptions.rethrow(ex.getCause());
+            } catch (IllegalAccessException ex) {
+                throw new AssertionError(ex);
+            }
         }
-        return false;
     }
 
     private static Map<FieldDesc, Field> getInstanceFields(Class<?> clazz, Map<FieldDesc, Field> fields) {
-        if (clazz == null) //  || startsWithAnyOf(clazz.getPackage().getName(), infrastructure))
+        if (clazz == null)
             return fields;
         for (Field f : clazz.getDeclaredFields()) {
             if (!Modifier.isStatic(f.getModifiers()))
