@@ -75,7 +75,6 @@ class InstanceUpgrader<T> {
                 try {
                     innerClassCtor = f.getType().getConstructor(toClass);
                 } catch (NoSuchMethodException e) {
-                    throw new AssertionError(e);
                 }
             }
             builder.put(entry.getKey(), new FieldInfo(f, innerClassCtor));
@@ -84,16 +83,16 @@ class InstanceUpgrader<T> {
         this.ctor = getNoArgConstructor(toClass);
     }
 
-    private static <T> Constructor<T> getNoArgConstructor(Class<T> cl) {
+    private static <T> Constructor<T> getNoArgConstructor(Class<T> clazz) {
         if (reflFactory == null)
-            return getNoArgConstructor1(cl);
+            return getNoArgConstructor1(clazz);
         else
-            return getNoArgConstructor2(cl);
+            return getNoArgConstructor2(clazz);
     }
 
-    private static <T> Constructor<T> getNoArgConstructor1(Class<T> cl) {
+    private static <T> Constructor<T> getNoArgConstructor1(Class<T> clazz) {
         try {
-            Constructor cons = cl.getDeclaredConstructor();
+            Constructor cons = clazz.getDeclaredConstructor();
             cons.setAccessible(true);
             return cons;
         } catch (NoSuchMethodException e) {
@@ -101,8 +100,8 @@ class InstanceUpgrader<T> {
         }
     }
 
-    private static <T> Constructor<T> getNoArgConstructor2(Class<T> cl) {
-        Class<?> initCl = Actor.class.isAssignableFrom(cl) ? Actor.class : Object.class;
+    private static <T> Constructor<T> getNoArgConstructor2(Class<T> clazz) {
+        Class<?> initCl = Actor.class.isAssignableFrom(clazz) ? Actor.class : Object.class;
         try {
             Constructor cons = initCl.getDeclaredConstructor();
 //                int mods = cons.getModifiers();
@@ -111,7 +110,7 @@ class InstanceUpgrader<T> {
 //                        && !packageEquals(cl, initCl))) {
 //                    return null;
 //                }
-            cons = ((ReflectionFactory) reflFactory).newConstructorForSerialization(cl, cons);
+            cons = ((ReflectionFactory) reflFactory).newConstructorForSerialization(clazz, cons);
             cons.setAccessible(true);
             return cons;
         } catch (NoSuchMethodException ex) {
@@ -171,6 +170,7 @@ class InstanceUpgrader<T> {
                     if (Objects.equals(ff.getType().getEnclosingClass(), fromClass)
                             && Objects.equals(tf.getType().getEnclosingClass(), toClass)) {
                         innerClassCtor = tfi.innerClassCtor;
+                        fc = instanceUpgrader.get(tf.getType()).getCopier(ff.getType());
                     } else if (tf.getType().isAssignableFrom(ff.getType())) {
                         assignable = true;
                     } else if (tf.getType().getName().equals(ff.getType().getName())) {
@@ -198,9 +198,10 @@ class InstanceUpgrader<T> {
                 for (int i = 0; i < fromFields.length; i++) {
                     final Object fromFieldValue = fromFields[i].get(from);
                     final Object toFieldValue;
-                    if (innerClassConstructor[i] != null)
+                    if (innerClassConstructor[i] != null) {
                         toFieldValue = innerClassConstructor[i].newInstance(to);
-                    else if (fieldCopier[i] != null)
+                        fieldCopier[i].copy(fromFieldValue, toFieldValue);
+                    } else if (fieldCopier[i] != null)
                         toFieldValue = fieldCopier[i].copy(fromFieldValue);
                     else
                         toFieldValue = fromFieldValue;

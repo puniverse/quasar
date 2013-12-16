@@ -128,14 +128,22 @@ class ActorModule extends URLClassLoader {
         if (loaded != null)
             return loaded;
 
+        LOG.debug("findClass {} in module {}", name, this);
         boolean isUpgraded = upgradeClasses.contains(name);
         if (!isUpgraded && parent != null) {
             try {
-                URL parentUrl = parent.getResource(classToResource(name));
+                String resourceName = classToResource(name);
+                URL parentUrl = parent.getResource(resourceName);
                 if (parentUrl != null) {
-                    URL myUrl = super.getResource(name);
-                    if (myUrl == null || equalContent(parentUrl, myUrl))
+                    URL myUrl = super.getResource(resourceName);
+                    if (myUrl == null || equalContent(parentUrl, myUrl)) {
+                        // NOTE: classes may differ only in their Java source line information; considered a difference
+                        if (myUrl != null)
+                            LOG.debug("Class {} in module {} is identical to that in main module", name, this);
+                        else
+                            LOG.debug("findClass {} in module {} - not found in module", name, this);
                         return parent.loadClass(name);
+                    }
                 }
             } catch (ClassNotFoundException e) {
             }
@@ -143,7 +151,7 @@ class ActorModule extends URLClassLoader {
 
         try {
             Class<?> clazz = super.findClass(name); // first try to use the URLClassLoader findClass
-            LOG.info("{} loaded class {}", this, name);
+            LOG.info("{} loaded {} class {}", this, isUpgraded ? "upgraded" : "internal", name);
             return clazz;
         } catch (ClassNotFoundException e) {
             if (parent != null)
