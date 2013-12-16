@@ -15,6 +15,7 @@ package co.paralleluniverse.fibers.futures;
 
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableCallable;
@@ -32,7 +33,7 @@ public class AsyncCompletableFutureTest {
     private FiberScheduler scheduler;
 
     public AsyncCompletableFutureTest() {
-        scheduler = new FiberScheduler("test", 4, null, false);
+        scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 
     @Test

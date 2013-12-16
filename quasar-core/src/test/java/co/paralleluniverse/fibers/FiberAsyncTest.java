@@ -24,7 +24,7 @@ public class FiberAsyncTest {
     private FiberScheduler scheduler;
 
     public FiberAsyncTest() {
-        scheduler = new FiberScheduler("test", 4, null, false);
+        scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 
     interface MyCallback {

@@ -16,6 +16,7 @@ package co.paralleluniverse.strands.channels;
 import static co.paralleluniverse.common.test.Matchers.*;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -58,7 +59,7 @@ public class TickerChannelTest {
     private FiberScheduler scheduler;
 
     public TickerChannelTest() {
-        scheduler = new FiberScheduler("test", 4, null, false);
+        scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 
     @Test

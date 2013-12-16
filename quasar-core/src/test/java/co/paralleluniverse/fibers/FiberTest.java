@@ -38,7 +38,7 @@ public class FiberTest {
     private FiberScheduler scheduler;
 
     public FiberTest() {
-        scheduler = new FiberScheduler("test", 4, null, false);
+        scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 
     @BeforeClass

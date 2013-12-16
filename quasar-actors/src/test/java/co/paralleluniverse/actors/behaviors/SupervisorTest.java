@@ -28,6 +28,7 @@ import co.paralleluniverse.actors.behaviors.Supervisor.ChildMode;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
 import co.paralleluniverse.actors.behaviors.SupervisorActor.RestartStrategy;
 import co.paralleluniverse.common.util.Debug;
+import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -84,7 +85,7 @@ public class SupervisorTest {
     private static FiberScheduler scheduler;
 
     public SupervisorTest() throws Exception {
-        scheduler = new FiberScheduler("test", 4, null, false);
+        scheduler = new FiberForkJoinScheduler("test", 4, null, false);
         java.util.logging.LogManager.getLogManager().readConfiguration(); // gradle messes with the configurations
     }
 

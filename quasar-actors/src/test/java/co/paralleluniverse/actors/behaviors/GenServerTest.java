@@ -25,6 +25,7 @@ import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -84,7 +85,7 @@ public class GenServerTest {
     private FiberScheduler scheduler;
 
     public GenServerTest() {
-        scheduler = new FiberScheduler("test", 4, null, false);
+        scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 
     private Server<Message, Integer, Message> spawnGenServer(ServerHandler<Message, Integer, Message> server) {

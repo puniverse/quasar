@@ -77,7 +77,7 @@ public class DefaultFiberScheduler {
             detailedFiberInfo = Boolean.valueOf(dfis);
 
         // build instance
-        instance = new FiberScheduler(name, par, handler, monitorType, detailedFiberInfo);
+        instance = new FiberForkJoinScheduler(name, par, handler, monitorType, detailedFiberInfo);
     }
 
     /**

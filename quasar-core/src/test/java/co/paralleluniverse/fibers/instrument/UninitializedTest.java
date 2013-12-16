@@ -40,17 +40,17 @@ public class UninitializedTest implements SuspendableRunnable {
     private Object getProperty() throws SuspendExecution {
         Object x;
         
-        Object y = getProtery("a");
+        Object y = getProperty("a");
         if(y != null) {
             x = y;
         } else {
-            x = getProtery("c");
+            x = getProperty("c");
         }
         
         return x;
     }
 
-    private Object getProtery(String string) throws SuspendExecution {
+    private Object getProperty(String string) throws SuspendExecution {
         Fiber.park();
         return string;
     }

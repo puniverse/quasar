@@ -15,6 +15,7 @@ package co.paralleluniverse.strands.dataflow;
 
 import co.paralleluniverse.strands.channels.DelayedVal;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -36,7 +37,7 @@ public class DelayedValTest {
     private FiberScheduler scheduler;
 
     public DelayedValTest() {
-        scheduler = new FiberScheduler("test", 4, null, false);
+        scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 
     @Test(expected = IllegalStateException.class)

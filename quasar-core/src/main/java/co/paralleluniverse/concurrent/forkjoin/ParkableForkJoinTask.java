@@ -29,7 +29,7 @@ import sun.misc.Unsafe;
  */
 public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
-    public static final Object EMERGENCY_UNBLOCKER = new Object();
+    //public static final Object EMERGENCY_UNBLOCKER = new Object();
     public static final Park PARK = new Park();
     public static final int RUNNABLE = 0;
     public static final int LEASED = 1;
@@ -47,12 +47,12 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         state = RUNNABLE;
     }
 
-    protected static ParkableForkJoinTask<?> getCurrent() {
+    public static ParkableForkJoinTask<?> getCurrent() {
         ParkableForkJoinTask ct = getCurrent1();
         if (ct == null && Thread.currentThread() instanceof ForkJoinWorkerThread) { // false in tests
             Fiber f = Fiber.currentFiber();
             if (f != null)
-                ct = (ParkableForkJoinTask) f.getForkJoinTask();
+                ct = (ParkableForkJoinTask) f.getTask();
         }
         return ct;
     }

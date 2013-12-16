@@ -13,93 +13,27 @@
  */
 package co.paralleluniverse.fibers;
 
-import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitor;
-import co.paralleluniverse.common.monitoring.JMXForkJoinPoolMonitor;
-import co.paralleluniverse.common.monitoring.MetricsForkJoinPoolMonitor;
 import co.paralleluniverse.common.monitoring.MonitorType;
-import co.paralleluniverse.concurrent.forkjoin.ExtendedForkJoinWorkerFactory;
-import co.paralleluniverse.concurrent.forkjoin.ExtendedForkJoinWorkerThread;
-import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.lang.Thread.UncaughtExceptionHandler;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import jsr166e.ConcurrentHashMapV8;
-import jsr166e.ForkJoinPool;
 
 /**
  * A thread-pool based scheduler for fibers. Internally, this scheduler uses a {@code ForkJoinPool} to schedule fiber execution.
  *
  * @author pron
  */
-public class FiberScheduler {
+public abstract class FiberScheduler {
     static final FibersMonitor NOOP_FIBERS_MONITOR = new NoopFibersMonitor();
-    private final ForkJoinPool fjPool;
-    private final FiberTimedScheduler timer;
     private final FibersMonitor fibersMonitor;
-    private final Set<FiberWorkerThread> activeThreads = Collections.newSetFromMap(new ConcurrentHashMapV8<FiberWorkerThread, Boolean>());
 
-    /**
-     * Creates a new fiber scheduler.
-     *
-     * @param name             the scheuler's name. This name is used in naming the scheduler's threads.
-     * @param parallelism      the number of threads in the pool
-     * @param exceptionHandler an {@link UncaughtExceptionHandler UncaughtExceptionHandler} to be used for exceptions thrown in fibers that aren't caught.
-     * @param monitorType      the {@link MonitorType} type to use for the {@code ForkJoinPool}.
-     * @param detailedInfo     whether detailed information about the fibers is collected by the fibers monitor.
-     */
-    public FiberScheduler(String name, int parallelism, UncaughtExceptionHandler exceptionHandler, MonitorType monitorType, boolean detailedInfo) {
-        this.fjPool = createForkJoinPool(name, parallelism, exceptionHandler, monitorType);
-
-        if (fjPool instanceof MonitoredForkJoinPool && ((MonitoredForkJoinPool) fjPool).getMonitor() != null)
-            this.fibersMonitor = new JMXFibersMonitor(((MonitoredForkJoinPool) fjPool).getName(), this, detailedInfo);
-        else
-            this.fibersMonitor = NOOP_FIBERS_MONITOR;
-
-        this.timer = createTimer(fjPool, fibersMonitor);
-    }
-
-    /**
-     * Creates a new fiber scheduler using a default {@link UncaughtExceptionHandler UncaughtExceptionHandler}.
-     *
-     * @param name             the scheuler's name. This name is used in naming the scheduler's threads.
-     * @param parallelism      the number of threads in the pool
-     * @param monitorType      the {@link MonitorType} type to use for the {@code ForkJoinPool}.
-     * @param detailedInfo     whether detailed information about the fibers is collected by the fibers monitor.
-     */
-    public FiberScheduler(String name, int parallelism, MonitorType monitorType, boolean detailedInfo) {
-        this(name, parallelism, null, monitorType, detailedInfo);
-    }
-
-    private FiberScheduler(ForkJoinPool fjPool, FiberTimedScheduler timeService, boolean detailedInfo) {
-        if (!fjPool.getAsyncMode())
-            throw new IllegalArgumentException("ForkJoinPool is not async");
-        this.fjPool = fjPool;
-
-        if (fjPool instanceof MonitoredForkJoinPool && ((MonitoredForkJoinPool) fjPool).getMonitor() != null)
-            this.fibersMonitor = new JMXFibersMonitor(((MonitoredForkJoinPool) fjPool).getName(), this, detailedInfo);
-        else
-            this.fibersMonitor = NOOP_FIBERS_MONITOR;
-
-        this.timer = timeService != null ? timeService : createTimer(fjPool, fibersMonitor);
-    }
-
-    private ForkJoinPool createForkJoinPool(String name, int parallelism, Thread.UncaughtExceptionHandler exceptionHandler, MonitorType monitorType) {
-        final MonitoredForkJoinPool pool = new MonitoredForkJoinPool(name, parallelism, new ExtendedForkJoinWorkerFactory(name) {
-            @Override
-            protected ExtendedForkJoinWorkerThread createThread(ForkJoinPool pool) {
-                return new FiberWorkerThread(pool);
-            }
-        }, exceptionHandler, true);
-        pool.setMonitor(createForkJoinPoolMonitor(name, pool, monitorType));
-        return pool;
+    FiberScheduler(String name, MonitorType monitorType, boolean detailedInfo) {
+        fibersMonitor = createFibersMonitor(name, this, monitorType, detailedInfo);
     }
 
     private static FibersMonitor createFibersMonitor(String name, FiberScheduler scheduler, MonitorType monitorType, boolean detailedInfo) {
+        if (monitorType == null)
+            monitorType = MonitorType.NONE;
         switch (monitorType) {
             case JMX:
                 return new JMXFibersMonitor(name, scheduler, detailedInfo);
@@ -112,71 +46,27 @@ public class FiberScheduler {
         }
     }
 
-    static ForkJoinPoolMonitor createForkJoinPoolMonitor(String name, ForkJoinPool fjPool, MonitorType monitorType) {
-        if (monitorType == null)
-            return null;
-        switch (monitorType) {
-            case JMX:
-                return new JMXForkJoinPoolMonitor(name, fjPool);
-            case METRICS:
-                return new MetricsForkJoinPoolMonitor(name, fjPool);
-            case NONE:
-                return null;
-            default:
-                throw new RuntimeException("Unsupported monitor type: " + monitorType);
-        }
-    }
-
-    private FiberTimedScheduler createTimer(ForkJoinPool fjPool, FibersMonitor monitor) {
-        if (fjPool instanceof MonitoredForkJoinPool)
-            return new FiberTimedScheduler(this,
-                    new ThreadFactoryBuilder().setDaemon(true).setNameFormat("FiberTimedScheduler-" + ((MonitoredForkJoinPool) fjPool).getName()).build(),
-                    monitor);
-        else
-            return new FiberTimedScheduler(this);
-    }
-
-    public ForkJoinPool getForkJoinPool() {
-        return fjPool;
-    }
-
-    public Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit) {
-        return timer.schedule(fiber, blocker, delay, unit);
-    }
-    
-    FibersMonitor getFibersMonitor() {
+    protected FibersMonitor getMonitor() {
         return fibersMonitor;
     }
 
-    int getTimedQueueLength() {
-        return timer.getQueueLength();
-    }
-    static boolean isFiberThread(Thread t) {
-        return t instanceof FiberWorkerThread;
-    }
+    public abstract Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit);
 
-    private class FiberWorkerThread extends ExtendedForkJoinWorkerThread {
-        public FiberWorkerThread(ForkJoinPool pool) {
-            super(pool);
-        }
+    protected abstract Map<Thread, Fiber> getRunningFibers();
 
-        @Override
-        protected void onStart() {
-            super.onStart();
-            activeThreads.add(this);
-        }
+    protected abstract int getQueueLength();
 
-        @Override
-        protected void onTermination(Throwable exception) {
-            super.onTermination(exception);
-            activeThreads.remove(this);
-        }
+    protected abstract int getTimedQueueLength();
+
+    protected abstract boolean isCurrentThreadInScheduler();
+
+    protected void setCurrentFiber(Fiber fiber, Thread currentThread) {
+        Fiber.currentFiber.set(fiber);
     }
 
-    Map<Thread, Fiber> getRunningFibers() {
-        Map<Thread, Fiber> fibers = new HashMap<>(activeThreads.size() + 2);
-        for (FiberWorkerThread t : activeThreads)
-            fibers.put(t, Fiber.getTargetFiber(t));
-        return fibers;
-    }
+    protected abstract void setCurrentTarget(Object target, Thread currentThread);
+
+    protected abstract Object getCurrentTarget(Thread currentThread);
+
+    protected abstract <V> FiberTask<V> newFiberTask(Fiber<V> fiber);
 }

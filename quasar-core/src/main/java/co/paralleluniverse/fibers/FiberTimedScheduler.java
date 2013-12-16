@@ -106,7 +106,7 @@ public class FiberTimedScheduler {
     public Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit) {
         if (fiber == null || unit == null)
             throw new NullPointerException();
-        assert fiber.getFjPool() == scheduler.getForkJoinPool();
+        assert fiber.getScheduler() == scheduler;
         ScheduledFutureTask t = new ScheduledFutureTask(fiber, blocker, triggerTime(delay, unit));
         delayedExecute(t);
         return t;
@@ -123,7 +123,7 @@ public class FiberTimedScheduler {
                     if (task != null && !task.isCancelled()) {
                         long delay = task.delay;
                         if (BACKPRESSURE && (counter & BACKPRESSURE_MASK) == 0) {
-                            while (scheduler.getForkJoinPool().getQueuedSubmissionCount() > BACKPRESSURE_THRESHOLD)
+                            while (scheduler.getQueueLength() > BACKPRESSURE_THRESHOLD)
                                 Thread.sleep(BACKPRESSURE_PAUSE_MS);
                             delay = now() - task.time;
                         }
@@ -431,7 +431,7 @@ public class FiberTimedScheduler {
     }
 
     private void reportProblemFibers(Collection<Fiber> fs) {
-        scheduler.getFibersMonitor().setRunawayFibers(fs);
+        scheduler.getMonitor().setRunawayFibers(fs);
 
         for (Fiber f : fs) {
             Thread t = f.getRunningThread();
