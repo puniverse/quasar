@@ -14,14 +14,19 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.util.Exceptions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.MapMaker;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
@@ -61,6 +66,8 @@ class InstanceUpgrader<T> {
     private final Map<FieldDesc, Field> staticFields;
     private final ConcurrentMap<Class, Copier> copiers;
     private final Constructor<T> ctor;
+    private final List<Method> onUpgradeInstance;
+    private final List<Method> onUpgradeStatic;
 
     public InstanceUpgrader(Class<T> toClass) {
         this.toClass = toClass;
@@ -87,6 +94,22 @@ class InstanceUpgrader<T> {
             sf.setAccessible(true);
 
         this.ctor = getNoArgConstructor(toClass);
+
+        List<Method> upgradeMethods = getOnUpgradeMethods(toClass, new ArrayList<Method>());
+        ImmutableList.Builder<Method> ouib = ImmutableList.builder();
+        ImmutableList.Builder<Method> ousb = ImmutableList.builder();
+        for (Method m : upgradeMethods) {
+            if (m.getParameterTypes().length > 0) {
+                LOG.warn("@OnUpgrade method {} takes arguments and will therefore not be invoked.", m);
+            } else {
+                if (Modifier.isStatic(m.getModifiers()))
+                    ousb.add(m);
+                else
+                    ouib.add(m);
+            }
+        }
+        onUpgradeInstance = ouib.build();
+        onUpgradeStatic = ousb.build();
     }
 
     private static <T> Constructor<T> getNoArgConstructor(Class<T> clazz) {
@@ -158,30 +181,38 @@ class InstanceUpgrader<T> {
                 throw new IllegalArgumentException("'fromClass' " + fromClass.getName() + " is not a version of 'toClass' " + toClass.getName());
 
             // static fields
-            try {
-                Map<FieldDesc, Field> sfs = getStaticFields(fromClass, new HashMap<FieldDesc, Field>());
-                for (Map.Entry<FieldDesc, Field> e : sfs.entrySet()) {
-                    Field tf = staticFields.get(e.getKey());
-                    
-                    Field ff = e.getValue();
-                    ff.setAccessible(true);
+            synchronized (InstanceUpgrader.this) {
+                try {
+                    Map<FieldDesc, Field> sfs = getStaticFields(fromClass, new HashMap<FieldDesc, Field>());
+                    for (Map.Entry<FieldDesc, Field> e : sfs.entrySet()) {
+                        Field tf = staticFields.get(e.getKey());
 
-                    if (tf != null && !Modifier.isFinal(tf.getModifiers())) {
-                        final Object fromFieldValue = ff.get(null);
-                        final Object toFieldValue;
+                        Field ff = e.getValue();
+                        ff.setAccessible(true);
 
-                        if (tf.getType().isAssignableFrom(ff.getType()))
-                            toFieldValue = fromFieldValue;
-                        else if (tf.getType().getName().equals(ff.getType().getName()))
-                            toFieldValue = instanceUpgrader.get(tf.getType()).getCopier(ff.getType()).copy(fromFieldValue);
-                        else
-                            continue;
-                        LOG.debug("== static: {} <- {}: {} ({})", tf, ff, toFieldValue, fromFieldValue);
-                        tf.set(null, toFieldValue);
+                        if (tf != null && !Modifier.isFinal(tf.getModifiers())) {
+                            final Object fromFieldValue = ff.get(null);
+                            final Object toFieldValue;
+
+                            if (tf.getType().isAssignableFrom(ff.getType()))
+                                toFieldValue = fromFieldValue;
+                            else if (tf.getType().getName().equals(ff.getType().getName()))
+                                toFieldValue = instanceUpgrader.get(tf.getType()).getCopier(ff.getType()).copy(fromFieldValue);
+                            else
+                                continue;
+                            LOG.debug("== static: {} <- {}: {} ({})", tf, ff, toFieldValue, fromFieldValue);
+                            tf.set(null, toFieldValue);
+                        }
                     }
+                    try {
+                        for (Method m : onUpgradeStatic)
+                            m.invoke(null);
+                    } catch (InvocationTargetException e) {
+                        throw Exceptions.rethrow(e.getCause());
+                    }
+                } catch (IllegalAccessException e) {
+                    throw new AssertionError(e);
                 }
-            } catch (IllegalAccessException e) {
-                throw new AssertionError(e);
             }
 
             // instance fields
@@ -243,6 +274,12 @@ class InstanceUpgrader<T> {
                     //LOG.debug("== {} <- {}: {} ({})", toFields[i], fromFields[i], toFieldValue, fromFieldValue);
                     toFields[i].set(to, toFieldValue);
                 }
+                try {
+                    for (Method m : onUpgradeInstance)
+                        m.invoke(to);
+                } catch (InvocationTargetException e) {
+                    throw Exceptions.rethrow(e.getCause());
+                }
                 return to;
             } catch (IllegalAccessException | InstantiationException | InvocationTargetException e) {
                 throw new AssertionError(e);
@@ -250,7 +287,7 @@ class InstanceUpgrader<T> {
         }
 
         Object copy(Object from) {
-            if(from == null)
+            if (from == null)
                 return null;
             if (ctor == null)
                 throw new RuntimeException("Class " + toClass.getName()
@@ -287,6 +324,13 @@ class InstanceUpgrader<T> {
         }
 
         return getStaticFields(clazz.getSuperclass(), fields);
+    }
+
+    private static <T extends Collection<Method>> T getOnUpgradeMethods(Class<?> clazz, T methods) {
+        if (clazz == null)
+            return methods;
+        methods.addAll(Arrays.asList(clazz.getDeclaredMethods()));
+        return methods;
     }
 
     static void setFinalStatic(Field field, Object newValue) throws IllegalAccessException {
