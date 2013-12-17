@@ -13,8 +13,6 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-
 class CodeSwap extends Error /* SuspendExecution */ {
     static final CodeSwap CODE_SWAP = new CodeSwap();
     private CodeSwap() {
