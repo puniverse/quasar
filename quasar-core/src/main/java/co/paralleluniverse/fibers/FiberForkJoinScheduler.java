@@ -121,17 +121,17 @@ public class FiberForkJoinScheduler extends FiberScheduler {
     }
 
     @Override
-    public Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit) {
+    Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit) {
         return timer.schedule(fiber, blocker, delay, unit);
     }
 
     @Override
-    protected <V> FiberTask<V> newFiberTask(Fiber<V> fiber) {
+    <V> FiberTask<V> newFiberTask(Fiber<V> fiber) {
         return new FiberForkJoinTask<V>(fiber, fjPool);
     }
 
     @Override
-    protected Map<Thread, Fiber> getRunningFibers() {
+    Map<Thread, Fiber> getRunningFibers() {
         Map<Thread, Fiber> fibers = new HashMap<>(activeThreads.size() + 2);
         for (FiberWorkerThread t : activeThreads)
             fibers.put(t, getTargetFiber(t));
@@ -144,38 +144,38 @@ public class FiberForkJoinScheduler extends FiberScheduler {
     }
 
     @Override
-    protected int getTimedQueueLength() {
+    int getTimedQueueLength() {
         return timer.getQueueLength();
     }
 
     @Override
-    protected boolean isCurrentThreadInScheduler() {
+    protected final boolean isCurrentThreadInScheduler() {
         return ForkJoinTask.getPool() == fjPool;
     }
 
     static boolean isFiberThread(Thread t) {
         return t instanceof FiberWorkerThread;
     }
-   
+
     static Fiber getTargetFiber(Thread thread) {
         final Object target = ParkableForkJoinTask.getTarget(thread);
         if (target == null || !(target instanceof Fiber.DummyRunnable))
             return null;
         return ((Fiber.DummyRunnable) target).fiber;
     }
-    
+
     @Override
-    protected void setCurrentFiber(Fiber target, Thread currentThread) {
+    void setCurrentFiber(Fiber target, Thread currentThread) {
         setCurrentTarget(target.fiberRef, currentThread);
     }
 
     @Override
-    protected void setCurrentTarget(Object target, Thread currentThread) {
+    void setCurrentTarget(Object target, Thread currentThread) {
         ParkableForkJoinTask.setTarget(currentThread, target);
     }
 
     @Override
-    protected Object getCurrentTarget(Thread currentThread) {
+    Object getCurrentTarget(Thread currentThread) {
         return ParkableForkJoinTask.getTarget(currentThread);
     }
 
@@ -224,6 +224,16 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         @Override
         protected boolean exec1() {
             return fiber.exec1();
+        }
+
+        @Override
+        public boolean doExec() {
+            boolean done;
+            if (!(done = isDone())) {
+                if ((done = super.exec()))
+                    quietlyComplete();
+            }
+            return done;
         }
 
         @Override
@@ -293,11 +303,6 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         @Override
         public int getState() {
             return super.getState();
-        }
-
-        @Override
-        public boolean exec() {
-            return super.exec();
         }
 
         @Override

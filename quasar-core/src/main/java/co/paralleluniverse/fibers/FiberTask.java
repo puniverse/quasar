@@ -27,8 +27,8 @@ interface FiberTask<V> {
     public static final int PARKED = -1;
     public static final int PARKING = -2;
 
-    boolean exec();
-
+    boolean doExec();
+    
     boolean isDone();
 
     void submit();
@@ -38,14 +38,6 @@ interface FiberTask<V> {
     V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException;
 
     int getState();
-
-    /**
-     * Completes this task normally without setting a value. The most
-     * recent value established by {@link #setRawResult} (or {@code
-     * null} by default) will be returned as the result of subsequent
-     * invocations of {@code join} and related operations.
-     */
-    void quietlyComplete();
 
     boolean park(Object blocker, boolean exclusive) throws SuspendExecution;
 

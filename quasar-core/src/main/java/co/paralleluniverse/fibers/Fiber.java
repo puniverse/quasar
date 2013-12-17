@@ -101,7 +101,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private long run;
     private boolean noPreempt;
     private int preemptionCredits;
-    private long runStart;
     private Thread runningThread;
     private final SuspendableCallable<V> target;
     private ClassLoader contextClassLoader;
@@ -639,7 +638,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         run++;
         preemptionCredits = PREEMPTION_CREDITS;
-        runStart = 0L;
         runningThread = currentThread;
         state = State.RUNNING;
 
@@ -1057,8 +1055,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         this.noPreempt = true;
         //this.inExec = true;
-        if (task.exec())
-            task.quietlyComplete();
+        task.doExec();
     }
 
 //    boolean isInExec() {
@@ -1492,7 +1489,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     final boolean exec() {
         if (!Debug.isUnitTest())
             throw new AssertionError("This method can only be called by unit tests");
-        return task.exec();
+        return exec1();
     }
 
     @VisibleForTesting

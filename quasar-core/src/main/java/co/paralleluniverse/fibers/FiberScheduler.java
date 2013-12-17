@@ -25,9 +25,11 @@ import java.util.concurrent.TimeUnit;
  */
 public abstract class FiberScheduler {
     static final FibersMonitor NOOP_FIBERS_MONITOR = new NoopFibersMonitor();
+    private final String name;
     private final FibersMonitor fibersMonitor;
 
     FiberScheduler(String name, MonitorType monitorType, boolean detailedInfo) {
+        this.name = name;
         fibersMonitor = createFibersMonitor(name, this, monitorType, detailedInfo);
     }
 
@@ -46,27 +48,31 @@ public abstract class FiberScheduler {
         }
     }
 
+    public String getName() {
+        return name;
+    }
+
     protected FibersMonitor getMonitor() {
         return fibersMonitor;
     }
 
-    public abstract Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit);
+    abstract Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit);
 
-    protected abstract Map<Thread, Fiber> getRunningFibers();
+    abstract Map<Thread, Fiber> getRunningFibers();
 
     protected abstract int getQueueLength();
 
-    protected abstract int getTimedQueueLength();
+    abstract int getTimedQueueLength();
 
     protected abstract boolean isCurrentThreadInScheduler();
 
-    protected void setCurrentFiber(Fiber fiber, Thread currentThread) {
+    void setCurrentFiber(Fiber fiber, Thread currentThread) {
         Fiber.currentFiber.set(fiber);
     }
 
-    protected abstract void setCurrentTarget(Object target, Thread currentThread);
+    abstract void setCurrentTarget(Object target, Thread currentThread);
 
-    protected abstract Object getCurrentTarget(Thread currentThread);
+    abstract Object getCurrentTarget(Thread currentThread);
 
-    protected abstract <V> FiberTask<V> newFiberTask(Fiber<V> fiber);
+    abstract <V> FiberTask<V> newFiberTask(Fiber<V> fiber);
 }
