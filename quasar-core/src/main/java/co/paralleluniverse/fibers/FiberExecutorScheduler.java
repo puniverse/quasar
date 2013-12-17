@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public class FiberExecutorScheduler extends FiberScheduler {
+public class FiberExecutorScheduler extends FiberScheduler implements Executor {
     private final Executor executor;
     private final FiberTimedScheduler timer;
 
@@ -53,11 +53,17 @@ public class FiberExecutorScheduler extends FiberScheduler {
 
     @Override
     protected int getQueueLength() {
-        if (executor instanceof ThreadPoolExecutor)
+        if (executor instanceof ThreadPoolExecutor) {
             return ((ThreadPoolExecutor) executor).getQueue().size();
+        }
         return -1;
     }
 
+    @Override
+    public void execute(Runnable command) {
+        executor.execute(command);
+    }
+    
     @Override
     protected Map<Thread, Fiber> getRunningFibers() {
         return null;
@@ -74,7 +80,7 @@ public class FiberExecutorScheduler extends FiberScheduler {
 
     @Override
     <V> FiberTask<V> newFiberTask(Fiber<V> fiber) {
-        return new RunnableFiberTask<V>(fiber, executor);
+        return new RunnableFiberTask<V>(fiber, this);
     }
 
     @Override
