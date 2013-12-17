@@ -1,4 +1,4 @@
-# Quasar [![Build Status](https://travis-ci.org/puniverse/quasar.png?branch=master)](https://travis-ci.org/puniverse/quasar) [![Dependency Status](http://www.versioneye.com/user/projects/525be659632bac578f002552/badge.png)](http://www.versioneye.com/user/projects/525be659632bac578f002552)<br/>Lightweight threads and actors for the JVM
+# Quasar [![Build Status](https://travis-ci.org/puniverse/quasar.png?branch=master)](https://travis-ci.org/puniverse/quasar)[![Dependency Status](https://www.versioneye.com/user/projects/52b019baec1375ace70000de/badge.png)](https://www.versioneye.com/user/projects/52b019baec1375ace70000de)<br/>Lightweight threads and actors for the JVM
 
 
 ## Getting started
