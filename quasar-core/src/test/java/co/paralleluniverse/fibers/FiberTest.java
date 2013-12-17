@@ -19,7 +19,10 @@ import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.After;
@@ -29,16 +32,31 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.hamcrest.CoreMatchers.*;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /**
  *
  * @author pron
  */
+@RunWith(Parameterized.class)
 public class FiberTest {
     private FiberScheduler scheduler;
 
-    public FiberTest() {
-        scheduler = new FiberForkJoinScheduler("test", 4, null, false);
+//    public FiberTest() {
+//        this.scheduler = new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1)); 
+//        // this.scheduler = new FiberForkJoinScheduler("test", 4, null, false);
+//    }
+    public FiberTest(FiberScheduler scheduler) {
+        this.scheduler = scheduler;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][]{
+                    {new FiberForkJoinScheduler("test", 4, null, false)},
+                    {new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1))},
+        });
     }
 
     @BeforeClass

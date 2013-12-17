@@ -97,7 +97,7 @@ class MetricsFibersMonitor implements FibersMonitor {
 
     @Override
     public void setRunawayFibers(Collection<Fiber> fs) {
-        if (fs.isEmpty())
+        if (fs == null || fs.isEmpty())
             this.problemFibers = null;
         else {
             this.problemFibers = new HashMap<>();

@@ -186,7 +186,7 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
 
     @Override
     public void setRunawayFibers(Collection<Fiber> fs) {
-        if (fs.isEmpty())
+        if (fs == null || fs.isEmpty())
             this.problemFibers = null;
         else {
             Map<Fiber, StackTraceElement[]> map = new HashMap<>();
@@ -211,7 +211,6 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
                 map.put(f, st);
             }
             this.problemFibers = map;
-
         }
     }
 

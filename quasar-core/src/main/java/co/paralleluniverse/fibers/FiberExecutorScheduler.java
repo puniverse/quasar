@@ -34,7 +34,8 @@ public class FiberExecutorScheduler extends FiberScheduler implements Executor {
      * Creates a new fiber scheduler.
      *
      * @param name         the scheuler's name. This name is used in naming the scheduler's threads.
-     * @param executor     an {@link Executor} used to schedule the fibers
+     * @param executor     an {@link Executor} used to schedule the fibers;
+     *                     may be {@code null} if the {@link #execute(Runnable)} method is overriden.
      * @param monitorType  the {@link MonitorType} type to use for the scheduler.
      * @param detailedInfo whether detailed information about the fibers is collected by the fibers monitor.
      */
@@ -44,6 +45,17 @@ public class FiberExecutorScheduler extends FiberScheduler implements Executor {
         this.timer = new FiberTimedScheduler(this,
                 new ThreadFactoryBuilder().setDaemon(true).setNameFormat("FiberTimedScheduler-" + getName()).build(),
                 getMonitor());
+    }
+
+    /**
+     * Creates a new fiber scheduler with no monitor.
+     *
+     * @param name         the scheuler's name. This name is used in naming the scheduler's threads.
+     * @param executor     an {@link Executor} used to schedule the fibers;
+     *                     may be {@code null} if the {@link #execute(Runnable)} method is overriden.
+     */
+    public FiberExecutorScheduler(String name, Executor executor) {
+        this(name, executor, null, false);
     }
 
     @Override
@@ -63,7 +75,7 @@ public class FiberExecutorScheduler extends FiberScheduler implements Executor {
     public void execute(Runnable command) {
         executor.execute(command);
     }
-    
+
     @Override
     protected Map<Thread, Fiber> getRunningFibers() {
         return null;

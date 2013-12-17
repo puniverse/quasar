@@ -405,7 +405,10 @@ public class FiberTimedScheduler {
     private Collection<Fiber> findProblemFibers(long now, long nanos) {
         final List<Fiber> pfs = new ArrayList<Fiber>();
         final Map<Thread, Fiber> fibs = scheduler.getRunningFibers();
-
+        
+        if(fibs == null)
+            return null;
+        
         fibersInfo.keySet().retainAll(fibs.keySet());
 
         for (Iterator<Map.Entry<Thread, Fiber>> it = fibs.entrySet().iterator(); it.hasNext();) {
@@ -433,6 +436,9 @@ public class FiberTimedScheduler {
     private void reportProblemFibers(Collection<Fiber> fs) {
         scheduler.getMonitor().setRunawayFibers(fs);
 
+        if(fs == null)
+            return;
+        
         for (Fiber f : fs) {
             Thread t = f.getRunningThread();
             if (t == null)

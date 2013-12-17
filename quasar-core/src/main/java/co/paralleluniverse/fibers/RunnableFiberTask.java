@@ -54,11 +54,13 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
     }
 
     @Override
+    @Suspendable
     public Object get() throws InterruptedException, ExecutionException {
         return future.get();
     }
 
     @Override
+    @Suspendable
     public Object get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return future.get(timeout, unit);
     }
@@ -76,7 +78,6 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
             onExec();
             boolean res = fiber.exec1();
             onCompletion(res);
-
             return res;
         } catch (Throwable t) {
             onException(t);

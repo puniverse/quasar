@@ -1128,21 +1128,25 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     @Override
+    @Suspendable
     public final void join() throws ExecutionException, InterruptedException {
         get();
     }
 
     @Override
+    @Suspendable
     public final void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
         get(timeout, unit);
     }
 
     @Override
+    @Suspendable
     public final V get() throws ExecutionException, InterruptedException {
         return task.get();
     }
 
     @Override
+    @Suspendable
     public final V get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
         return task.get(timeout, unit);
     }
