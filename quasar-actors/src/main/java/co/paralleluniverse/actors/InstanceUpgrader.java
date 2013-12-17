@@ -17,13 +17,13 @@ import co.paralleluniverse.common.util.Exceptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.MapMaker;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -95,13 +95,14 @@ class InstanceUpgrader<T> {
 
         this.ctor = getNoArgConstructor(toClass);
 
-        List<Method> upgradeMethods = getOnUpgradeMethods(toClass, new ArrayList<Method>());
+        List<Method> upgradeMethods = getAnnotatedMethods(toClass, OnUpgrade.class, new ArrayList<Method>());
         ImmutableList.Builder<Method> ouib = ImmutableList.builder();
         ImmutableList.Builder<Method> ousb = ImmutableList.builder();
         for (Method m : upgradeMethods) {
             if (m.getParameterTypes().length > 0) {
                 LOG.warn("@OnUpgrade method {} takes arguments and will therefore not be invoked.", m);
             } else {
+                m.setAccessible(true);
                 if (Modifier.isStatic(m.getModifiers()))
                     ousb.add(m);
                 else
@@ -326,10 +327,13 @@ class InstanceUpgrader<T> {
         return getStaticFields(clazz.getSuperclass(), fields);
     }
 
-    private static <T extends Collection<Method>> T getOnUpgradeMethods(Class<?> clazz, T methods) {
+    private static <T extends Collection<Method>> T getAnnotatedMethods(Class<?> clazz, Class<? extends Annotation> ann, T methods) {
         if (clazz == null)
             return methods;
-        methods.addAll(Arrays.asList(clazz.getDeclaredMethods()));
+        for (Method m : clazz.getDeclaredMethods()) {
+            if (m.getAnnotation(ann) != null)
+                methods.add(m);
+        }
         return methods;
     }
 
