@@ -17,7 +17,7 @@
 /*
  * Based on code from apache.commons-lang, released under the Apache License 2.0
  */
-package co.paralleluniverse.actors;
+package co.paralleluniverse.common.reflection;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
@@ -27,7 +27,9 @@ import java.util.Map;
  *
  * @author pron
  */
-class ReflectionUtil {
+public final class ReflectionUtil {
+    private ReflectionUtil() {}
+    
     public static Class<?>[] getTypes(Object... vals) {
         Class<?>[] types = new Class[vals.length];
         for (int i = 0; i < vals.length; i++)
