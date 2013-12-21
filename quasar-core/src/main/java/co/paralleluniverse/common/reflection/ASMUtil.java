@@ -14,6 +14,7 @@
 package co.paralleluniverse.common.reflection;
 
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToResource;
+import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToSlashed;
 import com.google.common.io.ByteStreams;
 import java.io.File;
 import java.io.FileInputStream;
@@ -124,10 +125,14 @@ public final class ASMUtil {
     }
 
     public static boolean isAssignableFrom(Class<?> supertype, String className, ClassLoader cl) {
-        return isAssignableFrom(supertype.getName(), className, cl);
+        return isAssignableFrom0(classToSlashed(supertype), className, cl);
     }
 
     public static boolean isAssignableFrom(String supertypeName, String className, ClassLoader cl) {
+        return isAssignableFrom0(classToSlashed(supertypeName), className, cl);
+    }
+    
+    private static boolean isAssignableFrom0(String supertypeName, String className, ClassLoader cl) {        
         try {
             if (className == null)
                 return false;
@@ -150,7 +155,8 @@ public final class ASMUtil {
             }
             return false;
         } catch (IOException e) {
-            throw new RuntimeException();
+            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 
