@@ -52,7 +52,8 @@ class ActorModule extends URLClassLoader {
     public ActorModule(URL jarUrl, ActorLoader parent) {
         super(new URL[]{jarUrl}, null);
         this.url = jarUrl;
-
+        this.parent = parent; // must be done last, after scanning
+        
         // determine upgrade classes
         try {
             JarFile jar = new JarFile(new File(jarUrl.toURI()));
@@ -69,8 +70,12 @@ class ActorModule extends URLClassLoader {
                             if (!isClassFile(resource))
                                 return;
                             final String className = ClassLoaderUtil.resourceToClass(resource);
+//                            System.out.println("className: " + className + " "
+//                                    + ASMUtil.isAssignableFrom(Actor.class, className, ActorModule.this) + " "
+//                                    + " " + url + " " + ActorModule.this.parent.getResource(resource) + " "
+//                                    + equalContent(ActorModule.this.parent.getResource(resource), url));                  
                             if (ASMUtil.isAssignableFrom(Actor.class, className, ActorModule.this)
-                                    && !equalContent(ActorModule.this.getParent().getResource(resource), url))
+                                    && !equalContent(ActorModule.this.parent.getResource(resource), url))
                                 builder.add(className);
                         }
                     });
@@ -98,9 +103,7 @@ class ActorModule extends URLClassLoader {
             this.upgradeClasses = builder.build();
         } catch (IOException | URISyntaxException e) {
             throw new RuntimeException(e);
-        }
-
-        this.parent = parent; // must be done last, after scanning
+        }        
     }
 
     public URL getURL() {
@@ -164,7 +167,7 @@ class ActorModule extends URLClassLoader {
     public URL getResource(String name) {
         URL url = super.getResource(name);
         if (url != null)
-            LOG.info("{} - getResource {}", this, name);
+            LOG.info("{} - getResource {}: {}", this, name, url);
         if (url == null && parent != null)
             url = parent.getResource(name);
         return url;
