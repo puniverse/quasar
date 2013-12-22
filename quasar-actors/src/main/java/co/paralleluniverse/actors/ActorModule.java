@@ -52,7 +52,7 @@ class ActorModule extends URLClassLoader {
     public ActorModule(URL jarUrl, ActorLoader parent) {
         super(new URL[]{jarUrl}, null);
         this.url = jarUrl;
-        this.parent = parent; // must be done last, after scanning
+        this.parent = parent;
         
         // determine upgrade classes
         try {
