@@ -78,7 +78,6 @@ subprojects {
         compile "org.apache.ant:ant:1.9.2"
         compile "com.google.guava:guava:15.0"
         compile "org.slf4j:slf4j-api:1.7.5"
-        // compile 'org.mutabilitydetector:MutabilityDetector:0.9'
 	//  runtime "org.slf4j:slf4j-jdk14:1.7.5"
         runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0-beta9"
         runtime "org.apache.logging.log4j:log4j-api:2.0-beta9"
@@ -322,6 +321,7 @@ project (':quasar-actors') {
     
     dependencies {
         compile project(':quasar-core')
+        // compile 'org.mutabilitydetector:MutabilityDetector:0.9'
     }
 }
 
@@ -369,6 +369,7 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
         "co/paralleluniverse/actors/JMXActorMonitor.java",
         "co/paralleluniverse/actors/LifecycleListener.java",
         "co/paralleluniverse/actors/LifecycleListenerProxy.java",
+        "co/paralleluniverse/actors/MutabilityTester.java",
         "co/paralleluniverse/actors/RemoteActorProxyFactoryService.java",
         "co/paralleluniverse/actors/RemoteActorRef.java",
         "co/paralleluniverse/actors/RemoteActorProxyFactory.java",

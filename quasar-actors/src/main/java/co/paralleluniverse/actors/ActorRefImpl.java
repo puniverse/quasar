@@ -68,6 +68,7 @@ abstract class ActorRefImpl<Message> extends ActorRef<Message> implements SendPo
 
     @Override
     public final void send(Message message) throws SuspendExecution {
+        MutabilityTester.testMutability(message);
         try {
             internalSend(message);
         } catch (QueueCapacityExceededException e) {

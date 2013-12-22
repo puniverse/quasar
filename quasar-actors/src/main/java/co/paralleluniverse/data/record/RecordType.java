@@ -12,6 +12,7 @@
  */
 package co.paralleluniverse.data.record;
 
+import co.paralleluniverse.actors.MutabilityTester;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.TypeToken;
 import java.lang.invoke.MethodHandle;
@@ -25,6 +26,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
 import jsr166e.ConcurrentHashMapV8;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Represents a record type, and includes a name, and a list of fields along with their names and types.
@@ -52,6 +55,7 @@ import jsr166e.ConcurrentHashMapV8;
  * @author pron
  */
 public class RecordType<R> {
+    private static final Logger LOG = LoggerFactory.getLogger(RecordType.class);
     public enum Mode {
         /**
          * About 2.5 times slower than REFLECTION in Java 7, but doesn't use boxing and doesn't generate garbage. The default.
@@ -711,8 +715,9 @@ public class RecordType<R> {
             if (!setters.isEmpty())
                 sb.append(' ').append("Public setters: ").append(setters).append('.');
 
-            System.err.println(sb);
+            LOG.warn(sb.toString());
         }
+        MutabilityTester.testMutability(clazz);
 
         return clazz;
     }
