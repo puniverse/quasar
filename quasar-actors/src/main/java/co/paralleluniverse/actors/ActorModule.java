@@ -133,7 +133,8 @@ class ActorModule extends URLClassLoader {
 
         LOG.debug("findClass {} in module {}", name, this);
         boolean isUpgraded = upgradeClasses.contains(name);
-        if (!isUpgraded && parent != null) {
+        if (!isUpgraded && parent != null 
+                && !name.contains("$")) { // if class is possibly an inner class, don't use parent's, which will be in a different runtime package
             try {
                 String resourceName = classToResource(name);
                 URL parentUrl = parent.getResource(resourceName);

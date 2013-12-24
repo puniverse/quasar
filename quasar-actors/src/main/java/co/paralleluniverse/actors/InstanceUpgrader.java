@@ -81,10 +81,12 @@ class InstanceUpgrader<T> {
             Constructor innerClassCtor = null;
             if (Objects.equals(f.getType().getEnclosingClass(), toClass)) {
                 try {
-                    innerClassCtor = f.getType().getConstructor(toClass);
+                    innerClassCtor = f.getType().getDeclaredConstructor(toClass);
+                    innerClassCtor.setAccessible(true);
                 } catch (NoSuchMethodException e) {
                 }
             }
+            
             builder.put(entry.getKey(), new FieldInfo(f, innerClassCtor));
         }
         this.fields = builder.build();
