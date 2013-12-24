@@ -172,6 +172,7 @@ class InstanceUpgrader<T> {
     }
 
     private class Copier<T> {
+        private final Class<T> fromClass;
         private final Field[] fromFields;
         private final Field[] toFields;
         private final Constructor[] innerClassConstructor;
@@ -180,6 +181,8 @@ class InstanceUpgrader<T> {
         Copier(Class<T> fromClass) {
             if (!fromClass.getName().equals(toClass.getName()))
                 throw new IllegalArgumentException("'fromClass' " + fromClass.getName() + " is not a version of 'toClass' " + toClass.getName());
+
+            this.fromClass = fromClass;
 
             // static fields
             synchronized (InstanceUpgrader.this) {
@@ -233,6 +236,8 @@ class InstanceUpgrader<T> {
                     Constructor innerClassCtor = null;
                     Copier fc = null;
 
+                    if ("this$0".equals(tf.getName()))
+                        continue;
                     if (Objects.equals(ff.getType().getEnclosingClass(), fromClass)
                             && Objects.equals(tf.getType().getEnclosingClass(), toClass)) {
                         innerClassCtor = tfi.innerClassCtor;
@@ -264,12 +269,28 @@ class InstanceUpgrader<T> {
                 for (int i = 0; i < fromFields.length; i++) {
                     final Object fromFieldValue = fromFields[i].get(from);
                     final Object toFieldValue;
-                    if (innerClassConstructor[i] != null) {
-                        toFieldValue = innerClassConstructor[i].newInstance(to);
-                        fieldCopier[i].copy(fromFieldValue, toFieldValue);
-                    } else if (fieldCopier[i] != null)
+                    if (innerClassConstructor[i] != null)
+                        toFieldValue = fieldCopier[i].copy(fromFieldValue, innerClassConstructor[i].newInstance(to));
+                    else if (fieldCopier[i] != null)
                         toFieldValue = fieldCopier[i].copy(fromFieldValue);
-                    else
+                    else if (fromFieldValue != null && isInnerClassOf(fromFieldValue.getClass(), fromClass)) {
+                        final Class<?> fromFieldValueClass = fromFieldValue.getClass();
+                        if (fromFieldValueClass.isAnonymousClass())
+                            toFieldValue = null;
+                        else {
+                            Object tfv = null;
+                            try {
+                                final Class<?> toFieldValueClass = toClass.getClassLoader().loadClass(fromFieldValueClass.getName());
+                                final Copier c = instanceUpgrader.get(toFieldValueClass).getCopier(fromFieldValueClass);
+                                final Constructor cstr = toFieldValueClass.getDeclaredConstructor(toClass);
+                                cstr.setAccessible(true);
+                                tfv = c.copy(fromFieldValue, cstr.newInstance(to));
+                            } catch (ClassNotFoundException | NoSuchMethodException e) {
+                                LOG.debug("Exception while copying " + fromFields[i] + " to " + toFields[i] + "(" + fromFieldValue + ")", e);
+                            }
+                            toFieldValue = tfv;
+                        }
+                    } else
                         toFieldValue = fromFieldValue;
 
                     //LOG.debug("== {} <- {}: {} ({})", toFields[i], fromFields[i], toFieldValue, fromFieldValue);
@@ -335,6 +356,19 @@ class InstanceUpgrader<T> {
                 methods.add(m);
         }
         return methods;
+    }
+
+    private static boolean isInnerClassOf(Class<?> maybeInner, Class<?> maybeOuter) {
+        return Objects.equals(maybeInner.getEnclosingClass(), maybeOuter) && hasField(maybeInner, "this$0");
+    }
+
+    private static boolean hasField(Class<?> clazz, String field) {
+        try {
+            clazz.getDeclaredField(field);
+            return true;
+        } catch (NoSuchFieldException e) {
+            return false;
+        }
     }
 
     static void setFinalStatic(Field field, Object newValue) throws IllegalAccessException {
