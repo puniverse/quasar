@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Debug {
     private static final boolean debugMode = Boolean.getBoolean("co.paralleluniverse.debugMode");
     private static final String FLIGHT_RECORDER_DUMP_FILE = System.getProperty("co.paralleluniverse.flightRecorderDumpFile");
-    private static final FlightRecorder flightRecorder = (Boolean.getBoolean("co.paralleluniverse.debugMode") && Boolean.getBoolean("co.paralleluniverse.globalFlightRecorder") ? new FlightRecorder("PUNIVERSE-FLIGHT-RECORDER") : null);
+    private static final FlightRecorder flightRecorder = (debugMode && Boolean.getBoolean("co.paralleluniverse.globalFlightRecorder") ? new FlightRecorder("PUNIVERSE-FLIGHT-RECORDER") : null);
     private static boolean recordStackTraces = false;
     private static final boolean assertionsEnabled;
     private static final boolean unitTest;
@@ -101,6 +101,8 @@ public class Debug {
             Thread.dumpStack();
             if (!isUnitTest()) // Calling System.exit() in gradle unit tests breaks gradle
                 System.exit(code);
+            else
+                dumpRecorder();
         }
     }
 
