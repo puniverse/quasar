@@ -37,7 +37,7 @@ public abstract class ActorRefDelegate<Message> extends ActorRef<Message> implem
     }
 
     protected boolean isInActor() {
-        return Objects.equals(ref, ActorRef.self());
+        return Objects.equals(ref, LocalActor.self());
     }
 
     @Override

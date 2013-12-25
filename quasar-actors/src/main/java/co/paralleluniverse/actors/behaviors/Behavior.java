@@ -18,6 +18,7 @@ import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorRefDelegate;
 import co.paralleluniverse.actors.ActorUtil;
+import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.fibers.Joinable;
 import java.util.concurrent.ExecutionException;
@@ -38,7 +39,7 @@ public class Behavior extends ActorRefDelegate<Object> implements java.io.Serial
      * Asks this actor to shut down. Works by sending a {@link ShutdownMessage} via {@link ActorUtil#sendOrInterrupt(ActorRef, Object) ActorUtil.sendOrInterrupt}.
      */
     public void shutdown() {
-        final ShutdownMessage message = new ShutdownMessage(ActorRef.self());
+        final ShutdownMessage message = new ShutdownMessage(LocalActor.self());
         ActorUtil.sendOrInterrupt(ref, message);
     }
 

@@ -16,7 +16,7 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.LocalActorUtil;
+import co.paralleluniverse.actors.LocalActor;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -162,7 +162,7 @@ public class Supervisor extends Behavior {
          * @param actor            the child actor
          */
         public ChildSpec(String id, ChildMode mode, int maxRestarts, long duration, TimeUnit unit, long shutdownDeadline, ActorRef<?> actor) {
-            this(id, mode, maxRestarts, duration, unit, shutdownDeadline, LocalActorUtil.toActorBuilder(actor));
+            this(id, mode, maxRestarts, duration, unit, shutdownDeadline, LocalActor.toActorBuilder(actor));
         }
 
         /**

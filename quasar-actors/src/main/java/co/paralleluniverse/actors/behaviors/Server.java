@@ -16,6 +16,7 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.LocalActor;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.from;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.makeId;
 import co.paralleluniverse.fibers.Joinable;
@@ -96,7 +97,7 @@ public class Server<CallMessage, V, CastMessage> extends Behavior {
      * @param m the request
      */
     public final void cast(CastMessage m) throws SuspendExecution {
-        ref.send(new ServerRequest(ActorRef.self(), makeId(), MessageType.CAST, m));
+        ref.send(new ServerRequest(LocalActor.self(), makeId(), MessageType.CAST, m));
     }
 
 //    public static void cast(ActorRef server, Object m) throws SuspendExecution {

@@ -18,8 +18,8 @@ import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.actors.ExitMessage;
 import co.paralleluniverse.actors.LifecycleMessage;
-import co.paralleluniverse.actors.LocalActorUtil;
-import static co.paralleluniverse.actors.LocalActorUtil.isLocal;
+import co.paralleluniverse.actors.LocalActor;
+import static co.paralleluniverse.actors.LocalActor.isLocal;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.ShutdownMessage;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
@@ -506,7 +506,7 @@ public class SupervisorActor extends BehaviorActor {
 
     private ActorRef<?> start(ChildEntry child) {
         final ActorRef old = child.actor;
-        if (old != null && !LocalActorUtil.isDone(old))
+        if (old != null && !LocalActor.isDone(old))
             throw new IllegalStateException("Actor " + child.actor + " cannot be restarted because it is not dead");
 
         final Actor actor = child.spec.builder.build();
@@ -515,8 +515,8 @@ public class SupervisorActor extends BehaviorActor {
 
         LOG.info("{} starting child {}", this, actor);
 
-        if (old != null && actor.getMonitor() == null && isLocal(old) && LocalActorUtil.getMonitor(old) != null)
-            actor.setMonitor(LocalActorUtil.getMonitor(old));
+        if (old != null && actor.getMonitor() == null && isLocal(old) && LocalActor.getMonitor(old) != null)
+            actor.setMonitor(LocalActor.getMonitor(old));
         if (actor.getMonitor() != null)
             actor.getMonitor().addRestart();
 
@@ -524,7 +524,7 @@ public class SupervisorActor extends BehaviorActor {
         if (actor.getStrand() != null)
             strand = actor.getStrand();
         else
-            strand = createStrandForActor(child.actor != null && isLocal(child.actor) ? LocalActorUtil.getStrand(child.actor) : null, actor);
+            strand = createStrandForActor(child.actor != null && isLocal(child.actor) ? LocalActor.getStrand(child.actor) : null, actor);
 
         try {
             strand.start();
@@ -545,7 +545,7 @@ public class SupervisorActor extends BehaviorActor {
     private void shutdownChild(ChildEntry child, boolean beforeRestart) throws InterruptedException {
         if (child.actor != null) {
             unwatch(child);
-            if (!isLocal(child.actor) || !LocalActorUtil.isDone(child.actor)) {
+            if (!isLocal(child.actor) || !LocalActor.isDone(child.actor)) {
                 LOG.info("{} shutting down child {}", this, child.actor);
                 ActorUtil.sendOrInterrupt(child.actor, new ShutdownMessage(this.ref()));
             }
@@ -555,7 +555,7 @@ public class SupervisorActor extends BehaviorActor {
                     joinChild(child);
                 } finally {
                     if (!beforeRestart)
-                        LocalActorUtil.stopMonitor(child.actor);
+                        LocalActor.stopMonitor(child.actor);
                 }
             }
             if (!beforeRestart)
@@ -577,7 +577,7 @@ public class SupervisorActor extends BehaviorActor {
                 try {
                     joinChild(child);
                 } finally {
-                    LocalActorUtil.stopMonitor(child.actor); // must be done after join to avoid a race with the actor
+                    LocalActor.stopMonitor(child.actor); // must be done after join to avoid a race with the actor
                 }
             }
             child.actor = null;
@@ -590,7 +590,7 @@ public class SupervisorActor extends BehaviorActor {
         LOG.debug("Joining child {}", child);
         if (child.actor != null) {
             try {
-                LocalActorUtil.join(actor, child.spec.shutdownDeadline, TimeUnit.MILLISECONDS);
+                LocalActor.join(actor, child.spec.shutdownDeadline, TimeUnit.MILLISECONDS);
                 LOG.debug("Child {} terminated normally", child.actor);
                 return true;
             } catch (ExecutionException ex) {
@@ -599,10 +599,10 @@ public class SupervisorActor extends BehaviorActor {
             } catch (TimeoutException ex) {
                 LOG.warn("Child {} shutdown timeout. Interrupting...", child.actor);
                 // is this the best we can do?
-                LocalActorUtil.getStrand(actor).interrupt();
+                LocalActor.getStrand(actor).interrupt();
 
                 try {
-                    LocalActorUtil.join(actor, child.spec.shutdownDeadline, TimeUnit.MILLISECONDS);
+                    LocalActor.join(actor, child.spec.shutdownDeadline, TimeUnit.MILLISECONDS);
                     return true;
                 } catch (ExecutionException e) {
                     LOG.info("Child {} terminated with exception {}", child.actor, ex.getCause());
@@ -610,8 +610,8 @@ public class SupervisorActor extends BehaviorActor {
                 } catch (TimeoutException e) {
                     LOG.warn("Child {} could not shut down...", child.actor);
 
-                    LocalActorUtil.stopMonitor(child.actor);
-                    LocalActorUtil.unregister(child.actor);
+                    LocalActor.stopMonitor(child.actor);
+                    LocalActor.unregister(child.actor);
                     child.actor = null;
 
                     return false;

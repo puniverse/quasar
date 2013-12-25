@@ -18,6 +18,7 @@ import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.actors.ExitMessage;
 import co.paralleluniverse.actors.LifecycleMessage;
+import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.MessageProcessor;
 import co.paralleluniverse.actors.SelectiveReceiveHelper;
@@ -139,7 +140,7 @@ public final class RequestReplyHelper {
      * @throws InterruptedException
      */
     public static <V> V call(final ActorRef actor, RequestMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
-        assert !actor.equals(ActorRef.self()) : "Can't \"call\" self - deadlock guaranteed";
+        assert !actor.equals(LocalActor.self()) : "Can't \"call\" self - deadlock guaranteed";
 
         if (m.getFrom() == null)
             m.setFrom(from());
@@ -246,7 +247,7 @@ public final class RequestReplyHelper {
     }
 
     private static ActorRef getCurrentActor() {
-        ActorRef actorRef = ActorRef.self();
+        ActorRef actorRef = LocalActor.self();
         if (actorRef == null) {
             // create a "dummy actor" on the current strand
             Actor actor = new Actor(Strand.currentStrand(), null, new MailboxConfig(5, OverflowPolicy.THROW)) {

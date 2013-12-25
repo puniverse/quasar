@@ -49,7 +49,7 @@ public class ActorRegistry {
         if (old != null && old.actor == actor.ref())
             return old.globalId;
 
-        if (old != null && LocalActorUtil.isLocal(old.actor) && !LocalActorUtil.isDone(old.actor))
+        if (old != null && LocalActor.isLocal(old.actor) && !LocalActor.isDone(old.actor))
             throw new RegistrationException("Actor " + old + " is not dead and is already registered under " + name);
 
         if (old != null)

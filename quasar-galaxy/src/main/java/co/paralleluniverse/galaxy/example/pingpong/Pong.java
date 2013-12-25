@@ -21,7 +21,7 @@ package co.paralleluniverse.galaxy.example.pingpong;
 
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.BasicActor;
-import co.paralleluniverse.actors.LocalActorUtil;
+import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.galaxy.example.pingpong.Message.Type.*;
 
@@ -57,7 +57,7 @@ public class Pong {
                 return null;
             }
         }.spawn();
-        LocalActorUtil.join(pong);
+        LocalActor.join(pong);
         System.out.println("finished pong");
         System.exit(0);
     }

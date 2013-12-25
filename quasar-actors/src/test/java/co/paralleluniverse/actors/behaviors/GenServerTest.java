@@ -20,7 +20,7 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.LocalActorUtil;
+import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
@@ -111,7 +111,7 @@ public class GenServerTest {
         Server<Message, Integer, Message> gs = spawnGenServer(server);
 
         try {
-            LocalActorUtil.join(gs, 100, TimeUnit.MILLISECONDS);
+            LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
             fail("actor died");
         } catch (TimeoutException e) {
         }
@@ -128,7 +128,7 @@ public class GenServerTest {
             }
         });
 
-        LocalActorUtil.join(gs, 100, TimeUnit.MILLISECONDS);
+        LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -150,7 +150,7 @@ public class GenServerTest {
         int res = actor.get();
         assertThat(res, is(7));
 
-        LocalActorUtil.join(gs, 100, TimeUnit.MILLISECONDS);
+        LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -167,7 +167,7 @@ public class GenServerTest {
 
         assertThat(res, is(7));
 
-        LocalActorUtil.join(gs, 100, TimeUnit.MILLISECONDS);
+        LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -192,7 +192,7 @@ public class GenServerTest {
         } catch (TimeoutException e) {
         }
 
-        LocalActorUtil.join(gs, 100, TimeUnit.MILLISECONDS);
+        LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -216,7 +216,7 @@ public class GenServerTest {
 
         actor.join();
         try {
-            LocalActorUtil.join(gs, 100, TimeUnit.MILLISECONDS);
+            LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
             fail("actor died");
         } catch (TimeoutException e) {
         }
@@ -237,7 +237,7 @@ public class GenServerTest {
         }
 
         try {
-            LocalActorUtil.join(gs, 100, TimeUnit.MILLISECONDS);
+            LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
             fail("actor died");
         } catch (TimeoutException e) {
         }
@@ -258,7 +258,7 @@ public class GenServerTest {
         }
 
         try {
-            LocalActorUtil.join(gs, 100, TimeUnit.MILLISECONDS);
+            LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause().getMessage(), equalTo("my exception"));
@@ -329,7 +329,7 @@ public class GenServerTest {
         int res = actor.get();
         assertThat(res, is(7));
 
-        LocalActorUtil.join(gs, 100, TimeUnit.MILLISECONDS);
+        LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -368,7 +368,7 @@ public class GenServerTest {
         int res = gs.call(new Message(3, 4));
 
         assertThat(res, is(7));
-        LocalActorUtil.join(gs, 100, TimeUnit.MILLISECONDS);
+        LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -402,7 +402,7 @@ public class GenServerTest {
         }
 
         try {
-            LocalActorUtil.join(gs, 100, TimeUnit.MILLISECONDS);
+            LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause().getMessage(), equalTo("my exception"));
@@ -417,7 +417,7 @@ public class GenServerTest {
         gs.cast(new Message(3, 4));
 
         gs.shutdown();
-        LocalActorUtil.join(gs);
+        LocalActor.join(gs);
 
         verify(server).handleCast(any(ActorRef.class), anyObject(), eq(new Message(3, 4)));
     }
@@ -430,7 +430,7 @@ public class GenServerTest {
         gs.send("foo");
 
         gs.shutdown();
-        LocalActorUtil.join(gs);
+        LocalActor.join(gs);
 
         verify(server).handleInfo("foo");
     }
@@ -441,7 +441,7 @@ public class GenServerTest {
         final Server<Message, Integer, Message> gs = spawnGenServer(server);
 
         gs.shutdown();
-        LocalActorUtil.join(gs);
+        LocalActor.join(gs);
 
         verify(server).terminate(null);
     }
@@ -457,7 +457,7 @@ public class GenServerTest {
         gs.send("foo");
 
         try {
-            LocalActorUtil.join(gs);
+            LocalActor.join(gs);
             fail();
         } catch (Exception e) {
             assertThat(e.getCause().getMessage(), equalTo("my exception"));

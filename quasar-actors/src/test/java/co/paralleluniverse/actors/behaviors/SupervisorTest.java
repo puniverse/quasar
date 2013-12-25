@@ -22,7 +22,7 @@ import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorSpec;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.LifecycleMessage;
-import co.paralleluniverse.actors.LocalActorUtil;
+import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildMode;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
@@ -172,10 +172,10 @@ public class SupervisorTest {
         for (int i = 0; i < 3; i++)
             a.send(1);
         a.send(new ShutdownMessage(null));
-        assertThat(LocalActorUtil.<Integer>get(a), is(3));
+        assertThat(LocalActor.<Integer>get(a), is(3));
 
         sup.shutdown();
-        LocalActorUtil.join(sup);
+        LocalActor.join(sup);
     }
 
     @Test
@@ -189,16 +189,16 @@ public class SupervisorTest {
         for (int i = 0; i < 3; i++)
             a.send(1);
         a.send(new ShutdownMessage(null));
-        assertThat(LocalActorUtil.<Integer>get(a), is(3));
+        assertThat(LocalActor.<Integer>get(a), is(3));
 
         a = getChild(sup, "actor1", 1000);
         for (int i = 0; i < 5; i++)
             a.send(1);
         a.send(new ShutdownMessage(null));
-        assertThat(LocalActorUtil.<Integer>get(a), is(5));
+        assertThat(LocalActor.<Integer>get(a), is(5));
 
         sup.shutdown();
-        LocalActorUtil.join(sup);
+        LocalActor.join(sup);
     }
 
     @Test
@@ -215,7 +215,7 @@ public class SupervisorTest {
             a.send(1);
 
             try {
-                LocalActorUtil.join(a);
+                LocalActor.join(a);
                 fail();
             } catch (ExecutionException e) {
             }
@@ -223,7 +223,7 @@ public class SupervisorTest {
             prevA = a;
         }
 
-        LocalActorUtil.join(sup, 20, TimeUnit.MILLISECONDS);
+        LocalActor.join(sup, 20, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -237,14 +237,14 @@ public class SupervisorTest {
         for (int i = 0; i < 3; i++)
             a.send(1);
         a.send(new ShutdownMessage(null));
-        assertThat(LocalActorUtil.<Integer>get(a), is(3));
+        assertThat(LocalActor.<Integer>get(a), is(3));
 
 
         a = getChild(sup, "actor1", 200);
         assertThat(a, nullValue());
 
         sup.shutdown();
-        LocalActorUtil.join(sup);
+        LocalActor.join(sup);
     }
 
     @Test
@@ -259,7 +259,7 @@ public class SupervisorTest {
             a.send(1);
         a.send(new ShutdownMessage(null));
         try {
-            LocalActorUtil.join(a);
+            LocalActor.join(a);
             fail();
         } catch (ExecutionException e) {
         }
@@ -268,7 +268,7 @@ public class SupervisorTest {
         assertThat(a, nullValue());
 
         sup.shutdown();
-        LocalActorUtil.join(sup);
+        LocalActor.join(sup);
     }
 
     @Test
@@ -282,13 +282,13 @@ public class SupervisorTest {
         for (int i = 0; i < 3; i++)
             a.send(1);
         a.send(new ShutdownMessage(null));
-        assertThat(LocalActorUtil.<Integer>get(a), is(3));
+        assertThat(LocalActor.<Integer>get(a), is(3));
 
         a = getChild(sup, "actor1", 200);
         assertThat(a, nullValue());
 
         sup.shutdown();
-        LocalActorUtil.join(sup);
+        LocalActor.join(sup);
     }
 
     @Test
@@ -303,7 +303,7 @@ public class SupervisorTest {
             a.send(1);
         a.send(new ShutdownMessage(null));
         try {
-            LocalActorUtil.join(a);
+            LocalActor.join(a);
             fail();
         } catch (ExecutionException e) {
         }
@@ -314,7 +314,7 @@ public class SupervisorTest {
         assertThat(b, not(equalTo(a)));
 
         sup.shutdown();
-        LocalActorUtil.join(sup);
+        LocalActor.join(sup);
     }
 
     private static class Actor2 extends BasicActor<Object, Integer> {
@@ -366,7 +366,7 @@ public class SupervisorTest {
         for (int i = 0; i < 3; i++)
             a.send(1);
         a.send(new ShutdownMessage(null));
-        assertThat(LocalActorUtil.<Integer>get(a), is(3));
+        assertThat(LocalActor.<Integer>get(a), is(3));
 
         a = getChild(sup, "actor1", 1000);
 
@@ -375,10 +375,10 @@ public class SupervisorTest {
         for (int i = 0; i < 5; i++)
             a.send(1);
         a.send(new ShutdownMessage(null));
-        assertThat(LocalActorUtil.<Integer>get(a), is(5));
+        assertThat(LocalActor.<Integer>get(a), is(5));
 
         sup.shutdown();
-        LocalActorUtil.join(sup);
+        LocalActor.join(sup);
     }
 
     ///////////////// Complex example ///////////////////////////////////////////
@@ -389,7 +389,7 @@ public class SupervisorTest {
 
         public Actor3(String name, AtomicInteger started, AtomicInteger terminated) {
             super(name);
-            mySup = ActorRef.self();
+            mySup = LocalActor.self();
             this.started = started;
             this.terminated = terminated;
         }
@@ -446,14 +446,14 @@ public class SupervisorTest {
         a.send(3);
         a.send(4);
 
-        assertThat(LocalActorUtil.<Integer>get(a), is(7));
+        assertThat(LocalActor.<Integer>get(a), is(7));
 
         a = getChild(sup, "actor1", 1000);
         a.send(70);
         a.send(80);
 
         try {
-            LocalActorUtil.<Integer>get(a);
+            LocalActor.<Integer>get(a);
             fail();
         } catch (ExecutionException e) {
         }
@@ -462,12 +462,12 @@ public class SupervisorTest {
         a.send(7);
         a.send(8);
 
-        assertThat(LocalActorUtil.<Integer>get(a), is(15));
+        assertThat(LocalActor.<Integer>get(a), is(15));
 
         Thread.sleep(100); // give the actor time to start the GenServer
 
         sup.shutdown();
-        LocalActorUtil.join(sup);
+        LocalActor.join(sup);
 
         assertThat(started.get(), is(4));
         assertThat(terminated.get(), is(4));

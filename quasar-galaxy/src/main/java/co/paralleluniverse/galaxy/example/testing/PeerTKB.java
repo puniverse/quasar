@@ -23,6 +23,7 @@ import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.BasicActor;
+import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.behaviors.AbstractServerHandler;
 import co.paralleluniverse.actors.behaviors.EventHandler;
@@ -133,7 +134,7 @@ public class PeerTKB {
                         public void init() throws SuspendExecution {
                             EventSourceActor.currentEventSourceActor().register("myEventServer");
                             try {
-                                final EventSource<String> ge = ActorRef.self();
+                                final EventSource<String> ge = LocalActor.self();
                                 ge.addHandler(new EventHandler<String>() {
                                     @Override
                                     public void handleEvent(String event) {
@@ -174,7 +175,7 @@ public class PeerTKB {
                         public void init() throws SuspendExecution {
                             Actor.currentActor().register("myEventServer");
                             try {
-                                final EventSource<String> ge = ActorRef.self();
+                                final EventSource<String> ge = LocalActor.self();
                                 ge.addHandler(new EventHandler<String>() {
                                     @Override
                                     public void handleEvent(String event) {

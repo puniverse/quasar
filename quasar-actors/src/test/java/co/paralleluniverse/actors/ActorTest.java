@@ -140,7 +140,7 @@ public class ActorTest {
 
         actor.send(new Message(15));
 
-        assertThat(LocalActorUtil.<Integer>get(actor), is(15));
+        assertThat(LocalActor.<Integer>get(actor), is(15));
     }
 
     @Test
@@ -155,7 +155,7 @@ public class ActorTest {
 
         actor.send(new Message(15));
 
-        assertThat(LocalActorUtil.<Integer>get(actor), is(15));
+        assertThat(LocalActor.<Integer>get(actor), is(15));
     }
 
     @Test
@@ -173,7 +173,7 @@ public class ActorTest {
         Thread.sleep(200);
         actor.send(new Message(17));
 
-        assertThat(LocalActorUtil.<Integer>get(actor), is(42));
+        assertThat(LocalActor.<Integer>get(actor), is(42));
     }
 
     @Test
@@ -191,7 +191,7 @@ public class ActorTest {
         Thread.sleep(200);
         actor.send(new Message(17));
 
-        assertThat(LocalActorUtil.<Integer>get(actor), is(42));
+        assertThat(LocalActor.<Integer>get(actor), is(42));
     }
 
     private class TypedReceiveA {

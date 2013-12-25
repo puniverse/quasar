@@ -22,14 +22,29 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * Static methods that provide access to {@link Actor}'s functionality through an {@link ActorRef} if the actor is local.
- * Application code shouldn't normally use these methods. They are provided mainly for testing, and defining sophisticated behaviors.
+ * With the exception of the {@link #self()} method, application code shouldn't normally use these methods. 
+ * They are provided mainly for testing, and defining sophisticated behaviors.
  * <p/>
- * We provide these services as static methods rather than return a reference to the actor because we don't want anyone to accidentally
- * keep a reference to the actor itself.
+ * These services are provided as static methods rather than return a reference to the actor reference to the actor itself should not
+ * leak outside the actor itself.
  *
  * @author pron
  */
-public final class LocalActorUtil {
+public final class LocalActor {
+    /**
+     * Returns the {@code ActorRef} of the actor currently running in the current strand.
+     *
+     * @param <T>
+     * @param <M>
+     * @return The {@link ActorRef} of the current actor (caller of this method)
+     */
+    public static <T extends ActorRef<M>, M> T self() {
+        final Actor a = Actor.currentActor();
+        if (a == null)
+            return null;
+        return (T) a.ref();
+    }
+
     public static boolean isLocal(ActorRef<?> actor) {
         return stripDelegates(actor) instanceof LocalActorRef;
     }
@@ -101,7 +116,7 @@ public final class LocalActorUtil {
     public static String actorToString(ActorRef<?> actor) {
         return actorOf(actor).toString();
     }
-    
+
     public static <M, V> ActorBuilder<M, V> toActorBuilder(ActorRef<M> actor) {
         actor = stripDelegates(actor);
         if (!(actor instanceof LocalActorRef))
@@ -134,6 +149,6 @@ public final class LocalActorUtil {
         return ar;
     }
 
-    private LocalActorUtil() {
+    private LocalActor() {
     }
 }

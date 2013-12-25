@@ -127,12 +127,12 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
 
     void actorStarted(ActorRef<?> actor) {
         activeCount.increment();
-        actors.put(LocalActorUtil.getStrand(actor).getId(), actor);
+        actors.put(LocalActor.getStrand(actor).getId(), actor);
     }
 
     void actorTerminated(ActorRef<?> actor) {
         activeCount.decrement();
-        actors.remove(LocalActorUtil.getStrand(actor).getId());
+        actors.remove(LocalActor.getStrand(actor).getId());
     }
 
     @Override
@@ -166,7 +166,7 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
     }
 
     private String getStackTrace(ActorRef actor) {
-        final StackTraceElement[] stackTrace = LocalActorUtil.getStackTrace(actor);
+        final StackTraceElement[] stackTrace = LocalActor.getStackTrace(actor);
         final StringBuilder sb = new StringBuilder();
         for (StackTraceElement ste : stackTrace)
             sb.append(ste).append('\n');
@@ -183,7 +183,7 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
     }
 
     private String[] getMailbox(ActorRef actor) {
-        List<Object> list = LocalActorUtil.getMailboxSnapshot(actor);
+        List<Object> list = LocalActor.getMailboxSnapshot(actor);
         String[] ms = new String[list.size()];
         int i = 0;
         for (Object m : list)
@@ -197,7 +197,7 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
         if (actor == null)
             throw new IllegalArgumentException("No actor with id " + actorId + " found.");
         SmallActorMonitor mon = new SmallActorMonitor(actorId);
-        LocalActorUtil.setMonitor(actor, mon);
+        LocalActor.setMonitor(actor, mon);
         watchedActors.put(actorId, mon);
     }
 
@@ -206,7 +206,7 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
         SmallActorMonitor mon = watchedActors.get(actorId);
         if (mon == null)
             return;
-        LocalActorUtil.stopMonitor(mon.actor);
+        LocalActor.stopMonitor(mon.actor);
     }
 
     @Override
@@ -231,9 +231,9 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
             return null;
         return new ActorInfo(mon.id,
                 actor.getName(),
-                LocalActorUtil.getStrand(actor).isFiber(),
+                LocalActor.getStrand(actor).isFiber(),
                 mon.messages,
-                LocalActorUtil.getQueueLength(actor),
+                LocalActor.getQueueLength(actor),
                 (int) mon.restartCounter.get(),
                 mon.deathCauses.toArray(new String[0]),
                 getMailbox(actor),

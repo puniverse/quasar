@@ -15,7 +15,7 @@ package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.GlobalRegistry;
-import co.paralleluniverse.actors.LocalActorUtil;
+import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.CacheListener;
 import co.paralleluniverse.galaxy.StoreTransaction;
@@ -64,7 +64,7 @@ public class GlxGlobalRegistry implements GlobalRegistry {
                 store.set(root, ser.write(actor), txn);
                 LOG.debug("commit Registering actor {} at rootId  {}", actor, root);
                 store.commit(txn);
-                RemoteChannelReceiver.getReceiver(LocalActorUtil.getMailbox(actor), true).handleRefMessage(new GlxRemoteChannel.RefMessage(true, grid.cluster().getMyNodeId()));
+                RemoteChannelReceiver.getReceiver(LocalActor.getMailbox(actor), true).handleRefMessage(new GlxRemoteChannel.RefMessage(true, grid.cluster().getMyNodeId()));
                 return root; // root is the global id
             } catch (TimeoutException e) {
                 LOG.error("Registering actor {} at root {} failed due to timeout", actor, rootName);
@@ -93,7 +93,7 @@ public class GlxGlobalRegistry implements GlobalRegistry {
                 final long root = store.getRoot(rootName, txn);
                 store.set(root, (byte[]) null, txn);
                 store.commit(txn);
-                RemoteChannelReceiver.getReceiver(LocalActorUtil.getMailbox(actor), true).handleRefMessage(new GlxRemoteChannel.RefMessage(false, grid.cluster().getMyNodeId()));
+                RemoteChannelReceiver.getReceiver(LocalActor.getMailbox(actor), true).handleRefMessage(new GlxRemoteChannel.RefMessage(false, grid.cluster().getMyNodeId()));
             } catch (TimeoutException e) {
                 LOG.error("Unregistering {} failed due to timeout", rootName);
                 store.rollback(txn);

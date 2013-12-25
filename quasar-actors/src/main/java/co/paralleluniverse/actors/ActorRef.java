@@ -110,23 +110,4 @@ public abstract class ActorRef<Message> implements SendPort<Message> {
      * Interrupts the actor's strand
      */
     public abstract void interrupt();
-
-    /**
-     * Returns the {@code ActorRef} of the actor currently running in the current strand.
-     *
-     * @param <T>
-     * @param <M>
-     * @return The {@link ActorRef} of the current actor (caller of this method)
-     */
-    public static <T extends ActorRef<M>, M> T self() {
-        final Actor a = Actor.currentActor();
-        if (a == null)
-            return null;
-        return (T) a.ref();
-    }
-
-    @Override
-    public String toString() {
-        return "ActorRef{" + '}';
-    }
 }

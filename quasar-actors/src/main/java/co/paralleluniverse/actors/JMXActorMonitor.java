@@ -212,7 +212,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
         final ActorRef a = this.actor.get();
         if (a == null)
             return 0;
-        return LocalActorUtil.getQueueLength(a);
+        return LocalActor.getQueueLength(a);
     }
 
     @Override
@@ -239,7 +239,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
             return null;
         }
 
-        List<Object> list = LocalActorUtil.getMailboxSnapshot(a);
+        List<Object> list = LocalActor.getMailboxSnapshot(a);
         String[] ms = new String[list.size()];
         int i = 0;
         for (Object m : list)
@@ -256,7 +256,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
             return null;
         }
 
-        final StackTraceElement[] stackTrace = LocalActorUtil.getStackTrace(a);
+        final StackTraceElement[] stackTrace = LocalActor.getStackTrace(a);
         final StringBuilder sb = new StringBuilder();
         for (StackTraceElement ste : stackTrace)
             sb.append(ste).append('\n');
