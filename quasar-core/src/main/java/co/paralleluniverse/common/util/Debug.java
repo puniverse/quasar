@@ -99,7 +99,8 @@ public class Debug {
         if (requestShutdown.compareAndSet(false, true)) {
             System.err.println("DEBUG EXIT REQUEST: SHUTTING DOWN THE JVM.");
             Thread.dumpStack();
-            System.exit(code);
+            if (!isUnitTest()) // Calling System.exit() in gradle unit tests breaks gradle
+                System.exit(code);
         }
     }
 
