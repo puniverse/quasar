@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public abstract class ActorRefDelegate<Message> extends ActorRef<Message> implements SendPort<Message>, java.io.Serializable {
+public abstract class ActorRefDelegate<Message> implements ActorRef<Message>, SendPort<Message>, java.io.Serializable {
     protected final ActorRef<Message> ref;
 
     /**

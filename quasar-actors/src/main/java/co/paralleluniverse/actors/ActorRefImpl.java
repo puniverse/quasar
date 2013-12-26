@@ -23,7 +23,7 @@ import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-abstract class ActorRefImpl<Message> extends ActorRef<Message> implements SendPort<Message>, java.io.Serializable {
+abstract class ActorRefImpl<Message> implements ActorRef<Message>, SendPort<Message>, java.io.Serializable {
     static final long serialVersionUID = 894359345L;
     //
     private static final int MAX_SEND_RETRIES = 10;

@@ -261,7 +261,7 @@ public final class RequestReplyHelper {
         return actorRef;
     }
 
-    private static class TempActor<Message> extends ActorRef<Message> {
+    private static class TempActor<Message> implements ActorRef<Message> {
         private WeakReference<Actor<Message, Void>> actor;
         private volatile boolean done = false;
 
@@ -333,6 +333,11 @@ public final class RequestReplyHelper {
             if (a != null)
                 return a.trySend(message);
             return true;
+        }
+
+        @Override
+        public void close() {
+            throw new UnsupportedOperationException();
         }
     }
 

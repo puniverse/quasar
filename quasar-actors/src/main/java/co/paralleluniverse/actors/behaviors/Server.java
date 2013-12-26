@@ -13,16 +13,8 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.ActorBuilder;
-import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.LocalActor;
-import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.from;
-import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.makeId;
-import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -31,17 +23,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class Server<CallMessage, V, CastMessage> extends Behavior {
-    /**
-     * If {@code actor} is known to be a {@link ServerActor}, creates a new {@link Server} interface to it.
-     * Normally, you don't use this constructor, but the {@code Server} instance returned by {@link ServerActor#spawn() }.
-     *
-     * @param actor a {@link ServerActor}
-     */
-    public Server(ActorRef<Object> actor) {
-        super(actor);
-    }
-
+public interface Server<CallMessage, V, CastMessage> extends Behavior {
     /**
      * Sends a synchronous request to the actor, and awaits a response.
      * <p/>
@@ -51,13 +33,7 @@ public class Server<CallMessage, V, CastMessage> extends Behavior {
      * @return the value sent as a response from the actor
      * @throws RuntimeException if the actor encountered an error while processing the request
      */
-    public final V call(CallMessage m) throws InterruptedException, SuspendExecution {
-        try {
-            return call(m, 0, null);
-        } catch (TimeoutException ex) {
-            throw new AssertionError(ex);
-        }
-    }
+    V call(CallMessage m) throws InterruptedException, SuspendExecution;
 
     /**
      * Sends a synchronous request to the actor, and awaits a response, but no longer than the given timeout.
@@ -71,10 +47,7 @@ public class Server<CallMessage, V, CastMessage> extends Behavior {
      * @throws RuntimeException if the actor encountered an error while processing the request
      * @throws TimeoutException if the timeout expires before a response has been received.
      */
-    public final V call(CallMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
-        final V res = RequestReplyHelper.call(ref, new ServerRequest(from(), null, MessageType.CALL, m), timeout, unit);
-        return res;
-    }
+    V call(CallMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution;
 
     /**
      * Sends a synchronous request to the actor, and awaits a response, but no longer than the given timeout.
@@ -87,88 +60,16 @@ public class Server<CallMessage, V, CastMessage> extends Behavior {
      * @throws RuntimeException if the actor encountered an error while processing the request
      * @throws TimeoutException if the timeout expires before a response has been received.
      */
-    public final V call(CallMessage m, Timeout timeout) throws TimeoutException, InterruptedException, SuspendExecution {
-        return call(m, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
-    }
+    V call(CallMessage m, Timeout timeout) throws TimeoutException, InterruptedException, SuspendExecution;
 
     /**
      * Sends an asynchronous request to the actor and returns immediately (may block until there's room available in the actor's mailbox).
      *
      * @param m the request
      */
-    public final void cast(CastMessage m) throws SuspendExecution {
-        ref.send(new ServerRequest(LocalActor.self(), makeId(), MessageType.CAST, m));
-    }
+    void cast(CastMessage m) throws SuspendExecution;
 
 //    public static void cast(ActorRef server, Object m) throws SuspendExecution {
 //        server.send(new ServerRequest(ActorRef.self(), makeId(), MessageType.CAST, m));
 //    }
-    @Override
-    public String toString() {
-        return "Server{" + super.toString() + "}";
-    }
-
-    enum MessageType {
-        CALL, CAST
-    };
-
-    static class ServerRequest extends RequestMessage {
-        private final MessageType type;
-        private final Object message;
-
-        public ServerRequest(ActorRef sender, Object id, MessageType type, Object message) {
-            super(sender, id);
-            this.type = type;
-            this.message = message;
-        }
-
-        public MessageType getType() {
-            return type;
-        }
-
-        public Object getMessage() {
-            return message;
-        }
-    }
-
-    static final class Local<CallMessage, V, CastMessage> extends Server<CallMessage, V, CastMessage> implements LocalBehavior<Server<CallMessage, V, CastMessage>> {
-        Local(ActorRef<Object> actor) {
-            super(actor);
-        }
-
-        @Override
-        public Server<CallMessage, V, CastMessage> writeReplace() throws java.io.ObjectStreamException {
-            return new Server<>(ref);
-        }
-
-        @Override
-        public Actor<Object, Void> build() {
-            return ((ActorBuilder<Object, Void>) ref).build();
-        }
-
-        @Override
-        public void join() throws ExecutionException, InterruptedException {
-            ((Joinable<Void>) ref).join();
-        }
-
-        @Override
-        public void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
-            ((Joinable<Void>) ref).join(timeout, unit);
-        }
-
-        @Override
-        public Void get() throws ExecutionException, InterruptedException {
-            return ((Joinable<Void>) ref).get();
-        }
-
-        @Override
-        public Void get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
-            return ((Joinable<Void>) ref).get(timeout, unit);
-        }
-
-        @Override
-        public boolean isDone() {
-            return ((Joinable<Void>) ref).isDone();
-        }
-    }
 }

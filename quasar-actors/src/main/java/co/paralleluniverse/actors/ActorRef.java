@@ -24,8 +24,8 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public abstract class ActorRef<Message> implements SendPort<Message> {
-    public abstract String getName();
+public interface ActorRef<Message> extends SendPort<Message> {
+    String getName();
 
     /**
      * Sends a message to the actor, possibly blocking until there's room available in the mailbox.
@@ -40,7 +40,7 @@ public abstract class ActorRef<Message> implements SendPort<Message> {
      * @throws SuspendExecution
      */
     @Override
-    public abstract void send(Message message) throws SuspendExecution;
+    void send(Message message) throws SuspendExecution;
 
     /**
      * Sends a message to the actor, and attempts to schedule the actor's strand for immediate execution.
@@ -50,7 +50,7 @@ public abstract class ActorRef<Message> implements SendPort<Message> {
      * @param message
      * @throws SuspendExecution
      */
-    public abstract void sendSync(Message message) throws SuspendExecution;
+    void sendSync(Message message) throws SuspendExecution;
 
     /**
      * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the
@@ -69,7 +69,7 @@ public abstract class ActorRef<Message> implements SendPort<Message> {
      * @throws SuspendExecution
      */
     @Override
-    public abstract boolean send(Message msg, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
+    boolean send(Message msg, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
 
     /**
      * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the
@@ -87,7 +87,7 @@ public abstract class ActorRef<Message> implements SendPort<Message> {
      * @throws SuspendExecution
      */
     @Override
-    public abstract boolean send(Message msg, Timeout timeout) throws SuspendExecution, InterruptedException;
+    boolean send(Message msg, Timeout timeout) throws SuspendExecution, InterruptedException;
 
     /**
      * Sends a message to the channel if the channel has room available. This method never blocks.
@@ -96,18 +96,16 @@ public abstract class ActorRef<Message> implements SendPort<Message> {
      * @return {@code true} if the message has been sent; {@code false} otherwise.
      */
     @Override
-    public abstract boolean trySend(Message msg);
+    boolean trySend(Message msg);
 
     /**
      * This implementation throws {@code UnsupportedOperationException}.
      */
     @Override
-    public void close() {
-        throw new UnsupportedOperationException();
-    }
+    void close();
 
     /**
      * Interrupts the actor's strand
      */
-    public abstract void interrupt();
+    void interrupt();
 }
