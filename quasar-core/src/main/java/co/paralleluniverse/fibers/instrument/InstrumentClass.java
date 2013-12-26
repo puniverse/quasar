@@ -41,7 +41,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.fibers.Instrumented;
+import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
@@ -52,7 +52,6 @@ import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -65,12 +64,13 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
  * @author pron
  */
 public class InstrumentClass extends ClassVisitor {
-    static final String ALREADY_INSTRUMENTED_NAME = Type.getDescriptor(Instrumented.class);
     private final SuspendableClassifier classifier;
     
     private final MethodDatabase db;
     private boolean forceInstrumentation;
     private String className;
+    private boolean isInterface;
+    private boolean suspendableInterface;
     private ClassEntry classEntry;
     private boolean alreadyInstrumented;
     private ArrayList<MethodNode> methods;
@@ -80,15 +80,18 @@ public class InstrumentClass extends ClassVisitor {
         this.db = db;
         this.classifier = db.getClassifier();
         this.forceInstrumentation = forceInstrumentation;
+        this.suspendableInterface = false;
     }
 
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         this.className = name;
+        this.isInterface = (access & Opcodes.ACC_INTERFACE) != 0;
+        
         this.classEntry = db.getOrCreateClassEntry(className, superName);
         classEntry.setInterfaces(interfaces);
 
-        forceInstrumentation |= classEntry.requiresInstrumentation();
+        this.forceInstrumentation |= classEntry.requiresInstrumentation();
 
         // need atleast 1.5 for annotations to work
         if (version < Opcodes.V1_5)
@@ -105,9 +108,11 @@ public class InstrumentClass extends ClassVisitor {
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-        if (desc.equals(InstrumentClass.ALREADY_INSTRUMENTED_NAME))
-            alreadyInstrumented = true;
-
+        if (desc.equals(ALREADY_INSTRUMENTED_DESC))
+            this.alreadyInstrumented = true;
+        else if (isInterface && desc.equals(ANNOTATION_DESC))
+            this.suspendableInterface = true;
+        
         return super.visitAnnotation(desc, visible);
     }
 
@@ -119,7 +124,7 @@ public class InstrumentClass extends ClassVisitor {
         if (setSuspendable == null)
             classEntry.set(name, desc, markedSuspendable != null ? markedSuspendable : SuspendableType.NON_SUSPENDABLE);
    
-        final boolean suspendable = markedSuspendable == SuspendableType.SUSPENDABLE | setSuspendable == SuspendableType.SUSPENDABLE;
+        final boolean suspendable = suspendableInterface | markedSuspendable == SuspendableType.SUSPENDABLE | setSuspendable == SuspendableType.SUSPENDABLE;
      
         if (checkAccess(access) && !isYieldMethod(className, name)) {
             if (methods == null)
@@ -196,7 +201,7 @@ public class InstrumentClass extends ClassVisitor {
                     mn.accept(makeOutMV(mn));
             } else {
                 if (!alreadyInstrumented) {
-                    super.visitAnnotation(ALREADY_INSTRUMENTED_NAME, true);
+                    super.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
                     classEntry.setInstrumented(true);
                 }
 
@@ -224,7 +229,7 @@ public class InstrumentClass extends ClassVisitor {
             if (!alreadyInstrumented && classEntry.getSuperName() != null) {
                 ClassEntry superClass = db.getClassEntry(classEntry.getSuperName());
                 if (superClass != null && superClass.isInstrumented()) {
-                    super.visitAnnotation(ALREADY_INSTRUMENTED_NAME, true);
+                    super.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
                     classEntry.setInstrumented(true);
                 }
             }

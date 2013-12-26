@@ -4,6 +4,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.fibers.Instrumented;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -30,6 +31,7 @@ final class Classes {
     // computed
     static final String EXCEPTION_DESC = "L" + EXCEPTION_NAME + ";";
     static final String ANNOTATION_DESC = "L" + ANNOTATION_NAME + ";";
+    static final String ALREADY_INSTRUMENTED_DESC = Type.getDescriptor(Instrumented.class);
 
     private static final Set<String> yieldMethods = new HashSet<>(Arrays.asList(new String[] {
         "park", "yield", "parkAndUnpark", "yieldAndUnpark"

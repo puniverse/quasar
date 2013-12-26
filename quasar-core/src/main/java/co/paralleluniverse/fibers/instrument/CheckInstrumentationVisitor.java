@@ -29,6 +29,7 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
@@ -46,6 +47,8 @@ import org.objectweb.asm.Opcodes;
 public class CheckInstrumentationVisitor extends ClassVisitor {
     private final SuspendableClassifier classifier;
     private String className;
+    private boolean isInterface;
+    private boolean suspendableInterface;
     private ClassEntry classEntry;
     private boolean hasSuspendable;
     private boolean alreadyInstrumented;
@@ -74,21 +77,27 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         this.className = name;
+        this.isInterface = (access & Opcodes.ACC_INTERFACE) != 0;
         this.classEntry = new ClassEntry(superName);
         classEntry.setInterfaces(interfaces);
     }
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-        if (desc.equals(InstrumentClass.ALREADY_INSTRUMENTED_NAME))
-            alreadyInstrumented = true;
-
+        if (desc.equals(ALREADY_INSTRUMENTED_DESC))
+            this.alreadyInstrumented = true;
+        else if (isInterface && desc.equals(ANNOTATION_DESC))
+            this.suspendableInterface = true;
         return null;
     }
 
     @Override
     public MethodVisitor visitMethod(int access, final String name, final String desc, String signature, String[] exceptions) {
-        SuspendableType suspendable = classEntry.check(name, desc);
+        SuspendableType suspendable = null;
+        if(suspendableInterface)
+            suspendable = SuspendableType.SUSPENDABLE;
+        if (suspendable == null)
+            suspendable = classEntry.check(name, desc);
         if (suspendable == null)
             suspendable = classifier.isSuspendable(className, classEntry.getSuperName(), classEntry.getInterfaces(), name, desc, signature, exceptions);
         if (suspendable == SuspendableType.SUSPENDABLE) {
