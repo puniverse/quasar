@@ -13,8 +13,6 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -139,12 +137,7 @@ public class SupervisorImpl extends BehaviorImpl implements Supervisor {
 
         @Override
         public SupervisorImpl writeReplace() throws java.io.ObjectStreamException {
-            return new SupervisorImpl(ref);
-        }
-
-        @Override
-        public Actor<Object, Void> build() {
-            return ((ActorBuilder<Object, Void>) ref).build();
+            return new SupervisorImpl(getRef());
         }
     }
 }

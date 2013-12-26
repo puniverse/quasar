@@ -35,6 +35,8 @@ import org.slf4j.LoggerFactory;
  * @author pron
  */
 public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
+    protected static Object NULL_RETURN_VALUE = new Object();
+    
     private static final Logger LOG = LoggerFactory.getLogger(ServerActor.class);
     private TimeUnit timeoutUnit;
     private long timeout;
@@ -208,7 +210,7 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
                     try {
                         final V res = handleCall((ActorRef<V>) m.getFrom(), m.getId(), (CallMessage) m.getMessage());
                         if (res != null)
-                            reply((ActorRef<V>) m.getFrom(), m.getId(), res);
+                            reply((ActorRef<V>) m.getFrom(), m.getId(), res == NULL_RETURN_VALUE ? null : res);
                     } catch (Exception e) {
                         replyError((ActorRef<V>) m.getFrom(), m.getId(), e);
                     }

@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
+import static co.paralleluniverse.actors.ActorRefDelegateImpl.stripDelegates;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.QueueChannel;
 import java.util.List;
@@ -141,12 +142,6 @@ public final class LocalActor {
         if (!(ar instanceof LocalActorRef))
             throw new IllegalArgumentException("ActorRef " + ar + " is not a local actor.");
         return ((LocalActorRef) ar).getActor();
-    }
-
-    static <M> ActorRef<M> stripDelegates(ActorRef<M> ar) {
-        while (ar instanceof ActorRefDelegate)
-            ar = ((ActorRefDelegate) ar).ref;
-        return ar;
     }
 
     private LocalActor() {

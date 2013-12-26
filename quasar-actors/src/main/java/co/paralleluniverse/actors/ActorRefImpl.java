@@ -186,13 +186,13 @@ abstract class ActorRefImpl<Message> implements ActorRef<Message>, SendPort<Mess
             return false;
         ActorRef other = (ActorRef) obj;
         while (other instanceof ActorRefDelegate)
-            other = ((ActorRefDelegate) other).ref;
+            other = ((ActorRefDelegate) other).getRef();
         return other == this;
     }
     
     static ActorRefImpl getActorRefImpl(ActorRef actor) {
         while (actor instanceof ActorRefDelegate)
-            actor = ((ActorRefDelegate) actor).ref;
+            actor = ((ActorRefDelegate) actor).getRef();
         if (actor instanceof ActorRefImpl)
             return (ActorRefImpl) actor;
         else

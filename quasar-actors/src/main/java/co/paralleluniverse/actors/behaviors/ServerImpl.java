@@ -72,7 +72,7 @@ class ServerImpl<CallMessage, V, CastMessage> extends BehaviorImpl implements Se
      */
     @Override
     public final V call(CallMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
-        final V res = RequestReplyHelper.call(ref, new ServerRequest(from(), null, MessageType.CALL, m), timeout, unit);
+        final V res = RequestReplyHelper.call(getRef(), new ServerRequest(from(), null, MessageType.CALL, m), timeout, unit);
         return res;
     }
 
@@ -99,7 +99,7 @@ class ServerImpl<CallMessage, V, CastMessage> extends BehaviorImpl implements Se
      */
     @Override
     public final void cast(CastMessage m) throws SuspendExecution {
-        ref.send(new ServerRequest(LocalActor.self(), makeId(), MessageType.CAST, m));
+        getRef().send(new ServerRequest(LocalActor.self(), makeId(), MessageType.CAST, m));
     }
 
 //    public static void cast(ActorRef server, Object m) throws SuspendExecution {
@@ -140,7 +140,7 @@ class ServerImpl<CallMessage, V, CastMessage> extends BehaviorImpl implements Se
 
         @Override
         public ServerImpl<CallMessage, V, CastMessage> writeReplace() throws java.io.ObjectStreamException {
-            return new ServerImpl<>(ref);
+            return new ServerImpl<>(getRef());
         }
     }
 }

@@ -14,12 +14,12 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.ActorRefDelegate;
+import co.paralleluniverse.actors.ActorRefDelegateImpl;
 import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.ShutdownMessage;
 
-class BehaviorImpl extends ActorRefDelegate<Object> implements Behavior, java.io.Serializable {
+class BehaviorImpl extends ActorRefDelegateImpl<Object> implements Behavior, java.io.Serializable {
     protected BehaviorImpl(ActorRef<Object> actor) {
         super(actor);
     }
@@ -30,7 +30,7 @@ class BehaviorImpl extends ActorRefDelegate<Object> implements Behavior, java.io
     @Override
     public void shutdown() {
         final ShutdownMessage message = new ShutdownMessage(LocalActor.self());
-        ActorUtil.sendOrInterrupt(ref, message);
+        ActorUtil.sendOrInterrupt(getRef(), message);
     }
 
     @Override
@@ -45,7 +45,7 @@ class BehaviorImpl extends ActorRefDelegate<Object> implements Behavior, java.io
 
         @Override
         public BehaviorImpl writeReplace() throws java.io.ObjectStreamException {
-            return new BehaviorImpl(ref);
+            return new BehaviorImpl(getRef());
         }
     }
 }

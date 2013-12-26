@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
+import static co.paralleluniverse.actors.ActorRefDelegateImpl.stripDelegates;
 import java.math.BigInteger;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -45,10 +46,7 @@ public final class ActorUtil {
      * @param message the message
      */
     public static void sendOrInterrupt(ActorRef actor, Object message) {
-        if (actor instanceof ActorRefDelegate)
-            ((ActorRefDelegate) actor).sendOrInterrupt(message);
-        else
-            ((ActorRefImpl) actor).sendOrInterrupt(message);
+        ((ActorRefImpl)stripDelegates(actor)).sendOrInterrupt(message);
     }
 
     private ActorUtil() {
