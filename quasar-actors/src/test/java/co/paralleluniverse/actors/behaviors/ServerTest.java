@@ -53,7 +53,7 @@ import static org.mockito.Mockito.*;
  *
  * @author pron
  */
-public class GenServerTest {
+public class ServerTest {
     @Rule
     public TestName name = new TestName();
     @Rule
@@ -84,7 +84,7 @@ public class GenServerTest {
     static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channels.OverflowPolicy.THROW);
     private FiberScheduler scheduler;
 
-    public GenServerTest() {
+    public ServerTest() {
         scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 

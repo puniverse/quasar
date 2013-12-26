@@ -40,7 +40,7 @@ import static org.mockito.Mockito.*;
  *
  * @author pron
  */
-public class GenEventTest {
+public class EventSourceTest {
     @Rule
     public TestName name = new TestName();
     @Rule
@@ -70,7 +70,7 @@ public class GenEventTest {
     };
     static final int mailboxSize = 10;
 
-    public GenEventTest() {
+    public EventSourceTest() {
     }
 
     private EventSource<String> spawnGenEvent(Initializer initializer) {
