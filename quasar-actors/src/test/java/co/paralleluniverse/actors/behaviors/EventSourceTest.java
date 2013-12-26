@@ -73,8 +73,8 @@ public class EventSourceTest {
     public EventSourceTest() {
     }
 
-    private EventSource<String> spawnGenEvent(Initializer initializer) {
-        return new EventSourceActor<String>("genevent", initializer).spawn();
+    private EventSource<String> spawnEventSource(Initializer initializer) {
+        return new EventSourceActor<String>("eventsource", initializer).spawn();
     }
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
@@ -93,7 +93,7 @@ public class EventSourceTest {
     @Test
     public void testInitializationAndTermination() throws Exception {
         final Initializer init = mock(Initializer.class);
-        EventSource<String> ge = spawnGenEvent(init);
+        EventSource<String> ge = spawnEventSource(init);
 
         Thread.sleep(100);
         verify(init).init();
@@ -109,7 +109,7 @@ public class EventSourceTest {
         final EventHandler<String> handler1 = mock(EventHandler.class);
         final EventHandler<String> handler2 = mock(EventHandler.class);
 
-        final EventSource<String> ge = spawnGenEvent(null);
+        final EventSource<String> ge = spawnEventSource(null);
 
         ge.addHandler(handler1);
         ge.addHandler(handler2);
@@ -142,7 +142,7 @@ public class EventSourceTest {
         final Exception myException = new RuntimeException("haha!");
         doThrow(myException).when(handler1).handleEvent(anyString());
 
-        final EventSource<String> ge = spawnGenEvent(init);
+        final EventSource<String> ge = spawnEventSource(init);
 
         ge.addHandler(handler1);
         ge.addHandler(handler2);

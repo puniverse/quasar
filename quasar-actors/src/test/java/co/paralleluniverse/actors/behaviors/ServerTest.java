@@ -88,7 +88,7 @@ public class ServerTest {
         scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 
-    private Server<Message, Integer, Message> spawnGenServer(ServerHandler<Message, Integer, Message> server) {
+    private Server<Message, Integer, Message> spawnServer(ServerHandler<Message, Integer, Message> server) {
         return new ServerActor<>("server", server).spawn(scheduler);
     }
 
@@ -106,9 +106,9 @@ public class ServerTest {
     }
 
     @Test
-    public void whenGenServerStartsThenInitIsCalled() throws Exception {
+    public void whenServerStartsThenInitIsCalled() throws Exception {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
-        Server<Message, Integer, Message> gs = spawnGenServer(server);
+        Server<Message, Integer, Message> gs = spawnServer(server);
 
         try {
             LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
@@ -121,7 +121,7 @@ public class ServerTest {
 
     @Test
     public void whenShutdownIsCalledInInitThenServerStops() throws Exception {
-        Server<Message, Integer, Message> gs = spawnGenServer(new AbstractServerHandler<Message, Integer, Message>() {
+        Server<Message, Integer, Message> gs = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
             public void init() {
                 ServerActor.currentServerActor().shutdown();
@@ -133,7 +133,7 @@ public class ServerTest {
 
     @Test
     public void whenCalledThenResultIsReturned() throws Exception {
-        final Server<Message, Integer, Message> gs = spawnGenServer(new AbstractServerHandler<Message, Integer, Message>() {
+        final Server<Message, Integer, Message> gs = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
             public Integer handleCall(ActorRef<Integer> from, Object id, Message m) {
                 ServerActor.currentServerActor().shutdown();
@@ -155,7 +155,7 @@ public class ServerTest {
 
     @Test
     public void whenCalledFromThreadThenResultIsReturned() throws Exception {
-        Server<Message, Integer, Message> gs = spawnGenServer(new AbstractServerHandler<Message, Integer, Message>() {
+        Server<Message, Integer, Message> gs = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
             public Integer handleCall(ActorRef<Integer> from, Object id, Message m) {
                 ServerActor.currentServerActor().shutdown();
@@ -172,7 +172,7 @@ public class ServerTest {
 
     @Test
     public void whenCalledAndTimeoutThenThrowTimeout() throws Exception {
-        Server<Message, Integer, Message> gs = spawnGenServer(new AbstractServerHandler<Message, Integer, Message>() {
+        Server<Message, Integer, Message> gs = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
             public Integer handleCall(ActorRef<Integer> from, Object id, Message m) throws SuspendExecution {
                 try {
@@ -200,7 +200,7 @@ public class ServerTest {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
         when(server.handleCall(any(ActorRef.class), anyObject(), any(Message.class))).thenThrow(new RuntimeException("my exception"));
 
-        final Server<Message, Integer, Message> gs = spawnGenServer(server);
+        final Server<Message, Integer, Message> gs = spawnServer(server);
 
         Actor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             protected Void doRun() throws SuspendExecution, InterruptedException {
@@ -227,7 +227,7 @@ public class ServerTest {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
         when(server.handleCall(any(ActorRef.class), anyObject(), any(Message.class))).thenThrow(new RuntimeException("my exception"));
 
-        final Server<Message, Integer, Message> gs = spawnGenServer(server);
+        final Server<Message, Integer, Message> gs = spawnServer(server);
 
         try {
             int res = gs.call(new Message(3, 4));
@@ -248,7 +248,7 @@ public class ServerTest {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
         doThrow(new RuntimeException("my exception")).when(server).init();
 
-        final Server<Message, Integer, Message> gs = spawnGenServer(server);
+        final Server<Message, Integer, Message> gs = spawnServer(server);
 
         try {
             int res = gs.call(new Message(3, 4));
@@ -412,7 +412,7 @@ public class ServerTest {
     @Test
     public void whenCastThenHandleCastIsCalled() throws Exception {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
-        final Server<Message, Integer, Message> gs = spawnGenServer(server);
+        final Server<Message, Integer, Message> gs = spawnServer(server);
 
         gs.cast(new Message(3, 4));
 
@@ -425,7 +425,7 @@ public class ServerTest {
     @Test
     public void whenSentMessageHandleInfoIsCalled() throws Exception {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
-        final Server<Message, Integer, Message> gs = spawnGenServer(server);
+        final Server<Message, Integer, Message> gs = spawnServer(server);
 
         gs.send("foo");
 
@@ -438,7 +438,7 @@ public class ServerTest {
     @Test
     public void whenSentShutdownThenTerminateIsCalledAndServerStopped() throws Exception {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
-        final Server<Message, Integer, Message> gs = spawnGenServer(server);
+        final Server<Message, Integer, Message> gs = spawnServer(server);
 
         gs.shutdown();
         LocalActor.join(gs);
@@ -452,7 +452,7 @@ public class ServerTest {
 
         final Exception myException = new RuntimeException("my exception");
         doThrow(myException).when(server).handleInfo(anyObject());
-        final Server<Message, Integer, Message> gs = spawnGenServer(server);
+        final Server<Message, Integer, Message> gs = spawnServer(server);
 
         gs.send("foo");
 
