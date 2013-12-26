@@ -51,8 +51,10 @@ public final class RequestReplyHelper {
     }
 
     /**
-     * Sets a default timeout for non-timed {@link #call(ActorRef, RequestMessage) call}s on this strand. Non-timed calls that take longer
-     * than the default timeout, will throw a {@link TimeoutException} wrapped in a {@link RuntimeException}.
+     * Sets a default timeout for non-timed {@link #call(ActorRef, RequestMessage) call}s on this strand (including
+     * those made with {@link Server#call(java.lang.Object) Server.call}).
+     * Non-timed calls that take longer than the default timeout, will throw a {@link TimeoutException} 
+     * wrapped in a {@link RuntimeException}. Timed calls (those that take a timeout parameter) will not be affected.
      * <p/>
      * This method only affects the current strand.
      *

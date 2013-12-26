@@ -26,6 +26,8 @@ import java.util.concurrent.TimeoutException;
 public interface Server<CallMessage, V, CastMessage> extends Behavior {
     /**
      * Sends a synchronous request to the actor, and awaits a response.
+     * This method will wait indefinitely for the actor to respond unless a default timeout has been set for the calling
+     * strand with {@link RequestReplyHelper#setDefaultTimeout(long, TimeUnit) RequestReplyHelper.setDefaultTimeout}.
      * <p/>
      * This method may be safely called by actors and non-actor strands alike.
      *
@@ -68,7 +70,6 @@ public interface Server<CallMessage, V, CastMessage> extends Behavior {
      * @param m the request
      */
     void cast(CastMessage m) throws SuspendExecution;
-
 //    public static void cast(ActorRef server, Object m) throws SuspendExecution {
 //        server.send(new ServerRequest(ActorRef.self(), makeId(), MessageType.CAST, m));
 //    }

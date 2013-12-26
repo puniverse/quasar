@@ -44,6 +44,8 @@ class ServerImpl<CallMessage, V, CastMessage> extends BehaviorImpl implements Se
 
     /**
      * Sends a synchronous request to the actor, and awaits a response.
+     * This method will wait indefinitely for the actor to respond unless a default timeout has been set for the calling 
+     * strand with {@link RequestReplyHelper#setDefaultTimeout(long, TimeUnit) RequestReplyHelper.setDefaultTimeout}.
      * <p/>
      * This method may be safely called by actors and non-actor strands alike.
      *
