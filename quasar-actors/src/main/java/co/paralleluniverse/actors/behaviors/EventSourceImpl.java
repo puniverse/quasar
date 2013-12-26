@@ -17,11 +17,7 @@ import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
-import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * An interface to an {@link EventSourceActor}.
@@ -95,31 +91,6 @@ class EventSourceImpl<Event> extends BehaviorImpl implements EventSource<Event> 
         @Override
         public Actor<Object, Void> build() {
             return ((ActorBuilder<Object, Void>) ref).build();
-        }
-
-        @Override
-        public void join() throws ExecutionException, InterruptedException {
-            ((Joinable<Void>) ref).join();
-        }
-
-        @Override
-        public void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
-            ((Joinable<Void>) ref).join(timeout, unit);
-        }
-
-        @Override
-        public Void get() throws ExecutionException, InterruptedException {
-            return ((Joinable<Void>) ref).get();
-        }
-
-        @Override
-        public Void get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
-            return ((Joinable<Void>) ref).get(timeout, unit);
-        }
-
-        @Override
-        public boolean isDone() {
-            return ((Joinable<Void>) ref).isDone();
         }
     }
 }

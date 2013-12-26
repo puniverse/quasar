@@ -13,11 +13,14 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.SendPort;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * An {@link ActorRef} which delegates all operations to another {@code ActorRef}.
@@ -112,5 +115,33 @@ public abstract class ActorRefDelegate<Message> implements ActorRef<Message>, Se
     @Override
     public String toString() {
         return ref.toString();
+    }
+
+    // The following will throw an exception if the actor is not local.
+    // However, if the ref is known to be local, a subclass can simply 
+    // declare to implement ActorBuilder and Joinable, and the implementations are already provided here
+    
+    public Actor<Object, Void> build() {
+        return ((ActorBuilder<Object, Void>) ref).build();
+    }
+
+    public void join() throws ExecutionException, InterruptedException {
+        ((Joinable<Void>) ref).join();
+    }
+
+    public void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+        ((Joinable<Void>) ref).join(timeout, unit);
+    }
+
+    public Void get() throws ExecutionException, InterruptedException {
+        return ((Joinable<Void>) ref).get();
+    }
+
+    public Void get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+        return ((Joinable<Void>) ref).get(timeout, unit);
+    }
+
+    public boolean isDone() {
+        return ((Joinable<Void>) ref).isDone();
     }
 }

@@ -13,16 +13,12 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.LocalActor;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.from;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.makeId;
-import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -145,36 +141,6 @@ class ServerImpl<CallMessage, V, CastMessage> extends BehaviorImpl implements Se
         @Override
         public ServerImpl<CallMessage, V, CastMessage> writeReplace() throws java.io.ObjectStreamException {
             return new ServerImpl<>(ref);
-        }
-
-        @Override
-        public Actor<Object, Void> build() {
-            return ((ActorBuilder<Object, Void>) ref).build();
-        }
-
-        @Override
-        public void join() throws ExecutionException, InterruptedException {
-            ((Joinable<Void>) ref).join();
-        }
-
-        @Override
-        public void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
-            ((Joinable<Void>) ref).join(timeout, unit);
-        }
-
-        @Override
-        public Void get() throws ExecutionException, InterruptedException {
-            return ((Joinable<Void>) ref).get();
-        }
-
-        @Override
-        public Void get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
-            return ((Joinable<Void>) ref).get(timeout, unit);
-        }
-
-        @Override
-        public boolean isDone() {
-            return ((Joinable<Void>) ref).isDone();
         }
     }
 }
