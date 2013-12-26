@@ -15,6 +15,7 @@ package co.paralleluniverse.actors;
 
 import static co.paralleluniverse.actors.ActorRefDelegateImpl.stripDelegates;
 import java.math.BigInteger;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -46,7 +47,11 @@ public final class ActorUtil {
      * @param message the message
      */
     public static void sendOrInterrupt(ActorRef actor, Object message) {
-        ((ActorRefImpl)stripDelegates(actor)).sendOrInterrupt(message);
+        ((ActorRefImpl) stripDelegates(actor)).sendOrInterrupt(message);
+    }
+
+    public static boolean equals(ActorRef<?> ref1, ActorRef<?> ref2) {
+        return Objects.equals(stripDelegates(ref1), stripDelegates(ref2));
     }
 
     private ActorUtil() {
