@@ -93,13 +93,13 @@ public class EventSourceTest {
     @Test
     public void testInitializationAndTermination() throws Exception {
         final Initializer init = mock(Initializer.class);
-        EventSource<String> ge = spawnEventSource(init);
+        EventSource<String> es = spawnEventSource(init);
 
         Thread.sleep(100);
         verify(init).init();
 
-        ge.shutdown();
-        LocalActor.join(ge, 100, TimeUnit.MILLISECONDS);
+        es.shutdown();
+        LocalActor.join(es, 100, TimeUnit.MILLISECONDS);
 
         verify(init).terminate(null);
     }
@@ -109,24 +109,24 @@ public class EventSourceTest {
         final EventHandler<String> handler1 = mock(EventHandler.class);
         final EventHandler<String> handler2 = mock(EventHandler.class);
 
-        final EventSource<String> ge = spawnEventSource(null);
+        final EventSource<String> es = spawnEventSource(null);
 
-        ge.addHandler(handler1);
-        ge.addHandler(handler2);
+        es.addHandler(handler1);
+        es.addHandler(handler2);
 
-        ge.notify("hello");
+        es.notify("hello");
 
         Thread.sleep(100);
         InOrder inOrder = inOrder(handler1, handler2);
         inOrder.verify(handler1).handleEvent("hello");
         inOrder.verify(handler2).handleEvent("hello");
 
-        ge.removeHandler(handler1);
+        es.removeHandler(handler1);
 
-        ge.notify("goodbye");
+        es.notify("goodbye");
 
-        ge.shutdown();
-        LocalActor.join(ge, 100, TimeUnit.MILLISECONDS);
+        es.shutdown();
+        LocalActor.join(es, 100, TimeUnit.MILLISECONDS);
 
         verify(handler1, never()).handleEvent("goodbye");
         verify(handler2).handleEvent("goodbye");
@@ -142,18 +142,18 @@ public class EventSourceTest {
         final Exception myException = new RuntimeException("haha!");
         doThrow(myException).when(handler1).handleEvent(anyString());
 
-        final EventSource<String> ge = spawnEventSource(init);
+        final EventSource<String> es = spawnEventSource(init);
 
-        ge.addHandler(handler1);
-        ge.addHandler(handler2);
+        es.addHandler(handler1);
+        es.addHandler(handler2);
 
-        ge.notify("hello");
+        es.notify("hello");
 
         verify(handler1).handleEvent("hello");
         verify(handler2, never()).handleEvent(anyString());
 
         verify(init).terminate(myException);
 
-        LocalActor.join(ge, 100, TimeUnit.MILLISECONDS);
+        LocalActor.join(es, 100, TimeUnit.MILLISECONDS);
     }
 }

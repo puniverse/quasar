@@ -133,7 +133,7 @@ public class ServerTest {
 
     @Test
     public void whenCalledThenResultIsReturned() throws Exception {
-        final Server<Message, Integer, Message> gs = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
+        final Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
             public Integer handleCall(ActorRef<Integer> from, Object id, Message m) {
                 ServerActor.currentServerActor().shutdown();
@@ -143,19 +143,19 @@ public class ServerTest {
 
         Actor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
             protected Integer doRun() throws SuspendExecution, InterruptedException {
-                return gs.call(new Message(3, 4));
+                return s.call(new Message(3, 4));
             }
         });
 
         int res = actor.get();
         assertThat(res, is(7));
 
-        LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
+        LocalActor.join(s, 100, TimeUnit.MILLISECONDS);
     }
 
     @Test
     public void whenCalledFromThreadThenResultIsReturned() throws Exception {
-        Server<Message, Integer, Message> gs = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
+        Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
             public Integer handleCall(ActorRef<Integer> from, Object id, Message m) {
                 ServerActor.currentServerActor().shutdown();
@@ -163,16 +163,16 @@ public class ServerTest {
             }
         });
 
-        int res = gs.call(new Message(3, 4));
+        int res = s.call(new Message(3, 4));
 
         assertThat(res, is(7));
 
-        LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
+        LocalActor.join(s, 100, TimeUnit.MILLISECONDS);
     }
 
     @Test
     public void whenCalledAndTimeoutThenThrowTimeout() throws Exception {
-        Server<Message, Integer, Message> gs = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
+        Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
             public Integer handleCall(ActorRef<Integer> from, Object id, Message m) throws SuspendExecution {
                 try {
@@ -187,12 +187,12 @@ public class ServerTest {
         });
 
         try {
-            int res = gs.call(new Message(3, 4), 10, TimeUnit.MILLISECONDS);
+            int res = s.call(new Message(3, 4), 10, TimeUnit.MILLISECONDS);
             fail("res: " + res);
         } catch (TimeoutException e) {
         }
 
-        LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
+        LocalActor.join(s, 100, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -200,12 +200,12 @@ public class ServerTest {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
         when(server.handleCall(any(ActorRef.class), anyObject(), any(Message.class))).thenThrow(new RuntimeException("my exception"));
 
-        final Server<Message, Integer, Message> gs = spawnServer(server);
+        final Server<Message, Integer, Message> s = spawnServer(server);
 
         Actor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 try {
-                    int res = gs.call(new Message(3, 4));
+                    int res = s.call(new Message(3, 4));
                     fail();
                 } catch (RuntimeException e) {
                     assertThat(e.getMessage(), equalTo("my exception"));
@@ -216,7 +216,7 @@ public class ServerTest {
 
         actor.join();
         try {
-            LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
+            LocalActor.join(s, 100, TimeUnit.MILLISECONDS);
             fail("actor died");
         } catch (TimeoutException e) {
         }
@@ -227,17 +227,17 @@ public class ServerTest {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
         when(server.handleCall(any(ActorRef.class), anyObject(), any(Message.class))).thenThrow(new RuntimeException("my exception"));
 
-        final Server<Message, Integer, Message> gs = spawnServer(server);
+        final Server<Message, Integer, Message> s = spawnServer(server);
 
         try {
-            int res = gs.call(new Message(3, 4));
+            int res = s.call(new Message(3, 4));
             fail();
         } catch (RuntimeException e) {
             assertThat(e.getMessage(), equalTo("my exception"));
         }
 
         try {
-            LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
+            LocalActor.join(s, 100, TimeUnit.MILLISECONDS);
             fail("actor died");
         } catch (TimeoutException e) {
         }
@@ -248,17 +248,17 @@ public class ServerTest {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
         doThrow(new RuntimeException("my exception")).when(server).init();
 
-        final Server<Message, Integer, Message> gs = spawnServer(server);
+        final Server<Message, Integer, Message> s = spawnServer(server);
 
         try {
-            int res = gs.call(new Message(3, 4));
+            int res = s.call(new Message(3, 4));
             fail();
         } catch (RuntimeException e) {
             assertThat(e.getMessage(), equalTo("my exception"));
         }
 
         try {
-            LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
+            LocalActor.join(s, 100, TimeUnit.MILLISECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause().getMessage(), equalTo("my exception"));
@@ -269,7 +269,7 @@ public class ServerTest {
     public void whenTimeoutThenHandleTimeoutIsCalled() throws Exception {
         final AtomicInteger counter = new AtomicInteger(0);
 
-        ServerActor<Message, Integer, Message> gs = spawnActor(new ServerActor<Message, Integer, Message>() {
+        ServerActor<Message, Integer, Message> s = spawnActor(new ServerActor<Message, Integer, Message>() {
             @Override
             protected void init() {
                 setTimeout(20, TimeUnit.MILLISECONDS);
@@ -283,13 +283,13 @@ public class ServerTest {
             }
         });
 
-        gs.join(500, TimeUnit.MILLISECONDS); // should be enough
+        s.join(500, TimeUnit.MILLISECONDS); // should be enough
         assertThat(counter.get(), is(5));
     }
 
     @Test
     public void whenCalledThenDeferredResultIsReturned() throws Exception {
-        final Server<Message, Integer, Message> gs = new ServerActor<Message, Integer, Message>() {
+        final Server<Message, Integer, Message> s = new ServerActor<Message, Integer, Message>() {
             private int a, b;
             private ActorRef<Integer> from;
             private Object id;
@@ -322,19 +322,19 @@ public class ServerTest {
 
         Actor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
             protected Integer doRun() throws SuspendExecution, InterruptedException {
-                return gs.call(new Message(3, 4));
+                return s.call(new Message(3, 4));
             }
         });
 
         int res = actor.get();
         assertThat(res, is(7));
 
-        LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
+        LocalActor.join(s, 100, TimeUnit.MILLISECONDS);
     }
 
     @Test
     public void whenCalledFromThreadThenDeferredResultIsReturned() throws Exception {
-        final Server<Message, Integer, Message> gs = new ServerActor<Message, Integer, Message>() {
+        final Server<Message, Integer, Message> s = new ServerActor<Message, Integer, Message>() {
             private int a, b;
             private ActorRef<Integer> from;
             private Object id;
@@ -365,15 +365,15 @@ public class ServerTest {
             }
         }.spawn();
 
-        int res = gs.call(new Message(3, 4));
+        int res = s.call(new Message(3, 4));
 
         assertThat(res, is(7));
-        LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
+        LocalActor.join(s, 100, TimeUnit.MILLISECONDS);
     }
 
     @Test
     public void whenActorDiesDuringDeferredHandlingThenCausePropagatesToThreadCaller() throws Exception {
-        final Server<Message, Integer, Message> gs = new ServerActor<Message, Integer, Message>() {
+        final Server<Message, Integer, Message> s = new ServerActor<Message, Integer, Message>() {
             private boolean received;
 
             @Override
@@ -395,14 +395,14 @@ public class ServerTest {
         }.spawn();
 
         try {
-            int res = gs.call(new Message(3, 4));
+            int res = s.call(new Message(3, 4));
             fail();
         } catch (RuntimeException e) {
             assertThat(e.getMessage(), equalTo("my exception"));
         }
 
         try {
-            LocalActor.join(gs, 100, TimeUnit.MILLISECONDS);
+            LocalActor.join(s, 100, TimeUnit.MILLISECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause().getMessage(), equalTo("my exception"));
@@ -412,12 +412,12 @@ public class ServerTest {
     @Test
     public void whenCastThenHandleCastIsCalled() throws Exception {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
-        final Server<Message, Integer, Message> gs = spawnServer(server);
+        final Server<Message, Integer, Message> s = spawnServer(server);
 
-        gs.cast(new Message(3, 4));
+        s.cast(new Message(3, 4));
 
-        gs.shutdown();
-        LocalActor.join(gs);
+        s.shutdown();
+        LocalActor.join(s);
 
         verify(server).handleCast(any(ActorRef.class), anyObject(), eq(new Message(3, 4)));
     }
@@ -425,12 +425,12 @@ public class ServerTest {
     @Test
     public void whenSentMessageHandleInfoIsCalled() throws Exception {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
-        final Server<Message, Integer, Message> gs = spawnServer(server);
+        final Server<Message, Integer, Message> s = spawnServer(server);
 
-        gs.send("foo");
+        s.send("foo");
 
-        gs.shutdown();
-        LocalActor.join(gs);
+        s.shutdown();
+        LocalActor.join(s);
 
         verify(server).handleInfo("foo");
     }
@@ -438,10 +438,10 @@ public class ServerTest {
     @Test
     public void whenSentShutdownThenTerminateIsCalledAndServerStopped() throws Exception {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
-        final Server<Message, Integer, Message> gs = spawnServer(server);
+        final Server<Message, Integer, Message> s = spawnServer(server);
 
-        gs.shutdown();
-        LocalActor.join(gs);
+        s.shutdown();
+        LocalActor.join(s);
 
         verify(server).terminate(null);
     }
@@ -452,12 +452,12 @@ public class ServerTest {
 
         final Exception myException = new RuntimeException("my exception");
         doThrow(myException).when(server).handleInfo(anyObject());
-        final Server<Message, Integer, Message> gs = spawnServer(server);
+        final Server<Message, Integer, Message> s = spawnServer(server);
 
-        gs.send("foo");
+        s.send("foo");
 
         try {
-            LocalActor.join(gs);
+            LocalActor.join(s);
             fail();
         } catch (Exception e) {
             assertThat(e.getCause().getMessage(), equalTo("my exception"));
