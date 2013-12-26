@@ -105,19 +105,19 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
             moduleDir = null;
     }
 
-    public static AtomicReference<Class<? extends Actor<?, ?>>> getActorClassRef(String className) {
-        return instance.getActorClassRef0(className);
+    public static AtomicReference<Class<?>> getActorClassRef(String className) {
+        return instance.getClassRef0(className);
     }
 
-    public static AtomicReference<Class<? extends Actor<?, ?>>> getActorClassRef(Class<?> clazz) {
-        return instance.getActorClassRef0(clazz);
+    public static AtomicReference<Class<?>> getActorClassRef(Class<?> clazz) {
+        return instance.getClassRef0(clazz);
     }
 
-    public static <T extends Actor<?, ?>> Class<T> currentClassFor(Class<T> clazz) {
+    public static <T> Class<T> currentClassFor(Class<T> clazz) {
         return instance.getActorClass(clazz);
     }
 
-    public static <T extends Actor<?, ?>> Class<T> currentClassFor(String className) {
+    public static Class<?> currentClassFor(String className) {
         return instance.getActorClass(className);
     }
 
@@ -125,10 +125,9 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         return instance.getReplacementFor0(actor);
     }
     //
-    private final ConcurrentHashMapV8<String, AtomicReference<Class<? extends Actor<?, ?>>>> actorClasses = new ConcurrentHashMapV8<>();
+    private final ConcurrentHashMapV8<String, AtomicReference<Class<?>>> classes = new ConcurrentHashMapV8<>();
     private final List<ActorModule> modules = new CopyOnWriteArrayList<>();
     private final ConcurrentMap<String, ActorModule> classModule = new ConcurrentHashMapV8<>();
-    
     private final ThreadLocal<Boolean> recursive = new ThreadLocal<Boolean>();
     private final NotificationBroadcasterSupport notificationBroadcaster;
     private int notificationSequenceNumber;
@@ -167,26 +166,26 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         return null;
     }
 
-    private Map<String, Class<? extends Actor<?, ?>>> checkModule(ActorModule module) {
-        Map<String, Class<? extends Actor<?, ?>>> oldClasses = new HashMap<>();
+    private Map<String, Class<?>> checkModule(ActorModule module) {
+        Map<String, Class<?>> oldClasses = new HashMap<>();
         try {
             for (String className : module.getUpgradeClasses()) {
-                Class<? extends Actor<?, ?>> newClass = null;
+                Class<?> newClass = null;
                 try {
-                    newClass = (Class<? extends Actor<?, ?>>) module.loadClassInModule(className);
+                    newClass = module.loadClassInModule(className);
                 } catch (ClassNotFoundException e) {
                     throw new RuntimeException("Upgraded class " + className + " is not found in module " + module);
                 }
-                if (!Actor.class.isAssignableFrom(newClass))
-                    throw new RuntimeException("Upgraded class " + className + " in module " + module + " is not an actor");
-                Class<? extends Actor<?, ?>> oldClass = null;
+                // if (!Actor.class.isAssignableFrom(newClass))
+                //    throw new RuntimeException("Upgraded class " + className + " in module " + module + " is not an actor");
+                Class<?> oldClass = null;
                 try {
-                    oldClass = (Class<? extends Actor<?, ?>>) this.loadClass(className);
+                    oldClass = this.loadClass(className);
                 } catch (ClassNotFoundException e) {
                     throw new RuntimeException("Upgraded class " + className + " does not upgrade an existing class");
                 }
-                if (!Actor.class.isAssignableFrom(oldClass))
-                    throw new RuntimeException("Upgraded class " + className + " in module " + module + " does not upgrade an actor");
+                // if (!Actor.class.isAssignableFrom(oldClass))
+                //    throw new RuntimeException("Upgraded class " + className + " in module " + module + " does not upgrade an actor");
                 oldClasses.put(className, oldClass);
             }
             return oldClasses;
@@ -270,7 +269,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     }
 
     private synchronized void addModule(ActorModule module) {
-        Map<String, Class<? extends Actor<?, ?>>> oldClasses = checkModule(module);
+        Map<String, Class<?>> oldClasses = checkModule(module);
         modules.add(module);
 
         for (String className : module.getUpgradeClasses()) {
@@ -291,7 +290,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     private synchronized void removeModule(ActorModule module) {
         modules.remove(module);
 
-        Set<Class<? extends Actor<?, ?>>> oldClasses = new HashSet<>();
+        Set<Class<?>> oldClasses = new HashSet<>();
         for (String className : module.getUpgradeClasses()) {
             if (classModule.get(className) == module) {
                 ActorModule newModule = null;
@@ -315,7 +314,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         performUpgrade(oldClasses);
     }
 
-    private void performUpgrade(Set<Class<? extends Actor<?, ?>>> oldClasses) {
+    private void performUpgrade(Set<Class<?>> oldClasses) {
 //        if (TRY_RELOAD && JavaAgent.isActive()) {
 //            try {
 //                LOG.info("Attempting to redefine classes");
@@ -333,9 +332,9 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
 //                LOG.info("Class redefinition failed due to exception. Upgrading.", e);
 //            }
 //        }
-        for (Class<? extends Actor<?, ?>> oldClass : oldClasses) {
+        for (Class<?> oldClass : oldClasses) {
             LOG.debug("Triggering replacement of {} ({})", oldClass, getModule(oldClass));
-            getActorClassRef0(oldClass).set(loadCurrentClass(oldClass.getName()));
+            getClassRef0(oldClass).set(loadCurrentClass(oldClass.getName()));
         }
     }
 
@@ -358,44 +357,44 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         }
     }
 
-    <T extends Actor<?, ?>> T getReplacementFor0(T actor) {
-        Class<T> clazz = (Class<T>) actor.getClass();
+    <T> T getReplacementFor0(T instance) {
+        Class<T> clazz = (Class<T>) instance.getClass();
         if (clazz.isAnonymousClass())
-            return actor;
-        Class<? extends T> newClazz = getActorClass(clazz.getName());
+            return instance;
+        Class<T> newClazz = (Class<T>) getActorClass(clazz.getName());
         if (newClazz == clazz)
-            return actor;
-        return (T) InstanceUpgrader.get(newClazz).copy(actor);
+            return instance;
+        return (T) InstanceUpgrader.get(newClazz).copy(instance);
     }
 
-    <T extends Actor<?, ?>> Class<T> getActorClass(Class<T> clazz) {
+    <T> Class<T> getActorClass(Class<T> clazz) {
         if (clazz.isAnonymousClass())
             return clazz;
-        return getActorClass(clazz.getName());
+        return (Class<T>) getActorClass(clazz.getName());
     }
 
-    <T extends Actor<?, ?>> Class<T> getActorClass(String className) {
-        AtomicReference<Class<? extends Actor<?, ?>>> ref = getActorClassRef(className);
-        Class<? extends Actor<?, ?>> clazz = ref.get();
+    Class<?> getActorClass(String className) {
+        AtomicReference<Class<?>> ref = getActorClassRef(className);
+        Class<?> clazz = ref.get();
         if (clazz == null) {
             clazz = loadCurrentClass(className);
             if (!ref.compareAndSet(null, clazz))
                 clazz = ref.get();
         }
         assert clazz != null;
-        return (Class<T>) clazz;
+        return clazz;
     }
 
-    AtomicReference<Class<? extends Actor<?, ?>>> getActorClassRef0(Class<?> clazz) {
+    AtomicReference<Class<?>> getClassRef0(Class<?> clazz) {
         if (clazz.isAnonymousClass())
             return null;
-        return getActorClassRef0(clazz.getName());
+        return getClassRef0(clazz.getName());
     }
 
-    AtomicReference<Class<? extends Actor<?, ?>>> getActorClassRef0(String className) {
-        return actorClasses.computeIfAbsent(className, new ConcurrentHashMapV8.Fun<String, AtomicReference<Class<? extends Actor<?, ?>>>>() {
+    AtomicReference<Class<?>> getClassRef0(String className) {
+        return classes.computeIfAbsent(className, new ConcurrentHashMapV8.Fun<String, AtomicReference<Class<?>>>() {
             @Override
-            public AtomicReference<Class<? extends Actor<?, ?>>> apply(String a) {
+            public AtomicReference<Class<?>> apply(String a) {
                 return new AtomicReference<>();
             }
         });

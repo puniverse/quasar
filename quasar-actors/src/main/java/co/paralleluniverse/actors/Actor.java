@@ -80,7 +80,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
     private final LocalActorRef<Message, V> ref;
     private final ActorRef<Message> wrapperRef;
-    private final AtomicReference<Class<? extends Actor<?, ?>>> classRef;
+    private final AtomicReference<Class<?>> classRef;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
     private final Set<ActorRefImpl> observed = Collections.newSetFromMap(new ConcurrentHashMapV8<ActorRefImpl, Boolean>());
     private volatile V result;

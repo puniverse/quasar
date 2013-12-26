@@ -40,6 +40,13 @@ import org.slf4j.LoggerFactory;
  * @author pron
  */
 class ActorModule extends URLClassLoader {
+    private static final Class<?>[] AUTOMATIC_UPGRADE_CLASSES = new Class[]{
+        Actor.class,
+        co.paralleluniverse.actors.behaviors.Initializer.class,
+        co.paralleluniverse.actors.behaviors.ServerHandler.class,
+        co.paralleluniverse.actors.behaviors.EventHandler.class,
+    };
+
     static {
         ClassLoader.registerAsParallelCapable();
     }
@@ -53,7 +60,7 @@ class ActorModule extends URLClassLoader {
         super(new URL[]{jarUrl}, null);
         this.url = jarUrl;
         this.parent = parent;
-        
+
         // determine upgrade classes
         try {
             JarFile jar = new JarFile(new File(jarUrl.toURI()));
@@ -74,7 +81,7 @@ class ActorModule extends URLClassLoader {
 //                                    + ASMUtil.isAssignableFrom(Actor.class, className, ActorModule.this) + " "
 //                                    + " " + url + " " + ActorModule.this.parent.getResource(resource) + " "
 //                                    + equalContent(ActorModule.this.parent.getResource(resource), url));                  
-                            if (ASMUtil.isAssignableFrom(Actor.class, className, ActorModule.this)
+                            if (isAutomaticUpgrade(className)
                                     && !equalContent(ActorModule.this.parent.getResource(resource), url))
                                 builder.add(className);
                         }
@@ -103,7 +110,15 @@ class ActorModule extends URLClassLoader {
             this.upgradeClasses = builder.build();
         } catch (IOException | URISyntaxException e) {
             throw new RuntimeException(e);
-        }        
+        }
+    }
+
+    private boolean isAutomaticUpgrade(String className) {
+        for (Class<?> c : AUTOMATIC_UPGRADE_CLASSES) {
+            if (ASMUtil.isAssignableFrom(Actor.class, className, ActorModule.this))
+                return true;
+        }
+        return false;
     }
 
     public URL getURL() {
@@ -133,7 +148,7 @@ class ActorModule extends URLClassLoader {
 
         LOG.debug("findClass {} in module {}", name, this);
         boolean isUpgraded = upgradeClasses.contains(name);
-        if (!isUpgraded && parent != null 
+        if (!isUpgraded && parent != null
                 && !name.contains("$")) { // if class is possibly an inner class, don't use parent's, which will be in a different runtime package
             try {
                 String resourceName = classToResource(name);
