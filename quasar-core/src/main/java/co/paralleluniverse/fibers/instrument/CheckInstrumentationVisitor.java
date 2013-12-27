@@ -94,8 +94,8 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
     @Override
     public MethodVisitor visitMethod(int access, final String name, final String desc, String signature, String[] exceptions) {
         SuspendableType suspendable = null;
-        if(suspendableInterface)
-            suspendable = SuspendableType.SUSPENDABLE;
+        if (suspendableInterface)
+            suspendable = SuspendableType.SUSPENDABLE_SUPER;
         if (suspendable == null)
             suspendable = classEntry.check(name, desc);
         if (suspendable == null)

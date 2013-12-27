@@ -65,7 +65,6 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
  */
 public class InstrumentClass extends ClassVisitor {
     private final SuspendableClassifier classifier;
-    
     private final MethodDatabase db;
     private boolean forceInstrumentation;
     private String className;
@@ -87,7 +86,7 @@ public class InstrumentClass extends ClassVisitor {
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         this.className = name;
         this.isInterface = (access & Opcodes.ACC_INTERFACE) != 0;
-        
+
         this.classEntry = db.getOrCreateClassEntry(className, superName);
         classEntry.setInterfaces(interfaces);
 
@@ -112,20 +111,24 @@ public class InstrumentClass extends ClassVisitor {
             this.alreadyInstrumented = true;
         else if (isInterface && desc.equals(ANNOTATION_DESC))
             this.suspendableInterface = true;
-        
+
         return super.visitAnnotation(desc, visible);
     }
 
     @Override
     public MethodVisitor visitMethod(final int access, final String name, final String desc, final String signature, final String[] exceptions) {
-        final SuspendableType markedSuspendable = classifier.isSuspendable(className, classEntry.getSuperName(), classEntry.getInterfaces(), name, desc, signature, exceptions);
+        SuspendableType markedSuspendable = null;
+        if (suspendableInterface)
+            markedSuspendable = SuspendableType.SUSPENDABLE_SUPER;
+        if (markedSuspendable == null)
+            markedSuspendable = classifier.isSuspendable(className, classEntry.getSuperName(), classEntry.getInterfaces(), name, desc, signature, exceptions);
         final SuspendableType setSuspendable = classEntry.check(name, desc);
 
         if (setSuspendable == null)
             classEntry.set(name, desc, markedSuspendable != null ? markedSuspendable : SuspendableType.NON_SUSPENDABLE);
-   
-        final boolean suspendable = suspendableInterface | markedSuspendable == SuspendableType.SUSPENDABLE | setSuspendable == SuspendableType.SUSPENDABLE;
-     
+
+        final boolean suspendable = markedSuspendable == SuspendableType.SUSPENDABLE | setSuspendable == SuspendableType.SUSPENDABLE;
+
         if (checkAccess(access) && !isYieldMethod(className, name)) {
             if (methods == null)
                 methods = new ArrayList<MethodNode>();

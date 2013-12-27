@@ -32,27 +32,27 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
     public static final String PREFIX = "META-INF/";
     public static final String SUSPENDABLES_FILE = "suspendables";
     public static final String SUSPENDABLE_SUPERS_FILE = "suspendable-supers";
-    
     private final Set<String> suspendables = new HashSet<String>();
     private final Set<String> suspendableSupers = new HashSet<String>();
+    private final Set<String> suspendableSuperInterfaces = new HashSet<String>();
 
     public SimpleSuspendableClassifier() {
-        readFiles(SUSPENDABLES_FILE, suspendables);
-        readFiles(SUSPENDABLE_SUPERS_FILE, suspendableSupers);
+        readFiles(SUSPENDABLES_FILE, suspendables, null);
+        readFiles(SUSPENDABLE_SUPERS_FILE, suspendableSupers, suspendableSuperInterfaces);
     }
 
-    private void readFiles(String fileName, Set<String> set) {
+    private void readFiles(String fileName, Set<String> set, Set<String> classSet) {
         try {
             for (Enumeration<URL> susFiles = getClass().getClassLoader().getResources(PREFIX + fileName); susFiles.hasMoreElements();) {
                 URL file = susFiles.nextElement();
-                parse(file, set);
+                parse(file, set, classSet);
             }
         } catch (IOException e) {
             // silently ignore
         }
     }
 
-    private void parse(URL file, Set<String> set) {
+    private void parse(URL file, Set<String> set, Set<String> classSet) {
         try (InputStream is = file.openStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF-8")))) {
             String line;
@@ -63,7 +63,11 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
                 final String methodName = s.substring(index + 1);
                 final String fullName = className + '.' + methodName;
 
-                set.add(fullName);
+                if (methodName.equals("*")) {
+                    if (classSet != null)
+                        classSet.add(className);
+                } else
+                    set.add(fullName);
             }
         } catch (IOException e) {
             // silently ignore
@@ -76,6 +80,8 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
         if (suspendables.contains(fullMethodName))
             return SuspendableType.SUSPENDABLE;
         if (suspendableSupers.contains(fullMethodName))
+            return SuspendableType.SUSPENDABLE_SUPER;
+        if (suspendableSuperInterfaces.contains(className))
             return SuspendableType.SUSPENDABLE_SUPER;
         return null;
     }
