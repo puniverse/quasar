@@ -18,6 +18,7 @@ import org.objectweb.asm.tree.MethodInsnNode;
  */
 final class Classes {
     static final String EXCEPTION_NAME = "co/paralleluniverse/fibers/SuspendExecution";
+    static final String UNDECLARED_THROWABLE_NAME = "java/lang/reflect/UndeclaredThrowableException";
     static final String ANNOTATION_NAME = "co/paralleluniverse/fibers/Suspendable";
     static final String COROUTINE_NAME = "co/paralleluniverse/fibers/Fiber"; //Type.getInternalName(COROUTINE_CLASS);
     private static final String STRAND_NAME = "co/paralleluniverse/strands/Strand"; //Type.getInternalName(COROUTINE_CLASS);

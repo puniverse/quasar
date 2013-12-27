@@ -43,6 +43,7 @@ package co.paralleluniverse.fibers.instrument;
 
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.STACK_NAME;
+import static co.paralleluniverse.fibers.instrument.Classes.UNDECLARED_THROWABLE_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.isAllowedToBlock;
 import static co.paralleluniverse.fibers.instrument.Classes.isBlockingCall;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
@@ -77,6 +78,7 @@ import org.objectweb.asm.tree.analysis.Value;
  * @author pron
  */
 class InstrumentMethod {
+    private static final boolean HANDLE_PROXY_INVOCATIONS = true;
     private static final int PREEMPTION_BACKBRANCH = 0;
     private static final int PREEMPTION_CALL = 1;
 //  private static final String INTERRUPTED_EXCEPTION_NAME = Type.getInternalName(InterruptedException.class);
@@ -182,6 +184,7 @@ class InstrumentMethod {
         Label lMethodStart = new Label();
         Label lMethodEnd = new Label();
         Label lCatchSEE = new Label();
+        Label lCatchUTE = new Label();
         Label lCatchAll = new Label();
         Label[] lMethodCalls = new Label[numCodeBlocks - 1];
 
@@ -192,6 +195,8 @@ class InstrumentMethod {
         mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationReturnValue);
 
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, EXCEPTION_NAME);
+        if (HANDLE_PROXY_INVOCATIONS)
+            mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchUTE, UNDECLARED_THROWABLE_NAME);
 
         // Prepare visitTryCatchBlocks for InvocationTargetException.
         // With reflective invocations, the SuspendExecution exception will be wrapped in InvocationTargetException. We need to catch it and unwrap it.
@@ -215,6 +220,8 @@ class InstrumentMethod {
             TryCatchBlockNode tcb = (TryCatchBlockNode) o;
             if (EXCEPTION_NAME.equals(tcb.type) && !hasAnnotation) // we allow catch of SuspendExecution in method annotated with @Suspendable.
                 throw new UnableToInstrumentException("catch for SuspendExecution", className, mn.name, mn.desc);
+            if (HANDLE_PROXY_INVOCATIONS && UNDECLARED_THROWABLE_NAME.equals(tcb.type)) // we allow catch of SuspendExecution in method annotated with @Suspendable.
+                throw new UnableToInstrumentException("catch for UndeclaredThrowableException", className, mn.name, mn.desc);
 //          if (INTERRUPTED_EXCEPTION_NAME.equals(tcb.type))
 //              throw new UnableToInstrumentException("catch for " + InterruptedException.class.getSimpleName(), className, mn.name, mn.desc);
 
@@ -311,6 +318,7 @@ class InstrumentMethod {
                     final Label endTry = ls[1];
                     final Label startCatch = ls[2];
                     final Label endCatch = new Label();
+                    final Label notSuspendExecution = new Label();
 
                     // mv.visitTryCatchBlock(startTry, endTry, startCatch, "java/lang/reflect/InvocationTargetException");
                     mv.visitLabel(startTry);   // try {
@@ -338,9 +346,20 @@ class InstrumentMethod {
 
         mv.visitLabel(lMethodEnd);
 
+        if (HANDLE_PROXY_INVOCATIONS) {
+            mv.visitLabel(lCatchUTE);
+            mv.visitInsn(Opcodes.DUP);
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;");
+            mv.visitTypeInsn(Opcodes.INSTANCEOF, EXCEPTION_NAME);
+            mv.visitJumpInsn(Opcodes.IFEQ, lCatchAll);            
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;");
+            mv.visitJumpInsn(Opcodes.GOTO, lCatchSEE);
+        }
+
         mv.visitLabel(lCatchAll);
         emitPopMethod(mv);
         mv.visitLabel(lCatchSEE);
+
         mv.visitInsn(Opcodes.ATHROW);   // rethrow shared between catchAll and catchSSE
 
         if (mn.localVariables != null) {
@@ -350,6 +369,21 @@ class InstrumentMethod {
 
         mv.visitMaxs(mn.maxStack + 4, mn.maxLocals + NUM_LOCALS + additionalLocals);
         mv.visitEnd();
+    }
+
+    private void println(MethodVisitor mv, String prefix, int refVar) {
+        mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+        mv.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
+        mv.visitInsn(Opcodes.DUP);
+        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V");
+        mv.visitLdcInsn(prefix);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+
+        mv.visitVarInsn(Opcodes.ALOAD, refVar);
+
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;");
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;");
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V");
     }
 
     private FrameInfo addCodeBlock(Frame f, int end) {
