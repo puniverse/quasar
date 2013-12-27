@@ -85,10 +85,9 @@ class InstrumentMethod {
     private final String className;
     private final MethodNode mn;
     private final Frame[] frames;
-    private static final int NUM_LOCALS = 4; // lvarStack, lvarResumed, lvarInvocationExceptionCause, lvarInvocationReturnValue
+    private static final int NUM_LOCALS = 3; // lvarStack, lvarResumed, lvarInvocationReturnValue
     private final int lvarStack; // ref to Stack
     private final int lvarResumed; // boolean indicating if we've been resumed
-    private final int lvarInvocationExceptionCause;
     private final int lvarInvocationReturnValue;
     private final int firstLocal;
     private FrameInfo[] codeBlocks = new FrameInfo[32];
@@ -107,8 +106,7 @@ class InstrumentMethod {
             this.frames = a.analyze(className, mn);
             this.lvarStack = mn.maxLocals;
             this.lvarResumed = mn.maxLocals + 1;
-            this.lvarInvocationExceptionCause = mn.maxLocals + 2;
-            this.lvarInvocationReturnValue = mn.maxLocals + 3;
+            this.lvarInvocationReturnValue = mn.maxLocals + 2;
             this.firstLocal = ((mn.access & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC) ? 0 : 1;
         } catch (UnsupportedOperationException ex) {
             throw new AnalyzerException(null, ex.getMessage(), ex);
@@ -321,15 +319,15 @@ class InstrumentMethod {
                     mv.visitLabel(endTry);     // }
                     mv.visitJumpInsn(Opcodes.GOTO, endCatch);
                     mv.visitLabel(startCatch); // catch(InvocationTargetException ex) {
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/reflect/InvocationTargetException", "getCause", "()Ljava/lang/Throwable;");
-                    mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationExceptionCause); // Throwable t = ex.getCause();
-                    mv.visitVarInsn(Opcodes.ALOAD, lvarInvocationExceptionCause);
+                    mv.visitInsn(Opcodes.DUP);
+                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;");
                     mv.visitTypeInsn(Opcodes.INSTANCEOF, EXCEPTION_NAME);
-                    mv.visitJumpInsn(Opcodes.IFEQ, endCatch);                      // if(t instanceof SuspendExecution)
-                    mv.visitVarInsn(Opcodes.ALOAD, lvarInvocationExceptionCause);
-                    mv.visitTypeInsn(Opcodes.CHECKCAST, EXCEPTION_NAME);
-                    mv.visitInsn(Opcodes.ATHROW);                                  //     throw (SuspendExecution)t;
-                    mv.visitLabel(endCatch);   // }
+                    mv.visitJumpInsn(Opcodes.IFEQ, notSuspendExecution);
+                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;");
+                    mv.visitLabel(notSuspendExecution);
+                    mv.visitInsn(Opcodes.ATHROW);
+                    mv.visitLabel(endCatch);
+
                     mv.visitVarInsn(Opcodes.ALOAD, lvarInvocationReturnValue); // restore return value
                     dumpCodeBlock(mv, i, 1);    // skip the call
                 } else {
