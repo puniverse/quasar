@@ -196,6 +196,56 @@ public class ServerTest {
     }
 
     @Test
+    public void testDefaultTimeout1() throws Exception {
+        Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
+            @Override
+            public Integer handleCall(ActorRef<Integer> from, Object id, Message m) throws SuspendExecution {
+                try {
+                    Strand.sleep(50);
+                    ServerActor.currentServerActor().shutdown();
+                    return m.a + m.b;
+                } catch (InterruptedException ex) {
+                    System.out.println("?????: " + Arrays.toString(ex.getStackTrace()));
+                    return 40;
+                }
+            }
+        });
+
+        s.setDefaultTimeout(10, TimeUnit.MILLISECONDS);
+        try {
+            int res = s.call(new Message(3, 4));
+            fail("res: " + res);
+        } catch (RuntimeException e) {
+            assertThat(e.getCause(), instanceOf(TimeoutException.class));
+        }
+
+        LocalActor.join(s, 100, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
+    public void testDefaultTimeout2() throws Exception {
+        Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
+            @Override
+            public Integer handleCall(ActorRef<Integer> from, Object id, Message m) throws SuspendExecution {
+                try {
+                    Strand.sleep(50);
+                    ServerActor.currentServerActor().shutdown();
+                    return m.a + m.b;
+                } catch (InterruptedException ex) {
+                    System.out.println("?????: " + Arrays.toString(ex.getStackTrace()));
+                    return 40;
+                }
+            }
+        });
+
+        s.setDefaultTimeout(100, TimeUnit.MILLISECONDS);
+        int res = s.call(new Message(3, 4));
+        assertThat(res, is(7));
+
+        LocalActor.join(s, 100, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
     public void whenHandleCallThrowsExceptionThenItPropagatesToCaller() throws Exception {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
         when(server.handleCall(any(ActorRef.class), anyObject(), any(Message.class))).thenThrow(new RuntimeException("my exception"));

@@ -25,9 +25,24 @@ import java.util.concurrent.TimeoutException;
  */
 public interface Server<CallMessage, V, CastMessage> extends Behavior {
     /**
+     * Sets a default timeout for non-timed {@link #call(Object) call}s on this server reference.
+     * Non-timed calls that take longer than the default timeout, will throw a {@link TimeoutException}
+     * wrapped in a {@link RuntimeException}. Timed calls (those that take a timeout parameter) will not be affected.
+     * <p/>
+     * This method only affects calls made through this particular server actor reference and not calls to the same server actor
+     * through other references.
+     * <p/>
+     * <b>This method has nothing to do with {@link ServerActor#setTimeout(long, TimeUnit) ServerActor.setTimeout}</b>
+     *
+     * @param timeout the timeout duration
+     * @param unit    the time unit of the timeout, or {@code null} to unset.
+     */
+    public void setDefaultTimeout(long timeout, TimeUnit unit);
+    
+    /**
      * Sends a synchronous request to the actor, and awaits a response.
-     * This method will wait indefinitely for the actor to respond unless a default timeout has been set for the calling
-     * strand with {@link RequestReplyHelper#setDefaultTimeout(long, TimeUnit) RequestReplyHelper.setDefaultTimeout}.
+     * This method will wait indefinitely for the actor to respond unless a default timeout has been set for this
+     * server reference with {@link #setDefaultTimeout(long, TimeUnit) setDefaultTimeout}.
      * <p/>
      * This method may be safely called by actors and non-actor strands alike.
      *
