@@ -97,6 +97,7 @@ class InstrumentMethod {
     private int additionalLocals;
     private boolean warnedAboutMonitors;
     private int warnedAboutBlocking;
+    private boolean hasSuspendableSuperCalls;
 
     public InstrumentMethod(MethodDatabase db, String className, MethodNode mn) throws AnalyzerException {
         this.db = db;
@@ -145,6 +146,8 @@ class InstrumentMethod {
                                 susp = true;
                             } else if (susp)
                                 db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is suspendable", i, min.owner, min.name, min.desc);
+                            if (st == SuspendableType.SUSPENDABLE_SUPER)
+                                this.hasSuspendableSuperCalls = true;
                         }
                     } else // invoke dynamic
                         db.log(LogLevel.DEBUG, "InvokeDynamic Method call at instruction %d to is assumed suspendable", i);
@@ -179,6 +182,7 @@ class InstrumentMethod {
     public void accept(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
 
+        final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS & hasSuspendableSuperCalls;
         mv.visitCode();
 
         Label lMethodStart = new Label();
@@ -195,7 +199,7 @@ class InstrumentMethod {
         mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationReturnValue);
 
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, EXCEPTION_NAME);
-        if (HANDLE_PROXY_INVOCATIONS)
+        if (handleProxyInvocations)
             mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchUTE, UNDECLARED_THROWABLE_NAME);
 
         // Prepare visitTryCatchBlocks for InvocationTargetException.
@@ -220,7 +224,7 @@ class InstrumentMethod {
             TryCatchBlockNode tcb = (TryCatchBlockNode) o;
             if (EXCEPTION_NAME.equals(tcb.type) && !hasAnnotation) // we allow catch of SuspendExecution in method annotated with @Suspendable.
                 throw new UnableToInstrumentException("catch for SuspendExecution", className, mn.name, mn.desc);
-            if (HANDLE_PROXY_INVOCATIONS && UNDECLARED_THROWABLE_NAME.equals(tcb.type)) // we allow catch of SuspendExecution in method annotated with @Suspendable.
+            if (handleProxyInvocations && UNDECLARED_THROWABLE_NAME.equals(tcb.type)) // we allow catch of SuspendExecution in method annotated with @Suspendable.
                 throw new UnableToInstrumentException("catch for UndeclaredThrowableException", className, mn.name, mn.desc);
 //          if (INTERRUPTED_EXCEPTION_NAME.equals(tcb.type))
 //              throw new UnableToInstrumentException("catch for " + InterruptedException.class.getSimpleName(), className, mn.name, mn.desc);
@@ -346,12 +350,12 @@ class InstrumentMethod {
 
         mv.visitLabel(lMethodEnd);
 
-        if (HANDLE_PROXY_INVOCATIONS) {
+        if (handleProxyInvocations) {
             mv.visitLabel(lCatchUTE);
             mv.visitInsn(Opcodes.DUP);
             mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;");
             mv.visitTypeInsn(Opcodes.INSTANCEOF, EXCEPTION_NAME);
-            mv.visitJumpInsn(Opcodes.IFEQ, lCatchAll);            
+            mv.visitJumpInsn(Opcodes.IFEQ, lCatchAll);
             mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;");
             mv.visitJumpInsn(Opcodes.GOTO, lCatchSEE);
         }
