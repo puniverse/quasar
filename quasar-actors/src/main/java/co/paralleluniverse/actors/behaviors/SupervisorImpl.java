@@ -33,13 +33,6 @@ public class SupervisorImpl extends BehaviorImpl implements Supervisor {
         super(actor);
     }
 
-    /**
-     * Adds a new child actor to the supervisor. If the child has not been started, it will be started by the supervisor.
-     *
-     * @param spec the {@link ChildSpec child's spec}.
-     * @return the actor (possibly after it has been started by the supervisor).
-     * @throws InterruptedException
-     */
     @Override
     public final <T extends ActorRef<M>, M> T addChild(ChildSpec spec) throws SuspendExecution, InterruptedException {
         if (isInActor())
@@ -48,14 +41,6 @@ public class SupervisorImpl extends BehaviorImpl implements Supervisor {
         return (T) call(this, new AddChildMessage(RequestReplyHelper.from(), null, spec));
     }
 
-    /**
-     * Retrieves a child actor by its {@link ChildSpec#getId() id}
-     *
-     * @param id the child's {@link ChildSpec#getId() id} in the supervisor.
-     * @return the child, if found; {@code null} if the child was not found
-     * @throws SuspendExecution
-     * @throws InterruptedException
-     */
     @Override
     public final <T extends ActorRef<M>, M> T getChild(Object id) throws SuspendExecution, InterruptedException {
         if (isInActor())
@@ -64,14 +49,6 @@ public class SupervisorImpl extends BehaviorImpl implements Supervisor {
         return (T) call(this, new GetChildMessage(RequestReplyHelper.from(), null, id));
     }
 
-    /**
-     * Removes a child actor from the supervisor.
-     *
-     * @param id        the child's {@link ChildSpec#getId() id} in the supervisor.
-     * @param terminate whether or not the supervisor should terminate the actor
-     * @return {@code true} if the actor has been successfully removed from the supervisor; {@code false} if the child was not found.
-     * @throws InterruptedException
-     */
     @Override
     public final boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException {
         if (isInActor())

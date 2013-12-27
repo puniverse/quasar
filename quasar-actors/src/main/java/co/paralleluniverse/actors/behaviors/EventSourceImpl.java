@@ -33,12 +33,6 @@ class EventSourceImpl<Event> extends BehaviorImpl implements EventSource<Event> 
         super(actor);
     }
 
-    /**
-     * Adds an {@link EventHandler} that will be notified of every event sent to this actor.
-     *
-     * @param handler the handler
-     * @return {@code true} if the handler has been successfully added to the actor, or {@code false} if the handler was already registered.
-     */
     @Override
     public boolean addHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
         if (isInActor())
@@ -47,12 +41,6 @@ class EventSourceImpl<Event> extends BehaviorImpl implements EventSource<Event> 
         return (Boolean) call(this, new EventSourceActor.HandlerMessage(RequestReplyHelper.from(), null, handler, true));
     }
 
-    /**
-     * Removes an {@link EventHandler} from the actor
-     *
-     * @param handler
-     * @return {@code true} if the handler was registered and successfully removed, or {@code false} if the handler was not registered.
-     */
     @Override
     public boolean removeHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
         if (isInActor())
@@ -61,11 +49,6 @@ class EventSourceImpl<Event> extends BehaviorImpl implements EventSource<Event> 
         return (Boolean) call(this, new EventSourceActor.HandlerMessage(RequestReplyHelper.from(), null, handler, false));
     }
 
-    /**
-     * Sends an event to the actor, which will be delivered to all registered event handlers.
-     *
-     * @param event the event
-     */
     @Override
     public void notify(Event event) throws SuspendExecution {
         send(event);
