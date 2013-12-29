@@ -90,14 +90,16 @@ public class Debug {
     }
 
     public static void exit(int code) {
+        final Strand currentStrand = Strand.currentStrand();
         if (flightRecorder != null) {
-            Strand currentStrand = Strand.currentStrand();
             flightRecorder.record(1, "DEBUG EXIT REQUEST ON STRAND " + currentStrand + ": " + Arrays.toString(currentStrand.getStackTrace()));
             flightRecorder.stop();
         }
 
         if (requestShutdown.compareAndSet(false, true)) {
-            System.err.println("DEBUG EXIT REQUEST: SHUTTING DOWN THE JVM.");
+            System.err.println("DEBUG EXIT REQUEST ON STRAND " + currentStrand 
+                    + (currentStrand.isFiber() ? " (THREAD " + Thread.currentThread() + ")" : "")
+                    + ": SHUTTING DOWN THE JVM.");
             Thread.dumpStack();
             if (!isUnitTest()) // Calling System.exit() in gradle unit tests breaks gradle
                 System.exit(code);
