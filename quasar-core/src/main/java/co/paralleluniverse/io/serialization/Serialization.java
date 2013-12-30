@@ -47,7 +47,11 @@ public final class Serialization {
     }
 
     public Object read(byte[] buf) {
-        return bas.read(buf);
+        return read(buf, 0);
+    }
+
+    public Object read(byte[] buf, int offset) {
+        return bas.read(buf, offset);
     }
 
     public byte[] write(Object object) {

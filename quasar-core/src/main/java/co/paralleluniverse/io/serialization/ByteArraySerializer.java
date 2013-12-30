@@ -19,5 +19,8 @@ package co.paralleluniverse.io.serialization;
  */
 public interface ByteArraySerializer {
     Object read(byte[] buf);
+
+    Object read(byte[] buf, int offset);
+
     byte[] write(Object object);
 }

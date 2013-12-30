@@ -48,8 +48,13 @@ public final class JDKSerializer implements ByteArraySerializer, IOStreamSeriali
 
     @Override
     public Object read(byte[] buf) {
+        return read(buf, 0);
+    }
+
+    @Override
+    public Object read(byte[] buf, int offset) {
         try {
-            final ByteArrayInputStream bais = new ByteArrayInputStream(buf);
+            final ByteArrayInputStream bais = new ByteArrayInputStream(buf, offset, buf.length - offset);
             final ObjectInputStream ois = new ObjectInputStream(bais);
             Object obj = ois.readObject();
             return obj;

@@ -107,12 +107,21 @@ public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
 
     @Override
     public Object read(byte[] buf) {
-        final Input in = new Input(buf);
+        return read(buf, 0);
+    }
+
+    @Override
+    public Object read(byte[] buf, int offset) {
+        final Input in = new Input(buf, offset, buf.length - offset);
         return kryo.readClassAndObject(in);
     }
 
     public <T> T read(byte[] buf, Class<T> type) {
-        final Input in = new Input(buf);
+        return read(buf, 0, type);
+    }
+
+    public <T> T read(byte[] buf, int offset, Class<T> type) {
+        final Input in = new Input(buf, offset, buf.length - offset);
         return kryo.readObjectOrNull(in, type);
     }
 
