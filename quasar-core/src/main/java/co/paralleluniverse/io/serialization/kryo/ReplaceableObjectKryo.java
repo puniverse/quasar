@@ -18,19 +18,25 @@ import com.esotericsoftware.kryo.Registration;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A subclass of {@link Kryo} that respects {@link Serializable java.io.Serializable}'s {@code writeReplace} and {@code readResolve}.
+ *
  * @author pron
  */
 public class ReplaceableObjectKryo extends Kryo {
-    private final static Map<Class, ReplaceMethods> replaceMethodsCache = new ConcurrentHashMap<>();
+    private static final ClassValue<SerializationMethods> replaceMethodsCache = new ClassValue<SerializationMethods>() {
+        @Override
+        protected SerializationMethods computeValue(Class<?> type) {
+            return new SerializationMethods(getMethodByReflection(type, WRITE_REPLACE),
+                    getMethodByReflection(type, READ_RESOLVE));
+        }
+    };
     private static final String WRITE_REPLACE = "writeReplace";
     private static final String READ_RESOLVE = "readResolve";
 
@@ -42,7 +48,7 @@ public class ReplaceableObjectKryo extends Kryo {
             super.writeClass(output, null);
             return;
         }
-        Object newObj = getReplacement(getMethods(object.getClass()).writeReplace,object);
+        Object newObj = getReplacement(getMethods(object.getClass()).writeReplace, object);
         setAutoReset(false);
         Registration registration = super.writeClass(output, newObj.getClass());
         setAutoReset(true);
@@ -55,8 +61,16 @@ public class ReplaceableObjectKryo extends Kryo {
     }
 
     @Override
+    protected Serializer newDefaultSerializer(Class type) {
+        final Serializer s = super.newDefaultSerializer(type);
+        if (s instanceof FieldSerializer)
+            ((FieldSerializer) s).setIgnoreSyntheticFields(false);
+        return s;
+    }
+
+    @Override
     public Registration writeClass(Output output, Class type) {
-        if (type==null || getMethods(type).writeReplace == null)
+        if (type == null || getMethods(type).writeReplace == null)
             return super.writeClass(output, type);
         return super.getRegistration(type); // do nothing. write object will write the class too
     }
@@ -71,12 +85,12 @@ public class ReplaceableObjectKryo extends Kryo {
         }
         super.writeObject(output, object, serializer);
 //        System.out.println("wrote2 an object "+object+" id "+getRegistration(object.getClass()).getId());
-        
+
     }
 
     @Override
     public <T> T readObject(Input input, Class<T> type, Serializer serializer) {
-        return (T) getReplacement(getMethods(type).readResolve,super.readObject(input, type, serializer));
+        return (T) getReplacement(getMethods(type).readResolve, super.readObject(input, type, serializer));
     }
 
     private static Object getReplacement(Method m, Object object) {
@@ -91,29 +105,24 @@ public class ReplaceableObjectKryo extends Kryo {
         }
     }
 
-    private static ReplaceMethods getMethods(Class clazz) {
-        if (replaceMethodsCache.containsKey(clazz))
-            return replaceMethodsCache.get(clazz);
-        final ReplaceMethods replaceMethods = new ReplaceMethods(getMethodByReflection(clazz, WRITE_REPLACE),
-                getMethodByReflection(clazz, READ_RESOLVE));
-        replaceMethodsCache.put(clazz, replaceMethods);
-        return replaceMethods;
+    private static SerializationMethods getMethods(Class clazz) {
+        return replaceMethodsCache.get(clazz);
     }
 
-    private static Method getMethodByReflection(Class clazz, final String methodName) throws SecurityException {
+    private static Method getMethodByReflection(Class clazz, final String methodName, Class<?>... paramTypes) throws SecurityException {
         if (!Serializable.class.isAssignableFrom(clazz))
             return null;
 
         Method m = null;
         try {
-            m = clazz.getDeclaredMethod(methodName);
+            m = clazz.getDeclaredMethod(methodName, paramTypes);
         } catch (NoSuchMethodException ex) {
             Class ancestor = clazz.getSuperclass();
             while (ancestor != null) {
                 if (!Serializable.class.isAssignableFrom(ancestor))
                     return null;
                 try {
-                    m = ancestor.getDeclaredMethod(methodName);
+                    m = ancestor.getDeclaredMethod(methodName, paramTypes);
                     if (!Modifier.isPublic(m.getModifiers()) && !Modifier.isProtected(m.getModifiers()))
                         return null;
                     break;
@@ -127,11 +136,11 @@ public class ReplaceableObjectKryo extends Kryo {
         return m;
     }
 
-    private static class ReplaceMethods {
+    private static class SerializationMethods {
         Method writeReplace;
         Method readResolve;
 
-        public ReplaceMethods(Method writeReplace, Method readResolve) {
+        public SerializationMethods(Method writeReplace, Method readResolve) {
             this.writeReplace = writeReplace;
             this.readResolve = readResolve;
         }
