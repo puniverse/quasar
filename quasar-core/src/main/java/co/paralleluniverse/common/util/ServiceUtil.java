@@ -1,5 +1,4 @@
 /*
- * Quasar: lightweight threads and actors for the JVM.
  * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
