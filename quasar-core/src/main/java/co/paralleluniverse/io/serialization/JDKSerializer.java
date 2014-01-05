@@ -71,8 +71,12 @@ public final class JDKSerializer implements ByteArraySerializer, IOStreamSeriali
 
     @Override
     public Object read(InputStream is) throws IOException {
-        final ObjectInput oi = toObjectInput(is);
-        return oi.read();
+        try {
+            final ObjectInput oi = toObjectInput(is);
+            return oi.readObject();
+        } catch (ClassNotFoundException e) {
+            throw new IOException(e);
+        }
     }
 
     public static DataOutput toDataOutput(OutputStream os) {
@@ -94,7 +98,7 @@ public final class JDKSerializer implements ByteArraySerializer, IOStreamSeriali
     }
 
     public static ObjectInput toObjectInput(InputStream is) throws IOException {
-        if (is instanceof DataInput)
+        if (is instanceof ObjectInput)
             return (ObjectInput) is;
         return new ObjectInputStream(is);
     }
