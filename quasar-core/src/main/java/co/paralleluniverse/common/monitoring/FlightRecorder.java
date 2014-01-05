@@ -151,6 +151,10 @@ public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean 
             return next(i) == tail;
         }
 
+        public Thread getThread() {
+            return myThread;
+        }
+        
         public void record(int level, Object obj) {
             assert Thread.currentThread() == myThread : "my thread: " + myThread.getName() + " current thread: " + Thread.currentThread().getName();
             if (!recording)
