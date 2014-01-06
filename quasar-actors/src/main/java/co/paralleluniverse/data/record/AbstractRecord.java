@@ -39,7 +39,7 @@ public abstract class AbstractRecord<R> implements Record<R>, java.io.Serializab
     }
 
     @Override
-    public RecordType<R> type() {
+    public SealedRecordType<R> type() {
         return type;
     }
 

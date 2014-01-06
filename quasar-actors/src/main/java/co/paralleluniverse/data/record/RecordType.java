@@ -54,8 +54,9 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
-public class RecordType<R> {
+public class RecordType<R> implements SealedRecordType<R> {
     private static final Logger LOG = LoggerFactory.getLogger(RecordType.class);
+
     public enum Mode {
         /**
          * About 2.5 times slower than REFLECTION in Java 7, but doesn't use boxing and doesn't generate garbage. The default.
@@ -244,22 +245,9 @@ public class RecordType<R> {
     /**
      * This type's name
      */
+    @Override
     public String getName() {
         return name;
-    }
-
-    /**
-     * Test's whether a record is an instance of this type (or one of its subtypes).
-     *
-     * @param record the record to test
-     * @return {@code true} if {@code record} is an instance of this type (or one of its subtypes); {@code false} otherwise.
-     */
-    public boolean isInstance(Record<?> record) {
-        for (RecordType<?> t = record.type(); t != null; t = t.parent) {
-            if (this.equals(t))
-                return true;
-        }
-        return false;
     }
 
     /**
@@ -1040,11 +1028,27 @@ public class RecordType<R> {
     }
 
     /**
+     * Test's whether a record is an instance of this type (or one of its subtypes).
+     *
+     * @param record the record to test
+     * @return {@code true} if {@code record} is an instance of this type (or one of its subtypes); {@code false} otherwise.
+     */
+    @Override
+    public boolean isInstance(Record<?> record) {
+        for (RecordType<?> t = (RecordType<?>)record.type(); t != null; t = t.parent) {
+            if (this.equals(t))
+                return true;
+        }
+        return false;
+    }
+
+    /**
      * Creates an new record instance of this type.
      * The returned implementation stores the record in an efficient memory representation.
      *
      * @return a newly constructed record of this type.
      */
+    @Override
     public Record<R> newInstance() {
         seal();
         return new SimpleRecord<R>(this);
@@ -1060,6 +1064,7 @@ public class RecordType<R> {
      * @param target the POJO to wrap as a record
      * @return a newly constructed record of this type, which reflects {@code target}.
      */
+    @Override
     public Record<R> wrap(Object target) {
         return wrap(target, null);
     }
@@ -1073,6 +1078,7 @@ public class RecordType<R> {
      * @param mode   the record's implementation {@link Mode} mode.
      * @return a newly constructed record of this type, which reflects {@code target}.
      */
+    @Override
     public Record<R> wrap(Object target, Mode mode) {
         seal();
         currentMode.set(mode);
@@ -1100,6 +1106,7 @@ public class RecordType<R> {
      *
      * @return a newly constructed record array of this type.
      */
+    @Override
     public RecordArray<R> newArray(int size) {
         seal();
         return new SimpleRecordArray<R>(this, size);

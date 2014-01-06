@@ -60,12 +60,23 @@ public final class Records {
     }
 
     /**
-     * Copies the contents (all fields) of one record into another.
+     * Copies the contents (all fields) of one record into another, including transient fields.
      *
      * @param source the source record
      * @param target the target record
      */
     public static <R> void copy(Record<R> source, Record<R> target) {
+        copy(source, target, true);
+    }
+
+    /**
+     * Copies the contents (all fields) of one record into another.
+     *
+     * @param source        the source record
+     * @param target        the target record
+     * @param copyTransient whether to copy transient fields
+     */
+    public static <R> void copy(Record<R> source, Record<R> target, boolean copyTransient) {
         copy(source, target, target.fields());
     }
 
@@ -77,7 +88,13 @@ public final class Records {
      * @param fields the fields to copy
      */
     public static <R> void copy(Record<R> source, Record<R> target, Collection<Field<? super R, ?>> fields) {
+        copy(source, target, fields, true);
+    }
+
+    public static <R> void copy(Record<R> source, Record<R> target, Collection<Field<? super R, ?>> fields, boolean copyTransient) {
         for (Field<? super R, ?> field : fields) {
+            if (!copyTransient && field.isTransient())
+                continue;
             try {
                 switch (field.type()) {
                     case Field.BOOLEAN:
@@ -140,6 +157,29 @@ public final class Records {
             } catch (FieldNotFoundException e) {
             }
         }
+    }
+
+    /**
+     * Creates a shallow clone of the given record.
+     *
+     * @param <R>
+     * @param source the record to clone
+     */
+    public static <R> Record<R> clone(Record<R> source) {
+        return clone(source, true);
+    }
+
+    /**
+     * Creates a shallow clone of the given record, optionally not copying transient fields.
+     *
+     * @param <R>
+     * @param source the record to clone
+     * @param copyTransients whether to copy transient fields
+     */
+    public static <R> Record<R> clone(Record<R> source, boolean copyTransients) {
+        final Record<R> target = source.type().newInstance();
+        copy(source, target, copyTransients);
+        return target;
     }
 
     /**

@@ -26,7 +26,7 @@ public interface Record<R> {
      *
      * @return the record's {@link RecordType}
      */
-    RecordType<R> type();
+    SealedRecordType<R> type();
 
     /**
      * Returns the record's fields.

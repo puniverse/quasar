@@ -63,7 +63,7 @@ final class RecordDelegate<R> implements Record<R>, DelegatingEquals {
     }
 
     @Override
-    public RecordType<R> type() {
+    public SealedRecordType<R> type() {
         return r.type();
     }
     
