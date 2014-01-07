@@ -90,7 +90,33 @@ public class ReplaceableObjectKryo extends Kryo {
 
     @Override
     public <T> T readObject(Input input, Class<T> type, Serializer serializer) {
-        return (T) getReplacement(getMethods(type).readResolve, super.readObject(input, type, serializer));
+        return readReplace(super.readObject(input, type, serializer));
+    }
+
+    @Override
+    public <T> T readObject(Input input, Class<T> type) {
+        return readReplace(super.readObject(input, type));
+    }
+
+    @Override
+    public <T> T readObjectOrNull(Input input, Class<T> type) {
+        return readReplace(super.readObjectOrNull(input, type));
+    }
+
+    @Override
+    public <T> T readObjectOrNull(Input input, Class<T> type, Serializer serializer) {
+        return readReplace(super.readObjectOrNull(input, type, serializer));
+    }
+
+    @Override
+    public Object readClassAndObject(Input input) {
+        return readReplace(super.readClassAndObject(input));
+    }
+
+    private <T> T readReplace(Object obj) {
+        if (obj == null)
+            return null;
+        return (T) getReplacement(getMethods(obj.getClass()).readResolve, obj);
     }
 
     private static Object getReplacement(Method m, Object object) {
