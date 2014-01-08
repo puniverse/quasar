@@ -58,7 +58,7 @@ public class BlockingTest {
         msgs.add("Method "+className+"#t_join2(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(J)V");
         msgs.add("Method "+className+"#t_join3(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(JI)V");
         
-        MethodDatabase db = new MethodDatabase(BlockingTest.class.getClassLoader(), DefaultSuspendableClassifier.instance());
+        MethodDatabase db = new MethodDatabase(BlockingTest.class.getClassLoader(), new DefaultSuspendableClassifier(BlockingTest.class.getClassLoader()));
         db.setAllowBlocking(true);
         db.setLog(new Log() {
             public void log(LogLevel level, String msg, Object... args) {

@@ -22,34 +22,29 @@ import java.util.ServiceLoader;
  * @author pron
  */
 class DefaultSuspendableClassifier implements SuspendableClassifier {
-    private static final DefaultSuspendableClassifier instance = new DefaultSuspendableClassifier();
-    
-    public static SuspendableClassifier instance() {
-        return instance;
-    }
-    
     private final ServiceLoader<SuspendableClassifier> loader = ServiceLoader.load(SuspendableClassifier.class);
-    private final SuspendableClassifier simpleClassifier = new SimpleSuspendableClassifier();
+    private final SuspendableClassifier simpleClassifier;
 
-    private DefaultSuspendableClassifier() {
+    public DefaultSuspendableClassifier(ClassLoader classLoader) {
+        this.simpleClassifier = new SimpleSuspendableClassifier(classLoader);
     }
-    
+
     @Override
     public SuspendableType isSuspendable(String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
         SuspendableType st;
-        
+
         // simple classifier (files in META-INF)
         st = simpleClassifier.isSuspendable(className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions);
-        if(st != null)
+        if (st != null)
             return st;
-        
+
         // classifier service
         for (SuspendableClassifier sc : loader) {
             st = sc.isSuspendable(className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions);
             if (st != null)
                 return st;
         }
-        
+
         // throws SuspendExceution
         if (checkExceptions(methodExceptions))
             return SuspendableType.SUSPENDABLE;

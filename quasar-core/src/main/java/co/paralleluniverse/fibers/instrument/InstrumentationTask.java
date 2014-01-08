@@ -98,7 +98,8 @@ public class InstrumentationTask extends Task {
 
     @Override
     public void execute() throws BuildException {
-        final QuasarInstrumentor instrumentor = new QuasarInstrumentor(getClass().getClassLoader(), DefaultSuspendableClassifier.instance());
+        final ClassLoader cl = getClass().getClassLoader();
+        final QuasarInstrumentor instrumentor = new QuasarInstrumentor(cl, new DefaultSuspendableClassifier(cl));
 
         instrumentor.setCheck(check);
         instrumentor.setVerbose(verbose);

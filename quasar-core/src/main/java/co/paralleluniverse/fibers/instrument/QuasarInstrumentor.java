@@ -42,7 +42,7 @@ public final class QuasarInstrumentor {
     }
 
     public QuasarInstrumentor(ClassLoader classLoader) {
-        this(classLoader, DefaultSuspendableClassifier.instance());
+        this(classLoader, new DefaultSuspendableClassifier(classLoader));
     }
 
     boolean shouldInstrument(String className) {

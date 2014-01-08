@@ -36,14 +36,14 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
     private final Set<String> suspendableSupers = new HashSet<String>();
     private final Set<String> suspendableSuperInterfaces = new HashSet<String>();
 
-    public SimpleSuspendableClassifier() {
-        readFiles(SUSPENDABLES_FILE, suspendables, null);
-        readFiles(SUSPENDABLE_SUPERS_FILE, suspendableSupers, suspendableSuperInterfaces);
+    public SimpleSuspendableClassifier(ClassLoader classLoader) {
+        readFiles(classLoader, SUSPENDABLES_FILE, suspendables, null);
+        readFiles(classLoader, SUSPENDABLE_SUPERS_FILE, suspendableSupers, suspendableSuperInterfaces);
     }
 
-    private void readFiles(String fileName, Set<String> set, Set<String> classSet) {
+    private void readFiles(ClassLoader classLoader, String fileName, Set<String> set, Set<String> classSet) {
         try {
-            for (Enumeration<URL> susFiles = getClass().getClassLoader().getResources(PREFIX + fileName); susFiles.hasMoreElements();) {
+            for (Enumeration<URL> susFiles = classLoader.getResources(PREFIX + fileName); susFiles.hasMoreElements();) {
                 URL file = susFiles.nextElement();
                 parse(file, set, classSet);
             }
