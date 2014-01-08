@@ -14,6 +14,7 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorLoader;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.MailboxConfig;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
@@ -23,6 +24,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,6 +81,15 @@ public class EventSourceActor<Event> extends BehaviorActor {
     public EventSource<Event> spawnThread() {
         return (EventSource<Event>) super.spawnThread();
     }
+
+    public static <Event> EventSourceActor<Event> currentEventSourceActor() {
+        return (EventSourceActor<Event>) Actor.<Object, Void>currentActor();
+    }
+
+    @Override
+    public Logger log() {
+        return LOG;
+    }
     //</editor-fold>
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
@@ -97,8 +108,8 @@ public class EventSourceActor<Event> extends BehaviorActor {
     /**
      * Creates a new event-source actor.
      *
-     * @param name          the actor name (may be {@code null}).
-     * @param initializer   an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
+     * @param name        the actor name (may be {@code null}).
+     * @param initializer an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
      */
     public EventSourceActor(String name, Initializer initializer) {
         this(name, initializer, null, null);
@@ -159,20 +170,15 @@ public class EventSourceActor<Event> extends BehaviorActor {
     }
     //</editor-fold>
 
-    @Override
-    public Logger log() {
-        return LOG;
-    }
-
     protected boolean addHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
         verifyInActor();
-        LOG.info("{} adding handler {}", this, handler);
+        log().info("{} adding handler {}", this, handler);
         return handlers.add(handler);
     }
 
     protected boolean removeHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
         verifyInActor();
-        LOG.info("{} removing handler {}", this, handler);
+        log().info("{} removing handler {}", this, handler);
         return handlers.remove(handler);
     }
 
@@ -205,14 +211,19 @@ public class EventSourceActor<Event> extends BehaviorActor {
         handlers.clear();
     }
 
-    public static <Event> EventSourceActor<Event> currentEventSourceActor() {
-        return (EventSourceActor<Event>) Actor.<Object, Void>currentActor();
-    }
-
     private void notifyHandlers(Event event) {
-        LOG.debug("{} Got event {}", this, event);
-        for (EventHandler<Event> handler : handlers)
-            handler.handleEvent(event);
+        log().debug("{} Got event {}", this, event);
+        for (ListIterator<EventHandler<Event>> it = handlers.listIterator(); it.hasNext();) {
+            EventHandler<Event> handler = it.next();
+            
+            EventHandler<Event> _handler = ActorLoader.getReplacementFor(handler);
+            if(_handler != handler) {
+                log().info("Upgraded event handler implementation: {}", _handler);
+                it.set(_handler);
+            }
+            
+            _handler.handleEvent(event);
+        }
     }
 
     static class HandlerMessage<Event> extends RequestMessage {

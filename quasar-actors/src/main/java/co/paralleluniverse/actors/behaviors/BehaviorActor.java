@@ -14,6 +14,7 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorLoader;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.MailboxConfig;
@@ -31,7 +32,7 @@ import org.slf4j.Logger;
  * @author pron
  */
 public abstract class BehaviorActor extends Actor<Object, Void> implements java.io.Serializable {
-    private final Initializer initializer;
+    private Initializer initializer;
     private boolean run;
 
     /**
@@ -239,6 +240,15 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
     protected void handleMessage(Object message) throws InterruptedException, SuspendExecution {
     }
 
+    @Override
+    public void checkCodeSwap() throws SuspendExecution {
+        Initializer _initializer = ActorLoader.getReplacementFor(initializer);
+        if(_initializer != initializer)
+            log().info("Upgraded behavior implementation: {}", initializer);
+        this.initializer = _initializer;
+        super.checkCodeSwap();
+    }
+    
     public boolean isRunning() {
         return run;
     }

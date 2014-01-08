@@ -153,12 +153,12 @@ class InstanceUpgrader<T> {
 //    private static boolean packageEquals(Class<?> cl1, Class<?> cl2) {
 //        return cl1.getPackage().getName().equals(cl2.getPackage().getName()); // && cl1.getClassLoader() == cl2.getClassLoader();
 //    }
-    public Object copy(Object from, Object to) {
+    public T copy(T from, T to) {
         assert toClass.isInstance(to);
         return getCopier((Class<T>) from.getClass()).copy(from, to);
     }
 
-    public Object copy(Object from) {
+    public T copy(T from) {
         return getCopier((Class<T>) from.getClass()).copy(from);
     }
 
@@ -203,7 +203,7 @@ class InstanceUpgrader<T> {
                             if (tf.getType().isAssignableFrom(ff.getType()))
                                 toFieldValue = fromFieldValue;
                             else if (tf.getType().getName().equals(ff.getType().getName()))
-                                toFieldValue = instanceUpgrader.get(tf.getType()).getCopier(ff.getType()).copy(fromFieldValue);
+                                toFieldValue = ((Copier<Object>)instanceUpgrader.get(tf.getType()).getCopier(ff.getType())).copy(fromFieldValue);
                             else
                                 continue;
                             LOG.debug("== static: {} <- {}: {} ({})", tf, ff, toFieldValue, fromFieldValue);
@@ -266,7 +266,7 @@ class InstanceUpgrader<T> {
                 f.setAccessible(true);
         }
 
-        Object copy(Object from, Object to) {
+        T copy(T from, T to) {
             try {
                 for (int i = 0; i < fromFields.length; i++) {
                     final Object fromFieldValue = fromFields[i].get(from);
@@ -310,7 +310,7 @@ class InstanceUpgrader<T> {
             }
         }
 
-        Object copy(Object from) {
+        T copy(T from) {
             if (from == null)
                 return null;
             if (ctor == null)
@@ -318,7 +318,7 @@ class InstanceUpgrader<T> {
                         + " in module " + (toClass.getClassLoader() instanceof ActorModule ? toClass.getClassLoader() : null)
                         + " does not have a no-arg constructor.");
             try {
-                Object to = ctor.newInstance();
+                T to = (T)ctor.newInstance();
                 return copy(from, to);
             } catch (InstantiationException | InvocationTargetException ex) {
                 throw Exceptions.rethrow(ex.getCause());

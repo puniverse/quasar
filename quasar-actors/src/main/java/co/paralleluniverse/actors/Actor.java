@@ -105,7 +105,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
         this.ref = new LocalActorRef<Message, V>(name, new Mailbox(mailboxConfig));
         this.runner = new ActorRunner<>(ref);
-        this.classRef = ActorLoader.getActorClassRef(getClass());
+        this.classRef = ActorLoader.getClassRef(getClass());
         this.flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
         // we cannot checkReplacement() here because the actor is not fully constructed yet (we're in the middle of the subclass's constructor)
@@ -682,7 +682,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      *
      * @throws SuspendExecution
      */
-    public final void checkCodeSwap() throws SuspendExecution {
+    public void checkCodeSwap() throws SuspendExecution {
         if (classRef == null)
             return;
         verifyInActor();

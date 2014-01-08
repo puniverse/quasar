@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
  */
 public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
     protected static Object NULL_RETURN_VALUE = new Object();
-    
     private static final Logger LOG = LoggerFactory.getLogger(ServerActor.class);
     private TimeUnit timeoutUnit;
     private long timeout;
@@ -87,6 +86,15 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
     @Override
     public Server<CallMessage, V, CastMessage> spawnThread() {
         return (Server<CallMessage, V, CastMessage>) super.spawnThread();
+    }
+
+    public static <CallMessage, V, CastMessage> ServerActor<CallMessage, V, CastMessage> currentServerActor() {
+        return (ServerActor<CallMessage, V, CastMessage>) Actor.<Object, Void>currentActor();
+    }
+
+    @Override
+    public Logger log() {
+        return LOG;
     }
     //</editor-fold>
 
@@ -176,17 +184,9 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
     }
 
     @Override
-    public Logger log() {
-        return LOG;
-    }
-
-    public static <CallMessage, V, CastMessage> ServerActor<CallMessage, V, CastMessage> currentServerActor() {
-        return (ServerActor<CallMessage, V, CastMessage>) Actor.<Object, Void>currentActor();
-    }
-
-    @Override
     protected final void behavior() throws InterruptedException, SuspendExecution {
         while (isRunning()) {
+            checkCodeSwap();
             Object m1 = receive(timeout, timeoutUnit);
             if (m1 == null)
                 handleTimeout();

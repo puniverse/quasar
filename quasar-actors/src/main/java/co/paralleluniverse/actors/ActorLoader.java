@@ -57,11 +57,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Loads actor classes for hot code-swapping.
+ * Loads actor, and actor-related classes for hot code-swapping.
  *
  * @author pron
  */
-class ActorLoader extends ClassLoader implements ActorLoaderMXBean, NotificationEmitter {
+public class ActorLoader extends ClassLoader implements ActorLoaderMXBean, NotificationEmitter {
     /*
      * We load actor classes from the latest module.
      * Non-actor classes are compared against those found in main. 
@@ -69,7 +69,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
      * to another.
      */
 //    private static final boolean TRY_RELOAD = Boolean.getBoolean("co.paralleluniverse.actors.tryHotSwapReload");
-    public static final String MODULE_DIR_PROPERTY = "co.paralleluniverse.actors.moduleDir";
+    private static final String MODULE_DIR_PROPERTY = "co.paralleluniverse.actors.moduleDir";
     private static final Path moduleDir;
     private static final Logger LOG = LoggerFactory.getLogger(ActorLoader.class);
     private static final ActorLoader instance;
@@ -105,27 +105,33 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
             moduleDir = null;
     }
 
-    public static AtomicReference<Class<?>> getActorClassRef(String className) {
-        return instance.getClassRef0(className);
-    }
-
-    public static AtomicReference<Class<?>> getActorClassRef(Class<?> clazz) {
-        return instance.getClassRef0(clazz);
-    }
-
     public static <T> Class<T> currentClassFor(Class<T> clazz) {
-        return instance.getActorClass(clazz);
+        return instance.getCurrentClassFor(clazz);
     }
 
     public static Class<?> currentClassFor(String className) {
-        return instance.getActorClass(className);
+        return instance.getCurrentClassFor(className);
     }
 
-    public static <T extends Actor<?, ?>> T getReplacementFor(T actor) {
-        return instance.getReplacementFor0(actor);
+    public static <T> T getReplacementFor(T object) {
+        return instance.getReplacementFor0(object);
+    }
+
+    static AtomicReference<Class<?>> getClassRef(String className) {
+        return instance.getClassRef0(className);
+    }
+
+    static AtomicReference<Class<?>> getClassRef(Class<?> clazz) {
+        return instance.getClassRef0(clazz);
     }
     //
-    private final ConcurrentHashMapV8<String, AtomicReference<Class<?>>> classes = new ConcurrentHashMapV8<>();
+    private final ConcurrentHashMapV8<String, AtomicReference<Class<?>>> classRefs = new ConcurrentHashMapV8<>();
+    private final ClassValue<AtomicReference<Class<?>>> classRefs1 = new ClassValue<AtomicReference<Class<?>>>() {
+        @Override
+        protected AtomicReference<Class<?>> computeValue(Class<?> type) {
+            return getClassRef0(type.getName());
+        }
+    };
     private final List<ActorModule> modules = new CopyOnWriteArrayList<>();
     private final ConcurrentMap<String, ActorModule> classModule = new ConcurrentHashMapV8<>();
     private final ThreadLocal<Boolean> recursive = new ThreadLocal<Boolean>();
@@ -338,7 +344,7 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
         }
     }
 
-    public static ActorModule getModule(Class<?> clazz) {
+    static ActorModule getModule(Class<?> clazz) {
         return clazz.getClassLoader() instanceof ActorModule ? (ActorModule) clazz.getClassLoader() : null;
     }
 
@@ -358,23 +364,33 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     }
 
     <T> T getReplacementFor0(T instance) {
+        if(instance == null)
+            return null;
         Class<T> clazz = (Class<T>) instance.getClass();
         if (clazz.isAnonymousClass())
             return instance;
-        Class<T> newClazz = (Class<T>) getActorClass(clazz.getName());
+        Class<T> newClazz = getCurrentClassFor(clazz);
         if (newClazz == clazz)
             return instance;
-        return (T) InstanceUpgrader.get(newClazz).copy(instance);
+        return InstanceUpgrader.get(newClazz).copy(instance);
     }
 
-    <T> Class<T> getActorClass(Class<T> clazz) {
+    <T> Class<T> getCurrentClassFor(Class<T> clazz) {
         if (clazz.isAnonymousClass())
             return clazz;
-        return (Class<T>) getActorClass(clazz.getName());
+        AtomicReference<Class<?>> ref = getClassRef0(clazz);
+        Class<?> clazz1 = ref.get();
+        if (clazz1 == null) {
+            clazz1 = loadCurrentClass(clazz.getName());
+            if (!ref.compareAndSet(null, clazz1))
+                clazz1 = ref.get();
+        }
+        assert clazz1 != null;
+        return (Class<T>) clazz1;
     }
 
-    Class<?> getActorClass(String className) {
-        AtomicReference<Class<?>> ref = getActorClassRef(className);
+    Class<?> getCurrentClassFor(String className) {
+        AtomicReference<Class<?>> ref = getClassRef0(className);
         Class<?> clazz = ref.get();
         if (clazz == null) {
             clazz = loadCurrentClass(className);
@@ -388,24 +404,16 @@ class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notification
     AtomicReference<Class<?>> getClassRef0(Class<?> clazz) {
         if (clazz.isAnonymousClass())
             return null;
-        return getClassRef0(clazz.getName());
+        return classRefs1.get(clazz);
     }
 
     AtomicReference<Class<?>> getClassRef0(String className) {
-        return classes.computeIfAbsent(className, new ConcurrentHashMapV8.Fun<String, AtomicReference<Class<?>>>() {
+        return classRefs.computeIfAbsent(className, new ConcurrentHashMapV8.Fun<String, AtomicReference<Class<?>>>() {
             @Override
             public AtomicReference<Class<?>> apply(String a) {
                 return new AtomicReference<>();
             }
         });
-//        AtomicReference<Class<?>> ref = actorClasses.get(className);
-//        if (ref == null) {
-//            ref = new AtomicReference<>();
-//            AtomicReference<Class<?>> tmp = actorClasses.putIfAbsent(className, ref);
-//            if (tmp != null)
-//                ref = tmp;
-//        }
-//        return ref;
     }
 
     @Override

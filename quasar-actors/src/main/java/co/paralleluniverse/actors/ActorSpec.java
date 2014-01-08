@@ -66,7 +66,7 @@ public class ActorSpec<T extends Actor<Message, V>, Message, V> implements Actor
 
     private ActorSpec(Constructor<T> ctor, Object[] params, boolean ignore) {
         this.className = ctor.getDeclaringClass().getName();
-        this.classRef = (AtomicReference<Class<T>>) (Object) ActorLoader.getActorClassRef(className);
+        this.classRef = (AtomicReference<Class<T>>) (Object) ActorLoader.getClassRef(className);
         this.params = Arrays.copyOf(params, params.length);
 
         this.ctor = ctor;

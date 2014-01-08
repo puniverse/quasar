@@ -115,7 +115,7 @@ class ActorModule extends URLClassLoader {
 
     private boolean isAutomaticUpgrade(String className) {
         for (Class<?> c : AUTOMATIC_UPGRADE_CLASSES) {
-            if (ASMUtil.isAssignableFrom(Actor.class, className, ActorModule.this))
+            if (ASMUtil.isAssignableFrom(c, className, ActorModule.this))
                 return true;
         }
         return false;

@@ -140,6 +140,15 @@ public class SupervisorActor extends BehaviorActor {
     public Supervisor spawnThread() {
         return (Supervisor) super.spawnThread();
     }
+
+    public static SupervisorActor currentSupervisor() {
+        return (SupervisorActor) Actor.<Object, Void>currentActor();
+    }
+
+    @Override
+    public Logger log() {
+        return LOG;
+    }
     //</editor-fold>
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
@@ -277,15 +286,6 @@ public class SupervisorActor extends BehaviorActor {
     }
     //</editor-fold>
 
-    public static SupervisorActor currentSupervisor() {
-        return (SupervisorActor) Actor.<Object, Void>currentActor();
-    }
-
-    @Override
-    public Logger log() {
-        return LOG;
-    }
-
     @Override
     protected void init() throws InterruptedException, SuspendExecution {
         if (getInitializer() != null)
@@ -310,7 +310,7 @@ public class SupervisorActor extends BehaviorActor {
 
     @Override
     protected void onStart() throws InterruptedException, SuspendExecution {
-        if (LOG.isInfoEnabled()) {
+        if (log().isInfoEnabled()) {
             //org.apache.logging.log4j.ThreadContext.push(this.toString());
             MDC.put("self", this.toString());
         }
@@ -344,14 +344,14 @@ public class SupervisorActor extends BehaviorActor {
         childrenById.clear();
         children.clear();
 
-        if (LOG.isInfoEnabled()) {
+        if (log().isInfoEnabled()) {
             //org.apache.logging.log4j.ThreadContext.pop();
             MDC.remove("self");
         }
     }
 
     private ChildEntry addChild1(ChildSpec spec) {
-        LOG.debug("Adding child {}", spec);
+        log().debug("Adding child {}", spec);
         ActorRef actor = null;
         if (spec.builder instanceof ActorRef) {
             actor = (ActorRef) spec.builder;
@@ -417,11 +417,11 @@ public class SupervisorActor extends BehaviorActor {
         verifyInActor();
         final ChildEntry child = findEntryById(id);
         if (child == null) {
-            LOG.warn("Child {} not found", id);
+            log().warn("Child {} not found", id);
             return false;
         }
 
-        LOG.debug("Removing child {}", child);
+        log().debug("Removing child {}", child);
         if (child.actor != null) {
             unwatch(child);
 
@@ -454,9 +454,9 @@ public class SupervisorActor extends BehaviorActor {
                     final ChildEntry child = findEntry(actor);
 
                     if (child != null) {
-                        LOG.info("Detected child death: " + child + ". cause: ", death.cause);
+                        log().info("Detected child death: " + child + ". cause: ", death.cause);
                         if (!restartStrategy.onChildDeath(this, child, death.cause)) {
-                            LOG.info("Supervisor {} giving up.", this);
+                            log().info("Supervisor {} giving up.", this);
                             shutdown();
                         }
                         handled = true;
@@ -481,15 +481,15 @@ public class SupervisorActor extends BehaviorActor {
                 }
             // fall through
             case PERMANENT:
-                LOG.info("Supervisor trying to restart child {}. (cause: {})", child, cause);
+                log().info("Supervisor trying to restart child {}. (cause: {})", child, cause);
                 final ActorRef actor = child.actor;
                 shutdownChild(child, true);
                 child.restartHistory.addRestart(now);
                 final int numRestarts = child.restartHistory.numRestarts(now - child.spec.unit.toMillis(child.spec.duration));
-                if (LOG.isDebugEnabled())
-                    LOG.debug("Child {} has been restarted {} times in the last {} {}s", child, numRestarts, child.spec.duration, child.spec.unit);
+                if (log().isDebugEnabled())
+                    log().debug("Child {} has been restarted {} times in the last {} {}s", child, numRestarts, child.spec.duration, child.spec.unit);
                 if (numRestarts > child.spec.maxRestarts) {
-                    LOG.info(this + ": too many restarts for child {}. Giving up.", actor);
+                    log().info(this + ": too many restarts for child {}. Giving up.", actor);
                     return false;
                 }
                 start(child);
@@ -513,7 +513,7 @@ public class SupervisorActor extends BehaviorActor {
         if (actor.getName() == null && child.spec.id != null)
             actor.setName(child.spec.id);
 
-        LOG.info("{} starting child {}", this, actor);
+        log().info("{} starting child {}", this, actor);
 
         if (old != null && actor.getMonitor() == null && isLocal(old) && LocalActor.getMonitor(old) != null)
             actor.setMonitor(LocalActor.getMonitor(old));
@@ -529,7 +529,7 @@ public class SupervisorActor extends BehaviorActor {
         try {
             strand.start();
         } catch (IllegalThreadStateException e) {
-            LOG.info("Child {} has already been started.", actor);
+            log().info("Child {} has already been started.", actor);
         }
 
         return start(child, actor.ref());
@@ -546,7 +546,7 @@ public class SupervisorActor extends BehaviorActor {
         if (child.actor != null) {
             unwatch(child);
             if (!isLocal(child.actor) || !LocalActor.isDone(child.actor)) {
-                LOG.info("{} shutting down child {}", this, child.actor);
+                log().info("{} shutting down child {}", this, child.actor);
                 ActorUtil.sendOrInterrupt(child.actor, new ShutdownMessage(this.ref()));
             }
 
@@ -564,7 +564,7 @@ public class SupervisorActor extends BehaviorActor {
     }
 
     private void shutdownChildren() throws InterruptedException {
-        LOG.info("{} shutting down all children.", this);
+        log().info("{} shutting down all children.", this);
         for (ChildEntry child : children) {
             if (child.actor != null) {
                 unwatch(child);
@@ -587,17 +587,17 @@ public class SupervisorActor extends BehaviorActor {
     private boolean joinChild(ChildEntry child) throws InterruptedException {
         final ActorRef actor = child.actor;
 
-        LOG.debug("Joining child {}", child);
+        log().debug("Joining child {}", child);
         if (child.actor != null) {
             try {
                 LocalActor.join(actor, child.spec.shutdownDeadline, TimeUnit.MILLISECONDS);
-                LOG.debug("Child {} terminated normally", child.actor);
+                log().debug("Child {} terminated normally", child.actor);
                 return true;
             } catch (ExecutionException ex) {
-                LOG.info("Child {} terminated with exception {}", child.actor, ex.getCause());
+                log().info("Child {} terminated with exception {}", child.actor, ex.getCause());
                 return true;
             } catch (TimeoutException ex) {
-                LOG.warn("Child {} shutdown timeout. Interrupting...", child.actor);
+                log().warn("Child {} shutdown timeout. Interrupting...", child.actor);
                 // is this the best we can do?
                 LocalActor.getStrand(actor).interrupt();
 
@@ -605,10 +605,10 @@ public class SupervisorActor extends BehaviorActor {
                     LocalActor.join(actor, child.spec.shutdownDeadline, TimeUnit.MILLISECONDS);
                     return true;
                 } catch (ExecutionException e) {
-                    LOG.info("Child {} terminated with exception {}", child.actor, ex.getCause());
+                    log().info("Child {} terminated with exception {}", child.actor, ex.getCause());
                     return true;
                 } catch (TimeoutException e) {
-                    LOG.warn("Child {} could not shut down...", child.actor);
+                    log().warn("Child {} could not shut down...", child.actor);
 
                     LocalActor.stopMonitor(child.actor);
                     LocalActor.unregister(child.actor);
