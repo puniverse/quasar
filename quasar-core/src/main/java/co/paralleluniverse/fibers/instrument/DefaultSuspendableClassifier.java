@@ -22,10 +22,11 @@ import java.util.ServiceLoader;
  * @author pron
  */
 class DefaultSuspendableClassifier implements SuspendableClassifier {
-    private final ServiceLoader<SuspendableClassifier> loader = ServiceLoader.load(SuspendableClassifier.class);
+    private final ServiceLoader<SuspendableClassifier> loader;
     private final SuspendableClassifier simpleClassifier;
 
     public DefaultSuspendableClassifier(ClassLoader classLoader) {
+        this.loader = ServiceLoader.load(SuspendableClassifier.class, classLoader);
         this.simpleClassifier = new SimpleSuspendableClassifier(classLoader);
     }
 

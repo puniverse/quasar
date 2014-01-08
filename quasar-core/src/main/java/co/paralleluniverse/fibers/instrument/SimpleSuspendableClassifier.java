@@ -42,6 +42,10 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
     }
 
     private void readFiles(ClassLoader classLoader, String fileName, Set<String> set, Set<String> classSet) {
+//        System.out.println("ZZZZ classLoader: " + classLoader);
+//        if (classLoader instanceof java.net.URLClassLoader)
+//            System.out.println("ZZZZ URLs: " + classLoader + " - " + Arrays.toString(((java.net.URLClassLoader) classLoader).getURLs()));
+
         try {
             for (Enumeration<URL> susFiles = classLoader.getResources(PREFIX + fileName); susFiles.hasMoreElements();) {
                 URL file = susFiles.nextElement();
@@ -53,6 +57,8 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
     }
 
     private void parse(URL file, Set<String> set, Set<String> classSet) {
+//        System.out.println("12212112121:   " + file);
+
         try (InputStream is = file.openStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF-8")))) {
             String line;
