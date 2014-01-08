@@ -19,6 +19,7 @@ import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.fibers.Fiber;
+import jsr166e.ForkJoinPool;
 import jsr166e.ForkJoinTask;
 import jsr166e.ForkJoinWorkerThread;
 import sun.misc.Unsafe;
@@ -118,7 +119,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     protected abstract boolean exec1();
 
     public Object getBlocker() {
-        if(state != PARKED)
+        if (state != PARKED)
             return null; // volatile read
         return blocker;
     }
@@ -207,6 +208,10 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     }
 
     public void unpark(Object unblocker) {
+        unpark(null, unblocker);
+    }
+
+    public void unpark(ForkJoinPool fjPool, Object unblocker) {
         if (isDone())
             return;
 
@@ -240,7 +245,10 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             record("unpark", "current: %s - %s -> %s", this, _state, newState);
         if (newState == RUNNABLE) {
             this.unparker = unblocker;
-            submit();
+            if (fjPool != null)
+                submit(fjPool);
+            else
+                submit();
         }
     }
 
@@ -258,6 +266,13 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     protected void submit() {
         assert Thread.currentThread() instanceof jsr166e.ForkJoinWorkerThread;
         fork();
+    }
+
+    private void submit(ForkJoinPool fjPool) {
+        if (ForkJoinTask.getPool() == fjPool)
+            fork();
+        else
+            fjPool.submit(this);
     }
 
     protected int getState() {
