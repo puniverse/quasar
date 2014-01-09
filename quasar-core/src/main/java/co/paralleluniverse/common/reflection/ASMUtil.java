@@ -125,11 +125,11 @@ public final class ASMUtil {
     }
 
     public static boolean isAssignableFrom(Class<?> supertype, String className, ClassLoader cl) {
-        return isAssignableFrom0(classToSlashed(supertype), className, cl);
+        return isAssignableFrom0(classToSlashed(supertype), classToSlashed(className), cl);
     }
 
     public static boolean isAssignableFrom(String supertypeName, String className, ClassLoader cl) {
-        return isAssignableFrom0(classToSlashed(supertypeName), className, cl);
+        return isAssignableFrom0(classToSlashed(supertypeName), classToSlashed(className), cl);
     }
     
     private static boolean isAssignableFrom0(String supertypeName, String className, ClassLoader cl) {        
@@ -142,14 +142,14 @@ public final class ASMUtil {
 
             if (supertypeName.equals(cn.superName))
                 return true;
-            if (isAssignableFrom(supertypeName, cn.superName, cl))
+            if (isAssignableFrom0(supertypeName, cn.superName, cl))
                 return true;
 
             if (cn.interfaces != null) {
                 for (String iface : (List<String>) cn.interfaces) {
                     if (supertypeName.equals(iface))
                         return true;
-                    if (isAssignableFrom(supertypeName, iface, cl))
+                    if (isAssignableFrom0(supertypeName, iface, cl))
                         return true;
                 }
             }
