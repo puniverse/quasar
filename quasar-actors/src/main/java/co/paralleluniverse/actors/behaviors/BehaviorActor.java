@@ -45,7 +45,7 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
      */
     protected BehaviorActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
         super(strand, name, mailboxConfig);
-        this.initializer = initializer;
+        this.initializer = ActorLoader.getReplacementFor(initializer);
         this.run = true;
     }
 

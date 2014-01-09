@@ -87,8 +87,10 @@ class ActorModule extends URLClassLoader {
                         }
                     });
                 } else {
-                    for (String className : ucstr.split("\\s"))
+                    for (String className : ucstr.split("\\s")) {
+                        LOG.debug("Upgrade of class {} (JAR manifest)", className);
                         builder.add(className);
+                    }
                 }
             }
 
@@ -99,8 +101,10 @@ class ActorModule extends URLClassLoader {
                         return;
                     final String className = ClassLoaderUtil.resourceToClass(resource);
                     try (InputStream is = cl.getResourceAsStream(resource)) {
-                        if (AnnotationUtil.hasClassAnnotation(Upgrade.class, is))
+                        if (AnnotationUtil.hasClassAnnotation(Upgrade.class, is)) {
+                            LOG.debug("Upgrade of class {} (annotated)", className);
                             builder.add(className);
+                        }
                     } catch (IOException e) {
                         throw new RuntimeException("Exception while scanning class " + className + " for Upgrade annotation", e);
                     }
@@ -115,12 +119,14 @@ class ActorModule extends URLClassLoader {
 
     private boolean isAutomaticUpgrade(String className) {
         for (Class<?> c : AUTOMATIC_UPGRADE_CLASSES) {
-            if (ASMUtil.isAssignableFrom(c, className, ActorModule.this))
+            if (ASMUtil.isAssignableFrom(c, className, ActorModule.this)) {
+                LOG.debug("Automatic upgrade of class {} (implements/extends {})", className, c);
                 return true;
+            }
         }
         return false;
     }
-
+    
     public URL getURL() {
         return url;
     }
@@ -183,7 +189,7 @@ class ActorModule extends URLClassLoader {
     public URL getResource(String name) {
         URL url = super.getResource(name);
         if (url != null)
-            LOG.info("{} - getResource {}: {}", this, name, url);
+            LOG.debug("{} - getResource {}: {}", this, name, url);
         if (url == null && parent != null)
             url = parent.getResource(name);
         return url;

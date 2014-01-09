@@ -47,7 +47,7 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
     public ProxyServerActor(String name, Strand strand, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target, Class<?>[] interfaces) {
         super(name, null, 0L, null, strand, mailboxConfig);
         this.callOnVoidMethods = callOnVoidMethods;
-        this.target = target != null ? target : this;
+        this.target = ActorLoader.getReplacementFor(target != null ? target : this);
         this.interfaces = interfaces != null ? Arrays.copyOf(interfaces, interfaces.length) : target.getClass().getInterfaces();
         if (this.interfaces == null)
             throw new IllegalArgumentException("No interfaces provided, and target of class " + target.getClass().getName() + " implements no interfaces");
@@ -212,12 +212,13 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
     }
 
     @Override
-    protected void checkCodeSwap() {
+    protected void checkCodeSwap() throws SuspendExecution {
         verifyInActor();
         Object _target = ActorLoader.getReplacementFor(target);
         if(_target != target)
             log().info("Upgraded ProxyServerActor implementation: {}", _target);
         this.target = _target;
+        super.checkCodeSwap();
     }
     
     @Override

@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 public class EventSourceActor<Event> extends BehaviorActor {
     private static final Logger LOG = LoggerFactory.getLogger(EventSourceActor.class);
     private final List<EventHandler<Event>> handlers = new ArrayList<>();
+    private final List<EventHandler<Event>> nonUpgradedHandlers = new ArrayList<>();
 
     /**
      * Creates a new event-source actor.
@@ -172,14 +173,26 @@ public class EventSourceActor<Event> extends BehaviorActor {
 
     protected boolean addHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
         verifyInActor();
-        log().info("{} adding handler {}", this, handler);
-        return handlers.add(handler);
+
+        EventHandler<Event> _handler = ActorLoader.getReplacementFor(handler);
+        log().info("{} adding handler {}", this, _handler);
+        boolean res = handlers.add(_handler);
+        nonUpgradedHandlers.add(handler);
+        return res;
     }
 
     protected boolean removeHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
         verifyInActor();
         log().info("{} removing handler {}", this, handler);
-        return handlers.remove(handler);
+        int index = -1;
+        index = handlers.indexOf(handler);
+        if (index == -1)
+            index = nonUpgradedHandlers.indexOf(handler);
+        if (index == -1)
+            return false;
+        handlers.remove(index);
+        nonUpgradedHandlers.remove(index);
+        return true;
     }
 
     protected void notify(Event event) throws SuspendExecution {
@@ -215,13 +228,13 @@ public class EventSourceActor<Event> extends BehaviorActor {
         log().debug("{} Got event {}", this, event);
         for (ListIterator<EventHandler<Event>> it = handlers.listIterator(); it.hasNext();) {
             EventHandler<Event> handler = it.next();
-            
+
             EventHandler<Event> _handler = ActorLoader.getReplacementFor(handler);
-            if(_handler != handler) {
+            if (_handler != handler) {
                 log().info("Upgraded event handler implementation: {}", _handler);
                 it.set(_handler);
             }
-            
+
             _handler.handleEvent(event);
         }
     }
