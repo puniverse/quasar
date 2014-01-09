@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (C) 2013, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -15,7 +15,7 @@
  * Based on Guava's com.google.common.reflect.ClassPath
  */
 /*
- * Copyright (C) 2012 The Guava Authors
+ * Copyright (c) 2012 The Guava Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

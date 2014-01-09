@@ -1,17 +1,15 @@
 /*
- * Copyright 2012 Real Logic Ltd.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * 
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *  
+ *   or (per the licensee's choosing)
+ *  
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.strands.queues;
 
@@ -23,7 +21,6 @@ import java.util.concurrent.LinkedTransferQueue;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.GenerateMicroBenchmark;
 import org.openjdk.jmh.annotations.Group;
-import org.openjdk.jmh.annotations.GroupThreads;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.logic.Control;
@@ -36,7 +33,7 @@ import org.openjdk.jmh.logic.Control;
 public class QueueJMHBenchmark {
     /*
      * See: 
-     * http://psy-lob-saw.blogspot.co.il/2013/04/writing-java-micro-benchmarks-with-jmh.html
+     * http://psy-lob-saw.blogspot.co.il/2013-2014/04/writing-java-micro-benchmarks-with-jmh.html
      * http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/
      */
     private static final String BENCHMARK = QueueJMHBenchmark.class.getName() + ".*";

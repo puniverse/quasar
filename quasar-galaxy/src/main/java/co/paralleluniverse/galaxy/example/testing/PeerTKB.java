@@ -1,6 +1,6 @@
 /*
  * Galaxy
- * Copyright (C) 2012 Parallel Universe Software Co.
+ * Copyright (c) 2012 Parallel Universe Software Co.
  * 
  * This file is part of Galaxy.
  *

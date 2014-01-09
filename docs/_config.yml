@@ -15,7 +15,7 @@ kramdown:
 project: Quasar
 github: puniverse/quasar
 google_group: "https://groups.google.com/forum/#!forum/quasar-pulsar-user"
-copyright: "2013, Parallel Universe Software Co."
+copyright: "2013-2014, Parallel Universe Software Co."
 tagline: "Lightweight threads, CSP and actors for the JVM"
 ga_tracking_id: UA-25007319-2
 

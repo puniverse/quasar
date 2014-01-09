@@ -14,7 +14,7 @@ Quasar is developed by [Parallel Universe] and released as free software, dual-l
 ## License
 
     Quasar
-    Copyright © 2013 Parallel Universe
+    Copyright © 2013-2014 Parallel Universe
     
     This program and the accompanying materials are dual-licensed under
     either the terms of the Eclipse Public License v1.0 as published by
