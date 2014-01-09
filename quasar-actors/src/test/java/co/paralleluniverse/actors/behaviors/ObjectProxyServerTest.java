@@ -92,7 +92,7 @@ public class ObjectProxyServerTest {
     }
 
     private Server<?, ?, ?> spawnServer(boolean callOnVoidMethods, Object target) {
-        return new ObjectProxyServerActor("server", callOnVoidMethods, target).spawn(scheduler);
+        return new ProxyServerActor("server", callOnVoidMethods, target).spawn(scheduler);
     }
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {

@@ -266,7 +266,7 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * @return a value that will be sent as a response to the sender of the request.
      * @throws Exception if thrown, it will be sent back to the sender of the request.
      */
-    protected V handleCall(ActorRef<V> from, Object id, CallMessage m) throws Exception, SuspendExecution {
+    protected V handleCall(ActorRef<?> from, Object id, CallMessage m) throws Exception, SuspendExecution {
         if (server() != null)
             return server().handleCall(from, id, m);
         else
@@ -287,9 +287,9 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * @param id    the request's identifier
      * @param value the result of the request
      */
-    public final void reply(ActorRef to, Object id, V value) throws SuspendExecution {
+    public final void reply(ActorRef<?> to, Object id, V value) throws SuspendExecution {
         verifyInActor();
-        to.send(new ValueResponseMessage<V>(id, value));
+        ((ActorRef)to).send(new ValueResponseMessage<V>(id, value));
     }
 
     /**
@@ -305,9 +305,9 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * @param id    the request's identifier
      * @param error the error the request has caused
      */
-    public final void replyError(ActorRef to, Object id, Throwable error) throws SuspendExecution {
+    public final void replyError(ActorRef<?> to, Object id, Throwable error) throws SuspendExecution {
         verifyInActor();
-        to.send(new ErrorResponseMessage(id, error));
+        ((ActorRef)to).send(new ErrorResponseMessage(id, error));
     }
 
     /**
@@ -320,7 +320,7 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * @param id   the request's unique id
      * @param m    the request
      */
-    protected void handleCast(ActorRef<V> from, Object id, CastMessage m) throws SuspendExecution {
+    protected void handleCast(ActorRef<?> from, Object id, CastMessage m) throws SuspendExecution {
         if (server() != null)
             server().handleCast(from, id, m);
         else

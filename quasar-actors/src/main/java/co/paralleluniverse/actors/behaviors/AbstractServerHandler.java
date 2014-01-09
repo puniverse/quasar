@@ -17,31 +17,64 @@ import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.fibers.SuspendExecution;
 
 /**
+ * A convenience class implementing the {@link ServerHandler} interface.
+ * All methods do nothing, except for {@link #handleCall(ActorRef, Object, Object) handleCall} which throws an
+ * {@code UnsupportedOperationException}.
  *
  * @author pron
  */
 public class AbstractServerHandler<CallMessage, V, CastMessage> implements ServerHandler<CallMessage, V, CastMessage> {
+    /**
+     * {@inheritDoc}
+     * <p/>
+     * <b>This implementation does nothing</b>
+     */
     @Override
     public void init() throws SuspendExecution {
     }
 
+    /**
+     * {@inheritDoc}
+     * <p/>
+     * <b>This implementation throws an {@link UnsupportedOperationException}.</b>
+     */
     @Override
-    public V handleCall(ActorRef<V> from, Object id, CallMessage m) throws SuspendExecution {
+    public V handleCall(ActorRef<?> from, Object id, CallMessage m) throws SuspendExecution {
         throw new UnsupportedOperationException(m.toString());
     }
 
+    /**
+     * {@inheritDoc}
+     * <p/>
+     * <b>This implementation does nothing</b>
+     */
     @Override
-    public void handleCast(ActorRef<V> from, Object id, CastMessage m) throws SuspendExecution {
+    public void handleCast(ActorRef<?> from, Object id, CastMessage m) throws SuspendExecution {
     }
 
+    /**
+     * {@inheritDoc}
+     * <p/>
+     * <b>This implementation does nothing</b>
+     */
     @Override
     public void handleInfo(Object m) throws SuspendExecution {
     }
 
+    /**
+     * {@inheritDoc}
+     * <p/>
+     * <b>This implementation does nothing</b>
+     */
     @Override
     public void handleTimeout() throws SuspendExecution {
     }
 
+    /**
+     * {@inheritDoc}
+     * <p/>
+     * <b>This implementation does nothing</b>
+     */
     @Override
     public void terminate(Throwable cause) throws SuspendExecution {
     }

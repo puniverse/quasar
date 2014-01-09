@@ -48,7 +48,7 @@ public class Server {
             }
 
             @Override
-            public Integer handleCall(ActorRef<Integer> from, Object id, SumRequest m) {
+            public Integer handleCall(ActorRef<?> from, Object id, SumRequest m) {
                 System.out.println(this.toString() + " is handling " + m);
                 if (m.a == 0 && m.b == 0)
                     ServerActor.currentServerActor().shutdown();

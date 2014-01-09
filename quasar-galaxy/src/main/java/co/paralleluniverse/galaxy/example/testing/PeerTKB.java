@@ -110,7 +110,7 @@ public class PeerTKB {
                         }
 
                         @Override
-                        public Integer handleCall(ActorRef<Integer> from, Object id, Message m) {
+                        public Integer handleCall(ActorRef<?> from, Object id, Message m) {
                             return m.a + m.b;
                         }
                     }).join();

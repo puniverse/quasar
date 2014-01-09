@@ -241,10 +241,11 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
     }
 
     @Override
-    public void checkCodeSwap() throws SuspendExecution {
+    protected void checkCodeSwap() throws SuspendExecution {
+        verifyInActor();
         Initializer _initializer = ActorLoader.getReplacementFor(initializer);
         if(_initializer != initializer)
-            log().info("Upgraded behavior implementation: {}", initializer);
+            log().info("Upgraded behavior implementation: {}", _initializer);
         this.initializer = _initializer;
         super.checkCodeSwap();
     }

@@ -408,7 +408,7 @@ public class SupervisorTest {
                 }
 
                 @Override
-                protected Integer handleCall(ActorRef<Integer> from, Object id, Message1 m) throws Exception, SuspendExecution {
+                protected Integer handleCall(ActorRef<?> from, Object id, Message1 m) throws Exception, SuspendExecution {
                     int res = m.a + m.b;
                     if (res > 100)
                         throw new RuntimeException("oops!");

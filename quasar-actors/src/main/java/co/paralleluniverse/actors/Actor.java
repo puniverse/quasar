@@ -682,7 +682,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      *
      * @throws SuspendExecution
      */
-    public void checkCodeSwap() throws SuspendExecution {
+    protected void checkCodeSwap() throws SuspendExecution {
         if (classRef == null)
             return;
         verifyInActor();

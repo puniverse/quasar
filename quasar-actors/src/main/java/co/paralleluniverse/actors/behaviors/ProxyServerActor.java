@@ -14,6 +14,7 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.ActorBuilder;
+import co.paralleluniverse.actors.ActorLoader;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorRefDelegate;
 import co.paralleluniverse.actors.ActorUtil;
@@ -27,22 +28,23 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.lang.reflect.UndeclaredThrowableException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
 /**
+ * Wraps a Java object in a {@link ServerActor} that exposes the object's methods as an interface and processes them in an actor
+ * (on a dedicated strand).
  *
  * @author pron
  */
-public class ObjectProxyServerActor extends ServerActor<ObjectProxyServerActor.Invocation, Object, ObjectProxyServerActor.Invocation> {
+public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, Object, ProxyServerActor.Invocation> {
     private final Class<?>[] interfaces;
-    private final Object target;
+    private Object target;
     private final boolean callOnVoidMethods;
 
-    public ObjectProxyServerActor(String name, Strand strand, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target, Class<?>[] interfaces) {
+    public ProxyServerActor(String name, Strand strand, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target, Class<?>[] interfaces) {
         super(name, null, 0L, null, strand, mailboxConfig);
         this.callOnVoidMethods = callOnVoidMethods;
         this.target = target != null ? target : this;
@@ -53,67 +55,67 @@ public class ObjectProxyServerActor extends ServerActor<ObjectProxyServerActor.I
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
-    public ObjectProxyServerActor(String name, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target, Class<?>... interfaces) {
+    public ProxyServerActor(String name, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target, Class<?>... interfaces) {
         this(name, null, mailboxConfig, callOnVoidMethods, target, interfaces);
     }
 
-    public ObjectProxyServerActor(String name, boolean callOnVoidMethods, Object target, Class<?>... interfaces) {
+    public ProxyServerActor(String name, boolean callOnVoidMethods, Object target, Class<?>... interfaces) {
         this(name, null, null, callOnVoidMethods, target, interfaces);
     }
 
-    public ObjectProxyServerActor(MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target, Class<?>... interfaces) {
+    public ProxyServerActor(MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target, Class<?>... interfaces) {
         this(null, null, mailboxConfig, callOnVoidMethods, target, interfaces);
     }
 
-    public ObjectProxyServerActor(boolean callOnVoidMethods, Object target, Class<?>... interfaces) {
+    public ProxyServerActor(boolean callOnVoidMethods, Object target, Class<?>... interfaces) {
         this(null, null, null, callOnVoidMethods, target, interfaces);
     }
 
-    public ObjectProxyServerActor(String name, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Class<?>... interfaces) {
+    public ProxyServerActor(String name, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Class<?>... interfaces) {
         this(name, null, mailboxConfig, callOnVoidMethods, null, interfaces);
     }
 
-    public ObjectProxyServerActor(String name, boolean callOnVoidMethods, Class<?>... interfaces) {
+    public ProxyServerActor(String name, boolean callOnVoidMethods, Class<?>... interfaces) {
         this(name, null, null, callOnVoidMethods, null, interfaces);
     }
 
-    public ObjectProxyServerActor(MailboxConfig mailboxConfig, boolean callOnVoidMethods, Class<?>... interfaces) {
+    public ProxyServerActor(MailboxConfig mailboxConfig, boolean callOnVoidMethods, Class<?>... interfaces) {
         this(null, null, mailboxConfig, callOnVoidMethods, null, interfaces);
     }
 
-    public ObjectProxyServerActor(boolean callOnVoidMethods, Class<?>... interfaces) {
+    public ProxyServerActor(boolean callOnVoidMethods, Class<?>... interfaces) {
         this(null, null, null, callOnVoidMethods, null, interfaces);
     }
 
-    public ObjectProxyServerActor(String name, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target) {
+    public ProxyServerActor(String name, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target) {
         this(name, null, mailboxConfig, callOnVoidMethods, target, null);
     }
 
-    public ObjectProxyServerActor(String name, boolean callOnVoidMethods, Object target) {
+    public ProxyServerActor(String name, boolean callOnVoidMethods, Object target) {
         this(name, null, null, callOnVoidMethods, target, null);
     }
 
-    public ObjectProxyServerActor(MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target) {
+    public ProxyServerActor(MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target) {
         this(null, null, mailboxConfig, callOnVoidMethods, target, null);
     }
 
-    public ObjectProxyServerActor(boolean callOnVoidMethods, Object target) {
+    public ProxyServerActor(boolean callOnVoidMethods, Object target) {
         this(null, null, null, callOnVoidMethods, target, null);
     }
 
-    public ObjectProxyServerActor(String name, MailboxConfig mailboxConfig, boolean callOnVoidMethods) {
+    public ProxyServerActor(String name, MailboxConfig mailboxConfig, boolean callOnVoidMethods) {
         this(name, null, mailboxConfig, callOnVoidMethods, null, null);
     }
 
-    public ObjectProxyServerActor(String name, boolean callOnVoidMethods) {
+    public ProxyServerActor(String name, boolean callOnVoidMethods) {
         this(name, null, null, callOnVoidMethods, null, null);
     }
 
-    public ObjectProxyServerActor(MailboxConfig mailboxConfig, boolean callOnVoidMethods) {
+    public ProxyServerActor(MailboxConfig mailboxConfig, boolean callOnVoidMethods) {
         this(null, null, mailboxConfig, callOnVoidMethods, null, null);
     }
 
-    public ObjectProxyServerActor(boolean callOnVoidMethods) {
+    public ProxyServerActor(boolean callOnVoidMethods) {
         this(null, null, null, callOnVoidMethods, null, null);
     }
     //</editor-fold>
@@ -148,11 +150,11 @@ public class ObjectProxyServerActor extends ServerActor<ObjectProxyServerActor.I
         ActorRefDelegate.class,};
 
     private static class ObjectProxyServerImpl implements InvocationHandler, java.io.Serializable {
-        private transient final ObjectProxyServerActor actor;
+        private transient final ProxyServerActor actor;
         private final boolean callOnVoidMethods;
         private final Server<Invocation, Object, Invocation> ref;
 
-        ObjectProxyServerImpl(ObjectProxyServerActor actor, Server<Invocation, Object, Invocation> ref, boolean callOnVoidMethods) {
+        ObjectProxyServerImpl(ProxyServerActor actor, Server<Invocation, Object, Invocation> ref, boolean callOnVoidMethods) {
             this.actor = actor;
             this.ref = ref;
             this.callOnVoidMethods = callOnVoidMethods;
@@ -210,7 +212,16 @@ public class ObjectProxyServerActor extends ServerActor<ObjectProxyServerActor.I
     }
 
     @Override
-    protected Object handleCall(ActorRef<Object> from, Object id, Invocation m) throws Exception, SuspendExecution {
+    protected void checkCodeSwap() {
+        verifyInActor();
+        Object _target = ActorLoader.getReplacementFor(target);
+        if(_target != target)
+            log().info("Upgraded ProxyServerActor implementation: {}", _target);
+        this.target = _target;
+    }
+    
+    @Override
+    protected Object handleCall(ActorRef<?> from, Object id, Invocation m) throws Exception, SuspendExecution {
         try {
             Object res = m.invoke(target);
             return res == null ? NULL_RETURN_VALUE : res;
@@ -222,7 +233,7 @@ public class ObjectProxyServerActor extends ServerActor<ObjectProxyServerActor.I
     }
 
     @Override
-    protected void handleCast(ActorRef<Object> from, Object id, Invocation m) throws SuspendExecution {
+    protected void handleCast(ActorRef<?> from, Object id, Invocation m) throws SuspendExecution {
         try {
             m.invoke(target);
         } catch (InvocationTargetException e) {

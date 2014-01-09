@@ -42,7 +42,7 @@ public interface ServerHandler<CallMessage, V, CastMessage> extends Initializer 
      * @return a value that will be sent as a response to the sender of the request.
      * @throws Exception if thrown, it will be sent back to the sender of the request.
      */
-    V handleCall(ActorRef<V> from, Object id, CallMessage m) throws Exception, SuspendExecution;
+    V handleCall(ActorRef<?> from, Object id, CallMessage m) throws Exception, SuspendExecution;
 
     /**
      * Called to handle an asynchronous request (one that does not for a response).
@@ -51,7 +51,7 @@ public interface ServerHandler<CallMessage, V, CastMessage> extends Initializer 
      * @param id   the request's unique id
      * @param m    the request
      */
-    void handleCast(ActorRef<V> from, Object id, CastMessage m) throws SuspendExecution;
+    void handleCast(ActorRef<?> from, Object id, CastMessage m) throws SuspendExecution;
 
     /**
      * Called to handle any message sent to this actor that is neither a {@link #handleCall(ActorRef, Object, Object) call} nor a {@link #handleCast(ActorRef, Object, Object) cast}.

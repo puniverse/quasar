@@ -135,7 +135,7 @@ public class ServerTest {
     public void whenCalledThenResultIsReturned() throws Exception {
         final Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
-            public Integer handleCall(ActorRef<Integer> from, Object id, Message m) {
+            public Integer handleCall(ActorRef<?> from, Object id, Message m) {
                 ServerActor.currentServerActor().shutdown();
                 return m.a + m.b;
             }
@@ -157,7 +157,7 @@ public class ServerTest {
     public void whenCalledFromThreadThenResultIsReturned() throws Exception {
         Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
-            public Integer handleCall(ActorRef<Integer> from, Object id, Message m) {
+            public Integer handleCall(ActorRef<?> from, Object id, Message m) {
                 ServerActor.currentServerActor().shutdown();
                 return m.a + m.b;
             }
@@ -174,7 +174,7 @@ public class ServerTest {
     public void whenCalledAndTimeoutThenThrowTimeout() throws Exception {
         Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
-            public Integer handleCall(ActorRef<Integer> from, Object id, Message m) throws SuspendExecution {
+            public Integer handleCall(ActorRef<?> from, Object id, Message m) throws SuspendExecution {
                 try {
                     Strand.sleep(50);
                     ServerActor.currentServerActor().shutdown();
@@ -199,7 +199,7 @@ public class ServerTest {
     public void testDefaultTimeout1() throws Exception {
         Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
-            public Integer handleCall(ActorRef<Integer> from, Object id, Message m) throws SuspendExecution {
+            public Integer handleCall(ActorRef<?> from, Object id, Message m) throws SuspendExecution {
                 try {
                     Strand.sleep(50);
                     ServerActor.currentServerActor().shutdown();
@@ -226,7 +226,7 @@ public class ServerTest {
     public void testDefaultTimeout2() throws Exception {
         Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
-            public Integer handleCall(ActorRef<Integer> from, Object id, Message m) throws SuspendExecution {
+            public Integer handleCall(ActorRef<?> from, Object id, Message m) throws SuspendExecution {
                 try {
                     Strand.sleep(50);
                     ServerActor.currentServerActor().shutdown();
@@ -341,7 +341,7 @@ public class ServerTest {
     public void whenCalledThenDeferredResultIsReturned() throws Exception {
         final Server<Message, Integer, Message> s = new ServerActor<Message, Integer, Message>() {
             private int a, b;
-            private ActorRef<Integer> from;
+            private ActorRef<?> from;
             private Object id;
             private boolean received;
 
@@ -351,7 +351,7 @@ public class ServerTest {
             }
 
             @Override
-            public Integer handleCall(ActorRef<Integer> from, Object id, Message m) {
+            public Integer handleCall(ActorRef<?> from, Object id, Message m) {
                 // save for later
                 this.a = m.a;
                 this.b = m.b;
@@ -386,7 +386,7 @@ public class ServerTest {
     public void whenCalledFromThreadThenDeferredResultIsReturned() throws Exception {
         final Server<Message, Integer, Message> s = new ServerActor<Message, Integer, Message>() {
             private int a, b;
-            private ActorRef<Integer> from;
+            private ActorRef<?> from;
             private Object id;
             private boolean received;
 
@@ -396,7 +396,7 @@ public class ServerTest {
             }
 
             @Override
-            public Integer handleCall(ActorRef<Integer> from, Object id, Message m) {
+            public Integer handleCall(ActorRef<?> from, Object id, Message m) {
                 // save for later
                 this.a = m.a;
                 this.b = m.b;
@@ -432,7 +432,7 @@ public class ServerTest {
             }
 
             @Override
-            public Integer handleCall(ActorRef<Integer> from, Object id, Message m) {
+            public Integer handleCall(ActorRef<?> from, Object id, Message m) {
                 this.received = true;
                 return null;
             }
