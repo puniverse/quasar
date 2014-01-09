@@ -75,7 +75,7 @@ subprojects {
     
     dependencies {
         compile "com.codahale.metrics:metrics-core:3.0.1" 
-        compile "org.apache.ant:ant:1.9.2"
+        compile "org.apache.ant:ant:1.9.3"
         compile "com.google.guava:guava:15.0"
         compile "org.slf4j:slf4j-api:1.7.5"
 	//  runtime "org.slf4j:slf4j-jdk14:1.7.5"
