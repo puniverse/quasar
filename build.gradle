@@ -88,7 +88,7 @@ subprojects {
         testCompile("org.mockito:mockito-all:1.9.5") {
             exclude group: "org.ow2.asm", module: '*'
         }
-        testCompile 'org.openjdk.jmh:jmh-core:0.2'
+        testCompile 'org.openjdk.jmh:jmh-core:0.2.1'
         markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
     }
 
