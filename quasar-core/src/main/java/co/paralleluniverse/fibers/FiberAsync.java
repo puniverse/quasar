@@ -67,7 +67,7 @@ import java.util.concurrent.TimeoutException;
 public abstract class FiberAsync<V, A, E extends Throwable> {
     private final Fiber fiber;
     private final boolean immediateExec;
-    private long timeoutNanos;
+    private long deadline;
     private volatile boolean completed;
     private Throwable exception;
     private V result;
@@ -157,7 +157,7 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
         if (timeout <= 0)
             throw new TimeoutException();
 
-        final long deadline = System.nanoTime() + unit.toNanos(timeout);
+        this.deadline = System.nanoTime() + unit.toNanos(timeout);
 
         fiber.record(1, "FiberAsync", "run", "Blocking fiber %s on FibeAsync %s", fiber, this);
         while (!Fiber.park(this, new Fiber.ParkAction() {
@@ -269,11 +269,12 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
                     prepark();
                 }
             })) {
-                final RuntimeException ex1 = new RuntimeException("Failed to exec fiber " + fiber + " in thread " + Thread.currentThread());
-
-                this.exception = timeoutNanos > 0 ? new TimeoutException() : ex1;
+                final boolean timeout = (deadline > 0 && System.nanoTime() >= deadline);
+                final Exception ex = timeout ? new TimeoutException() : new RuntimeException("Failed to exec fiber " + fiber + " in thread " + Thread.currentThread());
+                this.exception = ex;
                 fiber.unpark(this);
-                throw ex1;
+                if (!timeout)
+                    throw (RuntimeException)ex;
             }
         } else
             fiber.unpark(this);
