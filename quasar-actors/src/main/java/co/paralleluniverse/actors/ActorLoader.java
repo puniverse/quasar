@@ -109,7 +109,7 @@ public class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notif
         return instance.getCurrentClassFor(clazz);
     }
 
-    public static Class<?> currentClassFor(String className) {
+    public static Class<?> currentClassFor(String className) throws ClassNotFoundException {
         return instance.getCurrentClassFor(className);
     }
 
@@ -339,8 +339,12 @@ public class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notif
 //            }
 //        }
         for (Class<?> oldClass : oldClasses) {
-            LOG.debug("Triggering replacement of {} ({})", oldClass, getModule(oldClass));
-            getClassRef0(oldClass).set(loadCurrentClass(oldClass.getName()));
+            try {
+                LOG.debug("Triggering replacement of {} ({})", oldClass, getModule(oldClass));
+                getClassRef0(oldClass).set(loadCurrentClass(oldClass.getName()));
+            } catch (ClassNotFoundException e) {
+                throw new AssertionError(e);
+            }
         }
     }
 
@@ -348,23 +352,19 @@ public class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notif
         return clazz.getClassLoader() instanceof ActorModule ? (ActorModule) clazz.getClassLoader() : null;
     }
 
-    <T extends Actor<?, ?>> Class<T> loadCurrentClass(String className) {
-        try {
-            ActorModule module = classModule.get(className);
-            Class<?> clazz;
-            if (module != null)
-                clazz = (Class<T>) module.loadClass(className);
-            else
-                clazz = (Class<T>) getParent().loadClass(className);
-            LOG.debug("currentClassFor {} - {} {}", className, getModule(clazz), module);
-            return (Class<T>) clazz;
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+    <T extends Actor<?, ?>> Class<T> loadCurrentClass(String className) throws ClassNotFoundException {
+        ActorModule module = classModule.get(className);
+        Class<?> clazz;
+        if (module != null)
+            clazz = (Class<T>) module.loadClass(className);
+        else
+            clazz = (Class<T>) getParent().loadClass(className);
+        LOG.debug("currentClassFor {} - {} {}", className, getModule(clazz), module);
+        return (Class<T>) clazz;
     }
 
     <T> T getReplacementFor0(T instance) {
-        if(instance == null)
+        if (instance == null)
             return null;
         Class<T> clazz = (Class<T>) instance.getClass();
         if (clazz.isAnonymousClass())
@@ -381,7 +381,11 @@ public class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notif
         AtomicReference<Class<?>> ref = getClassRef0(clazz);
         Class<?> clazz1 = ref.get();
         if (clazz1 == null) {
-            clazz1 = loadCurrentClass(clazz.getName());
+            try {
+                clazz1 = loadCurrentClass(clazz.getName());
+            } catch (ClassNotFoundException e) {
+                clazz1 = clazz;
+            }
             if (!ref.compareAndSet(null, clazz1))
                 clazz1 = ref.get();
         }
@@ -389,7 +393,7 @@ public class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notif
         return (Class<T>) clazz1;
     }
 
-    Class<?> getCurrentClassFor(String className) {
+    Class<?> getCurrentClassFor(String className) throws ClassNotFoundException {
         AtomicReference<Class<?>> ref = getClassRef0(className);
         Class<?> clazz = ref.get();
         if (clazz == null) {

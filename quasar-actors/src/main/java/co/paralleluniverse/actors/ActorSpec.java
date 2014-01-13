@@ -41,7 +41,7 @@ public class ActorSpec<T extends Actor<Message, V>, Message, V> implements Actor
      * @param params    the parameters to pass to the actor's constructors
      */
     public ActorSpec(String className, Object[] params) {
-        this((Constructor<T>) matchingConstructor(ActorLoader.currentClassFor(className), params), params, false);
+        this((Constructor<T>) matchingConstructor(currentClassFor(className), params), params, false);
     }
 
     /**
@@ -106,5 +106,13 @@ public class ActorSpec<T extends Actor<Message, V>, Message, V> implements Actor
     public String toString() {
         final String ps = Arrays.toString(params);
         return "ActorSpec{" + ctor.getName() + '(' + ps.substring(1, ps.length() - 1) + ")}";
+    }
+
+    private static Class<?> currentClassFor(String className) {
+        try {
+            return ActorLoader.currentClassFor(className);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
