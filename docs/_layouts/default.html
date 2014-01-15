@@ -1,44 +1,29 @@
 <!DOCTYPE html>
 <html itemscope itemtype="http://schema.org/Organization">
 <head>
-{% include head.html %}
+	{% include head.html %}
 </head>
-<body>
+<body class="fixed-documentation">
+	ֿ{% include header.html %} 
 
-{% include top-nav.html %}
+	<section id="main">
+		<div class="container">
+			<div id="docs-cont" class="clearfix">
+				<div class="sidebar">
+					{{content | toc}}
+				</div>
 
-<div class="container-fluid">
-  <div class="row-fluid">
-    {% include left-nav.html %}
-    <div class="span8" id="content-container">
+				<div class="main">
+					<div class="doc-text">
+						{{content}}
+					</div>
+				</div><!--main-->
+			</div><!--docs-cont-->
+		</div> <!--container-->
+	</section><!--main-->
 
-      {% include edit_on_github.html %}
+	{% include top-nav.html %}
 
-      {% if page.title %}
-      <div class="page-header">
-        <h1>{{page.title}}
-          {% if page.subtitle %}
-            <small>{{page.subtitle}}</small>
-          {% endif %}
-        </h1>
-      </div>
-      {% endif %}
-
-      <div id="content">{{content}}</div>
-
-      <hr>
-
-      <footer>
-        <div>
-          <div>&copy; {{site.copyright}}</div>
-        </div>
-      </footer>
-
-    </div>
-  </div>
-</div>
-
-{% include footer.html %}
-
+	{% include footer.html %}
 </body>
 </html>

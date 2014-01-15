@@ -6,19 +6,11 @@ baseurl: /quasar
 
 kramdown:
   use_coderay: false
-  coderay:
-    enable_coderay: false
-    coderay_line_numbers: nil
-    coderay_css: class
 
-# Site globals used throughout docs.
+## Site globals used throughout docs.
 project: Quasar
 github: puniverse/quasar
 google_group: "https://groups.google.com/forum/#!forum/quasar-pulsar-user"
-copyright: "2013-2014, Parallel Universe Software Co."
-tagline: "Lightweight threads, CSP and actors for the JVM"
 ga_tracking_id: UA-25007319-2
 
-table_of_contents:
-  - {dir: "", title: "Getting Started"}
-  - {dir: "manual", title: "User Manual"}
+

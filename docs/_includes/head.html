@@ -1,23 +1,35 @@
-<meta charset="utf-8">
-<meta http-equiv="X-UA-Compatible" content="chrome=1" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta itemprop="name" content="{{site.project}}">
-<meta itemprop="description" content="{{site.tagline}}">
-<title>
-  {% if page.title %}
-    {{page.title}} - 
-  {% else %}
-    Welcome - 
-  {% endif %} {{site.project}}
-</title>
-<!--<link rel="shortcut icon" href="/images/icons/loading_icon.png">-->
-<link href="{{site.baseurl}}/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css">
-<link href="{{site.baseurl}}/css/pygments/jekyll-github.css"  rel="stylesheet" type="text/css">
-<!-- comment out the next line to disable line numbers -->
-<link href="{{site.baseurl}}/css/pygments/linenos.css"        rel="stylesheet" type="text/css">
-<!-- <link href="{{site.baseurl}}/css/prettify/sunburst.css" rel="stylesheet" type="text/css"> -->
-<link href="{{site.baseurl}}/css/site.css?{{'now' | date: "%Y%m%d"}}" rel="stylesheet" type="text/css">
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+<head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>Parallel Universe</title>
+        <meta name="description" content="">
+        <meta name="format-detection" content="telephone=no">
+        <meta name="viewport" content="width=1100">
+        <script type="text/javascript" src="//use.typekit.net/pfn0abv.js"></script>
+        <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+        <link href='http://fonts.googleapis.com/css?family=Arimo:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" type="text/css" href="{{site.baseurl}}/css/screen.css">
+        <script src="{{site.baseurl}}/js/vendor/modernizr-2.6.2.min.js"></script>
 
-{% for item in page.stylesheets %}
-  <link rel="stylesheet" src="{{ item }}">
-{% endfor %}
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+        <script>window.jQuery || document.write('<script src="/js/vendor/jquery-1.9.1.min.js"><\/script>')</script>
+        <script src="{{site.baseurl}}/js/plugins.js"></script>
+        <script src="{{site.baseurl}}/js/main.js"></script>
+
+        <script>
+            var _gaq=[['_setAccount','XXX'],['_trackPageview']];
+            (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+            g.src='//www.google-analytics.com/ga.js';
+            s.parentNode.insertBefore(g,s)}(document,'script'));
+        </script>
+    <!--[if lt IE 9]>
+        <script src="js/vendor/html5shiv.js"></script>
+    <![endif]-->
+     <!--[if lt IE 8]>
+            <p class="chromeframe">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> or <a href="http://www.google.com/chromeframe/?redirect=true">activate Google Chrome Frame</a> to improve your experience.</p>
+        <![endif]-->
+</head>

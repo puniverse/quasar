@@ -1,33 +1,14 @@
-<!-- <script src="{{site.baseurl}}/js/prettify/prettify.js"></script> -->
-<script src="{{site.baseurl}}/js/jquery.min.js"></script>
-<script src="{{site.baseurl}}/bootstrap/js/bootstrap.min.js"></script>
-<script src="{{site.baseurl}}/js/bootstrap-scrollspy.js"></script>
-<script>
-
-{% if site.ga_tracking_id %}
-  var _gaq = _gaq || [];
-  _gaq.push(['_setAccount', '{{site.ga_tracking_id}}']);
-  _gaq.push(['_trackPageview']);
-  
-  (function() {
-    var ga = document.createElement('script'); 
-    ga.type = 'text/javascript'; 
-    ga.async = true;
-    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    var s = document.getElementsByTagName('script')[0]; 
-    s.parentNode.insertBefore(ga, s);
-  })();
-{% endif %}
-
-// Change "active" style on selected left-hand navigation menu item.
-$(document).ready(function () {
-  var path = location.pathname;
-  $('ul.nav > li > a[href="' + path + '"]').parent().addClass('active');
-
-  // TODO: Use kramdown {:.prettyprint .linenums .lang-ruby} to add the
-  // <pre class="prettyprint"> instead of doing this client-side.
-
-  // $('pre:has(code:not(.language-txt))').addClass('prettyprint');
-  // window.prettyPrint && prettyPrint();
-});
-</script>
+<footer>
+        <div class="container">
+            <div id="logo-footer"></div>
+            <ul>
+                <li><a href="http://paralleluniverse.co/support/support/">Support</a></li>
+                <li><a href="http://paralleluniverse.co/support/documentation/">Documentation</a></li>
+                <li><a href="http://paralleluniverse.co/support/about/">Company</a></li>
+                <li><a href="http://blog.paralleluniverse.co">Blog</a></li>
+            </ul>
+            <a href="https://www.facebook.com/puniverseco" class="social social1">social</a>
+            <a href="https://twitter.com/puniverseco" class="social social2">social</a>
+            <a href=" http://www.linkedin.com/company/parallel-universe?trk=company_name" class="social social3">social</a>
+        </div><!--container-->
+</footer>

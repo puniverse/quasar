@@ -12,7 +12,7 @@ function error_exit
 	exit 1
 }
 
-if [ "$TRAVIS_BRANCH" == "master" ]; then
+if [ "$TRAVIS_BRANCH" == "$DOCS_BRANCH" ]; then
 	echo -e "Installing Jekyll...\n"
 	gem install kramdown
 	gem install jekyll
