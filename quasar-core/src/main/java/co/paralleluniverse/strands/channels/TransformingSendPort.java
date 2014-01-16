@@ -25,6 +25,8 @@ public abstract class TransformingSendPort<S, T> implements SendPort<S> {
     private final SendPort<T> target;
 
     public TransformingSendPort(SendPort<T> target) {
+        if (target == null)
+            throw new IllegalArgumentException("Target port may not be null");
         this.target = target;
     }
 
@@ -62,4 +64,22 @@ public abstract class TransformingSendPort<S, T> implements SendPort<S> {
     }
 
     protected abstract T transform(S m);
+
+    @Override
+    public int hashCode() {
+        return target.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof TransformingSendPort)
+            return obj.equals(target);
+        else
+            return target.equals(obj);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "@" + Integer.toHexString(System.identityHashCode(this)) + "{" + target + "}";
+    }
 }

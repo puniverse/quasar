@@ -25,6 +25,8 @@ public abstract class TransformingReceivePort<S, T> implements ReceivePort<T> {
     private final ReceivePort<S> target;
 
     public TransformingReceivePort(ReceivePort<S> target) {
+        if (target == null)
+            throw new IllegalArgumentException("Target port may not be null");
         this.target = target;
     }
 
@@ -73,7 +75,7 @@ public abstract class TransformingReceivePort<S, T> implements ReceivePort<T> {
     public T receive(Timeout timeout) throws SuspendExecution, InterruptedException {
         return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
-    
+
     @Override
     public void close() {
         target.close();
@@ -85,4 +87,22 @@ public abstract class TransformingReceivePort<S, T> implements ReceivePort<T> {
     }
 
     protected abstract T transform(S m);
+
+    @Override
+    public int hashCode() {
+        return target.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof TransformingReceivePort)
+            return obj.equals(target);
+        else
+            return target.equals(obj);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "@" + Integer.toHexString(System.identityHashCode(this)) + "{" + target + "}";
+    }
 }
