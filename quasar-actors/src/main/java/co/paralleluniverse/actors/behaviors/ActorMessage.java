@@ -20,7 +20,7 @@ package co.paralleluniverse.actors.behaviors;
 public abstract class ActorMessage implements java.io.Serializable {
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + contentString() + "]";
+        return getClass().getSimpleName() + "[" + contentString().trim() + "]";
     }
 
     protected String contentString() {

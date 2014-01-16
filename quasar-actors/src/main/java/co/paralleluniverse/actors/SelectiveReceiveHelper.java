@@ -210,7 +210,7 @@ public class SelectiveReceiveHelper<Message> {
     public static <Message, M extends Message> MessageProcessor<Message, M> ofType(final Class<M> type) {
         return new MessageProcessor<Message, M>() {
             @Override
-            public M process(Message m) throws SuspendExecution, InterruptedException {
+            public M process(Message m) {
                 return type.isInstance(m) ? type.cast(m) : null;
             }
         };
