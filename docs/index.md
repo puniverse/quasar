@@ -492,7 +492,7 @@ The `spawn` method returns an instance of [`ActorRef`]({{javadoc}}/actors/ActorR
 [`ActorRef.self()`]({{javadoc}}/actors/ActorRef.html#self()) is a static function that returns the currently executing actor's ref, and [`Actor.self()`]({{javadoc}}/actors/Actor.html#self()) is a protected member function that returns an actor's ref. Use them to obtain and share an actor's ref with other actors.
 
 {:.alert .alert-warn}
-**Note**: An actor must *never* pass a direct reference to itself to other actors or to be used on other strands. However, it may share its `ActorRef` freely.
+**Note**: An actor must *never* pass a direct reference to itself to other actors or to be used on other strands. However, it may share its `ActorRef` freely. In fact, no class should hold a direct Java reference to an actor object other than classes that are part of the actor.
 
 The `ActorRef` allows sending messages to the actor's mailbox. In fact, `ActorRef` implements `SendPort` so it can be used just like a channel.
 
@@ -514,7 +514,7 @@ protected Void doRun() {
 ~~~
 
 {:.alert .alert-warn}
-*Note**: Because messages can be read by the actor at any time, you must take great care to only send messages that are immutable, or, at the very least, ensure that the sender does not retain a reference to the message after it is sent. Failing to do so may result in nasty race-condition bugs.
+**Note**: Because messages can be read by the actor at any time, you must take great care to only send messages that are immutable, or, at the very least, ensure that the sender does not retain a reference to the message after it is sent. Failing to do so may result in nasty race-condition bugs.
 
 #### Actors vs. Channels
 
