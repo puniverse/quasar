@@ -46,7 +46,7 @@ public final class ActorUtil {
      * @param actor   the actor to which we send the message
      * @param message the message
      */
-    public static void sendOrInterrupt(ActorRef actor, Object message) {
+    public static void sendOrInterrupt(ActorRef<?> actor, Object message) {
         ((ActorRefImpl) stripDelegates(actor)).sendOrInterrupt(message);
     }
 
