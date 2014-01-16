@@ -66,7 +66,7 @@ class ServerImpl<CallMessage, V, CastMessage> extends BehaviorImpl implements Se
 
     @Override
     public final V call(CallMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
-        final V res = RequestReplyHelper.call(getRef(), new ServerRequest(from(), null, MessageType.CALL, m), timeout, unit);
+        final V res = RequestReplyHelper.call(getRef(), new ServerRequest<V>(from(), null, MessageType.CALL, m), timeout, unit);
         return res;
     }
 
@@ -92,7 +92,7 @@ class ServerImpl<CallMessage, V, CastMessage> extends BehaviorImpl implements Se
         CALL, CAST
     };
 
-    static class ServerRequest extends RequestMessage {
+    static class ServerRequest<T> extends RequestMessage<T> {
         private final MessageType type;
         private final Object message;
 

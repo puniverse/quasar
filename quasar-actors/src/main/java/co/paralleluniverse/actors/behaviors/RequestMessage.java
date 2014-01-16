@@ -19,10 +19,11 @@ import java.beans.ConstructorProperties;
 /**
  * A message that contains a sender reference (the {@code from} property} and a unique identifier (the {@code id} property) and may be used
  * as a request by {@link RequestReplyHelper#call(ActorRef, RequestMessage) RequestReplyHelper.call()}.
- *
+ * 
+ * @param <V> The type of the expected response value
  * @author pron
  */
-public abstract class RequestMessage extends ActorMessage implements FromMessage, IdMessage {
+public abstract class RequestMessage<V> extends ActorMessage implements FromMessage, IdMessage {
     private ActorRef from;
     private Object id;
 

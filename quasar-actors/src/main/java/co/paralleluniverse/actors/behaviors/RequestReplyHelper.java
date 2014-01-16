@@ -52,7 +52,7 @@ public final class RequestReplyHelper {
 
     /**
      * Sets a default timeout for non-timed {@link #call(ActorRef, RequestMessage) call}s on this strand.
-     * Non-timed calls that take longer than the default timeout, will throw a {@link TimeoutException} 
+     * Non-timed calls that take longer than the default timeout, will throw a {@link TimeoutException}
      * wrapped in a {@link RuntimeException}. Timed calls (those that take a timeout parameter) will not be affected.
      * <p/>
      * This method only affects the current strand.
@@ -93,7 +93,7 @@ public final class RequestReplyHelper {
      * In the example, {@code MyRequest} extends {@link RequestMessage}. Note how the result of the {@link #from() from} method is passed to the
      * request's constructor, but the message ID isn't.
      *
-     * @param <V>
+     * @param <V>   the return value's type
      * @param actor the actor to which the request is sent
      * @param m     the {@link RequestMessage}, whose {@code id} and {@code from} properties may be left unset.
      * @return the value sent by the actor as a response
@@ -101,7 +101,7 @@ public final class RequestReplyHelper {
      *                              or if a {@link #setDefaultTimeout(long, TimeUnit) default timeout} has been set and has expired.
      * @throws InterruptedException
      */
-    public static <V> V call(ActorRef actor, RequestMessage m) throws InterruptedException, SuspendExecution {
+    public static <V, M extends RequestMessage<V>> V call(ActorRef<? super M> actor, M m) throws InterruptedException, SuspendExecution {
         Long timeout = null;
         try {
             timeout = defaultTimeout.get();
@@ -131,7 +131,7 @@ public final class RequestReplyHelper {
      * In the example, {@code MyRequest} extends {@link RequestMessage}. Note how the result of the {@link #from() from} method is passed to the
      * request's constructor, but the message ID isn't.
      *
-     * @param <V>
+     * @param <V>     the return value's type
      * @param actor   the actor to which the request is sent
      * @param timeout the maximum duration to wait for a response
      * @param unit    the time unit of the timeout
@@ -140,7 +140,7 @@ public final class RequestReplyHelper {
      * @throws TimeoutException     if the timeout expires before a response is received from the actor.
      * @throws InterruptedException
      */
-    public static <V> V call(final ActorRef actor, RequestMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
+    public static <V> V call(final ActorRef actor, RequestMessage<V> m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
         assert !actor.equals(LocalActor.self()) : "Can't \"call\" self - deadlock guaranteed";
 
         if (m.getFrom() == null)
@@ -205,7 +205,7 @@ public final class RequestReplyHelper {
      * In the example, {@code MyRequest} extends {@link RequestMessage}. Note how the result of the {@link #from() from} method is passed to the
      * request's constructor, but the message ID isn't.
      *
-     * @param <V>
+     * @param <V>     the return value's type
      * @param actor   the actor to which the request is sent
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @return the value sent by the actor as a response
@@ -213,7 +213,7 @@ public final class RequestReplyHelper {
      * @throws TimeoutException     if the timeout expires before a response is received from the actor.
      * @throws InterruptedException
      */
-    public static <V> V call(final ActorRef actor, RequestMessage m, Timeout timeout) throws TimeoutException, InterruptedException, SuspendExecution {
+    public static <V> V call(final ActorRef actor, RequestMessage<V> m, Timeout timeout) throws TimeoutException, InterruptedException, SuspendExecution {
         return call(actor, m, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
@@ -228,7 +228,7 @@ public final class RequestReplyHelper {
      * @param req    the request we're responding to
      * @param result the result of the request
      */
-    public static <V> void reply(RequestMessage req, V result) throws SuspendExecution {
+    public static <V> void reply(RequestMessage<V> req, V result) throws SuspendExecution {
         req.getFrom().send(new ValueResponseMessage<V>(req.getId(), result));
     }
 
@@ -243,7 +243,7 @@ public final class RequestReplyHelper {
      * @param req the request we're responding to
      * @param e   the error the request has caused
      */
-    public static <V> void replyError(RequestMessage req, Throwable e) throws SuspendExecution {
+    public static void replyError(RequestMessage<?> req, Throwable e) throws SuspendExecution {
         req.getFrom().send(new ErrorResponseMessage(req.getId(), e));
     }
 
