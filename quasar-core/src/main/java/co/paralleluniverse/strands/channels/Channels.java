@@ -522,6 +522,8 @@ public final class Channels {
     /**
      * Returns a {@link ReceivePort} that filters messages that satisfy a predicate from a given channel.
      * All messages (even those not satisfying the predicate) will be consumed from the original channel; those that don't satisfy the predicate will be silently discarded.
+     * <p/>
+     * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
      *
      * @param <M>     the message type.
      * @param channel The channel to filter
@@ -534,6 +536,8 @@ public final class Channels {
 
     /**
      * Returns a {@link ReceivePort} that receives messages that are transformed by a given mapping function from a given channel.
+     * <p/>
+     * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
      *
      * @param <S>     the message type of the source (given) channel.
      * @param <T>     the message type of the target (returned) channel.
@@ -626,6 +630,8 @@ public final class Channels {
     /**
      * Returns a {@link SendPort} that filters messages that satisfy a predicate before sending to a given channel.
      * Messages that don't satisfy the predicate will be silently discarded when sent.
+     * <p/>
+     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
      *
      * @param <M>     the message type.
      * @param channel The channel to filter
@@ -638,6 +644,8 @@ public final class Channels {
 
     /**
      * Returns a {@link SendPort} that transforms messages by applying a given mapping function before sending them to a given channel.
+     * <p/>
+     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
      *
      * @param <S>     the message type of the source (returned) channel.
      * @param <T>     the message type of the target (given) channel.
