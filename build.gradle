@@ -110,7 +110,7 @@ subprojects {
         jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
         jvmArgs "-Xmx2048m"
         doLast() {
-            println "file://" + testReportDir + "/index.html"    
+            println "file://" + getReports().getHtml().getDestination() + "/index.html"
         }  
     }
 
