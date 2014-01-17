@@ -83,7 +83,7 @@ For clustering support, add:
 
 ### Running the Instrumentation Java Agent
 
-The following must be added to the java command line (or use your favorite build tool to add this as a JVM argument):
+Quasar's lightweight thread implementation relies on bytecode instrumentation. Instrumentation can be performed at compilation time (detailed below) or at runtime using a Java agent. To run the Java agent, the following must be added to the java command line (or use your favorite build tool to add this as a JVM argument):
 
 ~~~ sh
 -javaagent:path-to-quasar-jar.jar
@@ -147,6 +147,12 @@ Finally, in your `run` task (or any task of type `JavaExec` or `Test`), add the 
 ~~~ groovy
 jvmArgs "-javaagent:${configurations.quasar.iterator().next()}"
 ~~~
+
+#### Ahead-of-Time (AOT) Instrumentation {#aot}
+
+The easy and preferable way to instrument programs using Quasar is with the Java agent, which instruments code at runtime. Sometimes, however, running a Java agent is not an option. 
+
+Quasar supports AOT instrumentation with an Ant task. The task is `co.paralleluniverse.fibers.instrument.InstrumentationTask` found in `quasar-core.jar`, and it accepts a fileset of classes to instrument. Not all classes will actually be instrumented – only those with suspendable methods (see below) – so simply give the task all of the class files in your program. In fact, Quasar itself is instrumented ahead-of-time.
 
 ### Building Quasar {#build}
 
@@ -321,7 +327,7 @@ An example for that are the synchronization primitives in the `co.paralleluniver
 
 So, suppose method `f` is declared in interface `I`, and we'd like to make its implementation in class `C` suspendable. The compiler will not let us declare that we throw `SuspendExecution` because that will conflict with `f`'s declaration in `I`.
 
-What we do, then, is annotate `C.f` with the `co.paralleluniverse.fibers.@Suspendable` annotation. Assuming `C.f` calls `park` or some other suspendable method `g` – which does declare `throws SuspendExecution`, we need to surround `f`'s body with `try {} catch(SuspendExecution)` just so the method will compile, like so:
+What we do, then, is annotate `C.f` with the `@Suspendable` annotation (in the `co.paralleluniverse.fibers` package). Assuming `C.f` calls `park` or some other suspendable method `g` – which does declare `throws SuspendExecution`, we need to surround `f`'s body with `try {} catch(SuspendExecution)` just so the method will compile, like so:
 
 ~~~ java
 class C implements I {
@@ -352,23 +358,23 @@ First, if we want to run `h` in a fiber, then it must be suspendable because it 
 
 When `h` is encountered by the instrumentation module, it will be instrumented because it's marked suspendable, but in order for the instrumentation to work, it needs to know of `h`'s calls to other instrumented methods. `h` calls `f`, which is suspendable, but through its interface `I`, while we've only annotated `f`'s *implementation* in class C. The instrumenter does not know that `I.f` has an implementation that might suspend.
 
-Therefore, if you'd like to use the `@Suspendable` annotation, there's a step you need to add to your build step, after compilation and before creating the jar file: running the class `co.paralleluniverse.fibers.instrument.SuspendablesScanner`. In Gradle it looks like this:
+Therefore, if you'd like to use the `@Suspendable` annotation, there's a step you need to add to your build step, after compilation and before creating the jar file: running the `co.paralleluniverse.fibers.instrument.SuspendablesScanner` Ant task. In Gradle it looks like this:
 
 ~~~ groovy
-task scanSuspendables(type: JavaExec, dependsOn: classes) { // runs SuspendableScanner
-    main = "co.paralleluniverse.fibers.instrument.SuspendablesScanner"
-    classpath = sourceSets.main.runtimeClasspath
-    args = ["package1", "package2"]
+ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner', 
+    classpath: "build/classes/main:" + configurations.compile.asPath)
+ant.scanSuspendables(outputFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
+    fileset(dir: sourceSets.main.output.classesDir)
 }
-~~~ 
-
-Where `"package1"` and `"package2"` are packages that contain methods annotated with `@Suspendable`. 
+~~~
 
 `SuspendablesScanner` scans your code after it's been compiled for methods annotated with `@Suspendable`. In our example it will find `C.f`. It will then see that `C.f` is an implementation of `I.f`, and so it will list `I.f` in a text file (`META-INF/suspendable-supers`), that contains all methods that have overriding suspendable implementations. 
 
 When the instrumentation module instruments `h`, it will find `I.f` in the file, and, knowing it might suspend, inject the appropriate code.
 
 Note that this has no effect on other calls to `I.f`. The instrumentation module only cares that `I.f` has suspendable implementations when it finds it called in suspendable methods (in our case: `h`).
+
+When using [AOT instrumentation](#aot), `InstrumentationTask` must be able to find the `suspendable-supers` in its classpath. 
 
 ### Channels {#channels}
 
