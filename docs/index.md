@@ -415,7 +415,7 @@ The method returns a `ReceivePort` that can be used to receive messages from `ch
 
 Each consumer strand will use its own `ticker-consumer`, and each can consume messages at its own pace, and each `TickerChannelConsumer` port will return the same messages (messages consumed from one will not be removed from the other views), subject possibly to different messages being missed by different consumers depending on their pace.
 
-#### Transofrming Channels
+#### Transofrming Channels (AKA Reactive Extensions)
 
 The [`Channels`]({{javadoc}}/strands/channels/Channels.html) class has several static methods that can be used to manipulate and compose values sent to or received off channels:
 
