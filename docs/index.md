@@ -231,7 +231,9 @@ Other than `Fiber`'s constructor and `start` method, and possibly the `join` and
 
 #### The Fiber Scheduler and Runtime Fiber Monitoring {#runtime-monitoring}
 
-Fibers are scheduled by a [`FiberScheduler`]({{javadoc}}/fibers/FiberScheduler.html) in a thread pool (actually a `ForkJoinPool`). When constructing a fiber, you can specify which scheduler should schedule it. If you don't a [default scheduler]({{javadoc}}/fibers/DefaultFiberScheduler.html) is used. You can set the default scheduler's properties by [setting some system properties]({{javadoc}}/fibers/DefaultFiberScheduler.html).
+Fibers are scheduled by a [`FiberScheduler`]({{javadoc}}/fibers/FiberScheduler.html). When constructing a fiber, you can specify which scheduler should schedule it. If you don't a [default scheduler]({{javadoc}}/fibers/DefaultFiberScheduler.html) is used. You can set the default scheduler's properties by [setting some system properties]({{javadoc}}/fibers/DefaultFiberScheduler.html).
+
+The default scheduler is an instanceof of [`FiberForkJoinScheduler`]({{javadoc}}/fibers/FiberForkJoinScheduler.html) which schedules fibers in a `ForkJoinPool`. This is a high-quality work-stealing scheduler, but sometimes you might want to schedule fibers in a thread pool of your own design (or even on a particular thread (e.g. AWT/Swing's EDT). To that purpose you can use [`FiberExecutorScheduler`]({{javadoc}}/fibers/FiberExecutorScheduler.html). See [the Javadoc]({{javadoc}}/fibers/FiberExecutorScheduler.html) for details.
 
 Every scheduler creates a [MXBean]({{javadoc}}/fibers/FibersMXBean.html) that monitors the fibers scheduled by that scheduler. The MXBean's name is `"co.paralleluniverse:type=Fibers,name=SCHEDULER_NAME"`, and you can find more details in the [Javadoc]({{javadoc}}/fibers/FibersMXBean.html).
 
