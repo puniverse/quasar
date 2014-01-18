@@ -814,7 +814,20 @@ That's it. The actor is now known throughout the cluster, and can be accessed by
 
 An actor doesn't have to be registered in order to be reachable on the network. Registering it simply makes it *discoverable*. If we pass an `ActorRef` of local actor in a message to a remote actor, the remote actor will be able to send messages to the local actor as well.
 
-### Examples
+### Cluster Configuration
+
+For instructions on how to configure the Galaxy cluster, please refere to Galaxy's [getting started guide](http://puniverse.github.io/galaxy/start/getting-started.html).
+
+## Examples
+
+For examples of using Quasar, you can take a look at Quasar's test suite.
+
+* [Fiber tests](https://github.com/puniverse/quasar/blob/master/quasar-core/src/test/java/co/paralleluniverse/fibers/FiberTest.java)
+* [FiberAsync tests](https://github.com/puniverse/quasar/blob/master/quasar-core/src/test/java/co/paralleluniverse/fibers/FiberAsyncTest.java)
+* [IO tests](https://github.com/puniverse/quasar/blob/master/quasar-core/src/test/java/co/paralleluniverse/fibers/io/FiberAsyncIOTest.java)
+* [Channel tests](https://github.com/puniverse/quasar/tree/master/quasar-core/src/test/java/co/paralleluniverse/strands/channels)
+
+### Distributed Examples
 
 There are a few examples of distributed actors in the [example package](https://github.com/puniverse/quasar/tree/master/quasar-galaxy/src/main/java/co/paralleluniverse/galaxy/example).
 You can run them after cloning the repository. 
@@ -837,14 +850,6 @@ To run the actors on different computers, change the following lines in the buil
 systemProperty "jgroups.bind_addr", "127.0.0.1"
 systemProperty "galaxy.multicast.address", "225.0.0.1"
 ~~~
-
-### Cluster Configuration
-
-For instructions on how to configure the Galaxy cluster, please refere to Galaxy's [getting started guide](http://puniverse.github.io/galaxy/start/getting-started.html).
-
-## Examples
-
-{% capture examples %}https://github.com/{{site.github}}/tree/master/src/test/java/co/paralleluniverse/examples{% endcapture %}
 
 
 
