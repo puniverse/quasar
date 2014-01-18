@@ -29,6 +29,10 @@ A core component of Quasar, bytecode instrumentation, is a fork of the wonderful
 
 ## News
 
+### January 21, 2014
+
+Quasar 0.4.0 has been released.
+
 ### October 15, 2013
 
 Quasar 0.3.0 has been released.
@@ -57,7 +61,7 @@ Add the following dependency to Maven:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-core</artifactId>
-    <version>0.3.0</version>
+    <version>{{site.version}}</version>
 </dependency>
 ~~~
 
@@ -67,7 +71,7 @@ To use actors, add:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-actors</artifactId>
-    <version>0.3.0</version>
+    <version>{{site.version}}</version>
 </dependency>
 ~~~
 
@@ -77,7 +81,7 @@ For clustering support, add:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-galaxy</artifactId>
-    <version>0.3.0</version>
+    <version>{{site.version}}</version>
 </dependency>
 ~~~
 
@@ -133,12 +137,12 @@ configurations {
 }
 ~~~
 
-In your dependencies block, add (where `VERSION` stands for the Quasar version):
+In your dependencies block, add:
 
 ~~~ groovy
 dependencies {
     // ....
-    quasar  "co.paralleluniverse:quasar-core:VERSION"
+    quasar  "co.paralleluniverse:quasar-core:{{site.version}}"
 }
 ~~~
 
