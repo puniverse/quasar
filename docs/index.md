@@ -556,7 +556,8 @@ Then, this call:
 
 ~~~ java
 ComplexMessage m = receive(new MessageProcessor<ComplexMessage, ComplexMessage>() {
-        public ComplexMessage process(ComplexMessage m) throws SuspendExecution, InterruptedException {
+        public ComplexMessage process(ComplexMessage m) 
+          throws SuspendExecution, InterruptedException {
             switch (m.type) {
             case FOO:
             case BAR:
@@ -578,12 +579,14 @@ protected List<Integer> doRun() throws SuspendExecution, InterruptedException {
     final List<Integer> list = new ArrayList<>();
     for (int i = 0; i < 2; i++) {
         receive(new MessageProcessor<ComplexMessage, ComplexMessage>() {
-            public ComplexMessage process(ComplexMessage m) throws SuspendExecution, InterruptedException {
+            public ComplexMessage process(ComplexMessage m) 
+              throws SuspendExecution, InterruptedException {
                 switch (m.type) {
                 case FOO:
                     list.add(m.num);
                     receive(new MessageProcessor<ComplexMessage, ComplexMessage>() {
-                        public ComplexMessage process(ComplexMessage m) throws SuspendExecution, InterruptedException {
+                        public ComplexMessage process(ComplexMessage m) 
+                          throws SuspendExecution, InterruptedException {
                             switch (m.type) {
                             case BAZ:
                                 list.add(m.num);
@@ -779,8 +782,10 @@ class A {
   public static final RecordType<A> aType = RecordType.newType(A.class);
   public static final IntField<A> $id = stateType.intField("id");
   public static final DoubleField<A> $foo = stateType.doubleField("id", Field.TRANSIENT);
-  public static final ObjectField<A, String> $name = stateType.objectField("name", String.class);
-  public static final ObjectField<A, List<String>> $emails = stateType.objectField("emails", new TypeToken<List<String>() {});
+  public static final ObjectField<A, String> $name = 
+        stateType.objectField("name", String.class);
+  public static final ObjectField<A, List<String>> $emails = 
+        stateType.objectField("emails", new TypeToken<List<String>() {});
 }
 ~~~
 
