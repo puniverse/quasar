@@ -730,6 +730,53 @@ or by providing an instance of [`ServerHandler`]({{javadoc}}/actors/behaviors/Se
 
 The interface, [`Server`]({{javadoc}}/actors/behaviors/Server.html), adds additional methods to `ActorRef`, such as `call` and `cast`, that allow sending synchronous (a request that waits for a response) or asynchronous (a request that does not wait for a response) requests to the server actor.
 
+#### Proxy Server
+
+Because the server behavior implements a useful and common synchronous request-reply pattern, and because this pattern is natively supported by Java in the form of a method call, Quasar includes an implementation of a server actor that uses the method call syntax: [`ProxyServerActor`]({{javadoc}}/actors/behaviors/ServerHandler.html). Instead of defining message classes manually, a proxy server has an `ActorRef` that directly implements one or more interfaces; calling their methods automatically generates messages that are sent to the server actor, which then responds to the requests by calling the respective method on a given *target* object. This way, a server request becomes a simple method call. Note that the actor semantics are preserved: the target object's methods are all run on a single strand, so there is no need to account for concurrent calls.
+
+Lets look at an example. Suppose we have this interface:
+
+~~~ java
+public static interface A {
+    int foo(String str, int x) throws SuspendExecution;
+    void bar(int x) throws SuspendExecution;
+}
+~~~
+
+We can then spawn the following actor:
+
+~~~ java
+Server a = new ProxyServerActor(false, new A() {
+        public int foo(String str, int x) {
+            return str.length() + x;
+        }
+        
+        public void bar(int x) {
+            System.out.println("x = " + x);
+        }
+    }).spawn();
+~~~
+
+To use the actor, we simply cast the `ActorRef` returned by `spawn` into our interface `A`. Every method invocation will be transformed into a message that, when received by the server actor, will be transformed back into a method call on the target:
+
+~~~ java
+((A)a).foo("hello", 5); // returns 10
+~~~
+
+Because the method calls are turned into messages that are processed by an actor on a separate strand, while the calling strand blocks until the result is returned, all of the interface's methods must be suspendable. You can declare `throws SuspendExecution` on each method, annotate each method with `@Suspendable`, or annotate the entire interface, like so:
+
+~~~ java
+@Suspendable
+public static interface A {
+    int foo(String str, int x);
+    void bar(int x);
+}
+~~~
+
+This last option is particularly convenient if the methods' implementation in the target is not suspendable.
+
+For more details, please consult [`ProxyServerActor`'s Javadoc]({{javadoc}}/actors/behaviors/ServerHandler.html).
+
 #### EventSource
 
 The event-source behavior is an actor that can be notified of *event* messages, which are delivered to *event handlers* which may be registered with the actor.
@@ -833,6 +880,12 @@ For examples of using Quasar, you can take a look at Quasar's test suite.
 * [FiberAsync tests](https://github.com/puniverse/quasar/blob/master/quasar-core/src/test/java/co/paralleluniverse/fibers/FiberAsyncTest.java)
 * [IO tests](https://github.com/puniverse/quasar/blob/master/quasar-core/src/test/java/co/paralleluniverse/fibers/io/FiberAsyncIOTest.java)
 * [Channel tests](https://github.com/puniverse/quasar/tree/master/quasar-core/src/test/java/co/paralleluniverse/strands/channels)
+* [Actor tests](https://github.com/puniverse/quasar/blob/master/quasar-actors/src/test/java/co/paralleluniverse/actors/ActorTest.java)
+* [Server behavior tests](https://github.com/puniverse/quasar/blob/master/quasar-actors/src/test/java/co/paralleluniverse/actors/behaviors/ServerTest.java)
+* [Proxy server test](https://github.com/puniverse/quasar/blob/master/quasar-actors/src/test/java/co/paralleluniverse/actors/behaviors/ProxyServerTest.java)
+* [EventSource tests](https://github.com/puniverse/quasar/blob/master/quasar-actors/src/test/java/co/paralleluniverse/actors/behaviors/EventSourceTest.java)
+* [Supervisor tests](https://github.com/puniverse/quasar/blob/master/quasar-actors/src/test/java/co/paralleluniverse/actors/behaviors/SupervisorTest.java)
+
 
 ### Distributed Examples
 
@@ -857,8 +910,4 @@ To run the actors on different computers, change the following lines in the buil
 systemProperty "jgroups.bind_addr", "127.0.0.1"
 systemProperty "galaxy.multicast.address", "225.0.0.1"
 ~~~
-
-
-
-
 

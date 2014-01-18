@@ -56,7 +56,7 @@ import static org.mockito.Mockito.*;
  *
  * @author pron
  */
-public class ObjectProxyServerTest {
+public class ProxyServerTest {
     @Rule
     public TestName name = new TestName();
     @Rule
@@ -87,7 +87,7 @@ public class ObjectProxyServerTest {
     static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channels.OverflowPolicy.THROW);
     private FiberScheduler scheduler;
 
-    public ObjectProxyServerTest() {
+    public ProxyServerTest() {
         scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 
@@ -108,7 +108,7 @@ public class ObjectProxyServerTest {
         return actor;
     }
 
-     @Suspendable
+    @Suspendable
     public static interface A {
         int foo(String str, int x); // throws SuspendExecution;
 

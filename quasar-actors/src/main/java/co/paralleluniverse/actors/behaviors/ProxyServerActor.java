@@ -36,6 +36,11 @@ import java.util.Objects;
 /**
  * Wraps a Java object in a {@link ServerActor} that exposes the object's methods as an interface and processes them in an actor
  * (on a dedicated strand).
+ * <p/>
+ * You can either supply a target object to any of the public constructors, or extend this class and use the subclass itself as the target,
+ * in which case use the protected constructors that don't take a {@code target} argument.
+ * <p/>
+ * The interface(s) exposed must 
  *
  * @author pron
  */
@@ -44,6 +49,16 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
     private Object target;
     private final boolean callOnVoidMethods;
 
+    /**
+     * Creates a new {@code ProxyServerActor}
+     *
+     * @param name              the actor's name (may be null)
+     * @param strand            the actor's strand (may be null)
+     * @param mailboxConfig     this actor's mailbox settings.
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     * @param target            the object implementing the actor's behaviors, on which the exposed interface methods will be called.
+     * @param interfaces        the interfaces this actor's {@link ActorRef} will implement; {@code target} must implement all these interfaces.
+     */
     public ProxyServerActor(String name, Strand strand, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target, Class<?>[] interfaces) {
         super(name, null, 0L, null, strand, mailboxConfig);
         this.callOnVoidMethods = callOnVoidMethods;
@@ -55,67 +70,191 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
+    /**
+     * Creates a new {@code ProxyServerActor}
+     *
+     * @param name              the actor's name (may be null)
+     * @param mailboxConfig     this actor's mailbox settings.
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     * @param target            the object implementing the actor's behaviors, on which the exposed interface methods will be called.
+     * @param interfaces        the interfaces this actor's {@link ActorRef} will implement; {@code target} must implement all these interfaces.
+     */
     public ProxyServerActor(String name, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target, Class<?>... interfaces) {
         this(name, null, mailboxConfig, callOnVoidMethods, target, interfaces);
     }
 
+    /**
+     * Creates a new {@code ProxyServerActor} with the default mailbox settings.
+     *
+     * @param name              the actor's name (may be null)
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     * @param target            the object implementing the actor's behaviors, on which the exposed interface methods will be called.
+     * @param interfaces        the interfaces this actor's {@link ActorRef} will implement; {@code target} must implement all these interfaces.
+     */
     public ProxyServerActor(String name, boolean callOnVoidMethods, Object target, Class<?>... interfaces) {
         this(name, null, null, callOnVoidMethods, target, interfaces);
     }
 
+    /**
+     * Creates a new {@code ProxyServerActor}
+     *
+     * @param mailboxConfig     this actor's mailbox settings.
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     * @param target            the object implementing the actor's behaviors, on which the exposed interface methods will be called.
+     * @param interfaces        the interfaces this actor's {@link ActorRef} will implement; {@code target} must implement all these interfaces.
+     */
     public ProxyServerActor(MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target, Class<?>... interfaces) {
         this(null, null, mailboxConfig, callOnVoidMethods, target, interfaces);
     }
 
+    /**
+     * Creates a new {@code ProxyServerActor} with the default mailbox settings.
+     *
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     * @param target            the object implementing the actor's behaviors, on which the exposed interface methods will be called.
+     * @param interfaces        the interfaces this actor's {@link ActorRef} will implement; {@code target} must implement all these interfaces.
+     */
     public ProxyServerActor(boolean callOnVoidMethods, Object target, Class<?>... interfaces) {
         this(null, null, null, callOnVoidMethods, target, interfaces);
     }
 
-    public ProxyServerActor(String name, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Class<?>... interfaces) {
-        this(name, null, mailboxConfig, callOnVoidMethods, null, interfaces);
-    }
-
-    public ProxyServerActor(String name, boolean callOnVoidMethods, Class<?>... interfaces) {
-        this(name, null, null, callOnVoidMethods, null, interfaces);
-    }
-
-    public ProxyServerActor(MailboxConfig mailboxConfig, boolean callOnVoidMethods, Class<?>... interfaces) {
-        this(null, null, mailboxConfig, callOnVoidMethods, null, interfaces);
-    }
-
-    public ProxyServerActor(boolean callOnVoidMethods, Class<?>... interfaces) {
-        this(null, null, null, callOnVoidMethods, null, interfaces);
-    }
-
+    /**
+     * Creates a new {@code ProxyServerActor}, which exposes all interfaces implemented by the given {@code target}.
+     *
+     * @param name              the actor's name (may be null)
+     * @param mailboxConfig     this actor's mailbox settings.
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     * @param target            the object implementing the actor's behaviors, on which the exposed interface methods will be called.
+     * @param interfaces        the interfaces this actor's {@link ActorRef} will implement; {@code target} must implement all these interfaces.
+     */
     public ProxyServerActor(String name, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target) {
         this(name, null, mailboxConfig, callOnVoidMethods, target, null);
     }
 
+    /**
+     * Creates a new {@code ProxyServerActor} with the default mailbox settings,
+     * which exposes all interfaces implemented by the given {@code target}.
+     *
+     * @param name              the actor's name (may be null)
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     * @param target            the object implementing the actor's behaviors, on which the exposed interface methods will be called.
+     */
     public ProxyServerActor(String name, boolean callOnVoidMethods, Object target) {
         this(name, null, null, callOnVoidMethods, target, null);
     }
 
+    /**
+     * Creates a new {@code ProxyServerActor}, which exposes all interfaces implemented by the given {@code target}.
+     *
+     * @param mailboxConfig     this actor's mailbox settings.
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     * @param target            the object implementing the actor's behaviors, on which the exposed interface methods will be called.
+     */
     public ProxyServerActor(MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target) {
         this(null, null, mailboxConfig, callOnVoidMethods, target, null);
     }
 
+    /**
+     * Creates a new {@code ProxyServerActor} with the default mailbox settings,
+     * which exposes all interfaces implemented by the given {@code target}.
+     *
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     * @param target            the object implementing the actor's behaviors, on which the exposed interface methods will be called.
+     */
     public ProxyServerActor(boolean callOnVoidMethods, Object target) {
         this(null, null, null, callOnVoidMethods, target, null);
     }
 
-    public ProxyServerActor(String name, MailboxConfig mailboxConfig, boolean callOnVoidMethods) {
+    /**
+     * This constructor is for use by subclasses that are intended to serve as the target. This object will serve as the target
+     * for the method calls.
+     *
+     * @param name              the actor's name (may be null)
+     * @param mailboxConfig     this actor's mailbox settings.
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     * @param interfaces        the interfaces this actor's {@link ActorRef} will implement; this class must implement all these interfaces.
+     */
+    protected ProxyServerActor(String name, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Class<?>... interfaces) {
+        this(name, null, mailboxConfig, callOnVoidMethods, null, interfaces);
+    }
+
+    /**
+     * This constructor is for use by subclasses that are intended to serve as the target. This object will serve as the target
+     * for the method calls. The default mailbox settings will be used.
+     *
+     * @param name              the actor's name (may be null)
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     * @param interfaces        the interfaces this actor's {@link ActorRef} will implement; this class must implement all these interfaces.
+     */
+    protected ProxyServerActor(String name, boolean callOnVoidMethods, Class<?>... interfaces) {
+        this(name, null, null, callOnVoidMethods, null, interfaces);
+    }
+
+    /**
+     * This constructor is for use by subclasses that are intended to serve as the target. This object will serve as the target
+     * for the method calls. The default mailbox settings will be used.
+     *
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     * @param interfaces        the interfaces this actor's {@link ActorRef} will implement; this class must implement all these interfaces.
+     */
+    protected ProxyServerActor(MailboxConfig mailboxConfig, boolean callOnVoidMethods, Class<?>... interfaces) {
+        this(null, null, mailboxConfig, callOnVoidMethods, null, interfaces);
+    }
+
+    /**
+     * This constructor is for use by subclasses that are intended to serve as the target. This object will serve as the target
+     * for the method calls. The default mailbox settings will be used.
+     *
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     * @param interfaces        the interfaces this actor's {@link ActorRef} will implement; this class must implement all these interfaces.
+     */
+    protected ProxyServerActor(boolean callOnVoidMethods, Class<?>... interfaces) {
+        this(null, null, null, callOnVoidMethods, null, interfaces);
+    }
+
+    /**
+     * This constructor is for use by subclasses that are intended to serve as the target. This object will serve as the target
+     * for the method calls, and all of the interfaces implemented by the subclass will be exposed by the {@link ActorRef}.
+     *
+     * @param name              the actor's name (may be null)
+     * @param mailboxConfig     this actor's mailbox settings.
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     */
+    protected ProxyServerActor(String name, MailboxConfig mailboxConfig, boolean callOnVoidMethods) {
         this(name, null, mailboxConfig, callOnVoidMethods, null, null);
     }
 
-    public ProxyServerActor(String name, boolean callOnVoidMethods) {
+    /**
+     * This constructor is for use by subclasses that are intended to serve as the target. This object will serve as the target
+     * for the method calls, and all of the interfaces implemented by the subclass will be exposed by the {@link ActorRef}. 
+     * The default mailbox settings will be used.
+     *
+     * @param name              the actor's name (may be null)
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     */
+    protected ProxyServerActor(String name, boolean callOnVoidMethods) {
         this(name, null, null, callOnVoidMethods, null, null);
     }
 
-    public ProxyServerActor(MailboxConfig mailboxConfig, boolean callOnVoidMethods) {
+    /**
+     * This constructor is for use by subclasses that are intended to serve as the target. This object will serve as the target
+     * for the method calls, and all of the interfaces implemented by the subclass will be exposed by the {@link ActorRef}.
+     *
+     * @param mailboxConfig     this actor's mailbox settings.
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     */
+    protected ProxyServerActor(MailboxConfig mailboxConfig, boolean callOnVoidMethods) {
         this(null, null, mailboxConfig, callOnVoidMethods, null, null);
     }
 
-    public ProxyServerActor(boolean callOnVoidMethods) {
+    /**
+     * This constructor is for use by subclasses that are intended to serve as the target. This object will serve as the target
+     * for the method calls, and all of the interfaces implemented by the subclass will be exposed by the {@link ActorRef}.
+     * The default mailbox settings will be used.
+     *
+     * @param callOnVoidMethods whether calling void methods will block until they have completed execution
+     */
+    protected ProxyServerActor(boolean callOnVoidMethods) {
         this(null, null, null, callOnVoidMethods, null, null);
     }
     //</editor-fold>
@@ -130,8 +269,8 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
         return Proxy.newProxyInstance(this.getClass().getClassLoader(),
                 combine(interfaces, local ? standardLocalInterfaces : standardInterfaces),
                 new ObjectProxyServerImpl(local ? this : null,
-                ref,
-                callOnVoidMethods));
+                        ref,
+                        callOnVoidMethods));
     }
     private static Class<?>[] standardInterfaces = new Class[]{
         Server.class,
@@ -215,12 +354,12 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
     protected void checkCodeSwap() throws SuspendExecution {
         verifyInActor();
         Object _target = ActorLoader.getReplacementFor(target);
-        if(_target != target)
+        if (_target != target)
             log().info("Upgraded ProxyServerActor implementation: {}", _target);
         this.target = _target;
         super.checkCodeSwap();
     }
-    
+
     @Override
     protected Object handleCall(ActorRef<?> from, Object id, Invocation m) throws Exception, SuspendExecution {
         try {
