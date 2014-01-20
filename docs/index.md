@@ -805,6 +805,39 @@ Restarting an actor means construction a new actor and spawning it. That is why 
 
 When an actor is restarted, the supervisor takes care to run it on the same type of strand (thread or fiber) as the old actor.
 
+### Hot Code Swapping
+
+Hot code swapping is the ability to change your program's code while it is running, with no need for a restart. Quasar actors support a limited and controlled, yet very useful, form of hot code swapping for actor code. Both plain actor implementations as well as behaviors can be loaded and swapped in at runtime.
+
+#### Creating and Loading Code Modules
+
+To create an upgraded version of an actor class or several of them, package the upgraded classes, along with any other accompanying classes into a jar file. When the jar is loaded, as we'll see below, those classes that are marked as upgrades will replace their current versions. Only classes representing actor implementation (or actor behavior implementation) can be upgraded directly. Other classes might be upgraded as well if they store actor state as we'll see in the next section. Actor (and behavior) upgrades must be explicitely or implicitely specified. To explicitely specify an upgrade, annotate the class with the [`@Upgrade`]({{javadoc}}/actors/actors/Upgrade.html) annotation, or include its fully qualified name in a space-separated list as the value of the `"Upgrade-Classes"` attribute in the jar's manifest. Alternatively, if the `"Upgrade-Classes"` attribute has the value `*`, all classes in the jar extending an actor or behavior class (or implementing a behavior interface like `ServerHandler`) will be automatically upgraded.
+
+Once the jar is created, there are two ways to load it into the program. The first involves calling the `reloadModule` operation of the `"co.paralleluniverse:type=ActorLoader"` MBean, passing a URL for the jar; this can be done via any JMX console, such as VisualVM. The `unloadModule` operation can be used to unload the jar and revert actors to their previous implementation.
+
+The second way is by designating a special module directory by setting the `"co.paralleluniverse.actors.moduleDir"` system property (this must be done when originally running the program). Then, any jar file copied into that directory will be automatically detected and loaded (this may take up to 10 seconds on some operating systems). A loaded jar that is removed from the module directory will be automatically unloaded.
+
+{:.alert .alert-info}
+**Note**: You might want to enable the `"co.paralleluniverse.actors.ActorLoader"` logger to view logs pertaining to hot code swapping.
+
+#### State Upgrade
+
+When an actor is upgraded (which might require an explicit call, as we'll see in the next section), a new instance of the class's new version will be created, and all of the actor's state will be transferred to the new instance. 
+
+Actor state can be stored directly in primitive fields of the actor class, or in object fields that may, in turn, contain primitives or yet other objects. When an upgraded actor class is loaded, a new instance is created for each upgraded actor, and the old actor state is copied to it. Fields of the same name and type are copied as is. Referece (object) fields whose classes have upgraded versions in the loaded jar will be recursively replicated in the same way (fields will be copied by name). Whenever a new instance is created, any method marked with the [`@OnUpgrade`]({{javadoc}}/actors/actors/OnUpgrade.html) annotation will be called. This will happen both for the actor class, as well as for any class holding actor state (i.e. found somewhere in the object graph starting at the actor) that undergoes an upgrade. An upgraded class can have more or fewer fields than its previous versions. Dropped fields will simply not be copied to the new version; newly added fields can be initialized in `@OnUpgrade` methods.
+
+#### Swapping Plain Actors
+
+Plain actor code is not swapped automatically – an actor must explicitely support swapping; therefore plain actors must be origninally built with a possible upgrade in mind. As an actor runs, when it reaches a point where swapping in a new version makes sense (depending on your application logic, but often right before receiving a new message), it must call the [`checkCodeSwap`]({{javadoc}}/actors/actors/Actor.html#checkCodeSwap()) method of the `Actor` class. If a new version of the actor class has been loaded, its `doRun` method will begin anew, after actor state has been copied. For that reason, initializtion code found at the beginning of `doRun` must take into account the fact that it may be run when some or all actor state already initialized.
+
+#### Swapping Behaviors
+
+Unlike plain actors, behaviors can be swapped in without any early consideration (i.e. behaviors already call `checkCodeSwap` at appropriate points). Internal state will be copied, just as with plain actors.
+
+#### Example
+
+A complete hot code swapping example can be found in [this GitHub repository](XXXXXXXXXXX).
+
 ## Records
 
 {% capture javadoc %}{{site.baseurl}}/javadoc/co/paralleluniverse{% endcapture %}
