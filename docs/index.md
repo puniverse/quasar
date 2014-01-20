@@ -172,18 +172,6 @@ Or, if you have gradle installed, run:
 
     gradle
 
-
-{% comment %}
-**Note**: Blah blah blah 
-{:.centered .alert .alert-info}
-
-**Note**: Blah blah blah 
-{:.alert}
-
-**Note**: Blah blah blah 
-{:.alert .alert-error}
-{% endcomment %}
-
 # User Manual
 
 ## Quasar Core
@@ -667,6 +655,9 @@ A monitored actor (either as a result of it being registered or of having called
 ### Behaviors
 
 Erlang's designers have realized that many actors follow some common patterns - like an actor that receives requests for work and then sends back a result to the requester. They've turned those patterns into actor templates, called behaviors, in order to save poeple work and avoid some common errors. Erlang serves as the main inspiration to Quasar Actors, so some of these behaviors have been ported to Quasar. 
+
+{:.alert .alert-info}
+**Note**: All behaviors use SLF4J loggers for logging.
 
 #### RequestReplyHelper
 
