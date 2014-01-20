@@ -836,7 +836,7 @@ Unlike plain actors, behaviors can be swapped in without any early consideration
 
 #### Example
 
-A complete hot code swapping example can be found in [this GitHub repository](XXXXXXXXXXX).
+A complete hot code swapping example can be found in [this GitHub repository](https://github.com/puniverse/quasar-codeswap-example).
 
 ## Records
 
