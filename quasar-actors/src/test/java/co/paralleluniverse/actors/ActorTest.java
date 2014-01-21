@@ -20,7 +20,11 @@ import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
+import co.paralleluniverse.strands.channels.SendPort;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -438,6 +442,34 @@ public class ActorTest {
         Thread.sleep(2000);
 
         assertEquals(null, wrActor2.get());
+    }
+
+    @Test
+    public void transformingSendChannelIsEqualToActor() throws Exception {
+        final ActorRef<Integer> actor = new BasicActor<Integer, Void>(mailboxConfig) {
+            @Override
+            protected Void doRun() throws SuspendExecution, InterruptedException {
+                return null;
+            }
+        }.spawn();
+
+        SendPort<Integer> ch1 = Channels.filter(actor, new Predicate<Integer>() {
+            @Override
+            public boolean apply(Integer input) {
+                return input % 2 == 0;
+            }
+        });
+        SendPort<Integer> ch2 = Channels.map(actor, new Function<Integer, Integer>() {
+            @Override
+            public Integer apply(Integer input) {
+                return input + 10;
+            }
+        });
+
+        assertTrue(ch1.equals(actor));
+        assertTrue(actor.equals(ch1));
+        assertTrue(ch2.equals(actor));
+        assertTrue(actor.equals(ch2));
     }
 
     static class Message {

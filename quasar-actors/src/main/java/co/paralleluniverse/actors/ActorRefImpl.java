@@ -16,6 +16,7 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
+import co.paralleluniverse.common.util.DelegatingEquals;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.SendPort;
@@ -182,6 +183,8 @@ abstract class ActorRefImpl<Message> implements ActorRef<Message>, SendPort<Mess
             return false;
         if (obj == this)
             return true;
+        if (obj instanceof DelegatingEquals)
+            return obj.equals(this);
         if (!(obj instanceof ActorRef))
             return false;
         ActorRef other = (ActorRef) obj;
@@ -189,7 +192,7 @@ abstract class ActorRefImpl<Message> implements ActorRef<Message>, SendPort<Mess
             other = ((ActorRefDelegate) other).getRef();
         return other == this;
     }
-    
+
     static ActorRefImpl getActorRefImpl(ActorRef actor) {
         while (actor instanceof ActorRefDelegate)
             actor = ((ActorRefDelegate) actor).getRef();

@@ -104,14 +104,14 @@ public class TransformingChannelTest {
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-                    {5, OverflowPolicy.THROW, true, false},
-                    {5, OverflowPolicy.THROW, false, false},
-                    {5, OverflowPolicy.BLOCK, true, false},
-                    {5, OverflowPolicy.BLOCK, false, false},
-                    {1, OverflowPolicy.BLOCK, false, false},
-                    {-1, OverflowPolicy.THROW, true, false},
-                    {5, OverflowPolicy.DISPLACE, true, false},
-                    {0, OverflowPolicy.BLOCK, false, false},});
+            {5, OverflowPolicy.THROW, true, false},
+            {5, OverflowPolicy.THROW, false, false},
+            {5, OverflowPolicy.BLOCK, true, false},
+            {5, OverflowPolicy.BLOCK, false, false},
+            {1, OverflowPolicy.BLOCK, false, false},
+            {-1, OverflowPolicy.THROW, true, false},
+            {5, OverflowPolicy.DISPLACE, true, false},
+            {0, OverflowPolicy.BLOCK, false, false},});
     }
 
     private <Message> Channel<Message> newChannel() {
@@ -124,6 +124,52 @@ public class TransformingChannelTest {
 
     @After
     public void tearDown() {
+    }
+
+    @Test
+    public void transformingReceiveChannelIsEqualToChannel() throws Exception {
+        final Channel<Integer> ch = newChannel();
+        ReceivePort<Integer> ch1 = Channels.filter((ReceivePort<Integer>) ch, new Predicate<Integer>() {
+            @Override
+            public boolean apply(Integer input) {
+                return input % 2 == 0;
+            }
+        });
+        ReceivePort<Integer> ch2 = Channels.map((ReceivePort<Integer>) ch, new Function<Integer, Integer>() {
+            @Override
+            public Integer apply(Integer input) {
+                return input + 10;
+            }
+        });
+
+        assertTrue(ch1.equals(ch));
+        assertTrue(ch.equals(ch1));
+        assertTrue(ch2.equals(ch));
+        assertTrue(ch.equals(ch2));
+        assertTrue(ch1.equals(ch2));
+    }
+
+    @Test
+    public void transformingSendChannelIsEqualToChannel() throws Exception {
+        final Channel<Integer> ch = newChannel();
+        SendPort<Integer> ch1 = Channels.filter((SendPort<Integer>) ch, new Predicate<Integer>() {
+            @Override
+            public boolean apply(Integer input) {
+                return input % 2 == 0;
+            }
+        });
+        SendPort<Integer> ch2 = Channels.map((SendPort<Integer>) ch, new Function<Integer, Integer>() {
+            @Override
+            public Integer apply(Integer input) {
+                return input + 10;
+            }
+        });
+
+        assertTrue(ch1.equals(ch));
+        assertTrue(ch.equals(ch1));
+        assertTrue(ch2.equals(ch));
+        assertTrue(ch.equals(ch2));
+        assertTrue(ch1.equals(ch2));
     }
 
     @Test

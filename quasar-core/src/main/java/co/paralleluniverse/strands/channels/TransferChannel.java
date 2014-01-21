@@ -21,6 +21,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.util.DelegatingEquals;
 import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -42,6 +43,13 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
     private static final Object LOST = new Object();
 
     public TransferChannel() {
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (other instanceof DelegatingEquals)
+            return other.equals(this);
+        return super.equals(other);
     }
 
     @Override

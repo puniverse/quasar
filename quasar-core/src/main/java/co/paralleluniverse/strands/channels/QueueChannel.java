@@ -16,6 +16,7 @@ package co.paralleluniverse.strands.channels;
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
+import co.paralleluniverse.common.util.DelegatingEquals;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.remote.RemoteChannelProxyFactoryService;
@@ -54,6 +55,13 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
         this.overflowPolicy = overflowPolicy;
         this.sendersSync = overflowPolicy == OverflowPolicy.BLOCK ? new SimpleConditionSynchronizer(this) : null;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (other instanceof DelegatingEquals)
+            return other.equals(this);
+        return super.equals(other);
     }
 
     public int capacity() {

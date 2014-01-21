@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.util.DelegatingEquals;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.TimeUnit;
@@ -21,7 +22,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public abstract class TransformingSendPort<S, T> implements SendPort<S> {
+public abstract class TransformingSendPort<S, T> implements SendPort<S>, DelegatingEquals {
     private final SendPort<T> target;
 
     public TransformingSendPort(SendPort<T> target) {
@@ -72,7 +73,7 @@ public abstract class TransformingSendPort<S, T> implements SendPort<S> {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof TransformingSendPort)
+        if (obj instanceof DelegatingEquals)
             return obj.equals(target);
         else
             return target.equals(obj);
