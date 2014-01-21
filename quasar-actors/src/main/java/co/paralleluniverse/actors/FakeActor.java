@@ -86,7 +86,11 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
 
     @Override
     protected void internalSendNonSuspendable(Object message) {
-        if (!mailbox().trySend(message))
+        record(1, "ActorRef", "internalSendNonSuspendable", "Sending %s -> %s", message, this);
+        Message msg = filterMessage(message);
+        if (msg == null)
+            return;
+        if (!mailbox().trySend(msg))
             throw new QueueCapacityExceededException();
     }
 
