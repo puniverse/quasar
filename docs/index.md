@@ -605,6 +605,9 @@ If a `FOO` is received first, then the next `BAZ` will be added to the list foll
 {:.alert .alert-info}
 **Note**: `MessageProcessor` will become much less cumbersome in Java 8 with the introduction of lambda expressions.
 
+{:.alert .alert-info}
+**Note**: A simple, fluent API for selecting messages based on simple criteria is provided by the [`MessageSelector`]({{javadoc}}/actors/behaviors/MessageSelector.html) class (in the `co.paralleluniverse.actors.behaviors`) package.
+
 There are several actor systems that do not support selective receive, but Erlang does, and so does Quasar. [The talk *Death by Accidental Complexity*](http://www.infoq.com/presentations/Death-by-Accidental-Complexity), by Ulf Wiger, shows how using selective receive avoids implementing a full, complicated and error-prone transition matrix. [In a different talk](http://www.infoq.com/presentations/1000-Year-old-Design-Patterns), Wiger compared non-selective (FIFO) receive to a tetris game where you must fit each piece into the puzzle as it comes, while selective receive turns the problem into a jigsaw puzzle, where you can look for a piece that you know will fit.
 
 {:.alert .alert-warn}
