@@ -29,7 +29,7 @@ A core component of Quasar, bytecode instrumentation, is a fork of the wonderful
 
 ## News
 
-### January 21, 2014
+### January 22, 2014
 
 Quasar 0.4.0 has been released.
 
@@ -85,7 +85,11 @@ For clustering support, add:
 </dependency>
 ~~~
 
-### Running the Instrumentation Java Agent
+### Instrumenting Your Code {#instrumentation}
+
+Quasar fibers rely on bytecode instrumentation. This can be done at classloading time via a Java Agent, or at compilation time with an Ant task.
+
+#### Running the Instrumentation Java Agent
 
 Quasar's lightweight thread implementation relies on bytecode instrumentation. Instrumentation can be performed at compilation time (detailed below) or at runtime using a Java agent. To run the Java agent, the following must be added to the java command line (or use your favorite build tool to add this as a JVM argument):
 
@@ -93,7 +97,7 @@ Quasar's lightweight thread implementation relies on bytecode instrumentation. I
 -javaagent:path-to-quasar-jar.jar
 ~~~
 
-#### Specifying the Java Agent with Maven:
+##### Specifying the Java Agent with Maven:
 
 The best way to do this with Maven, as explained [here](http://stackoverflow.com/questions/14777909/specify-javaagent-argument-with-maven-exec-plugin), is:
 
@@ -126,7 +130,7 @@ like so
 <argument>-javaagent:${co.paralleluniverse:quasar-core:jar}</argument>
 ~~~
 
-#### Specifying the Java Agent with Gradle
+##### Specifying the Java Agent with Gradle
 
 The way to do this with Gradle is as follows. Add a `quasar` configuration to your `build.gradle` file:
 
