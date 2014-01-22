@@ -17,6 +17,7 @@ if [ "$TRAVIS_BRANCH" == "$DOCS_BRANCH" ]; then
 	gem install kramdown
 	gem install jekyll
 	gem install typogruby
+	gem install nokogiri
 
 	if [ ! -z "$GEN_APIDOCS" ]; then
 		echo -e "Generating API docs...\n"
