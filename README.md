@@ -9,7 +9,7 @@ In Maven:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-core</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 To use actors, add
@@ -18,7 +18,7 @@ To use actors, add
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-actors</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 
@@ -28,7 +28,7 @@ For clustering support add:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-galaxy</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 
