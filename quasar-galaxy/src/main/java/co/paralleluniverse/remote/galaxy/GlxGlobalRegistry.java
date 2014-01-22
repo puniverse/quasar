@@ -17,6 +17,7 @@ import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.GlobalRegistry;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.galaxy.Cache;
 import co.paralleluniverse.galaxy.CacheListener;
 import co.paralleluniverse.galaxy.StoreTransaction;
 import co.paralleluniverse.galaxy.TimeoutException;
@@ -146,17 +147,17 @@ public class GlxGlobalRegistry implements GlobalRegistry {
                 }
                 store.setListener(root, new CacheListener() {
                     @Override
-                    public void invalidated(long id) {
-                        evicted(id);
+                    public void invalidated(Cache cache, long id) {
+                        evicted(cache, id);
                     }
 
                     @Override
-                    public void received(long id, long version, ByteBuffer data) {
-                        evicted(id);
+                    public void received(Cache cache, long id, long version, ByteBuffer data) {
+                        evicted(cache, id);
                     }
 
                     @Override
-                    public void evicted(long id) {
+                    public void evicted(Cache cache, long id) {
                         rootCache.remove(rootName);
                         store.setListener(id, null);
                     }

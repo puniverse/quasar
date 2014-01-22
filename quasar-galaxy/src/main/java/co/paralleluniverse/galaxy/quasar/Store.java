@@ -16,8 +16,8 @@ package co.paralleluniverse.galaxy.quasar;
 import co.paralleluniverse.common.io.Persistable;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.CacheListener;
-import co.paralleluniverse.galaxy.InvokeOnLine;
 import co.paralleluniverse.galaxy.ItemState;
+import co.paralleluniverse.galaxy.LineFunction;
 import co.paralleluniverse.galaxy.StoreTransaction;
 import co.paralleluniverse.galaxy.TimeoutException;
 import java.nio.ByteBuffer;
@@ -458,7 +458,7 @@ public interface Store {
      */
     void del(long id, StoreTransaction txn) throws TimeoutException, SuspendExecution;
 
-    <T> T invoke(long id, InvokeOnLine<T> function) throws TimeoutException, SuspendExecution;
+    <T> T invoke(long id, LineFunction<T> function) throws TimeoutException, SuspendExecution;
 
     /**
      * Makes the given item available in the given nodes' cache. <br/>

@@ -21,7 +21,7 @@ Quasar is developed by [Parallel Universe] and released as free software, dual-l
 * [Guava](https://code.google.com/p/guava-libraries/) --- Java utility classes, by Google
 * [SLF4J](http://www.slf4j.org/) --- Simple Logging Facade for Java (SLF4J)
 
-Quasar's clustering makes use of [Galaxy](http://puniverse.github.io/galaxy/), by Parallel Universe
+Quasar's clustering makes use of [Galaxy](http://docs.paralleluniverse.co/galaxy/), by Parallel Universe
 
 ### Acknowledgments
 
@@ -885,13 +885,13 @@ Because records are intended to control mutability, an `ObjectField` should neve
 
 {% capture examples %}https://github.com/{{site.github}}/tree/master/src/test/java/co/paralleluniverse/pulsar/examples{% endcapture %}
 
-Quasar is able to run on a cluster, thereby letting actors and channels communicate across machines. The Quasar cluster runs on top of [Galaxy](http://puniverse.github.io/galaxy/), Parallel Universe's in-memory data grid. 
+Quasar is able to run on a cluster, thereby letting actors and channels communicate across machines. The Quasar cluster runs on top of [Galaxy](http://docs.paralleluniverse.co/galaxy/), Parallel Universe's in-memory data grid. 
 
 In this version, clustering is pretty rudimentary, but essential features should work: actors can be made discoverable on the network, messages can be passed among actors on different nodes, and an actor on a failing node will behave as expected of a dying actor with respect to exit messages sent to other, remote, *watching* it or *linked* to it.
 
 ### Enabling Clustering
 
-First, you will need to add the `co.paralleluniverse:quasar-galaxy` artifact as a dependency to your project, and set some Galaxy cluster properties. At the very least you will need to set `"galaxy.nodeId"`, which will have to be a different `short` value for each master node. If you're running several nodes on the same machine, you will also need to set `"galaxy.port"` and `"galaxy.slave_port"`. These properties can be set in several ways. The simplest is to define them as JVM system properties (as `-D` command line arguments).However, you can also set them in the Galaxy configuration XML files or in a properties file. Please refer to the [Galaxy documentation](http://puniverse.github.io/galaxy/) for more detail
+First, you will need to add the `co.paralleluniverse:quasar-galaxy` artifact as a dependency to your project, and set some Galaxy cluster properties. At the very least you will need to set `"galaxy.nodeId"`, which will have to be a different `short` value for each master node. If you're running several nodes on the same machine, you will also need to set `"galaxy.port"` and `"galaxy.slave_port"`. These properties can be set in several ways. The simplest is to define them as JVM system properties (as `-D` command line arguments).However, you can also set them in the Galaxy configuration XML files or in a properties file. Please refer to the [Galaxy documentation](http://docs.paralleluniverse.co/galaxy/) for more detail.
 
 Then, to make an actor discoverable cluster-wide, all you need to do is register it with the [`register`]({{javadoc}}/actors/Actor.html#register()) method of the `Actor` class.
 
@@ -901,7 +901,7 @@ An actor doesn't have to be registered in order to be reachable on the network. 
 
 ### Cluster Configuration
 
-For instructions on how to configure the Galaxy cluster, please refere to Galaxy's [getting started guide](http://puniverse.github.io/galaxy/start/getting-started.html).
+For instructions on how to configure the Galaxy cluster, please refere to Galaxy's [getting started guide](http://docs.paralleluniverse.co/galaxy/start/getting-started.html).
 
 ## Examples
 
