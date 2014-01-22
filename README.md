@@ -40,8 +40,8 @@ Or, build from sources by running:
 
 ## Usage
 
-* [Documentation](http://puniverse.github.io/quasar/)
-* [Javadoc](http://puniverse.github.io/quasar/javadoc)
+* [Documentation](http://docs.paralleluniverse.co/quasar/)
+* [Javadoc](http://docs.paralleluniverse.co/quasar/javadoc)
 
 You can also study the examples [here](https://github.com/puniverse/quasar/tree/master/quasar-actors/src/test/java/co/paralleluniverse/actors).
 
