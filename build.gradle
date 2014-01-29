@@ -56,10 +56,6 @@ subprojects {
         resolutionStrategy {
             failOnVersionConflict()
 
-            // force "org.ow2.asm:asm:4.2"
-            // force "org.ow2.asm:asm-analysis:4.2"
-            // force "org.ow2.asm:asm-tree:4.2"
-            // force "org.ow2.asm:asm-util:4.2"
             force "com.google.guava:guava:15.0"
             force "org.slf4j:slf4j-api:1.7.5"
             force "log4j:log4j:1.2.17"
@@ -252,10 +248,10 @@ project (':quasar-core') {
         compile ":jsr166e"
         compile ":high-scale-lib"
         compile ":HdrHistogram"
-        compile "org.ow2.asm:asm:4.2" 
-        compile "org.ow2.asm:asm-analysis:4.2"
-        compile "org.ow2.asm:asm-commons:4.2"
-        compile "org.ow2.asm:asm-util:4.2"
+        compile "org.ow2.asm:asm:5.0_BETA" 
+        compile "org.ow2.asm:asm-analysis:5.0_BETA"
+        compile "org.ow2.asm:asm-commons:5.0_BETA"
+        compile "org.ow2.asm:asm-util:5.0_BETA"
         compile("com.esotericsoftware.kryo:kryo:2.22") {
             exclude group: "org.ow2.asm", module: '*'
         }
