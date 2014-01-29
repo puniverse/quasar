@@ -44,6 +44,8 @@ public final class ASMUtil {
         if (className == null)
             return null;
         try (InputStream is = cl.getResourceAsStream(classToResource(className))) {
+            if (is == null)
+                throw new IOException("Resource " + classToResource(className) + " not found.");
             ClassReader cr = new ClassReader(is);
             ClassNode cn = new ClassNode();
             cr.accept(cn, ClassReader.SKIP_DEBUG | (skipCode ? 0 : ClassReader.SKIP_CODE));
@@ -131,8 +133,8 @@ public final class ASMUtil {
     public static boolean isAssignableFrom(String supertypeName, String className, ClassLoader cl) {
         return isAssignableFrom0(classToSlashed(supertypeName), classToSlashed(className), cl);
     }
-    
-    private static boolean isAssignableFrom0(String supertypeName, String className, ClassLoader cl) {        
+
+    private static boolean isAssignableFrom0(String supertypeName, String className, ClassLoader cl) {
         try {
             if (className == null)
                 return false;

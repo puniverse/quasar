@@ -81,14 +81,26 @@ public final class QuasarInstrumentor {
             cv = new TraceClassVisitor(cv, new PrintWriter(System.out));
 
         final InstrumentClass ic = new InstrumentClass(cv, db, false);
-        r.accept(ic, ClassReader.SKIP_FRAMES);
-        final byte[] transformed = cw.toByteArray();
+        byte[] transformed = null;
+        try {
+            r.accept(ic, ClassReader.SKIP_FRAMES);
+            transformed = cw.toByteArray();
+        } catch (Exception e) {
+            if (ic.hasSuspendableMethods()) {
+                error("Unable to instrument class " + className, e);
+                throw e;
+            } else {
+                if (!MethodDatabase.isProblematicClass(className))
+                    log(LogLevel.DEBUG, "Unable to instrument class " + className);
+                return null;
+            }
+        }
 
         if (EXAMINED_CLASS != null) {
             if (className.startsWith(EXAMINED_CLASS)) {
                 try (OutputStream os = new FileOutputStream(className.replace('/', '.') + ".class")) {
                     os.write(transformed);
-                } catch (Exception e) {
+                } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             }

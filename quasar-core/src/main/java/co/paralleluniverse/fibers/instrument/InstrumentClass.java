@@ -74,6 +74,8 @@ public class InstrumentClass extends ClassVisitor {
     private boolean alreadyInstrumented;
     private ArrayList<MethodNode> methods;
 
+    private RuntimeException exception;
+
     public InstrumentClass(ClassVisitor cv, MethodDatabase db, boolean forceInstrumentation) {
         super(Opcodes.ASM4, cv);
         this.db = db;
@@ -101,8 +103,11 @@ public class InstrumentClass extends ClassVisitor {
 //            System.out.println("XX: Marking " + className + " as " + SUSPENDABLE_NAME);
 //            interfaces = add(interfaces, SUSPENDABLE_NAME);
 //        }
-
         super.visit(version, access, name, signature, superName, interfaces);
+    }
+
+    public boolean hasSuspendableMethods() {
+        return methods != null && !methods.isEmpty();
     }
 
     @Override
@@ -160,8 +165,15 @@ public class InstrumentClass extends ClassVisitor {
 
                     @Override
                     public void visitEnd() {
+                        if (exception != null)
+                            return;
+
                         commit();
-                        super.visitEnd();
+                        try {
+                            super.visitEnd();
+                        } catch (RuntimeException e) {
+                            exception = e;
+                        }
                     }
 
                     private void commit() {
@@ -195,6 +207,9 @@ public class InstrumentClass extends ClassVisitor {
     @Override
     @SuppressWarnings("CallToThreadDumpStack")
     public void visitEnd() {
+        if (exception != null)
+            throw exception;
+
         classEntry.setRequiresInstrumentation(false);
         db.recordSuspendableMethods(className, classEntry);
 

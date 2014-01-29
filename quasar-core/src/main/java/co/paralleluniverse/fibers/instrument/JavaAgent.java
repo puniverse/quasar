@@ -172,19 +172,14 @@ public class JavaAgent {
             classLoaders.add(new WeakReference<ClassLoader>(loader));
 
             try {
-                final byte[] tranformed = instrumentor.instrumentClass(className, classfileBuffer);
+                final byte[] transformed = instrumentor.instrumentClass(className, classfileBuffer);
 
-                Retransform.afterTransform(className, classBeingRedefined, tranformed);
+                if (transformed != null)
+                    Retransform.afterTransform(className, classBeingRedefined, transformed);
 
-                return tranformed;
-            } catch (Exception ex) {
-                if (MethodDatabase.isProblematicClass(className))
-                    instrumentor.log(LogLevel.INFO, "Skipping problematic class instrumentation %s - %s %s", className, ex, Arrays.toString(ex.getStackTrace()));
-                else
-                    instrumentor.error("Unable to instrument " + className, ex);
-                return null;
+                return transformed;
             } catch (Throwable t) {
-                System.out.println("[quasar] ERROR: " + t.getMessage());
+                System.out.println("[quasar] ERROR: while transforming " + className + ": " + t.getMessage());
                 t.printStackTrace(System.out);
                 return null;
             }
