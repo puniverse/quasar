@@ -17,6 +17,8 @@ import co.paralleluniverse.common.util.Function2;
 import co.paralleluniverse.common.util.Function3;
 import co.paralleluniverse.common.util.Function4;
 import co.paralleluniverse.common.util.Function5;
+import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.queues.ArrayQueue;
 import co.paralleluniverse.strands.queues.BasicQueue;
 import co.paralleluniverse.strands.queues.BasicSingleConsumerDoubleQueue;
@@ -42,7 +44,9 @@ import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayObjectQueue;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A utility class for creating and manipulating channels.
@@ -123,7 +127,6 @@ public final class Channels {
             queue = new SingleConsumerArrayObjectQueue<Message>(bufferSize);
         else
             queue = new ArrayQueue<Message>(bufferSize);
-
 
         return new QueueObjectChannel(queue, policy, singleConsumer);
     }
@@ -550,6 +553,28 @@ public final class Channels {
     }
 
     /**
+     * Returns a {@link ReceivePort} that receives messages that are transformed by a given flat-mapping function from a given channel.
+     * Unlike {@link #map(ReceivePort, Function) map}, the mapping function does not returns a single output message for every input message, but
+     * a new {@code ReceivePort}. All the returned ports are combined into a single {@code ReceivePort} that receives the messages received by all
+     * the ports in order.
+     * <p>
+     * To return a single value the mapping function can make use of {@link #singletonReceivePort(Object) singletonReceivePort}. To return a collection,
+     * it can make use of {@link #toReceivePort(Iterable) toReceivePort(Iterable)}. To emit no values, the function can return {@link #emptyReceivePort()}
+     * or {@code null}.
+     * <p/>
+     * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     *
+     * @param <S>     the message type of the source (given) channel.
+     * @param <T>     the message type of the target (returned) channel.
+     * @param channel the channel to transform
+     * @param f       the mapping function
+     * @return a {@link ReceivePort} that returns messages that are the result of applying the mapping function to the messages received on the given channel.
+     */
+    public static <S, T> ReceivePort<T> flatmap(ReceivePort<S> channel, Function<S, ReceivePort<T>> f) {
+        return new FlatMappingReceivePort<S, T>(channel, f);
+    }
+
+    /**
      * Returns a {@link ReceivePort} that combines each vector of messages from a list of channels into a single combined message.
      *
      * @param <M> The type of the combined message
@@ -657,6 +682,148 @@ public final class Channels {
         return new MappingSendPort<S, T>(channel, f);
     }
 
+    /**
+     * Returns an empty {@link ReceivePort}. The port is closed and receives no messages;
+     */
+    public static <T> ReceivePort<T> emptyReceivePort() {
+        return (ReceivePort<T>) EMPTY_RECEIVE_PORT;
+    }
+
+    /**
+     * Returns a newly created {@link ReceivePort} that receives a single message: the object given to the function.
+     * <p>
+     * @param <T>
+     * @param object the single object that will be returned by the {@code ReceivePort}.
+     */
+    public static <T> ReceivePort<T> singletonReceivePort(final T object) {
+        if (object == null)
+            return null;
+        return new ReceivePort<T>() {
+            private boolean closed;
+
+            @Override
+            public T receive() {
+                return tryReceive();
+            }
+
+            @Override
+            public T receive(long timeout, TimeUnit unit) {
+                return tryReceive();
+            }
+
+            @Override
+            public T receive(Timeout timeout) {
+                return tryReceive();
+            }
+
+            @Override
+            public T tryReceive() {
+                if (closed)
+                    return null;
+                this.closed = true;
+                return object;
+            }
+
+            @Override
+            public void close() {
+                this.closed = true;
+            }
+
+            @Override
+            public boolean isClosed() {
+                return closed;
+            }
+        };
+    }
+
+    /**
+     * Returns a newly created {@link ReceivePort} that receives all the elements iterated by the iterator.
+     * <p>
+     * @param <T>
+     * @param iterator the iterator to transform into a {@code ReceivePort}.
+     */
+    public static <T> ReceivePort<T> toReceivePort(final Iterator<T> iterator) {
+        if (iterator == null)
+            return null;
+        return new ReceivePort<T>() {
+            private Iterator<T> it = iterator;
+
+            @Override
+            public T receive() {
+                return tryReceive();
+            }
+
+            @Override
+            public T receive(long timeout, TimeUnit unit) {
+                return tryReceive();
+            }
+
+            @Override
+            public T receive(Timeout timeout) {
+                return tryReceive();
+            }
+
+            @Override
+            public T tryReceive() {
+                return !isClosed() ? it.next() : null;
+            }
+
+            @Override
+            public void close() {
+                this.it = null;
+            }
+
+            @Override
+            public boolean isClosed() {
+                return it == null || !it.hasNext();
+            }
+        };
+    }
+
+    /**
+     * Returns a newly created {@link ReceivePort} that receives all the elements iterated by the iterable.
+     * <p>
+     * @param <T>
+     * @param iterable the iterable to transform into a {@code ReceivePort}.
+     */
+    public static <T> ReceivePort<T> toReceivePort(final Iterable<T> iterable) {
+        if (iterable == null)
+            return null;
+        return toReceivePort(iterable.iterator());
+    }
+
     private Channels() {
     }
+
+    private static final ReceivePort EMPTY_RECEIVE_PORT = new ReceivePort() {
+
+        @Override
+        public Object receive() {
+            return null;
+        }
+
+        @Override
+        public Object receive(long timeout, TimeUnit unit) {
+            return null;
+        }
+
+        @Override
+        public Object receive(Timeout timeout) {
+            return null;
+        }
+
+        @Override
+        public Object tryReceive() {
+            return null;
+        }
+
+        @Override
+        public void close() {
+        }
+
+        @Override
+        public boolean isClosed() {
+            return true;
+        }
+    };
 }

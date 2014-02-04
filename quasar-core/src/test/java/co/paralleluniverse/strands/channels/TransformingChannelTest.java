@@ -142,11 +142,29 @@ public class TransformingChannelTest {
             }
         });
 
+        ReceivePort<Integer> ch3 = Channels.flatmap((ReceivePort<Integer>) ch, new Function<Integer, ReceivePort<Integer>>() {
+            @Override
+            public ReceivePort<Integer> apply(Integer input) {
+                return Channels.toReceivePort(Arrays.asList(new Integer[]{input * 10, input * 100, input * 1000}));
+            }
+        });
+
         assertTrue(ch1.equals(ch));
         assertTrue(ch.equals(ch1));
         assertTrue(ch2.equals(ch));
         assertTrue(ch.equals(ch2));
+        assertTrue(ch3.equals(ch));
+        assertTrue(ch.equals(ch3));
+
+        assertTrue(ch1.equals(ch1));
         assertTrue(ch1.equals(ch2));
+        assertTrue(ch1.equals(ch3));
+        assertTrue(ch2.equals(ch1));
+        assertTrue(ch2.equals(ch2));
+        assertTrue(ch2.equals(ch3));
+        assertTrue(ch3.equals(ch1));
+        assertTrue(ch3.equals(ch2));
+        assertTrue(ch3.equals(ch3));
     }
 
     @Test
@@ -642,6 +660,94 @@ public class TransformingChannelTest {
         ch2.send(3);
         ch1.send("foo");
         ch2.close();
+        fib.join();
+    }
+
+    @Test
+    public void testFlatmapThreadToFiber() throws Exception {
+        final Channel<Integer> ch1 = newChannel();
+
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                ReceivePort<Integer> ch = Channels.flatmap(ch1, new Function<Integer, ReceivePort<Integer>>() {
+                    @Override
+                    public ReceivePort<Integer> apply(Integer x) {
+                        if (x == 3)
+                            return null;
+                        if (x % 2 == 0)
+                            return Channels.toReceivePort(Arrays.asList(new Integer[]{x * 10, x * 100, x * 1000}));
+                        else
+                            return Channels.singletonReceivePort(x);
+                    }
+                });
+
+                assertThat(ch.receive(), is(1));
+                assertThat(ch.receive(), is(20));
+                assertThat(ch.receive(), is(200));
+                assertThat(ch.receive(), is(2000));
+                assertThat(ch.receive(), is(40));
+                assertThat(ch.receive(), is(400));
+                assertThat(ch.receive(), is(4000));
+                assertThat(ch.receive(), is(5));
+                assertThat(ch.receive(), is(nullValue()));
+                assertThat(ch.isClosed(), is(true));
+            }
+        }).start();
+
+        Strand.sleep(50);
+        ch1.send(1);
+        ch1.send(2);
+        ch1.send(3);
+        ch1.send(4);
+        ch1.send(5);
+        ch1.close();
+        fib.join();
+    }
+
+    @Test
+    public void testFlatmapWithTimeoutsThreadToFiber() throws Exception {
+        final Channel<Integer> ch1 = newChannel();
+
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                ReceivePort<Integer> ch = Channels.flatmap(ch1, new Function<Integer, ReceivePort<Integer>>() {
+                    @Override
+                    public ReceivePort<Integer> apply(Integer x) {
+                        if (x == 3)
+                            return null;
+                        if (x % 2 == 0)
+                            return Channels.toReceivePort(Arrays.asList(new Integer[]{x * 10, x * 100, x * 1000}));
+                        else
+                            return Channels.singletonReceivePort(x);
+                    }
+                });
+
+                assertThat(ch.receive(), is(1));
+                assertThat(ch.receive(30, TimeUnit.MILLISECONDS), is(nullValue()));
+                assertThat(ch.receive(40, TimeUnit.MILLISECONDS), is(20));
+                assertThat(ch.receive(), is(200));
+                assertThat(ch.receive(), is(2000));
+                assertThat(ch.receive(), is(40));
+                assertThat(ch.receive(), is(400));
+                assertThat(ch.receive(), is(4000));
+                assertThat(ch.receive(30, TimeUnit.MILLISECONDS), is(nullValue()));
+                assertThat(ch.receive(40, TimeUnit.MILLISECONDS), is(5));
+                assertThat(ch.receive(), is(nullValue()));
+                assertThat(ch.isClosed(), is(true));
+            }
+        }).start();
+
+        Strand.sleep(50);
+        ch1.send(1);
+        Strand.sleep(50);
+        ch1.send(2);
+        ch1.send(3);
+        ch1.send(4);
+        Strand.sleep(50);
+        ch1.send(5);
+        ch1.close();
         fib.join();
     }
 }
