@@ -209,7 +209,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final String getName() {
-        return name;
+        if (name != null)
+            return name;
+        return "fiber-" + ((scheduler != null && scheduler != DefaultFiberScheduler.getInstance()) ? (scheduler.getName() + '-') : "") + fid;
     }
 
     @Override
@@ -1198,7 +1200,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     /**
      * Set the handler invoked when this fiber abruptly terminates
      * due to an uncaught exception.
-     * <p>A fiber can take full control of how it responds to uncaught
+     * <p>
+     * A fiber can take full control of how it responds to uncaught
      * exceptions by having its uncaught exception handler explicitly set.
      *
      * @param eh the object to use as this fiber's uncaught exception
@@ -1319,7 +1322,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private FiberInfo makeFiberInfo(State state, Object blocker, StackTraceElement[] stackTrace) {
-        return new FiberInfo(fid, name, state, blocker, threadToFiberStack(stackTrace));
+        return new FiberInfo(fid, getName(), state, blocker, threadToFiberStack(stackTrace));
     }
 
     private static StackTraceElement[] threadToFiberStack(StackTraceElement[] threadStack) {
@@ -1382,7 +1385,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final String toString() {
-        return "Fiber@" + fid + (name != null ? (':' + name) : "") + "[task: " + task + ", target: " + Objects.systemToString(target) + ']';
+        return "Fiber@" + fid + (name != null ? (':' + name) : "")
+                + "[task: " + task + ", target: " + Objects.systemToString(target) + ", scheduler: " + scheduler + ']';
     }
 
     final Stack getStack() {
