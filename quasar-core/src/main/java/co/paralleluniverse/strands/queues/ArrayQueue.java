@@ -89,8 +89,8 @@ public class ArrayQueue<E> implements BasicQueue<E> {
                     return null;
             }
 
-            while ((v = get((int) h & mask)) == null); // volatile read
-        } while (!compareAndSetHead(h, h + 1));
+            v = get((int) h & mask); // volatile read
+        } while (v == null || !compareAndSetHead(h, h + 1));
         cas((int) h & mask, v, null);
         return v;
     }
