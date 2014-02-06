@@ -112,6 +112,9 @@ subprojects {
 
     task run(type: JavaExec, dependsOn:[testClasses]) {
         main = mainClass
+        
+        jvmArgs '-Xmx2048m'
+    
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
         systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
         // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
