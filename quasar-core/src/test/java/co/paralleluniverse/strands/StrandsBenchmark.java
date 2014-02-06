@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 public class StrandsBenchmark {
     static final boolean HEAVYWEIGHT = true;
     static final int RINGS = 10;
-    static final int STRANDS_PER_RING = 100;
+    static final int STRANDS_PER_RING = 500;
     static final int MESSAGES_PER_RING = 1000;
     static final int bufferSize = 10;
 
