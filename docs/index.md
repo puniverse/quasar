@@ -260,7 +260,7 @@ Just as you almost never use `LockSupport` directly, so, too, you will never nee
 
 As we said above, fibers are great as a replacement for callbacks. The [FiberAsync]({{javadoc}}/fibers/FiberAsync.html) class helps us easily turn any callback-based asynchronous operation to as simple fiber-blocking call.
 
-Assume that operation `Foo.asyncOp(FooCompletion callback)` is an asynchronous operation, where `Completion` is defined as:
+Assume that operation `Foo.asyncOp(FooCompletion callback)` is an asynchronous operation, where `FooCompletion` is defined as:
  
 ~~~ java
 interface FooCompletion {
@@ -291,8 +291,8 @@ Then, to transform the operation to a fiber-blocking one, we can define:
 String op() {
   new FooAsync() {
     protected Void requestAsync() {
-          Foo.asyncOp(this);
-      }
+       Foo.asyncOp(this);
+    }
   }.run();
 }
 ~~~
