@@ -842,13 +842,13 @@ public abstract class Strand {
     }
 
     private static final class ThreadStrand extends Strand {
-        private static ConcurrentMap<Thread, Strand> threadStrands = new com.google.common.collect.MapMaker().weakKeys().makeMap();
-
+        private static ConcurrentMap<Long, Strand> threadStrands = new com.google.common.collect.MapMaker().weakValues().makeMap();
+        
         static Strand get(Thread t) {
-            Strand s = threadStrands.get(t);
+            Strand s = threadStrands.get(t.getId());
             if (s == null) {
                 s = new ThreadStrand(t);
-                Strand p = threadStrands.putIfAbsent(t, s);
+                Strand p = threadStrands.putIfAbsent(t.getId(), s);
                 if (p != null)
                     s = p;
             }
