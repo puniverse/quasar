@@ -552,6 +552,20 @@ public final class Channels {
     }
 
     /**
+     * Returns a {@link ReceivePort} that maps exceptions thrown by the underlying channel (usually by channel transformations)
+     * into messages.
+     * <p/>
+     * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     *
+     * @param <T>     the message type of the target (returned) channel.
+     * @param channel the channel to transform
+     * @param f       the exception mapping function
+     */
+    public static <T> ReceivePort<T> mapErrors(ReceivePort<T> channel, Function<Exception, T> f) {
+        return new ErrorMappingReceivePort<T>(channel, f);
+    }
+
+    /**
      * Returns a {@link ReceivePort} that receives messages that are transformed by a given flat-mapping function from a given channel.
      * Unlike {@link #map(ReceivePort, Function) map}, the mapping function does not returns a single output message for every input message, but
      * a new {@code ReceivePort}. All the returned ports are combined into a single {@code ReceivePort} that receives the messages received by all

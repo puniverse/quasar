@@ -15,62 +15,67 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
+import com.google.common.base.Function;
 import java.util.concurrent.TimeUnit;
 
 /**
  *
  * @author pron
  */
-public abstract class TransformingReceivePort<S, T> extends DelegatingReceivePort<S, T> implements ReceivePort<T> {
-    public TransformingReceivePort(ReceivePort<S> target) {
+public class ErrorMappingReceivePort<T> extends DelegatingReceivePort<T, T> implements ReceivePort<T> {
+    private final Function<Exception, T> f;
+
+    public ErrorMappingReceivePort(ReceivePort<T> target, Function<Exception, T> f) {
         super(target);
+        this.f = f;
+    }
+
+    public ErrorMappingReceivePort(ReceivePort<T> target) {
+        this(target, null);
+    }
+
+    protected T map(Exception e) {
+        if (f != null)
+            return f.apply(e);
+        throw new UnsupportedOperationException();
     }
 
     @Override
     @SuppressWarnings("empty-statement")
     public T receive() throws SuspendExecution, InterruptedException {
-        for (;;) {
-            S m0 = target.receive();
-            if (m0 == null) // closed
-                return null;
-            T m = transform(m0);
-            if (m != null)
-                return m;
+        try {
+            return target.receive();
+        } catch (InterruptedException e) {
+            throw e;
+        } catch (Exception e) {
+            return map(e);
         }
     }
 
     @Override
     public T tryReceive() {
-        for (;;) {
-            S m0 = target.tryReceive();
-            if (m0 == null)
-                return null;
-            T m = transform(m0);
-            if (m != null)
-                return m;
+        try {
+            return target.tryReceive();
+        } catch (Exception e) {
+            return map(e);
         }
     }
 
     @Override
     public T receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        long left = unit.toNanos(timeout);
-        final long deadline = System.nanoTime() + left;
-
-        for (;;) {
-            S m0 = target.receive(left, TimeUnit.NANOSECONDS);
-            if (m0 == null)
-                return null;
-            T m = transform(m0);
-            if (m != null)
-                return m;
-            left = deadline - System.nanoTime();
+        try {
+            return target.receive(timeout, unit);
+        } catch (Exception e) {
+            return map(e);
         }
     }
 
     @Override
     public T receive(Timeout timeout) throws SuspendExecution, InterruptedException {
-        return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
+        try {
+            return target.receive(timeout);
+        } catch (Exception e) {
+            return map(e);
+        }
     }
-
-    protected abstract T transform(S m);
 }

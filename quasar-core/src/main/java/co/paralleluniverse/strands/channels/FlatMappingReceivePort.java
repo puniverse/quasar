@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.common.util.DelegatingEquals;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import com.google.common.base.Function;
@@ -23,17 +22,14 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public class FlatMappingReceivePort<S, T> implements ReceivePort<T>, DelegatingEquals {
-    private final ReceivePort<S> target;
+public class FlatMappingReceivePort<S, T> extends DelegatingReceivePort<S, T> implements ReceivePort<T> {
     private final Function<S, ReceivePort<T>> f;
     private ReceivePort<T> port;
 
     public FlatMappingReceivePort(ReceivePort<S> target, Function<S, ReceivePort<T>> f) {
+        super(target);
         if (f == null)
             throw new IllegalArgumentException("f can't be null");
-        if (target == null)
-            throw new IllegalArgumentException("target can't be null");
-        this.target = target;
         this.f = f;
     }
 
@@ -102,30 +98,7 @@ public class FlatMappingReceivePort<S, T> implements ReceivePort<T>, DelegatingE
     }
 
     @Override
-    public void close() {
-        target.close();
-    }
-
-    @Override
     public boolean isClosed() {
         return target.isClosed() && (port == null || port.isClosed());
-    }
-
-    @Override
-    public int hashCode() {
-        return target.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof DelegatingEquals)
-            return obj.equals(target);
-        else
-            return target.equals(obj);
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + "@" + Integer.toHexString(System.identityHashCode(this)) + "{" + target + "}";
     }
 }
