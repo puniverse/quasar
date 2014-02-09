@@ -13,9 +13,22 @@
 package co.paralleluniverse.common.util;
 
 /**
- *
+ * Represents an object that delegates its {@code equals} method to another, delegate, object.
+ * 
  * @author pron
  */
 public interface DelegatingEquals {
-    
+    /**
+     * The {@code equals} method of a {@code DelegatingEquals} object, will usually be implemented thus:
+     * 
+     * <pre>{@code
+     * boolean equals(Object o) {
+     *     if (o instanceof DelegatingEquals)
+     *         return o.equals(delegate);
+     *     else
+     *         return delegate.equals(o);
+     * }</pre>
+     */
+    @Override
+    boolean equals(Object o);
 }
