@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -21,7 +22,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-interface FiberTask<V> {
+interface FiberTask<V> extends Future<V> {
     public static final int RUNNABLE = 0;
     public static final int LEASED = 1;
     public static final int PARKED = -1;
@@ -29,12 +30,15 @@ interface FiberTask<V> {
 
     boolean doExec();
     
+    @Override
     boolean isDone();
 
     void submit();
 
+    @Override
     V get() throws InterruptedException, ExecutionException;
 
+    @Override
     V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException;
 
     int getState();

@@ -1160,12 +1160,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final boolean cancel(boolean mayInterruptIfRunning) {
-        return false;
+        if(mayInterruptIfRunning && !isDone())
+            interrupt();
+        return task.cancel(mayInterruptIfRunning);
     }
 
     @Override
     public final boolean isCancelled() {
-        return false;
+        return task.isCancelled();
     }
 
     private void sleep1(long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {

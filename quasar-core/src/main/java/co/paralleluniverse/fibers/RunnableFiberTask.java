@@ -66,6 +66,16 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
     }
 
     @Override
+    public boolean cancel(boolean mayInterruptIfRunning) {
+        return future.cancel(mayInterruptIfRunning);
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return future.isCancelled();
+    }
+
+    @Override
     public void run() {
         doExec();
     }
