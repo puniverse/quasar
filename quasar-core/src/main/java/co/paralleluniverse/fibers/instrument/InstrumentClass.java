@@ -126,7 +126,7 @@ public class InstrumentClass extends ClassVisitor {
         if (suspendableInterface)
             markedSuspendable = SuspendableType.SUSPENDABLE_SUPER;
         if (markedSuspendable == null)
-            markedSuspendable = classifier.isSuspendable(className, classEntry.getSuperName(), classEntry.getInterfaces(), name, desc, signature, exceptions);
+            markedSuspendable = classifier.isSuspendable(db, className, classEntry.getSuperName(), classEntry.getInterfaces(), name, desc, signature, exceptions);
         final SuspendableType setSuspendable = classEntry.check(name, desc);
 
         if (setSuspendable == null)

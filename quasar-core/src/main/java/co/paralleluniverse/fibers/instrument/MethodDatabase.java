@@ -215,6 +215,25 @@ public class MethodDatabase implements Log {
         }
     }
 
+    public ClassEntry getOrLoadClassEntry(String className) {
+        ClassEntry entry = getClassEntry(className);
+        if(entry == null) {
+            if (cl != null) {
+                log(LogLevel.INFO, "Trying to read class: %s", className);
+
+                CheckInstrumentationVisitor civ = checkClass(className);
+                if (civ == null)
+                    log(LogLevel.INFO, "Class not found: %s", className);
+                else
+                    entry = civ.getClassEntry();
+            } else
+                log(LogLevel.INFO, "Can't check class: %s", className);
+
+            recordSuspendableMethods(className, entry);
+        }
+        return entry;
+    }
+    
     private int isMethodSuspendable0(String className, String methodName, String methodDesc, int opcode) {
         if (methodName.charAt(0) == '<')
             return NONSUSPENDABLE;   // special methods are never suspendable
@@ -227,15 +246,15 @@ public class MethodDatabase implements Log {
             entry = CLASS_NOT_FOUND;
 
             if (cl != null) {
-                log(LogLevel.INFO, "Trying to read class: %s to check %s", className, methodName);
+                log(LogLevel.INFO, "Trying to read class: %s", className);
 
                 CheckInstrumentationVisitor civ = checkClass(className);
                 if (civ == null)
-                    log(LogLevel.WARNING, "Class not found assuming suspendable: %s", className);
+                    log(LogLevel.WARNING, "Class not found: %s", className);
                 else
                     entry = civ.getClassEntry();
             } else
-                log(LogLevel.WARNING, "Can't check class - assuming suspendable: %s", className);
+                log(LogLevel.WARNING, "Can't check class: %s", className);
 
             recordSuspendableMethods(className, entry);
         }
@@ -244,8 +263,8 @@ public class MethodDatabase implements Log {
             if (isJavaCore(className))
                 return MAYBE_CORE;
 
-            if (JavaAgent.isActive())
-                throw new AssertionError();
+//            if (JavaAgent.isActive())
+//                throw new AssertionError();
             return UNKNOWN;
         }
 
@@ -382,7 +401,7 @@ public class MethodDatabase implements Log {
             try {
                 ClassReader r = new ClassReader(is);
 
-                CheckInstrumentationVisitor civ = new CheckInstrumentationVisitor(classifier);
+                CheckInstrumentationVisitor civ = new CheckInstrumentationVisitor(this);
                 r.accept(civ, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES | ClassReader.SKIP_CODE);
 
                 return civ;

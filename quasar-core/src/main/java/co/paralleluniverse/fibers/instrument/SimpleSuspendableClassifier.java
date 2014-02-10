@@ -23,6 +23,7 @@ import java.nio.charset.Charset;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
+import org.objectweb.asm.Opcodes;
 
 /**
  *
@@ -33,11 +34,12 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
     public static final String SUSPENDABLES_FILE = "suspendables";
     public static final String SUSPENDABLE_SUPERS_FILE = "suspendable-supers";
     private final Set<String> suspendables = new HashSet<String>();
+    private final Set<String> suspendableClasses = new HashSet<String>();
     private final Set<String> suspendableSupers = new HashSet<String>();
     private final Set<String> suspendableSuperInterfaces = new HashSet<String>();
 
     public SimpleSuspendableClassifier(ClassLoader classLoader) {
-        readFiles(classLoader, SUSPENDABLES_FILE, suspendables, null);
+        readFiles(classLoader, SUSPENDABLES_FILE, suspendables, suspendableClasses);
         readFiles(classLoader, SUSPENDABLE_SUPERS_FILE, suspendableSupers, suspendableSuperInterfaces);
     }
 
@@ -57,8 +59,6 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
     }
 
     private void parse(URL file, Set<String> set, Set<String> classSet) {
-//        System.out.println("12212112121:   " + file);
-
         try (InputStream is = file.openStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF-8")))) {
             String line;
@@ -81,14 +81,43 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
     }
 
     @Override
-    public SuspendableType isSuspendable(String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
+    public SuspendableType isSuspendable(MethodDatabase db, String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
         final String fullMethodName = className + '.' + methodName;
         if (suspendables.contains(fullMethodName))
+            return SuspendableType.SUSPENDABLE;
+        if (suspendableClasses.contains(className))
             return SuspendableType.SUSPENDABLE;
         if (suspendableSupers.contains(fullMethodName))
             return SuspendableType.SUSPENDABLE_SUPER;
         if (suspendableSuperInterfaces.contains(className))
             return SuspendableType.SUSPENDABLE_SUPER;
+
+        if (superClassName != null) {
+            MethodDatabase.ClassEntry ce = db.getOrLoadClassEntry(superClassName);
+            if (ce != null && isSuspendable(db, superClassName, ce.getSuperName(), ce.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions) == SuspendableType.SUSPENDABLE)
+                return SuspendableType.SUSPENDABLE;
+        }
+
+        if (interfaces != null) {
+            for (String iface : interfaces) {
+                MethodDatabase.ClassEntry ce = db.getOrLoadClassEntry(iface);
+                if (ce != null && isSuspendable(db, iface, ce.getSuperName(), ce.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions) == SuspendableType.SUSPENDABLE)
+                    return SuspendableType.SUSPENDABLE;
+            }
+        }
+
         return null;
+    }
+
+    private static SuspendableType max(SuspendableType a, SuspendableType b) {
+        if (a == null)
+            return b;
+        if (b == null)
+            return a;
+        if (a == SuspendableType.SUSPENDABLE || b == SuspendableType.SUSPENDABLE)
+            return SuspendableType.SUSPENDABLE;
+        if (a != b)
+            throw new AssertionError("a: " + a + " b: " + b);
+        return a;
     }
 }

@@ -31,17 +31,17 @@ class DefaultSuspendableClassifier implements SuspendableClassifier {
     }
 
     @Override
-    public SuspendableType isSuspendable(String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
+    public SuspendableType isSuspendable(MethodDatabase db, String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
         SuspendableType st;
 
         // simple classifier (files in META-INF)
-        st = simpleClassifier.isSuspendable(className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions);
+        st = simpleClassifier.isSuspendable(db, className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions);
         if (st != null)
             return st;
 
         // classifier service
         for (SuspendableClassifier sc : loader) {
-            st = sc.isSuspendable(className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions);
+            st = sc.isSuspendable(db, className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions);
             if (st != null)
                 return st;
         }

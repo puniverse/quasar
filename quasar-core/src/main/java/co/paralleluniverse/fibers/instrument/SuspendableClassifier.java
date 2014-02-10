@@ -18,5 +18,5 @@ package co.paralleluniverse.fibers.instrument;
  * @author pron
  */
 public interface SuspendableClassifier {
-    MethodDatabase.SuspendableType isSuspendable(String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions);
+    MethodDatabase.SuspendableType isSuspendable(MethodDatabase db, String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions);
 }

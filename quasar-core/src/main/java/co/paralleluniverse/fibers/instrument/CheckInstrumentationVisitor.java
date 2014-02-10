@@ -58,6 +58,7 @@ import org.objectweb.asm.Opcodes;
  * @author Matthias Mann
  */
 public class CheckInstrumentationVisitor extends ClassVisitor {
+    private final MethodDatabase db;
     private final SuspendableClassifier classifier;
     private String className;
     private boolean isInterface;
@@ -66,9 +67,10 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
     private boolean hasSuspendable;
     private boolean alreadyInstrumented;
 
-    public CheckInstrumentationVisitor(SuspendableClassifier classifier) {
+    public CheckInstrumentationVisitor(MethodDatabase db) {
         super(Opcodes.ASM4);
-        this.classifier = classifier;
+        this.db = db;
+        this.classifier = db.getClassifier();
     }
 
     public boolean needsInstrumentation() {
@@ -112,7 +114,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
         if (suspendable == null)
             suspendable = classEntry.check(name, desc);
         if (suspendable == null)
-            suspendable = classifier.isSuspendable(className, classEntry.getSuperName(), classEntry.getInterfaces(), name, desc, signature, exceptions);
+            suspendable = classifier.isSuspendable(db, className, classEntry.getSuperName(), classEntry.getInterfaces(), name, desc, signature, exceptions);
         if (suspendable == SuspendableType.SUSPENDABLE) {
             hasSuspendable = true;
             // synchronized methods can't be made suspendable
