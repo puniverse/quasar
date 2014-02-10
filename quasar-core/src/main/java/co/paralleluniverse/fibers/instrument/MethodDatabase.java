@@ -265,7 +265,8 @@ public class MethodDatabase implements Log {
             if (opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESTATIC || opcode == Opcodes.INVOKESPECIAL) {
                 if (entry.getSuperName() != null)
                     suspendable = isMethodSuspendable0(entry.getSuperName(), methodName, methodDesc, opcode);
-            } else if (opcode == Opcodes.INVOKEINTERFACE) {
+            } 
+            if (opcode == Opcodes.INVOKEINTERFACE || opcode == Opcodes.INVOKEVIRTUAL) { // can be INVOKEVIRTUAL on an abstract class implementing the interface
                 for (String iface : entry.getInterfaces()) {
                     int s = isMethodSuspendable0(iface, methodName, methodDesc, opcode);
                     if (s > suspendable)
