@@ -16,7 +16,7 @@ package co.paralleluniverse.strands.channels;
 import co.paralleluniverse.common.util.DelegatingEquals;
 
 /**
- *
+ * This is the superclass for all {@link ReceivePort} transformations.
  * @author pron
  */
 public abstract class DelegatingReceivePort<S, T> implements ReceivePort<T>, DelegatingEquals {
