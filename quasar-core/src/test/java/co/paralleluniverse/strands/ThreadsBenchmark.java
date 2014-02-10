@@ -13,23 +13,24 @@
  */
 package co.paralleluniverse.strands;
 
-import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.channels.Channel;
-import co.paralleluniverse.strands.channels.Channels;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
-public class StrandsBenchmark {
-    static final boolean HEAVYWEIGHT = true;
+public class ThreadsBenchmark {
     static final int RINGS = 10;
     static final int STRANDS_PER_RING = 500;
     static final int MESSAGES_PER_RING = 1000;
     static final int bufferSize = 10;
 
+    private static final ExecutorService exec = Executors.newCachedThreadPool();
     public static void main(String args[]) throws Exception {
         System.out.println("COMPILER: " + System.getProperty("java.vm.name"));
         System.out.println("VERSION: " + System.getProperty("java.version"));
@@ -37,14 +38,13 @@ public class StrandsBenchmark {
         System.out.println("PROCESSORS: " + Runtime.getRuntime().availableProcessors());
         System.out.println();
 
-        System.out.println("HEAVYWEIGHT: " + HEAVYWEIGHT);
         System.out.println("RINGS: " + RINGS);
         System.out.println("STRANDS_PER_RING: " + STRANDS_PER_RING);
         System.out.println("MESSAGES_PER_RING: " + MESSAGES_PER_RING);
 
         for (int i = 0; i < 3; i++) {
             System.out.println("\nRun: " + i);
-            new StrandsBenchmark().run();
+            new ThreadsBenchmark().run();
         }
     }
 
@@ -53,19 +53,16 @@ public class StrandsBenchmark {
     void run() throws ExecutionException, InterruptedException {
         final long start = System.nanoTime();
 
-        List<Strand> ringLeaders = new ArrayList<>();
+        List<Future<?>> ringLeaders = new ArrayList<>();
         for (int i = 0; i < RINGS; i++)
-            ringLeaders.add(createRing(HEAVYWEIGHT, STRANDS_PER_RING, MESSAGES_PER_RING));
+            ringLeaders.add(exec.submit(createRing(STRANDS_PER_RING, MESSAGES_PER_RING)));
 
         final long afterInit = System.nanoTime();
 
-        for (Strand leader : ringLeaders)
-            leader.start();
-
         final long afterStart = System.nanoTime();
 
-        for (Strand leader : ringLeaders)
-            leader.join();
+        for (Future<?> leader : ringLeaders)
+            leader.get();
 
         final long end = System.nanoTime();
 
@@ -76,51 +73,50 @@ public class StrandsBenchmark {
         System.out.println("Black hole: " + blackHole);
     }
 
-    Strand createRing(boolean heavyweight, int size, final int rounds) {
-        final Channel<String> firstChannel = Channels.newChannel(bufferSize);
+    Runnable createRing(int size, final int rounds) {
+        final BlockingQueue<String> firstChannel = new ArrayBlockingQueue<String>(bufferSize);
 
-        Channel<String> c = firstChannel;
+        BlockingQueue<String> c = firstChannel;
         for (int i = 0; i < size - 1; i++)
-            c = createRelayStrand(heavyweight, c);
+            c = createRelayStrand(c);
 
-        final Channel<String> lastChannel = c;
+        final BlockingQueue<String> lastChannel = c;
 
-        Strand ringLeader = newStrand(heavyweight, new SuspendableRunnable() {
-
+        Runnable ringLeader = new Runnable() {
             @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                lastChannel.send("number:"); // start things off
+            public void run() {
+                try {
+                    lastChannel.add("number:"); // start things off
 
-                String m = null;
-                for (int i = 0; i < rounds; i++) {
-                    m = firstChannel.receive();
-                    lastChannel.send(createMessage(m));
+                    String m = null;
+                    for (int i = 0; i < rounds; i++) {
+                        m = firstChannel.take();
+                        lastChannel.add(createMessage(m));
+                    }
+                    blackHole = m;
+                } catch (InterruptedException e) {
                 }
-                blackHole = m;
             }
-        });
+        };
         return ringLeader;
     }
 
-    Channel<String> createRelayStrand(boolean heavyweight, final Channel<String> prev) {
-        final Channel<String> channel = Channels.newChannel(bufferSize);
-        Strand s = newStrand(heavyweight, new SuspendableRunnable() {
+    BlockingQueue<String> createRelayStrand(final BlockingQueue<String> prev) {
+        final BlockingQueue<String> channel = new ArrayBlockingQueue<String>(bufferSize);
+        Runnable r = new Runnable() {
             @Override
-            public void run() throws InterruptedException, SuspendExecution {
-                String m;
-                while ((m = channel.receive()) != null)
-                    prev.send(createMessage(m));
-            }
-        });
-        s.start();
-        return channel;
-    }
+            public void run() {
+                try {
+                    String m;
+                    while ((m = channel.take()) != null)
+                        prev.add(createMessage(m));
+                } catch (InterruptedException e) {
 
-    Strand newStrand(boolean heavyweight, SuspendableRunnable target) {
-        if (heavyweight)
-            return Strand.of(new Thread(Strand.toRunnable(target)));
-        else
-            return Strand.of(new Fiber(target));
+                }
+            }
+        };
+        exec.execute(r);
+        return channel;
     }
 
     String createMessage(String receivedMessage) {
