@@ -1,5 +1,7 @@
 ---
 layout: default
+title: Quasar
+description: "Quasar is a JVM library that provides true lightweight threads, CSP channels and actors."
 ---
 
 # Overview
