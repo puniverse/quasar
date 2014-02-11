@@ -1,0 +1,15 @@
+<meta name="twitter:site" content="@puniverseco"> 
+{% if page.title and page.description %}
+	<!-- Twitter -->
+	<meta name="twitter:card" content="summary"> 
+	<meta name="twitter:title" content="{{ page.title }}"> 
+	<meta name="twitter:description" content="{{ page.description }}"> 
+
+	<!-- OpenGraph -->
+	<meta property="og:site_name" content="Parallel Universe">
+	<meta property="og:type" content="website">
+	<meta property="og:title" content="{{ page.title }}">
+	<meta property="og:description" content="{{ page.description }}">
+	<meta property="og:url" content="{{site.url}}{{site.baseurl}}{{ page.url | replace:'/index.html','/' }}">
+	<meta property="og:image" content="http://www.gravatar.com/avatar/d942a0d3bac0a907acfb7d78c8846d1a?s=200">
+{% endif %}
