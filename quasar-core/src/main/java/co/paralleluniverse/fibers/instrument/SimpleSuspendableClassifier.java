@@ -22,6 +22,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import org.objectweb.asm.Opcodes;
 
@@ -107,6 +108,47 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
         }
 
         return null;
+    }
+
+    public static boolean extendsOrImplements(String superOrIface, MethodDatabase db, String className, String superClassName, String[] interfaces) {
+        if (superOrIface == null)
+            throw new IllegalArgumentException("superOrIface is null");
+
+        if (Objects.equals(superOrIface, superClassName))
+            return true;
+        for (String iface : interfaces) {
+            if (Objects.equals(superOrIface, iface))
+                return true;
+        }
+
+        if(extendsOrImplements(superOrIface, db, superClassName))
+            return true;
+        for (String iface : interfaces) {
+            if (extendsOrImplements(superOrIface, db, iface))
+                return true;
+        }
+        return false;
+    }
+
+    private static boolean extendsOrImplements(String superOrIface, MethodDatabase db, String className) {
+        if(className == null)
+            return false;
+        
+        MethodDatabase.ClassEntry ce = db.getOrLoadClassEntry(className);
+        if (Objects.equals(superOrIface, ce.getSuperName()))
+            return true;
+        for (String iface : ce.getInterfaces()) {
+            if (Objects.equals(superOrIface, iface))
+                return true;
+        }
+        
+        if(extendsOrImplements(superOrIface, db, ce.getSuperName()))
+            return true;
+        for (String iface : ce.getInterfaces()) {
+            if (extendsOrImplements(superOrIface, db, iface))
+                return true;
+        }
+        return false;
     }
 
     private static SuspendableType max(SuspendableType a, SuspendableType b) {

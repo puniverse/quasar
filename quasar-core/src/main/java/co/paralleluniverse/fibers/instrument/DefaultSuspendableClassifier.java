@@ -34,21 +34,26 @@ class DefaultSuspendableClassifier implements SuspendableClassifier {
     public SuspendableType isSuspendable(MethodDatabase db, String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
         SuspendableType st;
 
-        // simple classifier (files in META-INF)
-        st = simpleClassifier.isSuspendable(db, className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions);
-        if (st != null)
-            return st;
+        try {
+            // classifier service
+            for (SuspendableClassifier sc : loader) {
+                st = sc.isSuspendable(db, className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions);
+                if (st != null)
+                    return st;
+            }
 
-        // classifier service
-        for (SuspendableClassifier sc : loader) {
-            st = sc.isSuspendable(db, className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions);
+            // simple classifier (files in META-INF)
+            st = simpleClassifier.isSuspendable(db, className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions);
             if (st != null)
                 return st;
-        }
 
-        // throws SuspendExceution
-        if (checkExceptions(methodExceptions))
-            return SuspendableType.SUSPENDABLE;
+            // throws SuspendExceution
+            if (checkExceptions(methodExceptions))
+                return SuspendableType.SUSPENDABLE;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
         return null;
     }
 
