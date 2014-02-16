@@ -35,6 +35,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -417,6 +418,8 @@ public class ActorTest {
 
     @Test
     public void testWatchGC() throws Exception {
+        Assume.assumeFalse(Debug.isDebug());
+        
         final Actor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
