@@ -19,6 +19,7 @@ import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
@@ -55,7 +56,7 @@ public class FiberTest {
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
                     {new FiberForkJoinScheduler("test", 4, null, false)},
-                    {new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1))},
+                    {new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1, new ThreadFactoryBuilder().setNameFormat("fiber-scheduler-%d").setDaemon(true).build()))},
         });
     }
 
@@ -363,9 +364,8 @@ public class FiberTest {
             private void foo() throws InterruptedException, SuspendExecution {
                 Object token = cond.register();
                 try {
-                    for (int i = 0; !flag.get(); i++) {
+                    for (int i = 0; !flag.get(); i++)
                         cond.await(i);
-                    }
                 } finally {
                     cond.unregister(token);
                 }
@@ -410,9 +410,8 @@ public class FiberTest {
             private void foo() throws InterruptedException, SuspendExecution {
                 Object token = cond.register();
                 try {
-                    for (int i = 0; !flag.get(); i++) {
+                    for (int i = 0; !flag.get(); i++)
                         cond.await(i);
-                    }
                 } finally {
                     cond.unregister(token);
                 }

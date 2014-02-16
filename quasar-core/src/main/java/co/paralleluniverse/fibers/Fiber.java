@@ -583,7 +583,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      */
     private boolean park1(Object blocker, ParkAction postParkAction, long timeout, TimeUnit unit) throws SuspendExecution {
         record(1, "Fiber", "park", "Parking %s blocker: %s", this, blocker);
-        if (isRecordingLevel(2))
+        if (isRecordingLevel(2) && !getStackTrace)
             record(2, "Fiber", "park", "Parking %s at %s", this, Arrays.toString(getStackTrace()));
         if (prePark != null)
             prePark.run(this);
