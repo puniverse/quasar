@@ -100,14 +100,14 @@ public class ChannelTest {
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-                    {5, OverflowPolicy.THROW, true, false},
-                    {5, OverflowPolicy.THROW, false, false},
-                    {5, OverflowPolicy.BLOCK, true, false},
-                    {5, OverflowPolicy.BLOCK, false, false},
-                    {1, OverflowPolicy.BLOCK, false, false},
-                    {-1, OverflowPolicy.THROW, true, false},
-                    {5, OverflowPolicy.DISPLACE, true, false},
-                    {0, OverflowPolicy.BLOCK, false, false},});
+            {5, OverflowPolicy.THROW, true, false},
+            {5, OverflowPolicy.THROW, false, false},
+            {5, OverflowPolicy.BLOCK, true, false},
+            {5, OverflowPolicy.BLOCK, false, false},
+            {1, OverflowPolicy.BLOCK, false, false},
+            {-1, OverflowPolicy.THROW, true, false},
+            {5, OverflowPolicy.DISPLACE, true, false},
+            {0, OverflowPolicy.BLOCK, false, false},});
     }
 
     private <Message> Channel<Message> newChannel() {
@@ -410,7 +410,6 @@ public class ChannelTest {
             }
         }).start();
 
-
         for (int i = 0; i < 10; i++)
             ch.send(i);
         ch.close();
@@ -446,6 +445,44 @@ public class ChannelTest {
         ch.send(5);
 
         ch.close();
+
+        ch.send(6);
+        ch.send(7);
+
+        fib.join();
+    }
+
+    @Test
+    public void testChannelCloseException() throws Exception {
+        final Channel<Integer> ch = newChannel();
+
+        Fiber fib = new Fiber(scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                for (int i = 1; i <= 5; i++) {
+                    Integer m = ch.receive();
+
+                    assertThat(m, equalTo(i));
+                }
+
+                try {
+                    ch.receive();
+                    fail();
+                } catch (ProducerException e) {
+                    assertThat(e.getCause().getMessage(), equalTo("foo"));
+                }
+                assertTrue(ch.isClosed());
+            }
+        }).start();
+
+        Thread.sleep(50);
+        ch.send(1);
+        ch.send(2);
+        ch.send(3);
+        ch.send(4);
+        ch.send(5);
+
+        ch.close(new Exception("foo"));
 
         ch.send(6);
         ch.send(7);
@@ -490,6 +527,45 @@ public class ChannelTest {
     }
 
     @Test
+    public void testChannelCloseExceptionWithSleep() throws Exception {
+        final Channel<Integer> ch = newChannel();
+
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                for (int i = 1; i <= 5; i++) {
+                    Integer m = ch.receive();
+
+                    assertThat(m, equalTo(i));
+                }
+
+                try {
+                    Integer m = ch.receive();
+                    fail("m = " + m);
+                } catch (ProducerException e) {
+                    assertThat(e.getCause().getMessage(), equalTo("foo"));
+                }
+                assertTrue(ch.isClosed());
+            }
+        }).start();
+
+        Thread.sleep(50);
+        ch.send(1);
+        ch.send(2);
+        ch.send(3);
+        ch.send(4);
+        ch.send(5);
+
+        Thread.sleep(50);
+        ch.close(new Exception("foo"));
+
+        ch.send(6);
+        ch.send(7);
+
+        fib.join();
+    }
+
+    @Test
     public void whenChannelClosedThenBlockedSendsComplete() throws Exception {
         assumeThat(policy, is(OverflowPolicy.BLOCK));
         final Channel<Integer> ch = newChannel();
@@ -508,6 +584,29 @@ public class ChannelTest {
         Thread.sleep(500);
 
         ch.close();
+        fib1.join();
+        fib2.join();
+    }
+
+    @Test
+    public void whenChannelClosedExceptionThenBlockedSendsComplete() throws Exception {
+        assumeThat(policy, is(OverflowPolicy.BLOCK));
+        final Channel<Integer> ch = newChannel();
+
+        final SuspendableRunnable r = new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                for (int i = 1; i <= 100; i++) {
+                    ch.send(i);
+                }
+            }
+        };
+        Fiber fib1 = new Fiber("fiber", scheduler, r).start();
+        Fiber fib2 = new Fiber("fiber", scheduler, r).start();
+
+        Thread.sleep(500);
+
+        ch.close(new Exception("foo"));
         fib1.join();
         fib2.join();
     }
@@ -557,6 +656,53 @@ public class ChannelTest {
     }
 
     @Test
+    public void testPrimitiveChannelCloseException() throws Exception {
+        assumeThat(mailboxSize, not(equalTo(0)));
+
+        final IntChannel ch = Channels.newIntChannel(mailboxSize, policy);
+
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                try {
+                    for (int i = 1; i <= 5; i++) {
+                        int m = ch.receiveInt();
+
+                        assertThat(m, is(i));
+                    }
+                } catch (QueueChannel.EOFException e) {
+                    fail();
+                }
+
+                try {
+                    int m = ch.receiveInt();
+                    fail("m = " + m);
+                } catch (ProducerException e) {
+                    assertThat(e.getCause().getMessage(), equalTo("foo"));
+                } catch(ReceivePort.EOFException e) {
+                    fail();
+                }
+
+                assertTrue(ch.isClosed());
+            }
+        }).start();
+
+        Thread.sleep(50);
+        ch.send(1);
+        ch.send(2);
+        ch.send(3);
+        ch.send(4);
+        ch.send(5);
+
+        ch.close(new Exception("foo"));
+
+        ch.send(6);
+        ch.send(7);
+
+        fib.join();
+    }
+
+    @Test
     public void testTopic() throws Exception {
         final Channel<String> channel1 = newChannel();
         final Channel<String> channel2 = newChannel();
@@ -567,7 +713,6 @@ public class ChannelTest {
         topic.subscribe(channel1);
         topic.subscribe(channel2);
         topic.subscribe(channel3);
-
 
         Fiber f1 = new Fiber(scheduler, new SuspendableRunnable() {
             @Override

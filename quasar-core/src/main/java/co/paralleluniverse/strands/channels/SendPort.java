@@ -36,7 +36,7 @@ public interface SendPort<Message> extends Port<Message>, AutoCloseable {
     void send(Message message) throws SuspendExecution, InterruptedException;
 
     /**
-     * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the 
+     * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the
      * specified timeout.
      *
      * If the channel is full, this method may block, throw an exception, silently drop the message, or displace an old message from
@@ -44,14 +44,14 @@ public interface SendPort<Message> extends Port<Message>, AutoCloseable {
      *
      * @param message
      * @param timeout the maximum duration this method is allowed to wait.
-     * @param unit the timeout's time unit
+     * @param unit    the timeout's time unit
      * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has expired.
      * @throws SuspendExecution
      */
     boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
 
     /**
-     * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the 
+     * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the
      * specified timeout.
      *
      * If the channel is full, this method may block, throw an exception, silently drop the message, or displace an old message from
@@ -66,6 +66,7 @@ public interface SendPort<Message> extends Port<Message>, AutoCloseable {
 
     /**
      * Sends a message to the channel if the channel has room available. This method never blocks.
+     * <p>
      * @param message
      * @return {@code true} if the message has been sent; {@code false} otherwise.
      */
@@ -76,4 +77,12 @@ public interface SendPort<Message> extends Port<Message>, AutoCloseable {
      */
     @Override
     void close();
+
+    /**
+     * Closes the channel so that no more messages could be sent to it, and signifies an exception occurred in the producer. 
+     * The exception will be thrown when the consumer calls {@link ReceivePort}'s {@code receive} or {@code tryReceive}, 
+     * wrapped by a {@link ProducerException}.
+     * Messages already sent to the channel prior to calling this method will still be received.
+     */
+    void close(Throwable t);
 }

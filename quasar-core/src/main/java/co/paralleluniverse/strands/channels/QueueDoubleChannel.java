@@ -31,8 +31,7 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
 
     @Override
     public double receiveDouble() throws SuspendExecution, InterruptedException, EOFException {
-        if (isClosed())
-            throw new EOFException();
+        checkClosed();
         awaitItem();
         final double m = queue().pollDouble();
         signalSenders();
@@ -41,8 +40,7 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
 
     @Override
     public double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
-        if (isClosed())
-            throw new EOFException();
+        checkClosed();
         if (!awaitItem(timeout, unit))
             throw new TimeoutException();
         final double m = queue().pollDouble();

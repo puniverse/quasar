@@ -93,6 +93,11 @@ public abstract class ActorRefDelegateImpl<Message> implements ActorRef<Message>
     }
 
     @Override
+    public void close(Throwable t) {
+        ((SendPort<Message>) ref).close(t);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(ref);
     }

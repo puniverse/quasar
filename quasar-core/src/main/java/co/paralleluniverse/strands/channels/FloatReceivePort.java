@@ -49,7 +49,7 @@ public interface FloatReceivePort extends ReceivePort<Float> {
      * @throws InterruptedException
      */
     float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException;
-    
+
     /**
      * Retrieves a message from the channels, possibly blocking until one becomes available, but no longer than the specified timeout.
      * If the channel has been closed and no more messages await, this method throws an {@link EOFException}.
@@ -61,4 +61,11 @@ public interface FloatReceivePort extends ReceivePort<Float> {
      * @throws InterruptedException
      */
     float receiveFloat(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException;
+
+    /**
+     * Tests whether a value is pending in the channel. If it is, the next call to {@code receiveDouble} is guaranteed not to block.
+     * 
+     * @return {@code true} if a value is waiting in the channel; {@code false} otherwise.
+     */
+    boolean hasMessage();
 }

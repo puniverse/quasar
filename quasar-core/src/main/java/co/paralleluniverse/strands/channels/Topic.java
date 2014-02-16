@@ -66,4 +66,9 @@ public class Topic<Message> implements SendPort<Message> {
     public void close() {
         sendClosed = true;
     }
+
+    @Override
+    public void close(Throwable t) {
+        sendClosed = true;
+    }
 }

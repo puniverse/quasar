@@ -61,4 +61,11 @@ public interface LongReceivePort extends ReceivePort<Long> {
      * @throws InterruptedException
      */
     long receiveLong(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException;
+
+    /**
+     * Tests whether a value is pending in the channel. If it is, the next call to {@code receiveDouble} is guaranteed not to block.
+     * 
+     * @return {@code true} if a value is waiting in the channel; {@code false} otherwise.
+     */
+    boolean hasMessage();
 }

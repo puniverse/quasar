@@ -31,8 +31,7 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
 
     @Override
     public float receiveFloat() throws SuspendExecution, InterruptedException, EOFException {
-        if (isClosed())
-            throw new EOFException();
+        checkClosed();
         awaitItem();
         final float m = queue().pollFloat();
         signalSenders();
@@ -41,8 +40,7 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
 
     @Override
     public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
-        if (isClosed())
-            throw new EOFException();
+        checkClosed();
         if (!awaitItem(timeout, unit))
             throw new TimeoutException();
         final float m = queue().pollFloat();

@@ -43,6 +43,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     final Condition sendersSync;
     final BasicQueue<Message> queue;
     final OverflowPolicy overflowPolicy;
+    private Throwable closeException;
     private volatile boolean sendClosed;
     private boolean receiveClosed;
 
@@ -254,6 +255,13 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         }
     }
 
+    @Override
+    public void close(Throwable t) {
+        if (!sendClosed) // possible race here, but it's OK – we just let one of the concurrent exceptions through
+            closeException = t;
+        close();
+    }
+
     public void sendNonSuspendable(Message message) throws QueueCapacityExceededException {
         if (isSendClosed()) {
             record("sendNonSuspendable", "%s channel is closed for send. Dropping message %s", this, message);
@@ -281,23 +289,35 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         this.receiveClosed = true;
     }
 
+    protected Throwable getCloseException() {
+        return closeException;
+    }
+
+    private Message closeValue() {
+        if (closeException != null)
+            throw new ProducerException(closeException);
+        return null;
+    }
+
     @Override
     public Message tryReceive() {
         if (receiveClosed)
-            return null;
+            return closeValue();
         boolean closed = isSendClosed();
         final Message m = queue.poll();
         if (m != null)
             signalSenders();
-        else if (closed)
+        else if (closed) {
             setReceiveClosed();
+            return closeValue();
+        }
         return m;
     }
 
     @Override
     public Message receive() throws SuspendExecution, InterruptedException {
         if (receiveClosed)
-            return null;
+            return closeValue();
 
         Message m;
         boolean closed;
@@ -308,7 +328,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
                 break;
             if (closed) {
                 setReceiveClosed();
-                return null;
+                return closeValue();
             }
 
             sync.await(i);
@@ -323,7 +343,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     @Override
     public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         if (receiveClosed)
-            return null;
+            return closeValue();
         if (unit == null)
             return receive();
         if (timeout <= 0)
@@ -342,7 +362,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
                     break;
                 if (closed) {
                     setReceiveClosed();
-                    return null;
+                    return closeValue();
                 }
 
                 sync.await(i, left, TimeUnit.NANOSECONDS);

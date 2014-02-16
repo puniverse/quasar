@@ -38,6 +38,11 @@ class BehaviorImpl extends ActorRefDelegateImpl<Object> implements Behavior, jav
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public void close(Throwable t) {
+        throw new UnsupportedOperationException();
+    }
+
     static final class Local extends BehaviorImpl implements LocalBehavior<BehaviorImpl> {
         Local(ActorRef<Object> actor) {
             super(actor);

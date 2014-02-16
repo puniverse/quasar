@@ -64,6 +64,11 @@ public abstract class TransformingSendPort<S, T> implements SendPort<S>, Delegat
         target.close();
     }
 
+    @Override
+    public void close(Throwable t) {
+        target.close(t);
+    }
+
     protected abstract T transform(S m);
 
     @Override

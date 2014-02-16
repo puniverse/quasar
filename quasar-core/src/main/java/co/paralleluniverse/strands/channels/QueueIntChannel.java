@@ -31,8 +31,7 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
 
     @Override
     public int receiveInt() throws SuspendExecution, InterruptedException, EOFException {
-        if (isClosed())
-            throw new EOFException();
+        checkClosed();
         awaitItem();
         final int m = queue().pollInt();
         signalSenders();
@@ -41,8 +40,7 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
 
     @Override
     public int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
-        if (isClosed())
-            throw new EOFException();
+        checkClosed();
         if (!awaitItem(timeout, unit))
             throw new TimeoutException();
         final int m = queue().pollInt();

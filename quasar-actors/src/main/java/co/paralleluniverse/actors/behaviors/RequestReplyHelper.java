@@ -340,6 +340,11 @@ public final class RequestReplyHelper {
         public void close() {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public void close(Throwable t) {
+            throw new UnsupportedOperationException();
+        }
     }
 
     private RequestReplyHelper() {

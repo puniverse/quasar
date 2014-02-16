@@ -52,6 +52,18 @@ public class QueuePrimitiveChannel<Message> extends QueueChannel<Message> implem
         }
     }
 
+    protected void checkClosed() throws EOFException {
+        if (isClosed()) {
+            if(getCloseException() != null)
+                throw new ProducerException(getCloseException());
+            throw new EOFException();
+        }
+    }
+
+    public boolean hasMessage() {
+        return queue().hasNext();
+    }
+    
     boolean awaitItem() throws SuspendExecution, InterruptedException, EOFException {
         maybeSetCurrentStrandAsOwner();
         Object n;
@@ -59,7 +71,7 @@ public class QueuePrimitiveChannel<Message> extends QueueChannel<Message> implem
         for (int i = 0; !queue().hasNext(); i++) {
             if (isSendClosed()) {
                 setReceiveClosed();
-                throw new EOFException();
+                checkClosed();
             }
             sync.await(i);
         }
@@ -84,7 +96,7 @@ public class QueuePrimitiveChannel<Message> extends QueueChannel<Message> implem
             for (int i = 0; !queue().hasNext(); i++) {
                 if (isSendClosed()) {
                     setReceiveClosed();
-                    throw new EOFException();
+                    checkClosed();
                 }
                 sync.await(i, left, TimeUnit.NANOSECONDS);
 

@@ -108,6 +108,11 @@ abstract class ActorRefImpl<Message> implements ActorRef<Message>, SendPort<Mess
     }
 
     @Override
+    public void close(Throwable t) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public abstract boolean trySend(Message message);
 
     /**

@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
  * @author pron
  */
 public class TransferChannel<Message> implements Channel<Message>, Selectable<Message>, Synchronization {
+    private Throwable closeException;
     private volatile boolean sendClosed;
     private boolean receiveClosed;
     private static final Object CHANNEL_CLOSED = new Object();
@@ -98,9 +99,24 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
         }
     }
 
+    @Override
+    public void close(Throwable t) {
+        if (!sendClosed) {
+            closeException = t;
+            sendClosed = true;
+            signalWaitersOnClose();
+        }
+    }
+
     private void setReceiveClosed() {
         if (!receiveClosed)
             this.receiveClosed = true;
+    }
+
+    private Message closeValue() {
+        if (closeException != null)
+            throw new ProducerException(closeException);
+        return null;
     }
 
     @Override
@@ -111,7 +127,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
         final Object m = trySendOrReceive(null, false);
 
         if (m == CHANNEL_CLOSED)
-            return null;
+            return closeValue();
         return (Message) m;
     }
 
@@ -155,7 +171,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
 
         if (m != null) {
             if (m == CHANNEL_CLOSED)
-                return null;
+                return closeValue();
             return (Message) m;
         }
         Thread.interrupted();
@@ -170,7 +186,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
         Object m = xfer1(null, false, TIMED, unit.toNanos(timeout));
         if (m != null || !Strand.interrupted()) {
             if (m == CHANNEL_CLOSED)
-                return null;
+                return closeValue();
             return (Message) m;
         }
         throw new InterruptedException();
@@ -512,7 +528,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
         for (;;) {                            // restart on append race
             if (!e.lease())
                 return null;
-            if (receiveClosed || (sendClosed && e.isData())) {
+            if (isClosed() || (isSendClosed() && e.isData())) {
                 e.setItem(null);
                 e.won();
                 return null;

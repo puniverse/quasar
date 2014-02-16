@@ -65,16 +65,27 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         this.receiveClosed = true;
     }
 
-    void attemptReceive() throws EOFException, SuspendExecution, InterruptedException {
-        if (isClosed())
+    protected void checkClosed() throws EOFException {
+        if (isClosed()) {
+            if (channel.getCloseException() != null)
+                throw new ProducerException(channel.getCloseException());
             throw new EOFException();
+        }
+    }
+
+    public boolean hasMessage() {
+        return consumer.hasNext();
+    }
+    
+    void attemptReceive() throws EOFException, SuspendExecution, InterruptedException {
+        checkClosed();
         final Condition sync = channel.sync;
         Object token = sync.register();
         try {
             for (int i = 0; !consumer.hasNext(); i++) {
                 if (channel.isSendClosed()) {
                     setReceiveClosed();
-                    throw new EOFException();
+                    checkClosed();
                 }
                 sync.await(i);
             }
@@ -85,8 +96,7 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
     }
 
     void attemptReceive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
-        if (isClosed())
-            throw new EOFException();
+        checkClosed();
         final Condition sync = channel.sync;
         long left = unit.toNanos(timeout);
         final long deadline = System.nanoTime() + left;
@@ -95,7 +105,7 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
             for (int i = 0; !consumer.hasNext(); i++) {
                 if (channel.isSendClosed()) {
                     setReceiveClosed();
-                    throw new EOFException();
+                    checkClosed();
                 }
                 sync.await(i, left, TimeUnit.NANOSECONDS);
                 left = deadline - System.nanoTime();
