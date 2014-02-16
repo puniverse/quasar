@@ -380,8 +380,8 @@ public class FiberTest {
 
         assertThat(st[0].getMethodName(), equalTo("park"));
         boolean found = false;
-        for (int i = 0; i < st.length; i++) {
-            if (st[i].getMethodName().equals("foo")) {
+        for (StackTraceElement ste : st) {
+            if (ste.getMethodName().equals("foo")) {
                 found = true;
                 break;
             }
@@ -429,8 +429,8 @@ public class FiberTest {
 
                 assertThat(st[0].getMethodName(), equalTo("park"));
                 boolean found = false;
-                for (int i = 0; i < st.length; i++) {
-                    if (st[i].getMethodName().equals("foo")) {
+                for (StackTraceElement ste : st) {
+                    if (ste.getMethodName().equals("foo")) {
                         found = true;
                         break;
                     }
