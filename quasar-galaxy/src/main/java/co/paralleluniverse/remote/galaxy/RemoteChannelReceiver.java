@@ -111,7 +111,11 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
         Object m1 = Serialization.getInstance().read(message);
         LOG.debug("Received: " + m1);
         if (m1 instanceof GlxRemoteChannel.CloseMessage) {
-            channel.close();
+            Throwable t = ((GlxRemoteChannel.CloseMessage) m1).getException();
+            if (t != null)
+                channel.close(t);
+            else
+                channel.close();
             unsubscribe();
             return;
         } else if (m1 instanceof GlxRemoteChannel.RefMessage) {
@@ -125,7 +129,7 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
                 channel.send(m); // TODO: this may potentially block the whole messenger thread!!!
             } catch (SuspendExecution e) {
                 throw new AssertionError(e);
-            } catch(InterruptedException e) {
+            } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
         }

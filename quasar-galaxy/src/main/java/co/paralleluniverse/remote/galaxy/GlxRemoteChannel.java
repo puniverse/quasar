@@ -104,7 +104,7 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
     public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
         return send(message, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
-    
+
     @Override
     public boolean trySend(final Message message) {
         try {
@@ -127,6 +127,20 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
                 @Override
                 public void run() throws SuspendExecution, InterruptedException {
                     ((GlxRemoteChannel) GlxRemoteChannel.this).send(new CloseMessage());
+                }
+            });
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void close(final Throwable t) {
+        try {
+            FiberUtil.runInFiberRuntime(new SuspendableRunnable() {
+                @Override
+                public void run() throws SuspendExecution, InterruptedException {
+                    ((GlxRemoteChannel) GlxRemoteChannel.this).send(new CloseMessage(t));
                 }
             });
         } catch (InterruptedException e) {
@@ -228,6 +242,19 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
     }
 
     static class CloseMessage implements Serializable {
+        private final Throwable t;
+
+        public CloseMessage(Throwable t) {
+            this.t = t;
+        }
+
+        public CloseMessage() {
+            this(null);
+        }
+
+        public Throwable getException() {
+            return t;
+        }
     }
 
     static class RefMessage implements Serializable {
