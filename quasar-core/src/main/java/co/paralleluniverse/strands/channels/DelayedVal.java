@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.RuntimeExecutionException;
@@ -23,7 +22,6 @@ import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.Timeout;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;

@@ -20,7 +20,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 
 /**
- *
+ * A channel that forwards all messages to subscriber channels.
  * @author pron
  */
 public class Topic<Message> implements SendPort<Message> {
@@ -36,14 +36,15 @@ public class Topic<Message> implements SendPort<Message> {
      * <p>
      * @param sub the channel to subscribe
      */
-    public void subscribe(SendPort<? super Message> sub) {
+    public <T extends SendPort<? super Message>> T subscribe(T sub) {
         if (sendClosed) {
             sub.close();
-            return;
+            return sub;
         }
         subscribers.add(sub);
         if (sendClosed)
             sub.close();
+        return sub;
     }
 
     /**
