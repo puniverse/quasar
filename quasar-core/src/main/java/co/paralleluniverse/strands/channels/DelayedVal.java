@@ -13,10 +13,17 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberScheduler;
+import co.paralleluniverse.fibers.RuntimeExecutionException;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
+import co.paralleluniverse.strands.SuspendableCallable;
+import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.Timeout;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -28,18 +35,96 @@ import java.util.concurrent.TimeoutException;
  */
 public class DelayedVal<V> implements Future<V> {
     private V value;
+    private Throwable t;
+    private final SuspendableCallable<V> f;
     private volatile SimpleConditionSynchronizer sync = new SimpleConditionSynchronizer(this);
 
     /**
-     * Sets the value
+     * Creates a {@code DelayedVal} whose value will be the one returned by the given {@link SuspendableCallable}, which will be spawned
+     * into a new fiber.
+     * <p>
+     * @param f The function that will compute this {@code DelayedVal}'s value in a newly spawned fiber
+     */
+    public DelayedVal(final SuspendableCallable<V> f) {
+        this.f = f;
+        new Fiber<Void>(new SuspendableRunnable() {
+
+            @Override
+            public void run() throws SuspendExecution {
+                try {
+                    DelayedVal.this.set0(f.run());
+                } catch (Throwable t) {
+                    DelayedVal.this.setException0(t);
+                }
+            }
+        }).start();
+    }
+
+    /**
+     * Creates a {@code DelayedVal} whose value will be the one returned by the given {@link SuspendableCallable}, which will be spawned
+     * into a new fiber, scheduled by the given {@link FiberScheduler}.
+     * <p>
+     * @param scheduler the scheduler in which the new fiber will be spawned.
+     * @param f         The function that will compute this {@code DelayedVal}'s value in a newly spawned fiber
+     */
+    public DelayedVal(FiberScheduler scheduler, final SuspendableCallable<V> f) {
+        this.f = f;
+        new Fiber<Void>(scheduler, new SuspendableRunnable() {
+
+            @Override
+            public void run() throws SuspendExecution {
+                try {
+                    DelayedVal.this.set0(f.run());
+                } catch (Throwable t) {
+                    DelayedVal.this.setException0(t);
+                }
+            }
+        }).start();
+    }
+
+    public DelayedVal() {
+        this.f = null;
+    }
+
+    /**
+     * Sets the value. If the value has already been set (or if a function has been supplied to the constructor),
+     * this method will throw an {@code IllegalStateException}. However, you should not rely on this behavior,
+     * as the implementation is free to silently ignore additional attempts to set the value.
      *
      * @param value the value
      * @throws IllegalStateException if the value has already been set.
      */
     public final void set(V value) {
+        if (f != null)
+            throw new IllegalStateException("Cannot set a value because a function has been set");
+        set0(value);
+    }
+
+    /**
+     * Sets an exception that will be thrown by {@code get}, wrapped by {@link RuntimeExecutionException}.
+     *
+     * @param Throwable t the exception
+     * @throws IllegalStateException if the value has already been set.
+     */
+    public final void setException(Throwable t) {
+        if (f != null)
+            throw new IllegalStateException("Cannot set a value because a function has been set");
+        setException0(t);
+    }
+
+    private void set0(V value) {
         if (sync == null)
             throw new IllegalStateException("Value has already been set (and can only be set once)");
         this.value = value;
+        final SimpleConditionSynchronizer s = sync;
+        sync = null; // must be done before signal
+        s.signalAll();
+    }
+
+    private void setException0(Throwable t) {
+        if (sync == null)
+            throw new IllegalStateException("Value has already been set (and can only be set once)");
+        this.t = t;
         final SimpleConditionSynchronizer s = sync;
         sync = null; // must be done before signal
         s.signalAll();
@@ -78,6 +163,8 @@ public class DelayedVal<V> implements Future<V> {
                     s.unregister(token);
                 }
             }
+            if (t != null)
+                throw new RuntimeExecutionException(t);
             return value;
         } catch (SuspendExecution e) {
             throw new AssertionError(e);
@@ -114,6 +201,8 @@ public class DelayedVal<V> implements Future<V> {
                     s.unregister(token);
                 }
             }
+            if (t != null)
+                throw new RuntimeExecutionException(t);
             return value;
         } catch (SuspendExecution e) {
             throw new AssertionError(e);
