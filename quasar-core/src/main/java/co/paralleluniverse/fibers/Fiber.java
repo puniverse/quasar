@@ -1441,18 +1441,26 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             throw new AssertionError();
 
         StackTraceElement[] stes = Thread.currentThread().getStackTrace();
+        boolean notInstrumented = false;
+        StringBuilder stackTrace = new StringBuilder();
         for (StackTraceElement ste : stes) {
             if (ste.getClassName().equals(Thread.class.getName()) && ste.getMethodName().equals("getStackTrace"))
                 continue;
+            stackTrace.append("\n\tat ").append(ste);
             if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')) {
                 if (!Retransform.isWaiver(ste.getClassName(), ste.getMethodName())
                         && (!Retransform.isInstrumented(ste.getClassName()) || isNonSuspendable(ste.getClassName(), ste.getMethodName()))) {
-                    final String str = "Method " + ste.getClassName() + "." + ste.getMethodName() + " on the call-stack has not been instrumented. (trace: " + Arrays.toString(stes) + ")";
-                    System.err.println("WARNING: " + str);
-                    throw new IllegalStateException(str);
+                    if (!notInstrumented)
+                        stackTrace.append(" **");
+                    notInstrumented = true;
                 }
-            } else if (ste.getMethodName().equals("run1"))
+            } else if (ste.getMethodName().equals("run1")) {
+                if (notInstrumented) {
+                    System.err.println("WARNING: Uninstrumented methods on the call stack (marked with **): " + stackTrace);
+                    //throw new IllegalStateException(str);
+                }
                 return true;
+            }
         }
         throw new IllegalStateException("Not run through Fiber.exec(). (trace: " + Arrays.toString(stes) + ")");
     }
