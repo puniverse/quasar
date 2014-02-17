@@ -69,7 +69,7 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         if (isClosed()) {
             if (channel.getCloseException() != null)
                 throw new ProducerException(channel.getCloseException());
-            throw new EOFException();
+            throw EOFException.instance;
         }
     }
 

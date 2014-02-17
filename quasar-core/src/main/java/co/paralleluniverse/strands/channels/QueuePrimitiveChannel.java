@@ -56,7 +56,7 @@ public class QueuePrimitiveChannel<Message> extends QueueChannel<Message> implem
         if (isClosed()) {
             if(getCloseException() != null)
                 throw new ProducerException(getCloseException());
-            throw new EOFException();
+            throw EOFException.instance;
         }
     }
 

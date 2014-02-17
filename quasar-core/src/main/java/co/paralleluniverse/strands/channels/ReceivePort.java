@@ -36,7 +36,7 @@ public interface ReceivePort<Message> extends Port<Message> {
      * Retrieves a message from the channels, possibly blocking until one becomes available, but no longer than the specified timeout.
      *
      * @param timeout the maximum duration to block waiting for a message.
-     * @param unit the time unit of the timeout.
+     * @param unit    the time unit of the timeout.
      * @return a message, or {@code null} if the channel has been closed and no more messages await (see {@link #isClosed()}), or if the timeout has expired.
      * @throws InterruptedException
      */
@@ -64,8 +64,10 @@ public interface ReceivePort<Message> extends Port<Message> {
     void close();
 
     /**
-     * Tests whether the channel has been closed and no more messages await in the channel. If this method returns {@code true} all
-     * future calls to {@link #receive() } are guaranteed to return {@code null}, and calls to {@code receive} on a primitive channel
+     * Tests whether the channel has been closed and no more messages await in the channel.
+     * <p>
+     * If this method returns {@code true} all
+     * future calls to {@link #receive() receive} are guaranteed to return {@code null}, and calls to {@code receive} on a primitive channel
      * will throw a {@link EOFException}.
      *
      * @return {@code true} if the channels has been closed and no more messages will be received; {@code false} otherwise.
@@ -73,7 +75,13 @@ public interface ReceivePort<Message> extends Port<Message> {
     boolean isClosed();
 
     public static class EOFException extends Exception {
-        public EOFException() {
+        public static EOFException instance = new EOFException();
+        private EOFException() {
+        }
+
+        @Override
+        public synchronized Throwable fillInStackTrace() {
+            return null;
         }
     }
 }
