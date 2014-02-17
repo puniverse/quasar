@@ -31,10 +31,26 @@ public class Topic<Message> implements SendPort<Message> {
         this.subscribers = new CopyOnWriteArraySet<>();
     }
 
+    /**
+     * Subscribe a channel to receive messages sent to this topic.
+     * <p>
+     * @param sub the channel to subscribe
+     */
     public void subscribe(SendPort<? super Message> sub) {
+        if (sendClosed) {
+            sub.close();
+            return;
+        }
         subscribers.add(sub);
+        if (sendClosed)
+            sub.close();
     }
 
+    /**
+     * Unsubscribe a channel from this topic.
+     * <p>
+     * @param sub the channel to subscribe
+     */
     public void unsubscribe(SendPort<? super Message> sub) {
         subscribers.remove(sub);
     }
@@ -65,10 +81,14 @@ public class Topic<Message> implements SendPort<Message> {
     @Override
     public void close() {
         sendClosed = true;
+        for (SendPort<?> sub : subscribers)
+            sub.close();
     }
 
     @Override
     public void close(Throwable t) {
         sendClosed = true;
+        for (SendPort<?> sub : subscribers)
+            sub.close(t);
     }
 }
