@@ -55,9 +55,8 @@ public class FiberTest {
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-                    {new FiberForkJoinScheduler("test", 4, null, false)},
-                    {new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1, new ThreadFactoryBuilder().setNameFormat("fiber-scheduler-%d").setDaemon(true).build()))},
-        });
+            {new FiberForkJoinScheduler("test", 4, null, false)},
+            {new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1, new ThreadFactoryBuilder().setNameFormat("fiber-scheduler-%d").setDaemon(true).build()))},});
     }
 
     @BeforeClass
@@ -78,7 +77,6 @@ public class FiberTest {
                 Fiber.park(100, TimeUnit.MILLISECONDS);
             }
         }).start();
-
 
         try {
             fiber.join(50, TimeUnit.MILLISECONDS);
@@ -110,7 +108,6 @@ public class FiberTest {
                 }
             }
         }).start();
-
 
         int res = fiber2.get();
 
@@ -302,7 +299,6 @@ public class FiberTest {
                 StackTraceElement[] st = Fiber.currentFiber().getStackTrace();
 
                 // Strand.printStackTrace(st, System.err);
-
                 assertThat(st[0].getMethodName(), equalTo("getStackTrace"));
                 assertThat(st[1].getMethodName(), equalTo("foo"));
                 assertThat(st[st.length - 1].getMethodName(), equalTo("run"));
@@ -335,7 +331,6 @@ public class FiberTest {
         StackTraceElement[] st = fiber.getStackTrace();
 
         // Strand.printStackTrace(st, System.err);
-
         boolean found = false;
         for (int i = 0; i < st.length; i++) {
             if (st[i].getMethodName().equals("foo")) {
@@ -377,7 +372,6 @@ public class FiberTest {
         StackTraceElement[] st = fiber.getStackTrace();
 
         // Strand.printStackTrace(st, System.err);
-
         assertThat(st[0].getMethodName(), equalTo("park"));
         boolean found = false;
         for (StackTraceElement ste : st) {
@@ -426,7 +420,6 @@ public class FiberTest {
                 StackTraceElement[] st = fiber.getStackTrace();
 
                 // Strand.printStackTrace(st, System.err);
-
                 assertThat(st[0].getMethodName(), equalTo("park"));
                 boolean found = false;
                 for (StackTraceElement ste : st) {
@@ -468,7 +461,6 @@ public class FiberTest {
         StackTraceElement[] st = fiber.getStackTrace();
 
         // Strand.printStackTrace(st, System.err);
-
         assertThat(st[0].getMethodName(), equalTo("sleep"));
         boolean found = false;
         for (int i = 0; i < st.length; i++) {
