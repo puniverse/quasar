@@ -17,6 +17,11 @@ import co.paralleluniverse.common.util.Function2;
 import co.paralleluniverse.common.util.Function3;
 import co.paralleluniverse.common.util.Function4;
 import co.paralleluniverse.common.util.Function5;
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberScheduler;
+import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.SuspendableAction2;
+import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.queues.ArrayQueue;
 import co.paralleluniverse.strands.queues.BasicQueue;
@@ -497,6 +502,42 @@ public final class Channels {
     }
 
     ////////////////////
+    /**
+     * Spawns a fiber that transforms values read from the {@code in} channel and writes values to the {@code out} channel.
+     * <p>
+     * @param scheduler   the fiber scheduler
+     * @param in          the input channel
+     * @param out         the output channel
+     * @param transformer the transforming operation
+     */
+    public static <S, T> void fiberTransform(FiberScheduler scheduler, final ReceivePort<S> in, final SendPort<T> out, final SuspendableAction2<? extends ReceivePort<? super S>, ? extends SendPort<? extends T>> transformer) {
+        new Fiber<Void>(scheduler, new SuspendableRunnable() {
+
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                ((SuspendableAction2)transformer).call(in, out);
+            }
+        }).start();
+    }
+
+    /**
+     * Spawns a fiber that transforms values read from the {@code in} channel and writes values to the {@code out} channel.
+     * 
+     * @param scheduler   the fiber scheduler
+     * @param in          the input channel
+     * @param out         the output channel
+     * @param transformer the transforming operation
+     */
+    public static <S, T> void fiberTransform(final ReceivePort<S> in, final SendPort<T> out, final SuspendableAction2<? extends ReceivePort<? super S>, ? extends SendPort<? extends T>> transformer) {
+        new Fiber<Void>(new SuspendableRunnable() {
+
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                ((SuspendableAction2)transformer).call(in, out);
+            }
+        }).start();
+    }
+
     /**
      * Returns a {@link ReceivePort} that receives messages from a set of channels. Messages from all given channels are funneled into
      * the returned channel.

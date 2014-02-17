@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import static co.paralleluniverse.common.test.Matchers.*;
+import co.paralleluniverse.common.util.Action2;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Function2;
 import co.paralleluniverse.fibers.Fiber;
@@ -21,6 +22,7 @@ import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.SuspendableAction2;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
@@ -749,5 +751,52 @@ public class TransformingChannelTest {
         ch1.send(5);
         ch1.close();
         fib.join();
+    }
+
+    @Test
+    public void testFiberTransform1() throws Exception {
+        final Channel<Integer> in = newChannel();
+        final Channel<Integer> out = newChannel();
+
+        Channels.fiberTransform(in, out, new SuspendableAction2<ReceivePort<Integer>, SendPort<Integer>>() {
+
+            @Override
+            public void call(ReceivePort<Integer> in, SendPort<Integer> out) throws SuspendExecution, InterruptedException {
+                Integer x;
+                while((x = in.receive()) != null) {
+                    if(x % 2 == 0)
+                        out.send(x * 10);
+                }
+                out.send(1234);
+                out.close();
+            }
+        });
+        
+        Fiber fib1 = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                assertThat(out.receive(), equalTo(20));
+                assertThat(out.receive(), equalTo(40));
+                assertThat(out.receive(), equalTo(1234));
+                assertThat(out.receive(), is(nullValue()));
+            }
+        }).start();
+
+        Fiber fib2 = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                Strand.sleep(50);
+                in.send(1);
+                in.send(2);
+                Strand.sleep(50);
+                in.send(3);
+                in.send(4);
+                in.send(5);
+                in.close();
+            }
+        }).start();
+
+        fib1.join();
+        fib2.join();
     }
 }
