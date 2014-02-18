@@ -63,9 +63,16 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
         try (InputStream is = file.openStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF-8")))) {
             String line;
-            while ((line = reader.readLine()) != null) {
+            
+            for (int linenum = 1; (line = reader.readLine()) != null; linenum++) {
                 final String s = line.trim();
+                if (s.charAt(0) == '#')
+                    continue;
                 final int index = s.lastIndexOf('.');
+                if(index <= 0) {
+                    System.err.println("Can't parse line " + linenum + " in " + file + ": " + line);
+                    continue;
+                }
                 final String className = s.substring(0, index).replace('.', '/');
                 final String methodName = s.substring(index + 1);
                 final String fullName = className + '.' + methodName;
@@ -121,7 +128,7 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
                 return true;
         }
 
-        if(extendsOrImplements(superOrIface, db, superClassName))
+        if (extendsOrImplements(superOrIface, db, superClassName))
             return true;
         for (String iface : interfaces) {
             if (extendsOrImplements(superOrIface, db, iface))
@@ -131,9 +138,9 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
     }
 
     private static boolean extendsOrImplements(String superOrIface, MethodDatabase db, String className) {
-        if(className == null)
+        if (className == null)
             return false;
-        
+
         MethodDatabase.ClassEntry ce = db.getOrLoadClassEntry(className);
         if (Objects.equals(superOrIface, ce.getSuperName()))
             return true;
@@ -141,8 +148,8 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
             if (Objects.equals(superOrIface, iface))
                 return true;
         }
-        
-        if(extendsOrImplements(superOrIface, db, ce.getSuperName()))
+
+        if (extendsOrImplements(superOrIface, db, ce.getSuperName()))
             return true;
         for (String iface : ce.getInterfaces()) {
             if (extendsOrImplements(superOrIface, db, iface))
