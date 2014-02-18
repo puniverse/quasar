@@ -56,12 +56,16 @@ subprojects {
         resolutionStrategy {
             failOnVersionConflict()
 
-            force "com.google.guava:guava:15.0"
-            force "org.slf4j:slf4j-api:1.7.5"
+            force "com.google.guava:guava:16.0.1"
+            force "org.slf4j:slf4j-api:1.7.6"
+            force "org.apache.logging.log4j:log4j-slf4j-impl:2.0-rc1"
+            force "org.apache.logging.log4j:log4j-api:2.0-rc1"
+            force "org.apache.logging.log4j:log4j-core:2.0-rc1"
             force "log4j:log4j:1.2.17"
             force "junit:junit:4.11"
             force "com.codahale.metrics:metrics-core:3.0.1"
-            force 'org.hamcrest:hamcrest-core:1.3'
+            force "org.hamcrest:hamcrest-core:1.3"
+            force "com.esotericsoftware.kryo:kryo:2.23.0"
         }
     }
 
@@ -72,19 +76,19 @@ subprojects {
     dependencies {
         compile "com.codahale.metrics:metrics-core:3.0.1" 
         compile "org.apache.ant:ant:1.9.3"
-        compile "com.google.guava:guava:15.0"
-        compile "org.slf4j:slf4j-api:1.7.5"
-	//  runtime "org.slf4j:slf4j-jdk14:1.7.5"
-        runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0-beta9"
-        runtime "org.apache.logging.log4j:log4j-api:2.0-beta9"
-        runtime "org.apache.logging.log4j:log4j-core:2.0-beta9"
+        compile "com.google.guava:guava:16.0.1"
+        compile "org.slf4j:slf4j-api:1.7.6"
+	//  runtime "org.slf4j:slf4j-jdk14:1.7.6"
+        runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0-rc1"
+        runtime "org.apache.logging.log4j:log4j-api:2.0-rc1"
+        runtime "org.apache.logging.log4j:log4j-core:2.0-rc1"
         compile "com.lmax:disruptor:3.2.0" // required for log4j
         testCompile 'junit:junit:4.11'
         testCompile 'org.hamcrest:hamcrest-all:1.3'
         testCompile("org.mockito:mockito-all:1.9.5") {
             exclude group: "org.ow2.asm", module: '*'
         }
-        testCompile 'org.openjdk.jmh:jmh-core:0.2.1'
+        testCompile 'org.openjdk.jmh:jmh-core:0.3.2'
         markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
     }
 
@@ -153,7 +157,7 @@ subprojects {
             // stylesheetFile = rootProject.file('./baselib/javadoc.css')
             links = [    
         "http://docs.oracle.com/javase/7/docs/api/",
-        "http://docs.guava-libraries.googlecode.com/git-history/v15.0/javadoc/"
+        "http://docs.guava-libraries.googlecode.com/git-history/v16.0.1/javadoc/"
             ]
         }
         excludes = [
@@ -255,7 +259,7 @@ project (':quasar-core') {
         compile "org.ow2.asm:asm-analysis:5.0_BETA"
         compile "org.ow2.asm:asm-commons:5.0_BETA"
         compile "org.ow2.asm:asm-util:5.0_BETA"
-        compile("com.esotericsoftware.kryo:kryo:2.22") {
+        compile("com.esotericsoftware.kryo:kryo:2.23.0") {
             exclude group: "org.ow2.asm", module: '*'
         }
         compile("de.javakaffee:kryo-serializers:0.26") {

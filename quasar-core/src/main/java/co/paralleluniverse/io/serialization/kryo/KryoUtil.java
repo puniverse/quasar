@@ -15,7 +15,6 @@ package co.paralleluniverse.io.serialization.kryo;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.shaded.org.objenesis.strategy.SerializingInstantiatorStrategy;
 import de.javakaffee.kryoserializers.ArraysAsListSerializer;
 import de.javakaffee.kryoserializers.GregorianCalendarSerializer;
 import de.javakaffee.kryoserializers.JdkProxySerializer;
@@ -24,6 +23,7 @@ import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import java.io.Externalizable;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import org.objenesis.strategy.SerializingInstantiatorStrategy;
 
 /**
  *
