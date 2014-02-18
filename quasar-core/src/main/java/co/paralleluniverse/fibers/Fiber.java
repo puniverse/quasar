@@ -1450,11 +1450,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')) {
                 if (!Retransform.isWaiver(ste.getClassName(), ste.getMethodName())
                         && (!Retransform.isInstrumented(ste.getClassName()) || isNonSuspendable(ste.getClassName(), ste.getMethodName()))) {
-                    if (!notInstrumented)
-                        stackTrace.append(" **");
+                    stackTrace.append(" **");
                     notInstrumented = true;
                 }
-            } else if (ste.getMethodName().equals("run1")) {
+            } else if (ste.getClassName().equals(Fiber.class.getName()) && ste.getMethodName().equals("run1")) {
                 if (notInstrumented) {
                     System.err.println("WARNING: Uninstrumented methods on the call stack (marked with **): " + stackTrace);
                     //throw new IllegalStateException(str);
