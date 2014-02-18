@@ -33,6 +33,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.hamcrest.CoreMatchers.*;
+import org.junit.Assume;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -392,6 +393,8 @@ public class FiberTest {
 
     @Test
     public void testDumpStackWaitingFiberWhenCalledFromFiber() throws Exception {
+        Assume.assumeThat(scheduler, instanceOf(FiberForkJoinScheduler.class));
+        
         final Condition cond = new SimpleConditionSynchronizer(null);
         final AtomicBoolean flag = new AtomicBoolean(false);
 
