@@ -498,6 +498,7 @@ public class MethodDatabase implements Log {
 
     public static boolean isProblematicClass(String className) {
         return className.startsWith("org/gradle/")
+                || className.startsWith("javax/jms/")
                 || className.startsWith("ch/qos/logback/")
                 || className.startsWith("org/apache/logging/log4j/");
     }
