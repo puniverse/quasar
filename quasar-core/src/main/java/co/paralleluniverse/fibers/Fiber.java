@@ -594,7 +594,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (timeout > 0 && unit != null)
             this.timeoutTask = scheduler.schedule(this, blocker, timeout, unit);
 
-        return task.park(blocker, postParkAction != null); // postParkActions != null iff parking for FiberAsync
+        try {
+            return task.park(blocker, postParkAction != null); // postParkActions != null iff parking for FiberAsync
+        } catch (SuspendExecution p) {
+            throw p;
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
     }
 
     private void yield1() throws SuspendExecution {
@@ -602,7 +608,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             record(2, "Fiber", "yield", "Yielding %s at %s", this, Arrays.toString(getStackTrace()));
         if (prePark != null)
             prePark.run(this);
-        task.yield();
+
+        try {
+            task.yield();
+        } catch (SuspendExecution p) {
+            throw p;
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
     }
 
     private void parkAndUnpark1(Fiber other, Object blocker, long timeout, TimeUnit unit) throws SuspendExecution {
@@ -623,7 +636,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     void preempt() throws SuspendExecution {
         if (isRecordingLevel(2))
             record(2, "Fiber", "preempt", "Preempting %s at %s", this, Arrays.toString(getStackTrace()));
-        task.yield();
+        try {
+            task.yield();
+        } catch (SuspendExecution p) {
+            throw p;
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
     }
 
     boolean exec1() {
@@ -857,13 +876,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     private static Fiber getCurrentFiber() {
         final Thread currentThread = Thread.currentThread();
-        if (FiberForkJoinScheduler.isFiberThread(currentThread)) { // false in tests
+        if (FiberForkJoinScheduler.isFiberThread(currentThread))
             return FiberForkJoinScheduler.getTargetFiber(currentThread);
-        } else if (Debug.isUnitTest()) {
-            // return null;//throw new AssertionError();
+        else
             return currentFiber.get();
-        } else
-            return null;
     }
 
     static final class DummyRunnable implements Runnable {
@@ -1451,7 +1467,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             if (ste.getClassName().equals(Thread.class.getName()) && ste.getMethodName().equals("getStackTrace"))
                 continue;
             stackTrace.append("\n\tat ").append(ste);
-            if(ste.getClassName().contains("$$Lambda$"))
+            if (ste.getClassName().contains("$$Lambda$"))
                 continue;
             else if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')) {
                 if (!Retransform.isWaiver(ste.getClassName(), ste.getMethodName())

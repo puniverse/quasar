@@ -20,7 +20,7 @@ final class Classes {
     static final String EXCEPTION_NAME = "co/paralleluniverse/fibers/SuspendExecution";
     static final String UNDECLARED_THROWABLE_NAME = "java/lang/reflect/UndeclaredThrowableException";
     static final String ANNOTATION_NAME = "co/paralleluniverse/fibers/Suspendable";
-    static final String COROUTINE_NAME = "co/paralleluniverse/fibers/Fiber"; //Type.getInternalName(COROUTINE_CLASS);
+    static final String FIBER_CLASS_NAME = "co/paralleluniverse/fibers/Fiber"; //Type.getInternalName(COROUTINE_CLASS);
     private static final String STRAND_NAME = "co/paralleluniverse/strands/Strand"; //Type.getInternalName(COROUTINE_CLASS);
     static final String STACK_NAME = "co/paralleluniverse/fibers/Stack";
     //static final String EXCEPTION_INSTANCE_NAME = "exception_instance_not_for_user_code";
@@ -38,7 +38,7 @@ final class Classes {
         "park", "yield", "parkAndUnpark", "yieldAndUnpark"
     }));
     static boolean isYieldMethod(String className, String methodName) {
-        return COROUTINE_NAME.equals(className) && yieldMethods.contains(methodName);
+        return FIBER_CLASS_NAME.equals(className) && yieldMethods.contains(methodName);
     }
 
     public static boolean isAllowedToBlock(String className, String methodName) {

@@ -181,7 +181,7 @@ public class InstrumentClass extends ClassVisitor {
                             return;
                         commited = true;
                         if (db.isDebug())
-                            db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, false);
+                            db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, setSuspendable);
                         classEntry.set(name, desc, susp ? SuspendableType.SUSPENDABLE : SuspendableType.NON_SUSPENDABLE);
 
                         if (susp)
@@ -199,7 +199,7 @@ public class InstrumentClass extends ClassVisitor {
                         }
                     }
                 };
-            }
+        }
         }
         return super.visitMethod(access, name, desc, signature, exceptions);
     }

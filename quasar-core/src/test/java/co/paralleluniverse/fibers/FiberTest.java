@@ -392,9 +392,7 @@ public class FiberTest {
     }
 
     @Test
-    public void testDumpStackWaitingFiberWhenCalledFromFiber() throws Exception {
-        Assume.assumeThat(scheduler, instanceOf(FiberForkJoinScheduler.class));
-        
+    public void testDumpStackWaitingFiberWhenCalledFromFiber() throws Exception {      
         final Condition cond = new SimpleConditionSynchronizer(null);
         final AtomicBoolean flag = new AtomicBoolean(false);
 

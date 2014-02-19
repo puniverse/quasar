@@ -146,7 +146,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
         onParked(yield);
     }
 
-    protected void throwPark(boolean yield) throws SuspendExecution {
+    protected void throwPark(boolean yield) throws Exception { // mustn't be instrumented so we dont throw SuspendExecution 
         throw yield ? SuspendExecution.YIELD : SuspendExecution.PARK;
     }
 
@@ -155,7 +155,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
     }
 
     @Override
-    public boolean park(Object blocker, boolean exclusive) throws SuspendExecution {
+    public boolean park(Object blocker, boolean exclusive) throws Exception { // mustn't be instrumented so we dont throw SuspendExecution 
         int newState;
         int _state;
         do {
@@ -238,7 +238,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
     }
 
     @Override
-    public void yield() throws SuspendExecution {
+    public void yield() throws Exception { // mustn't be instrumented so we dont throw SuspendExecution 
         parking(true);
         onParked(true);
         throwPark(true);

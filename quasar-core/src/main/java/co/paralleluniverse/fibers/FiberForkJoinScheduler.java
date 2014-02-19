@@ -73,8 +73,8 @@ public class FiberForkJoinScheduler extends FiberScheduler {
     /**
      * Creates a new fiber scheduler using a default {@link UncaughtExceptionHandler UncaughtExceptionHandler} and no monitoring.
      *
-     * @param name         the scheuler's name. This name is used in naming the scheduler's threads.
-     * @param parallelism  the number of threads in the pool
+     * @param name        the scheuler's name. This name is used in naming the scheduler's threads.
+     * @param parallelism the number of threads in the pool
      */
     public FiberForkJoinScheduler(String name, int parallelism) {
         this(name, parallelism, null, null, false);
@@ -247,25 +247,13 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         }
 
         @Override
-        public boolean park(Object blocker, boolean exclusive) throws SuspendExecution {
-            try {
-                return super.park(blocker, exclusive);
-            } catch (SuspendExecution p) {
-                throw p;
-            } catch (Exception e) {
-                throw new AssertionError(e);
-            }
+        public boolean park(Object blocker, boolean exclusive) throws Exception { // mustn't be instrumented so we dont throw SuspendExecution 
+            return super.park(blocker, exclusive);
         }
 
         @Override
-        public void yield() throws SuspendExecution {
-            try {
-                super.yield();
-            } catch (SuspendExecution p) {
-                throw p;
-            } catch (Exception e) {
-                throw new AssertionError(e);
-            }
+        public void yield() throws Exception { // mustn't be instrumented so we dont throw SuspendExecution 
+            super.yield();
         }
 
         @Override

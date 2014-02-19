@@ -53,7 +53,7 @@ public final class QuasarInstrumentor {
             return false;
         if (className.startsWith("org/netbeans/lib/"))
             return false;
-        if (className.equals(Classes.COROUTINE_NAME) || className.startsWith(Classes.COROUTINE_NAME + '$'))
+        if (className.equals(Classes.FIBER_CLASS_NAME) || className.startsWith(Classes.FIBER_CLASS_NAME + '$'))
             return false;
         if (className.equals(Classes.STACK_NAME))
             return false;
