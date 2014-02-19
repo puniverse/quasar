@@ -43,6 +43,7 @@ package co.paralleluniverse.fibers.instrument;
 
 import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
+import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_ANNOTATION_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
@@ -139,21 +140,24 @@ public class InstrumentClass extends ClassVisitor {
                 methods = new ArrayList<MethodNode>();
             final MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
 
-            if (suspendable) {
-                if (db.isDebug())
-                    db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, suspendable, markedSuspendable, setSuspendable);
-
-                methods.add(mn);
-                return mn; // this causes the mn to be initialized
-            } else { // look for @Suspendable annotation
+//            if (suspendable) {
+//                if (db.isDebug())
+//                    db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, suspendable, markedSuspendable, setSuspendable);
+//
+//                methods.add(mn);
+//                return mn; // this causes the mn to be initialized
+//            } else { // look for @Suspendable or @DontInstrument annotation
                 return new MethodVisitor(Opcodes.ASM4, mn) {
-                    private boolean susp = false;
+                    private boolean susp = suspendable;
                     private boolean commited = false;
 
                     @Override
                     public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
                         if (adesc.equals(ANNOTATION_DESC))
                             susp = true;
+                        else if (adesc.equals(DONT_INSTRUMENT_ANNOTATION_DESC))
+                            susp = false;
+                        
                         return super.visitAnnotation(adesc, visible);
                     }
 
@@ -180,6 +184,7 @@ public class InstrumentClass extends ClassVisitor {
                         if (commited)
                             return;
                         commited = true;
+                        
                         if (db.isDebug())
                             db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, setSuspendable);
                         classEntry.set(name, desc, susp ? SuspendableType.SUSPENDABLE : SuspendableType.NON_SUSPENDABLE);
@@ -199,7 +204,7 @@ public class InstrumentClass extends ClassVisitor {
                         }
                     }
                 };
-        }
+//            }
         }
         return super.visitMethod(access, name, desc, signature, exceptions);
     }

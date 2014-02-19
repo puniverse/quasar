@@ -20,6 +20,7 @@ final class Classes {
     static final String EXCEPTION_NAME = "co/paralleluniverse/fibers/SuspendExecution";
     static final String UNDECLARED_THROWABLE_NAME = "java/lang/reflect/UndeclaredThrowableException";
     static final String ANNOTATION_NAME = "co/paralleluniverse/fibers/Suspendable";
+    static final String DONT_INSTRUMENT_ANNOTATION_NAME = "co/paralleluniverse/fibers/instrument/DontInstrument";
     static final String FIBER_CLASS_NAME = "co/paralleluniverse/fibers/Fiber"; //Type.getInternalName(COROUTINE_CLASS);
     private static final String STRAND_NAME = "co/paralleluniverse/strands/Strand"; //Type.getInternalName(COROUTINE_CLASS);
     static final String STACK_NAME = "co/paralleluniverse/fibers/Stack";
@@ -32,6 +33,7 @@ final class Classes {
     // computed
     static final String EXCEPTION_DESC = "L" + EXCEPTION_NAME + ";";
     static final String ANNOTATION_DESC = "L" + ANNOTATION_NAME + ";";
+    static final String DONT_INSTRUMENT_ANNOTATION_DESC = "L" + DONT_INSTRUMENT_ANNOTATION_NAME + ";";
     static final String ALREADY_INSTRUMENTED_DESC = Type.getDescriptor(Instrumented.class);
 
     private static final Set<String> yieldMethods = new HashSet<>(Arrays.asList(new String[] {

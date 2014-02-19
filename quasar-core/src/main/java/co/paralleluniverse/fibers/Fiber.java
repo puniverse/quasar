@@ -594,13 +594,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (timeout > 0 && unit != null)
             this.timeoutTask = scheduler.schedule(this, blocker, timeout, unit);
 
-        try {
-            return task.park(blocker, postParkAction != null); // postParkActions != null iff parking for FiberAsync
-        } catch (SuspendExecution p) {
-            throw p;
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
+        return task.park(blocker, postParkAction != null); // postParkActions != null iff parking for FiberAsync
     }
 
     private void yield1() throws SuspendExecution {
@@ -609,13 +603,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (prePark != null)
             prePark.run(this);
 
-        try {
-            task.yield();
-        } catch (SuspendExecution p) {
-            throw p;
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
+        task.yield();
     }
 
     private void parkAndUnpark1(Fiber other, Object blocker, long timeout, TimeUnit unit) throws SuspendExecution {
@@ -636,13 +624,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     void preempt() throws SuspendExecution {
         if (isRecordingLevel(2))
             record(2, "Fiber", "preempt", "Preempting %s at %s", this, Arrays.toString(getStackTrace()));
-        try {
-            task.yield();
-        } catch (SuspendExecution p) {
-            throw p;
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
+        task.yield();
     }
 
     boolean exec1() {

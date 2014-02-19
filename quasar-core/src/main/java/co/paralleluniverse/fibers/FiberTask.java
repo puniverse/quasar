@@ -43,9 +43,9 @@ interface FiberTask<V> extends Future<V> {
 
     int getState();
 
-    boolean park(Object blocker, boolean exclusive) throws Exception; // mustn't be instrumented so we dont throw SuspendExecution 
+    boolean park(Object blocker, boolean exclusive) throws SuspendExecution;
 
-    void yield() throws Exception;// mustn't be instrumented so we dont throw SuspendExecution 
+    void yield() throws SuspendExecution;
 
     void doPark(boolean yield);
 

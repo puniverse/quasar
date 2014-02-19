@@ -21,6 +21,7 @@ import co.paralleluniverse.concurrent.forkjoin.ExtendedForkJoinWorkerFactory;
 import co.paralleluniverse.concurrent.forkjoin.ExtendedForkJoinWorkerThread;
 import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
+import co.paralleluniverse.fibers.instrument.DontInstrument;
 import co.paralleluniverse.strands.Strand;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.Collections;
@@ -246,14 +247,28 @@ public class FiberForkJoinScheduler extends FiberScheduler {
             return done;
         }
 
+        @DontInstrument
         @Override
-        public boolean park(Object blocker, boolean exclusive) throws Exception { // mustn't be instrumented so we dont throw SuspendExecution 
-            return super.park(blocker, exclusive);
+        public boolean park(Object blocker, boolean exclusive) throws SuspendExecution {
+            try {
+                return super.park(blocker, exclusive);
+            } catch (SuspendExecution p) {
+                throw p;
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
         }
 
+        @DontInstrument
         @Override
-        public void yield() throws Exception { // mustn't be instrumented so we dont throw SuspendExecution 
-            super.yield();
+        public void yield() throws SuspendExecution {
+            try {
+                super.yield();
+            } catch (SuspendExecution p) {
+                throw p;
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
         }
 
         @Override
