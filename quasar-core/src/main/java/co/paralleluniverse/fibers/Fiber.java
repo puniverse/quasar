@@ -189,6 +189,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (target instanceof VoidSuspendableCallable)
             t = ((VoidSuspendableCallable) target).getRunnable();
 
+        if (t.getClass().getName().contains("$$Lambda$"))
+            return;
+
         if (verifyInstrumentation && !isInstrumented(t.getClass()))
             throw new IllegalArgumentException("Target class " + t.getClass() + " has not been instrumented.");
     }
@@ -1443,11 +1446,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         StackTraceElement[] stes = Thread.currentThread().getStackTrace();
         boolean notInstrumented = false;
         StringBuilder stackTrace = new StringBuilder();
+
         for (StackTraceElement ste : stes) {
             if (ste.getClassName().equals(Thread.class.getName()) && ste.getMethodName().equals("getStackTrace"))
                 continue;
             stackTrace.append("\n\tat ").append(ste);
-            if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')) {
+            if(ste.getClassName().contains("$$Lambda$"))
+                continue;
+            else if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')) {
                 if (!Retransform.isWaiver(ste.getClassName(), ste.getMethodName())
                         && (!Retransform.isInstrumented(ste.getClassName()) || isNonSuspendable(ste.getClassName(), ste.getMethodName()))) {
                     stackTrace.append(" **");
