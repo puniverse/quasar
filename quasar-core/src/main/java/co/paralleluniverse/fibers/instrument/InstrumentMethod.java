@@ -60,6 +60,7 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -117,18 +118,17 @@ class InstrumentMethod {
     }
 
     public boolean collectCodeBlocks() {
-        int numIns = mn.instructions.size();
+        final int numIns = mn.instructions.size();
 
         codeBlocks[0] = FrameInfo.FIRST;
         for (int i = 0; i < numIns; i++) {
-            Frame f = frames[i];
+            final Frame f = frames[i];
             if (f != null) { // reachable ?
                 AbstractInsnNode in = mn.instructions.get(i);
                 if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
                     Boolean susp = true;
-                    MethodInsnNode min = null;
                     if (in.getType() == AbstractInsnNode.METHOD_INSN) {
-                        min = (MethodInsnNode) in;
+                        final MethodInsnNode min = (MethodInsnNode) in;
                         int opcode = min.getOpcode();
 
                         if (isReflectInvocation(min.owner, min.name))
@@ -149,25 +149,33 @@ class InstrumentMethod {
                             if (st == SuspendableType.SUSPENDABLE_SUPER)
                                 this.hasSuspendableSuperCalls = true;
                         }
-                    } else // invoke dynamic
-                        db.log(LogLevel.DEBUG, "InvokeDynamic Method call at instruction %d to is assumed suspendable", i);
+                    } else { // invoke dynamic
+                        final InvokeDynamicInsnNode idin = (InvokeDynamicInsnNode) in;
+                        if (idin.bsm.getOwner().equals("java/lang/invoke/LambdaMetafactory")) { // lambda
+                            db.log(LogLevel.DEBUG, "Lambda at instruction %d", i);
+                            susp = false;
+                        } else
+                            db.log(LogLevel.DEBUG, "InvokeDynamic Method call at instruction %d to is assumed suspendable", i);
+                    }
 
                     if (susp) {
                         FrameInfo fi = addCodeBlock(f, i);
                         splitTryCatch(fi);
                     } else {
-                        assert min != null; // not invokedynamic
-                        db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
-                        int blockingId = isBlockingCall(min);
-                        if (blockingId >= 0 && !isAllowedToBlock(className, mn.name)) {
-                            int mask = 1 << blockingId;
-                            if (!db.isAllowBlocking()) {
-                                throw new UnableToInstrumentException("blocking call to "
-                                        + min.owner + "#" + min.name + min.desc, className, mn.name, mn.desc);
-                            } else if ((warnedAboutBlocking & mask) == 0) {
-                                warnedAboutBlocking |= mask;
-                                db.log(LogLevel.WARNING, "Method %s#%s%s contains potentially blocking call to "
-                                        + min.owner + "#" + min.name + min.desc, className, mn.name, mn.desc);
+                        if (in.getType() == AbstractInsnNode.METHOD_INSN) {// not invokedynamic
+                            final MethodInsnNode min = (MethodInsnNode) in;
+                            db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
+                            int blockingId = isBlockingCall(min);
+                            if (blockingId >= 0 && !isAllowedToBlock(className, mn.name)) {
+                                int mask = 1 << blockingId;
+                                if (!db.isAllowBlocking()) {
+                                    throw new UnableToInstrumentException("blocking call to "
+                                            + min.owner + "#" + min.name + min.desc, className, mn.name, mn.desc);
+                                } else if ((warnedAboutBlocking & mask) == 0) {
+                                    warnedAboutBlocking |= mask;
+                                    db.log(LogLevel.WARNING, "Method %s#%s%s contains potentially blocking call to "
+                                            + min.owner + "#" + min.name + min.desc, className, mn.name, mn.desc);
+                                }
                             }
                         }
                     }
@@ -210,13 +218,16 @@ class InstrumentMethod {
         Label[][] refInvokeTryCatch = new Label[numCodeBlocks - 1][];
         for (int i = 1; i < numCodeBlocks; i++) {
             FrameInfo fi = codeBlocks[i];
-            MethodInsnNode min = (MethodInsnNode) (mn.instructions.get(fi.endInstruction));
-            if (isReflectInvocation(min.owner, min.name)) {
-                Label[] ls = new Label[3];
-                for (int k = 0; k < 3; k++)
-                    ls[k] = new Label();
-                refInvokeTryCatch[i - 1] = ls;
-                mv.visitTryCatchBlock(ls[0], ls[1], ls[2], "java/lang/reflect/InvocationTargetException");
+            AbstractInsnNode in = mn.instructions.get(fi.endInstruction);
+            if (mn.instructions.get(fi.endInstruction) instanceof MethodInsnNode) {
+                MethodInsnNode min = (MethodInsnNode) in;
+                if (isReflectInvocation(min.owner, min.name)) {
+                    Label[] ls = new Label[3];
+                    for (int k = 0; k < 3; k++)
+                        ls[k] = new Label();
+                    refInvokeTryCatch[i - 1] = ls;
+                    mv.visitTryCatchBlock(ls[0], ls[1], ls[2], "java/lang/reflect/InvocationTargetException");
+                }
             }
         }
 
