@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public class FlatMappingReceivePort<S, T> extends DelegatingReceivePort<S, T> implements ReceivePort<T> {
+public class FlatMappingReceivePort<S, T> extends DelegatingReceivePort1<S, T> implements ReceivePort<T> {
     private final Function<S, ReceivePort<T>> f;
     private ReceivePort<T> port;
 

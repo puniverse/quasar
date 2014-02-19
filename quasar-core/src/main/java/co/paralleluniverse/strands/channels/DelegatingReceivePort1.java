@@ -14,39 +14,20 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.common.util.DelegatingEquals;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Timeout;
-import java.util.concurrent.TimeUnit;
 
-class DelegatingReceivePort<T> implements ReceivePort<T>, DelegatingEquals {
-    protected final ReceivePort<T> target;
+/**
+ * This is the superclass for all {@link ReceivePort} transformations.
+ * @author pron
+ */
+abstract class DelegatingReceivePort1<S, T> implements ReceivePort<T>, DelegatingEquals {
+    protected final ReceivePort<S> target;
 
-    public DelegatingReceivePort(ReceivePort<T> target) {
+    public DelegatingReceivePort1(ReceivePort<S> target) {
         if (target == null)
             throw new IllegalArgumentException("target can't be null");
         this.target = target;
     }
-
-    @Override
-    public T receive() throws SuspendExecution, InterruptedException {
-        return target.receive();
-    }
-
-    @Override
-    public T receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        return target.receive(timeout, unit);
-    }
-
-    @Override
-    public T receive(Timeout timeout) throws SuspendExecution, InterruptedException {
-        return target.receive(timeout);
-    }
-
-    @Override
-    public T tryReceive() {
-        return target.tryReceive();
-    }
-
+    
     @Override
     public void close() {
         target.close();

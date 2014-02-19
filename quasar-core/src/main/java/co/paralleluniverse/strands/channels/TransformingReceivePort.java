@@ -13,64 +13,34 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Timeout;
-import java.util.concurrent.TimeUnit;
+import co.paralleluniverse.strands.SuspendableAction2;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 
 /**
  *
  * @author pron
  */
-public abstract class TransformingReceivePort<S, T> extends DelegatingReceivePort<S, T> implements ReceivePort<T> {
-    public TransformingReceivePort(ReceivePort<S> target) {
+public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
+
+    TransformingReceivePort(ReceivePort<T> target) {
         super(target);
     }
 
-    @Override
-    @SuppressWarnings("empty-statement")
-    public T receive() throws SuspendExecution, InterruptedException {
-        for (;;) {
-            S m0 = target.receive();
-            if (m0 == null) // closed
-                return null;
-            T m = transform(m0);
-            if (m != null)
-                return m;
-        }
+    public <U> TransformingReceivePort<U> map(Function<T, U> f) {
+        return Channels.transform(Channels.map(this, f));
     }
 
-    @Override
-    public T tryReceive() {
-        for (;;) {
-            S m0 = target.tryReceive();
-            if (m0 == null)
-                return null;
-            T m = transform(m0);
-            if (m != null)
-                return m;
-        }
+    public <U> TransformingReceivePort<U> flatmap(Function<T, ReceivePort<U>> f) {
+        return Channels.transform(Channels.flatmap(this, f));
     }
 
-    @Override
-    public T receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        long left = unit.toNanos(timeout);
-        final long deadline = System.nanoTime() + left;
-
-        for (;;) {
-            S m0 = target.receive(left, TimeUnit.NANOSECONDS);
-            if (m0 == null)
-                return null;
-            T m = transform(m0);
-            if (m != null)
-                return m;
-            left = deadline - System.nanoTime();
-        }
+    public TransformingReceivePort<T> filter(Predicate<T> pred) {
+        return Channels.transform(Channels.filter(this, pred));
     }
 
-    @Override
-    public T receive(Timeout timeout) throws SuspendExecution, InterruptedException {
-        return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
+    public <U> TransformingReceivePort<U> fiberTransform(SuspendableAction2<? extends ReceivePort<? super T>, ? extends SendPort<? extends U>> transformer, Channel<U> out) {
+        Channels.fiberTransform(this, out, transformer);
+        return Channels.transform(out);
     }
-
-    protected abstract T transform(S m);
 }

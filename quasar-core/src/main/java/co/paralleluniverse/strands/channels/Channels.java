@@ -121,7 +121,7 @@ public final class Channels {
             if (!singleConsumer)
                 throw new IllegalArgumentException("Unbounded queue with multiple consumers is unsupported");
             queue = new SingleConsumerLinkedArrayObjectQueue<Message>();
-        } else if (bufferSize == 1)
+        } else if (bufferSize == 1 && policy != OverflowPolicy.DISPLACE) // for now we'll use CircularObjectBuffer for displace channels of size 1
             queue = new BoxQueue<Message>(policy == OverflowPolicy.DISPLACE, singleConsumer);
         else if (policy == OverflowPolicy.DISPLACE) {
             if (!singleConsumer)
@@ -515,14 +515,14 @@ public final class Channels {
 
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                ((SuspendableAction2)transformer).call(in, out);
+                ((SuspendableAction2) transformer).call(in, out);
             }
         }).start();
     }
 
     /**
      * Spawns a fiber that transforms values read from the {@code in} channel and writes values to the {@code out} channel.
-     * 
+     *
      * @param scheduler   the fiber scheduler
      * @param in          the input channel
      * @param out         the output channel
@@ -533,7 +533,14 @@ public final class Channels {
 
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                ((SuspendableAction2)transformer).call(in, out);
+                try {
+                    ((SuspendableAction2) transformer).call(in, out);
+                    out.close();
+                } catch (ProducerException e) {
+                    out.close(e.getCause());
+                } catch (Throwable t) {
+                    out.close(t);
+                }
             }
         }).start();
     }
@@ -706,6 +713,14 @@ public final class Channels {
         };
     }
 
+    public static <M> TransformingReceivePort<M> transform(ReceivePort<M> channel) {
+        return new TransformingReceivePort<M>(channel);
+    }
+
+    public static <M> TransformingSendPort<M> transformSend(SendPort<M> channel) {
+        return new TransformingSendPort<M>(channel);
+    }
+
     /**
      * Returns a {@link SendPort} that filters messages that satisfy a predicate before sending to a given channel.
      * Messages that don't satisfy the predicate will be silently discarded when sent.
@@ -717,7 +732,7 @@ public final class Channels {
      * @param pred    the filtering predicate
      * @return A {@link SendPort} that will send only those messages which satisfy the predicate (i.e. the predicate returns {@code true}) to the given channel.
      */
-    public static <M> SendPort<M> filter(SendPort<M> channel, Predicate<M> pred) {
+    public static <M> SendPort<M> filterSend(SendPort<M> channel, Predicate<M> pred) {
         return new FilteringSendPort<M>(channel, pred);
     }
 
@@ -732,7 +747,7 @@ public final class Channels {
      * @param f       the mapping function
      * @return a {@link SendPort} that passes messages to the given channel after transforming them by applying the mapping function.
      */
-    public static <S, T> SendPort<S> map(SendPort<T> channel, Function<S, T> f) {
+    public static <S, T> SendPort<S> mapSend(SendPort<T> channel, Function<S, T> f) {
         return new MappingSendPort<S, T>(channel, f);
     }
 

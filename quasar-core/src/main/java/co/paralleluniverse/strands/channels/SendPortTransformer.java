@@ -18,33 +18,45 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.TimeUnit;
 
-class DelegatingReceivePort<T> implements ReceivePort<T>, DelegatingEquals {
-    protected final ReceivePort<T> target;
+/**
+ *
+ * @author pron
+ */
+abstract class SendPortTransformer<S, T> implements SendPort<S>, DelegatingEquals {
+    private final SendPort<T> target;
 
-    public DelegatingReceivePort(ReceivePort<T> target) {
+    public SendPortTransformer(SendPort<T> target) {
         if (target == null)
-            throw new IllegalArgumentException("target can't be null");
+            throw new IllegalArgumentException("Target port may not be null");
         this.target = target;
     }
 
     @Override
-    public T receive() throws SuspendExecution, InterruptedException {
-        return target.receive();
+    public void send(S message) throws SuspendExecution, InterruptedException {
+        final T m = transform(message);
+        if (m != null)
+            target.send(m);
     }
 
     @Override
-    public T receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        return target.receive(timeout, unit);
+    public boolean send(S message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        final T m = transform(message);
+        if (m != null)
+            return target.send(m, timeout, unit);
+        return true;
     }
 
     @Override
-    public T receive(Timeout timeout) throws SuspendExecution, InterruptedException {
-        return target.receive(timeout);
+    public boolean send(S message, Timeout timeout) throws SuspendExecution, InterruptedException {
+        return send(message, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     @Override
-    public T tryReceive() {
-        return target.tryReceive();
+    public boolean trySend(S message) {
+        final T m = transform(message);
+        if (m != null)
+            return target.trySend(m);
+        return true;
     }
 
     @Override
@@ -53,9 +65,11 @@ class DelegatingReceivePort<T> implements ReceivePort<T>, DelegatingEquals {
     }
 
     @Override
-    public boolean isClosed() {
-        return target.isClosed();
+    public void close(Throwable t) {
+        target.close(t);
     }
+
+    protected abstract T transform(S m);
 
     @Override
     public int hashCode() {

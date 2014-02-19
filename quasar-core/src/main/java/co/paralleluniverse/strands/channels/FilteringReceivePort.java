@@ -19,7 +19,7 @@ import com.google.common.base.Predicate;
  *
  * @author pron
  */
-public class FilteringReceivePort<M> extends TransformingReceivePort<M, M> implements ReceivePort<M> {
+public class FilteringReceivePort<M> extends ReceivePortTransformer<M, M> implements ReceivePort<M> {
     private final Predicate<M> p;
 
     public FilteringReceivePort(ReceivePort<M> target, Predicate<M> p) {

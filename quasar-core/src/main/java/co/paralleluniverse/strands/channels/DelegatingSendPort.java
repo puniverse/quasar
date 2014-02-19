@@ -18,43 +18,43 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.TimeUnit;
 
-class DelegatingReceivePort<T> implements ReceivePort<T>, DelegatingEquals {
-    protected final ReceivePort<T> target;
+public class DelegatingSendPort<T> implements SendPort<T>, DelegatingEquals {
+    protected final SendPort<T> target;
 
-    public DelegatingReceivePort(ReceivePort<T> target) {
+    public DelegatingSendPort(SendPort<T> target) {
         if (target == null)
             throw new IllegalArgumentException("target can't be null");
         this.target = target;
     }
 
     @Override
-    public T receive() throws SuspendExecution, InterruptedException {
-        return target.receive();
+    public void send(T message) throws SuspendExecution, InterruptedException {
+        target.send(message);
     }
 
     @Override
-    public T receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        return target.receive(timeout, unit);
+    public boolean send(T message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        return target.send(message, timeout, unit);
     }
 
     @Override
-    public T receive(Timeout timeout) throws SuspendExecution, InterruptedException {
-        return target.receive(timeout);
+    public boolean send(T message, Timeout timeout) throws SuspendExecution, InterruptedException {
+        return target.send(message, timeout);
     }
 
     @Override
-    public T tryReceive() {
-        return target.tryReceive();
+    public boolean trySend(T message) {
+        return target.trySend(message);
+    }
+
+    @Override
+    public void close(Throwable t) {
+        target.close(t);
     }
 
     @Override
     public void close() {
         target.close();
-    }
-
-    @Override
-    public boolean isClosed() {
-        return target.isClosed();
     }
 
     @Override
