@@ -53,6 +53,11 @@ When running code that uses Quasar, the instrumentation agent must be run by add
 -javaagent:path-to-quasar-jar.jar
 ```
 
+## Related Projects
+
+* [Pulsar](https://github.com/puniverse/pulsar) is Quasar's extra-cool Clojure API
+* [Comsat](https://github.com/puniverse/comsat) integrates Quasar with the JVM's web APIs
+
 ## Getting help
 
 Questions and suggestions are welcome at this [forum/mailing list](https://groups.google.com/forum/?fromgroups#!forum/quasar-pulsar-user).
