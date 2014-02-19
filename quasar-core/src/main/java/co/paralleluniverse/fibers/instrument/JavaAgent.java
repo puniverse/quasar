@@ -82,6 +82,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 import jsr166e.ConcurrentHashMapV8;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 /*
  * Created on Nov 21, 2010
@@ -164,6 +169,9 @@ public class JavaAgent {
 
         @Override
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+            if(className.startsWith("clojure/lang/Compiler"))
+                return crazyClojureOnceDisable(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+                
             if (!instrumentor.shouldInstrument(className))
                 return null;
 
@@ -184,5 +192,32 @@ public class JavaAgent {
                 return null;
             }
         }
+    }
+    
+    public static byte[] crazyClojureOnceDisable(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+        if(!Boolean.parseBoolean(System.getProperty("co.paralleluniverse.pulsar.disableOnce", "false")))
+            return classfileBuffer;
+        
+        ClassReader cr = new ClassReader(classfileBuffer);
+        ClassWriter cw = new ClassWriter(cr, 0);
+        ClassVisitor cv = new ClassVisitor(Opcodes.ASM4, cw) {
+
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+                return new MethodVisitor(api, super.visitMethod(access, name, desc, signature, exceptions)) {
+
+                    @Override
+                    public void visitLdcInsn(Object cst) {
+                        if(cst instanceof String && cst.equals("once")) {
+                            super.visitLdcInsn("once$disabled-by-pulsar");
+                        } else
+                            super.visitLdcInsn(cst);
+                    }
+                    
+                };
+            }
+        };
+        cr.accept(cv, 0);
+        return cw.toByteArray();
     }
 }

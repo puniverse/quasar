@@ -473,7 +473,8 @@ class InstrumentMethod {
                 case Opcodes.MONITORENTER:
                 case Opcodes.MONITOREXIT:
                     if (!db.isAllowMonitors()) {
-                        throw new UnableToInstrumentException("synchronisation", className, mn.name, mn.desc);
+                        if (!className.equals("clojure/lang/LazySeq"))
+                            throw new UnableToInstrumentException("synchronisation", className, mn.name, mn.desc);
                     } else if (!warnedAboutMonitors) {
                         warnedAboutMonitors = true;
                         db.log(LogLevel.WARNING, "Method %s#%s%s contains synchronisation", className, mn.name, mn.desc);

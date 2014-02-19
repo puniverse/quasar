@@ -118,8 +118,10 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
         if (suspendable == SuspendableType.SUSPENDABLE) {
             hasSuspendable = true;
             // synchronized methods can't be made suspendable
-            if ((access & Opcodes.ACC_SYNCHRONIZED) == Opcodes.ACC_SYNCHRONIZED)
-                throw new UnableToInstrumentException("synchronized method", className, name, desc);
+            if ((access & Opcodes.ACC_SYNCHRONIZED) == Opcodes.ACC_SYNCHRONIZED) {
+                if (!className.equals("clojure/lang/LazySeq"))
+                    throw new UnableToInstrumentException("synchronized method", className, name, desc);
+            }
         }
         classEntry.set(name, desc, suspendable);
 
