@@ -172,13 +172,13 @@ public class TransformingChannelTest {
     @Test
     public void transformingSendChannelIsEqualToChannel() throws Exception {
         final Channel<Integer> ch = newChannel();
-        SendPort<Integer> ch1 = Channels.filter((SendPort<Integer>) ch, new Predicate<Integer>() {
+        SendPort<Integer> ch1 = Channels.filterSend((SendPort<Integer>) ch, new Predicate<Integer>() {
             @Override
             public boolean apply(Integer input) {
                 return input % 2 == 0;
             }
         });
-        SendPort<Integer> ch2 = Channels.map((SendPort<Integer>) ch, new Function<Integer, Integer>() {
+        SendPort<Integer> ch2 = Channels.mapSend((SendPort<Integer>) ch, new Function<Integer, Integer>() {
             @Override
             public Integer apply(Integer input) {
                 return input + 10;
@@ -366,7 +366,7 @@ public class TransformingChannelTest {
         Fiber fib2 = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                SendPort<Integer> ch1 = Channels.filter((SendPort<Integer>) ch, new Predicate<Integer>() {
+                SendPort<Integer> ch1 = Channels.filterSend((SendPort<Integer>) ch, new Predicate<Integer>() {
                     @Override
                     public boolean apply(Integer input) {
                         return input % 2 == 0;
@@ -405,7 +405,7 @@ public class TransformingChannelTest {
             }
         }).start();
 
-        SendPort<Integer> ch1 = Channels.filter((SendPort<Integer>) ch, new Predicate<Integer>() {
+        SendPort<Integer> ch1 = Channels.filterSend((SendPort<Integer>) ch, new Predicate<Integer>() {
             @Override
             public boolean apply(Integer input) {
                 return input % 2 == 0;
@@ -433,7 +433,7 @@ public class TransformingChannelTest {
             public void run() throws SuspendExecution, InterruptedException {
                 Fiber.sleep(100);
 
-                SendPort<Integer> ch1 = Channels.filter((SendPort<Integer>) ch, new Predicate<Integer>() {
+                SendPort<Integer> ch1 = Channels.filterSend((SendPort<Integer>) ch, new Predicate<Integer>() {
                     @Override
                     public boolean apply(Integer input) {
                         return input % 2 == 0;
@@ -481,7 +481,7 @@ public class TransformingChannelTest {
             }
         }).start();
 
-        SendPort<Integer> ch1 = Channels.filter((SendPort<Integer>) ch, new Predicate<Integer>() {
+        SendPort<Integer> ch1 = Channels.filterSend((SendPort<Integer>) ch, new Predicate<Integer>() {
             @Override
             public boolean apply(Integer input) {
                 return input % 2 == 0;
@@ -565,7 +565,7 @@ public class TransformingChannelTest {
             }
         }).start();
 
-        SendPort<Integer> ch1 = Channels.map((SendPort<Integer>) ch, new Function<Integer, Integer>() {
+        SendPort<Integer> ch1 = Channels.mapSend((SendPort<Integer>) ch, new Function<Integer, Integer>() {
             @Override
             public Integer apply(Integer input) {
                 return input + 10;

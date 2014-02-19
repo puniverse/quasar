@@ -456,13 +456,13 @@ public class ActorTest {
             }
         }.spawn();
 
-        SendPort<Integer> ch1 = Channels.filter(actor, new Predicate<Integer>() {
+        SendPort<Integer> ch1 = Channels.filterSend(actor, new Predicate<Integer>() {
             @Override
             public boolean apply(Integer input) {
                 return input % 2 == 0;
             }
         });
-        SendPort<Integer> ch2 = Channels.map(actor, new Function<Integer, Integer>() {
+        SendPort<Integer> ch2 = Channels.mapSend(actor, new Function<Integer, Integer>() {
             @Override
             public Integer apply(Integer input) {
                 return input + 10;
