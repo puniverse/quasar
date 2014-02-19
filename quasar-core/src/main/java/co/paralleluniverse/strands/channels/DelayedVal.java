@@ -34,7 +34,7 @@ import java.util.concurrent.TimeoutException;
 public class DelayedVal<V> implements Future<V> {
     private V value;
     private Throwable t;
-    private final SuspendableCallable<V> f;
+    private SuspendableCallable<V> f;
     private volatile SimpleConditionSynchronizer sync = new SimpleConditionSynchronizer(this);
 
     /**
@@ -45,17 +45,18 @@ public class DelayedVal<V> implements Future<V> {
      */
     public DelayedVal(final SuspendableCallable<V> f) {
         this.f = f;
-        new Fiber<Void>(new SuspendableRunnable() {
+        if (f != null)
+            new Fiber<Void>(new SuspendableRunnable() {
 
-            @Override
-            public void run() throws SuspendExecution {
-                try {
-                    DelayedVal.this.set0(f.run());
-                } catch (Throwable t) {
-                    DelayedVal.this.setException0(t);
+                @Override
+                public void run() throws SuspendExecution {
+                    try {
+                        DelayedVal.this.set0(f.run());
+                    } catch (Throwable t) {
+                        DelayedVal.this.setException0(t);
+                    }
                 }
-            }
-        }).start();
+            }).start();
     }
 
     /**
@@ -67,21 +68,22 @@ public class DelayedVal<V> implements Future<V> {
      */
     public DelayedVal(FiberScheduler scheduler, final SuspendableCallable<V> f) {
         this.f = f;
-        new Fiber<Void>(scheduler, new SuspendableRunnable() {
+        if (f != null)
+            new Fiber<Void>(scheduler, new SuspendableRunnable() {
 
-            @Override
-            public void run() throws SuspendExecution {
-                try {
-                    DelayedVal.this.set0(f.run());
-                } catch (Throwable t) {
-                    DelayedVal.this.setException0(t);
+                @Override
+                public void run() throws SuspendExecution {
+                    try {
+                        DelayedVal.this.set0(f.run());
+                    } catch (Throwable t) {
+                        DelayedVal.this.setException0(t);
+                    }
                 }
-            }
-        }).start();
+            }).start();
     }
 
     public DelayedVal() {
-        this.f = null;
+        this(null);
     }
 
     /**
@@ -116,6 +118,7 @@ public class DelayedVal<V> implements Future<V> {
         this.value = value;
         final SimpleConditionSynchronizer s = sync;
         sync = null; // must be done before signal
+        this.f = null;
         s.signalAll();
     }
 
@@ -125,6 +128,7 @@ public class DelayedVal<V> implements Future<V> {
         this.t = t;
         final SimpleConditionSynchronizer s = sync;
         sync = null; // must be done before signal
+        this.f = null;
         s.signalAll();
     }
 
