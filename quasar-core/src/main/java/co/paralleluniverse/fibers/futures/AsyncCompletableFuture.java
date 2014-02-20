@@ -188,6 +188,11 @@ public class AsyncCompletableFuture<V> extends FiberAsync<V, Void, ExecutionExce
     }
 
     @Override
+    protected ExecutionException wrapException(Throwable t) {
+        return new ExecutionException(t);
+    }
+    
+    @Override
     protected V requestSync() throws InterruptedException, ExecutionException {
         return fut.get();
     }
