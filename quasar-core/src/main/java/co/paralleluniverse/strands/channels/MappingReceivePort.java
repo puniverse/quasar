@@ -19,7 +19,7 @@ import com.google.common.base.Function;
  *
  * @author pron
  */
-public class MappingReceivePort<S, T> extends ReceivePortTransformer<S, T> implements ReceivePort<T> {
+class MappingReceivePort<S, T> extends ReceivePortTransformer<S, T> implements ReceivePort<T> {
     private final Function<S, T> f;
 
     public MappingReceivePort(ReceivePort<S> target, Function<S, T> f) {

@@ -19,7 +19,7 @@ import com.google.common.base.Function;
  *
  * @author pron
  */
-public class MappingSendPort<S, T> extends SendPortTransformer<S, T> implements SendPort<S> {
+class MappingSendPort<S, T> extends SendPortTransformer<S, T> implements SendPort<S> {
     private final Function<S, T> f;
 
     public MappingSendPort(SendPort<T> target, Function<S, T> f) {

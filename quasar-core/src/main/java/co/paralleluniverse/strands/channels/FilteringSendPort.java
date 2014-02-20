@@ -19,7 +19,7 @@ import com.google.common.base.Predicate;
  *
  * @author pron
  */
-public class FilteringSendPort<M> extends SendPortTransformer<M, M> implements SendPort<M> {
+class FilteringSendPort<M> extends SendPortTransformer<M, M> implements SendPort<M> {
     private final Predicate<M> p;
 
     public FilteringSendPort(SendPort<M> target, Predicate<M> p) {
