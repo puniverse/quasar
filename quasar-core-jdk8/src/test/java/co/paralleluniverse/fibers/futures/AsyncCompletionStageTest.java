@@ -19,8 +19,8 @@ import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableCallable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import jsr166e.CompletableFuture;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -29,10 +29,10 @@ import org.junit.Test;
  *
  * @author pron
  */
-public class AsyncCompletableFutureTest {
+public class AsyncCompletionStageTest {
     private FiberScheduler scheduler;
 
-    public AsyncCompletableFutureTest() {
+    public AsyncCompletionStageTest() {
         scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 
@@ -44,7 +44,7 @@ public class AsyncCompletableFutureTest {
             @Override
             public String run() throws SuspendExecution, InterruptedException {
                 try {
-                    return AsyncCompletableFuture.get(fut);
+                    return AsyncCompletionStage.get(fut);
                 } catch (ExecutionException e) {
                     throw new RuntimeException(e);
                 }
@@ -74,7 +74,7 @@ public class AsyncCompletableFutureTest {
             @Override
             public String run() throws SuspendExecution, InterruptedException {
                 try {
-                    String res = AsyncCompletableFuture.get(fut);
+                    String res = AsyncCompletionStage.get(fut);
                     fail();
                     return res;
                 } catch (ExecutionException e) {
