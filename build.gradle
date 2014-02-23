@@ -303,15 +303,6 @@ project (':quasar-core') {
     }
 }
 
-project (':quasar-core-jdk8') {
-    sourceCompatibility = '1.8'
-    targetCompatibility = '1.8'
-    
-    dependencies {
-        compile project(':quasar-core')
-    }
-}
-
 project (':quasar-actors') {
     //project.evaluationDependsOn(':quasar-core')
     
