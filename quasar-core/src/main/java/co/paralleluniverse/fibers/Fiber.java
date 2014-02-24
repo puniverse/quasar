@@ -132,7 +132,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         Strand parent = Strand.currentStrand();
         // this.parent = Strand.currentStrand();
         this.target = target;
-        this.task = scheduler != null ? scheduler.newFiberTask(this) : new FiberForkJoinScheduler.FiberForkJoinTask(this, null);
+        this.task = scheduler != null ? scheduler.newFiberTask(this) : new FiberForkJoinScheduler.FiberForkJoinTask(this);
         this.initialStackSize = stackSize;
         this.stack = new Stack(this, stackSize > 0 ? stackSize : DEFAULT_STACK_SIZE);
         this.state = State.NEW;

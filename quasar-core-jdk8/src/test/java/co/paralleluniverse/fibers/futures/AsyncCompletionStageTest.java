@@ -63,7 +63,7 @@ public class AsyncCompletionStageTest {
         }).start();
 
         assertThat(fiber.get(), equalTo("hi!"));
-        
+
     }
 
     @Test

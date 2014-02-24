@@ -13,17 +13,14 @@
  */
 package co.paralleluniverse.fibers;
 
-import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitor;
 import java.util.Collection;
 
 /**
  *
  * @author pron
  */
-public class NoopFibersMonitor extends ForkJoinPoolMonitor implements FibersMonitor {
-
+public class NoopFibersMonitor implements FibersMonitor {
     public NoopFibersMonitor() {
-        super(null, null);
     }
 
     @Override
@@ -53,4 +50,8 @@ public class NoopFibersMonitor extends ForkJoinPoolMonitor implements FibersMoni
     @Override
     public void setRunawayFibers(Collection<Fiber> fs) {
     } 
+
+    @Override
+    public void unregister() {
+    }
 }

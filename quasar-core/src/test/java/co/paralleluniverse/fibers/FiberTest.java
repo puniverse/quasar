@@ -70,6 +70,12 @@ public class FiberTest {
         });
     }
 
+    @Before
+    public void before() {
+        if (scheduler instanceof FiberForkJoinScheduler)
+            System.out.println("==> " + ((FiberForkJoinScheduler) scheduler).getForkJoinPool().getClass().getSuperclass().getName());
+    }
+
     @Test
     public void testTimeout() throws Exception {
         Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
@@ -392,7 +398,7 @@ public class FiberTest {
     }
 
     @Test
-    public void testDumpStackWaitingFiberWhenCalledFromFiber() throws Exception {      
+    public void testDumpStackWaitingFiberWhenCalledFromFiber() throws Exception {
         final Condition cond = new SimpleConditionSynchronizer(null);
         final AtomicBoolean flag = new AtomicBoolean(false);
 

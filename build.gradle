@@ -214,7 +214,10 @@ subprojects {
                     authentication(userName: sonatypeUsername, password: sonatypePassword)
                 } 
                 pom.whenConfigured { pom -> pom.dependencies = pom.dependencies.findAll { 
-                        dep -> !(dep.artifactId.startsWith('jsr166e') || dep.artifactId.startsWith('high-scale-lib') || dep.artifactId.startsWith('HdrHistogram'))} 
+                        dep -> !(dep.artifactId.startsWith('jsr166e') || 
+                            dep.artifactId.startsWith('high-scale-lib') || 
+                            dep.artifactId.startsWith('HdrHistogram') ||
+                            (dep.groupId == 'co.paralleluniverse' && dep.artifactId.startsWith('quasar-core')))} 
                 }
                 pom.project {
                     name project.name
@@ -291,7 +294,7 @@ project (':quasar-core') {
         manifest { 
             attributes(
 	            "Built-By"                  :   System.getProperty("user.name"),
-	            "Implementation-Title"      :   name,
+	            "Implementation-Title"      :   project.name,
 	            "Implementation-Version"    :   version,
 	            "Implementation-Vendor"     :   vendor,
 	            "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",

@@ -212,6 +212,10 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         private final ForkJoinPool fjPool;
         private final Fiber<V> fiber;
 
+        public FiberForkJoinTask(Fiber<V> fiber) {
+            this(fiber , null);
+        }
+        
         public FiberForkJoinTask(Fiber<V> fiber, ForkJoinPool fjPool) {
             this.fiber = fiber;
             this.fjPool = fjPool;

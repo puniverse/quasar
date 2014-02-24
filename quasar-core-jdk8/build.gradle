@@ -3,6 +3,78 @@ apply plugin: 'java'
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
 
+ext.quasarJar = "${libsDir}/quasar-core-jdk8-${version}.jar" // project(':quasar-core').jar.archivePath
+
+configurations {
+    provided
+}
+
 dependencies {
-    compile project(':quasar-core')
+    provided(project(':quasar-core')) { // 
+        exclude module: "jsr166e"
+    }
+    // testCompile project(":quasar-core").sourceSets.test.output 
+}
+
+sourceSets {
+    main.compileClasspath = main.compileClasspath + configurations.provided
+    test.compileClasspath = test.compileClasspath + configurations.provided
+    test.runtimeClasspath = test.runtimeClasspath + configurations.provided
+    test {
+        java {
+            srcDirs += "../quasar-core/src/test/java" // project(":quasar-core").sourceSets.test.java.srcDirs
+        }
+    }
+}
+
+//artifacts {
+//    archives jar {
+//        artifactId "quasar-core"
+//        classifier "jdk8"
+//    }
+//}
+
+//task jar(dependsOn: classes, type: Jar, overwrite: true) {
+jar.dependsOn ':quasar-core:jar'
+jar {    
+    from project(':quasar-core').sourceSets.main.output.classesDir
+    from project(':quasar-core').sourceSets.main.resources
+    from project.sourceSets.main.output.classesDir
+    from project.sourceSets.main.resources
+    from zipTree("${baselib}/high-scale-lib.jar")  // include non-Maven jars
+    from zipTree("${baselib}/HdrHistogram.jar")  // include non-Maven jars
+
+    manifest { 
+        attributes(
+	            "Built-By"                  :   System.getProperty("user.name"),
+	            "Implementation-Title"      :   project.name,
+	            "Implementation-Version"    :   version,
+	            "Implementation-Vendor"     :   vendor,
+	            "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
+	            "Can-Retransform-Classes"   :   "true",
+                    "Can-Redefine-Classes"      :   "true",
+            //  "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',') 
+        )
+    }
+}
+
+tasks.withType(Test) { 
+    allJvmArgs = []
+    useJUnit()
+    // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+        
+    // systemProperty "java.util.logging.config.file", "jul.properties"
+    systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
+    // systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
+	    
+    // systemProperty 'co.paralleluniverse.debugMode', 'true'
+    systemProperty 'co.paralleluniverse.globalFlightRecorder', 'true'
+    systemProperty 'co.paralleluniverse.flightRecorderDumpFile', 'quasar.log'
+    systemProperty 'co.paralleluniverse.monitoring.flightRecorderSize', '200000'
+        
+    jvmArgs "-javaagent:${libsDir}/quasar-core-jdk8-${version}.jar" // =vdmc (verbose, debug, allow monitors, check class)
+    jvmArgs "-Xmx2048m"
+    doLast() {
+        println "file://" + getReports().getHtml().getDestination() + "/index.html"
+    }  
 }
