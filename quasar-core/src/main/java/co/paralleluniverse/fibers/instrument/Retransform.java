@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.common.util.Pair;
+import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.Instrumented;
 import java.io.PrintWriter;
 import java.lang.instrument.ClassDefinition;
@@ -25,7 +26,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
-import jsr166e.ConcurrentHashMapV8;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.util.Textifier;
@@ -38,8 +38,8 @@ import org.objectweb.asm.util.TraceClassVisitor;
 public class Retransform {
     static volatile Instrumentation instrumentation;
     static volatile MethodDatabase db;
-    static volatile Set<WeakReference<ClassLoader>> classLoaders = Collections.newSetFromMap(new ConcurrentHashMapV8<WeakReference<ClassLoader>, Boolean>());
-    static final Set<Pair<String, String>> waivers = Collections.newSetFromMap(new ConcurrentHashMapV8<Pair<String, String>, Boolean>());
+    static volatile Set<WeakReference<ClassLoader>> classLoaders = Collections.newSetFromMap(MapUtil.<WeakReference<ClassLoader>, Boolean>newConcurrentHashMap());
+    static final Set<Pair<String, String>> waivers = Collections.newSetFromMap(MapUtil.<Pair<String, String>, Boolean>newConcurrentHashMap());
     private static final CopyOnWriteArrayList<ClassLoadListener> listeners = new CopyOnWriteArrayList<ClassLoadListener>();
 
     public static void retransform(Class<?> clazz) throws UnmodifiableClassException {

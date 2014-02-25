@@ -28,6 +28,7 @@ import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
 import co.paralleluniverse.actors.behaviors.SupervisorImpl.AddChildMessage;
 import co.paralleluniverse.actors.behaviors.SupervisorImpl.GetChildMessage;
 import co.paralleluniverse.actors.behaviors.SupervisorImpl.RemoveChildMessage;
+import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -41,7 +42,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import jsr166e.ConcurrentHashMapV8;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -64,7 +64,7 @@ public class SupervisorActor extends BehaviorActor {
     private final RestartStrategy restartStrategy;
     private List<ChildSpec> childSpec;
     private final List<ChildEntry> children = new ArrayList<ChildEntry>();
-    private final ConcurrentMap<Object, ChildEntry> childrenById = new ConcurrentHashMapV8<Object, ChildEntry>();
+    private final ConcurrentMap<Object, ChildEntry> childrenById = MapUtil.newConcurrentHashMap();
 
     /**
      * Constructs a new supervisor with no children. Children may be added later via {@link Supervisor#addChild(Supervisor.ChildSpec) Supervisor.addChild}.

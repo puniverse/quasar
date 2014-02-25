@@ -73,6 +73,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.concurrent.util.MapUtil;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
@@ -81,7 +82,6 @@ import java.security.ProtectionDomain;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
-import jsr166e.ConcurrentHashMapV8;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -96,7 +96,7 @@ import org.objectweb.asm.Opcodes;
  */
 public class JavaAgent {
     private static volatile boolean active;
-    private static final Set<WeakReference<ClassLoader>> classLoaders = Collections.newSetFromMap(new ConcurrentHashMapV8<WeakReference<ClassLoader>, Boolean>());
+    private static final Set<WeakReference<ClassLoader>> classLoaders = Collections.newSetFromMap(MapUtil.<WeakReference<ClassLoader>, Boolean>newConcurrentHashMap());
 
     public static void premain(String agentArguments, Instrumentation instrumentation) {
         if (!instrumentation.isRetransformClassesSupported())

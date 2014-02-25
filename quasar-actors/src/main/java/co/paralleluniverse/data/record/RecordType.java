@@ -13,6 +13,7 @@
 package co.paralleluniverse.data.record;
 
 import co.paralleluniverse.actors.MutabilityTester;
+import co.paralleluniverse.concurrent.util.MapUtil;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.TypeToken;
 import java.lang.invoke.MethodHandle;
@@ -25,7 +26,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
-import jsr166e.ConcurrentHashMapV8;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,7 +90,7 @@ public class RecordType<R> implements SealedRecordType<R> {
     private final ThreadLocal<Mode> currentMode = new ThreadLocal<Mode>();
     private final ClassValue<ClassInfo> vtables;
     //
-    private static final ConcurrentMap<String, RecordType<?>> loadedTypes = new ConcurrentHashMapV8<>();
+    private static final ConcurrentMap<String, RecordType<?>> loadedTypes = MapUtil.newConcurrentHashMap();
 
     /**
      * Creates a new record type, possibly extending a super type.

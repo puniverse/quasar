@@ -264,7 +264,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     }
 
     protected void submit() {
-        assert Thread.currentThread() instanceof jsr166e.ForkJoinWorkerThread;
+        assert Thread.currentThread() instanceof ForkJoinWorkerThread;
         fork();
     }
 

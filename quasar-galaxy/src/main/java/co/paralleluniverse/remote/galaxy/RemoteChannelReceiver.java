@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.remote.galaxy;
 
+import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.MessageListener;
@@ -29,7 +30,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
-import jsr166e.ConcurrentHashMapV8;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  */
 public class RemoteChannelReceiver<Message> implements MessageListener {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteChannelReceiver.class);
-    private static final ConcurrentMap<SendPort<?>, RemoteChannelReceiver<?>> receivers = new ConcurrentHashMapV8<>();
+    private static final ConcurrentMap<SendPort<?>, RemoteChannelReceiver<?>> receivers = MapUtil.newConcurrentHashMap();
     private static final ReferenceQueue<QueueChannel> refQueue = new ReferenceQueue<>();
     private static final AtomicLong topicGen = new AtomicLong(1000);
 

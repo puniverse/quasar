@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.SendPort;
@@ -20,7 +21,6 @@ import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
-import jsr166e.ConcurrentHashMapV8;
 
 /**
  * An {@link ActorRef} which is not backed by any actual {@link Actor}.
@@ -30,8 +30,8 @@ import jsr166e.ConcurrentHashMapV8;
  */
 public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
     private static final Throwable NATURAL = new Throwable();
-    private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
-    private final Set<ActorRefImpl> observed = Collections.newSetFromMap(new ConcurrentHashMapV8<ActorRefImpl, Boolean>());
+    private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(MapUtil.<LifecycleListener, Boolean>newConcurrentHashMap());
+    private final Set<ActorRefImpl> observed = Collections.newSetFromMap(MapUtil.<ActorRefImpl, Boolean>newConcurrentHashMap());
     private volatile Throwable deathCause;
 
     public FakeActor(String name, SendPort<Message> mailbox) {

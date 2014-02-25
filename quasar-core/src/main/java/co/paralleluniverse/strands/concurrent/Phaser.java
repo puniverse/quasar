@@ -29,7 +29,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
-import jsr166e.ForkJoinPool;
 
 /**
  * A reusable synchronization barrier, similar in functionality to
@@ -88,7 +87,7 @@ import jsr166e.ForkJoinPool;
  * state of the phaser. If necessary, you can perform any
  * associated recovery within handlers of those exceptions,
  * often after invoking {@code forceTermination}. Phasers may
- * also be used by tasks executing in a {@link ForkJoinPool},
+ * also be used by tasks executing in a {@code ForkJoinPool},
  * which will ensure sufficient parallelism to execute tasks
  * when others are blocked waiting for a phase to advance.
  *

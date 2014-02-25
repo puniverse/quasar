@@ -19,6 +19,7 @@ import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Objects;
+import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.Joinable;
@@ -37,7 +38,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
-import jsr166e.ConcurrentHashMapV8;
 
 /**
  * An actor is a self-contained execution unit - an object running in its own strand and communicating with other actors via messages.
@@ -81,8 +81,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private final LocalActorRef<Message, V> ref;
     private ActorRef<Message> wrapperRef;
     private final AtomicReference<Class<?>> classRef;
-    private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(new ConcurrentHashMapV8<LifecycleListener, Boolean>());
-    private final Set<ActorRefImpl> observed = Collections.newSetFromMap(new ConcurrentHashMapV8<ActorRefImpl, Boolean>());
+    private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(MapUtil.<LifecycleListener, Boolean>newConcurrentHashMap());
+    private final Set<ActorRefImpl> observed = Collections.newSetFromMap(MapUtil.<ActorRefImpl, Boolean>newConcurrentHashMap());
     private volatile V result;
     private volatile Throwable exception;
     private volatile Throwable deathCause;

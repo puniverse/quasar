@@ -12,10 +12,10 @@
  */
 package co.paralleluniverse.common.benchmark;
 
+import co.paralleluniverse.concurrent.util.MapUtil;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentMap;
-import jsr166e.ConcurrentHashMapV8;
 
 /**
  *
@@ -25,7 +25,7 @@ public abstract class Striped<T> implements Iterable<T> {
     private final ConcurrentMap<Thread, T> rs;
 
     public Striped() {
-        this.rs = new ConcurrentHashMapV8<>();
+        this.rs = MapUtil.newConcurrentHashMap();
     }
 
     public Collection<T> combine() {

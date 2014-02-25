@@ -196,9 +196,15 @@ subprojects {
 
     // remove embedded jars from pom
     configure(install.repositories.mavenInstaller) {
-        pom.whenConfigured { pom -> pom.dependencies = pom.dependencies.findAll { 
-                dep -> !(dep.artifactId.startsWith('jsr166e') || dep.artifactId.startsWith('high-scale-lib') || dep.artifactId.startsWith('HdrHistogram')) } 
+        pom.whenConfigured {
+            it.dependencies.removeAll { dep -> 
+                dep.artifactId.startsWith('jsr166e') || 
+                dep.artifactId.startsWith('high-scale-lib') || 
+                dep.artifactId.startsWith('HdrHistogram') ||
+                (dep.groupId == 'co.paralleluniverse' && dep.artifactId.startsWith('quasar-core'))
+            }
         }
+
     }
 	                
     uploadArchives {
@@ -213,11 +219,13 @@ subprojects {
                     // User and Password are taken from ~/.gradle/gradle.properties
                     authentication(userName: sonatypeUsername, password: sonatypePassword)
                 } 
-                pom.whenConfigured { pom -> pom.dependencies = pom.dependencies.findAll { 
-                        dep -> !(dep.artifactId.startsWith('jsr166e') || 
-                            dep.artifactId.startsWith('high-scale-lib') || 
-                            dep.artifactId.startsWith('HdrHistogram') ||
-                            (dep.groupId == 'co.paralleluniverse' && dep.artifactId.startsWith('quasar-core')))} 
+                pom.whenConfigured {
+                    it.dependencies.removeAll { dep -> 
+                        dep.artifactId.startsWith('jsr166e') || 
+                        dep.artifactId.startsWith('high-scale-lib') || 
+                        dep.artifactId.startsWith('HdrHistogram') ||
+                        (dep.groupId == 'co.paralleluniverse' && dep.artifactId.startsWith('quasar-core'))
+                    }
                 }
                 pom.project {
                     name project.name

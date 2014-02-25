@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.common.monitoring.Counter;
 import co.paralleluniverse.common.monitoring.MonitoringServices;
 import co.paralleluniverse.strands.Strand;
 import java.lang.management.ManagementFactory;
@@ -31,7 +32,6 @@ import javax.management.NotificationBroadcasterSupport;
 import javax.management.NotificationListener;
 import javax.management.ObjectName;
 import javax.management.StandardEmitterMBean;
-import jsr166e.LongAdder;
 
 /**
  * A JMX Mbean that monitors fibers runningin a single {@link FiberScheduler}.
@@ -44,12 +44,12 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
     private boolean registered;
     private long lastCollectTime;
     private final FibersDetailedMonitor details;
-    private final LongAdder activeCount = new LongAdder();
-    //private final LongAdder runnableCount = new LongAdder();
-    private final LongAdder waitingCount = new LongAdder();
-    private final LongAdder spuriousWakeupsCounter = new LongAdder();
-    private final LongAdder timedWakeupsCounter = new LongAdder();
-    private final LongAdder timedParkLatencyCounter = new LongAdder();
+    private final Counter activeCount = new Counter();
+    //private final Counter runnableCount = new Counter();
+    private final Counter waitingCount = new Counter();
+    private final Counter spuriousWakeupsCounter = new Counter();
+    private final Counter timedWakeupsCounter = new Counter();
+    private final Counter timedParkLatencyCounter = new Counter();
     private long spuriousWakeups;
     private long meanTimedWakeupLatency;
     private Map<Fiber, StackTraceElement[]> problemFibers;
@@ -132,10 +132,10 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
     }
 
     protected void collectAndResetCounters(long intervalNanos) {
-        spuriousWakeups = spuriousWakeupsCounter.sumThenReset();
+        spuriousWakeups = spuriousWakeupsCounter.getAndReset();
 
-        final long tw = timedWakeupsCounter.sumThenReset();
-        final long tpl = timedParkLatencyCounter.sumThenReset();
+        final long tw = timedWakeupsCounter.getAndReset();
+        final long tpl = timedParkLatencyCounter.getAndReset();
 
         meanTimedWakeupLatency = tw != 0L ? tpl / tw : 0L;
 
@@ -148,39 +148,39 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
 
     @Override
     public void fiberStarted(Fiber fiber) {
-        activeCount.increment();
+        activeCount.inc();
         if (details != null)
             details.fiberStarted(fiber);
     }
 
     @Override
     public void fiberTerminated(Fiber fiber) {
-        activeCount.decrement();
-        //runnableCount.decrement();
+        activeCount.dec();
+        //runnableCount.dec();
         if (details != null)
             details.fiberTerminated(fiber);
     }
 
     @Override
     public void fiberSuspended() {
-        //runnableCount.decrement();
-        waitingCount.increment();
+        //runnableCount.dec();
+        waitingCount.inc();
     }
 
     @Override
     public void fiberResumed() {
-        //runnableCount.increment();
-        waitingCount.decrement();
+        //runnableCount.inc();
+        waitingCount.dec();
     }
 
     @Override
     public void spuriousWakeup() {
-        spuriousWakeupsCounter.increment();
+        spuriousWakeupsCounter.inc();
     }
 
     @Override
     public void timedParkLatency(long ns) {
-        timedWakeupsCounter.increment();
+        timedWakeupsCounter.inc();
         timedParkLatencyCounter.add(ns);
     }
 
@@ -224,7 +224,7 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
 
     @Override
     public int getNumActiveFibers() {
-        return activeCount.intValue();
+        return (int)activeCount.get();
     }
 
     @Override
@@ -235,7 +235,7 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
 
     @Override
     public int getNumWaitingFibers() {
-        return waitingCount.intValue();
+        return (int)waitingCount.get();
     }
 
     @Override

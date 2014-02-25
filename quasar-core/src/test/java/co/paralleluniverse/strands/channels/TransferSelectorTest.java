@@ -29,7 +29,6 @@ import static co.paralleluniverse.strands.channels.TimeoutChannel.*;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
-import jsr166e.ForkJoinPool;
 import static org.hamcrest.CoreMatchers.*;
 import org.junit.After;
 import static org.junit.Assert.*;

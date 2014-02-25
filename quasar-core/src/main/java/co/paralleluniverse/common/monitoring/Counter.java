@@ -47,4 +47,9 @@ public class Counter {
         return la.sum();
         //return al.get();
     }
+
+    public long getAndReset() {
+        return la.sumThenReset();
+        //return al.get();
+    }
 }

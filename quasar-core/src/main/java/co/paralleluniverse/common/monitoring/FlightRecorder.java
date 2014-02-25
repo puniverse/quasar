@@ -12,6 +12,7 @@
  */
 package co.paralleluniverse.common.monitoring;
 
+import co.paralleluniverse.concurrent.util.MapUtil;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.text.MessageFormat;
@@ -21,7 +22,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentMap;
 import java.util.zip.GZIPOutputStream;
-import jsr166e.ConcurrentHashMapV8;
 
 /**
  *
@@ -30,7 +30,7 @@ import jsr166e.ConcurrentHashMapV8;
 public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean {
     private static final int DEFAULT_SIZE = Integer.getInteger("co.paralleluniverse.monitoring.flightRecorderSize", 20000);
     private static final int DEFAULT_LEVEL = Integer.getInteger("co.paralleluniverse.monitoring.flightRecorderLevel", 5);
-    private final ConcurrentMap<Thread, ThreadRecorder> recorders = new ConcurrentHashMapV8<Thread, ThreadRecorder>();
+    private final ConcurrentMap<Thread, ThreadRecorder> recorders = MapUtil.newConcurrentHashMap();
     //private final ThreadLocal<ThreadRecorder> threadRecorder = new ThreadLocal<ThreadRecorder>();
     private final long startWallTime;
     private final long startTimestamp;

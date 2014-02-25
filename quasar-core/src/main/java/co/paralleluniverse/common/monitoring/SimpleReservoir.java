@@ -23,10 +23,10 @@ import jsr166e.LongMaxUpdater;
  * @author pron
  */
 public class SimpleReservoir implements Reservoir {
-    private LongAdder num = new LongAdder();
-    private LongAdder sum = new LongAdder();
-    private LongMaxUpdater max = new LongMaxUpdater();
-    private LongMaxUpdater min = new LongMaxUpdater();
+    private final LongAdder num = new LongAdder();
+    private final LongAdder sum = new LongAdder();
+    private final LongMaxUpdater max = new LongMaxUpdater();
+    private final LongMaxUpdater min = new LongMaxUpdater();
 
     @Override
     public int size() {

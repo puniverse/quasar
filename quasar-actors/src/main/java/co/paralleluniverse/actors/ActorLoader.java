@@ -16,6 +16,7 @@ package co.paralleluniverse.actors;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.isClassFile;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.resourceToClass;
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.concurrent.util.MapUtil;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import java.io.IOException;
@@ -52,7 +53,6 @@ import javax.management.NotificationEmitter;
 import javax.management.NotificationFilter;
 import javax.management.NotificationListener;
 import javax.management.ObjectName;
-import jsr166e.ConcurrentHashMapV8;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,7 +125,7 @@ public class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notif
         return instance.getClassRef0(clazz);
     }
     //
-    private final ConcurrentHashMapV8<String, AtomicReference<Class<?>>> classRefs = new ConcurrentHashMapV8<>();
+    private final ConcurrentMap<String, AtomicReference<Class<?>>> classRefs = MapUtil.newConcurrentHashMap();
     private final ClassValue<AtomicReference<Class<?>>> classRefs1 = new ClassValue<AtomicReference<Class<?>>>() {
         @Override
         protected AtomicReference<Class<?>> computeValue(Class<?> type) {
@@ -133,7 +133,7 @@ public class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notif
         }
     };
     private final List<ActorModule> modules = new CopyOnWriteArrayList<>();
-    private final ConcurrentMap<String, ActorModule> classModule = new ConcurrentHashMapV8<>();
+    private final ConcurrentMap<String, ActorModule> classModule = MapUtil.newConcurrentHashMap();
     private final ThreadLocal<Boolean> recursive = new ThreadLocal<Boolean>();
     private final NotificationBroadcasterSupport notificationBroadcaster;
     private int notificationSequenceNumber;
@@ -412,12 +412,9 @@ public class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notif
     }
 
     AtomicReference<Class<?>> getClassRef0(String className) {
-        return classRefs.computeIfAbsent(className, new ConcurrentHashMapV8.Fun<String, AtomicReference<Class<?>>>() {
-            @Override
-            public AtomicReference<Class<?>> apply(String a) {
-                return new AtomicReference<>();
-            }
-        });
+        final AtomicReference<Class<?>> newValue = new AtomicReference<Class<?>>();
+        final AtomicReference<Class<?>> oldValue = classRefs.putIfAbsent(className, newValue);
+        return oldValue != null ? oldValue : newValue;
     }
 
     @Override

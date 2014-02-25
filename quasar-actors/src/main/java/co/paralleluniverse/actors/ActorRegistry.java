@@ -15,11 +15,11 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.ServiceUtil;
+import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
-import jsr166e.ConcurrentHashMapV8;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 public class ActorRegistry {
     // TODO: there are probably race conditions here
     private static final Logger LOG = LoggerFactory.getLogger(ActorRegistry.class);
-    private static final ConcurrentMap<String, Entry> registeredActors = new ConcurrentHashMapV8<String, Entry>();
+    private static final ConcurrentMap<String, Entry> registeredActors = MapUtil.newConcurrentHashMap();
     private static final GlobalRegistry globalRegistry = ServiceUtil.loadSingletonServiceOrNull(GlobalRegistry.class);
 
     static {

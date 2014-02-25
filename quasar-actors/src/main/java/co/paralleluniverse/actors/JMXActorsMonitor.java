@@ -32,7 +32,6 @@ import javax.management.NotCompliantMBeanException;
 import javax.management.Notification;
 import javax.management.NotificationListener;
 import javax.management.ObjectName;
-import jsr166e.LongAdder;
 import org.cliffc.high_scale_lib.NonBlockingHashMapLong;
 import org.cliffc.high_scale_lib.NonBlockingHashMapLong.IteratorLong;
 
@@ -51,7 +50,7 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
     private final NonBlockingHashMapLong<ActorRef<?>> actors = new NonBlockingHashMapLong<ActorRef<?>>();
     private final NonBlockingHashMapLong<SmallActorMonitor> watchedActors = new NonBlockingHashMapLong<SmallActorMonitor>();
     private long lastCollectTime;
-    private final LongAdder activeCount = new LongAdder();
+    private final Counter activeCount = new Counter();
 
     private JMXActorsMonitor() {
         this.mbeanName = "co.paralleluniverse:type=Actors";
@@ -126,18 +125,18 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
     }
 
     void actorStarted(ActorRef<?> actor) {
-        activeCount.increment();
+        activeCount.inc();
         actors.put(LocalActor.getStrand(actor).getId(), actor);
     }
 
     void actorTerminated(ActorRef<?> actor) {
-        activeCount.decrement();
+        activeCount.dec();
         actors.remove(LocalActor.getStrand(actor).getId());
     }
 
     @Override
     public int getNumActiveActors() {
-        return activeCount.intValue();
+        return (int)activeCount.get();
     }
 
     @Override
