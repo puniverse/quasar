@@ -3,6 +3,7 @@ install: gradle -q assemble
 script: set -o pipefail; gradle -i check | sed 's/\e\[?.*?[\@-~]//g'
 jdk:
   - oraclejdk7
+  - oraclejdk8
 branches:
   except:
     - gh-pages
