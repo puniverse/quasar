@@ -56,11 +56,11 @@ public class AsyncCompletionStage<V> extends FiberAsync<V, Void, ExecutionExcept
      * @throws TimeoutException     if the timeout expired before the future completed
      * @throws InterruptedException if the current thread was interrupted while waiting
      */
-    public static <V> V get(CompletableFuture<V> future, long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, SuspendExecution, TimeoutException {
-        if (Fiber.isCurrentFiber() && !future.isDone())
+    public static <V> V get(CompletionStage<V> future, long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, SuspendExecution, TimeoutException {
+        if (Fiber.isCurrentFiber())
             return new AsyncCompletionStage<>(future).run(timeout, unit);
         else
-            return future.get(timeout, unit);
+            return future.toCompletableFuture().get(timeout, unit);
     }
 
     /**
@@ -73,14 +73,14 @@ public class AsyncCompletionStage<V> extends FiberAsync<V, Void, ExecutionExcept
      * @throws TimeoutException     if the timeout expired before the future completed
      * @throws InterruptedException if the current thread was interrupted while waiting
      */
-    public static <V> V get(CompletableFuture<V> future, Timeout timeout) throws ExecutionException, InterruptedException, SuspendExecution, TimeoutException {
+    public static <V> V get(CompletionStage<V> future, Timeout timeout) throws ExecutionException, InterruptedException, SuspendExecution, TimeoutException {
         return get(future, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     /**
      * Blocks the current strand (either fiber or thread) until the given future completes, and returns its result.
      * <p/>
-     * Unlike {@link #get(CompletableFuture) get}, while this is a fiber-blocking operation, it is not suspendable. It blocks the fiber
+     * Unlike {@link #get(CompletionStage) get}, while this is a fiber-blocking operation, it is not suspendable. It blocks the fiber
      * by other, less efficient means, and {@link #get(CompletableFuture) get} should be generally preferred over this method.
      *
      * @param future the future
