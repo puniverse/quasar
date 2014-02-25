@@ -3,23 +3,15 @@ apply plugin: 'java'
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
 
-ext.quasarJar = "${libsDir}/quasar-core-jdk8-${version}.jar" // project(':quasar-core').jar.archivePath
-
-configurations {
-    provided
-}
+ext.quasarJar = "${libsDir}/quasar-core-${version}-jdk8.jar" // project(':quasar-core').jar.archivePath
 
 dependencies {
-    provided(project(':quasar-core')) { // 
+    compile(project(':quasar-core')) { // 
         exclude module: "jsr166e"
     }
-    // testCompile project(":quasar-core").sourceSets.test.output 
 }
 
 sourceSets {
-    main.compileClasspath = main.compileClasspath + configurations.provided
-    test.compileClasspath = test.compileClasspath + configurations.provided
-    test.runtimeClasspath = test.runtimeClasspath + configurations.provided
     test {
         java {
             srcDirs += "../quasar-core/src/test/java" // project(":quasar-core").sourceSets.test.java.srcDirs
@@ -27,16 +19,12 @@ sourceSets {
     }
 }
 
-//artifacts {
-//    archives jar {
-//        artifactId "quasar-core"
-//        classifier "jdk8"
-//    }
-//}
-
 //task jar(dependsOn: classes, type: Jar, overwrite: true) {
 jar.dependsOn ':quasar-core:jar'
-jar {    
+jar {
+    baseName = 'quasar-core'
+    classifier = 'jdk8'
+    
     from project(':quasar-core').sourceSets.main.output.classesDir
     from project(':quasar-core').sourceSets.main.resources
     from project.sourceSets.main.output.classesDir
@@ -72,7 +60,7 @@ tasks.withType(Test) {
     systemProperty 'co.paralleluniverse.flightRecorderDumpFile', 'quasar.log'
     systemProperty 'co.paralleluniverse.monitoring.flightRecorderSize', '200000'
         
-    jvmArgs "-javaagent:${libsDir}/quasar-core-jdk8-${version}.jar" // =vdmc (verbose, debug, allow monitors, check class)
+    jvmArgs "-javaagent:${libsDir}/quasar-core-${version}-jdk8.jar" // =vdmc (verbose, debug, allow monitors, check class)
     jvmArgs "-Xmx2048m"
     doLast() {
         println "file://" + getReports().getHtml().getDestination() + "/index.html"
