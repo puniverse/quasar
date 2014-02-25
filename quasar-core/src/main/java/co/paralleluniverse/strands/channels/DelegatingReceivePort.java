@@ -18,7 +18,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.TimeUnit;
 
-class DelegatingReceivePort<T> implements ReceivePort<T>, DelegatingEquals {
+public class DelegatingReceivePort<T> implements ReceivePort<T>, DelegatingEquals {
     protected final ReceivePort<T> target;
 
     public DelegatingReceivePort(ReceivePort<T> target) {

@@ -12,7 +12,7 @@
  */
 package co.paralleluniverse.common.monitoring;
 
-import java.util.concurrent.atomic.AtomicLong;
+//import java.util.concurrent.atomic.AtomicLong;
 import jsr166e.LongAdder;
 
 /**
