@@ -99,7 +99,11 @@ abstract class ActorRefImpl<Message> implements ActorRef<Message>, SendPort<Mess
 
     @Override
     public void sendSync(Message message) throws SuspendExecution {
-        send(message);
+        try {
+            send(message);
+        } catch (QueueCapacityExceededException e) {
+            throwIn(e);
+        }
     }
 
     @Override
