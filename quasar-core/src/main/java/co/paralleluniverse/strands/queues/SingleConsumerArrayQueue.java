@@ -160,7 +160,7 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
         final long h = head;
         for (; i != h; i--)
             copyValue((int) i & mask, (int) (i - 1) & mask);
-
+        clearValue(h);
         head = h + 1; // orderedSetHead(h + 1); // 
         return index;
     }
