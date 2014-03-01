@@ -369,6 +369,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     void internalSendNonSuspendable(Object message) {
         record(1, "Actor", "send", "Sending %s -> %s", message, this);
+        if (Debug.isDebug() && flightRecorder != null && flightRecorder.get().recordsLevel(2))
+            record(2, "Actor", "send", "%s queue %s", this, getQueueLength());
         if (mailbox().isOwnerAlive())
             mailbox().sendNonSuspendable(message);
         else
@@ -377,6 +379,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     final void sendSync(Message message) throws SuspendExecution {
         record(1, "Actor", "sendSync", "Sending sync %s -> %s", message, this);
+        if (Debug.isDebug() && flightRecorder != null && flightRecorder.get().recordsLevel(2))
+            record(2, "Actor", "sendSync", "%s queue %s", this, getQueueLength());
         if (mailbox().isOwnerAlive())
             mailbox().sendSync(message);
         else
@@ -385,6 +389,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     boolean trySend(Message message) {
         record(1, "Actor", "trySend", "Sending %s -> %s", message, this);
+        if (Debug.isDebug() && flightRecorder != null && flightRecorder.get().recordsLevel(2))
+            record(2, "Actor", "trySend", "%s queue %s", this, getQueueLength());
         if (mailbox().isOwnerAlive()) {
             if (mailbox().trySend(message))
                 return true;
@@ -410,6 +416,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
                 record(1, "Actor", "receive", "%s waiting for a message", this);
                 final Object m = mailbox().receive();
                 record(1, "Actor", "receive", "Received %s <- %s", this, m);
+                if (Debug.isDebug() && flightRecorder != null && flightRecorder.get().recordsLevel(2))
+                    record(2, "Actor", "receive", "%s queue %s", this, getQueueLength());
                 monitorAddMessage();
                 Message msg = filterMessage(m);
                 if (msg != null)

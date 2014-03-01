@@ -90,7 +90,7 @@ public class SelectiveReceiveHelper<Message> {
         Object n = null;
         for (int i = 0;; i++) {
             if (actor.flightRecorder != null)
-                actor.record(1, "Actor", "receive", "%s waiting for a message. %s", this, timeout > 0 ? "millis left: " + TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS) : "");
+                actor.record(1, "SelctiveReceiveHelper", "receive", "%s waiting for a message. %s", this, timeout > 0 ? "millis left: " + TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS) : "");
 
             mailbox.lock();
             n = mailbox.succ(n);
@@ -103,7 +103,7 @@ public class SelectiveReceiveHelper<Message> {
                     continue;
                 }
 
-                actor.record(1, "Actor", "receive", "Received %s <- %s", this, m);
+                actor.record(1, "SelctiveReceiveHelper", "receive", "Received %s <- %s", this, m);
                 actor.monitorAddMessage();
                 try {
                     if (m instanceof LifecycleMessage) {
@@ -126,6 +126,7 @@ public class SelectiveReceiveHelper<Message> {
                         } finally {
                             currentMessage = null;
                         }
+                        actor.record(1, "SelctiveReceiveHelper", "receive", "%s skipped %s", this, m);
                         actor.monitorSkippedMessage();
                     }
 

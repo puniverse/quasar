@@ -49,7 +49,6 @@ public class Debug {
         }
         unitTest = isUnitTest;
 
-
         if (debugMode) {
             Runtime.getRuntime().addShutdownHook(new Thread() {
                 @Override

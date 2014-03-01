@@ -202,7 +202,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
                     record("send0", "%s channel is closed for send. Dropping message %s", this, message);
                     return true;
                 }
-                record("send0", "%s channel queue is full. policy: ", this, overflowPolicy);
+                record("send0", "%s channel queue is full. policy: %s", this, overflowPolicy);
                 onQueueFull(i++, timed, nanos);
 
                 if (timed) {
