@@ -40,12 +40,12 @@ public class SingleConsumerArrayObjectQueue<E> extends SingleConsumerArrayQueue<
         if (item == null)
             throw new IllegalArgumentException("null values not allowed");
         final long i = preEnq();
-        if(i < 0)
+        if (i < 0)
             return false;
         orderedSet((int) i & mask, item); // volatile set
         return true;
     }
-    
+
     @Override
     boolean hasNext(long lind, int iind) {
         return array[iind] != null;
@@ -56,7 +56,7 @@ public class SingleConsumerArrayObjectQueue<E> extends SingleConsumerArrayQueue<
     void awaitValue(long i) {
         while (get((int) i & mask) == null); // volatile read
     }
-    
+
     @Override
     void clearValue(long index) {
         array[(int) index & mask] = null; //orderedSet(index, null);
@@ -66,7 +66,7 @@ public class SingleConsumerArrayObjectQueue<E> extends SingleConsumerArrayQueue<
     void copyValue(int to, int from) {
         array[to] = array[from]; // orderedSet(to, array[from]);
     }
-    
+
     private static final int base;
     private static final int shift;
 

@@ -180,7 +180,7 @@ public final class RequestReplyHelper {
                     return (m instanceof ResponseMessage && id.equals(((ResponseMessage) m).getId())) ? m : null;
                 }
             });
-            currentActor.unwatch(actor, watch); // no need to unwatch in case of receiver death, so not doen in finally block
+            currentActor.unwatch(actor, watch); // no need to unwatch in case of receiver death, so not done in finally block
 
             if (response instanceof ErrorResponseMessage)
                 throw Exceptions.rethrow(((ErrorResponseMessage) response).getError());
