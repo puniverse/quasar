@@ -74,6 +74,8 @@ public interface ReceivePort<Message> extends Port<Message> {
      */
     boolean isClosed();
 
+    public TransformingReceivePort<Message> transform();
+
     public static class EOFException extends Exception {
         public static EOFException instance = new EOFException();
         private EOFException() {

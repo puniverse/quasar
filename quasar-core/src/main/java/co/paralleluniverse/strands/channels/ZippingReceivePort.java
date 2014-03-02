@@ -130,4 +130,9 @@ public class ZippingReceivePort<Message> implements ReceivePort<Message> {
             return f.apply(ms);
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public TransformingReceivePort<Message> transform() {
+        return Channels.transform(this);
+    }
 }

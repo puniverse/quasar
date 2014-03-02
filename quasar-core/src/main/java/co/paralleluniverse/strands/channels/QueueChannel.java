@@ -323,6 +323,11 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     }
 
     @Override
+    public TransformingReceivePort<Message> transform() {
+        return Channels.transform(this);        
+    };
+
+    @Override
     public Message receive() throws SuspendExecution, InterruptedException {
         if (receiveClosed)
             return closeValue();

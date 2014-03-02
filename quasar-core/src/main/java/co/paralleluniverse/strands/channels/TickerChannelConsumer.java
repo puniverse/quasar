@@ -200,6 +200,11 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         channel.unregister(token);
     }
 
+    @Override
+    public TransformingReceivePort<Message> transform() {
+        return Channels.transform(this);
+    }
+
     ////////////
     private static class TickerChannelIntConsumer extends TickerChannelConsumer<Integer> implements IntReceivePort {
         public TickerChannelIntConsumer(QueueIntChannel channel) {

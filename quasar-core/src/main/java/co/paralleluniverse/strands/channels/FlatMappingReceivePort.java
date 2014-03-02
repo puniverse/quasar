@@ -66,7 +66,7 @@ public class FlatMappingReceivePort<S, T> extends DelegatingReceivePort1<S, T> i
             if (left <= 0)
                 return null;
             assert port == null || port.isClosed();
-            
+
             S m0 = target.receive(left, TimeUnit.NANOSECONDS);
             if (m0 == null)
                 return null;
@@ -100,5 +100,10 @@ public class FlatMappingReceivePort<S, T> extends DelegatingReceivePort1<S, T> i
     @Override
     public boolean isClosed() {
         return target.isClosed() && (port == null || port.isClosed());
+    }
+
+    @Override
+    public TransformingReceivePort<T> transform() {
+        return Channels.transform(this);
     }
 }

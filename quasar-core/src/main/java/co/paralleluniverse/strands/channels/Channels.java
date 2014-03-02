@@ -802,6 +802,11 @@ public final class Channels {
             public boolean isClosed() {
                 return closed;
             }
+
+            @Override
+            public TransformingReceivePort<T> transform() {
+              return Channels.transform(this);
+            }
         };
     }
 
@@ -845,6 +850,11 @@ public final class Channels {
             @Override
             public boolean isClosed() {
                 return it == null || !it.hasNext();
+            }
+
+            @Override
+            public TransformingReceivePort<T> transform() {
+              return Channels.transform(this);
             }
         };
     }
@@ -893,6 +903,11 @@ public final class Channels {
         @Override
         public boolean isClosed() {
             return true;
+        }
+
+        @Override
+        public TransformingReceivePort transform() {
+              return Channels.transform(this);
         }
     };
 }

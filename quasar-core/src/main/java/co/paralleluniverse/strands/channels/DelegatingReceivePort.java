@@ -74,4 +74,9 @@ public class DelegatingReceivePort<T> implements ReceivePort<T>, DelegatingEqual
     public String toString() {
         return getClass().getSimpleName() + "@" + Integer.toHexString(System.identityHashCode(this)) + "{" + target + "}";
     }
+
+    @Override
+    public TransformingReceivePort<T> transform() {
+              return Channels.transform(this);
+    }
 }

@@ -6,7 +6,9 @@ package co.paralleluniverse.strands.channels.disruptor;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
+import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.ReceivePort;
+import co.paralleluniverse.strands.channels.TransformingReceivePort;
 import com.lmax.disruptor.AbstractSequencer;
 import com.lmax.disruptor.AlertException;
 import com.lmax.disruptor.RingBuffer;
@@ -164,5 +166,10 @@ public class DisruptorReceiveChannel<Message> implements ReceivePort<Message> {
         } catch (SecurityException ex) {
             throw new Error(ex);
         }
+    }
+
+    @Override
+    public TransformingReceivePort<Message> transform() {
+        return Channels.transform(this);
     }
 }

@@ -113,4 +113,9 @@ public class QueuePrimitiveChannel<Message> extends QueueChannel<Message> implem
     protected BasicSingleConsumerQueue<Message> queue() {
         return (BasicSingleConsumerQueue<Message>) queue;
     }
+
+    @Override
+    public TransformingReceivePort<Message> transform() {
+        return Channels.transform(this);
+    }
 }

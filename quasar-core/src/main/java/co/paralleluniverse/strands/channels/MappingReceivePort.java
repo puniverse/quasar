@@ -41,4 +41,9 @@ class MappingReceivePort<S, T> extends ReceivePortTransformer<S, T> implements R
             return f.apply(m);
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public TransformingReceivePort<T> transform() {
+        return Channels.transform(this);
+    }
 }

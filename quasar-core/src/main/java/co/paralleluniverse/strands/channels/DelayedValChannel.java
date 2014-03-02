@@ -70,7 +70,7 @@ public class DelayedValChannel<V> implements ReceivePort<V>, Selectable<V> {
     @Override
     public V receive(Timeout timeout) throws SuspendExecution, InterruptedException {
         return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
-        
+
     }
 
     @Override
@@ -118,5 +118,10 @@ public class DelayedValChannel<V> implements ReceivePort<V>, Selectable<V> {
         Condition sync = dv.getSync();
         if (sync != null)
             sync.unregister(null);
+    }
+
+    @Override
+    public TransformingReceivePort<V> transform() {
+        return Channels.transform(this);
     }
 }

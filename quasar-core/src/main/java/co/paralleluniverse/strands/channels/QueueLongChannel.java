@@ -93,4 +93,9 @@ public class QueueLongChannel extends QueuePrimitiveChannel<Long> implements Lon
     protected BasicSingleConsumerLongQueue queue() {
         return (BasicSingleConsumerLongQueue) queue;
     }
+
+    @Override
+    public TransformingReceivePort<Long> transform() {
+        return Channels.transform(this);
+    }
 }

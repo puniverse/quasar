@@ -254,6 +254,11 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
      */
     static final int SWEEP_THRESHOLD = 32;
 
+    @Override
+    public TransformingReceivePort<Message> transform() {
+        return Channels.transform(this);
+    }
+
     /**
      * Queue nodes. Uses Object, not E, for items to allow forgetting
      * them after use. Relies heavily on Unsafe mechanics to minimize

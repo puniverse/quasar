@@ -93,4 +93,9 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
     protected BasicSingleConsumerIntQueue queue() {
         return (BasicSingleConsumerIntQueue) queue;
     }
+
+    @Override
+    public TransformingReceivePort<Integer> transform() {
+        return Channels.transform(this);
+    }
 }

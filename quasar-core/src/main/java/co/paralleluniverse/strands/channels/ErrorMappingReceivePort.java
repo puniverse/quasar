@@ -78,4 +78,9 @@ public class ErrorMappingReceivePort<T> extends DelegatingReceivePort1<T, T> imp
             return map(e);
         }
     }
+
+    @Override
+    public TransformingReceivePort<T> transform() {
+        return Channels.transform(this);
+    }
 }

@@ -41,4 +41,9 @@ class FilteringReceivePort<M> extends ReceivePortTransformer<M, M> implements Re
             return p.apply(m);
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public TransformingReceivePort<M> transform() {
+        return Channels.transform(this);
+    }
 }

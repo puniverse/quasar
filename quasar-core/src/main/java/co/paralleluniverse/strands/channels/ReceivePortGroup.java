@@ -83,4 +83,9 @@ public class ReceivePortGroup<Message> implements ReceivePort<Message> {
     public boolean isClosed() {
         return false;
     }
+
+    @Override
+    public TransformingReceivePort<Message> transform() {
+        return Channels.transform(this);
+    }
 }
