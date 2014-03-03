@@ -100,7 +100,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private volatile boolean interrupted;
     private long run;
     private boolean noPreempt;
-    private int preemptionCredits;
+    // private int preemptionCredits;
     private Thread runningThread;
     private final SuspendableCallable<V> target;
     private ClassLoader contextClassLoader;
@@ -643,7 +643,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         installFiberDataInThread(currentThread);
 
         run++;
-        preemptionCredits = PREEMPTION_CREDITS;
+        // preemptionCredits = PREEMPTION_CREDITS;
         runningThread = currentThread;
         state = State.RUNNING;
 

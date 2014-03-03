@@ -15,6 +15,7 @@ package co.paralleluniverse.strands;
 
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.instrument.DontInstrument;
 import java.util.concurrent.Callable;
 
 /**
@@ -30,12 +31,13 @@ public class SuspendableUtils {
         private final SuspendableRunnable runnable;
 
         public VoidSuspendableCallable(SuspendableRunnable runnable) {
-            if(runnable == null)
+            if (runnable == null)
                 throw new NullPointerException("Runnable is null");
             this.runnable = runnable;
         }
 
         @Override
+        @DontInstrument
         public Void run() throws SuspendExecution, InterruptedException {
             runnable.run();
             return null;
@@ -45,30 +47,30 @@ public class SuspendableUtils {
             return runnable;
         }
     }
-    
+
     public static SuspendableRunnable asSuspendable(final Runnable runnable) {
         return new SuspendableRunnable() {
 
             @Override
+            @DontInstrument
             public void run() throws SuspendExecution, InterruptedException {
                 runnable.run();
             }
         };
     }
-    
+
     public static <V> SuspendableCallable<V> asSuspendable(final Callable<V> callable) {
         return new SuspendableCallable<V>() {
 
             @Override
             public V run() throws SuspendExecution, InterruptedException {
                 try {
-                return callable.call();
-                } catch(Exception e) {
+                    return callable.call();
+                } catch (Exception e) {
                     throw Exceptions.rethrow(e);
                 }
             }
         };
     }
-    
-    
+
 }
