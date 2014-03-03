@@ -31,7 +31,7 @@ abstract class SingleConsumerArrayPrimitiveQueue<E> extends SingleConsumerArrayQ
     }
 
     @Override
-    void clearValue(long index) {
+    void clearValue(int index) {
     }
 
     @Override

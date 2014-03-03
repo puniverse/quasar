@@ -66,7 +66,7 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
 
     abstract void awaitValue(long index);
 
-    abstract void clearValue(long index);
+    abstract void clearValue(int index);
 
     abstract void copyValue(int to, int from);
 
@@ -95,10 +95,9 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
     }
 
     public void deq(int index) {
-        final long newHead = intToLongIndex(index) + 1;
-        for (long i = head; i != newHead; i++)
-            clearValue(i);
-        orderedSetHead(newHead); // head = newHead; // 
+        assert index == (head & mask);
+        clearValue(index);
+        orderedSetHead(head + 1); // head = newHead; // 
     }
 
     abstract boolean hasNext(long lind, int iind);
@@ -149,8 +148,8 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
             return -1;
         }
 
+        clearValue(index);
         long i = intToLongIndex(index);
-        clearValue(i);
         long t = tail;
         if (i == t) {
             if (compareAndSetTail(t, t - 1))
@@ -160,7 +159,7 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
         final long h = head;
         for (; i != h; i--)
             copyValue((int) i & mask, (int) (i - 1) & mask);
-        clearValue(h);
+        clearValue((int) (h & mask));
         head = h + 1; // orderedSetHead(h + 1); // 
         return index;
     }

@@ -58,8 +58,8 @@ public class SingleConsumerArrayObjectQueue<E> extends SingleConsumerArrayQueue<
     }
 
     @Override
-    void clearValue(long index) {
-        array[(int) index & mask] = null; //orderedSet(index, null);
+    void clearValue(int index) {
+        array[index] = null; //orderedSet(index, null);
     }
 
     @Override
