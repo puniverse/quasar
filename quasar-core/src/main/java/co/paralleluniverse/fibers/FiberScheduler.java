@@ -67,7 +67,7 @@ public abstract class FiberScheduler {
     protected abstract boolean isCurrentThreadInScheduler();
 
     void setCurrentFiber(Fiber fiber, Thread currentThread) {
-        Fiber.currentFiber.set(fiber);
+        Fiber.setCurrentStrand(fiber);
     }
 
     abstract void setCurrentTarget(Object target, Thread currentThread);

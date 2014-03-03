@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.MonitorType;
+import co.paralleluniverse.strands.Strand;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -50,9 +51,9 @@ public class FiberExecutorScheduler extends FiberScheduler implements Executor {
     /**
      * Creates a new fiber scheduler with no monitor.
      *
-     * @param name         the scheuler's name. This name is used in naming the scheduler's threads.
-     * @param executor     an {@link Executor} used to schedule the fibers;
-     *                     may be {@code null} if the {@link #execute(Runnable)} method is overriden.
+     * @param name     the scheuler's name. This name is used in naming the scheduler's threads.
+     * @param executor an {@link Executor} used to schedule the fibers;
+     *                 may be {@code null} if the {@link #execute(Runnable)} method is overriden.
      */
     public FiberExecutorScheduler(String name, Executor executor) {
         this(name, executor, null, false);
@@ -102,16 +103,16 @@ public class FiberExecutorScheduler extends FiberScheduler implements Executor {
 
     @Override
     void setCurrentFiber(Fiber target, Thread currentThread) {
-        Fiber.currentFiber.set(target);
+        Fiber.setCurrentStrand(target);
     }
 
     @Override
     void setCurrentTarget(Object target, Thread currentThread) {
-        Fiber.currentFiber.set((Fiber) target);
+        Fiber.setCurrentStrand((Strand) target);
     }
 
     @Override
     Object getCurrentTarget(Thread currentThread) {
-        return Fiber.currentFiber.get();
+        return Fiber.getCurrentStrand();
     }
 }

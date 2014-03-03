@@ -164,7 +164,7 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         return ForkJoinTask.getPool() == fjPool;
     }
 
-    static boolean isFiberThread(Thread t) {
+    public static boolean isFiberThread(Thread t) {
         return t instanceof FiberWorkerThread;
     }
 

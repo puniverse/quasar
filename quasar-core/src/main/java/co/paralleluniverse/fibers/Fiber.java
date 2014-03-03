@@ -86,7 +86,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private static long nextFiberId() {
         return idGen.incrementAndGet();
     }
-    static final ThreadLocal<Fiber> currentFiber = new ThreadLocal<>(); // not used by FiberFJScheduler
     //
     private final FiberScheduler scheduler;
     private final FiberTask<V> task;
@@ -840,14 +839,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (scheduler != null)
             scheduler.setCurrentFiber(fiber, currentThread);
         else
-            currentFiber.set(fiber);
+            currentStrand.set(fiber);
     }
 
     private void setCurrentTarget(Object target, Thread currentThread) {
         if (scheduler != null) // in tests
             scheduler.setCurrentTarget(target, currentThread);
         else
-            currentFiber.set(null);
+            currentStrand.set(null);
     }
 
     private Object getCurrentTarget(Thread currentThread) {
@@ -860,8 +859,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         final Thread currentThread = Thread.currentThread();
         if (FiberForkJoinScheduler.isFiberThread(currentThread))
             return FiberForkJoinScheduler.getTargetFiber(currentThread);
-        else
-            return currentFiber.get();
+        else {
+            Strand s = currentStrand.get();
+            return s instanceof Fiber ? (Fiber) s : null;
+        }
     }
 
     static final class DummyRunnable implements Runnable {
@@ -1249,6 +1250,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      */
     public static void setDefaultUncaughtExceptionHandler(UncaughtExceptionHandler eh) {
         Fiber.defaultUncaughtExceptionHandler = eh;
+    }
+
+    static void setCurrentStrand(Strand f) {
+        currentStrand.set(f);
+    }
+
+    static Strand getCurrentStrand() {
+        return currentStrand.get();
     }
 
     Thread getRunningThread() {

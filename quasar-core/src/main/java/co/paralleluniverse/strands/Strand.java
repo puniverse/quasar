@@ -15,6 +15,7 @@ package co.paralleluniverse.strands;
 
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FibersMonitor;
 import co.paralleluniverse.fibers.NoopFibersMonitor;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -220,7 +221,8 @@ public abstract class Strand {
      * represents the bottom of the stack, which is the least recent method
      * invocation in the sequence.
      *
-     * <p>Some virtual machines may, under some circumstances, omit one
+     * <p>
+     * Some virtual machines may, under some circumstances, omit one
      * or more stack frames from the stack trace. In the extreme case,
      * a virtual machine that has no stack trace information concerning
      * this strand is permitted to return a zero-length array from this
@@ -246,11 +248,20 @@ public abstract class Strand {
      * @return A strand representing the current fiber or thread
      */
     public static Strand currentStrand() {
-        final Fiber fiber = Fiber.currentFiber();
-        if (fiber != null)
-            return of(fiber);
-        else
-            return ThreadStrand.currStrand();
+        if (FiberForkJoinScheduler.isFiberThread(Thread.currentThread()))
+            return Fiber.currentFiber();
+        
+        Strand s = currentStrand.get();
+        if (s == null) {
+            s = ThreadStrand.get(Thread.currentThread());
+            currentStrand.set(s);
+        }
+        return s;
+//        final Fiber fiber = Fiber.currentFiber();
+//        if (fiber != null)
+//            return of(fiber);
+//        else
+//            return ThreadStrand.currStrand();
     }
 
     /**
@@ -327,7 +338,8 @@ public abstract class Strand {
      * its current use of a processor. The scheduler is free to ignore this
      * hint.
      *
-     * <p> Yield is a heuristic attempt to improve relative progression
+     * <p>
+     * Yield is a heuristic attempt to improve relative progression
      * between strands that would otherwise over-utilise a CPU. Its use
      * should be combined with detailed profiling and benchmarking to
      * ensure that it actually has the desired effect.
@@ -348,8 +360,8 @@ public abstract class Strand {
      *
      * @throws IllegalArgumentException if the value of {@code millis} is negative
      * @throws InterruptedException     if any strand has interrupted the current strand. The
-     *                                  <i>interrupted status</i> of the current strand is
-     *                                  cleared when this exception is thrown.
+     * <i>interrupted status</i> of the current strand is
+     * cleared when this exception is thrown.
      */
     public static void sleep(long millis) throws SuspendExecution, InterruptedException {
         if (isCurrentFiber())
@@ -370,8 +382,8 @@ public abstract class Strand {
      * @throws IllegalArgumentException if the value of {@code millis} is negative,
      *                                  or the value of {@code nanos} is not in the range {@code 0-999999}
      * @throws InterruptedException     if any strand has interrupted the current strand. The
-     *                                  <i>interrupted status</i> of the current strand is
-     *                                  cleared when this exception is thrown.
+     * <i>interrupted status</i> of the current strand is
+     * cleared when this exception is thrown.
      */
     public static void sleep(long millis, int nanos) throws SuspendExecution, InterruptedException {
         if (isCurrentFiber())
@@ -389,8 +401,8 @@ public abstract class Strand {
      * @param unit     the time unit of {@code duration}.
      *
      * @throws InterruptedException if any strand has interrupted the current strand. The
-     *                              <i>interrupted status</i> of the current strand is
-     *                              cleared when this exception is thrown.
+     * <i>interrupted status</i> of the current strand is
+     * cleared when this exception is thrown.
      */
     public static void sleep(long duration, TimeUnit unit) throws SuspendExecution, InterruptedException {
         if (isCurrentFiber())
@@ -403,7 +415,8 @@ public abstract class Strand {
      * Disables the current strand for scheduling purposes unless the
      * permit is available.
      *
-     * <p>If the permit is available then it is consumed and the call returns
+     * <p>
+     * If the permit is available then it is consumed and the call returns
      * immediately; otherwise
      * the current strand becomes disabled for scheduling
      * purposes and lies dormant until one of three things happens:
@@ -418,7 +431,8 @@ public abstract class Strand {
      * <li>The call spuriously (that is, for no reason) returns.
      * </ul>
      *
-     * <p>This method does <em>not</em> report which of these caused the
+     * <p>
+     * This method does <em>not</em> report which of these caused the
      * method to return. Callers should re-check the conditions which caused
      * the strand to park in the first place. Callers may also determine,
      * for example, the interrupt status of the strand upon return.
@@ -434,7 +448,8 @@ public abstract class Strand {
      * Disables the current strand for scheduling purposes unless the
      * permit is available.
      *
-     * <p>If the permit is available then it is consumed and the call returns
+     * <p>
+     * If the permit is available then it is consumed and the call returns
      * immediately; otherwise
      * the current strand becomes disabled for scheduling
      * purposes and lies dormant until one of three things happens:
@@ -449,7 +464,8 @@ public abstract class Strand {
      * <li>The call spuriously (that is, for no reason) returns.
      * </ul>
      *
-     * <p>This method does <em>not</em> report which of these caused the
+     * <p>
+     * This method does <em>not</em> report which of these caused the
      * method to return. Callers should re-check the conditions which caused
      * the strand to park in the first place. Callers may also determine,
      * for example, the interrupt status of the strand upon return.
@@ -463,8 +479,13 @@ public abstract class Strand {
             LockSupport.park(blocker);
     }
 
+    private static boolean canTransferControl(Strand other) {
+        Strand current = Strand.currentStrand();
+        return (other.isFiber() && current.isFiber() && ((Fiber) other).getScheduler() == ((Fiber) current).getScheduler());
+    }
+
     public static void parkAndUnpark(Strand other, Object blocker) throws SuspendExecution {
-        if (other.isFiber() && isCurrentFiber())
+        if (canTransferControl(other))
             Fiber.parkAndUnpark((Fiber) other, blocker);
         else if (!other.isFiber() && !isCurrentFiber()) {
             // might be made faster on Linux if SwitchTo syscall is introduced into the kernel.
@@ -477,7 +498,7 @@ public abstract class Strand {
     }
 
     public static void parkAndUnpark(Strand other) throws SuspendExecution {
-        if (other.isFiber() && isCurrentFiber())
+        if (canTransferControl(other))
             Fiber.parkAndUnpark((Fiber) other);
         else if (!other.isFiber() && !isCurrentFiber()) {
             // might be made faster on Linux if SwitchTo syscall is introduced into the kernel.
@@ -490,15 +511,15 @@ public abstract class Strand {
     }
 
     public static void yieldAndUnpark(Strand other, Object blocker) throws SuspendExecution {
-        if (other.isFiber() && isCurrentFiber())
+        if (canTransferControl(other))
             Fiber.yieldAndUnpark((Fiber) other, blocker);
         else if (!other.isFiber() && !isCurrentFiber()) {
             // might be made faster on Linux if SwitchTo syscall is introduced into the kernel.
             other.unpark(blocker);
-            Thread.yield();
+            //Thread.yield(); - it's a shame to yield now as we'll shortly block
         } else {
             other.unpark(blocker);
-            yield();
+            //yield(); - it's a shame to yield now as we'll shortly block
         }
     }
 
@@ -508,10 +529,10 @@ public abstract class Strand {
         else if (!other.isFiber() && !isCurrentFiber()) {
             // might be made faster on Linux if SwitchTo syscall is introduced into the kernel.
             other.unpark();
-            Thread.yield();
+            //Thread.yield(); - it's a shame to yield now as we'll shortly block
         } else {
             other.unpark();
-            yield();
+            //yield(); - it's a shame to yield now as we'll shortly block
         }
     }
 
@@ -519,7 +540,8 @@ public abstract class Strand {
      * Disables the current strand for thread scheduling purposes, for up to
      * the specified waiting time, unless the permit is available.
      *
-     * <p>If the permit is available then it is consumed and the call
+     * <p>
+     * If the permit is available then it is consumed and the call
      * returns immediately; otherwise the current strand becomes disabled
      * for scheduling purposes and lies dormant until one of four
      * things happens:
@@ -536,7 +558,8 @@ public abstract class Strand {
      * <li>The call spuriously (that is, for no reason) returns.
      * </ul>
      *
-     * <p>This method does <em>not</em> report which of these caused the
+     * <p>
+     * This method does <em>not</em> report which of these caused the
      * method to return. Callers should re-check the conditions which caused
      * the strand to park in the first place. Callers may also determine,
      * for example, the interrupt status of the strand, or the elapsed time
@@ -555,7 +578,8 @@ public abstract class Strand {
      * Disables the current strand for thread scheduling purposes, for up to
      * the specified waiting time, unless the permit is available.
      *
-     * <p>If the permit is available then it is consumed and the call
+     * <p>
+     * If the permit is available then it is consumed and the call
      * returns immediately; otherwise the current strand becomes disabled
      * for scheduling purposes and lies dormant until one of four
      * things happens:
@@ -572,7 +596,8 @@ public abstract class Strand {
      * <li>The call spuriously (that is, for no reason) returns.
      * </ul>
      *
-     * <p>This method does <em>not</em> report which of these caused the
+     * <p>
+     * This method does <em>not</em> report which of these caused the
      * method to return. Callers should re-check the conditions which caused
      * the strand to park in the first place. Callers may also determine,
      * for example, the interrupt status of the strand, or the elapsed time
@@ -592,7 +617,8 @@ public abstract class Strand {
      * Disables the current strand for scheduling purposes, until
      * the specified deadline, unless the permit is available.
      *
-     * <p>If the permit is available then it is consumed and the call
+     * <p>
+     * If the permit is available then it is consumed and the call
      * returns immediately; otherwise the current strand becomes disabled
      * for scheduling purposes and lies dormant until one of four
      * things happens:
@@ -609,7 +635,8 @@ public abstract class Strand {
      * <li>The call spuriously (that is, for no reason) returns.
      * </ul>
      *
-     * <p>This method does <em>not</em> report which of these caused the
+     * <p>
+     * This method does <em>not</em> report which of these caused the
      * method to return. Callers should re-check the conditions which caused
      * the strand to park in the first place. Callers may also determine,
      * for example, the interrupt status of the strand, or the current time
@@ -687,7 +714,8 @@ public abstract class Strand {
     /**
      * Set the handler invoked when this strand abruptly terminates
      * due to an uncaught exception.
-     * <p>A strand can take full control of how it responds to uncaught
+     * <p>
+     * A strand can take full control of how it responds to uncaught
      * exceptions by having its uncaught exception handler explicitly set.
      *
      * @param eh the object to use as this strand's uncaught exception handler.
@@ -821,7 +849,8 @@ public abstract class Strand {
 
     /**
      * Interface for handlers invoked when a {@code Strand} abruptly terminates due to an uncaught exception.
-     * <p>When a fiber is about to terminate due to an uncaught exception,
+     * <p>
+     * When a fiber is about to terminate due to an uncaught exception,
      * the Java Virtual Machine will query the fiber for its
      * <tt>UncaughtExceptionHandler</tt> using
      * {@link #getUncaughtExceptionHandler} and will invoke the handler's
@@ -833,7 +862,8 @@ public abstract class Strand {
     public interface UncaughtExceptionHandler {
         /**
          * Method invoked when the given fiber terminates due to the given uncaught exception.
-         * <p>Any exception thrown by this method will be ignored.
+         * <p>
+         * Any exception thrown by this method will be ignored.
          *
          * @param f the fiber
          * @param e the exception
@@ -841,9 +871,11 @@ public abstract class Strand {
         void uncaughtException(Strand f, Throwable e);
     }
 
+    protected static ThreadLocal<Strand> currentStrand = new ThreadLocal<Strand>();
+
     private static final class ThreadStrand extends Strand {
         private static ConcurrentMap<Long, Strand> threadStrands = new com.google.common.collect.MapMaker().weakValues().makeMap();
-        
+
         static Strand get(Thread t) {
             Strand s = threadStrands.get(t.getId());
             if (s == null) {
@@ -854,17 +886,11 @@ public abstract class Strand {
             }
             return s;
         }
-        private static ThreadLocal<Strand> strand = new ThreadLocal<Strand>() {
-            @Override
-            protected Strand initialValue() {
-                return ThreadStrand.get(Thread.currentThread());
-            }
-        };
-        
+
         static Strand currStrand() {
-            return strand.get();
+            return currentStrand.get();
         }
-        
+
         private final Thread thread;
 
         public ThreadStrand(Thread owner) {
