@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.common.util.CheckedCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -215,6 +216,67 @@ public class FiberAsyncTest {
             public void run() throws SuspendExecution, InterruptedException {
                 try {
                     String res = callService(asyncService, 10, TimeUnit.MILLISECONDS);
+                    fail();
+                } catch (TimeoutException e) {
+                }
+            }
+        }).start();
+
+        fiber.join();
+    }
+
+    @Test
+    public void testRunBlocking() throws Exception {
+        final Fiber fiber = new Fiber(new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                String res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), new CheckedCallable<String, InterruptedException>() {
+                    public String call() throws InterruptedException {
+                        Thread.sleep(300);
+                        return "ok";
+                    }
+                });
+                assertThat(res, equalTo("ok"));
+            }
+        }).start();
+
+        fiber.join();
+    }
+
+    @Test
+    public void testRunBlockingWithTimeout1() throws Exception {
+        final Fiber fiber = new Fiber(new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                try {
+                    String res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), 400, TimeUnit.MILLISECONDS, new CheckedCallable<String, InterruptedException>() {
+                        public String call() throws InterruptedException {
+                            Thread.sleep(300);
+                            return "ok";
+                        }
+                    });
+                    assertThat(res, equalTo("ok"));
+                } catch (TimeoutException e) {
+                    fail();
+                }
+            }
+        }).start();
+
+        fiber.join();
+    }
+
+    @Test
+    public void testRunBlockingWithTimeout2() throws Exception {
+        final Fiber fiber = new Fiber(new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                try {
+                    String res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), 100, TimeUnit.MILLISECONDS, new CheckedCallable<String, InterruptedException>() {
+                        public String call() throws InterruptedException {
+                            Thread.sleep(300);
+                            return "ok";
+                        }
+                    });
                     fail();
                 } catch (TimeoutException e) {
                 }
