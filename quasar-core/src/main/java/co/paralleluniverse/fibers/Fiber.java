@@ -60,7 +60,7 @@ import sun.misc.Unsafe;
 public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.verifyInstrumentation", "false"));
     private static final boolean traceInterrupt = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.traceInterrupt", "false"));
-    public static final int DEFAULT_STACK_SIZE = 16;
+    public static final int DEFAULT_STACK_SIZE = 32;
 //    private static final boolean PREEMPTION = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.enablePreemption", "false"));
     private static final int PREEMPTION_CREDITS = 3000;
     private static final long serialVersionUID = 2783452871536981L;

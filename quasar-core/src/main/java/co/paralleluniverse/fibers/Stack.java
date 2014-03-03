@@ -13,6 +13,7 @@ import java.util.Arrays;
  * @author Ron Pressler
  */
 public final class Stack implements Serializable {
+    private static final int INITIAL_METHOD_STACK_DEPTH = 16;
     private static final long serialVersionUID = 12786283751253L;
     private final Fiber fiber;
     private int methodTOS = -1;
@@ -28,7 +29,7 @@ public final class Stack implements Serializable {
             throw new IllegalArgumentException("stackSize");
         }
         this.fiber = lwThread;
-        this.method = new int[8];
+        this.method = new int[INITIAL_METHOD_STACK_DEPTH];
         this.dataLong = new long[stackSize];
         this.dataObject = new Object[stackSize];
     }
@@ -124,9 +125,11 @@ public final class Stack implements Serializable {
         int idx = methodTOS;
         curMethodSP = method[++idx];
         methodTOS = ++idx;
-        final int entry = method[idx];
+        int entry = method[idx];
+        
         if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "nextMethodEntry", "%s %s", Thread.currentThread().getStackTrace()[2], entry /*Arrays.toString(fiber.getStackTrace())*/);
+        
         return entry;
     }
 
@@ -221,7 +224,7 @@ public final class Stack implements Serializable {
     }
 
     private void growMethodStack() {
-        int newSize = method.length * 2;
+        int newSize = method.length << 1;
         method = Arrays.copyOf(method, newSize);
     }
 
