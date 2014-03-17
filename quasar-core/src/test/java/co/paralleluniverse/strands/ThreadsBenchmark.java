@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -25,12 +26,12 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 public class ThreadsBenchmark {
-    static final int RINGS = 10;
-    static final int STRANDS_PER_RING = 500;
-    static final int MESSAGES_PER_RING = 1000;
+    static final int RINGS = 2;
+    static final int THREADS_PER_RING = 100;
+    static final int MESSAGES_PER_RING = 10000;
     static final int bufferSize = 10;
 
-    private static final ExecutorService exec = Executors.newCachedThreadPool();
+    private static final ExecutorService exec = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setDaemon(true).build());
     public static void main(String args[]) throws Exception {
         System.out.println("COMPILER: " + System.getProperty("java.vm.name"));
         System.out.println("VERSION: " + System.getProperty("java.version"));
@@ -39,7 +40,7 @@ public class ThreadsBenchmark {
         System.out.println();
 
         System.out.println("RINGS: " + RINGS);
-        System.out.println("STRANDS_PER_RING: " + STRANDS_PER_RING);
+        System.out.println("THREADS_PER_RING: " + THREADS_PER_RING);
         System.out.println("MESSAGES_PER_RING: " + MESSAGES_PER_RING);
 
         for (int i = 0; i < 3; i++) {
@@ -55,7 +56,7 @@ public class ThreadsBenchmark {
 
         List<Future<?>> ringLeaders = new ArrayList<>();
         for (int i = 0; i < RINGS; i++)
-            ringLeaders.add(exec.submit(createRing(STRANDS_PER_RING, MESSAGES_PER_RING)));
+            ringLeaders.add(exec.submit(createRing(THREADS_PER_RING, MESSAGES_PER_RING)));
 
         final long afterInit = System.nanoTime();
 
@@ -93,6 +94,7 @@ public class ThreadsBenchmark {
                         m = firstChannel.take();
                         lastChannel.add(createMessage(m));
                     }
+                    lastChannel.add("stop");
                     blackHole = m;
                 } catch (InterruptedException e) {
                 }
@@ -108,7 +110,7 @@ public class ThreadsBenchmark {
             public void run() {
                 try {
                     String m;
-                    while ((m = channel.take()) != null)
+                    while ((m = channel.take()) != "stop")
                         prev.add(createMessage(m));
                 } catch (InterruptedException e) {
 

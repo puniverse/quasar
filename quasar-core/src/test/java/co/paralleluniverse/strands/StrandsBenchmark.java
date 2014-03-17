@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 public class StrandsBenchmark {
     static final boolean HEAVYWEIGHT = true;
     static final int RINGS = 10;
-    static final int STRANDS_PER_RING = 500;
+    static final int STRANDS_PER_RING = 1000;
     static final int MESSAGES_PER_RING = 1000;
     static final int bufferSize = 10;
 
@@ -96,6 +96,7 @@ public class StrandsBenchmark {
                     m = firstChannel.receive();
                     lastChannel.send(createMessage(m));
                 }
+                lastChannel.close();
                 blackHole = m;
             }
         });
@@ -110,6 +111,7 @@ public class StrandsBenchmark {
                 String m;
                 while ((m = channel.receive()) != null)
                     prev.send(createMessage(m));
+                prev.close();
             }
         });
         s.start();
