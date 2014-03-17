@@ -41,9 +41,10 @@ class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
     public V run() throws SuspendExecution, InterruptedException {
         if (strand == null)
             setStrand(Strand.currentStrand());
-        if (actor == null)
+        if (actor == null) {
             this.actor = (Actor<?, V>) actorRef.getActor();
-        assert actor == actorRef.getActor();
+            assert actor != null && actor == actorRef.getActor();
+        }
         for (;;) {
             try {
                 return actor.run0();
@@ -54,8 +55,8 @@ class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
                     newActor.onCodeChange0();
                     actor.defunct();
                     this.actor = newActor;
+                    assert actor != null && actor == actorRef.getActor();
                 }
-                assert actor == actorRef.getActor();
             }
         }
     }
@@ -71,8 +72,10 @@ class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
         if (this.strand != null)
             throw new IllegalStateException("Strand already set to " + strand);
         this.strand = strand;
-        if (actor == null)
+        if (actor == null) {
             this.actor = (Actor<?, V>) actorRef.getActor();
+            assert actor != null && actor == actorRef.getActor();
+        }
         actor.setStrand0(strand);
     }
 
