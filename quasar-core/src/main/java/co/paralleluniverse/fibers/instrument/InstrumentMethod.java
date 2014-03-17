@@ -89,6 +89,7 @@ class InstrumentMethod {
     private final MethodNode mn;
     private final Frame[] frames;
     private static final int NUM_LOCALS = 3; // lvarStack, lvarResumed, lvarInvocationReturnValue
+    private static final int ADD_OPERANDS = 6; // 4;
     private final int lvarStack; // ref to Stack
     private final int lvarResumed; // boolean indicating if we've been resumed
     private final int lvarInvocationReturnValue;
@@ -262,6 +263,8 @@ class InstrumentMethod {
         mv.visitInsn(Opcodes.DUP);
         mv.visitVarInsn(Opcodes.ASTORE, lvarStack);
 
+        // println(mv, "STACK: ", lvarStack);
+        // dumpStack(mv);
         if (DUAL) {
             mv.visitJumpInsn(Opcodes.IFNULL, lMethodStart);
             mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
@@ -364,7 +367,10 @@ class InstrumentMethod {
         if (handleProxyInvocations) {
             mv.visitLabel(lCatchUTE);
             mv.visitInsn(Opcodes.DUP);
+
+            // println(mv, "CTCH: ");
             mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;");
+            // println(mv, "CAUSE: ");
             mv.visitTypeInsn(Opcodes.INSTANCEOF, EXCEPTION_NAME);
             mv.visitJumpInsn(Opcodes.IFEQ, lCatchAll);
             mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;");
@@ -375,6 +381,8 @@ class InstrumentMethod {
         emitPopMethod(mv);
         mv.visitLabel(lCatchSEE);
 
+        // println(mv, "THROW: ");
+
         mv.visitInsn(Opcodes.ATHROW);   // rethrow shared between catchAll and catchSSE
 
         if (mn.localVariables != null) {
@@ -382,16 +390,22 @@ class InstrumentMethod {
                 ((LocalVariableNode) o).accept(mv);
         }
 
-        mv.visitMaxs(mn.maxStack + 4, mn.maxLocals + NUM_LOCALS + additionalLocals);
+        mv.visitMaxs(mn.maxStack + ADD_OPERANDS, mn.maxLocals + NUM_LOCALS + additionalLocals);
         mv.visitEnd();
     }
 
+    // prints a local var
     private void println(MethodVisitor mv, String prefix, int refVar) {
-        mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+        mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "err", "Ljava/io/PrintStream;");
         mv.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
         mv.visitInsn(Opcodes.DUP);
         mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V");
-        mv.visitLdcInsn(prefix);
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "currentThread", "()Ljava/lang/Thread;");
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Thread", "getName", "()Ljava/lang/String;");
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+        mv.visitLdcInsn(" " + prefix);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+        mv.visitLdcInsn(" var " + refVar + ":");
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
 
         mv.visitVarInsn(Opcodes.ALOAD, refVar);
@@ -399,6 +413,34 @@ class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;");
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;");
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V");
+    }
+
+    // prints the value at the top of the operand stack
+    private void println(MethodVisitor mv, String prefix) {
+        mv.visitInsn(Opcodes.DUP); // S1 S1
+
+        mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "err", "Ljava/io/PrintStream;"); // PrintStream S1 S1
+
+        mv.visitInsn(Opcodes.SWAP); // S1 PrintStream S1
+
+        mv.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder"); // StringBuilder S1 PrintStream S1
+        mv.visitInsn(Opcodes.DUP); // StringBuilder StringBuilder S1 PrintStream S1
+        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V"); // StringBuilder S1 PrintStream S1
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "currentThread", "()Ljava/lang/Thread;");
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Thread", "getName", "()Ljava/lang/String;");
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+        mv.visitLdcInsn(" " + prefix); // prefix StringBuilder S1 PrintStream S1
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;"); // StringBuilder S1 PrintStream S1
+
+        mv.visitInsn(Opcodes.SWAP); // S1 StringBuilder PrintStream S1
+
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;"); // StringBuilder PrintStream S1
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;"); // PrintStream S1
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V"); // S1
+    }
+
+    private void dumpStack(MethodVisitor mv) {
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "dumpStack", "()V");
     }
 
     private FrameInfo addCodeBlock(Frame f, int end) {
@@ -593,7 +635,7 @@ class InstrumentMethod {
                 if (!isNullType(v)) {
                     int slotIdx = fi.stackSlotIndices[i];
                     assert slotIdx >= 0 && slotIdx < fi.numSlots;
-                    emitStoreValue(mv, v, lvarStack, slotIdx);
+                    emitStoreValue(mv, v, lvarStack, slotIdx, -1);
                 } else {
                     db.log(LogLevel.DEBUG, "NULL stack entry: type=%s size=%d", v.getType(), v.getSize());
                     mv.visitInsn(Opcodes.POP);
@@ -608,7 +650,7 @@ class InstrumentMethod {
                 mv.visitVarInsn(v.getType().getOpcode(Opcodes.ILOAD), i);
                 int slotIdx = fi.localSlotIndices[i];
                 assert slotIdx >= 0 && slotIdx < fi.numSlots;
-                emitStoreValue(mv, v, lvarStack, slotIdx);
+                emitStoreValue(mv, v, lvarStack, slotIdx, i);
             }
         }
 
@@ -619,7 +661,7 @@ class InstrumentMethod {
                 if (!isNullType(v)) {
                     int slotIdx = fi.stackSlotIndices[i];
                     assert slotIdx >= 0 && slotIdx < fi.numSlots;
-                    emitRestoreValue(mv, v, lvarStack, slotIdx);
+                    emitRestoreValue(mv, v, lvarStack, slotIdx, -1);
                 } else {
                     mv.visitInsn(Opcodes.ACONST_NULL);
                 }
@@ -636,7 +678,7 @@ class InstrumentMethod {
             if (!isNullType(v)) {
                 int slotIdx = fi.localSlotIndices[i];
                 assert slotIdx >= 0 && slotIdx < fi.numSlots;
-                emitRestoreValue(mv, v, lvarStack, slotIdx);
+                emitRestoreValue(mv, v, lvarStack, slotIdx, i);
                 mv.visitVarInsn(v.getType().getOpcode(Opcodes.ISTORE), i);
             } else if (v != BasicValue.UNINITIALIZED_VALUE) {
                 mv.visitInsn(Opcodes.ACONST_NULL);
@@ -651,7 +693,7 @@ class InstrumentMethod {
                 if (!isNullType(v)) {
                     int slotIdx = fi.stackSlotIndices[i];
                     assert slotIdx >= 0 && slotIdx < fi.numSlots;
-                    emitRestoreValue(mv, v, lvarStack, slotIdx);
+                    emitRestoreValue(mv, v, lvarStack, slotIdx, -1);
                 } else {
                     mv.visitInsn(Opcodes.ACONST_NULL);
                 }
@@ -689,7 +731,7 @@ class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "preemptionPoint", "(I)V");
     }
 
-    private void emitStoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx) throws InternalError, IndexOutOfBoundsException {
+    private void emitStoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx, int lvar) throws InternalError, IndexOutOfBoundsException {
         String desc;
 
         switch (v.getType().getSort()) {
@@ -718,11 +760,13 @@ class InstrumentMethod {
         }
 
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+//        if (v.getType().getSort() == Type.OBJECT || v.getType().getSort() == Type.ARRAY)
+//            println(mv, "STORE " + (lvar >= 0 ? ("VAR " + lvar + ": ") : "OPRND: "));
         emitConst(mv, idx);
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "push", desc);
     }
 
-    private void emitRestoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx) {
+    private void emitRestoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx, int lvar) {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         emitConst(mv, idx);
 
@@ -730,9 +774,9 @@ class InstrumentMethod {
             case Type.OBJECT:
                 String internalName = v.getType().getInternalName();
                 mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getObject", "(I)Ljava/lang/Object;");
-                if (!internalName.equals("java/lang/Object")) {  // don't cast to Object ;)
+                if (!internalName.equals("java/lang/Object"))  // don't cast to Object ;)
                     mv.visitTypeInsn(Opcodes.CHECKCAST, internalName);
-                }
+//                println(mv, "RESTORE " + (lvar >= 0 ? ("VAR " + lvar + ": ") : "OPRND: "));
                 break;
             case Type.ARRAY:
                 mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getObject", "(I)Ljava/lang/Object;");

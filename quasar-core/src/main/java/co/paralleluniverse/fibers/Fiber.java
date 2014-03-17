@@ -30,7 +30,9 @@ import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.SuspendableUtils.VoidSuspendableCallable;
 import static co.paralleluniverse.strands.SuspendableUtils.runnableToCallable;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Serializable;
+import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
@@ -633,7 +635,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         cancelTimeoutTask();
 
         final FibersMonitor monitor = getMonitor();
-        record(1, "Fiber", "exec1", "running %s %s", state, this);
+        if (Debug.isDebug())
+            record(1, "Fiber", "exec1", "running %s %s %s", state, this, run);
         // if (monitor != null && state == State.STARTED)
         //    monitor.fiberStarted(this); - done elsewhere
 
@@ -689,7 +692,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             clearRunSettings();
             runningThread = null;
             state = State.TERMINATED;
-            record(1, "Fiber", "exec1", "Exception in %s %s: %s", state, this, t);
+
+            if (Debug.isDebug()) {
+                StringWriter sw = new StringWriter();
+                t.printStackTrace(new PrintWriter(sw));
+                record(1, "Fiber", "exec1", "Exception in %s %s: %s %s", state, this, t, sw.toString());
+            }
+
             monitorFiberTerminated(monitor);
             throw t;
         } finally {

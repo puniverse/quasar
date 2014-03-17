@@ -1,5 +1,6 @@
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.common.util.Debug;
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -94,7 +95,7 @@ public final class Stack implements Serializable {
             growDataStack(dataTOS);
 
         if (fiber.isRecordingLevel(2))
-            fiber.record(2, "Stack", "pushMethod     ", "%s %s", Thread.currentThread().getStackTrace()[2], entry /*Arrays.toString(fiber.getStackTrace())*/);
+            fiber.record(2, "Stack", "pushMethod     ", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, curMethodSP /*Arrays.toString(fiber.getStackTrace())*/);
     }
 
     /**
@@ -113,7 +114,7 @@ public final class Stack implements Serializable {
             dataObject[i] = null;
 
         if (fiber.isRecordingLevel(2))
-            fiber.record(2, "Stack", "popMethod      ", "%s", Thread.currentThread().getStackTrace()[2] /*Arrays.toString(fiber.getStackTrace())*/);
+            fiber.record(2, "Stack", "popMethod      ", "%s %s", Thread.currentThread().getStackTrace()[2], curMethodSP /*Arrays.toString(fiber.getStackTrace())*/);
     }
 
     /**
@@ -128,73 +129,73 @@ public final class Stack implements Serializable {
         int entry = method[idx];
         
         if (fiber.isRecordingLevel(2))
-            fiber.record(2, "Stack", "nextMethodEntry", "%s %s", Thread.currentThread().getStackTrace()[2], entry /*Arrays.toString(fiber.getStackTrace())*/);
+            fiber.record(2, "Stack", "nextMethodEntry", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, curMethodSP /*Arrays.toString(fiber.getStackTrace())*/);
         
         return entry;
     }
 
     public static void push(int value, Stack s, int idx) {
-//        if (s.fiber.recordsLevel(3))
-//            s.fiber.record(3, "Stack", "push", "%d %s", idx, value);
+//        if (s.fiber.isRecordingLevel(3))
+//            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.curMethodSP + idx, value);
         s.dataLong[s.curMethodSP + idx] = value;
     }
 
     public static void push(float value, Stack s, int idx) {
-//        if (s.fiber.recordsLevel(3))
-//            s.fiber.record(3, "Stack", "push", "%d %s", idx, value);
+//        if (s.fiber.isRecordingLevel(3))
+//            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.curMethodSP + idx, value);
         s.dataLong[s.curMethodSP + idx] = Float.floatToRawIntBits(value);
     }
 
     public static void push(long value, Stack s, int idx) {
-//        if (s.fiber.recordsLevel(3))
-//            s.fiber.record(3, "Stack", "push", "%d %s", idx, value);
+//        if (s.fiber.isRecordingLevel(3))
+//            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.curMethodSP + idx, value);
         s.dataLong[s.curMethodSP + idx] = value;
     }
 
     public static void push(double value, Stack s, int idx) {
-//        if (s.fiber.recordsLevel(3))
-//            s.fiber.record(3, "Stack", "push", "%d %s", idx, value);
+//        if (s.fiber.isRecordingLevel(3))
+//            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.curMethodSP + idx, value);
         s.dataLong[s.curMethodSP + idx] = Double.doubleToRawLongBits(value);
     }
 
     public static void push(Object value, Stack s, int idx) {
-//        if (s.fiber.recordsLevel(3))
-//            s.fiber.record(3, "Stack", "push", "%d %s", idx, value);
+//        if (s.fiber.isRecordingLevel(3))
+//            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.curMethodSP + idx, value);
         s.dataObject[s.curMethodSP + idx] = value;
     }
 
     public final int getInt(int idx) {
         final int value = (int) dataLong[curMethodSP + idx];
-//        if (fiber.recordsLevel(3))
-//            fiber.record(3, "Stack", "getInt", "%d %s", idx, value);
+//        if (fiber.isRecordingLevel(3))
+//            fiber.record(3, "Stack", "getInt", "%d (%d) %s", idx, curMethodSP + idx, value);
         return value;
     }
 
     public final float getFloat(int idx) {
         final float value = Float.intBitsToFloat((int) dataLong[curMethodSP + idx]);
-//        if (fiber.recordsLevel(3))
-//            fiber.record(3, "Stack", "getFloat", "%d %s", idx, value);
+//        if (fiber.isRecordingLevel(3))
+//            fiber.record(3, "Stack", "getFloat", "%d (%d) %s", idx, curMethodSP + idx, value);
         return value;
     }
 
     public final long getLong(int idx) {
         final long value = dataLong[curMethodSP + idx];
-//        if (fiber.recordsLevel(3))
-//            fiber.record(3, "Stack", "getLong", "%d %s", idx, value);
+//        if (fiber.isRecordingLevel(3))
+//            fiber.record(3, "Stack", "getLong", "%d (%d) %s", idx, curMethodSP + idx, value);
         return value;
     }
 
     public final double getDouble(int idx) {
         final double value = Double.longBitsToDouble(dataLong[curMethodSP + idx]);
-//        if (fiber.recordsLevel(3))
-//            fiber.record(3, "Stack", "getDouble", "%d %s", idx, value);
+//        if (fiber.isRecordingLevel(3))
+//            fiber.record(3, "Stack", "getDouble", "%d (%d) %s", idx, curMethodSP + idx, value);
         return value;
     }
 
     public final Object getObject(int idx) {
         final Object value = dataObject[curMethodSP + idx];
-//        if (fiber.recordsLevel(3))
-//            fiber.record(3, "Stack", "getObject", "%d %s", idx, value);
+//        if (fiber.isRecordingLevel(3))
+//            fiber.record(3, "Stack", "getObject", "%d (%d) %s", idx, curMethodSP + idx, value);
         return value;
     }
 
