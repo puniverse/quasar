@@ -278,9 +278,11 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         String className = getClass().getSimpleName();
         if (className.isEmpty())
             className = getClass().getName().substring(getClass().getPackage().getName().length() + 1);
+        final Strand strand = runner.getStrand();
+        final String strandName = (strand != null ? strand.getName() : "null"); // strand.getClass().getSimpleName() + '@' + strand.getId()
         return className + "@"
                 + (getName() != null ? getName() : Integer.toHexString(System.identityHashCode(this)))
-                + "[owner: " + systemToStringWithSimpleName(runner.getStrand()) + ']';
+                + "[owner: " + strandName + ']';
     }
 
     private static String systemToStringWithSimpleName(Object obj) {
