@@ -268,10 +268,10 @@ project (':quasar-core') {
         compile ":jsr166e"
         compile ":high-scale-lib"
         compile ":HdrHistogram"
-        compile "org.ow2.asm:asm:5.0" 
-        compile "org.ow2.asm:asm-analysis:5.0"
-        compile "org.ow2.asm:asm-commons:5.0"
-        compile "org.ow2.asm:asm-util:5.0"
+        compile "org.ow2.asm:asm:5.0_BETA" 
+        compile "org.ow2.asm:asm-analysis:5.0_BETA"
+        compile "org.ow2.asm:asm-commons:5.0_BETA"
+        compile "org.ow2.asm:asm-util:5.0_BETA"
         compile("com.esotericsoftware.kryo:kryo:2.23.0") {
             exclude group: "org.ow2.asm", module: '*'
         }
