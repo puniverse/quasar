@@ -89,9 +89,7 @@ subprojects {
             exclude group: "org.ow2.asm", module: '*'
         }
         testCompile 'org.openjdk.jmh:jmh-core:0.5.4'
-        markdownDoclet("ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1") {
-            exclude group: "org.ow2.asm", module: '*'
-        }
+        markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
     }
 
     test.dependsOn jar
