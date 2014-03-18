@@ -399,5 +399,5 @@ task clean(dependsOn: subprojects.clean) << {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '1.10'
+    gradleVersion = '1.11'
 }
