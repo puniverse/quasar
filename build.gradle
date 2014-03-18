@@ -328,7 +328,9 @@ project (':quasar-galaxy') {
         compile project(':quasar-core')
         compile project(':quasar-actors')
         
-        compile ("co.paralleluniverse:galaxy:1.3") 
+        compile ("co.paralleluniverse:galaxy:1.3")  {
+            exclude group: "com.lmax", module: 'disruptor'
+        }
     }
     
     tasks.withType(JavaExec) {
