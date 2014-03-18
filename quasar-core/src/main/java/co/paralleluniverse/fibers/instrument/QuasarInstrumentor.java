@@ -36,13 +36,27 @@ public final class QuasarInstrumentor {
     final static String EXAMINED_CLASS = null; // "co/paralleluniverse/fibers/instrument/ReflectionInvokeTest";
     private final MethodDatabase db;
     private boolean check;
+    private final boolean aot;
+
+    public QuasarInstrumentor(boolean aot, ClassLoader classLoader, SuspendableClassifier classifier) {
+        this.db = new MethodDatabase(classLoader, classifier);
+        this.aot = aot;
+    }
 
     public QuasarInstrumentor(ClassLoader classLoader, SuspendableClassifier classifier) {
-        this.db = new MethodDatabase(classLoader, classifier);
+        this(false, classLoader, classifier);
+    }
+
+    public QuasarInstrumentor(boolean aot, ClassLoader classLoader) {
+        this(aot, classLoader, new DefaultSuspendableClassifier(classLoader));
     }
 
     public QuasarInstrumentor(ClassLoader classLoader) {
-        this(classLoader, new DefaultSuspendableClassifier(classLoader));
+        this(false, classLoader, new DefaultSuspendableClassifier(classLoader));
+    }
+
+    public boolean isAOT() {
+        return aot;
     }
 
     boolean shouldInstrument(String className) {

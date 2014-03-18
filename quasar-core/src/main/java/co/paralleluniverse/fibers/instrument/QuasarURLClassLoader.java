@@ -57,7 +57,7 @@ public class QuasarURLClassLoader extends URLClassLoader {
     }
 
     private QuasarInstrumentor newInstrumentor() {
-        QuasarInstrumentor inst = new QuasarInstrumentor(this);
+        QuasarInstrumentor inst = new QuasarInstrumentor(false, this);
         inst.setLog(new Log() {
             @Override
             public void log(LogLevel level, String msg, Object... args) {

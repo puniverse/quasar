@@ -103,7 +103,7 @@ public class JavaAgent {
             System.err.println("Retransforming classes is not supported!");
 
         final ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        final QuasarInstrumentor instrumentor = new QuasarInstrumentor(cl, new DefaultSuspendableClassifier(cl));
+        final QuasarInstrumentor instrumentor = new QuasarInstrumentor(false, cl, new DefaultSuspendableClassifier(cl));
         boolean checkArg = false;
         active = true;
 
