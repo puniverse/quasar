@@ -82,13 +82,13 @@ subprojects {
         runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0-rc1"
         runtime "org.apache.logging.log4j:log4j-api:2.0-rc1"
         runtime "org.apache.logging.log4j:log4j-core:2.0-rc1"
-        compile "com.lmax:disruptor:3.2.0" // required for log4j
+        compile "com.lmax:disruptor:3.2.1" // required for log4j
         testCompile 'junit:junit:4.11'
         testCompile 'org.hamcrest:hamcrest-all:1.3'
         testCompile("org.mockito:mockito-all:1.9.5") {
             exclude group: "org.ow2.asm", module: '*'
         }
-        testCompile 'org.openjdk.jmh:jmh-core:0.4.2'
+        testCompile 'org.openjdk.jmh:jmh-core:0.5.4'
         markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
     }
 
@@ -266,10 +266,10 @@ project (':quasar-core') {
         compile ":jsr166e"
         compile ":high-scale-lib"
         compile ":HdrHistogram"
-        compile "org.ow2.asm:asm:5.0_BETA" 
-        compile "org.ow2.asm:asm-analysis:5.0_BETA"
-        compile "org.ow2.asm:asm-commons:5.0_BETA"
-        compile "org.ow2.asm:asm-util:5.0_BETA"
+        compile "org.ow2.asm:asm:5.0" 
+        compile "org.ow2.asm:asm-analysis:5.0"
+        compile "org.ow2.asm:asm-commons:5.0"
+        compile "org.ow2.asm:asm-util:5.0"
         compile("com.esotericsoftware.kryo:kryo:2.23.0") {
             exclude group: "org.ow2.asm", module: '*'
         }
