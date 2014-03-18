@@ -22,6 +22,7 @@ public final class Stack implements Serializable {
     private long[] dataLong;        // holds primitives on stack
     private Object[] dataObject;    // holds refs on stack
     private transient int curMethodSP;
+    private transient boolean shouldVerifyInstrumentation;
     static final ThreadLocal<Stack> getStackTrace = new ThreadLocal<Stack>();
     static final boolean foo = "hello".contains("kkk"); // false
 
@@ -72,14 +73,35 @@ public final class Stack implements Serializable {
     Fiber getFiber() {
         return fiber;
     }
-    
+
+    /**
+     * called at the beginning of a method
+     *
+     * @return the entry point of this method
+     */
+    public final int nextMethodEntry() {
+        shouldVerifyInstrumentation = true;
+        
+        int idx = methodTOS;
+        curMethodSP = method[++idx];
+        methodTOS = ++idx;
+        int entry = method[idx];
+
+        if (fiber.isRecordingLevel(2))
+            fiber.record(2, "Stack", "nextMethodEntry", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, curMethodSP /*Arrays.toString(fiber.getStackTrace())*/);
+
+        return entry;
+    }
+
     /**
      * Called before a method is called.
      *
-     * @param entry the entry point in the method for resume
+     * @param entry    the entry point in the method for resume
      * @param numSlots the number of required stack slots for storing the state
      */
     public final void pushMethod(int entry, int numSlots) {
+        shouldVerifyInstrumentation = false;
+        
         final int methodIdx = methodTOS;
 
         if (method.length - methodIdx < 2)
@@ -104,6 +126,11 @@ public final class Stack implements Serializable {
      * to allow the values to be GCed.
      */
     public final void popMethod() {
+        if(shouldVerifyInstrumentation) {
+            verifyInstrumentation();
+            shouldVerifyInstrumentation = false;
+        }
+
         final int idx = methodTOS;
         method[idx] = 0;
         final int oldSP = curMethodSP;
@@ -115,23 +142,6 @@ public final class Stack implements Serializable {
 
         if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "popMethod      ", "%s %s", Thread.currentThread().getStackTrace()[2], curMethodSP /*Arrays.toString(fiber.getStackTrace())*/);
-    }
-
-    /**
-     * called at the beginning of a method
-     *
-     * @return the entry point of this method
-     */
-    public final int nextMethodEntry() {
-        int idx = methodTOS;
-        curMethodSP = method[++idx];
-        methodTOS = ++idx;
-        int entry = method[idx];
-        
-        if (fiber.isRecordingLevel(2))
-            fiber.record(2, "Stack", "nextMethodEntry", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, curMethodSP /*Arrays.toString(fiber.getStackTrace())*/);
-        
-        return entry;
     }
 
     public static void push(int value, Stack s, int idx) {
@@ -227,6 +237,11 @@ public final class Stack implements Serializable {
     private void growMethodStack() {
         int newSize = method.length << 1;
         method = Arrays.copyOf(method, newSize);
+    }
+
+    private final void verifyInstrumentation() {
+        if (Fiber.verifyInstrumentation)
+            assert fiber.checkInstrumentation();
     }
 
     void dump() {

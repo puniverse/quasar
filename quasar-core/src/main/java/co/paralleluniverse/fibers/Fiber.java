@@ -60,7 +60,7 @@ import sun.misc.Unsafe;
  * @author pron
  */
 public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
-    private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.verifyInstrumentation", "false"));
+    static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.verifyInstrumentation", "false"));
     private static final boolean traceInterrupt = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.traceInterrupt", "false"));
     public static final int DEFAULT_STACK_SIZE = 32;
 //    private static final boolean PREEMPTION = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.enablePreemption", "false"));
@@ -1455,23 +1455,35 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return current;
     }
 
-    private static boolean checkInstrumentation() {
+    static boolean checkInstrumentation() {
         if (!verifyInstrumentation)
             throw new AssertionError();
 
         StackTraceElement[] stes = Thread.currentThread().getStackTrace();
         boolean notInstrumented = false;
-        StringBuilder stackTrace = new StringBuilder();
+        StringBuilder stackTrace = null;
 
-        for (StackTraceElement ste : stes) {
+        for (int i = 0; i < stes.length; i++) {
+            final StackTraceElement ste = stes[i];
             if (ste.getClassName().equals(Thread.class.getName()) && ste.getMethodName().equals("getStackTrace"))
                 continue;
-            stackTrace.append("\n\tat ").append(ste);
+            if (notInstrumented)
+                stackTrace.append("\n\tat ").append(ste);
             if (ste.getClassName().contains("$$Lambda$"))
                 continue;
-            else if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')) {
+            else if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
+                    && !ste.getClassName().equals(Stack.class.getName())) {
                 if (!Retransform.isWaiver(ste.getClassName(), ste.getMethodName())
                         && (!Retransform.isInstrumented(ste.getClassName()) || isNonSuspendable(ste.getClassName(), ste.getMethodName()))) {
+                    if (!notInstrumented) {
+                        stackTrace = new StringBuilder();
+                        for (int j = 0; j <= i; j++) {
+                            final StackTraceElement ste2 = stes[j];
+                            if (ste2.getClassName().equals(Thread.class.getName()) && ste2.getMethodName().equals("getStackTrace"))
+                                continue;
+                            stackTrace.append("\n\tat ").append(ste2);
+                        }
+                    }
                     stackTrace.append(" **");
                     notInstrumented = true;
                 }
