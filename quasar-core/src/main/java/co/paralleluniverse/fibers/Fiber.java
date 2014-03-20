@@ -60,7 +60,7 @@ import sun.misc.Unsafe;
  * @author pron
  */
 public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
-    static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.verifyInstrumentation", "false"));
+    private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.verifyInstrumentation", "false"));
     private static final boolean traceInterrupt = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.traceInterrupt", "false"));
     public static final int DEFAULT_STACK_SIZE = 32;
 //    private static final boolean PREEMPTION = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.enablePreemption", "false"));
@@ -1436,7 +1436,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private static Fiber verifySuspend() {
         final Fiber current = verifyCurrent();
         if (verifyInstrumentation)
-            assert checkInstrumentation();
+            checkInstrumentation();
+        return current;
+    }
+
+    static Fiber verifySuspend(Fiber current) {
+        if (verifyInstrumentation)
+            checkInstrumentation();
         return current;
     }
 
@@ -1456,8 +1462,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     static boolean checkInstrumentation() {
-        if (!verifyInstrumentation)
-            throw new AssertionError();
+        assert verifyInstrumentation;
 
         StackTraceElement[] stes = Thread.currentThread().getStackTrace();
         boolean notInstrumented = false;
@@ -1492,7 +1497,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                     System.err.println("WARNING: Uninstrumented methods on the call stack (marked with **): " + stackTrace);
                     //throw new IllegalStateException(str);
                 }
-                return true;
+                return !notInstrumented;
             }
         }
         throw new IllegalStateException("Not run through Fiber.exec(). (trace: " + Arrays.toString(stes) + ")");

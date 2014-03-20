@@ -1,6 +1,5 @@
 package co.paralleluniverse.fibers;
 
-import co.paralleluniverse.common.util.Debug;
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -81,7 +80,7 @@ public final class Stack implements Serializable {
      */
     public final int nextMethodEntry() {
         shouldVerifyInstrumentation = true;
-        
+
         int idx = methodTOS;
         curMethodSP = method[++idx];
         methodTOS = ++idx;
@@ -101,7 +100,7 @@ public final class Stack implements Serializable {
      */
     public final void pushMethod(int entry, int numSlots) {
         shouldVerifyInstrumentation = false;
-        
+
         final int methodIdx = methodTOS;
 
         if (method.length - methodIdx < 2)
@@ -126,8 +125,8 @@ public final class Stack implements Serializable {
      * to allow the values to be GCed.
      */
     public final void popMethod() {
-        if(shouldVerifyInstrumentation) {
-            verifyInstrumentation();
+        if (shouldVerifyInstrumentation) {
+            Fiber.verifySuspend(fiber);
             shouldVerifyInstrumentation = false;
         }
 
@@ -237,11 +236,6 @@ public final class Stack implements Serializable {
     private void growMethodStack() {
         int newSize = method.length << 1;
         method = Arrays.copyOf(method, newSize);
-    }
-
-    private final void verifyInstrumentation() {
-        if (Fiber.verifyInstrumentation)
-            assert fiber.checkInstrumentation();
     }
 
     void dump() {
