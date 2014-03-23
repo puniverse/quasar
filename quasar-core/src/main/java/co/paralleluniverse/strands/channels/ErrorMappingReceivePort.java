@@ -22,8 +22,9 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public class ErrorMappingReceivePort<T> extends DelegatingReceivePort1<T, T> implements ReceivePort<T> {
+class ErrorMappingReceivePort<T> extends DelegatingReceivePort1<T, T> implements ReceivePort<T> {
     private final Function<Exception, T> f;
+    private boolean done;
 
     public ErrorMappingReceivePort(ReceivePort<T> target, Function<Exception, T> f) {
         super(target);
@@ -35,8 +36,11 @@ public class ErrorMappingReceivePort<T> extends DelegatingReceivePort1<T, T> imp
     }
 
     protected T map(Exception e) {
-        if (f != null)
-            return f.apply(e);
+        if (f != null) {
+            T res = f.apply(e);
+            this.done = isClosed();
+            return res;
+        }
         throw new UnsupportedOperationException();
     }
 
@@ -48,7 +52,7 @@ public class ErrorMappingReceivePort<T> extends DelegatingReceivePort1<T, T> imp
         } catch (InterruptedException e) {
             throw e;
         } catch (Exception e) {
-            return map(e);
+            return done ? null : map(e);
         }
     }
 
@@ -57,7 +61,7 @@ public class ErrorMappingReceivePort<T> extends DelegatingReceivePort1<T, T> imp
         try {
             return target.tryReceive();
         } catch (Exception e) {
-            return map(e);
+            return done ? null : map(e);
         }
     }
 
@@ -66,7 +70,7 @@ public class ErrorMappingReceivePort<T> extends DelegatingReceivePort1<T, T> imp
         try {
             return target.receive(timeout, unit);
         } catch (Exception e) {
-            return map(e);
+            return done ? null : map(e);
         }
     }
 
@@ -75,7 +79,7 @@ public class ErrorMappingReceivePort<T> extends DelegatingReceivePort1<T, T> imp
         try {
             return target.receive(timeout);
         } catch (Exception e) {
-            return map(e);
+            return done ? null : map(e);
         }
     }
 }

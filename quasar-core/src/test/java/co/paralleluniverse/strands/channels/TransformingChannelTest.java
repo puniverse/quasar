@@ -144,7 +144,7 @@ public class TransformingChannelTest {
             }
         });
 
-        ReceivePort<Integer> ch3 = Channels.flatmap((ReceivePort<Integer>) ch, new Function<Integer, ReceivePort<Integer>>() {
+        ReceivePort<Integer> ch3 = Channels.flatMap((ReceivePort<Integer>) ch, new Function<Integer, ReceivePort<Integer>>() {
             @Override
             public ReceivePort<Integer> apply(Integer input) {
                 return Channels.toReceivePort(Arrays.asList(new Integer[]{input * 10, input * 100, input * 1000}));
@@ -178,6 +178,7 @@ public class TransformingChannelTest {
                 return input % 2 == 0;
             }
         });
+
         SendPort<Integer> ch2 = Channels.mapSend((SendPort<Integer>) ch, new Function<Integer, Integer>() {
             @Override
             public Integer apply(Integer input) {
@@ -185,11 +186,29 @@ public class TransformingChannelTest {
             }
         });
 
+        SendPort<Integer> ch3 = Channels.flatMapSend(Channels.<Integer>newChannel(1), (SendPort<Integer>) ch, new Function<Integer, ReceivePort<Integer>>() {
+            @Override
+            public ReceivePort<Integer> apply(Integer input) {
+                return Channels.toReceivePort(Arrays.asList(new Integer[]{input * 10, input * 100, input * 1000}));
+            }
+        });
+
         assertTrue(ch1.equals(ch));
         assertTrue(ch.equals(ch1));
         assertTrue(ch2.equals(ch));
         assertTrue(ch.equals(ch2));
+        assertTrue(ch3.equals(ch));
+        assertTrue(ch.equals(ch3));
+
+        assertTrue(ch1.equals(ch1));
         assertTrue(ch1.equals(ch2));
+        assertTrue(ch1.equals(ch3));
+        assertTrue(ch2.equals(ch1));
+        assertTrue(ch2.equals(ch2));
+        assertTrue(ch2.equals(ch3));
+        assertTrue(ch3.equals(ch1));
+        assertTrue(ch3.equals(ch2));
+        assertTrue(ch3.equals(ch3));
     }
 
     @Test
@@ -672,7 +691,7 @@ public class TransformingChannelTest {
         Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                ReceivePort<Integer> ch = Channels.flatmap(ch1, new Function<Integer, ReceivePort<Integer>>() {
+                ReceivePort<Integer> ch = Channels.flatMap(ch1, new Function<Integer, ReceivePort<Integer>>() {
                     @Override
                     public ReceivePort<Integer> apply(Integer x) {
                         if (x == 3)
@@ -714,7 +733,7 @@ public class TransformingChannelTest {
         Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                ReceivePort<Integer> ch = Channels.flatmap(ch1, new Function<Integer, ReceivePort<Integer>>() {
+                ReceivePort<Integer> ch = Channels.flatMap(ch1, new Function<Integer, ReceivePort<Integer>>() {
                     @Override
                     public ReceivePort<Integer> apply(Integer x) {
                         if (x == 3)
@@ -763,15 +782,15 @@ public class TransformingChannelTest {
             @Override
             public void call(ReceivePort<Integer> in, SendPort<Integer> out) throws SuspendExecution, InterruptedException {
                 Integer x;
-                while((x = in.receive()) != null) {
-                    if(x % 2 == 0)
+                while ((x = in.receive()) != null) {
+                    if (x % 2 == 0)
                         out.send(x * 10);
                 }
                 out.send(1234);
                 out.close();
             }
         });
-        
+
         Fiber fib1 = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
@@ -798,5 +817,92 @@ public class TransformingChannelTest {
 
         fib1.join();
         fib2.join();
+    }
+
+    @Test
+    public void testFlatmapSendThreadToFiber() throws Exception {
+        final Channel<Integer> ch = newChannel();
+
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                assertThat(ch.receive(), is(1));
+                assertThat(ch.receive(), is(20));
+                assertThat(ch.receive(), is(200));
+                assertThat(ch.receive(), is(2000));
+                assertThat(ch.receive(), is(40));
+                assertThat(ch.receive(), is(400));
+                assertThat(ch.receive(), is(4000));
+                assertThat(ch.receive(), is(5));
+                assertThat(ch.receive(), is(nullValue()));
+                assertThat(ch.isClosed(), is(true));
+            }
+        }).start();
+
+        SendPort<Integer> ch1 = Channels.flatMapSend(Channels.<Integer>newChannel(1), ch, new Function<Integer, ReceivePort<Integer>>() {
+            @Override
+            public ReceivePort<Integer> apply(Integer x) {
+                if (x == 3)
+                    return null;
+                if (x % 2 == 0)
+                    return Channels.toReceivePort(Arrays.asList(new Integer[]{x * 10, x * 100, x * 1000}));
+                else
+                    return Channels.singletonReceivePort(x);
+            }
+        });
+        Strand.sleep(50);
+        ch1.send(1);
+        ch1.send(2);
+        ch1.send(3);
+        ch1.send(4);
+        ch1.send(5);
+        ch1.close();
+        fib.join();
+    }
+
+    //@Test
+    public void testFlatmapSendWithTimeoutsThreadToFiber() throws Exception {
+        final Channel<Integer> ch = newChannel();
+
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                assertThat(ch.receive(), is(1));
+                assertThat(ch.receive(30, TimeUnit.MILLISECONDS), is(nullValue()));
+                assertThat(ch.receive(40, TimeUnit.MILLISECONDS), is(20));
+                assertThat(ch.receive(), is(200));
+                assertThat(ch.receive(), is(2000));
+                assertThat(ch.receive(), is(40));
+                assertThat(ch.receive(), is(400));
+                assertThat(ch.receive(), is(4000));
+                assertThat(ch.receive(30, TimeUnit.MILLISECONDS), is(nullValue()));
+                assertThat(ch.receive(40, TimeUnit.MILLISECONDS), is(5));
+                assertThat(ch.receive(), is(nullValue()));
+                assertThat(ch.isClosed(), is(true));
+            }
+        }).start();
+
+        SendPort<Integer> ch1 = Channels.flatMapSend(Channels.<Integer>newChannel(1), ch, new Function<Integer, ReceivePort<Integer>>() {
+            @Override
+            public ReceivePort<Integer> apply(Integer x) {
+                if (x == 3)
+                    return null;
+                if (x % 2 == 0)
+                    return Channels.toReceivePort(Arrays.asList(new Integer[]{x * 10, x * 100, x * 1000}));
+                else
+                    return Channels.singletonReceivePort(x);
+            }
+        });
+
+        Strand.sleep(50);
+        ch1.send(1);
+        Strand.sleep(50);
+        ch1.send(2);
+        ch1.send(3);
+        ch1.send(4);
+        Strand.sleep(50);
+        ch1.send(5);
+        ch1.close();
+        fib.join();
     }
 }

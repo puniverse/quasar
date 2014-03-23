@@ -522,6 +522,9 @@ public final class Channels {
 
     /**
      * Spawns a fiber that transforms values read from the {@code in} channel and writes values to the {@code out} channel.
+     * <p>
+     * When the transformation terminates. the output channel is automatically closed. If the transformation terminates abnormally 
+     * (throws an exception), the output channel is {@link SendPort#close(Throwable) closed with that exception}.
      *
      * @param scheduler   the fiber scheduler
      * @param in          the input channel
@@ -586,7 +589,7 @@ public final class Channels {
 
     /**
      * Returns a {@link ReceivePort} that receives messages that are transformed by a given mapping function from a given channel.
-     * <p/>
+     * <p>
      * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
      *
      * @param <S>     the message type of the source (given) channel.
@@ -600,9 +603,10 @@ public final class Channels {
     }
 
     /**
-     * Returns a {@link ReceivePort} that maps exceptions thrown by the underlying channel (usually by channel transformations)
+     * Returns a {@link ReceivePort} that maps exceptions thrown by the underlying channel 
+     * (by channel transformations, or as a result of {@link SendPort#close(Throwable)} )
      * into messages.
-     * <p/>
+     * <p>
      * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
      *
      * @param <T>     the message type of the target (returned) channel.
@@ -616,13 +620,15 @@ public final class Channels {
     /**
      * Returns a {@link ReceivePort} that receives messages that are transformed by a given flat-mapping function from a given channel.
      * Unlike {@link #map(ReceivePort, Function) map}, the mapping function does not returns a single output message for every input message, but
-     * a new {@code ReceivePort}. All the returned ports are combined into a single {@code ReceivePort} that receives the messages received by all
+     * a new {@code ReceivePort}. All the returned ports are concatenated into a single {@code ReceivePort} that receives the messages received by all
      * the ports in order.
      * <p>
      * To return a single value the mapping function can make use of {@link #singletonReceivePort(Object) singletonReceivePort}. To return a collection,
      * it can make use of {@link #toReceivePort(Iterable) toReceivePort(Iterable)}. To emit no values, the function can return {@link #emptyReceivePort()}
      * or {@code null}.
-     * <p/>
+     * <p>
+     * The returned {@code ReceivePort} can only be safely used by a single receiver strand.
+     * <p>
      * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
      *
      * @param <S>     the message type of the source (given) channel.
@@ -631,7 +637,7 @@ public final class Channels {
      * @param f       the mapping function
      * @return a {@link ReceivePort} that returns messages that are the result of applying the mapping function to the messages received on the given channel.
      */
-    public static <S, T> ReceivePort<T> flatmap(ReceivePort<S> channel, Function<S, ReceivePort<T>> f) {
+    public static <S, T> ReceivePort<T> flatMap(ReceivePort<S> channel, Function<S, ReceivePort<T>> f) {
         return new FlatMappingReceivePort<S, T>(channel, f);
     }
 
@@ -713,12 +719,12 @@ public final class Channels {
         };
     }
 
+    /**
+     * Returns a {@link TransformingReceivePort} wrapping the given channel, which may be used for functional
+     * transformations.
+     */
     public static <M> TransformingReceivePort<M> transform(ReceivePort<M> channel) {
         return new TransformingReceivePort<M>(channel);
-    }
-
-    public static <M> TransformingSendPort<M> transformSend(SendPort<M> channel) {
-        return new TransformingSendPort<M>(channel);
     }
 
     /**
@@ -749,6 +755,54 @@ public final class Channels {
      */
     public static <S, T> SendPort<S> mapSend(SendPort<T> channel, Function<S, T> f) {
         return new MappingSendPort<S, T>(channel, f);
+    }
+
+    /**
+     * Returns a {@link SendPort} that sends messages that are transformed by a given flat-mapping function into a given channel.
+     * Unlike {@link #mapSend(SendPort, Function) map}, the mapping function does not returns a single output message for every input message, but
+     * a new {@code ReceivePort}. All the returned ports are concatenated and sent to the channel.
+     * <p>
+     * To return a single value the mapping function can make use of {@link #singletonReceivePort(Object) singletonReceivePort}. To return a collection,
+     * it can make use of {@link #toReceivePort(Iterable) toReceivePort(Iterable)}. To emit no values, the function can return {@link #emptyReceivePort()}
+     * or {@code null}.
+     * <p>
+     * If multiple producers send messages into the channel, the messages from the {@code ReceivePort}s returned by the mapping function
+     * may be interleaved with other messages.
+     * <p>
+     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     *
+     * @param <S>     the message type of the source (given) channel.
+     * @param <T>     the message type of the target (returned) channel.
+     * @param pipe    an intermediate channel used in the flat-mapping operation. Messages are first sent to this channel before being transformed.
+     * @param channel the channel to transform
+     * @param f       the mapping function
+     * @return a {@link ReceivePort} that returns messages that are the result of applying the mapping function to the messages received on the given channel.
+     */
+    public static <S, T> SendPort<S> flatMapSend(Channel<S> pipe, SendPort<T> channel, final Function<S, ReceivePort<T>> f) {
+        fiberTransform(pipe, channel, new SuspendableAction2<ReceivePort<S>, SendPort<T>>() {
+
+            @Override
+            public void call(ReceivePort<S> in, SendPort<T> out) throws SuspendExecution, InterruptedException {
+                S x;
+                while ((x = in.receive()) != null) {
+                    ReceivePort<T> xp = f.apply(x);
+                    if (xp != null) {
+                        T y;
+                        while ((y = xp.receive()) != null)
+                            out.send(y);
+                    }
+                }
+            }
+        });
+        return new PipeChannel<S>(pipe, channel);
+    }
+
+    /**
+     * Returns a {@link TransformingSendPort} wrapping the given channel, which may be used for functional
+     * transformations.
+     */
+    public static <M> TransformingSendPort<M> transformSend(SendPort<M> channel) {
+        return new TransformingSendPort<M>(channel);
     }
 
     /**
