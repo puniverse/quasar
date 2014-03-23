@@ -376,6 +376,12 @@ Note that this has no effect on other calls to `I.f`. The instrumentation module
 
 When using [AOT instrumentation](#aot), `InstrumentationTask` must be able to find the `suspendable-supers` in its classpath. 
 
+#### Troubleshooting Fibers {#troubleshooting}
+
+If you forget to mark a method as suspendable (with `throws SuspendExecution` or `@Suspendable`), you will encounter some strange errors. These will usually take the form of non-sensical `ClassCastException`s, `NullPointerException`s, or `SuspendExecution` being thrown. To troubleshoot those, set the value of the `co.paralleluniverse.fibers.verifyInstrumentation` system property to `true` and run your program. This will verify that all of your methods are instrumented properly, or print a warning to the console letting you know which methods that should have been marked suspendable weren't. 
+
+Do not turn on `verifyInstrumentation` in production, as it will slow down your code considerably.
+
 ### Channels {#channels}
 
 Channels are queues used to pass messages between strands (remember, strands are a general name for threads and fibers). If you are familiar with Go, Quasar channels are like Go channels. 
@@ -427,10 +433,30 @@ The [`Channels`]({{javadoc}}/strands/channels/Channels.html) class has several s
 
 * `map` - returns a channel that transforms messages by applying a given mapping function. There are two versions of `map`: [one that operates]({{javadoc}}/strands/channels/Channels.html#map(co.paralleluniverse.strands.channels.ReceivePort, com.google.common.base.Function)) on `ReceivePort` and [one that operates]({{javadoc}}/strands/channels/Channels.html#mapSend(co.paralleluniverse.strands.channels.SendPort, com.google.common.base.Function)) on `SendPort`.
 * `filter` - returns a channel that only lets messages that satisfy a predicate through. There are two versions of `filter`: [one that operates]({{javadoc}}/strands/channels/Channels.html#filter(co.paralleluniverse.strands.channels.ReceivePort, com.google.common.base.Predicate)) on `ReceivePort` and [one that operates]({{javadoc}}/strands/channels/Channels.html#filterSend(co.paralleluniverse.strands.channels.SendPort, com.google.common.base.Predicate)) on `SendPort`.
-* `flatMap` - returns a channel that transforms any received message into a new channel whose messages are then concatenated into the returned channel.
+* `flatMap` - returns a channel that transforms any message into a new channel whose messages are then concatenated into the returned channel. There are two versions of `flatMap`: [one that operates]({{javadoc}}/strands/channels/Channels.html#flatMap(co.paralleluniverse.strands.channels.ReceivePort, com.google.common.base.Function)) on `ReceivePort` and [one that operates]({{javadoc}}/strands/channels/Channels.html#flatMapSend(co.paralleluniverse.strands.channels.co.paralleluniverse.strands.channels.Channel, SendPort, com.google.common.base.Function)) on `SendPort`.
 * [`zip`]({{javadoc}}/strands/channels/Channels.html#zip(com.google.common.base.Function, co.paralleluniverse.strands.channels.ReceivePort...)) - returns a channel that combines each vector of messages from a vector of channels into a single combined message.
 * [`group`]({{javadoc}}/strands/channels/Channels.html#group(co.paralleluniverse.strands.channels.ReceivePort...)) - returns a channel that funnels messages from a set of given channels.
 
+The [`fiberTransform`]({{javadoc}}/strands/channels/Channels.html#fiberTransform-co.paralleluniverse.strands.channels.ReceivePort-co.paralleluniverse.strands.channels.SendPort-co.paralleluniverse.strands.SuspendableAction2-) method can perform any imperative channel transformation by running transformation code in a new dedicated fiber. The transformation reads messages from an input channels and writes messages to the output channel. When the transformation terminates,  the output channel is automatically closed.
+
+Here's an example of `fiberTransform` using Java 8 syntax:
+
+~~~ java
+Channels.fiberTransform(Channels.newTickerConsumerFor(t), avg,
+        (DoubleReceivePort in, SendPort<Double> out) -> {
+            try {
+                double[] window = new double[WINDOW_SIZE];
+                long i = 0;
+                for (;;) {
+                    window[(int) (i++ % WINDOW_SIZE)] = in.receiveDouble();
+                    out.send(Arrays.stream(window).average().getAsDouble());
+                }
+            } catch (ReceivePort.EOFException e) {
+            }
+        });
+~~~
+
+[`transform`]({{javadoc}}/strands/channels/Channels.html#transform-co.paralleluniverse.strands.channels.ReceivePort-) and [`transformSend`]({{javadoc}}/strands/channels/Channels.html#transformSend-co.paralleluniverse.strands.channels.SendPort-) wrap a `ReceivePort` or a `SendPort` respectively, with a fluent interface for all the transformations covered in this section.
 
 #### Channel Selection
 
