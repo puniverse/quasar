@@ -143,7 +143,7 @@ public final class RequestReplyHelper {
     public static <V> V call(final ActorRef actor, RequestMessage<V> m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
         assert !actor.equals(LocalActor.self()) : "Can't \"call\" self - deadlock guaranteed";
 
-        if (m.getFrom() == null)
+        if (m.getFrom() == null || m.getFrom() instanceof TempActor)
             m.setFrom(from());
 
         final Actor currentActor;
