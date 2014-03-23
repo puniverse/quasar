@@ -258,7 +258,8 @@ public final class RequestReplyHelper {
                 }
             };
             actorRef = new TempActor(actor);
-        }
+        } else
+            assert !(actorRef instanceof TempActor);
         return actorRef;
     }
 
