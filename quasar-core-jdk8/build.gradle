@@ -36,16 +36,22 @@ compileJava {
                 
     }
 }
+
 //task jar(dependsOn: classes, type: Jar, overwrite: true) {
 jar.dependsOn ':quasar-core:jar'
 jar {
     baseName = 'quasar-core'
     classifier = 'jdk8'
     
-    from project(':quasar-core').sourceSets.main.output.classesDir
-    from project(':quasar-core').sourceSets.main.resources
+    from(project(':quasar-core').sourceSets.main.output.classesDir) {
+        exclude fileTree(project.sourceSets.main.output.classesDir).collect { it.path - "${project.sourceSets.main.output.classesDir.path}/" }
+    }
+    from(project(':quasar-core').sourceSets.main.resources) {
+        exclude fileTree(project.sourceSets.main.resources).collect { it.path - "${project.sourceSets.main.resources.path}/" }
+    }
     from project.sourceSets.main.output.classesDir
     from project.sourceSets.main.resources
+
     from zipTree("${baselib}/high-scale-lib.jar")  // include non-Maven jars
     from zipTree("${baselib}/HdrHistogram.jar")  // include non-Maven jars
 
