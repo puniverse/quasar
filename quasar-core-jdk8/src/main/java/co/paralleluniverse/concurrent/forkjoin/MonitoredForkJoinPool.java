@@ -13,7 +13,6 @@
 package co.paralleluniverse.concurrent.forkjoin;
 
 import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitor;
-import co.paralleluniverse.fibers.FibersMonitor;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicInteger;
