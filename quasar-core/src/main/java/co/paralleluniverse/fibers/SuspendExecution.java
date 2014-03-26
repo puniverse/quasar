@@ -32,6 +32,7 @@ public final class SuspendExecution extends Exception { // InterruptedException 
     static final SuspendExecution YIELD = new SuspendExecution();
 
     protected SuspendExecution() {
+        super("Oops. Forgot to instrument a method. Run your program with -Dco.paralleluniverse.fibers.verifyInstrumentation=true to catch the culprit!");
     }
 
     @Override
