@@ -89,6 +89,7 @@
 </ul></li>
 <li>
 <a href="#news" class="cat-link">News</a><ul>
+<li><a href="#march-26-2014">March 26, 2014</a></li>
 <li><a href="#january-22-2014">January 22, 2014</a></li>
 <li><a href="#october-15-2013">October 15, 2013</a></li>
 <li><a href="#july-19-2013">July 19, 2013</a></li>
@@ -171,6 +172,10 @@
 
 <h2 id="news">News</h2>
 
+<h3 id="march-26-2014">March 26,&nbsp;2014</h3>
+
+<p>Quasar <span class="caps">0.5.0</span> has been&nbsp;released.</p>
+
 <h3 id="january-22-2014">January 22,&nbsp;2014</h3>
 
 <p>Quasar <span class="caps">0.4.0</span> has been&nbsp;released.</p>
@@ -202,15 +207,24 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-core<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.4.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.5.0<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
+</span></code></pre></div>
+<p>or, for&nbsp;<span class="caps">JDK8</span>:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
+</span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
+</span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-core<span class="nt">&lt;/artifactId&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.5.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-5">    <span class="nt">&lt;classifier&gt;</span>jdk8<span class="nt">&lt;classifier&gt;</span>
+</span><span id="line-6"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <p>To use actors,&nbsp;add:</p>
 
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-actors<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.4.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.5.0<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <p>For clustering support,&nbsp;add:</p>
@@ -218,7 +232,7 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-galaxy<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.4.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.5.0<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <h3 id="instrumentation">Instrumenting Your&nbsp;Code</h3>
@@ -271,7 +285,7 @@
 
 <div class="highlight"><pre><code><span id="line-1"><span class="n">dependencies</span> <span class="o">{</span>
 </span><span id="line-2">    <span class="c1">// ....</span>
-</span><span id="line-3">    <span class="n">quasar</span>  <span class="s2">&quot;co.paralleluniverse:quasar-core:0.4.0&quot;</span>
+</span><span id="line-3">    <span class="n">quasar</span>  <span class="s2">&quot;co.paralleluniverse:quasar-core:0.5.0&quot;</span>
 </span><span id="line-4"><span class="o">}</span>
 </span></code></pre></div>
 <p>Finally, in your <code>run</code> task (or any task of type <code>JavaExec</code> or <code>Test</code>), add the system&nbsp;property:</p>
@@ -374,7 +388,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>As we said above, fibers are great as a replacement for callbacks. The <a href="/quasar/javadoc/co/paralleluniverse/fibers/FiberAsync.html">FiberAsync</a> class helps us easily turn any callback-based asynchronous operation to as simple fiber-blocking&nbsp;call.</p>
 
-<p>Assume that operation <code>Foo.asyncOp(FooCompletion callback)</code> is an asynchronous operation, where <code>Completion</code> is defined&nbsp;as:</p>
+<p>Assume that operation <code>Foo.asyncOp(FooCompletion callback)</code> is an asynchronous operation, where <code>FooCompletion</code> is defined&nbsp;as:</p>
 
 <div class="highlight"><pre><code><span id="line-1"><span class="kd">interface</span> <span class="nc">FooCompletion</span> <span class="o">{</span>
 </span><span id="line-2">  <span class="kt">void</span> <span class="nf">success</span><span class="o">(</span><span class="n">String</span> <span class="n">result</span><span class="o">);</span>
@@ -400,8 +414,8 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 <div class="highlight"><pre><code><span id="line-1"><span class="n">String</span> <span class="nf">op</span><span class="o">()</span> <span class="o">{</span>
 </span><span id="line-2">  <span class="k">new</span> <span class="nf">FooAsync</span><span class="o">()</span> <span class="o">{</span>
 </span><span id="line-3">    <span class="kd">protected</span> <span class="n">Void</span> <span class="nf">requestAsync</span><span class="o">()</span> <span class="o">{</span>
-</span><span id="line-4">          <span class="n">Foo</span><span class="o">.</span><span class="na">asyncOp</span><span class="o">(</span><span class="k">this</span><span class="o">);</span>
-</span><span id="line-5">      <span class="o">}</span>
+</span><span id="line-4">       <span class="n">Foo</span><span class="o">.</span><span class="na">asyncOp</span><span class="o">(</span><span class="k">this</span><span class="o">);</span>
+</span><span id="line-5">    <span class="o">}</span>
 </span><span id="line-6">  <span class="o">}.</span><span class="na">run</span><span class="o">();</span>
 </span><span id="line-7"><span class="o">}</span>
 </span></code></pre></div>
@@ -476,6 +490,12 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>When using <a href="#aot"><span class="caps">AOT</span> instrumentation</a>, <code>InstrumentationTask</code> must be able to find the <code>suspendable-supers</code> in its&nbsp;classpath. </p>
 
+<h4 id="troubleshooting">Troubleshooting&nbsp;Fibers</h4>
+
+<p>If you forget to mark a method as suspendable (with <code>throws SuspendExecution</code> or <code>@Suspendable</code>), you will encounter some strange errors. These will usually take the form of non-sensical <code>ClassCastException</code>s, <code>NullPointerException</code>s, or <code>SuspendExecution</code> being thrown. To troubleshoot those, set the value of the <code>co.paralleluniverse.fibers.verifyInstrumentation</code> system property to <code>true</code> and run your program. This will verify that all of your methods are instrumented properly, or print a warning to the console letting you know which methods that should have been marked suspendable&nbsp;weren’t. </p>
+
+<p>Do not turn on <code>verifyInstrumentation</code> in production, as it will slow down your code&nbsp;considerably.</p>
+
 <h3 id="channels">Channels</h3>
 
 <p>Channels are queues used to pass messages between strands (remember, strands are a general name for threads and fibers). If you are familiar with Go, Quasar channels are like Go&nbsp;channels. </p>
@@ -526,11 +546,31 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 <p>The <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html"><code>Channels</code></a> class has several static methods that can be used to manipulate and compose values sent to or received off&nbsp;channels:</p>
 
 <ul>
-  <li>map - returns a channel that transforms messages by applying a given mapping function. There are two versions of <code>map</code>: <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#map(co.paralleluniverse.strands.channels.ReceivePort, com.google.common.base.Function)">one that operates</a> on <code>ReceivePort</code> and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#map(co.paralleluniverse.strands.channels.SendPort, com.google.common.base.Function)">one that operates</a> on&nbsp;<code>SendPort</code>.</li>
-  <li><code>filter</code> - returns a channel that only lets messages that satisfy a predicate through. There are two versions of <code>filter</code>: <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#filter(co.paralleluniverse.strands.channels.ReceivePort, com.google.common.base.Predicate)">one that operates</a> on <code>ReceivePort</code> and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#filter(co.paralleluniverse.strands.channels.SendPort, com.google.common.base.Predicate)">one that operates</a> on&nbsp;<code>SendPort</code>.</li>
+  <li><code>map</code> - returns a channel that transforms messages by applying a given mapping function. There are two versions of <code>map</code>: <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#map(co.paralleluniverse.strands.channels.ReceivePort, com.google.common.base.Function)">one that operates</a> on <code>ReceivePort</code> and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#mapSend(co.paralleluniverse.strands.channels.SendPort, com.google.common.base.Function)">one that operates</a> on&nbsp;<code>SendPort</code>.</li>
+  <li><code>filter</code> - returns a channel that only lets messages that satisfy a predicate through. There are two versions of <code>filter</code>: <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#filter(co.paralleluniverse.strands.channels.ReceivePort, com.google.common.base.Predicate)">one that operates</a> on <code>ReceivePort</code> and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#filterSend(co.paralleluniverse.strands.channels.SendPort, com.google.common.base.Predicate)">one that operates</a> on&nbsp;<code>SendPort</code>.</li>
+  <li><code>flatMap</code> - returns a channel that transforms any message into a new channel whose messages are then concatenated into the returned channel. There are two versions of <code>flatMap</code>: <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#flatMap(co.paralleluniverse.strands.channels.ReceivePort, com.google.common.base.Function)">one that operates</a> on <code>ReceivePort</code> and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#flatMapSend(co.paralleluniverse.strands.channels.co.paralleluniverse.strands.channels.Channel, SendPort, com.google.common.base.Function)">one that operates</a> on&nbsp;<code>SendPort</code>.</li>
   <li><a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#zip(com.google.common.base.Function, co.paralleluniverse.strands.channels.ReceivePort...)"><code>zip</code></a> - returns a channel that combines each vector of messages from a vector of channels into a single combined&nbsp;message.</li>
   <li><a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#group(co.paralleluniverse.strands.channels.ReceivePort...)"><code>group</code></a> - returns a channel that funnels messages from a set of given&nbsp;channels.</li>
 </ul>
+
+<p>The <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#fiberTransform-co.paralleluniverse.strands.channels.ReceivePort-co.paralleluniverse.strands.channels.SendPort-co.paralleluniverse.strands.SuspendableAction2-"><code>fiberTransform</code></a> method can perform any imperative channel transformation by running transformation code in a new dedicated fiber. The transformation reads messages from an input channels and writes messages to the output channel. When the transformation terminates,  the output channel is automatically&nbsp;closed.</p>
+
+<p>Here’s an example of <code>fiberTransform</code> using Java 8&nbsp;syntax:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="n">Channels</span><span class="o">.</span><span class="na">fiberTransform</span><span class="o">(</span><span class="n">Channels</span><span class="o">.</span><span class="na">newTickerConsumerFor</span><span class="o">(</span><span class="n">t</span><span class="o">),</span> <span class="n">avg</span><span class="o">,</span>
+</span><span id="line-2">        <span class="o">(</span><span class="n">DoubleReceivePort</span> <span class="n">in</span><span class="o">,</span> <span class="n">SendPort</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span> <span class="n">out</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="o">{</span>
+</span><span id="line-3">            <span class="k">try</span> <span class="o">{</span>
+</span><span id="line-4">                <span class="kt">double</span><span class="o">[]</span> <span class="n">window</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">double</span><span class="o">[</span><span class="n">WINDOW_SIZE</span><span class="o">];</span>
+</span><span id="line-5">                <span class="kt">long</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+</span><span id="line-6">                <span class="k">for</span> <span class="o">(;;)</span> <span class="o">{</span>
+</span><span id="line-7">                    <span class="n">window</span><span class="o">[(</span><span class="kt">int</span><span class="o">)</span> <span class="o">(</span><span class="n">i</span><span class="o">++</span> <span class="o">%</span> <span class="n">WINDOW_SIZE</span><span class="o">)]</span> <span class="o">=</span> <span class="n">in</span><span class="o">.</span><span class="na">receiveDouble</span><span class="o">();</span>
+</span><span id="line-8">                    <span class="n">out</span><span class="o">.</span><span class="na">send</span><span class="o">(</span><span class="n">Arrays</span><span class="o">.</span><span class="na">stream</span><span class="o">(</span><span class="n">window</span><span class="o">).</span><span class="na">average</span><span class="o">().</span><span class="na">getAsDouble</span><span class="o">());</span>
+</span><span id="line-9">                <span class="o">}</span>
+</span><span id="line-10">            <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">ReceivePort</span><span class="o">.</span><span class="na">EOFException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span id="line-11">            <span class="o">}</span>
+</span><span id="line-12">        <span class="o">});</span>
+</span></code></pre></div>
+<p><a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#transform-co.paralleluniverse.strands.channels.ReceivePort-"><code>transform</code></a> and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#transformSend-co.paralleluniverse.strands.channels.SendPort-"><code>transformSend</code></a> wrap a <code>ReceivePort</code> or a <code>SendPort</code> respectively, with a fluent interface for all the transformations covered in this&nbsp;section.</p>
 
 <h4 id="channel-selection">Channel&nbsp;Selection</h4>
 
