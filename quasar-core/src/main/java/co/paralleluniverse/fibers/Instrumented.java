@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
  * 
  * @author Matthias Mann
  */
-@Target(ElementType.TYPE)
+@Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Instrumented {
 }

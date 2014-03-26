@@ -41,6 +41,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.STACK_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.UNDECLARED_THROWABLE_NAME;
@@ -193,6 +194,8 @@ class InstrumentMethod {
 
     public void accept(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
+
+        mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
 
         final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS & hasSuspendableSuperCalls;
         mv.visitCode();
