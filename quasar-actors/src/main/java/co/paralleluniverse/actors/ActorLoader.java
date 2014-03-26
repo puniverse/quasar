@@ -145,16 +145,23 @@ public class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notif
                 ModuleNotification.class.getName(),
                 "Actor module change");
         this.notificationBroadcaster = new NotificationBroadcasterSupport(info);
-        registerMBean(mbeanName);
+        
+        try {
+            registerMBean(mbeanName);
+        } catch (InstanceAlreadyExistsException e) {
+            try {
+                registerMBean(mbeanName + ",instance=" + Integer.toHexString(System.identityHashCode(ActorLoader.class.getClassLoader())));
+            } catch (InstanceAlreadyExistsException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
     }
 
-    private void registerMBean(String mbeanName) {
+    private void registerMBean(String mbeanName) throws InstanceAlreadyExistsException {
         try {
             final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
             final ObjectName mxbeanName = new ObjectName(mbeanName);
             mbs.registerMBean(this, mxbeanName);
-        } catch (InstanceAlreadyExistsException ex) {
-            throw new RuntimeException(ex);
         } catch (MBeanRegistrationException ex) {
             LOG.error("exception while registering MBean " + mbeanName, ex);
         } catch (NotCompliantMBeanException ex) {
