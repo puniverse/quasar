@@ -217,7 +217,6 @@ class InstrumentMethod {
 //            mv.visitInsn(Opcodes.ICONST_0);
 //            mv.visitVarInsn(Opcodes.ISTORE, lvarSuspendableCalled);
 //        }
-
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, EXCEPTION_NAME);
         if (handleProxyInvocations)
             mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchUTE, UNDECLARED_THROWABLE_NAME);
@@ -284,6 +283,16 @@ class InstrumentMethod {
         emitStoreResumed(mv, true); // we'll assume we have been resumed
 
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "nextMethodEntry", "()I");
+
+        // the following code handles the case of an instrumented method called not as part of a suspendable code path
+        // nextMethodEntry will return -1 in that case.
+        mv.visitInsn(Opcodes.DUP);
+        Label lSuspPath = new Label();
+        mv.visitJumpInsn(Opcodes.IFGE, lSuspPath);
+        mv.visitInsn(Opcodes.ACONST_NULL);
+        mv.visitVarInsn(Opcodes.ASTORE, lvarStack);
+        mv.visitLabel(lSuspPath);
+
         mv.visitTableSwitchInsn(1, numCodeBlocks - 1, lMethodStart, lMethodCalls);
 
         mv.visitLabel(lMethodStart);
@@ -333,7 +342,7 @@ class InstrumentMethod {
                 // normal case - call to a suspendable method - resume before the call
                 emitStoreState(mv, i, fi, 0);
                 emitStoreResumed(mv, false); // we have not been resumed
-                emitPreemptionPoint(mv, PREEMPTION_CALL);
+                // emitPreemptionPoint(mv, PREEMPTION_CALL);
 
                 mv.visitLabel(lMethodCalls[i - 1]);
                 emitRestoreState(mv, i, fi, 0);
@@ -449,7 +458,6 @@ class InstrumentMethod {
 //            mv.visitLabel(skipVerify);
 //        }
 //    }
-
     private int getLabelIdx(LabelNode l) {
         int idx;
         if (l instanceof BlockLabelNode) {

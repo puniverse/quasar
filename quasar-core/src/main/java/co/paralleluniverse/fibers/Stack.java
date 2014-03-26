@@ -22,6 +22,7 @@ public final class Stack implements Serializable {
     private Object[] dataObject;    // holds refs on stack
     private transient int curMethodSP;
     private transient boolean shouldVerifyInstrumentation;
+    private transient boolean pushed;
     static final ThreadLocal<Stack> getStackTrace = new ThreadLocal<Stack>();
     static final boolean foo = "hello".contains("kkk"); // false
 
@@ -88,6 +89,10 @@ public final class Stack implements Serializable {
         methodTOS = ++idx;
         int entry = method[idx];
 
+        if (entry == 0 & !pushed) // not resumed & not pushed
+            entry = -1;
+        pushed = false;
+
         if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "nextMethodEntry", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, curMethodSP /*Arrays.toString(fiber.getStackTrace())*/);
 
@@ -102,6 +107,7 @@ public final class Stack implements Serializable {
      */
     public final void pushMethod(int entry, int numSlots) {
         shouldVerifyInstrumentation = false;
+        pushed = true;
 
         final int methodIdx = methodTOS;
 
@@ -223,6 +229,7 @@ public final class Stack implements Serializable {
      */
     final void resumeStack() {
         methodTOS = -1;
+        pushed = true;
     }
 
     private void growDataStack(int required) {
