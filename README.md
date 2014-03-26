@@ -9,16 +9,28 @@ In Maven:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-core</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 ```
+
+or, for JDK8:
+
+~~~ xml
+<dependency>
+    <groupId>co.paralleluniverse</groupId>
+    <artifactId>quasar-core</artifactId>
+    <version>{{site.version}}</version>
+    <classifier>jdk8<classifier>
+</dependency>
+~~~
+
 To use actors, add
 
 ```xml
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-actors</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 ```
 
@@ -28,7 +40,7 @@ For clustering support add:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-galaxy</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 ```
 

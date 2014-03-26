@@ -31,6 +31,10 @@ A core component of Quasar, bytecode instrumentation, is a fork of the wonderful
 
 ## News
 
+### March 26, 2014
+
+Quasar 0.5.0 has been released.
+
 ### January 22, 2014
 
 Quasar 0.4.0 has been released.
@@ -64,6 +68,17 @@ Add the following dependency to Maven:
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-core</artifactId>
     <version>{{site.version}}</version>
+</dependency>
+~~~
+
+or, for JDK8:
+
+~~~ xml
+<dependency>
+    <groupId>co.paralleluniverse</groupId>
+    <artifactId>quasar-core</artifactId>
+    <version>{{site.version}}</version>
+    <classifier>jdk8<classifier>
 </dependency>
 ~~~
 

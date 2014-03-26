@@ -10,7 +10,7 @@ branches:
 env:
   global:
     - secure: "NTxp50e11DMSJH1ApQbjlBxY4bcsLAGSw3mYzodOlceybMBh+hbpiAmqBpCZ9878wm5AZcPVq6ULzB47IrdfQG3Xn3SybwWLWpZRI3B0eaqoyhk71J5Uuu9rr+xXoD1C1q/TV1Z0Zf5unR1jz5DmUZ5En8yf4lZ4MI7gft6tDFI="
-    - DOCS_BRANCH="0.4.0"
+    - DOCS_BRANCH="0.5.0"
     - GEN_APIDOCS="gradle javadoc"
 
 after_success:
