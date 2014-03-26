@@ -4,9 +4,8 @@ import java.io.Serializable;
 import java.util.Arrays;
 
 /**
- * Internal Class - DO NOT USE !
+ * Internal Class - DO NOT USE! (Public so that instrumented code can access it)
  *
- * Needs to be public so that instrumented code can access it.
  * ANY CHANGE IN THIS CLASS NEEDS TO BE SYNCHRONIZED WITH {@link co.paralleluniverse.fibers.instrument.InstrumentMethod}
  *
  * @author Matthias Mann
@@ -74,6 +73,13 @@ public final class Stack implements Serializable {
 
     Fiber getFiber() {
         return fiber;
+    }
+
+    /**
+     * called when resuming a stack
+     */
+    final void resumeStack() {
+        methodTOS = -1;
     }
 
     /**
@@ -222,14 +228,6 @@ public final class Stack implements Serializable {
 
     public final void preemptionPoint(int type) throws SuspendExecution {
         fiber.preemptionPoint(type);
-    }
-
-    /**
-     * called when resuming a stack
-     */
-    final void resumeStack() {
-        methodTOS = -1;
-        pushed = true;
     }
 
     private void growDataStack(int required) {
