@@ -16,7 +16,7 @@ public final class Stack implements Serializable {
     private static final int INITIAL_METHOD_STACK_DEPTH = 16;
     private static final long serialVersionUID = 12786283751253L;
     private final Fiber fiber;
-    private int methodTOS = -1;
+    private int methodTOS;
     private int[] method;           // holds each method's entry point as well as stack pointer
     private long[] dataLong;        // holds primitives on stack
     private Object[] dataObject;    // holds refs on stack
@@ -25,14 +25,16 @@ public final class Stack implements Serializable {
     static final ThreadLocal<Stack> getStackTrace = new ThreadLocal<Stack>();
     static final boolean foo = "hello".contains("kkk"); // false
 
-    Stack(Fiber lwThread, int stackSize) {
+    Stack(Fiber fiber, int stackSize) {
         if (stackSize <= 0) {
             throw new IllegalArgumentException("stackSize");
         }
-        this.fiber = lwThread;
+        this.fiber = fiber;
         this.method = new int[INITIAL_METHOD_STACK_DEPTH];
         this.dataLong = new long[stackSize];
         this.dataObject = new Object[stackSize];
+
+        resumeStack();
     }
 
     public static Stack getStack() {
