@@ -61,6 +61,7 @@ import sun.misc.Unsafe;
  */
 public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.verifyInstrumentation", "false"));
+    private static final ClassContext classContext = verifyInstrumentation ? new ClassContext() : null;
     private static final boolean traceInterrupt = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.traceInterrupt", "false"));
     public static final int DEFAULT_STACK_SIZE = 32;
 //    private static final boolean PREEMPTION = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.enablePreemption", "false"));
@@ -1465,10 +1466,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         assert verifyInstrumentation;
 
         StackTraceElement[] stes = Thread.currentThread().getStackTrace();
+        Class[] context = classContext.getClassContext();
+
         boolean notInstrumented = false;
         StringBuilder stackTrace = null;
 
-        for (int i = 0; i < stes.length; i++) {
+        for (int i = 0, k = 0; i < stes.length; i++, k++) {
             final StackTraceElement ste = stes[i];
             if (ste.getClassName().equals(Thread.class.getName()) && ste.getMethodName().equals("getStackTrace"))
                 continue;
@@ -1476,10 +1479,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 stackTrace.append("\n\tat ").append(ste);
             if (ste.getClassName().contains("$$Lambda$"))
                 continue;
+            if(skipSTE(ste)) {
+                k--;
+                continue;
+            }
+
             else if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
                     && !ste.getClassName().equals(Stack.class.getName())) {
                 if (!Retransform.isWaiver(ste.getClassName(), ste.getMethodName())
-                        && (!Retransform.isInstrumented(ste.getClassName()) || isNonSuspendable(ste.getClassName(), ste.getMethodName()))) {
+                        && (!Retransform.isInstrumented(context[k]) || isNonSuspendable(ste.getClassName(), ste.getMethodName()))) {
                     if (!notInstrumented) {
                         stackTrace = new StringBuilder();
                         for (int j = 0; j <= i; j++) {
@@ -1501,6 +1509,17 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             }
         }
         throw new IllegalStateException("Not run through Fiber.exec(). (trace: " + Arrays.toString(stes) + ")");
+    }
+
+    private static boolean skipSTE(StackTraceElement ste) {
+        switch (ste.getClassName()) {
+            case "sun.reflect.NativeMethodAccessorImpl":
+            case "sun.reflect.DelegatingMethodAccessorImpl":
+            case "java.lang.reflect.Method":
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static boolean isNonSuspendable(String className, String methodName) {
@@ -1681,5 +1700,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         final StackTraceElement[] st1 = new StackTraceElement[st.length - skip];
         System.arraycopy(st, skip, st1, 0, st1.length);
         return st1;
+    }
+
+    private static class ClassContext extends SecurityManager {
+        @Override
+        public Class[] getClassContext() {
+            return super.getClassContext();
+        }
     }
 }

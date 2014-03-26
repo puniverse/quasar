@@ -62,23 +62,22 @@ public class Retransform {
         return clazz.isAnnotationPresent(Instrumented.class);
     }
 
-    public static boolean isInstrumented(String className) {
-        for (Iterator<WeakReference<ClassLoader>> it = classLoaders.iterator(); it.hasNext();) {
-            final WeakReference<ClassLoader> ref = it.next();
-            final ClassLoader loader = ref.get();
-            if (loader == null)
-                it.remove();
-            else {
-                try {
-                    if (isInstrumented(Class.forName(className, false, loader)))
-                        return true;
-                } catch (ClassNotFoundException ex) {
-                }
-            }
-        }
-        return false;
-    }
-
+//    public static boolean isInstrumented(String className) {
+//        for (Iterator<WeakReference<ClassLoader>> it = classLoaders.iterator(); it.hasNext();) {
+//            final WeakReference<ClassLoader> ref = it.next();
+//            final ClassLoader loader = ref.get();
+//            if (loader == null)
+//                it.remove();
+//            else {
+//                try {
+//                    if (isInstrumented(Class.forName(className, false, loader)))
+//                        return true;
+//                } catch (ClassNotFoundException ex) {
+//                }
+//            }
+//        }
+//        return false;
+//    }
     public static void addWaiver(String className, String methodName) {
         waivers.add(new Pair<String, String>(className, methodName));
     }
@@ -92,6 +91,8 @@ public class Retransform {
     }
 
     public static Boolean isSuspendable(String className, String methodName) {
+        if (db == null)
+            return null;
         final MethodDatabase.ClassEntry ce = db.getClassEntry(className);
         if (ce == null)
             return null;
