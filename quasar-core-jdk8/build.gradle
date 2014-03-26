@@ -36,7 +36,7 @@ compileJava {
                 
     }
 }
-
+    
 //task jar(dependsOn: classes, type: Jar, overwrite: true) {
 jar.dependsOn ':quasar-core:jar'
 jar {
@@ -68,6 +68,9 @@ jar {
         )
     }
 }
+
+    
+uploadArchives.enabled = false
 
 tasks.withType(Test) { 
     allJvmArgs = []

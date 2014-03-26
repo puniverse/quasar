@@ -193,7 +193,7 @@ subprojects {
         required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
         sign configurations.archives
     }
-
+    
     // remove embedded jars from pom
     configure(install.repositories.mavenInstaller) {
         pom.whenConfigured {
@@ -204,7 +204,6 @@ subprojects {
                 (dep.groupId == 'co.paralleluniverse' && dep.artifactId.startsWith('quasar-core'))
             }
         }
-
     }
 	                
     uploadArchives {
@@ -311,6 +310,18 @@ project (':quasar-core') {
                 //  "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',') 
             )
         }
+    }
+
+    if (System.properties['java.version'].startsWith('1.8') ) { 
+        artifacts {
+            archives jar
+            archives project(':quasar-core-jdk8').jar
+            archives sourcesJar
+            archives javadocJar
+            //    archives distZip
+        }
+    
+        uploadArchives.dependsOn ':quasar-core-jdk8:jar'
     }
 }
 
