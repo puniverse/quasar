@@ -201,6 +201,7 @@ class InstrumentMethod {
         mv.visitCode();
 
         Label lMethodStart = new Label();
+        Label lMethodStart2 = new Label();
         Label lMethodEnd = new Label();
         Label lCatchSEE = new Label();
         Label lCatchUTE = new Label();
@@ -283,18 +284,18 @@ class InstrumentMethod {
         emitStoreResumed(mv, true); // we'll assume we have been resumed
 
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "nextMethodEntry", "()I");
+        mv.visitTableSwitchInsn(1, numCodeBlocks - 1, lMethodStart2, lMethodCalls);
+
+        mv.visitLabel(lMethodStart2);
 
         // the following code handles the case of an instrumented method called not as part of a suspendable code path
-        // nextMethodEntry will return -1 in that case.
-        mv.visitInsn(Opcodes.DUP);
-        Label lSuspPath = new Label();
-        mv.visitJumpInsn(Opcodes.IFGE, lSuspPath);
+        // isFirstInStack will return false in that case.
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "isFirstInStackOrPushed", "()Z");
+        mv.visitJumpInsn(Opcodes.IFNE, lMethodStart); // if true
         mv.visitInsn(Opcodes.ACONST_NULL);
         mv.visitVarInsn(Opcodes.ASTORE, lvarStack);
-        mv.visitLabel(lSuspPath);
-
-        mv.visitTableSwitchInsn(1, numCodeBlocks - 1, lMethodStart, lMethodCalls);
-
+        
         mv.visitLabel(lMethodStart);
 
         emitStoreResumed(mv, false); // no, we have not been resumed

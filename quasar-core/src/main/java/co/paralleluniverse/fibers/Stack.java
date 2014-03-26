@@ -95,14 +95,27 @@ public final class Stack implements Serializable {
         methodTOS = ++idx;
         int entry = method[idx];
 
-        if (entry == 0 & !pushed) // not resumed & not pushed
-            entry = -1;
-        pushed = false;
-
         if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "nextMethodEntry", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, curMethodSP /*Arrays.toString(fiber.getStackTrace())*/);
 
         return entry;
+    }
+
+    /**
+     * called when nextMethodEntry returns 0
+     */
+    public final boolean isFirstInStackOrPushed() {
+        boolean p = pushed;
+        pushed = false;
+        
+        if (methodTOS == 1 | p)
+            return true;
+        
+        // not first, but nextMethodEntry returned 0: revert changes
+        methodTOS -= 2;
+        curMethodSP = method[methodTOS - 1];
+
+        return false;
     }
 
     /**
@@ -143,6 +156,7 @@ public final class Stack implements Serializable {
             Fiber.verifySuspend(fiber);
             shouldVerifyInstrumentation = false;
         }
+        pushed = false;
 
         final int idx = methodTOS;
         method[idx] = 0;
