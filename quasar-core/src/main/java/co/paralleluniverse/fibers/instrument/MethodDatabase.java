@@ -219,7 +219,7 @@ public class MethodDatabase implements Log {
         ClassEntry entry = getClassEntry(className);
         if(entry == null) {
             if (cl != null) {
-                log(LogLevel.INFO, "Trying to read class: %s", className);
+                log(LogLevel.INFO, "Reading class: %s", className);
 
                 CheckInstrumentationVisitor civ = checkClass(className);
                 if (civ == null)
