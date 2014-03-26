@@ -72,8 +72,8 @@ public class FiberTest {
 
     @Before
     public void before() {
-        if (scheduler instanceof FiberForkJoinScheduler)
-            System.out.println("==> " + ((FiberForkJoinScheduler) scheduler).getForkJoinPool().getClass().getSuperclass().getName());
+//        if (scheduler instanceof FiberForkJoinScheduler)
+//            System.out.println("==> " + ((FiberForkJoinScheduler) scheduler).getForkJoinPool().getClass().getSuperclass().getName());
     }
 
     @Test
