@@ -22,6 +22,7 @@ import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.SuspendableAction1;
 import co.paralleluniverse.strands.SuspendableAction2;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
@@ -29,8 +30,10 @@ import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import static org.hamcrest.CoreMatchers.*;
 import org.junit.After;
@@ -904,5 +907,39 @@ public class TransformingChannelTest {
         ch1.send(5);
         ch1.close();
         fib.join();
+    }
+
+    @Test
+    public void testForEach() throws Exception {
+        final Channel<Integer> ch = newChannel();
+
+        Fiber<List<Integer>> fib = new Fiber<>("fiber", scheduler, new SuspendableCallable() {
+            @Override
+            public List<Integer> run() throws SuspendExecution, InterruptedException {
+                final List<Integer> list = new ArrayList<>();
+                
+                Channels.transform(ch).forEach(new SuspendableAction1<Integer>() {
+
+                    @Override
+                    public void call(Integer x) throws SuspendExecution, InterruptedException {
+                        list.add(x);
+                    }
+                });
+
+                return list;
+            }
+        }).start();
+
+        Strand.sleep(50);
+        ch.send(1);
+        ch.send(2);
+        Strand.sleep(50);
+        ch.send(3);
+        ch.send(4);
+        ch.send(5);
+        ch.close();
+
+        List<Integer> list = fib.get();
+        assertThat(list, equalTo(Arrays.asList(new Integer[]{1, 2, 3, 4, 5})));
     }
 }

@@ -20,6 +20,7 @@ import co.paralleluniverse.common.util.Function5;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.SuspendableAction1;
 import co.paralleluniverse.strands.SuspendableAction2;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.Timeout;
@@ -523,7 +524,7 @@ public final class Channels {
     /**
      * Spawns a fiber that transforms values read from the {@code in} channel and writes values to the {@code out} channel.
      * <p>
-     * When the transformation terminates. the output channel is automatically closed. If the transformation terminates abnormally 
+     * When the transformation terminates. the output channel is automatically closed. If the transformation terminates abnormally
      * (throws an exception), the output channel is {@link SendPort#close(Throwable) closed with that exception}.
      *
      * @param scheduler   the fiber scheduler
@@ -603,7 +604,7 @@ public final class Channels {
     }
 
     /**
-     * Returns a {@link ReceivePort} that maps exceptions thrown by the underlying channel 
+     * Returns a {@link ReceivePort} that maps exceptions thrown by the underlying channel
      * (by channel transformations, or as a result of {@link SendPort#close(Throwable)} )
      * into messages.
      * <p>
@@ -639,6 +640,20 @@ public final class Channels {
      */
     public static <S, T> ReceivePort<T> flatMap(ReceivePort<S> channel, Function<S, ReceivePort<T>> f) {
         return new FlatMappingReceivePort<S, T>(channel, f);
+    }
+
+    /**
+     * Performs the given action on each message received by the given channel.
+     * This method returns only after all messages have been consumed and the channel has been closed.
+     *
+     * @param channel the channel
+     * @param action  the actions
+     */
+    public static <T> void forEach(ReceivePort<T> channel, SuspendableAction1<T> action) throws SuspendExecution, InterruptedException {
+        T m;
+        while ((m = channel.receive()) != null) {
+            action.call(m);
+        }
     }
 
     /**

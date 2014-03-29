@@ -13,6 +13,8 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.SuspendableAction1;
 import co.paralleluniverse.strands.SuspendableAction2;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -102,5 +104,15 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
     public <U> TransformingReceivePort<U> fiberTransform(SuspendableAction2<? extends ReceivePort<? super T>, ? extends SendPort<? extends U>> transformer, Channel<U> out) {
         Channels.fiberTransform(this, out, transformer);
         return Channels.transform(out);
+    }
+
+    /**
+     * Performs the given action on each message received by this channel.
+     * This method returns only after all messages have been consumed and the channel has been closed.
+     *
+     * @param action
+     */
+    public void forEach(SuspendableAction1<T> action) throws SuspendExecution, InterruptedException {
+        Channels.forEach(this, action);
     }
 }
