@@ -63,13 +63,15 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
         try (InputStream is = file.openStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF-8")))) {
             String line;
-            
+
             for (int linenum = 1; (line = reader.readLine()) != null; linenum++) {
                 final String s = line.trim();
+                if (s.isEmpty())
+                    continue;
                 if (s.charAt(0) == '#')
                     continue;
                 final int index = s.lastIndexOf('.');
-                if(index <= 0) {
+                if (index <= 0) {
                     System.err.println("Can't parse line " + linenum + " in " + file + ": " + line);
                     continue;
                 }
