@@ -88,7 +88,7 @@ subprojects {
         testCompile("org.mockito:mockito-all:1.9.5") {
             exclude group: "org.ow2.asm", module: '*'
         }
-        testCompile 'org.openjdk.jmh:jmh-core:0.5.4'
+        testCompile 'org.openjdk.jmh:jmh-core:0.5.5'
         markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
     }
 
@@ -330,7 +330,7 @@ project (':quasar-actors') {
     
     dependencies {
         compile project(':quasar-core')
-        // compile 'org.mutabilitydetector:MutabilityDetector:0.9'
+        // compile 'org.mutabilitydetector:MutabilityDetector:0.9.1'
     }
 }
 
