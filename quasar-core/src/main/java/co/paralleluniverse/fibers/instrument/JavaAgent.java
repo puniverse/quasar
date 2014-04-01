@@ -89,8 +89,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 /*
- * Created on Nov 21, 2010
- *
+ * @author pron
  * @author Riven
  * @author Matthias Mann
  */
@@ -106,6 +105,7 @@ public class JavaAgent {
         final QuasarInstrumentor instrumentor = new QuasarInstrumentor(false, cl, new DefaultSuspendableClassifier(cl));
         boolean checkArg = false;
         active = true;
+        SuspendableHelper.javaAgent = true;
 
         if (agentArguments != null) {
             for (char c : agentArguments.toCharArray()) {

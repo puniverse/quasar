@@ -22,7 +22,7 @@ import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
-import co.paralleluniverse.fibers.instrument.Retransform;
+import co.paralleluniverse.fibers.instrument.SuspendableHelper;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
@@ -1479,15 +1479,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 stackTrace.append("\n\tat ").append(ste);
             if (ste.getClassName().contains("$$Lambda$"))
                 continue;
-            if(skipSTE(ste)) {
+            if (skipSTE(ste)) {
                 k--;
                 continue;
-            }
-
-            else if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
+            } else if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
                     && !ste.getClassName().equals(Stack.class.getName())) {
-                if (!Retransform.isWaiver(ste.getClassName(), ste.getMethodName())
-                        && (!Retransform.isInstrumented(context[k]) || isNonSuspendable(ste.getClassName(), ste.getMethodName()))) {
+                if (!SuspendableHelper.isWaiver(ste.getClassName(), ste.getMethodName())
+                        && (!SuspendableHelper.isInstrumented(context[k]) || isNonSuspendable(context[k], ste.getMethodName()))) {
                     if (!notInstrumented) {
                         stackTrace = new StringBuilder();
                         for (int j = 0; j <= i; j++) {

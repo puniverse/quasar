@@ -13,9 +13,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.concurrent.util.MapUtil;
-import co.paralleluniverse.fibers.Instrumented;
 import java.io.PrintWriter;
 import java.lang.instrument.ClassDefinition;
 import java.lang.instrument.Instrumentation;
@@ -23,7 +21,6 @@ import java.lang.instrument.UnmodifiableClassException;
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.objectweb.asm.ClassReader;
@@ -39,7 +36,7 @@ public class Retransform {
     static volatile Instrumentation instrumentation;
     static volatile MethodDatabase db;
     static volatile Set<WeakReference<ClassLoader>> classLoaders = Collections.newSetFromMap(MapUtil.<WeakReference<ClassLoader>, Boolean>newConcurrentHashMap());
-    static final Set<Pair<String, String>> waivers = Collections.newSetFromMap(MapUtil.<Pair<String, String>, Boolean>newConcurrentHashMap());
+    
     private static final CopyOnWriteArrayList<ClassLoadListener> listeners = new CopyOnWriteArrayList<ClassLoadListener>();
 
     public static void retransform(Class<?> clazz) throws UnmodifiableClassException {
@@ -59,7 +56,7 @@ public class Retransform {
     }
 
     public static boolean isInstrumented(Class clazz) {
-        return clazz.isAnnotationPresent(Instrumented.class);
+        return SuspendableHelper.isInstrumented(clazz);
     }
 
 //    public static boolean isInstrumented(String className) {
@@ -79,15 +76,11 @@ public class Retransform {
 //        return false;
 //    }
     public static void addWaiver(String className, String methodName) {
-        waivers.add(new Pair<String, String>(className, methodName));
+        SuspendableHelper.addWaiver(className, methodName);
     }
 
     public static boolean isWaiver(String className, String methodName) {
-        if (className.startsWith("java.lang.reflect")
-                || className.startsWith("sun.reflect")
-                || (className.equals("co.paralleluniverse.strands.SuspendableUtils$VoidSuspendableCallable") && methodName.equals("run")))
-            return true;
-        return waivers.contains(new Pair<String, String>(className, methodName));
+        return SuspendableHelper.isWaiver(className, methodName);
     }
 
     public static Boolean isSuspendable(String className, String methodName) {
