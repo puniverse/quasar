@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
 import org.junit.AfterClass;
 import static org.junit.Assert.*;
@@ -506,5 +507,67 @@ public class FiberTest {
 
         good.join();
         bad.join();
+    }
+
+    @Test
+    public void testUncaughtExceptionHandler() throws Exception {
+        final AtomicReference<Throwable> t = new AtomicReference<>();
+
+        Fiber<Void> f = new Fiber<Void>() {
+
+            @Override
+            protected Void run() throws SuspendExecution, InterruptedException {
+                throw new RuntimeException("foo");
+            }
+        };
+        f.setUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
+
+            @Override
+            public void uncaughtException(Strand f, Throwable e) {
+                t.set(e);
+            }
+        });
+
+        f.start();
+
+        try {
+            f.join();
+            fail();
+        } catch (ExecutionException e) {
+            assertThat(e.getCause().getMessage(), equalTo("foo"));
+        }
+
+        assertThat(t.get().getMessage(), equalTo("foo"));
+    }
+
+    @Test
+    public void testDefaultUncaughtExceptionHandler() throws Exception {
+        final AtomicReference<Throwable> t = new AtomicReference<>();
+
+        Fiber<Void> f = new Fiber<Void>() {
+
+            @Override
+            protected Void run() throws SuspendExecution, InterruptedException {
+                throw new RuntimeException("foo");
+            }
+        };
+        Fiber.setDefaultUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
+
+            @Override
+            public void uncaughtException(Strand f, Throwable e) {
+                t.set(e);
+            }
+        });
+
+        f.start();
+
+        try {
+            f.join();
+            fail();
+        } catch (ExecutionException e) {
+            assertThat(e.getCause().getMessage(), equalTo("foo"));
+        }
+
+        assertThat(t.get().getMessage(), equalTo("foo"));
     }
 }

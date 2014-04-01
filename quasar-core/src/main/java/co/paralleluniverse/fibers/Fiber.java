@@ -83,7 +83,17 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return true;
     }
     // private static final FiberTimedScheduler timeoutService = new FiberTimedScheduler(new ThreadFactoryBuilder().setNameFormat("fiber-timeout-%d").setDaemon(true).build());
-    private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler;
+    private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler = new UncaughtExceptionHandler() {
+
+        @Override
+        public void uncaughtException(Strand s, Throwable e) {
+            System.err.print("Exception in Fiber \"" + s.getName() + "\" ");
+            if (e instanceof NullPointerException || e instanceof ClassCastException
+                    || Exceptions.unwrap(e) instanceof NullPointerException || Exceptions.unwrap(e) instanceof ClassCastException)
+                System.err.println("If this exception looks strange, perhaps you've forgotten to instrument a blocking method. Run your program with -Dco.paralleluniverse.fibers.verifyInstrumentation=true to catch the culprit!");
+            Strand.printStackTrace(threadToFiberStack(e.getStackTrace()), System.err);
+        }
+    };
     private static final AtomicLong idGen = new AtomicLong(10000000L);
 
     private static long nextFiberId() {
@@ -701,6 +711,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             }
 
             monitorFiberTerminated(monitor);
+
+            onException(t);
+
             throw t;
         } finally {
             if (!restored)
@@ -975,10 +988,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     protected void onException(Throwable t) {
         try {
-            if (uncaughtExceptionHandler != null)
-                uncaughtExceptionHandler.uncaughtException(this, t);
-            else if (defaultUncaughtExceptionHandler != null)
-                defaultUncaughtExceptionHandler.uncaughtException(this, t);
+            UncaughtExceptionHandler ueh;
+            if ((ueh = uncaughtExceptionHandler) != null)
+                ueh.uncaughtException(this, t);
+            else if ((ueh = defaultUncaughtExceptionHandler) != null)
+                ueh.uncaughtException(this, t);
         } catch (Exception e) {
         }
         throw Exceptions.rethrow(t);
@@ -1520,11 +1534,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         }
     }
 
-    private static boolean isNonSuspendable(String className, String methodName) {
-        Boolean res = Retransform.isSuspendable(className, methodName);
-        if (res == null)
-            return false;
-        return !res;
+    private static boolean isNonSuspendable(Class clazz, String methodName) {
+        return !SuspendableHelper.isInstrumented(clazz, methodName);
     }
 
     @SuppressWarnings("unchecked")
