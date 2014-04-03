@@ -402,6 +402,7 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
         "co/paralleluniverse/fibers/instrument/**",
         "co/paralleluniverse/io/serialization/**",
         "co/paralleluniverse/remote/**",
+        "co/paralleluniverse/strands/channels/SelectActionImpl.java",
         "co/paralleluniverse/strands/channels/disruptor/**", // not ready
         "co/paralleluniverse/strands/queues/**",
     ]

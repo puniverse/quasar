@@ -256,7 +256,7 @@ public class Selector<Message> implements Synchronization {
      * @return a <i>send</i> {@link SelectAction} that can be selected by the selector.
      */
     public static <Message> SelectAction<Message> send(SendPort<? super Message> ch, Message message) {
-        return new SelectAction<Message>((SendPort) ch, message);
+        return new SelectActionImpl<Message>((SendPort) ch, message);
     }
 
     /**
@@ -267,7 +267,7 @@ public class Selector<Message> implements Synchronization {
      * @return a <i>receive</i> {@link SelectAction} that can be selected by the selector.
      */
     public static <Message> SelectAction<Message> receive(ReceivePort<? extends Message> ch) {
-        return new SelectAction(ch, null);
+        return new SelectActionImpl(ch, null);
     }
     ///////////////////
     private static final AtomicLong selectorId = new AtomicLong(); // used to break symmetry to prevent deadlock in transfer channel
@@ -280,7 +280,7 @@ public class Selector<Message> implements Synchronization {
     final long id;
     private volatile Object winner;
     private Strand waiter;
-    private final List<? extends SelectAction<Message>> actions;
+    private final List<? extends SelectActionImpl<Message>> actions;
     private int lastRegistered;
     private final boolean priority;
     SelectAction<Message> res;
@@ -288,10 +288,10 @@ public class Selector<Message> implements Synchronization {
     Selector(boolean priority, List<? extends SelectAction<Message>> actions) {
         this.id = selectorId.incrementAndGet();
         this.waiter = Strand.currentStrand();
-        this.actions = actions;
+        this.actions = (List<? extends SelectActionImpl<Message>>)actions;
         this.priority = priority;
         for (int i = 0; i < actions.size(); i++) {
-            SelectAction<? extends Message> sa = actions.get(i);
+            SelectActionImpl<? extends Message> sa = (SelectActionImpl<? extends Message>)actions.get(i);
             sa.setSelector(this);
             sa.setIndex(i);
             record("<init>", "%s added %s", this, sa);
@@ -305,7 +305,7 @@ public class Selector<Message> implements Synchronization {
 
     void reset() {
         waiter = null;
-        for (SelectAction<Message> sa : actions)
+        for (SelectActionImpl<Message> sa : actions)
             sa.resetReceive();
         winner = null;
     }
@@ -327,9 +327,9 @@ public class Selector<Message> implements Synchronization {
         // register
         lastRegistered = -1;
         for (int i = 0; i < n; i++) {
-            SelectAction<Message> sa = actions.get(i);
+            SelectActionImpl<Message> sa = actions.get(i);
 
-            sa.token = sa.port.register((SelectAction) sa);
+            sa.token = sa.port.register((SelectActionImpl) sa);
             lastRegistered = i;
             if (sa.isDone()) {
                 assert winner == sa;
@@ -347,7 +347,7 @@ public class Selector<Message> implements Synchronization {
     @Override
     public void unregister(Object registrationToken) {
         for (int i = 0; i <= lastRegistered; i++) {
-            SelectAction sa = actions.get(i);
+            SelectActionImpl sa = actions.get(i);
             sa.port.unregister(sa.token);
             sa.token = null; // for GC
         }
@@ -377,7 +377,7 @@ public class Selector<Message> implements Synchronization {
                         break;
 
                     for (int i = 0; i <= lastRegistered; i++) {
-                        SelectAction<Message> sa = actions.get(i);
+                        SelectActionImpl<Message> sa = actions.get(i);
 
                         if (sa.port.tryNow(sa.token)) {
                             res = sa;
@@ -403,7 +403,7 @@ public class Selector<Message> implements Synchronization {
     public SelectAction<Message> trySelect() {
         selectInit();
         for (int i = 0; i < actions.size(); i++) {
-            SelectAction sa = actions.get(i);
+            SelectActionImpl sa = actions.get(i);
 
             if (sa.isData()) {
                 if (((SendPort) sa.port).trySend(sa.message()))

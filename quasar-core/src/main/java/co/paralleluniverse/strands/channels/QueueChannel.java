@@ -97,7 +97,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
     @Override
     public Object register(SelectAction<Message> action) {
-        if (action.isData()) {
+        if (((SelectActionImpl)action).isData()) {
             if (sendersSync != null)
                 sendersSync.register();
         } else
@@ -113,7 +113,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
     @Override
     public boolean tryNow(Object token) {
-        SelectAction<Message> action = (SelectAction<Message>) token;
+        SelectActionImpl<Message> action = (SelectActionImpl<Message>) token;
         if (!action.lease())
             return false;
         boolean res;
@@ -140,7 +140,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     public void unregister(Object token) {
         if (token == null)
             return;
-        SelectAction<Message> action = (SelectAction<Message>) token;
+        SelectActionImpl<Message> action = (SelectActionImpl<Message>) token;
         if (action.isData()) {
             if (sendersSync != null)
                 sendersSync.unregister(null);

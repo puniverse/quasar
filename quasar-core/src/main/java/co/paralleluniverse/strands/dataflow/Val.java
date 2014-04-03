@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.strands.channels;
+package co.paralleluniverse.strands.dataflow;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
@@ -31,7 +31,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class DelayedVal<V> implements Future<V> {
+public class Val<V> implements Future<V> {
     private V value;
     private Throwable t;
     private SuspendableCallable<V> f;
@@ -43,7 +43,7 @@ public class DelayedVal<V> implements Future<V> {
      * <p>
      * @param f The function that will compute this {@code DelayedVal}'s value in a newly spawned fiber
      */
-    public DelayedVal(final SuspendableCallable<V> f) {
+    public Val(final SuspendableCallable<V> f) {
         this.f = f;
         if (f != null)
             new Fiber<Void>(new SuspendableRunnable() {
@@ -51,9 +51,9 @@ public class DelayedVal<V> implements Future<V> {
                 @Override
                 public void run() throws SuspendExecution {
                     try {
-                        DelayedVal.this.set0(f.run());
+                        Val.this.set0(f.run());
                     } catch (Throwable t) {
-                        DelayedVal.this.setException0(t);
+                        Val.this.setException0(t);
                     }
                 }
             }).start();
@@ -66,7 +66,7 @@ public class DelayedVal<V> implements Future<V> {
      * @param scheduler the scheduler in which the new fiber will be spawned.
      * @param f         The function that will compute this {@code DelayedVal}'s value in a newly spawned fiber
      */
-    public DelayedVal(FiberScheduler scheduler, final SuspendableCallable<V> f) {
+    public Val(FiberScheduler scheduler, final SuspendableCallable<V> f) {
         this.f = f;
         if (f != null)
             new Fiber<Void>(scheduler, new SuspendableRunnable() {
@@ -74,15 +74,15 @@ public class DelayedVal<V> implements Future<V> {
                 @Override
                 public void run() throws SuspendExecution {
                     try {
-                        DelayedVal.this.set0(f.run());
+                        Val.this.set0(f.run());
                     } catch (Throwable t) {
-                        DelayedVal.this.setException0(t);
+                        Val.this.setException0(t);
                     }
                 }
             }).start();
     }
 
-    public DelayedVal() {
+    public Val() {
         this(null);
     }
 
@@ -137,7 +137,7 @@ public class DelayedVal<V> implements Future<V> {
         return sync == null;
     }
 
-    SimpleConditionSynchronizer getSync() {
+    protected SimpleConditionSynchronizer getSync() {
         return sync;
     }
 

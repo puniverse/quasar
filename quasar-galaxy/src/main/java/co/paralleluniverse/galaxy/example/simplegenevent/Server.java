@@ -26,7 +26,7 @@ import co.paralleluniverse.actors.behaviors.EventSource;
 import co.paralleluniverse.actors.behaviors.EventSourceActor;
 import co.paralleluniverse.actors.behaviors.Initializer;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.channels.DelayedVal;
+import co.paralleluniverse.strands.dataflow.Val;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -41,7 +41,7 @@ public class Server {
         System.setProperty("galaxy.port", Integer.toString(7050 + nodeId));
         System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
 
-        final DelayedVal<String> dv = new DelayedVal<>();
+        final Val<String> dv = new Val<>();
         EventSource<String> ge = new EventSourceActor<String>(new Initializer() {
             @Override
             public void init() throws SuspendExecution {

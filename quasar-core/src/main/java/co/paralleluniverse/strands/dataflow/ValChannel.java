@@ -11,11 +11,15 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.strands.channels;
+package co.paralleluniverse.strands.dataflow;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Condition;
 import co.paralleluniverse.strands.Timeout;
+import co.paralleluniverse.strands.channels.ReceivePort;
+import co.paralleluniverse.strands.channels.SelectAction;
+import co.paralleluniverse.strands.channels.SelectActionImpl;
+import co.paralleluniverse.strands.channels.Selectable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -25,11 +29,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @author pron
  */
-public class DelayedValChannel<V> implements ReceivePort<V>, Selectable<V> {
-    private final DelayedVal<V> dv;
+public class ValChannel<V> implements ReceivePort<V>, Selectable<V> {
+    private final Val<V> dv;
     private final AtomicBoolean closed = new AtomicBoolean();
 
-    public DelayedValChannel(DelayedVal<V> val) {
+    public ValChannel(Val<V> val) {
         this.dv = val;
     }
 
@@ -84,7 +88,8 @@ public class DelayedValChannel<V> implements ReceivePort<V>, Selectable<V> {
     }
 
     @Override
-    public Object register(SelectAction<V> action) {
+    public Object register(SelectAction<V> action1) {
+        SelectActionImpl<V> action = (SelectActionImpl<V>)action1;
         if (action.isData())
             throw new UnsupportedOperationException("Send is not supported by DelayedValChanel");
         Condition sync = dv.getSync();
@@ -103,7 +108,7 @@ public class DelayedValChannel<V> implements ReceivePort<V>, Selectable<V> {
     public boolean tryNow(Object token) {
         if (!dv.isDone())
             return false;
-        SelectAction<V> action = (SelectAction<V>) token;
+        SelectActionImpl<V> action = (SelectActionImpl<V>) token;
         if (!action.lease())
             return false;
         action.setItem(dv.getValue());

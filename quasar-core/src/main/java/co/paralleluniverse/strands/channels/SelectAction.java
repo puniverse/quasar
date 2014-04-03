@@ -18,34 +18,14 @@ package co.paralleluniverse.strands.channels;
  *
  * @author pron
  */
-public final class SelectAction<Message> {
-    private volatile Selector selector;
-    private final boolean isData;
+public abstract class SelectAction<Message> {
     final Selectable<Message> port;
     int index;
-    private Message item;
-    private volatile boolean done;
-    Object token;
-
-    SelectAction(Selector selector, int index, Port<Message> port, Message message) {
-        this.selector = selector;
-        this.index = index;
-        this.port = (Selectable<Message>) port;
-        this.item = message;
-        this.isData = message != null;
-    }
-
-    SelectAction(Port<Message> port, Message message) {
-        this(null, -1, port, message);
-    }
-
-    Selector selector() {
-        return selector;
-    }
-
-    void setSelector(Selector selector) {
-        assert this.selector == null;
-        this.selector = selector;
+    Message item;
+    volatile boolean done;
+    
+    SelectAction(Selectable<Message> port) {
+        this.port = port;
     }
 
     /**
@@ -59,65 +39,25 @@ public final class SelectAction<Message> {
         return item;
     }
 
-    void setIndex(int index) {
-        this.index = index;
-    }
-
     public int index() {
         return index;
     }
 
     /**
      * Returns the channel for this operation.
+     *
      * @return the channel for this operation.
      */
     public Port<Message> port() {
         return (Port<Message>) port;
     }
 
-    boolean isData() {
-        return isData;
-    }
-
-    void setItem(Message item) {
-        this.item = item;
-        this.done = true;
-    }
-
     /**
      * Tests whether this operation is the one operation that has been selected and completed by the selector.
+     *
      * @return {@code true} if this operation is the one operation that has been selected and completed by the selector; {@code false} otherwise.
      */
     public boolean isDone() {
         return done;
-    }
-
-    void resetReceive() {
-        assert !isData;
-        item = null;
-        done = false;
-    }
-
-    boolean lease() {
-        if (selector == null)
-            return true;
-        return selector.lease();
-    }
-
-    void returnLease() {
-        if (selector != null)
-            selector.returnLease();
-    }
-
-    void won() {
-        if (selector != null)
-            selector.setWinner(this);
-    }
-
-    @Override
-    public String toString() {
-        return "SelectAction{" + (isData ? ("send " + item + " to") : "receive from") + " " + port
-                + (isDone() ? (" " + (isData ? "done" : (" -> " + item))) : "") + '}'
-                + " " + selector;
     }
 }

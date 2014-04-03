@@ -14,10 +14,9 @@
 package co.paralleluniverse.strands.channels;
 
 /**
- *
- * @author pron
+ * A channel port that can be used by a {@link Selector}.
  */
-interface Selectable<Message> extends Port<Message> {
+public interface Selectable<Message> extends Port<Message> {
     Object register(SelectAction<Message> action);
 
     boolean tryNow(Object token);

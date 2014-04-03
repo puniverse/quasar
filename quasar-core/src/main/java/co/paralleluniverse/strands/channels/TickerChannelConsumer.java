@@ -168,14 +168,14 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
 
     @Override
     public Object register(SelectAction<Message> action) {
-        if (action.isData())
+        if (((SelectActionImpl)action).isData())
             throw new UnsupportedOperationException("Send is not supported by TickerChannelConsumer");
         return channel.register(action);
     }
 
     @Override
     public boolean tryNow(Object token) {
-        SelectAction<Message> action = (SelectAction<Message>) token;
+        SelectActionImpl<Message> action = (SelectActionImpl<Message>) token;
         if (!action.lease())
             return false;
         boolean res;

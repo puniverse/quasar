@@ -43,7 +43,7 @@ import co.paralleluniverse.galaxy.StoreTransaction;
 import co.paralleluniverse.galaxy.TimeoutException;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.Channels;
-import co.paralleluniverse.strands.channels.DelayedVal;
+import co.paralleluniverse.strands.dataflow.Val;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URL;
@@ -128,7 +128,7 @@ public class PeerTKB {
                 break;
             case testGenEvent:
                 if (i == 1) {
-                    final DelayedVal<String> dv = new DelayedVal<>();
+                    final Val<String> dv = new Val<>();
                     spawnGenEvent(new Initializer() {
                         @Override
                         public void init() throws SuspendExecution {

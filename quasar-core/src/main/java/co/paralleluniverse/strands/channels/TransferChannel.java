@@ -139,7 +139,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
 
     @Override
     public Object register(SelectAction<Message> action) {
-        return xfer0(action);
+        return xfer0((SelectActionImpl<Message>)action);
     }
 
     @Override
@@ -262,7 +262,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
      */
     static final class Node {
         final boolean isData;   // false if this is a request node
-        volatile SelectAction sa;
+        volatile SelectActionImpl sa;
         volatile Object item;   // initially non-null if isData; CASed to match
         volatile Node next;
         volatile Strand waiter; // null until waiting
@@ -281,7 +281,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
          * Constructs a new node. Uses relaxed write because item can
          * only be seen after publication via casNext.
          */
-        Node(SelectAction sa) {
+        Node(SelectActionImpl sa) {
             UNSAFE.putObject(this, itemOffset, sa.message()); // relaxed write
             UNSAFE.putObject(this, saOffset, sa); // relaxed write
             this.isData = sa.isData();
@@ -520,7 +520,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
         }
     }
 
-    private Token xfer0(SelectAction<Message> e) {
+    private Token xfer0(SelectActionImpl<Message> e) {
         final boolean haveData = e.isData();
         Node s = null;                        // the node to append, if needed
 
@@ -557,7 +557,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
         }
     }
 
-    private Object tryMatch(SelectAction sa, Message e, boolean haveData) {
+    private Object tryMatch(SelectActionImpl sa, Message e, boolean haveData) {
         boolean closed = isSendClosed(); // must be read before trying to match so as not to miss puts
 
         for (Node h = head, p = h; p != null;) { // find & match first node
@@ -570,7 +570,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
 
                 // avoid deadlock by orderdering lease acquisition:
                 // if p requires a lease and is of lower hashCode than sa, we return sa's lease, acquire p's, and then reacquire sa's.
-                SelectAction sa2 = p.sa;
+                SelectActionImpl sa2 = p.sa;
                 boolean leasedp;
                 if (sa != null && sa2 != null
                         && sa2.selector().id < sa.selector().id) {

@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.strands.dataflow;
 
-import co.paralleluniverse.strands.channels.DelayedVal;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
@@ -33,16 +32,16 @@ import org.junit.Ignore;
  *
  * @author pron
  */
-public class DelayedValTest {
+public class ValTest {
     private FiberScheduler scheduler;
 
-    public DelayedValTest() {
+    public ValTest() {
         scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 
     @Test(expected = IllegalStateException.class)
     public void whenValIsSetTwiceThenThrowException() throws Exception {
-        final DelayedVal<String> val = new DelayedVal<>();
+        final Val<String> val = new Val<>();
 
         val.set("hello");
         val.set("goodbye");
@@ -50,7 +49,7 @@ public class DelayedValTest {
 
     @Test
     public void testThreadWaiter() throws Exception {
-        final DelayedVal<String> val = new DelayedVal<>();
+        final Val<String> val = new Val<>();
 
         final AtomicReference<String> res = new AtomicReference<>();
 
@@ -79,7 +78,7 @@ public class DelayedValTest {
 
     @Test
     public void testFiberWaiter() throws Exception {
-        final DelayedVal<String> val = new DelayedVal<>();
+        final Val<String> val = new Val<>();
 
         final Fiber<String> f1 = new Fiber<String>(scheduler, new SuspendableCallable<String>() {
             @Override
@@ -101,7 +100,7 @@ public class DelayedValTest {
 
     @Test
     public void testThreadAndFiberWaiters() throws Exception {
-        final DelayedVal<String> val = new DelayedVal<>();
+        final Val<String> val = new Val<>();
 
         final AtomicReference<String> res = new AtomicReference<>();
 
@@ -140,8 +139,8 @@ public class DelayedValTest {
 
     @Test
     public void complexTest1() throws Exception {
-        final DelayedVal<Integer> val1 = new DelayedVal<>();
-        final DelayedVal<Integer> val2 = new DelayedVal<>();
+        final Val<Integer> val1 = new Val<>();
+        final Val<Integer> val2 = new Val<>();
 
         final AtomicReference<Integer> res = new AtomicReference<>();
 
@@ -189,10 +188,10 @@ public class DelayedValTest {
 
     @Test
     public void complexTest2() throws Exception {
-        final DelayedVal<Integer> val1 = new DelayedVal<>();
-        final DelayedVal<Integer> val2 = new DelayedVal<>();
-        final DelayedVal<Integer> val3 = new DelayedVal<>();
-        final DelayedVal<Integer> val4 = new DelayedVal<>();
+        final Val<Integer> val1 = new Val<>();
+        final Val<Integer> val2 = new Val<>();
+        final Val<Integer> val3 = new Val<>();
+        final Val<Integer> val4 = new Val<>();
 
         final AtomicReference<Integer> res = new AtomicReference<>();
 
