@@ -22,6 +22,7 @@ import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.ProducerException;
 import co.paralleluniverse.strands.channels.ReceivePort;
+import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.Set;
 
@@ -63,6 +64,9 @@ public class Var<T> {
             throw new IllegalArgumentException("history must be > 0, but is " + history);
         this.ch = Channels.newChannel(history, Channels.OverflowPolicy.DISPLACE);
         this.f = f;
+
+        if (f != null)
+            new VarFiber<T>(this).start();
     }
 
     public Var(SuspendableCallable<T> f) {
@@ -138,29 +142,37 @@ public class Var<T> {
         }
     }
 
-    private class VarFiber<T> extends Fiber<Void> {
+    private static class VarFiber<T> extends Fiber<Void> {
+        private final WeakReference<Var<T>> var;
         final Set<Var<?>> registeredVars = Collections.newSetFromMap(MapUtil.<Var<?>, Boolean>newConcurrentHashMap());
 
-        VarFiber(FiberScheduler scheduler) {
+        VarFiber(FiberScheduler scheduler, Var<T> v) {
             super(scheduler);
+            this.var = new WeakReference<Var<T>>(v);
         }
 
-        VarFiber() {
+        VarFiber(Var<T> v) {
+            this.var = new WeakReference<Var<T>>(v);
         }
 
         @Override
         protected Void run() throws SuspendExecution, InterruptedException {
+            Var<T> v = null;
             try {
                 for (;;) {
-                    set(f.run());
+                    v = var.get();
+                    if (v == null)
+                        break;
+                    v.set(v.f.run());
                     park();
                 }
             } catch (Throwable t) {
-                ch.close(t);
+                if (v != null)
+                    v.ch.close(t);
             } finally {
-                for (Var<?> v : registeredVars) {
-                    v.registeredFibers.remove(this);
-                    v.notifyRegistered();
+                for (Var<?> v1 : registeredVars) {
+                    v1.registeredFibers.remove(this);
+                    v1.notifyRegistered();
                 }
             }
             return null;
