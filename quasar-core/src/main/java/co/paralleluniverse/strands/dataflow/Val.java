@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.dataflow;
 
+import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.RuntimeExecutionException;
@@ -44,19 +45,7 @@ public class Val<V> implements Future<V> {
      * @param f The function that will compute this {@code DelayedVal}'s value in a newly spawned fiber
      */
     public Val(final SuspendableCallable<V> f) {
-        this.f = f;
-        if (f != null)
-            new Fiber<Void>(new SuspendableRunnable() {
-
-                @Override
-                public void run() throws SuspendExecution {
-                    try {
-                        Val.this.set0(f.run());
-                    } catch (Throwable t) {
-                        Val.this.setException0(t);
-                    }
-                }
-            }).start();
+        this(DefaultFiberScheduler.getInstance(), f);
     }
 
     /**

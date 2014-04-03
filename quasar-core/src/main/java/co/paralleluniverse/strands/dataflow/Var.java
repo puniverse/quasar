@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.dataflow;
 
 import co.paralleluniverse.concurrent.util.MapUtil;
+import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -41,7 +42,6 @@ public class Var<T> {
     private final Set<Fiber<?>> registeredFibers = Collections.newSetFromMap(MapUtil.<Fiber<?>, Boolean>newConcurrentHashMap());
 
     private final ThreadLocal<TLVar> tlv = new ThreadLocal<TLVar>() {
-
         @Override
         protected TLVar initialValue() {
             return new TLVar();
@@ -56,29 +56,36 @@ public class Var<T> {
         public TLVar() {
             this.c = Channels.newTickerConsumerFor(ch);
         }
-
     }
 
-    public Var(int history, SuspendableCallable<T> f) {
+    public Var(int history, FiberScheduler scheduler, SuspendableCallable<T> f) {
         if (history <= 0)
             throw new IllegalArgumentException("history must be > 0, but is " + history);
         this.ch = Channels.newChannel(history, Channels.OverflowPolicy.DISPLACE);
         this.f = f;
 
         if (f != null)
-            new VarFiber<T>(this).start();
+            new VarFiber<T>(scheduler != null ? scheduler : DefaultFiberScheduler.getInstance(), this).start();
+    }
+
+    public Var(int history, SuspendableCallable<T> f) {
+        this(history, null, f);
     }
 
     public Var(SuspendableCallable<T> f) {
-        this(1, f);
+        this(1, null, f);
+    }
+
+    public Var(FiberScheduler scheduler, SuspendableCallable<T> f) {
+        this(1, scheduler, f);
     }
 
     public Var(int history) {
-        this(history, null);
+        this(history, null, null);
     }
 
     public Var() {
-        this(1, null);
+        this(1, null, null);
     }
 
     public void set(T val) {
