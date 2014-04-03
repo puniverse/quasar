@@ -19,6 +19,8 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import java.io.IOException;
 import java.nio.channels.CompletionHandler;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
@@ -43,6 +45,15 @@ abstract class FiberAsyncIO<V> extends FiberAsync<V, Void, IOException> {
     public V run() throws IOException, SuspendExecution {
         try {
             return super.run();
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
+    }
+
+    @Override
+    public V run(long timeout, TimeUnit unit) throws IOException, SuspendExecution, TimeoutException {
+        try {
+            return super.run(timeout, unit);
         } catch (InterruptedException e) {
             throw new IOException(e);
         }

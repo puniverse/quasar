@@ -15,7 +15,7 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.util.CheckedCallable;
 import co.paralleluniverse.strands.Timeout;
-import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -107,7 +107,7 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
     @SuppressWarnings("empty-statement")
     public V run() throws E, SuspendExecution, InterruptedException {
         if (fiber == null)
-            return requestSync();
+            return runSync();
 
         fiber.record(1, "FiberAsync", "run", "Blocking fiber %s on FibeAsync %s", fiber, this);
         while (!Fiber.park(this, new Fiber.ParkAction() {
@@ -154,7 +154,8 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
     @SuppressWarnings("empty-statement")
     public V run(final long timeout, final TimeUnit unit) throws E, SuspendExecution, InterruptedException, TimeoutException {
         if (Fiber.currentFiber() == null)
-            return requestSync();
+            runSync(timeout, unit);
+        
         if (unit == null)
             return run();
         if (timeout <= 0)
@@ -210,6 +211,26 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
         return run(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
+    private V runSync(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, E {
+        try {
+            return requestSync(timeout, unit);
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof RuntimeException)
+                throw (RuntimeException) e.getCause();
+            throw (E) e.getCause();
+        }
+    }
+    
+    private V runSync() throws InterruptedException, E{
+        try {
+            return requestSync();
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof RuntimeException)
+                throw (RuntimeException) e.getCause();
+            throw (E) e.getCause();
+        }
+    }
+    
     /**
      * A user of this class must override this method to start the asynchronous operation and register the callback.
      * This method may return an *attachment object* that can be retrieved later by calling {@link #getAttachment()}.
@@ -227,7 +248,21 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
      * @throws E
      * @throws InterruptedException
      */
-    protected V requestSync() throws E, InterruptedException {
+    protected V requestSync() throws E, InterruptedException, ExecutionException {
+        throw new IllegalThreadStateException("Method called not from within a fiber");
+    }
+    
+     /**
+     * Called if {@link #run(long, TimeUnit)} is not being executed in a fiber. Should perform the operation synchronously and return its result.
+     * The default implementation of this method throws an `IllegalThreadStateException`.
+     *
+     * @return The operation's result.
+     * @param timeout the maximum duration to wait for the result
+     * @param unit    {@code timeout}'s time unit
+     * @throws E
+     * @throws InterruptedException
+     */
+    protected V requestSync(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException, E {
         throw new IllegalThreadStateException("Method called not from within a fiber");
     }
 
