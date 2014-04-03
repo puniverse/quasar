@@ -33,7 +33,7 @@ import java.util.Set;
 public class FiberServerSocketChannel implements NetworkChannel {
     private final AsynchronousServerSocketChannel ac;
 
-    private FiberServerSocketChannel(AsynchronousServerSocketChannel assc) {
+    public FiberServerSocketChannel(AsynchronousServerSocketChannel assc) {
         this.ac = assc;
     }
 
@@ -45,7 +45,7 @@ public class FiberServerSocketChannel implements NetworkChannel {
      * @throws IOException If an I/O error occurs
      */
     public static FiberServerSocketChannel open() throws IOException {
-        return new FiberServerSocketChannel(AsynchronousServerSocketChannel.open());
+        return new FiberServerSocketChannel(AsynchronousServerSocketChannel.open(FiberAsyncIO.newDefaultGroup()));
     }
 
     /**

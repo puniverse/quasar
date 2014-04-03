@@ -52,7 +52,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * @throws IOException If an I/O error occurs
      */
     public static FiberSocketChannel open() throws IOException {
-        return new FiberSocketChannel(AsynchronousSocketChannel.open());
+        return new FiberSocketChannel(AsynchronousSocketChannel.open(FiberAsyncIO.newDefaultGroup()));
     }
 
     /**

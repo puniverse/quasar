@@ -17,8 +17,11 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberAsync;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
+import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.CompletionHandler;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -27,6 +30,13 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 abstract class FiberAsyncIO<V> extends FiberAsync<V, Void, IOException> {
+    private static final ThreadFactory NIO_THREAD_FACTORY = new ThreadFactoryBuilder().setDaemon(true).setNameFormat("fiber-nio-%d").build();
+
+    public static AsynchronousChannelGroup newDefaultGroup() throws IOException {
+        // return null; // the default group
+        return AsynchronousChannelGroup.withFixedThreadPool(1, NIO_THREAD_FACTORY);
+    }
+
     protected CompletionHandler<V, Fiber> makeCallback() {
         return new CompletionHandler<V, Fiber>() {
             @Override

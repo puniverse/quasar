@@ -39,7 +39,7 @@ public class FiberFileChannel extends FileChannel {
     private final AsynchronousFileChannel ac;
     private long position;
 
-    private FiberFileChannel(AsynchronousFileChannel afc) {
+    public FiberFileChannel(AsynchronousFileChannel afc) {
         ac = afc;
     }
 
