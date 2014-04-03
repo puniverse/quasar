@@ -17,7 +17,6 @@ import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
@@ -84,11 +83,15 @@ public class Var<T> {
                 val = (T) NULL;
             ch.send(val);
 
-            for (Fiber<?> f : registeredFibers)
-                f.unpark();
+            notifyRegistered();
         } catch (Throwable e) {
             throw new AssertionError(e);
         }
+    }
+
+    private void notifyRegistered() {
+        for (Fiber<?> f : registeredFibers)
+            f.unpark();
     }
 
     /**
@@ -155,8 +158,10 @@ public class Var<T> {
             } catch (Throwable t) {
                 ch.close(t);
             } finally {
-                for (Var<?> v : registeredVars)
+                for (Var<?> v : registeredVars) {
                     v.registeredFibers.remove(this);
+                    v.notifyRegistered();
+                }
             }
             return null;
         }
