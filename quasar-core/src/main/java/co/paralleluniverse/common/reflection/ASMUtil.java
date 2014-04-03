@@ -104,14 +104,22 @@ public final class ASMUtil {
         return hasAnnotation(ann, f.visibleAnnotations);
     }
 
-    public static boolean hasMethod(MethodNode method, List<MethodNode> ms) {
+    public static MethodNode getMethod(MethodNode method, List<MethodNode> ms) {
         if (ms == null)
-            return false;
+            return null;
         for (MethodNode m : ms) {
             if (equals(method, m))
-                return true;
+                return m;
         }
-        return false;
+        return null;
+    }
+
+    public static MethodNode getMethod(MethodNode method, ClassNode c) {
+        return getMethod(method, c.methods);
+    }
+
+    public static boolean hasMethod(MethodNode method, List<MethodNode> ms) {
+        return getMethod(method, ms) != null;
     }
 
     public static boolean hasMethod(MethodNode method, ClassNode c) {

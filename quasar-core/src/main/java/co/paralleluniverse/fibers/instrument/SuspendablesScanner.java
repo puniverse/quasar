@@ -164,19 +164,31 @@ public class SuspendablesScanner extends Task {
         }
     }
 
-    private void findSuperDeclarations(ClassNode cls, ClassNode declaringClass, MethodNode method) throws IOException {
+    private boolean findSuperDeclarations(ClassNode cls, ClassNode declaringClass, MethodNode method) throws IOException {
         if (cls == null)
-            return;
+            return false;
 
-        if (!ASMUtil.equals(cls, declaringClass) && hasMethod(method, cls)) {
-            log("Found parent of annotated method: " + declaringClass.name + "." + method.name + method.signature + " in " + cls.name, Project.MSG_VERBOSE);
-            results.add(cls.name.replace('/', '.') + '.' + method.name);
+        boolean foundMethod = false;
+        MethodNode m;
+        if ((m = getMethod(method, cls)) != null) {
+            foundMethod = true;
+            if (!ASMUtil.equals(cls, declaringClass) && !hasAnnotation(Suspendable.class, m)) {
+                log("Found parent of annotated method: " + declaringClass.name + "." + method.name + method.signature + " in " + cls.name, Project.MSG_VERBOSE);
+                results.add(cls.name.replace('/', '.') + '.' + method.name);
+            }
         }
 
         // recursively look in superclass and interfaces
-        findSuperDeclarations(getClassNode(cls.superName, true, cl), declaringClass, method);
+        boolean methodInParent = false;
+        methodInParent |= findSuperDeclarations(getClassNode(cls.superName, true, cl), declaringClass, method);
         for (String iface : (List<String>) cls.interfaces)
-            findSuperDeclarations(getClassNode(iface, true, cl), declaringClass, method);
+            methodInParent |= findSuperDeclarations(getClassNode(iface, true, cl), declaringClass, method);
+        if (!foundMethod && methodInParent) {
+            log("Found parent of annotated method in a parent of: " + declaringClass.name + "." + method.name + method.signature + " in " + cls.name, Project.MSG_VERBOSE);
+            results.add(cls.name.replace('/', '.') + '.' + method.name);
+        }
+
+        return foundMethod | methodInParent;
     }
 
     ///////// REFLECTION
