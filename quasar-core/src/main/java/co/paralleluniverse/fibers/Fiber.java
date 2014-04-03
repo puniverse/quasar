@@ -74,6 +74,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             System.err.println("QUASAR WARNING: Debug mode enabled. This may harm performance.");
         if (Debug.isAssertionsEnabled())
             System.err.println("QUASAR WARNING: Assertions enabled. This may harm performance.");
+        if (!SuspendableHelper.isJavaAgentActive())
+            System.err.println("QUASAR WARNING: Quasar Java Agent isn't running. If you're using another instrumentation method you can ignore this message; "
+                    + "otherwise, please refer to the Getting Started section in the Quasar documentation.");
         assert printVerifyInstrumentationWarning();
     }
 
