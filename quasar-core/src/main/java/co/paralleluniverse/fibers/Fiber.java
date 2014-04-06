@@ -34,6 +34,8 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
+import java.security.AccessControlContext;
+import java.security.AccessController;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -64,8 +66,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private static final ClassContext classContext = verifyInstrumentation ? new ClassContext() : null;
     private static final boolean traceInterrupt = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.traceInterrupt", "false"));
     public static final int DEFAULT_STACK_SIZE = 32;
+    private static final boolean MAINTAIN_ACCESS_CONTROL_CONTEXT = (System.getSecurityManager() != null);
 //    private static final boolean PREEMPTION = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.enablePreemption", "false"));
-    private static final int PREEMPTION_CREDITS = 3000;
+//    private static final int PREEMPTION_CREDITS = 3000;
     private static final long serialVersionUID = 2783452871536981L;
     protected static final FlightRecorder flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
@@ -119,6 +122,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private Thread runningThread;
     private final SuspendableCallable<V> target;
     private ClassLoader contextClassLoader;
+    private AccessControlContext inheritedAccessControlContext;
     private Object fiberLocals;
     private Object inheritableFiberLocals;
     private long sleepStart;
@@ -169,6 +173,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (inheritableThreadLocals != null)
             this.inheritableFiberLocals = ThreadAccess.createInheritedMap(inheritableThreadLocals);
         this.contextClassLoader = ThreadAccess.getContextClassLoader(currentThread);
+        if (MAINTAIN_ACCESS_CONTROL_CONTEXT)
+            this.inheritedAccessControlContext = AccessController.getContext();
 
         record(1, "Fiber", "<init>", "Created fiber %s", this);
     }
@@ -803,12 +809,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         installFiberLocals(currentThread);
         setCurrentFiber(this, currentThread);
         installFiberContextClassLoader(currentThread);
+        if (MAINTAIN_ACCESS_CONTROL_CONTEXT)
+            installFiberInheritedAccessControlContext(currentThread);
     }
 
     private void restoreThreadData(Thread currentThread, Object old) {
         record(1, "Fiber", "restoreThreadData", "%s <-> %s", this, currentThread);
         restoreThreadLocals(currentThread);
         restoreThreadContextClassLoader(currentThread);
+        if (MAINTAIN_ACCESS_CONTROL_CONTEXT)
+            restoreThreadInheritedAccessControlContext(currentThread);
         setCurrentTarget(old, currentThread);
     }
 
@@ -859,6 +869,18 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         final ClassLoader origContextClassLoader = contextClassLoader;
         this.contextClassLoader = ThreadAccess.getContextClassLoader(currentThread);
         ThreadAccess.setContextClassLoader(currentThread, origContextClassLoader);
+    }
+
+    private void installFiberInheritedAccessControlContext(Thread currentThread) {
+        final AccessControlContext origAcc = ThreadAccess.getInheritedAccessControlContext(currentThread);
+        ThreadAccess.setInheritedAccessControlContext(currentThread, inheritedAccessControlContext);
+        this.inheritedAccessControlContext = origAcc;
+    }
+
+    private void restoreThreadInheritedAccessControlContext(Thread currentThread) {
+        final AccessControlContext origAcc = inheritedAccessControlContext;
+        this.inheritedAccessControlContext = ThreadAccess.getInheritedAccessControlContext(currentThread);
+        ThreadAccess.setInheritedAccessControlContext(currentThread, origAcc);
     }
 
     private void setCurrentFiber(Fiber fiber, Thread currentThread) {

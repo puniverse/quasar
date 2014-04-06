@@ -19,6 +19,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.security.AccessControlContext;
 import sun.misc.Unsafe;
 
 /**
@@ -31,6 +32,7 @@ public class ThreadAccess {
     private static final long threadLocalsOffset;
     private static final long inheritableThreadLocalsOffset;
     private static final long contextClassLoaderOffset;
+    private static final long inheritedAccessControlContextOffset;
     private static final Method createInheritedMap;
     private static final Class threadLocalMapClass;
     private static final Constructor threadLocalMapConstructor;
@@ -47,6 +49,13 @@ public class ThreadAccess {
             threadLocalsOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("threadLocals"));
             inheritableThreadLocalsOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("inheritableThreadLocals"));
             contextClassLoaderOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("contextClassLoader"));
+
+            long _inheritedAccessControlContextOffset = -1;
+            try {
+                _inheritedAccessControlContextOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("inheritedAccessControlContext"));
+            } catch (NoSuchFieldException e) {
+            }
+            inheritedAccessControlContextOffset = _inheritedAccessControlContextOffset;
 
             threadLocalMapClass = Class.forName("java.lang.ThreadLocal$ThreadLocalMap");
             createInheritedMap = ThreadLocal.class.getDeclaredMethod("createInheritedMap", threadLocalMapClass);
@@ -111,10 +120,10 @@ public class ThreadAccess {
             Object tableClone = Array.newInstance(threadLocalMapEntryClass, len);
             for (int i = 0; i < len; i++) {
                 Object entry = Array.get(origTable, i);
-                if(entry != null)
+                if (entry != null)
                     Array.set(tableClone, i, cloneThreadLocalMapEntry(entry));
             }
-            
+
             threadLocalMapTableField.set(clone, tableClone);
             threadLocalMapSizeField.setInt(clone, threadLocalMapSizeField.getInt(orig));
             threadLocalMapThresholdField.setInt(clone, threadLocalMapThresholdField.getInt(orig));
@@ -140,5 +149,16 @@ public class ThreadAccess {
 
     public static void setContextClassLoader(Thread thread, ClassLoader classLoader) {
         UNSAFE.putObject(thread, contextClassLoaderOffset, classLoader);
+    }
+
+    public static AccessControlContext getInheritedAccessControlContext(Thread thread) {
+        if (inheritedAccessControlContextOffset < 0)
+            return null;
+        return (AccessControlContext) UNSAFE.getObject(thread, inheritedAccessControlContextOffset);
+    }
+
+    public static void setInheritedAccessControlContext(Thread thread, AccessControlContext accessControlContext) {
+        if (inheritedAccessControlContextOffset >= 0)
+            UNSAFE.putObject(thread, inheritedAccessControlContextOffset, accessControlContext);
     }
 }
