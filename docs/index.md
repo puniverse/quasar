@@ -78,7 +78,7 @@ or, for JDK8:
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-core</artifactId>
     <version>{{site.version}}</version>
-    <classifier>jdk8<classifier>
+    <classifier>jdk8</classifier>
 </dependency>
 ~~~
 
@@ -207,7 +207,7 @@ Fibers provide functionality similar to threads, and a similar API, but they're 
 
 Fibers are not meant to replace threads in all circumstances. A fiber should be used when its body (the code it executes) blocks very often waiting on other fibers (e.g. waiting for messages sent by other fibers on a channel, or waiting for the value of a dataflow-variable). For long-running computations that rarely block, traditional threads are preferable. Fortunately, as we shall see, fibers and threads interoperate very well.
 
-Fibers are especially useful for replacing callback-ridden asynchronous code. They allow you to enjoy the scalability and performance benefits of asynchronous code while keeping the simple to use and understand threaded modedl.
+Fibers are especially useful for replacing callback-ridden asynchronous code. They allow you to enjoy the scalability and performance benefits of asynchronous code while keeping the simple to use and understand threaded model.
 
 #### Using Fibers
 
@@ -248,7 +248,7 @@ Every scheduler creates a [MXBean]({{javadoc}}/fibers/FibersMXBean.html) that mo
 
 #### Runaway Fibers
 
-A fiber that is stuck in a loop without blocking, or is blocking the thread its running on (by directly or indirectly performing a thread-blocking operation) is called a *runaway fiber*. It is *perfectly OK* for fibers to do that spradically (as the work stealing scheduler will deal with that), but doing so frequently may severely impact system performance (as most of the scheduler's threads might be tied up by runaway fibers). Quasar detects runaway fibers, and notifies you about which fibers are problematic, whether they're blocking the thread or hogging the CPU, and gives you their stack trace, by printing this information to the console as well as reporting it to the runtime fiber monitor (exposed through a JMX MBean; see [the previous section](#runtime-monitoring)).
+A fiber that is stuck in a loop without blocking, or is blocking the thread its running on (by directly or indirectly performing a thread-blocking operation) is called a *runaway fiber*. It is *perfectly OK* for fibers to do that sporadically (as the work stealing scheduler will deal with that), but doing so frequently may severely impact system performance (as most of the scheduler's threads might be tied up by runaway fibers). Quasar detects runaway fibers, and notifies you about which fibers are problematic, whether they're blocking the thread or hogging the CPU, and gives you their stack trace, by printing this information to the console as well as reporting it to the runtime fiber monitor (exposed through a JMX MBean; see [the previous section](#runtime-monitoring)).
 
 Note that this condition might happen when classes are encountered for the first time and need to be loaded from disk. This is alright because this happens only sporadically, but you may notice reports about problematic fibers during startup, as this when most class loading usually occurs.
 
@@ -269,7 +269,7 @@ A *strand* (represented by the [`Strand`]({{javadoc}}/strands/Strand.html) class
 
 #### `park` and `unpark`
 
-Most importantly (though relevant only for power-users who would like to implement their own concurrency primitives, such as locks), the `Strand` classcontains the methods `park` and `unpark`, that delegate to `Fiber.park` and `Fiber.unpark` methods if the strand is a fiber, or to [`LockSupport`](http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/locks/LockSupport.html)'s `park` and `unpark` methods if the strand is a thread (`LockSupport` lies at the core of all `java.util.concurrent` classes). This allows to create synchronization mechanisms that work well for both fibers and threads. 
+Most importantly (though relevant only for power-users who would like to implement their own concurrency primitives, such as locks), the `Strand` class contains the methods `park` and `unpark`, that delegate to `Fiber.park` and `Fiber.unpark` methods if the strand is a fiber, or to [`LockSupport`](http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/locks/LockSupport.html)'s `park` and `unpark` methods if the strand is a thread (`LockSupport` lies at the core of all `java.util.concurrent` classes). This allows to create synchronization mechanisms that work well for both fibers and threads. 
 
 Just as you almost never use `LockSupport` directly, so, too, you will never need to call `Strand.park` or `Strand.unpark`, unless you're writing your own concurrency constructs (like a new kind of lock).
 
@@ -334,7 +334,7 @@ This process sounds complicated, but its incurs a performance overhead of no mor
 
 #### @Suspendable
 
-So far, our way to specify a suspendable method is by declaring it throws `SusepndExecution`. This is convenient because `SuspendExecution` is a checked exception, so if `f` calls `g` and `g` is suspendable, the Java compiler will force us to declare that `f` is suspendable (and it must be because it calls `g` and `g` might be suspended).
+So far, our way to specify a suspendable method is by declaring it throws `SuspendExecution`. This is convenient because `SuspendExecution` is a checked exception, so if `f` calls `g` and `g` is suspendable, the Java compiler will force us to declare that `f` is suspendable (and it must be because it calls `g` and `g` might be suspended).
 
 Sometimes, however, we cannot declare `f` to throw `SuspendExecution`. One example is that `f` is an implementation of an interface method, and we cannot (or don't want to) change the interface so that it throws `SuspendExecution`. It is also possible that we want `f` to be run in regular threads as well as fibers. 
 
@@ -358,7 +358,7 @@ class C implements I {
 }
 ~~~
 
-The `catch` block will never be executed; the intstrumentation will take care of that.
+The `catch` block will never be executed; the instrumentation will take care of that.
 
 But now let's consider method `h`:
 
@@ -442,7 +442,7 @@ The method returns a `ReceivePort` that can be used to receive messages from `ch
 
 Each consumer strand will use its own `ticker-consumer`, and each can consume messages at its own pace, and each `TickerChannelConsumer` port will return the same messages (messages consumed from one will not be removed from the other views), subject possibly to different messages being missed by different consumers depending on their pace.
 
-#### Transofrming Channels (AKA Reactive Extensions)
+#### Transforming Channels (AKA Reactive Extensions)
 
 The [`Channels`]({{javadoc}}/strands/channels/Channels.html) class has several static methods that can be used to manipulate and compose values sent to or received off channels:
 
@@ -495,7 +495,7 @@ Delay variables, delayed values, or dataflow variables (represented by the [`Del
 
 {% capture javadoc %}{{site.baseurl}}/javadoc/co/paralleluniverse{% endcapture %}
 
-To use the terms we've learned so far, an *actor* is a strand that owns a single channel with some added lifecyce management and error handling. But this reductionist view of actors does them little justice. Actors are fundamental building blocks that are combined to build a fault-tolerant application. If you are familiar with Erlang, Quasar actors are just like Erlang processes.
+To use the terms we've learned so far, an *actor* is a strand that owns a single channel with some added lifecycle management and error handling. But this reductionist view of actors does them little justice. Actors are fundamental building blocks that are combined to build a fault-tolerant application. If you are familiar with Erlang, Quasar actors are just like Erlang processes.
 
 An actor is a self-contained execution unit with well-defined inputs and outputs. Actors communicate with other actors (as well as regular program threads and fibers) by passing messages.
 
@@ -506,11 +506,11 @@ An actor is a self-contained execution unit with well-defined inputs and outputs
 
 All actors extends the [`Actor`]({{javadoc}}/actors/Actor.html) class. The constructor takes the actor's name (which does not have to be unique, and may even be `null`), and its mailbox settings (of type [`MailboxConfig`]({{javadoc}}/actors/MailboxConfig.html)).
 
-`MailboxConfig` defines the mailbox size (the number of messages that can wait in the mailbox channel), with `-1` specifying an unbounded mailbox, and an *overflow policy*. The overflow policy works the same as for plain channels, except that the `THROW` policy doesn't cause an exception to be thrown in the sender if the mailbox capacity is exceeded, but rather throws an exception into the receiving actor (the exception will be thrown when the actor next blocks on a `recieve`).
+`MailboxConfig` defines the mailbox size (the number of messages that can wait in the mailbox channel), with `-1` specifying an unbounded mailbox, and an *overflow policy*. The overflow policy works the same as for plain channels, except that the `THROW` policy doesn't cause an exception to be thrown in the sender if the mailbox capacity is exceeded, but rather throws an exception into the receiving actor (the exception will be thrown when the actor next blocks on a `receive`).
 
 An actor is required to implement the [`doRun`]({{javadoc}}/actors/Actor.html#doRun()) method. This method is the actor body, and is run when the actor is spawned.
 
-It is prefereable to subclass [`BasicActor`]({{javadoc}}/actors/BasicActor.html) rather than `Actor`; `BasicActor` provides the ability to perform selective receives (more on that later).
+It is preferable to subclass [`BasicActor`]({{javadoc}}/actors/BasicActor.html) rather than `Actor`; `BasicActor` provides the ability to perform selective receives (more on that later).
 
 #### Spawning Actors
 
@@ -531,7 +531,7 @@ which assigns the actor to a newly created thread and starts.
 An actor can be `join`ed, just like a fiber. Calling `get` on an actor will join it and return the value returned by `doRun`.
 
 {:.alert .alert-info}
-**Note**: Just like fibers, spawning an actor is a very cheap operation in both computation and memory. Do not fear creating many (thousands, tens-of-thousands or even hundereds-of-thousands) actors.
+**Note**: Just like fibers, spawning an actor is a very cheap operation in both computation and memory. Do not fear creating many (thousands, tens-of-thousands or even hundreds-of-thousands) actors.
 
 ### Sending and Receiving Messages, `ActorRef`
 
@@ -544,7 +544,7 @@ The `spawn` method returns an instance of [`ActorRef`]({{javadoc}}/actors/ActorR
 
 The `ActorRef` allows sending messages to the actor's mailbox. In fact, `ActorRef` implements `SendPort` so it can be used just like a channel.
 
-An actor receives a message by calling the [`recieve`]({{javadoc}}/actors//Actor.html#receive()) method. The method blocks until a message is available in the mailbox, and then returns it. [Another version]({{javadoc}}/actors//Actor.html#receive(long, java.util.concurrent.TimeUnit)) of `receive` blocks up to a given duration, and returns `null` if no message is received by that time.
+An actor receives a message by calling the [`receive`]({{javadoc}}/actors//Actor.html#receive()) method. The method blocks until a message is available in the mailbox, and then returns it. [Another version]({{javadoc}}/actors//Actor.html#receive(long, java.util.concurrent.TimeUnit)) of `receive` blocks up to a given duration, and returns `null` if no message is received by that time.
 
 Normally, an actor is implements a loop similar to this one:
 
@@ -608,7 +608,7 @@ ComplexMessage m = receive(new MessageProcessor<ComplexMessage, ComplexMessage>(
 ~~~
 
 will only return a message whose `type` value is `FOO` or `BAR`, but not `BAZ`. If a message of type `BAZ` is found in the mailbox, it
-will remain there and be skipped, until it is selcted by a subsequent call to `receive` (selective or plain).
+will remain there and be skipped, until it is selected by a subsequent call to `receive` (selective or plain).
 
 `MessageProcessor.process` can also process the message inline (rather than have it processed by the caller to `receive`), and even call a nested `receive:
 
@@ -705,7 +705,7 @@ A monitored actor (either as a result of it being registered or of having called
 
 ### Behaviors
 
-Erlang's designers have realized that many actors follow some common patterns - like an actor that receives requests for work and then sends back a result to the requester. They've turned those patterns into actor templates, called behaviors, in order to save poeple work and avoid some common errors. Erlang serves as the main inspiration to Quasar Actors, so some of these behaviors have been ported to Quasar. 
+Erlang's designers have realized that many actors follow some common patterns - like an actor that receives requests for work and then sends back a result to the requester. They've turned those patterns into actor templates, called behaviors, in order to save people work and avoid some common errors. Erlang serves as the main inspiration to Quasar Actors, so some of these behaviors have been ported to Quasar. 
 
 {:.alert .alert-info}
 **Note**: All behaviors use SLF4J loggers for logging.
@@ -831,20 +831,20 @@ Event handlers are called synchronously on the same strand as the actor's, so th
 
 The last behavior actor, the *supervisor* deserves a chapter of its own, as it's at the core of the actor model's error handling philosophy.
 
-Actors provide fault isolation. When an exception occurs in an actor it can only (directly) take down that actor. Actors also provide fault detection and identification. As we've seen, other actors can be notified of an actor's deat, as well as its cause, via watches and links.
+Actors provide fault isolation. When an exception occurs in an actor it can only (directly) take down that actor. Actors also provide fault detection and identification. As we've seen, other actors can be notified of an actor's death, as well as its cause, via watches and links.
 
 Like other behaviors, the *supervisor* is a behavior that codifies and standardizes good actor practices; in this case: fault handling. As its name implies, a supervisor is an actor that supervises one or more other actors and watches them to detect their death. When a supervised (or *child*) actor dies, the supervisor can take several pre-configured actions such as restarting the dead actor or killing and restarting all children. The supervisor might also choose to kill itself and *escalate* the problem, possibly to its own supervisor.
 
 Actors performing business logic, "worker actors", are supervised by a supervisor actor that detects when they die and takes one of several pre-configured actions. Supervisors may, in turn, be supervised by other supervisors, thus forming a *supervision hierarchy* that compartmentalizes failure and recovery. 
 
-The basic philosophy behind supervisor-based fault handling was named "let it crash" by Erlang's designer, Joe Armstrong. The idea is that instead of trying to fix the program state after every expected exception, we simply let an actor crash when it encounters an unexcpected condition and "reboot" it.
+The basic philosophy behind supervisor-based fault handling was named "let it crash" by Erlang's designer, Joe Armstrong. The idea is that instead of trying to fix the program state after every expected exception, we simply let an actor crash when it encounters an unexpected condition and "reboot" it.
 
 A supervisors works as follows: it has a number of *children*, worker actors or other supervisors that are registered to be supervised wither at the supervisor's construction time or at a later time. Each child has a mode (represented by the [`Supervisor.ChildMode`]({{javadoc}}/actors/behaviors/Supervisor.ChildMode.html) class): 
 `PERMANENT`, `TRANSIENT` or `TEMPORARY` that determines whether its death will trigger the supervisor's *recovery event*. When the recovery event is triggered, the supervisor takes action specified by its *restart strategy* - represented by the [`SupervisorActor.RestartStrategy`]({{javadoc}}/actors/behaviors/SupervisorActor.RestartStrategy.html) class - or it will give up and fail, depending on predefined failure modes. 
 
 When a child actor in the `PERMANENT` mode dies, it will always trigger its supervisor's recovery event. When a child in the `TRANSIENT` mode dies, it will trigger a recovery event only if it has died as a result of an exception, but not if it has simply finished its operation. A `TEMPORARY` child never triggers it supervisor's recovery event.
 
-A supervisor's *restart strategy* determines what it does during a *recovery event*: A strategy of `ESCALATE` measns that the supervisor will shut down ("kill") all its surviving children and then die; a `ONE_FOR_ONE` strategy will restart the dead child; an `ALL_FOR_ONE` strategy will shut down all children and then restart them all; a `REST_FOR_ONE` strategy will shut down and restart all those children added to the suervisor after the dead child.
+A supervisor's *restart strategy* determines what it does during a *recovery event*: A strategy of `ESCALATE` means that the supervisor will shut down ("kill") all its surviving children and then die; a `ONE_FOR_ONE` strategy will restart the dead child; an `ALL_FOR_ONE` strategy will shut down all children and then restart them all; a `REST_FOR_ONE` strategy will shut down and restart all those children added to the supervisor after the dead child.
 
 Children can be added to the supervisor actor either at construction time or later, with [`Supervisor`]({{javadoc}}/actors/behaviors/Supervisor.html)'s `addChild` method. A child is added by passing a [`ChildSpec`]({{javadoc}}/actors/behaviors/Supervisor.ChildSpec.html) to the supervisor. The `ChildSpec` contains the means of how to start the actor, usually in the form of an [`ActorSpec`]({{javadoc}}/actors/actors/ActorSpec.html) (see the [next section](#actor-restarts)), or as an already constructed actor; the childs mode; and how many times an actor is allowed to be restarted in a given amount of time. If the actor is restarted too many times within the specified duration, the supervisor gives up and terminates (along with all its children) causing an escalation.
 
@@ -862,7 +862,7 @@ Hot code swapping is the ability to change your program's code while it is runni
 
 #### Creating and Loading Code Modules
 
-To create an upgraded version of an actor class or several of them, package the upgraded classes, along with any other accompanying classes into a jar file. When the jar is loaded, as we'll see below, those classes that are marked as upgrades will replace their current versions. Only classes representing actor implementation (or actor behavior implementation) can be upgraded directly. Other classes might be upgraded as well if they store actor state as we'll see in the next section. Actor (and behavior) upgrades must be explicitely or implicitely specified. To explicitely specify an upgrade, annotate the class with the [`@Upgrade`]({{javadoc}}/actors/actors/Upgrade.html) annotation, or include its fully qualified name in a space-separated list as the value of the `"Upgrade-Classes"` attribute in the jar's manifest. Alternatively, if the `"Upgrade-Classes"` attribute has the value `*`, all classes in the jar extending an actor or behavior class (or implementing a behavior interface like `ServerHandler`) will be automatically upgraded.
+To create an upgraded version of an actor class or several of them, package the upgraded classes, along with any other accompanying classes into a jar file. When the jar is loaded, as we'll see below, those classes that are marked as upgrades will replace their current versions. Only classes representing actor implementation (or actor behavior implementation) can be upgraded directly. Other classes might be upgraded as well if they store actor state as we'll see in the next section. Actor (and behavior) upgrades must be explicitly or implicitly specified. To explicitly specify an upgrade, annotate the class with the [`@Upgrade`]({{javadoc}}/actors/actors/Upgrade.html) annotation, or include its fully qualified name in a space-separated list as the value of the `"Upgrade-Classes"` attribute in the jar's manifest. Alternatively, if the `"Upgrade-Classes"` attribute has the value `*`, all classes in the jar extending an actor or behavior class (or implementing a behavior interface like `ServerHandler`) will be automatically upgraded.
 
 Once the jar is created, there are two ways to load it into the program. The first involves calling the `reloadModule` operation of the `"co.paralleluniverse:type=ActorLoader"` MBean, passing a URL for the jar; this can be done via any JMX console, such as VisualVM. The `unloadModule` operation can be used to unload the jar and revert actors to their previous implementation.
 
@@ -879,7 +879,7 @@ Actor state can be stored directly in primitive fields of the actor class, or in
 
 #### Swapping Plain Actors
 
-Plain actor code is not swapped automatically – an actor must explicitely support swapping; therefore plain actors must be origninally built with a possible upgrade in mind. As an actor runs, when it reaches a point where swapping in a new version makes sense (depending on your application logic, but often right before receiving a new message), it must call the [`checkCodeSwap`]({{javadoc}}/actors/actors/Actor.html#checkCodeSwap()) method of the `Actor` class. If a new version of the actor class has been loaded, its `doRun` method will begin anew, after actor state has been copied. For that reason, initializtion code found at the beginning of `doRun` must take into account the fact that it may be run when some or all actor state already initialized.
+Plain actor code is not swapped automatically – an actor must explicitly support swapping; therefore plain actors must be originally built with a possible upgrade in mind. As an actor runs, when it reaches a point where swapping in a new version makes sense (depending on your application logic, but often right before receiving a new message), it must call the [`checkCodeSwap`]({{javadoc}}/actors/actors/Actor.html#checkCodeSwap()) method of the `Actor` class. If a new version of the actor class has been loaded, its `doRun` method will begin anew, after actor state has been copied. For that reason, initialization code found at the beginning of `doRun` must take into account the fact that it may be run when some or all actor state already initialized.
 
 #### Swapping Behaviors
 
@@ -897,7 +897,7 @@ Just as actors expose their operations through a simple, standard interface that
 
 Records provide similar functionality to plain Java objects with public fields, but, unlike plain objects, they allow us to inject cross-cutting concerns on field-get and field-set operations, like restricting access to specific strands, or making sure that state is mutated (or read) only inside transactions.
 
-Just as objects are instances of a classe, so too are records instances of a *record type*, represented by the [`RecordType`]({{javadoc}}/data/record/RecordType.html) class. A new record type must be declared as a static member of a class. The class must only include the definition of a single record type, and this class is called the type's *identifier class*, because it is used only to uniquely identify the record type (only its name is used internally).
+Just as objects are instances of a classes, so too are records instances of a *record type*, represented by the [`RecordType`]({{javadoc}}/data/record/RecordType.html) class. A new record type must be declared as a static member of a class. The class must only include the definition of a single record type, and this class is called the type's *identifier class*, because it is used only to uniquely identify the record type (only its name is used internally).
 
 Here's an example record type definition:
 
@@ -921,7 +921,7 @@ A new record is instantiated by calling one of `RecordType`'s `newInstance` meth
 
 So, instead of writing `obj.getX()`, or `obj.x` we write `obj.get($x)`. What does this get us other than re-inventing what is a basic Java functionality, minus the some type safety? Like actors, records give up some type safety (we preserve the type of the `x` field, but the compiler can’t tell us whether obj even has an `x` field; similarly, if we send message `m` to actor `a`, the compiler can’t know whether `a` supports an `m` operation), they do so at well-defined interface points between separate software components. What we gain is loose coupling. For example, among other things, we gain the ability to swap the implementation of the record or actor at runtime for maintenance (hot code-swapping).
 
-We gain other things by limiting component interaction to the narrow interfaces of actors and records, and that is the ability to insert cross-cutting concerns. For example, what happens if a method that consumes a resource is called too often? We need to explicitely insert load-handling code into the method. But if we communicate with the component through an actor interface, we can implement a general policy of handling too many messages that are thrown at any actor. Similarly with records. Parallel Universe's database, SpaceBase, uses records to restrict read and writes of shared state to well-defined transactions. Attempts to read or write state outside a transaction will throw a runtime exception.
+We gain other things by limiting component interaction to the narrow interfaces of actors and records, and that is the ability to insert cross-cutting concerns. For example, what happens if a method that consumes a resource is called too often? We need to explicitly insert load-handling code into the method. But if we communicate with the component through an actor interface, we can implement a general policy of handling too many messages that are thrown at any actor. Similarly with records. Parallel Universe's database, SpaceBase, uses records to restrict read and writes of shared state to well-defined transactions. Attempts to read or write state outside a transaction will throw a runtime exception.
 
 Because records are intended to control mutability, an `ObjectField` should never reference a mutable object. `RecordType` will perform a very simple test on an `ObjectField` type and output a warning to the console if the class appears mutable. Conclusively determining whether a class is mutable or not is extremely difficult, so the test is a very simple one: it will warn if the class has public non-static, non-final fields, or if it has public methods whose name begins with "set".
 
@@ -945,7 +945,7 @@ An actor doesn't have to be registered in order to be reachable on the network. 
 
 ### Cluster Configuration
 
-For instructions on how to configure the Galaxy cluster, please refere to Galaxy's [getting started guide](http://docs.paralleluniverse.co/galaxy/start/getting-started.html).
+For instructions on how to configure the Galaxy cluster, please refer to Galaxy's [getting started guide](http://docs.paralleluniverse.co/galaxy/start/getting-started.html).
 
 ## Examples
 
@@ -979,7 +979,7 @@ Start the Ping actor in a different terminal by:
 ./gradlew :quasar-galaxy:run -PmainClass=co.paralleluniverse.galaxy.example.pingpong.Ping
 ~~~
 
-To run the actors on different computers, change the following lines in the build.gradle file to the apropriate network configuration:
+To run the actors on different computers, change the following lines in the build.gradle file to the appropriate network configuration:
 
 ~~~ groovy
 systemProperty "jgroups.bind_addr", "127.0.0.1"
