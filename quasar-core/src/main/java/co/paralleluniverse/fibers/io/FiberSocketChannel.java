@@ -562,4 +562,8 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     public Set<SocketOption<?>> supportedOptions() {
         return ac.supportedOptions();
     }
+    
+    private int remotePort() throws IOException {
+        return ((java.net.InetSocketAddress)ac.getRemoteAddress()).getPort();
+    }
 }
