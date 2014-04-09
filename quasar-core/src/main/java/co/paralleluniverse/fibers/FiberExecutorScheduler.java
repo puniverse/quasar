@@ -82,8 +82,9 @@ public class FiberExecutorScheduler extends FiberScheduler implements Executor {
         return null;
     }
 
+    @Override
     public Executor getExecutor() {
-        return executor;
+        return executor != null ? executor : this;
     }
 
     @Override

@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import jsr166e.ConcurrentHashMapV8;
@@ -131,6 +132,11 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         return fjPool;
     }
 
+    @Override
+    public Executor getExecutor() {
+        return fjPool;
+    }
+    
     @Override
     Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit) {
         return timer.schedule(fiber, blocker, delay, unit);

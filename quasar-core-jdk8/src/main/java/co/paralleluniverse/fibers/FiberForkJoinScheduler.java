@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.Future;
@@ -128,6 +129,11 @@ public class FiberForkJoinScheduler extends FiberScheduler {
     }
 
     public ForkJoinPool getForkJoinPool() {
+        return fjPool;
+    }
+
+    @Override
+    public Executor getExecutor() {
         return fjPool;
     }
 

@@ -27,6 +27,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.spi.FileSystemProvider;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
@@ -36,6 +38,8 @@ import java.util.concurrent.ExecutorService;
  * @author pron
  */
 public class FiberFileChannel extends FileChannel {
+    private static final FileAttribute<?>[] NO_ATTRIBUTES = new FileAttribute[0];
+    
     private final AsynchronousFileChannel ac;
     private long position;
 
@@ -150,7 +154,7 @@ public class FiberFileChannel extends FileChannel {
      *                                       write access if the file is opened for writing
      */
     public static FiberFileChannel open(ExecutorService ioExecutor, Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
-        return new FiberFileChannel(AsynchronousFileChannel.open(path, options, ioExecutor, attrs));
+        return new FiberFileChannel(AsynchronousFileChannel.open(path, options, ioExecutor != null ? ioExecutor : FiberAsyncIO.ioExecutor(), attrs));
     }
 
     /**
@@ -188,7 +192,10 @@ public class FiberFileChannel extends FileChannel {
      *                                       write access if the file is opened for writing
      */
     public static FiberFileChannel open(Path path, OpenOption... options) throws IOException {
-        return new FiberFileChannel(AsynchronousFileChannel.open(path, options));
+        Set<OpenOption> set = new HashSet<OpenOption>(options.length);
+        Collections.addAll(set, options);
+
+        return new FiberFileChannel(AsynchronousFileChannel.open(path, set, FiberAsyncIO.ioExecutor(), NO_ATTRIBUTES));
     }
 
     @Override
@@ -212,9 +219,8 @@ public class FiberFileChannel extends FileChannel {
     public int read(final ByteBuffer dst, final long position) throws IOException {
         return new FiberAsyncIO<Integer>() {
             @Override
-            protected Void requestAsync() {
+            protected void requestAsync() {
                 ac.read(dst, position, null, makeCallback());
-                return null;
             }
         }.runSneaky();
     }
@@ -224,9 +230,8 @@ public class FiberFileChannel extends FileChannel {
     public int write(final ByteBuffer src, final long position) throws IOException {
         return new FiberAsyncIO<Integer>() {
             @Override
-            protected Void requestAsync() {
+            protected void requestAsync() {
                 ac.write(src, position, null, makeCallback());
-                return null;
             }
         }.runSneaky();
     }
@@ -236,9 +241,8 @@ public class FiberFileChannel extends FileChannel {
     public FileLock lock(final long position, final long size, final boolean shared) throws IOException {
         return new FiberAsyncIO<FileLock>() {
             @Override
-            protected Void requestAsync() {
+            protected void requestAsync() {
                 ac.lock(position, size, shared, null, makeCallback());
-                return null;
             }
         }.runSneaky();
     }

@@ -15,6 +15,7 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.MonitorType;
 import java.util.Map;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -75,4 +76,6 @@ public abstract class FiberScheduler {
     abstract Object getCurrentTarget(Thread currentThread);
 
     abstract <V> FiberTask<V> newFiberTask(Fiber<V> fiber);
+    
+    public abstract Executor getExecutor();
 }

@@ -52,7 +52,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * @throws IOException If an I/O error occurs
      */
     public static FiberSocketChannel open() throws IOException {
-        return new FiberSocketChannel(AsynchronousSocketChannel.open(FiberAsyncIO.newDefaultGroup()));
+        return new FiberSocketChannel(AsynchronousSocketChannel.open(FiberAsyncIO.defaultGroup()));
     }
 
     /**
@@ -71,7 +71,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * @throws IOException                   If an I/O error occurs
      */
     public static FiberSocketChannel open(AsynchronousChannelGroup group) throws IOException {
-        return new FiberSocketChannel(AsynchronousSocketChannel.open(group));
+        return new FiberSocketChannel(AsynchronousSocketChannel.open(group != null ? group : FiberAsyncIO.defaultGroup()));
     }
 
     /**
@@ -159,9 +159,8 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     public void connect(final SocketAddress remote) throws IOException, SuspendExecution {
         new FiberAsyncIO<Void>() {
             @Override
-            protected Void requestAsync() {
+            protected void requestAsync() {
                 ac.connect(remote, null, makeCallback());
-                return null;
             }
         }.run();
     }
@@ -231,9 +230,8 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     public long read(final ByteBuffer[] dsts, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
         return new FiberAsyncIO<Long>() {
             @Override
-            protected Void requestAsync() {
+            protected void requestAsync() {
                 ac.read(dsts, offset, length, timeout, unit, null, makeCallback());
-                return null;
             }
         }.run();
     }
@@ -271,9 +269,8 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     public int read(final ByteBuffer dst, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
         return new FiberAsyncIO<Integer>() {
             @Override
-            protected Void requestAsync() {
+            protected void requestAsync() {
                 ac.read(dst, timeout, unit, null, makeCallback());
-                return null;
             }
         }.run();
     }
@@ -336,9 +333,8 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     public long write(final ByteBuffer[] srcs, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
         return new FiberAsyncIO<Long>() {
             @Override
-            protected Void requestAsync() {
+            protected void requestAsync() {
                 ac.write(srcs, offset, length, timeout, unit, null, makeCallback());
-                return null;
             }
         }.run();
     }
@@ -373,9 +369,8 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     public int write(final ByteBuffer src, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
         return new FiberAsyncIO<Integer>() {
             @Override
-            protected Void requestAsync() {
+            protected void requestAsync() {
                 ac.write(src, timeout, unit, null, makeCallback());
-                return null;
             }
         }.run();
     }

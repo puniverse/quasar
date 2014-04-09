@@ -45,7 +45,7 @@ public class FiberServerSocketChannel implements NetworkChannel {
      * @throws IOException If an I/O error occurs
      */
     public static FiberServerSocketChannel open() throws IOException {
-        return new FiberServerSocketChannel(AsynchronousServerSocketChannel.open(FiberAsyncIO.newDefaultGroup()));
+        return new FiberServerSocketChannel(AsynchronousServerSocketChannel.open(FiberAsyncIO.defaultGroup()));
     }
 
     /**
@@ -67,7 +67,7 @@ public class FiberServerSocketChannel implements NetworkChannel {
      * @throws IOException                   If an I/O error occurs
      */
     public static FiberServerSocketChannel open(AsynchronousChannelGroup group) throws IOException {
-        return new FiberServerSocketChannel(AsynchronousServerSocketChannel.open(group));
+        return new FiberServerSocketChannel(AsynchronousServerSocketChannel.open(group != null ? group : FiberAsyncIO.defaultGroup()));
     }
 
     /**
@@ -101,9 +101,8 @@ public class FiberServerSocketChannel implements NetworkChannel {
     public FiberSocketChannel accept() throws IOException, SuspendExecution {
         return new FiberSocketChannel(new FiberAsyncIO<AsynchronousSocketChannel>() {
             @Override
-            protected Void requestAsync() {
+            protected void requestAsync() {
                 ac.accept(null, makeCallback());
-                return null;
             }
         }.run());
     }

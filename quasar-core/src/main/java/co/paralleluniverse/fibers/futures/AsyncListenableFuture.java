@@ -29,7 +29,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class AsyncListenableFuture<V> extends FiberAsync<V, Void, ExecutionException> {
+public class AsyncListenableFuture<V> extends FiberAsync<V, ExecutionException> {
     /**
      * Blocks the current strand (either fiber or thread) until the given future completes, and returns its result.
      *
@@ -175,7 +175,7 @@ public class AsyncListenableFuture<V> extends FiberAsync<V, Void, ExecutionExcep
     }
 
     @Override
-    protected Void requestAsync() {
+    protected void requestAsync() {
         fut.addListener(new Runnable() {
             @Override
             public void run() {
@@ -190,7 +190,6 @@ public class AsyncListenableFuture<V> extends FiberAsync<V, Void, ExecutionExcep
                 }
             }
         }, sameThreadExecutor);
-        return null;
     }
 
     @Override

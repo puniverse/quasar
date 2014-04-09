@@ -67,7 +67,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public abstract class FiberAsync<V, A, E extends Throwable> {
+public abstract class FiberAsync<V, E extends Throwable> {
     private final Fiber fiber;
     private final boolean immediateExec;
     private long deadline;
@@ -76,7 +76,6 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
     private V result;
     private Thread registrationThread;
     private volatile boolean registrationComplete;
-    private A attachment;
 
     /**
      * Same as `FiberAsync(false)`
@@ -109,21 +108,24 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
         if (fiber == null)
             return runSync();
 
+        if (registrationComplete)
+            throw new IllegalStateException("This FiberAsync instance has already been used");
+
         fiber.record(1, "FiberAsync", "run", "Blocking fiber %s on FibeAsync %s", fiber, this);
         while (!Fiber.park(this, new Fiber.ParkAction() {
             @Override
             public void run(Fiber current) {
-                current.record(1, "FiberAsync", "run", "Calling requestAsync on class %s", this);
-                registrationThread = Thread.currentThread();
-                attachment = requestAsync();
-                registrationThread = null;
-                registrationComplete = true;
-                current.record(1, "FiberAsync", "run", "requestAsync on %s returned attachment %s", FiberAsync.this, attachment);
+                try {
+                    current.record(1, "FiberAsync", "run", "Calling requestAsync on class %s", this);
+                    registrationThread = Thread.currentThread();
+                    requestAsync();
+                    current.record(1, "FiberAsync", "run", "requestAsync on %s done", FiberAsync.this);
+                } finally {
+                    registrationComplete = true;
+                }
             }
         })); // make sure we actually park and run PostParkActions
 
-        if (Thread.currentThread() != registrationThread)
-            while (!registrationComplete); // spin
 
         if (Fiber.interrupted())
             throw new InterruptedException();
@@ -136,7 +138,7 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
 //        }
         return getResult();
     }
-
+    
     /**
      * Runs the asynchronous operation, blocks until it completes (but only up to the given timeout duration) and returns its result.
      * Throws an exception if the operation has failed.
@@ -156,6 +158,9 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
         if (Fiber.currentFiber() == null)
             runSync(timeout, unit);
         
+        if (registrationComplete)
+            throw new IllegalStateException("This FiberAsync instance has already been used");
+        
         if (unit == null)
             return run();
         if (timeout <= 0)
@@ -167,18 +172,17 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
         while (!Fiber.park(this, new Fiber.ParkAction() {
             @Override
             public void run(Fiber current) {
-                current.getScheduler().schedule(current, FiberAsync.this, timeout, unit);
-                current.record(1, "FiberAsync", "run", "Calling requestAsync on class %s", this);
-                registrationThread = Thread.currentThread();
-                attachment = requestAsync();
-                registrationThread = null;
-                registrationComplete = true;
-                current.record(1, "FiberAsync", "run", "requestAsync on %s returned attachment %s", FiberAsync.this, attachment);
+                try {
+                    current.getScheduler().schedule(current, FiberAsync.this, timeout, unit);
+                    current.record(1, "FiberAsync", "run", "Calling requestAsync on class %s", this);
+                    registrationThread = Thread.currentThread();
+                    requestAsync();
+                    current.record(1, "FiberAsync", "run", "requestAsync on %s done", FiberAsync.this);
+                } finally {
+                    registrationComplete = true;
+                }
             }
         })); // make sure we actually park and run PostParkActions
-
-        if (Thread.currentThread() != registrationThread)
-            while (!registrationComplete); // spin
 
         if (!isCompleted()) {
             if (Fiber.interrupted())
@@ -232,13 +236,23 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
     }
     
     /**
+     * Spins until {@code requestAsync} returns. Can be called from overrides of {@code run}.
+     */
+    protected final void waitForRegistration() {
+        if (Thread.currentThread() != registrationThread) {
+            while (!registrationComplete)
+             ; // spin
+        }
+    }
+        
+    /**
      * A user of this class must override this method to start the asynchronous operation and register the callback.
      * This method may return an *attachment object* that can be retrieved later by calling {@link #getAttachment()}.
      * This method may not use any {@link ThreadLocal}s.
      *
      * @return An object to be set as this `FiberAsync`'s *attachment*, that can be later retrieved with {@link #getAttachment()}.
      */
-    protected abstract A requestAsync();
+    protected abstract void requestAsync();
 
     /**
      * Called if {@link #run()} is not being executed in a fiber. Should perform the operation synchronously and return its result.
@@ -265,13 +279,13 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
     protected V requestSync(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException, E {
         throw new IllegalThreadStateException("Method called not from within a fiber");
     }
-
+    
     /**
      * This method must be called by the callback upon successful completion of the asynchronous operation.
      *
      * @param result The operation's result
      */
-    protected final void asyncCompleted(V result) {
+    protected void asyncCompleted(V result) {
         if (completed) // probably timeout
             return;
         this.result = result;
@@ -285,7 +299,7 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
      *
      * @param t The exception that caused the failure, or an exception to be associated with it. Must not be `null`.
      */
-    protected final void asyncFailed(Throwable t) {
+    protected void asyncFailed(Throwable t) {
         if (t == null)
             throw new IllegalArgumentException("t must not be null");
         if (completed) // probably timeout
@@ -324,13 +338,6 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
      * Can be overridden by subclasses running in immediate-exec mode to verify whether a park is allowed.
      */
     protected void prepark() {
-    }
-
-    /**
-     * Returns the attachment object that was returned by the call to {@link #requestAsync() requestAsync}.
-     */
-    protected final A getAttachment() {
-        return attachment;
     }
 
     /**
@@ -414,7 +421,7 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
         return new ThreadBlockingFiberAsync<>(exec, callable).run(timeout);
     }
 
-    private static class ThreadBlockingFiberAsync<V, E extends Exception> extends FiberAsync<V, Void, E> {
+    private static class ThreadBlockingFiberAsync<V, E extends Exception> extends FiberAsync<V, E> {
         private final ExecutorService exec;
         private final CheckedCallable<V, E> action;
 
@@ -424,7 +431,7 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
         }
 
         @Override
-        protected Void requestAsync() {
+        protected void requestAsync() {
             exec.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -436,7 +443,6 @@ public abstract class FiberAsync<V, A, E extends Throwable> {
                     }
                 }
             });
-            return null;
         }
 
         @Override

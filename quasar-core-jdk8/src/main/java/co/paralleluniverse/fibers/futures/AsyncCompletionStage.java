@@ -29,7 +29,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class AsyncCompletionStage<V> extends FiberAsync<V, Void, ExecutionException> {
+public class AsyncCompletionStage<V> extends FiberAsync<V, ExecutionException> {
     /**
      * Blocks the current strand (either fiber or thread) until the given future completes, and returns its result.
      *
@@ -174,7 +174,7 @@ public class AsyncCompletionStage<V> extends FiberAsync<V, Void, ExecutionExcept
     }
 
     @Override
-    protected Void requestAsync() {
+    protected void requestAsync() {
         fut.handle((V res, Throwable e) -> {
                 if (e != null)
                     asyncFailed(e);
@@ -182,7 +182,6 @@ public class AsyncCompletionStage<V> extends FiberAsync<V, Void, ExecutionExcept
                     asyncCompleted(res);
                 return null;
             });
-        return null;
     }
 
     @Override
