@@ -20,7 +20,7 @@ or, for JDK8:
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-core</artifactId>
     <version>{{site.version}}</version>
-    <classifier>jdk8<classifier>
+    <classifier>jdk8</classifier>
 </dependency>
 ~~~
 
