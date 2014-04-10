@@ -250,7 +250,7 @@ public abstract class Strand {
     public static Strand currentStrand() {
         if (FiberForkJoinScheduler.isFiberThread(Thread.currentThread()))
             return Fiber.currentFiber();
-        
+
         Strand s = currentStrand.get();
         if (s == null) {
             s = ThreadStrand.get(Thread.currentThread());
@@ -819,6 +819,8 @@ public abstract class Strand {
      * @return a nice (multi-line) string representation of the stack trace.
      */
     public static String toString(StackTraceElement[] trace) {
+        if (trace == null)
+            return "null stack trace";
         StringBuilder sb = new StringBuilder();
         for (StackTraceElement traceElement : trace)
             sb.append("\tat ").append(traceElement).append('\n');
