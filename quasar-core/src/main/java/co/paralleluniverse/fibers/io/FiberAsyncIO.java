@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers.io;
 
+import co.paralleluniverse.common.util.CheckedCallable;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberAsync;
 import co.paralleluniverse.fibers.FiberScheduler;
@@ -100,6 +101,17 @@ abstract class FiberAsyncIO<V> extends FiberAsync<V, IOException> {
     public V runSneaky() throws IOException {
         try {
             return super.run();
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
+    }
+
+    @Suspendable
+    public static <V> V runBlockingIO(final ExecutorService exec, final CheckedCallable<V, IOException> callable) throws IOException {
+        try {
+            return FiberAsync.runBlocking(exec, callable);
         } catch (InterruptedException e) {
             throw new IOException(e);
         } catch (SuspendExecution e) {
