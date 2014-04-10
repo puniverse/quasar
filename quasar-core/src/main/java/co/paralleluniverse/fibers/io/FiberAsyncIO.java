@@ -19,6 +19,7 @@ import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.CompletionHandler;
 import java.util.Collection;
@@ -82,7 +83,7 @@ abstract class FiberAsyncIO<V> extends FiberAsync<V, IOException> {
         try {
             return super.run();
         } catch (InterruptedException e) {
-            throw new IOException(e);
+            throw new InterruptedIOException();
         }
     }
 
@@ -91,7 +92,7 @@ abstract class FiberAsyncIO<V> extends FiberAsync<V, IOException> {
         try {
             return super.run(timeout, unit);
         } catch (InterruptedException e) {
-            throw new IOException(e);
+            throw new InterruptedIOException();
         }
     }
 
