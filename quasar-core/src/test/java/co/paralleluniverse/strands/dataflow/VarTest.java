@@ -13,7 +13,11 @@
  */
 package co.paralleluniverse.strands.dataflow;
 
+import co.paralleluniverse.common.test.Matchers;
+import static co.paralleluniverse.common.test.Matchers.*;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberForkJoinScheduler;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
@@ -30,22 +34,14 @@ import org.junit.Ignore;
  *
  * @author pron
  */
-public class ValTest {
+public class VarTest {
 
-    public ValTest() {
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void whenValIsSetTwiceThenThrowException() throws Exception {
-        final Val<String> val = new Val<>();
-
-        val.set("hello");
-        val.set("goodbye");
+    public VarTest() {
     }
 
     @Test
     public void testThreadWaiter() throws Exception {
-        final Val<String> val = new Val<>();
+        final Var<String> var = new Var<>();
 
         final AtomicReference<String> res = new AtomicReference<>();
 
@@ -53,7 +49,7 @@ public class ValTest {
             @Override
             public void run() throws SuspendExecution {
                 try {
-                    final String v = val.get();
+                    final String v = var.get();
                     res.set(v);
                 } catch (InterruptedException ex) {
                     throw new RuntimeException(ex);
@@ -64,46 +60,46 @@ public class ValTest {
 
         Thread.sleep(100);
 
-        val.set("yes!");
+        var.set("yes!");
 
         t1.join();
 
         assertThat(res.get(), equalTo("yes!"));
-        assertThat(val.get(), equalTo("yes!"));
+        assertThat(var.get(), equalTo("yes!"));
     }
 
     @Test
     public void testFiberWaiter() throws Exception {
-        final Val<String> val = new Val<>();
+        final Var<String> var = new Var<>();
 
         final Fiber<String> f1 = new Fiber<String>(new SuspendableCallable<String>() {
             @Override
             public String run() throws SuspendExecution, InterruptedException {
-                final String v = val.get();
+                final String v = var.get();
                 return v;
             }
         }).start();
 
         Thread.sleep(100);
 
-        val.set("yes!");
+        var.set("yes!");
 
         f1.join();
 
         assertThat(f1.get(), equalTo("yes!"));
-        assertThat(val.get(), equalTo("yes!"));
+        assertThat(var.get(), equalTo("yes!"));
     }
 
     @Test
     public void testThreadAndFiberWaiters() throws Exception {
-        final Val<String> val = new Val<>();
+        final Var<String> var = new Var<>();
 
         final AtomicReference<String> res = new AtomicReference<>();
 
         final Fiber<String> f1 = new Fiber<String>(new SuspendableCallable<String>() {
             @Override
             public String run() throws SuspendExecution, InterruptedException {
-                final String v = val.get();
+                final String v = var.get();
                 return v;
             }
         }).start();
@@ -112,7 +108,7 @@ public class ValTest {
             @Override
             public void run() throws SuspendExecution {
                 try {
-                    final String v = val.get();
+                    final String v = var.get();
                     res.set(v);
                 } catch (InterruptedException ex) {
                     throw new RuntimeException(ex);
@@ -123,109 +119,81 @@ public class ValTest {
 
         Thread.sleep(100);
 
-        val.set("yes!");
+        var.set("yes!");
 
         t1.join();
         f1.join();
 
         assertThat(f1.get(), equalTo("yes!"));
         assertThat(res.get(), equalTo("yes!"));
-        assertThat(val.get(), equalTo("yes!"));
+        assertThat(var.get(), equalTo("yes!"));
     }
 
     @Test
-    public void complexTest1() throws Exception {
-        final Val<Integer> val1 = new Val<>();
-        final Val<Integer> val2 = new Val<>();
-
-        final AtomicReference<Integer> res = new AtomicReference<>();
+    public void testHistory1() throws Exception {
+        final Var<Integer> var = new Var<>(10);
 
         final Fiber<Integer> f1 = new Fiber<Integer>(new SuspendableCallable<Integer>() {
             @Override
             public Integer run() throws SuspendExecution, InterruptedException {
-                return val1.get() + val2.get();
+                Strand.sleep(100);
+                int sum = 0;
+                for (int i = 0; i < 10; i++)
+                    sum += var.get();
+                return sum;
             }
         }).start();
 
-        final Thread t1 = new Thread(Strand.toRunnable(new SuspendableRunnable() {
+        final Fiber<Integer> f2 = new Fiber<Integer>(new SuspendableCallable<Integer>() {
             @Override
-            public void run() throws SuspendExecution {
-                try {
-                    res.set(val1.get() * val2.get());
-                } catch (InterruptedException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-        }));
-        t1.start();
-
-        final Fiber<Integer> f2 = new Fiber<Integer>(new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                val2.set(5);
+            public Integer run() throws SuspendExecution, InterruptedException {
+                int sum = 0;
+                for (int i = 0; i < 10; i++)
+                    sum += var.get();
+                return sum;
             }
         }).start();
-
 
         Thread.sleep(100);
 
-        val1.set(8);
+        for (int i = 0; i < 10; i++)
+            var.set(i + 1);
 
-        int myRes = val1.get() - val2.get();
-        t1.join();
-        f1.join();
-
-        assertThat(f1.get(), equalTo(13));
-        assertThat(res.get(), equalTo(40));
-        assertThat(myRes, is(3));
-
-        f2.join();
+        assertThat(f1.get(), equalTo(55));
+        assertThat(f2.get(), equalTo(55));
     }
 
-    @Test
-    public void complexTest2() throws Exception {
-        final Val<Integer> val1 = new Val<>();
-        final Val<Integer> val2 = new Val<>();
-        final Val<Integer> val3 = new Val<>();
-        final Val<Integer> val4 = new Val<>();
+    // @Test
+    public void testHistory2() throws Exception {
+        final Var<Integer> var = new Var<>(2);
 
-        final AtomicReference<Integer> res = new AtomicReference<>();
-
-        final Strand f1 = new Fiber<Integer>(new SuspendableRunnable() {
+        final Fiber<Integer> f1 = new Fiber<Integer>(new SuspendableCallable<Integer>() {
             @Override
-            public void run() throws InterruptedException, SuspendExecution {
-                val2.set(val1.get() + 1); // 2
+            public Integer run() throws SuspendExecution, InterruptedException {
+                Strand.sleep(100);
+                int sum = 0;
+                for (int i = 0; i < 10; i++)
+                    sum += var.get();
+                return sum;
             }
         }).start();
 
-        final Strand t1 = Strand.of(new Thread(Strand.toRunnable(new SuspendableRunnable() {
+        final Fiber<Integer> f2 = new Fiber<Integer>(new SuspendableCallable<Integer>() {
             @Override
-            public void run() throws SuspendExecution {
-                try {
-                    val3.set(val1.get() + val2.get()); // 3
-                } catch (InterruptedException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-        }))).start();
-
-        final Strand f2 = new Fiber<Integer>(new SuspendableRunnable() {
-            @Override
-            public void run() throws InterruptedException, SuspendExecution {
-                val4.set(val2.get() + val3.get()); // 5
+            public Integer run() throws SuspendExecution, InterruptedException {
+                int sum = 0;
+                for (int i = 0; i < 10; i++)
+                    sum += var.get();
+                return sum;
             }
         }).start();
-
 
         Thread.sleep(100);
 
-        val1.set(1);
+        for (int i = 0; i < 10; i++)
+            var.set(i + 1);
 
-        int myRes = val4.get();
-        assertThat(myRes, is(5));
-        
-        t1.join();
-        f1.join();
-        f2.join();
+        assertThat(f1.get(), lessThan(55));
+        assertThat(f2.get(), lessOrEqual(55));
     }
 }

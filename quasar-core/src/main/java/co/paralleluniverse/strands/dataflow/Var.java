@@ -59,9 +59,9 @@ public class Var<T> {
     }
 
     public Var(int history, FiberScheduler scheduler, SuspendableCallable<T> f) {
-        if (history <= 0)
-            throw new IllegalArgumentException("history must be > 0, but is " + history);
-        this.ch = Channels.newChannel(history, Channels.OverflowPolicy.DISPLACE);
+        if (history < 0)
+            throw new IllegalArgumentException("history must be >= 0, but is " + history);
+        this.ch = Channels.newChannel(1 + history, Channels.OverflowPolicy.DISPLACE);
         this.f = f;
 
         if (f != null)
@@ -73,11 +73,11 @@ public class Var<T> {
     }
 
     public Var(SuspendableCallable<T> f) {
-        this(1, null, f);
+        this(0, null, f);
     }
 
     public Var(FiberScheduler scheduler, SuspendableCallable<T> f) {
-        this(1, scheduler, f);
+        this(0, scheduler, f);
     }
 
     public Var(int history) {
@@ -85,7 +85,7 @@ public class Var<T> {
     }
 
     public Var() {
-        this(1, null, null);
+        this(0, null, null);
     }
 
     public void set(T val) {
