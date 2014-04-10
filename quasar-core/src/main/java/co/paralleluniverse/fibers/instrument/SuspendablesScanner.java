@@ -17,6 +17,7 @@ import co.paralleluniverse.common.reflection.ASMUtil;
 import co.paralleluniverse.fibers.Suspendable;
 import static co.paralleluniverse.common.reflection.ASMUtil.*;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
@@ -47,6 +48,7 @@ public class SuspendablesScanner extends Task {
     private final ArrayList<FileSet> filesets = new ArrayList<FileSet>();
     private final Set<String> results = new HashSet<String>();
     private String outputFile;
+    private boolean append;
 
     public void addFileSet(FileSet fs) {
         filesets.add(fs);
@@ -56,6 +58,10 @@ public class SuspendablesScanner extends Task {
         this.outputFile = outputFile;
     }
 
+    public void setAppend(boolean value) {
+        this.append = value;
+    }
+    
     public void run(String[] prefixes) throws Exception {
         for (String prefix : prefixes)
             collect(prefix);
@@ -148,7 +154,7 @@ public class SuspendablesScanner extends Task {
             File file = new File(outputFile);
             if (file.getParent() != null && !file.getParentFile().exists())
                 file.getParentFile().mkdirs();
-            return new PrintStream(file);
+            return new PrintStream(new FileOutputStream(file, append));
         } else
             return System.out;
     }
