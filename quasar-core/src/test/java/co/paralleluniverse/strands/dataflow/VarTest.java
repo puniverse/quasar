@@ -198,6 +198,7 @@ public class VarTest {
         f2.join();
     }
 
+    @Ignore
     @Test
     public void testFunction1() throws Exception {
         final Channel<Integer> ch = Channels.newChannel(-1);
