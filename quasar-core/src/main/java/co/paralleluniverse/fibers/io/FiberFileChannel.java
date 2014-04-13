@@ -51,7 +51,7 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
     private final AsynchronousFileChannel ac;
     private long position;
 
-    public FiberFileChannel(AsynchronousFileChannel afc) {
+    FiberFileChannel(AsynchronousFileChannel afc) {
         ac = afc;
     }
 
