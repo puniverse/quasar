@@ -33,7 +33,7 @@ import java.util.Set;
 public class FiberServerSocketChannel implements NetworkChannel {
     private final AsynchronousServerSocketChannel ac;
 
-    public FiberServerSocketChannel(AsynchronousServerSocketChannel assc) {
+    FiberServerSocketChannel(AsynchronousServerSocketChannel assc) {
         this.ac = assc;
     }
 

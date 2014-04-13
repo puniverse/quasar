@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, GatheringByteChannel, NetworkChannel {
     private final AsynchronousSocketChannel ac;
 
-    public FiberSocketChannel(AsynchronousSocketChannel asc) {
+    FiberSocketChannel(AsynchronousSocketChannel asc) {
         this.ac = asc;
     }
 
