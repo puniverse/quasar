@@ -106,10 +106,8 @@ public class Var<T> {
     }
 
     /**
-     * This method behaves differently when called from a Var's binding function or from a regular strand.
-     * When called from a regular strand, this method returns the Var's next value, blocking until one is available.
-     * When called from a Var's binding function, this method returns the Var's current value, unless this Var does not yet have
-     * a value; only in that case will this method block.
+     * This method returns the Var's current value (more precisely: it returns the oldest value in the maintained history that has
+     * not yet been returned), unless this Var does not yet have a value; only in that case will this method block.
      */
     public T get() throws SuspendExecution, InterruptedException {
         TLVar tl = tlv.get();
@@ -125,17 +123,16 @@ public class Var<T> {
 
         try {
             final T val;
-            if (tl.type == VARFIBER) {
-                if (tl.val == null)
-                    val = tl.c.receive();
-                else {
-                    T v = tl.c.tryReceive();
-                    if (v != null)
-                        tl.val = v;
-                    val = tl.val;
-                }
-            } else
+            if (tl.val == null) {
                 val = tl.c.receive();
+                tl.val = val;
+            }
+            else {
+                T v = tl.c.tryReceive();
+                if (v != null)
+                    tl.val = v;
+                val = tl.val;
+            }
 
             return val == NULL ? null : val;
         } catch (ProducerException e) {
@@ -147,6 +144,14 @@ public class Var<T> {
             else
                 throw new AssertionError(t);
         }
+    }
+
+    public T getNext() throws SuspendExecution, InterruptedException {
+        TLVar tl = tlv.get();
+        final T val;
+        val = tl.c.receive();
+        tl.val = val;
+        return val;
     }
 
     private static class VarFiber<T> extends Fiber<Void> {

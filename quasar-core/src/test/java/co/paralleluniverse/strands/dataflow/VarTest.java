@@ -22,6 +22,10 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import co.paralleluniverse.strands.channels.Channel;
+import co.paralleluniverse.strands.channels.Channels;
+import java.util.concurrent.TimeUnit;
+import static java.util.concurrent.TimeUnit.*;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
 import org.junit.Before;
@@ -147,14 +151,13 @@ public class VarTest {
         final Fiber<Integer> f2 = new Fiber<Integer>(new SuspendableCallable<Integer>() {
             @Override
             public Integer run() throws SuspendExecution, InterruptedException {
+                Strand.sleep(100);
                 int sum = 0;
                 for (int i = 0; i < 10; i++)
                     sum += var.get();
                 return sum;
             }
         }).start();
-
-        Thread.sleep(100);
 
         for (int i = 0; i < 10; i++)
             var.set(i + 1);
@@ -163,7 +166,7 @@ public class VarTest {
         assertThat(f2.get(), equalTo(55));
     }
 
-    // @Test
+    @Test
     public void testHistory2() throws Exception {
         final Var<Integer> var = new Var<>(2);
 
@@ -188,12 +191,45 @@ public class VarTest {
             }
         }).start();
 
-        Thread.sleep(100);
-
         for (int i = 0; i < 10; i++)
             var.set(i + 1);
 
-        assertThat(f1.get(), lessThan(55));
-        assertThat(f2.get(), lessOrEqual(55));
+        assertThat(f1.get(), not(equalTo(55)));
+        f2.join();
+    }
+
+    @Test
+    public void testFunction1() throws Exception {
+        final Channel<Integer> ch = Channels.newChannel(-1);
+
+        final Var<Integer> a = new Var<Integer>();
+        final Var<Integer> b = new Var<Integer>();
+
+        final Var<Integer> var = new Var<Integer>(2, new SuspendableCallable<Integer>() {
+
+            @Override
+            public Integer run() throws SuspendExecution, InterruptedException {
+                int c = a.get() + b.get();
+                ch.send(c);
+                return c;
+            }
+        });
+
+        b.set(2);
+        assertThat(ch.receive(50, MILLISECONDS), is(nullValue()));
+        a.set(1);
+        assertThat(ch.receive(50, MILLISECONDS), is(3));
+
+        assertThat(ch.receive(50, MILLISECONDS), is(nullValue()));
+        b.set(2);
+        assertThat(ch.receive(50, MILLISECONDS), is(4));
+
+        assertThat(ch.receive(50, MILLISECONDS), is(nullValue()));
+        b.set(3);
+        assertThat(ch.receive(50, MILLISECONDS), is(5));
+
+        assertThat(ch.receive(50, MILLISECONDS), is(nullValue()));
+        a.set(2);
+        assertThat(ch.receive(50, MILLISECONDS), is(6));
     }
 }
