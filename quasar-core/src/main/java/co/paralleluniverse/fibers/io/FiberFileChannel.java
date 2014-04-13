@@ -44,7 +44,7 @@ import java.util.concurrent.Executors;
  * @author pron
  */
 public class FiberFileChannel implements SeekableByteChannel, GatheringByteChannel, ScatteringByteChannel {
-    private static final ExecutorService fileOpenThreadPool = Executors.newCachedThreadPool(
+    private static final ExecutorService fiberFileThreadPool = Executors.newCachedThreadPool(
             new ThreadFactoryBuilder().setDaemon(true).setNameFormat("fiber-file-open-%d").build());
     private static final FileAttribute<?>[] NO_ATTRIBUTES = new FileAttribute[0];
 
@@ -168,9 +168,9 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
      *                                       write access if the file is opened for writing
      */
     @Suspendable
-    public static FiberFileChannel open(ExecutorService ioExecutor, final Path path, final Set<? extends OpenOption> options, final FileAttribute<?>... attrs) throws IOException {
-        final ExecutorService ioExec = ioExecutor != null ? ioExecutor : FiberAsyncIO.ioExecutor();
-        AsynchronousFileChannel afc = FiberAsyncIO.runBlockingIO(fileOpenThreadPool, new CheckedCallable<AsynchronousFileChannel, IOException>() {
+    public static FiberFileChannel open(final ExecutorService ioExecutor, final Path path, final Set<? extends OpenOption> options, final FileAttribute<?>... attrs) throws IOException {
+        final ExecutorService ioExec = ioExecutor != null ? ioExecutor : fiberFileThreadPool; // FiberAsyncIO.ioExecutor(); // 
+        AsynchronousFileChannel afc = FiberAsyncIO.runBlockingIO(fiberFileThreadPool, new CheckedCallable<AsynchronousFileChannel, IOException>() {
             @Override
             public AsynchronousFileChannel call() throws IOException {
                 return AsynchronousFileChannel.open(path, options, ioExec, attrs);
@@ -232,7 +232,7 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
     @Suspendable
     public void close() throws IOException {
         ac.close();
-        FiberAsyncIO.runBlockingIO(fileOpenThreadPool, new CheckedCallable<Void, IOException>() {
+        FiberAsyncIO.runBlockingIO(fiberFileThreadPool, new CheckedCallable<Void, IOException>() {
             @Override
             public Void call() throws IOException {
                 ac.close();
