@@ -57,7 +57,7 @@ subprojects {
             failOnVersionConflict()
 
             force "com.google.guava:guava:16.0.1"
-            force "org.slf4j:slf4j-api:1.7.6"
+            force "org.slf4j:slf4j-api:1.7.7"
             force "org.apache.logging.log4j:log4j-slf4j-impl:2.0-rc1"
             force "org.apache.logging.log4j:log4j-api:2.0-rc1"
             force "org.apache.logging.log4j:log4j-core:2.0-rc1"
@@ -77,8 +77,8 @@ subprojects {
         compile "com.codahale.metrics:metrics-core:3.0.2" 
         compile "org.apache.ant:ant:1.9.3"
         compile "com.google.guava:guava:16.0.1"
-        compile "org.slf4j:slf4j-api:1.7.6"
-	//  runtime "org.slf4j:slf4j-jdk14:1.7.6"
+        compile "org.slf4j:slf4j-api:1.7.7"
+	//  runtime "org.slf4j:slf4j-jdk14:1.7.7"
         runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0-rc1"
         runtime "org.apache.logging.log4j:log4j-api:2.0-rc1"
         runtime "org.apache.logging.log4j:log4j-core:2.0-rc1"
@@ -88,7 +88,7 @@ subprojects {
         testCompile("org.mockito:mockito-all:1.9.5") {
             exclude group: "org.ow2.asm", module: '*'
         }
-        testCompile 'org.openjdk.jmh:jmh-core:0.5.5'
+        testCompile 'org.openjdk.jmh:jmh-core:0.5.6'
         markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
     }
 
