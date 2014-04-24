@@ -195,6 +195,7 @@ class InstrumentMethod {
     public void accept(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
 
+        mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
         final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS & hasSuspendableSuperCalls;
         mv.visitCode();
 
@@ -293,7 +294,7 @@ class InstrumentMethod {
         mv.visitJumpInsn(Opcodes.IFNE, lMethodStart); // if true
         mv.visitInsn(Opcodes.ACONST_NULL);
         mv.visitVarInsn(Opcodes.ASTORE, lvarStack);
-        
+
         mv.visitLabel(lMethodStart);
 
         emitStoreResumed(mv, false); // no, we have not been resumed

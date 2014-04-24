@@ -15,16 +15,17 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import org.objectweb.asm.Opcodes;
 
 /**
  *
@@ -44,6 +45,18 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
         readFiles(classLoader, SUSPENDABLE_SUPERS_FILE, suspendableSupers, suspendableSuperInterfaces);
     }
 
+    SimpleSuspendableClassifier(String suspendablesFileName) {
+        readSuspendablesFile(suspendablesFileName, suspendables, suspendables);
+    }
+
+    Set<String> getSuspendables() {
+        return suspendables;
+    }
+
+    Set<String> getSuspendableClasses() {
+        return suspendableClasses;
+    }
+
     private void readFiles(ClassLoader classLoader, String fileName, Set<String> set, Set<String> classSet) {
 //        System.out.println("ZZZZ classLoader: " + classLoader);
 //        if (classLoader instanceof java.net.URLClassLoader)
@@ -59,7 +72,15 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
         }
     }
 
-    private void parse(URL file, Set<String> set, Set<String> classSet) {
+    private void readSuspendablesFile(String fileName, Set<String> set, Set<String> classSet) {
+        try {
+            parse(new File(fileName).toURI().toURL(), set, classSet);
+        } catch (MalformedURLException ex) {
+            throw new AssertionError(ex);
+        }
+    }
+
+    private static void parse(URL file, Set<String> set, Set<String> classSet) {
         try (InputStream is = file.openStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF-8")))) {
             String line;
@@ -88,6 +109,10 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
         } catch (IOException e) {
             // silently ignore
         }
+    }
+
+    public boolean isSuspendable(String className, String methodName) {
+        return (suspendables.contains(className + '.' + methodName) || suspendableClasses.contains(className));
     }
 
     @Override

@@ -235,7 +235,6 @@ public class InstrumentClass extends ClassVisitor {
                         if (db.isDebug())
                             db.log(LogLevel.INFO, "About to instrument method %s#%s%s", className, mn.name, mn.desc);
 
-                        outMV.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
                         if (im.collectCodeBlocks()) {
                             if (mn.name.charAt(0) == '<')
                                 throw new UnableToInstrumentException("special method", className, mn.name, mn.desc);

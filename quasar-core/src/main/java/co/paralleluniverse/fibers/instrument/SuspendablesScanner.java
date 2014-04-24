@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import org.apache.tools.ant.BuildException;
@@ -47,29 +48,39 @@ public class SuspendablesScanner extends Task {
     private ClassLoader cl;
     private final ArrayList<FileSet> filesets = new ArrayList<FileSet>();
     private final Set<String> results = new HashSet<String>();
-    private String outputFile;
+    private String supersFile;
     private boolean append;
+    private SimpleSuspendableClassifier ssc;
+    private String suspendablesFile;
 
     public void addFileSet(FileSet fs) {
         filesets.add(fs);
     }
 
     public void setOutputFile(String outputFile) {
-        this.outputFile = outputFile;
+        this.supersFile = outputFile;
     }
 
     public void setAppend(boolean value) {
         this.append = value;
     }
-    
+
+    public void setSuspendablesFile(String suspendablesFile) {
+        this.suspendablesFile = suspendablesFile;
+    }
+
     public void run(String[] prefixes) throws Exception {
         for (String prefix : prefixes)
             collect(prefix);
-        outputResults(outputFile);
+        outputResults(supersFile);
     }
 
     @Override
     public void execute() throws BuildException {
+        if (suspendablesFile != null) {
+            ssc = new SimpleSuspendableClassifier(suspendablesFile);
+            System.out.println("susfile: " + suspendablesFile);
+        }
         if (USE_REFLECTION)
             log("Using reflection", Project.MSG_INFO);
         try {
@@ -79,6 +90,7 @@ public class SuspendablesScanner extends Task {
             System.out.println("URLs: " + urls);
             cl = new URLClassLoader(urls.toArray(new URL[0]), getClass().getClassLoader());
 
+            // scan classes in filesets
             for (FileSet fs : filesets) {
                 final DirectoryScanner ds = fs.getDirectoryScanner(getProject());
                 final String[] includedFiles = ds.getIncludedFiles();
@@ -93,7 +105,21 @@ public class SuspendablesScanner extends Task {
                     }
                 }
             }
-            outputResults(outputFile);
+
+            // scan classes in suspendables file
+            if (ssc != null) {
+                Set<String> classes = new HashSet<>();
+                for (String susCls : ssc.getSuspendableClasses())
+                    classes.add(susCls);
+                for (String susMethod : ssc.getSuspendables())
+                    classes.add(susMethod.substring(0, susMethod.indexOf('.')));
+                for (String className : classes) {
+                    System.out.println("scanning suspendable class:" + className);
+                    scanClass(getClassNode(className, true, cl));
+                }
+            }
+
+            outputResults(supersFile);
         } catch (Exception e) {
             log(e, Project.MSG_ERR);
             throw new BuildException(e);
@@ -159,11 +185,16 @@ public class SuspendablesScanner extends Task {
             return System.out;
     }
 
+    boolean isSuspendable(ClassNode cls, MethodNode m) {
+        return hasAnnotation(Suspendable.class, m)
+                || (ssc != null && ssc.isSuspendable(cls.name, m.name));
+    }
+
     /////////// ASM
     private void scanClass(ClassNode cls) throws Exception {
         List<MethodNode> methods = cls.methods;
         for (MethodNode m : methods) {
-            if (hasAnnotation(Suspendable.class, m)) {
+            if (isSuspendable(cls, m)) {
                 log("Found annotated method: " + cls.name + "." + m.name + m.signature, Project.MSG_VERBOSE);
                 findSuperDeclarations(cls, cls, m);
             }
@@ -178,7 +209,7 @@ public class SuspendablesScanner extends Task {
         MethodNode m;
         if ((m = getMethod(method, cls)) != null) {
             foundMethod = true;
-            if (!ASMUtil.equals(cls, declaringClass) && !hasAnnotation(Suspendable.class, m)) {
+            if (!ASMUtil.equals(cls, declaringClass) && !isSuspendable(cls, m)) {
                 log("Found parent of annotated method: " + declaringClass.name + "." + method.name + method.signature + " in " + cls.name, Project.MSG_VERBOSE);
                 results.add(cls.name.replace('/', '.') + '.' + method.name);
             }
