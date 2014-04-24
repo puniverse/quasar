@@ -195,8 +195,6 @@ class InstrumentMethod {
     public void accept(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
 
-        mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
-
         final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS & hasSuspendableSuperCalls;
         mv.visitCode();
 

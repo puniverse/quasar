@@ -147,63 +147,63 @@ public class InstrumentClass extends ClassVisitor {
 //                methods.add(mn);
 //                return mn; // this causes the mn to be initialized
 //            } else { // look for @Suspendable or @DontInstrument annotation
-                return new MethodVisitor(Opcodes.ASM4, mn) {
-                    private boolean susp = suspendable;
-                    private boolean commited = false;
+            return new MethodVisitor(Opcodes.ASM4, mn) {
+                private boolean susp = suspendable;
+                private boolean commited = false;
 
-                    @Override
-                    public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
-                        if (adesc.equals(ANNOTATION_DESC))
-                            susp = true;
-                        else if (adesc.equals(DONT_INSTRUMENT_ANNOTATION_DESC))
-                            susp = false;
-                        
-                        return super.visitAnnotation(adesc, visible);
+                @Override
+                public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
+                    if (adesc.equals(ANNOTATION_DESC))
+                        susp = true;
+                    else if (adesc.equals(DONT_INSTRUMENT_ANNOTATION_DESC))
+                        susp = false;
+
+                    return super.visitAnnotation(adesc, visible);
+                }
+
+                @Override
+                public void visitCode() {
+                    commit();
+                    super.visitCode();
+                }
+
+                @Override
+                public void visitEnd() {
+                    if (exception != null)
+                        return;
+
+                    commit();
+                    try {
+                        super.visitEnd();
+                    } catch (RuntimeException e) {
+                        exception = e;
                     }
+                }
 
-                    @Override
-                    public void visitCode() {
-                        commit();
-                        super.visitCode();
+                private void commit() {
+                    if (commited)
+                        return;
+                    commited = true;
+
+                    if (db.isDebug())
+                        db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, setSuspendable);
+                    classEntry.set(name, desc, susp ? SuspendableType.SUSPENDABLE : SuspendableType.NON_SUSPENDABLE);
+
+                    if (susp)
+                        methods.add(mn);
+                    else {
+                        MethodVisitor _mv = makeOutMV(mn);
+                        _mv = new JSRInlinerAdapter(_mv, access, name, desc, signature, exceptions);
+                        mn.accept(new MethodVisitor(Opcodes.ASM4, _mv) {
+                            @Override
+                            public void visitEnd() {
+                                // don't call visitEnd on MV
+                            }
+                        }); // write method as-is
+                        this.mv = _mv;
                     }
-
-                    @Override
-                    public void visitEnd() {
-                        if (exception != null)
-                            return;
-
-                        commit();
-                        try {
-                            super.visitEnd();
-                        } catch (RuntimeException e) {
-                            exception = e;
-                        }
-                    }
-
-                    private void commit() {
-                        if (commited)
-                            return;
-                        commited = true;
-                        
-                        if (db.isDebug())
-                            db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, setSuspendable);
-                        classEntry.set(name, desc, susp ? SuspendableType.SUSPENDABLE : SuspendableType.NON_SUSPENDABLE);
-
-                        if (susp)
-                            methods.add(mn);
-                        else {
-                            MethodVisitor _mv = makeOutMV(mn);
-                            _mv = new JSRInlinerAdapter(_mv, access, name, desc, signature, exceptions);
-                            mn.accept(new MethodVisitor(Opcodes.ASM4, _mv) {
-                                @Override
-                                public void visitEnd() {
-                                    // don't call visitEnd on MV
-                                }
-                            }); // write method as-is
-                            this.mv = _mv;
-                        }
-                    }
-                };
+                }
+            };
 //            }
         }
         return super.visitMethod(access, name, desc, signature, exceptions);
@@ -235,12 +235,16 @@ public class InstrumentClass extends ClassVisitor {
                         if (db.isDebug())
                             db.log(LogLevel.INFO, "About to instrument method %s#%s%s", className, mn.name, mn.desc);
 
+                        outMV.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
                         if (im.collectCodeBlocks()) {
                             if (mn.name.charAt(0) == '<')
                                 throw new UnableToInstrumentException("special method", className, mn.name, mn.desc);
                             im.accept(outMV, hasAnnotation(mn));
-                        } else
+                        } else {
+                            db.log(LogLevel.INFO, "Nothing to instrument in method %s#%s%s", className, mn.name, mn.desc);
                             mn.accept(outMV);
+                        }
+
                     } catch (AnalyzerException ex) {
                         ex.printStackTrace();
                         throw new InternalError(ex.getMessage());
