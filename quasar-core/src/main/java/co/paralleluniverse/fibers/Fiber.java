@@ -1536,6 +1536,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                         }
                     }
                     stackTrace.append(" **");
+                    // The next probelm happends when some function is in the STE but not in the context
+                    // consider fix the skipSTE to fix it
+                    if (!context[k].getName().equals(ste.getClassName()))
+                        stackTrace.append("oops. probelm with stacktrace can't be trusted");
                     notInstrumented = true;
                 }
             } else if (ste.getClassName().equals(Fiber.class.getName()) && ste.getMethodName().equals("run1")) {
