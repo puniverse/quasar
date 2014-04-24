@@ -1550,14 +1550,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private static boolean skipSTE(StackTraceElement ste) {
-        switch (ste.getClassName()) {
-            case "sun.reflect.NativeMethodAccessorImpl":
-            case "sun.reflect.DelegatingMethodAccessorImpl":
-            case "java.lang.reflect.Method":
-                return true;
-            default:
-                return false;
-        }
+        return (ste.getClassName().startsWith("sun.reflect")
+                || ste.getClassName().equals("java.lang.reflect.Method"));
     }
 
     private static boolean isNonSuspendable(Class clazz, String methodName) {
