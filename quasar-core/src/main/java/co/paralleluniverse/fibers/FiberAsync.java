@@ -126,7 +126,6 @@ public abstract class FiberAsync<V, E extends Throwable> {
             }
         })); // make sure we actually park and run PostParkActions
 
-
         if (Fiber.interrupted())
             throw new InterruptedException();
 
@@ -138,7 +137,7 @@ public abstract class FiberAsync<V, E extends Throwable> {
 //        }
         return getResult();
     }
-    
+
     /**
      * Runs the asynchronous operation, blocks until it completes (but only up to the given timeout duration) and returns its result.
      * Throws an exception if the operation has failed.
@@ -157,10 +156,10 @@ public abstract class FiberAsync<V, E extends Throwable> {
     public V run(final long timeout, final TimeUnit unit) throws E, SuspendExecution, InterruptedException, TimeoutException {
         if (Fiber.currentFiber() == null)
             runSync(timeout, unit);
-        
+
         if (registrationComplete)
             throw new IllegalStateException("This FiberAsync instance has already been used");
-        
+
         if (unit == null)
             return run();
         if (timeout <= 0)
@@ -224,8 +223,8 @@ public abstract class FiberAsync<V, E extends Throwable> {
             throw (E) e.getCause();
         }
     }
-    
-    private V runSync() throws InterruptedException, E{
+
+    private V runSync() throws InterruptedException, E {
         try {
             return requestSync();
         } catch (ExecutionException e) {
@@ -234,7 +233,7 @@ public abstract class FiberAsync<V, E extends Throwable> {
             throw (E) e.getCause();
         }
     }
-    
+
     /**
      * Spins until {@code requestAsync} returns. Can be called from overrides of {@code run}.
      */
@@ -244,7 +243,7 @@ public abstract class FiberAsync<V, E extends Throwable> {
              ; // spin
         }
     }
-        
+
     /**
      * A user of this class must override this method to start the asynchronous operation and register the callback.
      * This method may return an *attachment object* that can be retrieved later by calling {@link #getAttachment()}.
@@ -265,8 +264,8 @@ public abstract class FiberAsync<V, E extends Throwable> {
     protected V requestSync() throws E, InterruptedException, ExecutionException {
         throw new IllegalThreadStateException("Method called not from within a fiber");
     }
-    
-     /**
+
+    /**
      * Called if {@link #run(long, TimeUnit)} is not being executed in a fiber. Should perform the operation synchronously and return its result.
      * The default implementation of this method throws an `IllegalThreadStateException`.
      *
@@ -279,7 +278,7 @@ public abstract class FiberAsync<V, E extends Throwable> {
     protected V requestSync(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException, E {
         throw new IllegalThreadStateException("Method called not from within a fiber");
     }
-    
+
     /**
      * This method must be called by the callback upon successful completion of the asynchronous operation.
      *
