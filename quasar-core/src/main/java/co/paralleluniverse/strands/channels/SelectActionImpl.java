@@ -13,21 +13,29 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.fibers.SuspendExecution;
+
 public final class SelectActionImpl<Message> extends SelectAction<Message> {
     private volatile Selector selector;
     private final boolean isData;
+    private final SelectListener<Message> listener;
     Object token;
 
-    SelectActionImpl(Selector selector, int index, Port<Message> port, Message message) {
+    SelectActionImpl(Selector selector, int index, Port<Message> port, Message message, SelectListener listener) {
         super((Selectable<Message>) port);
         this.selector = selector;
         this.index = index;
         this.item = message;
         this.isData = message != null;
+        this.listener = listener;
     }
 
-    SelectActionImpl(Port<Message> port, Message message) {
-        this(null, -1, port, message);
+    SelectActionImpl(Port<Message> port, Message message, SelectSendListener<Message> listener) {
+        this(null, -1, port, message, listener);
+    }
+
+    SelectActionImpl(Port<Message> port, SelectReceiveListener<Message> listener) {
+        this(null, -1, port, null, listener);
     }
 
     Selector selector() {
@@ -77,6 +85,15 @@ public final class SelectActionImpl<Message> extends SelectAction<Message> {
     public void won() {
         if (selector != null)
             selector.setWinner(this);
+    }
+
+    void fire() throws SuspendExecution {
+        if (listener == null)
+            return;
+        if(isData)
+            ((SelectSendListener<Message>)listener).onSend();
+        else
+            ((SelectReceiveListener<Message>)listener).onReceive(item);
     }
 
     @Override

@@ -150,7 +150,7 @@ public class Selector<Message> implements Synchronization {
      * Performs exactly one channel operation of a given set, blocking until any of the actions completes, but no longer than the given timeout.
      * Same as calling {@link #select(long, java.util.concurrent.TimeUnit, co.paralleluniverse.strands.channels.SelectAction[]) select(false, timeout, unit, actions)}.
      *
-     * @param timeout  the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @param actions a list of actions, one of which will be performed.
      * @return the action that has completed successfully, or {@code null} if the timeout expired before an operation could complete.
      * @throws InterruptedException
@@ -189,7 +189,7 @@ public class Selector<Message> implements Synchronization {
      * Performs exactly one channel operation of a given set, blocking until any of the actions completes, but no longer than the given timeout.
      * Same as calling {@link #select(boolean, long, java.util.concurrent.TimeUnit, java.util.List) select(false, timeout, unit, actions)}.
      *
-     * @param timeout  the method will not block for longer than the amount remaining in the {@link Timeout}
+     * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @param actions a list of actions, one of which will be performed.
      * @return the action that has completed successfully, or {@code null} if the timeout expired before an operation could complete.
      * @throws InterruptedException
@@ -207,42 +207,42 @@ public class Selector<Message> implements Synchronization {
      * @param actions  a list of actions, one of which will be performed.
      * @return the action that has completed successfully
      */
-    public static <Message> SelectAction<Message> trySelect(boolean priority, SelectAction<Message>... actions) {
+    public static <Message> SelectAction<Message> trySelect(boolean priority, SelectAction<Message>... actions) throws SuspendExecution {
         return new Selector<Message>(priority, Arrays.asList(actions)).trySelect();
     }
 
     /**
      * Attempts to performs exactly one channel operation of a given set if one can be completed without blocking.
-     * This method never blocks.
+     * This method only blocks if the listeners associated with the select actions block.
      *
      * @param priority If {@code true} and more than one operation can complete at the same time, the one that appears in the given list first will be the one performed.
      *                 If {@code false} the order of the operations is ignored.
      * @param actions  a list of actions, one of which will be performed.
      * @return the action that has completed successfully
      */
-    public static <Message> SelectAction<Message> trySelect(boolean priority, List<? extends SelectAction<Message>> actions) {
+    public static <Message> SelectAction<Message> trySelect(boolean priority, List<? extends SelectAction<Message>> actions) throws SuspendExecution {
         return new Selector<Message>(priority, actions instanceof ArrayList ? actions : new ArrayList<>(actions)).trySelect();
     }
 
     /**
      * Attempts to performs exactly one channel operation of a given set if one can be completed without blocking.
-     * This method never blocks. Same as calling {@link #trySelect(boolean, co.paralleluniverse.strands.channels.SelectAction[]) trySelect(false, actions)}.
+     * This method only blocks if the listeners associated with the select actions block. Same as calling {@link #trySelect(boolean, co.paralleluniverse.strands.channels.SelectAction[]) trySelect(false, actions)}.
      *
      * @param actions a list of actions, one of which will be performed.
      * @return the action that has completed successfully
      */
-    public static <Message> SelectAction<Message> trySelect(SelectAction<Message>... actions) {
+    public static <Message> SelectAction<Message> trySelect(SelectAction<Message>... actions) throws SuspendExecution {
         return trySelect(false, actions);
     }
 
     /**
      * Attempts to performs exactly one channel operation of a given set if one can be completed without blocking.
-     * This method never blocks. Same as calling {@link #trySelect(boolean, java.util.List) trySelect(false, actions)}.
+     * This method only blocks if the listeners associated with the select actions block.. Same as calling {@link #trySelect(boolean, java.util.List) trySelect(false, actions)}.
      *
      * @param actions a list of actions, one of which will be performed.
      * @return the action that has completed successfully
      */
-    public static <Message> SelectAction<Message> trySelect(List<? extends SelectAction<Message>> actions) {
+    public static <Message> SelectAction<Message> trySelect(List<? extends SelectAction<Message>> actions) throws SuspendExecution {
         return trySelect(false, actions);
     }
 
@@ -256,7 +256,20 @@ public class Selector<Message> implements Synchronization {
      * @return a <i>send</i> {@link SelectAction} that can be selected by the selector.
      */
     public static <Message> SelectAction<Message> send(SendPort<? super Message> ch, Message message) {
-        return new SelectActionImpl<Message>((SendPort) ch, message);
+        return send(ch, message, null);
+    }
+
+    /**
+     * Creates a {@link SelectAction} for a send operation
+     *
+     * @param <Message>
+     * @param ch        The channel to which the operation tries to send the message
+     * @param message   the message to send.
+     * @param listener  a {@link SelectSendListener} which will be triggered if this operation succeeds.
+     * @return a <i>send</i> {@link SelectAction} that can be selected by the selector.
+     */
+    public static <Message> SelectAction<Message> send(SendPort<? super Message> ch, Message message, SelectSendListener<Message> listener) {
+        return new SelectActionImpl<Message>((SendPort) ch, message, listener);
     }
 
     /**
@@ -267,7 +280,19 @@ public class Selector<Message> implements Synchronization {
      * @return a <i>receive</i> {@link SelectAction} that can be selected by the selector.
      */
     public static <Message> SelectAction<Message> receive(ReceivePort<? extends Message> ch) {
-        return new SelectActionImpl(ch, null);
+        return receive(ch, null);
+    }
+
+    /**
+     * Creates a {@link SelectAction} for a receive operation
+     *
+     * @param <Message>
+     * @param ch        the channel from which the operation tries to receive
+     * @param listener  a {@link SelectReceiveListener} which will be triggered if this operation succeeds.
+     * @return a <i>receive</i> {@link SelectAction} that can be selected by the selector.
+     */
+    public static <Message> SelectAction<Message> receive(ReceivePort<? extends Message> ch, SelectReceiveListener<Message> listener) {
+        return new SelectActionImpl(ch, listener);
     }
     ///////////////////
     private static final AtomicLong selectorId = new AtomicLong(); // used to break symmetry to prevent deadlock in transfer channel
@@ -288,10 +313,10 @@ public class Selector<Message> implements Synchronization {
     Selector(boolean priority, List<? extends SelectAction<Message>> actions) {
         this.id = selectorId.incrementAndGet();
         this.waiter = Strand.currentStrand();
-        this.actions = (List<? extends SelectActionImpl<Message>>)actions;
+        this.actions = (List<? extends SelectActionImpl<Message>>) actions;
         this.priority = priority;
         for (int i = 0; i < actions.size(); i++) {
-            SelectActionImpl<? extends Message> sa = (SelectActionImpl<? extends Message>)actions.get(i);
+            SelectActionImpl<? extends Message> sa = (SelectActionImpl<? extends Message>) actions.get(i);
             sa.setSelector(this);
             sa.setIndex(i);
             record("<init>", "%s added %s", this, sa);
@@ -397,21 +422,26 @@ public class Selector<Message> implements Synchronization {
         } finally {
             unregister(token);
         }
+        if (res != null)
+            ((SelectActionImpl<Message>) res).fire();
         return res;
     }
 
-    public SelectAction<Message> trySelect() {
+    public SelectAction<Message> trySelect() throws SuspendExecution {
         selectInit();
         for (int i = 0; i < actions.size(); i++) {
             SelectActionImpl sa = actions.get(i);
 
             if (sa.isData()) {
-                if (((SendPort) sa.port).trySend(sa.message()))
+                if (((SendPort) sa.port).trySend(sa.message())) {
+                    sa.fire();
                     return sa;
+                }
             } else {
                 Object m = ((ReceivePort) sa.port).tryReceive();
                 if (m != null || ((ReceivePort) sa.port).isClosed()) {
                     sa.setItem(m);
+                    sa.fire();
                     return sa;
                 }
             }
