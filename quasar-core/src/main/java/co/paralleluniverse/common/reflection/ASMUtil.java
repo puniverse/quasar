@@ -127,7 +127,9 @@ public final class ASMUtil {
     }
 
     public static boolean equals(MethodNode m1, MethodNode m2) {
-        return Objects.equals(m1.name, m2.name) && Objects.equals(m1.signature, m2.signature);
+//        if (Objects.equals(m1.name, m2.name) && m1.signature != null && Objects.equals(m1.signature, m2.signature) != Objects.equals(m1.desc, m2.desc))
+//            System.err.println("XXXXX WARN desc and signtures not equal " + m1.name + ":" + m1.desc + ":" + m1.signature + " vs " + m2.desc + ":" + m2.signature);
+        return Objects.equals(m1.name, m2.name) && Objects.equals(m1.desc, m2.desc);
     }
 
     public static boolean equals(ClassNode c1, ClassNode c2) {
