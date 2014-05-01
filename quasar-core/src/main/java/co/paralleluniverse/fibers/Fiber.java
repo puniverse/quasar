@@ -1502,7 +1502,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return current;
     }
 
-    static boolean checkInstrumentation() {
+    public static boolean checkInstrumentation() {
         assert verifyInstrumentation;
 
         StackTraceElement[] stes = Thread.currentThread().getStackTrace();
