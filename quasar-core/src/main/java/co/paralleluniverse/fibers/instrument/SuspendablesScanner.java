@@ -75,19 +75,36 @@ public class SuspendablesScanner extends Task {
         outputResults(supersFile);
     }
 
+    public void nonAntExecute(String[] paths) throws Exception  {
+        readSuspandables();
+        if (USE_REFLECTION)
+            log("Using reflection", Project.MSG_INFO);
+        List<URL> urls = new ArrayList<>();
+        for (String path : paths)
+            urls.add(new File(path).toURI().toURL());
+        log("URLs: " + urls, Project.MSG_VERBOSE);
+
+        cl = new URLClassLoader(urls.toArray(new URL[0]), getClass().getClassLoader());
+        for (String path : paths) {
+            for (File file : recursiveWalk(path)) {
+                if (file.getName().endsWith(CLASSFILE_SUFFIX) && file.isFile())
+                    scanClass(file);
+            }
+        }        
+        scanSuspendablesFile();
+        outputResults(supersFile);
+    }
+
     @Override
     public void execute() throws BuildException {
-        if (suspendablesFile != null) {
-            ssc = new SimpleSuspendableClassifier(suspendablesFile);
-            System.out.println("susfile: " + suspendablesFile);
-        }
+        readSuspandables();
         if (USE_REFLECTION)
             log("Using reflection", Project.MSG_INFO);
         try {
             List<URL> urls = new ArrayList<>();
             for (FileSet fs : filesets)
                 urls.add(fs.getDir().toURI().toURL());
-            System.out.println("URLs: " + urls);
+            log("URLs: " + urls, Project.MSG_VERBOSE);
             cl = new URLClassLoader(urls.toArray(new URL[0]), getClass().getClassLoader());
 
             // scan classes in filesets
@@ -106,23 +123,35 @@ public class SuspendablesScanner extends Task {
                 }
             }
 
-            // scan classes in suspendables file
-            if (ssc != null) {
-                Set<String> classes = new HashSet<>();
-                for (String susCls : ssc.getSuspendableClasses())
-                    classes.add(susCls);
-                for (String susMethod : ssc.getSuspendables())
-                    classes.add(susMethod.substring(0, susMethod.indexOf('.')));
-                for (String className : classes) {
-                    System.out.println("scanning suspendable class:" + className);
-                    scanClass(getClassNode(className, true, cl));
-                }
-            }
-
+            scanSuspendablesFile();
             outputResults(supersFile);
         } catch (Exception e) {
             log(e, Project.MSG_ERR);
             throw new BuildException(e);
+        }
+    }
+
+    private void scanSuspendablesFile() throws Exception {
+        // scan classes in suspendables file
+        if (ssc != null) {
+            Set<String> classes = new HashSet<>();
+            for (String susCls : ssc.getSuspendableClasses())
+                classes.add(susCls);
+            for (String susMethod : ssc.getSuspendables())
+                classes.add(susMethod.substring(0, susMethod.indexOf('.')));
+            for (String className : classes) {
+                log("scanning suspendable class:" + className, Project.MSG_VERBOSE);
+                scanClass(getClassNode(className, true, cl));
+            }
+        }
+    }
+
+    public void readSuspandables() {
+        if (suspendablesFile != null) {
+            if (!new File(suspendablesFile).isFile())
+                log("suspendable file " + suspendablesFile + " not found", Project.MSG_ERR);
+            ssc = new SimpleSuspendableClassifier(suspendablesFile);
+            log("suspendablesFile: " + suspendablesFile, Project.MSG_INFO);
         }
     }
 
@@ -191,7 +220,7 @@ public class SuspendablesScanner extends Task {
     }
 
     /////////// ASM
-    private void scanClass(ClassNode cls) throws Exception {
+    public void scanClass(ClassNode cls) throws Exception {
         List<MethodNode> methods = cls.methods;
         for (MethodNode m : methods) {
             if (isSuspendable(cls, m)) {
@@ -266,5 +295,18 @@ public class SuspendablesScanner extends Task {
         findSuperDeclarations(cls.getSuperclass(), method);
         for (Class iface : cls.getInterfaces())
             findSuperDeclarations(iface, method);
+    }
+
+    private List<File> recursiveWalk(String path) {
+        File[] list = new File(path).listFiles();
+        List<File> result = new ArrayList<>();
+        if (list == null)
+            return result;
+        for (File f : list)
+            if (f.isDirectory())
+                result.addAll(recursiveWalk(f.getAbsolutePath()));
+            else
+                result.add(f);
+        return result;
     }
 }
