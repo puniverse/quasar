@@ -14,6 +14,7 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.reflection.ReflectionUtil;
+import com.google.common.reflect.TypeToken;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
@@ -25,9 +26,26 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author pron
  */
 public class ActorSpec<T extends Actor<Message, V>, Message, V> implements ActorBuilder<Message, V> {
+    /**
+     * Creates an {@code ActorSpec}
+     *
+     * @param type   the actor's type
+     * @param params the actor's constructor parameters.
+     */
     public static <Message, V, T extends Actor<Message, V>> ActorSpec<T, Message, V> of(Class<T> type, Object... params) {
         return new ActorSpec<>(type, params);
     }
+
+    /**
+     * Creates an {@code ActorSpec}
+     *
+     * @param type   the actor's type
+     * @param params the actor's constructor parameters.
+     */
+    public static <Message, V, T extends Actor<Message, V>> ActorSpec<T, Message, V> of(TypeToken<T> type, Object... params) {
+        return new ActorSpec<T, Message, V>((Class<T>) type.getRawType(), params);
+    }
+
     private final AtomicReference<Class<T>> classRef;
     private final String className;
     private final Object[] params;

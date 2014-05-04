@@ -159,6 +159,7 @@ class ActorModule extends URLClassLoader {
             try {
                 String resourceName = classToResource(name);
                 URL parentUrl = parent.getResource(resourceName);
+                LOG.debug("findClass {} in module {} - parent URL: {}", name, this, parentUrl);
                 if (parentUrl != null) {
                     URL myUrl = super.getResource(resourceName);
                     if (myUrl == null || equalContent(parentUrl, myUrl)) {
