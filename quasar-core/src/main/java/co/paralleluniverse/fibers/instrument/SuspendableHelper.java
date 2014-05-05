@@ -66,6 +66,7 @@ public final class SuspendableHelper {
     public static boolean isWaiver(String className, String methodName) {
         if (className.startsWith("java.lang.reflect")
                 || className.startsWith("sun.reflect")
+                || className.startsWith("com.sun.proxy")
                 || (className.equals("co.paralleluniverse.strands.SuspendableUtils$VoidSuspendableCallable") && methodName.equals("run")))
             return true;
         return waivers.contains(new Pair<String, String>(className, methodName));
