@@ -75,7 +75,7 @@ public class SuspendablesScanner extends Task {
         outputResults(supersFile);
     }
 
-    public void nonAntExecute(String[] paths) throws Exception  {
+    public void nonAntExecute(String[] paths) throws Exception {
         readSuspandables();
         if (USE_REFLECTION)
             log("Using reflection", Project.MSG_INFO);
@@ -90,7 +90,7 @@ public class SuspendablesScanner extends Task {
                 if (file.getName().endsWith(CLASSFILE_SUFFIX) && file.isFile())
                     scanClass(file);
             }
-        }        
+        }
         scanSuspendablesFile();
         outputResults(supersFile);
     }
@@ -109,17 +109,21 @@ public class SuspendablesScanner extends Task {
 
             // scan classes in filesets
             for (FileSet fs : filesets) {
-                final DirectoryScanner ds = fs.getDirectoryScanner(getProject());
-                final String[] includedFiles = ds.getIncludedFiles();
+                try {
+                    final DirectoryScanner ds = fs.getDirectoryScanner(getProject());
+                    final String[] includedFiles = ds.getIncludedFiles();
 
-                for (String filename : includedFiles) {
-                    if (filename.endsWith(CLASSFILE_SUFFIX)) {
-                        File file = new File(fs.getDir(), filename);
-                        if (file.isFile())
-                            scanClass(file);
-                        else
-                            log("File not found: " + filename);
+                    for (String filename : includedFiles) {
+                        if (filename.endsWith(CLASSFILE_SUFFIX)) {
+                            File file = new File(fs.getDir(), filename);
+                            if (file.isFile())
+                                scanClass(file);
+                            else
+                                log("File not found: " + filename);
+                        }
                     }
+                } catch (BuildException ex) {
+                    log(ex.getMessage(),ex, Project.MSG_WARN);
                 }
             }
 
