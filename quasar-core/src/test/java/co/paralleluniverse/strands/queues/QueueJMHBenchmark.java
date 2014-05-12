@@ -33,7 +33,7 @@ import org.openjdk.jmh.logic.Control;
 public class QueueJMHBenchmark {
     /*
      * See: 
-     * http://psy-lob-saw.blogspot.co.il/2013-2014/04/writing-java-micro-benchmarks-with-jmh.html
+     * http://psy-lob-saw.blogspot.co.il/2013/04/writing-java-micro-benchmarks-with-jmh.html
      * http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/
      */
     private static final String BENCHMARK = QueueJMHBenchmark.class.getName() + ".*";
