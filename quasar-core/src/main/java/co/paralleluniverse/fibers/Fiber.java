@@ -1328,7 +1328,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                     final Thread t = runningThread;
                     if (t != null)
                         threadStack = t.getStackTrace();
-                    if (state == State.RUNNING && run == r && runningThread == t)
+                    if (t != null && state == State.RUNNING && run == r && runningThread == t)
                         break;
                 } else {
                     threadStack = execStackTrace(1, TimeUnit.MILLISECONDS);
