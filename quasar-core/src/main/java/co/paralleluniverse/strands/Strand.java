@@ -834,6 +834,8 @@ public abstract class Strand {
      * @param out   the {@link java.io.PrintStream} into which the stack trace will be printed.
      */
     public static void printStackTrace(StackTraceElement[] trace, java.io.PrintStream out) {
+        if (trace == null)
+            out.println("No stack trace");
         for (StackTraceElement traceElement : trace)
             out.println("\tat " + traceElement);
     }
@@ -845,6 +847,8 @@ public abstract class Strand {
      * @param out   the {@link java.io.PrintWriter} into which the stack trace will be printed.
      */
     public static void printStackTrace(StackTraceElement[] trace, java.io.PrintWriter out) {
+        if (trace == null)
+            out.println("No stack trace");
         for (StackTraceElement traceElement : trace)
             out.println("\tat " + traceElement);
     }
