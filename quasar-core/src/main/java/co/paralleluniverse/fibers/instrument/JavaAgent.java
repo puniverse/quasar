@@ -156,6 +156,10 @@ public class JavaAgent {
         instrumentation.addTransformer(new Transformer(instrumentor), true);
     }
 
+    public static void agentmain(String agentArguments, Instrumentation instrumentation) {
+        premain(agentArguments, instrumentation);
+    }
+
     public static boolean isActive() {
         return active;
     }

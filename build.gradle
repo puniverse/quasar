@@ -306,6 +306,7 @@ project (':quasar-core') {
 	            "Implementation-Version"    :   version,
 	            "Implementation-Vendor"     :   vendor,
 	            "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
+                "Agent-Class"               :   "co.paralleluniverse.fibers.instrument.JavaAgent",
 	            "Can-Retransform-Classes"   :   "true",
                     "Can-Redefine-Classes"      :   "true",
                 //  "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',') 
