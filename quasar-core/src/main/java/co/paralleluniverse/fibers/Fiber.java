@@ -142,7 +142,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * @param name      The name of the fiber (may be {@code null})
      * @param scheduler The {@link FiberScheduler} that will schedule the fiber.
      * @param stackSize the initial size of the data stack.
-     * @param target    the {@link SuspendableRunnable} for the fiber. May {@code null} if the {@link #run() run} method is overriden.
+     * @param target    the {@link SuspendableCallable} for the fiber. May {@code null} if the {@link #run() run} method is overriden.
      */
     @SuppressWarnings("LeakingThisInConstructor")
     public Fiber(String name, FiberScheduler scheduler, int stackSize, SuspendableCallable<V> target) {
@@ -185,7 +185,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      *
      * @param name      The name of the fiber (may be {@code null})
      * @param stackSize the initial size of the data stack.
-     * @param target    the {@link SuspendableRunnable} for the fiber. May {@code null} if the {@link #run() run} method is overriden.
+     * @param target    the {@link SuspendableCallable} for the fiber. May {@code null} if the {@link #run() run} method is overriden.
      */
     public Fiber(String name, int stackSize, SuspendableCallable<V> target) {
         this(name, defaultScheduler(), stackSize, target);
@@ -264,7 +264,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      *
      * @param name      The name of the fiber (may be null)
      * @param scheduler The scheduler pool in which the fiber should run.
-     * @param target    the SuspendableRunnable for the Fiber.
+     * @param target    the SuspendableCallable for the Fiber.
      * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */

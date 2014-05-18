@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.MonitorType;
+import co.paralleluniverse.strands.SuspendableCallable;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
@@ -24,7 +25,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public abstract class FiberScheduler {
+public abstract class FiberScheduler implements FiberFactory {
     static final FibersMonitor NOOP_FIBERS_MONITOR = new NoopFibersMonitor();
     private final String name;
     private final FibersMonitor fibersMonitor;
@@ -55,6 +56,11 @@ public abstract class FiberScheduler {
 
     protected FibersMonitor getMonitor() {
         return fibersMonitor;
+    }
+
+    @Override
+    public Fiber newFiber(SuspendableCallable<?> target) {
+        return new Fiber(this, target);
     }
 
     abstract Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit);
