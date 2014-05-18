@@ -106,6 +106,23 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
         return Channels.transform(out);
     }
 
+   /**
+     * Spawns a fiber that transforms values read from this channel and writes values to the {@code out} channel.
+     * <p>
+     * When the transformation terminates. the output channel is automatically closed. If the transformation terminates abnormally
+     * (throws an exception), the output channel is {@link SendPort#close(Throwable) closed with that exception}.
+     *
+     * @param fiberFactory will be used to create the fiber
+     * @param out          the output channel
+     * @param transformer  the transforming operation
+     *
+     * @return A {@link TransformingReceivePort} wrapping the {@code out} channel.
+     */
+    public <U> TransformingReceivePort<U> fiberTransform(FiberFactory fiberFactory, SuspendableAction2<? extends ReceivePort<? super T>, ? extends SendPort<? extends U>> transformer, Channel<U> out) {
+        Channels.fiberTransform(fiberFactory, this, out, transformer);
+        return Channels.transform(out);
+    }
+
     /**
      * Performs the given action on each message received by this channel.
      * This method returns only after all messages have been consumed and the channel has been closed.
