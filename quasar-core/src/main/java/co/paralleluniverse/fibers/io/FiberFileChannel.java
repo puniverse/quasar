@@ -186,8 +186,8 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
      * An invocation of this method behaves in exactly the same way as the
      * invocation
      * <pre>
-     *     ch.{@link #open(Path,Set,ExecutorService,FileAttribute[])
-     *       open}(file, opts, null, new FileAttribute&lt;?&gt;[0]);
+     *     ch.{@link #open(ExecutorService,Path,Set,FileAttribute[])
+     *       open}(null, file, opts, new FileAttribute&lt;?&gt;[0]);
      * </pre>
      * where {@code opts} is a {@code Set} containing the options specified to
      * this method.

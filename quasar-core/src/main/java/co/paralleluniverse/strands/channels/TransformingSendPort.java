@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.strands.SuspendableAction2;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -55,11 +56,11 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
 
     /**
      * Returns a {@link SendPort} that sends messages that are transformed by a given flat-mapping function into this channel.
-     * Unlike {@link #mapSend(SendPort, Function) map}, the mapping function does not returns a single output message for every input message, but
+     * Unlike {@link #map(Function) map}, the mapping function does not returns a single output message for every input message, but
      * a new {@code ReceivePort}. All the returned ports are concatenated and sent to the channel.
      * <p>
-     * To return a single value the mapping function can make use of {@link #singletonReceivePort(Object) singletonReceivePort}. To return a collection,
-     * it can make use of {@link #toReceivePort(Iterable) toReceivePort(Iterable)}. To emit no values, the function can return {@link #emptyReceivePort()}
+     * To return a single value the mapping function can make use of {@link Channels#singletonReceivePort(Object)}. To return a collection,
+     * it can make use of {@link Channels#toReceivePort(Iterable)}. To emit no values, the function can return {@link Channels#emptyReceivePort()}
      * or {@code null}.
      * <p>
      * If multiple producers send messages into the channel, the messages from the {@code ReceivePort}s returned by the mapping function
@@ -81,7 +82,6 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
      * When the transformation terminates. the output channel is automatically closed. If the transformation terminates abnormally 
      * (throws an exception), this channel is {@link SendPort#close(Throwable) closed with that exception}.
      * 
-     * @param scheduler   the fiber scheduler
      * @param in          the input channel
      * @param transformer the transforming operation
      * 

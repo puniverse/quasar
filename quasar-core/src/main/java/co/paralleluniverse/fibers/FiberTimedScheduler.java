@@ -99,10 +99,7 @@ public class FiberTimedScheduler {
         this(scheduler, null);
     }
 
-    /**
-     * @throws RejectedExecutionException {@inheritDoc}
-     * @throws NullPointerException       {@inheritDoc}
-     */
+
     public Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit) {
         if (fiber == null || unit == null)
             throw new NullPointerException();
@@ -340,8 +337,6 @@ public class FiberTimedScheduler {
      * ContinueExistingPeriodicTasksAfterShutdownPolicy} has been set
      * {@code true}, future executions of existing periodic tasks will
      * be cancelled.
-     *
-     * @throws SecurityException {@inheritDoc}
      */
     public void shutdown() {
         assert false;
@@ -368,12 +363,6 @@ public class FiberTimedScheduler {
      * cancels tasks via {@link Thread#interrupt}, so any task that
      * fails to respond to interrupts may never terminate.
      *
-     * @return list of tasks that never commenced execution.
-     *         Each element of this list is a {@link ScheduledFuture},
-     *         including those tasks submitted using {@code execute},
-     *         which are for scheduling purposes used as the basis of a
-     *         zero-delay {@code ScheduledFuture}.
-     * @throws SecurityException {@inheritDoc}
      */
     public void shutdownNow() {
         assert false;

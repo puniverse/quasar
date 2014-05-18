@@ -250,10 +250,7 @@ public abstract class FiberAsync<V, E extends Throwable> {
 
     /**
      * A user of this class must override this method to start the asynchronous operation and register the callback.
-     * This method may return an *attachment object* that can be retrieved later by calling {@link #getAttachment()}.
      * This method may not use any {@link ThreadLocal}s.
-     *
-     * @return An object to be set as this `FiberAsync`'s *attachment*, that can be later retrieved with {@link #getAttachment()}.
      */
     protected abstract void requestAsync();
 

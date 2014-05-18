@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableAction1;
 import co.paralleluniverse.strands.SuspendableAction2;
@@ -70,12 +71,12 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
 
     /**
      * Returns a {@link TransformingReceivePort} that receives messages that are transformed by a given flat-mapping function from this channel.
-     * Unlike {@link #map(ReceivePort, Function) map}, the mapping function does not returns a single output message for every input message, but
+     * Unlike {@link #map(Function) map}, the mapping function does not returns a single output message for every input message, but
      * a new {@code ReceivePort}. All the returned ports are concatenated into a single {@code ReceivePort} that receives the messages received by all
      * the ports in order.
      * <p>
-     * To return a single value the mapping function can make use of {@link #singletonReceivePort(Object) singletonReceivePort}. To return a collection,
-     * it can make use of {@link #toReceivePort(Iterable) toReceivePort(Iterable)}. To emit no values, the function can return {@link #emptyReceivePort()}
+     * To return a single value the mapping function can make use of {@link Channels#singletonReceivePort(Object)}. To return a collection,
+     * it can make use of {@link Channels#toReceivePort(Iterable)}. To emit no values, the function can return {@link Channels#emptyReceivePort()}
      * or {@code null}.
      * <p>
      * The returned {@code TransformingReceivePort} can only be safely used by a single receiver strand.
@@ -95,7 +96,6 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
      * When the transformation terminates. the output channel is automatically closed. If the transformation terminates abnormally
      * (throws an exception), the output channel is {@link SendPort#close(Throwable) closed with that exception}.
      *
-     * @param scheduler   the fiber scheduler
      * @param out         the output channel
      * @param transformer the transforming operation
      *

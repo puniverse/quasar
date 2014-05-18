@@ -24,6 +24,7 @@ import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
 import co.paralleluniverse.fibers.instrument.DontInstrument;
 import co.paralleluniverse.strands.Strand;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -54,7 +55,7 @@ public class FiberForkJoinScheduler extends FiberScheduler {
      * @param monitorType      the {@link MonitorType} type to use for the {@code ForkJoinPool}.
      * @param detailedInfo     whether detailed information about the fibers is collected by the fibers monitor.
      */
-    public FiberForkJoinScheduler(String name, int parallelism, Thread.UncaughtExceptionHandler exceptionHandler, MonitorType monitorType, boolean detailedInfo) {
+    public FiberForkJoinScheduler(String name, int parallelism, UncaughtExceptionHandler exceptionHandler, MonitorType monitorType, boolean detailedInfo) {
         super(name, monitorType, detailedInfo);
         this.fjPool = createForkJoinPool(name, parallelism, exceptionHandler, monitorType);
         this.timer = createTimer(fjPool, getMonitor());
@@ -93,7 +94,7 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         this.timer = timeService != null ? timeService : createTimer(fjPool, getMonitor());
     }
 
-    private ForkJoinPool createForkJoinPool(String name, int parallelism, Thread.UncaughtExceptionHandler exceptionHandler, MonitorType monitorType) {
+    private ForkJoinPool createForkJoinPool(String name, int parallelism, UncaughtExceptionHandler exceptionHandler, MonitorType monitorType) {
         final MonitoredForkJoinPool pool = new MonitoredForkJoinPool(name, parallelism, new ExtendedForkJoinWorkerFactory(name) {
             @Override
             protected ExtendedForkJoinWorkerThread createThread(ForkJoinPool pool) {
