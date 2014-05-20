@@ -125,7 +125,7 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
                     return ep;
                 }
             } else {
-                assert n == tail;
+                // assert n == tail; - tail could have changed by now
                 return null;
             }
         }
