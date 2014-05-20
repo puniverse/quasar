@@ -70,6 +70,7 @@ subprojects {
     }
 
     configurations {
+        compileOnly
         markdownDoclet
     }
     
@@ -84,8 +85,18 @@ subprojects {
         }
         testCompile 'org.openjdk.jmh:jmh-core:0.7.2'
         testCompile 'org.openjdk.jmh:jmh-generator-annprocess:0.7.2'
+        compileOnly 'org.kohsuke.metainf-services:metainf-services:1.5'
         markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
     }
+
+    sourceSets {  
+        main {
+            compileClasspath += configurations.compileOnly  
+        }  
+        test {  
+            compileClasspath += configurations.compileOnly
+        }  
+    } 
 
     test.dependsOn jar
 
@@ -278,7 +289,7 @@ project (':quasar-core') {
         doLast {
             ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner', classpath: "build/classes/main:" + configurations.compile.asPath)
             ant.scanSuspendables(outputFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers", 
-//                suspendablesFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendables",
+                //                suspendablesFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendables",
                 append: 'true') {
                 fileset(dir: sourceSets.main.output.classesDir)
             }
@@ -347,7 +358,7 @@ project (':quasar-galaxy') {
         compile project(':quasar-core')
         compile project(':quasar-actors')
         
-        compile ("co.paralleluniverse:galaxy:1.3")  {
+        compile ("co.paralleluniverse:galaxy:1.4-SNAPSHOT")  {
             exclude group: "com.lmax", module: 'disruptor'
         }
     }

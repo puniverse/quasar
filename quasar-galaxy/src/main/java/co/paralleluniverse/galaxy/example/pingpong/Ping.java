@@ -39,6 +39,7 @@ public class Ping {
         System.setProperty("galaxy.port", Integer.toString(7050 + nodeId));
         System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
 
+        ActorRegistry.hasGlobalRegistry();
         ActorRef<Message> ping = new BasicActor<Message, Void>() {
             @Override
             protected Void doRun() throws InterruptedException, SuspendExecution {

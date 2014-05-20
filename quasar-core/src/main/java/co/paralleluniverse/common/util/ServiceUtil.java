@@ -35,14 +35,16 @@ public final class ServiceUtil {
         for (T service : loader)
             services.add(service);
 
+        final T service;
         if (services.size() == 1)
-            return services.iterator().next();
+            service = services.iterator().next();
         else {
             if (services.isEmpty())
-                return null;
+                service = null;
             else
                 throw new Error("Several implementations of " + type.getName() + " found: " + services);
         }
+        return service;
     }
 
     /**

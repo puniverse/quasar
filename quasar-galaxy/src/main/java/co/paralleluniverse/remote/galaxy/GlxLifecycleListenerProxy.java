@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import org.kohsuke.MetaInfServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +31,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
+@MetaInfServices
 public class GlxLifecycleListenerProxy extends LifecycleListenerProxy {
     private static final Logger LOG = LoggerFactory.getLogger(GlxLifecycleListenerProxy.class);
 //    private static final ReferenceQueue<LifecycleListener> oldlistenerRefQueue = new ReferenceQueue<>();

@@ -27,6 +27,7 @@ import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.strands.concurrent.ReentrantLock;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
+import org.kohsuke.MetaInfServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +35,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
+@MetaInfServices
 public class GlxGlobalRegistry implements GlobalRegistry {
     private static final ConcurrentHashMap<String, ActorRef> rootCache = new ConcurrentHashMap<>();
     private static final Logger LOG = LoggerFactory.getLogger(GlxGlobalRegistry.class);
