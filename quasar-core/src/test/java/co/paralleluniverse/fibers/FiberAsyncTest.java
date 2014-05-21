@@ -191,6 +191,30 @@ public class FiberAsyncTest {
     }
 
     @Test
+    public void testAsyncCallbackExceptionInRequestAsync() throws Exception {
+        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution {
+                try {
+                    new FiberAsync<String, RuntimeException>() {
+
+                        @Override
+                        protected void requestAsync() {
+                            throw new RuntimeException("requestAsync exception!");
+                        }
+                        
+                    }.run();
+                    fail();
+                } catch (Exception e) {
+                    assertThat(e.getMessage(), equalTo("requestAsync exception!"));
+                }
+            }
+        }).start();
+
+        fiber.join();
+    }
+
+    @Test
     public void testTimedAsyncCallbackNoTimeout() throws Exception {
         final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override

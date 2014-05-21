@@ -124,6 +124,8 @@ public abstract class FiberAsync<V, E extends Throwable> {
                     registrationThread = Thread.currentThread();
                     requestAsync();
                     current.record(1, "FiberAsync", "run", "requestAsync on %s done", FiberAsync.this);
+                } catch (Throwable t) {
+                    asyncFailed(t);
                 } finally {
                     registrationComplete = true;
                 }
@@ -181,6 +183,8 @@ public abstract class FiberAsync<V, E extends Throwable> {
                     registrationThread = Thread.currentThread();
                     requestAsync();
                     current.record(1, "FiberAsync", "run", "requestAsync on %s done", FiberAsync.this);
+                } catch (Throwable t) {
+                    asyncFailed(t);
                 } finally {
                     registrationComplete = true;
                 }
