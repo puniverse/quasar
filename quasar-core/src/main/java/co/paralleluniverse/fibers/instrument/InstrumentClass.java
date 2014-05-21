@@ -136,6 +136,13 @@ public class InstrumentClass extends ClassVisitor {
         final boolean suspendable = markedSuspendable == SuspendableType.SUSPENDABLE | setSuspendable == SuspendableType.SUSPENDABLE;
 
         if (checkAccess(access) && !isYieldMethod(className, name)) {
+            if (isSynchronized(access)) {
+                if (!db.isAllowMonitors())
+                    throw new UnableToInstrumentException("synchronization", className, name, desc);
+                else
+                    db.log(LogLevel.WARNING, "Method %s#%s%s is synchronized", className, name, desc);
+            }
+
             if (methods == null)
                 methods = new ArrayList<MethodNode>();
             final MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
@@ -276,6 +283,10 @@ public class InstrumentClass extends ClassVisitor {
 
     private MethodVisitor makeOutMV(MethodNode mn) {
         return super.visitMethod(mn.access, mn.name, mn.desc, mn.signature, toStringArray(mn.exceptions));
+    }
+
+    private static boolean isSynchronized(int access) {
+        return (access & Opcodes.ACC_SYNCHRONIZED) != 0;
     }
 
     private static boolean checkAccess(int access) {
