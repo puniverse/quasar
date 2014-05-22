@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -255,6 +256,16 @@ public final class FiberUtil {
      * Blocks on the input fibers and creates a new list from the results. The result list is the same order as the
      * input list.
      *
+     * @param fibers to combine
+     */
+    public static <V> List<V> get(final Fiber<V>... fibers) throws InterruptedException {
+        return get(Arrays.asList(fibers));
+    }
+
+    /**
+     * Blocks on the input fibers and creates a new list from the results. The result list is the same order as the
+     * input list.
+     *
      * @param time to wait for all requests to complete
      * @param unit the time is in
      * @param fibers to combine
@@ -282,6 +293,18 @@ public final class FiberUtil {
         }
 
         return results;
+    }
+
+    /**
+     * Blocks on the input fibers and creates a new list from the results. The result list is the same order as the
+     * input list.
+     *
+     * @param time to wait for all requests to complete
+     * @param unit the time is in
+     * @param fibers to combine
+     */
+    public static <V> List<V> get(final long time, final TimeUnit unit, final Fiber<V>... fibers) throws InterruptedException, TimeoutException {
+        return get(time, unit, Arrays.asList(fibers));
     }
 
     private static <V, X extends Exception> RuntimeException throwChecked(ExecutionException ex, Class<X> exceptionType) throws X {
