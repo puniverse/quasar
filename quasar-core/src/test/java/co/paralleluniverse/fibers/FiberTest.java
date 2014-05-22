@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
@@ -589,7 +590,67 @@ public class FiberTest {
             }).start());
         }
 
-        final List<String> results = FiberUtil.sequence(fibers).start().get();
+        final List<String> results = FiberUtil.sequence(fibers);
+        assertThat(results, equalTo(expectedResults));
+    }
+
+    @Test
+    public void testUtilsSequenceWithTimeout() throws ExecutionException, InterruptedException, TimeoutException {
+        final List<Fiber<String>> fibers = new ArrayList<>();
+        final List<String> expectedResults = new ArrayList<>();
+        for(int i = 0; i < 20; i++) {
+            final int tmpI = i;
+            expectedResults.add("testUtilsSequence-" + tmpI);
+            fibers.add(new Fiber<>(new SuspendableCallable<String>() {
+                @Override
+                public String run() throws SuspendExecution, InterruptedException {
+                    return "testUtilsSequence-" + tmpI;
+                }
+            }).start());
+        }
+
+        final List<String> results = FiberUtil.sequence(1, TimeUnit.SECONDS, fibers);
+        assertThat(results, equalTo(expectedResults));
+    }
+
+    @Test(expected = TimeoutException.class)
+    public void testUtilsSequenceZeroWait() throws ExecutionException, InterruptedException, TimeoutException {
+        final List<Fiber<String>> fibers = new ArrayList<>();
+        final List<String> expectedResults = new ArrayList<>();
+        for(int i = 0; i < 20; i++) {
+            final int tmpI = i;
+            expectedResults.add("testUtilsSequence-" + tmpI);
+            fibers.add(new Fiber<>(new SuspendableCallable<String>() {
+                @Override
+                public String run() throws SuspendExecution, InterruptedException {
+                    return "testUtilsSequence-" + tmpI;
+                }
+            }).start());
+        }
+
+        final List<String> results = FiberUtil.sequence(0, TimeUnit.SECONDS, fibers);
+        assertThat(results, equalTo(expectedResults));
+    }
+
+    @Test(expected = TimeoutException.class)
+    public void testUtilsSequenceSmallWait() throws ExecutionException, InterruptedException, TimeoutException {
+        final List<Fiber<String>> fibers = new ArrayList<>();
+        final List<String> expectedResults = new ArrayList<>();
+        for(int i = 0; i < 20; i++) {
+            final int tmpI = i;
+            expectedResults.add("testUtilsSequence-" + tmpI);
+            fibers.add(new Fiber<>(new SuspendableCallable<String>() {
+                @Override
+                public String run() throws SuspendExecution, InterruptedException {
+                    // increase the sleep time to simulate data coming in then timeout
+                    Strand.sleep(tmpI * 3, TimeUnit.MILLISECONDS);
+                    return "testUtilsSequence-" + tmpI;
+                }
+            }).start());
+        }
+
+        // must be less than 60 (3 * 20) or else the test could sometimes pass.
+        final List<String> results = FiberUtil.sequence(55, TimeUnit.MILLISECONDS, fibers);
         assertThat(results, equalTo(expectedResults));
     }
 }
