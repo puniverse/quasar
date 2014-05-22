@@ -236,7 +236,7 @@ public final class FiberUtil {
      *
      * @param fibers to combine
      */
-    public static <V> List<V> sequence(final List<Fiber<V>> fibers) throws InterruptedException {
+    public static <V> List<V> get(final List<Fiber<V>> fibers) throws InterruptedException {
         final List<V> results = new ArrayList<>(fibers.size());
 
         //TODO on interrupt, should all input fibers be canceled?
@@ -259,7 +259,7 @@ public final class FiberUtil {
      * @param unit the time is in
      * @param fibers to combine
      */
-    public static <V> List<V> sequence(final long time, final TimeUnit unit, final List<Fiber<V>> fibers) throws InterruptedException, TimeoutException {
+    public static <V> List<V> get(final long time, final TimeUnit unit, final List<Fiber<V>> fibers) throws InterruptedException, TimeoutException {
         Preconditions.checkArgument(time >= 0, "Time must be greater than or equal to zero.");
 
         final List<V> results = new ArrayList<>(fibers.size());
