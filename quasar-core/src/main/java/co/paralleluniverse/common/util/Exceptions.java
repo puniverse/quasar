@@ -48,6 +48,11 @@ public final class Exceptions {
         }
     }
 
+    public static RuntimeException rethrowUnwrap(Throwable t) {
+        Throwable t1 = unwrap(t);
+        throw new RuntimeException(t1);
+    }
+
     public static <X extends Throwable> RuntimeException rethrowUnwrap(Throwable t, Class<X> exceptionClass) throws X {
         Throwable t1 = unwrap(t);
         if (exceptionClass.isInstance(t1))

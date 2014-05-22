@@ -20,8 +20,11 @@ import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -569,5 +572,24 @@ public class FiberTest {
         }
 
         assertThat(t.get().getMessage(), equalTo("foo"));
+    }
+
+    @Test
+    public void testUtilsSequence() throws ExecutionException, InterruptedException {
+        final List<Fiber<String>> fibers = new ArrayList<>();
+        final List<String> expectedResults = new ArrayList<>();
+        for(int i = 0; i < 20; i++) {
+            final int tmpI = i;
+            expectedResults.add("testUtilsSequence-" + tmpI);
+            fibers.add(new Fiber<>(new SuspendableCallable<String>() {
+                @Override
+                public String run() throws SuspendExecution, InterruptedException {
+                    return "testUtilsSequence-" + tmpI;
+                }
+            }).start());
+        }
+
+        final List<String> results = FiberUtil.sequence(fibers).start().get();
+        assertThat(results, equalTo(expectedResults));
     }
 }

@@ -16,6 +16,9 @@ package co.paralleluniverse.fibers;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -221,6 +224,32 @@ public final class FiberUtil {
         } catch (ExecutionException ex) {
             throw throwChecked(ex, exceptionType);
         }
+    }
+
+    /**
+     * Creates a new fiber whose value is a list containing the values of all its input fibers. The result list is
+     * the same order as the input list.
+     *
+     * @param fibers to combine
+     */
+    public static <V> Fiber<List<V>> sequence(final List<Fiber<V>> fibers) {
+        return new Fiber<>(new SuspendableCallable<List<V>>() {
+            @Override
+            public List<V> run() throws SuspendExecution, InterruptedException {
+                final List<V> results = new ArrayList<>(fibers.size());
+
+                //TODO if fiber.cancel(true) is called, should this call cancel on the input fibers?
+                for (final Fiber<V> f : fibers) {
+                    try {
+                        results.add(f.get());
+                    } catch (ExecutionException e) {
+                        throw Exceptions.rethrowUnwrap(e);
+                    }
+                }
+
+                return results;
+            }
+        });
     }
 
     private static <V, X extends Exception> RuntimeException throwChecked(ExecutionException ex, Class<X> exceptionType) throws X {
