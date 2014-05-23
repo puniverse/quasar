@@ -14,14 +14,12 @@
 package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.concurrent.util.MapUtil;
-import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.MessageListener;
 import co.paralleluniverse.galaxy.cluster.NodeChangeListener;
 import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Messenger;
 import co.paralleluniverse.io.serialization.Serialization;
-import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.QueueChannel;
 import co.paralleluniverse.strands.channels.SendPort;
 import java.lang.ref.ReferenceQueue;
