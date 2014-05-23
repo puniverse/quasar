@@ -16,8 +16,16 @@ package co.paralleluniverse.fibers;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Static utility methods for working with fibers.
@@ -221,6 +229,82 @@ public final class FiberUtil {
         } catch (ExecutionException ex) {
             throw throwChecked(ex, exceptionType);
         }
+    }
+
+    /**
+     * Blocks on the input fibers and creates a new list from the results. The result list is the same order as the
+     * input list.
+     *
+     * @param fibers to combine
+     */
+    public static <V> List<V> get(final List<Fiber<V>> fibers) throws InterruptedException {
+        final List<V> results = new ArrayList<>(fibers.size());
+
+        //TODO on interrupt, should all input fibers be canceled?
+        for (final Fiber<V> f : fibers) {
+            try {
+                results.add(f.get());
+            } catch (ExecutionException e) {
+                throw Exceptions.rethrowUnwrap(e);
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Blocks on the input fibers and creates a new list from the results. The result list is the same order as the
+     * input list.
+     *
+     * @param fibers to combine
+     */
+    public static <V> List<V> get(final Fiber<V>... fibers) throws InterruptedException {
+        return get(Arrays.asList(fibers));
+    }
+
+    /**
+     * Blocks on the input fibers and creates a new list from the results. The result list is the same order as the
+     * input list.
+     *
+     * @param time to wait for all requests to complete
+     * @param unit the time is in
+     * @param fibers to combine
+     */
+    public static <V> List<V> get(final long time, final TimeUnit unit, final List<Fiber<V>> fibers) throws InterruptedException, TimeoutException {
+        Preconditions.checkArgument(time >= 0, "Time must be greater than or equal to zero.");
+
+        final List<V> results = new ArrayList<>(fibers.size());
+        long duration = unit.toNanos(time);
+
+        //TODO on interrupt, should all input fibers be canceled?
+        final Stopwatch stopwatch = Stopwatch.createUnstarted();
+        for (final Fiber<V> f : fibers) {
+            if(duration >= 0) {
+                try {
+                    stopwatch.reset().start();
+                    results.add(f.get(duration, TimeUnit.NANOSECONDS));
+                    duration -= stopwatch.stop().elapsed(TimeUnit.NANOSECONDS);
+                } catch (ExecutionException e) {
+                    throw Exceptions.rethrowUnwrap(e);
+                }
+            } else {
+                throw new TimeoutException("timed out sequencing fiber results");
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Blocks on the input fibers and creates a new list from the results. The result list is the same order as the
+     * input list.
+     *
+     * @param time to wait for all requests to complete
+     * @param unit the time is in
+     * @param fibers to combine
+     */
+    public static <V> List<V> get(final long time, final TimeUnit unit, final Fiber<V>... fibers) throws InterruptedException, TimeoutException {
+        return get(time, unit, Arrays.asList(fibers));
     }
 
     private static <V, X extends Exception> RuntimeException throwChecked(ExecutionException ex, Class<X> exceptionType) throws X {
