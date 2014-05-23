@@ -860,9 +860,10 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      * @return {@code this}
      */
     public final Actor register(String name) {
-        if (getName() != null && !name.equals(name))
+        if (getName() == null)
+            setName(name);
+        else if (!getName().equals(name))
             throw new RegistrationException("Cannot register actor named " + getName() + " under a different name (" + name + ")");
-        setName(name);
         return register();
     }
 
