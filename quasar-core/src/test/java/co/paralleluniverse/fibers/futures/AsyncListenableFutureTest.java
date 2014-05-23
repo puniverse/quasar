@@ -19,6 +19,8 @@ import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableCallable;
+import com.google.common.util.concurrent.AbstractFuture;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import java.util.concurrent.ExecutionException;
 import static org.hamcrest.CoreMatchers.*;
@@ -63,7 +65,7 @@ public class AsyncListenableFutureTest {
         }).start();
 
         assertThat(fiber.get(), equalTo("hi!"));
-        
+
     }
 
     @Test
@@ -90,6 +92,35 @@ public class AsyncListenableFutureTest {
                     Thread.sleep(200);
                     fut.setException(new RuntimeException("haha!"));
                 } catch (InterruptedException e) {
+                }
+            }
+        }).start();
+
+        try {
+            fiber.get();
+            fail();
+        } catch (ExecutionException e) {
+            assertThat(e.getCause().getMessage(), equalTo("haha!"));
+        }
+    }
+
+    @Test
+    public void testException2() throws Exception {
+        final ListenableFuture<String> fut = new AbstractFuture<String>() {
+            {
+                setException(new RuntimeException("haha!"));
+            }
+        };
+
+        final Fiber<String> fiber = new Fiber<>(new SuspendableCallable<String>() {
+            @Override
+            public String run() throws SuspendExecution, InterruptedException {
+                try {
+                    String res = AsyncListenableFuture.get(fut);
+                    fail();
+                    return res;
+                } catch (ExecutionException e) {
+                    throw Exceptions.rethrow(e.getCause());
                 }
             }
         }).start();
