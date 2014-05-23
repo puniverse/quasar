@@ -361,6 +361,10 @@ project (':quasar-galaxy') {
         compile ("co.paralleluniverse:galaxy:1.4-SNAPSHOT")  {
             exclude group: "com.lmax", module: 'disruptor'
         }
+        
+        testCompile('org.gridkit.lab:nanocloud:0.8.2.2') {
+            exclude group: "org.ow2.asm", module: '*'
+        }
     }
     
     tasks.withType(JavaExec) {
