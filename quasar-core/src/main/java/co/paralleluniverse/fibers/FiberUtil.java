@@ -16,11 +16,9 @@ package co.paralleluniverse.fibers;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Stopwatch;
-
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -183,8 +181,8 @@ public final class FiberUtil {
      * which case the checked exception is thrown as-is.
      *
      * @param <V>
-     * @param scheduler the {@link FiberScheduler} to use when scheduling the fiber.
-     * @param target    the operation
+     * @param scheduler     the {@link FiberScheduler} to use when scheduling the fiber.
+     * @param target        the operation
      * @param exceptionType a checked exception type that will not be wrapped if thrown by the operation, but thrown as-is.
      * @return the operations return value
      * @throws InterruptedException
@@ -204,7 +202,7 @@ public final class FiberUtil {
      * which case the checked exception is thrown as-is.
      * The new fiber is scheduled by the {@link DefaultFiberScheduler default scheduler}.
      *
-     * @param target the operation
+     * @param target        the operation
      * @param exceptionType a checked exception type that will not be wrapped if thrown by the operation, but thrown as-is.
      * @throws InterruptedException
      */
@@ -218,8 +216,8 @@ public final class FiberUtil {
      * any checked exception thrown by the operation in a {@link RuntimeException}, unless it is of the given {@code exception type}, in
      * which case the checked exception is thrown as-is.
      *
-     * @param scheduler the {@link FiberScheduler} to use when scheduling the fiber.
-     * @param target the operation
+     * @param scheduler     the {@link FiberScheduler} to use when scheduling the fiber.
+     * @param target        the operation
      * @param exceptionType a checked exception type that will not be wrapped if thrown by the operation, but thrown as-is.
      * @throws InterruptedException
      */
@@ -249,7 +247,7 @@ public final class FiberUtil {
             }
         }
 
-        return results;
+        return Collections.unmodifiableList(results);
     }
 
     /**
@@ -258,7 +256,7 @@ public final class FiberUtil {
      *
      * @param fibers to combine
      */
-    public static <V> List<V> get(final Fiber<V>... fibers) throws InterruptedException {
+    public static <V> List<V> get(Fiber<V>... fibers) throws InterruptedException {
         return get(Arrays.asList(fibers));
     }
 
@@ -266,41 +264,42 @@ public final class FiberUtil {
      * Blocks on the input fibers and creates a new list from the results. The result list is the same order as the
      * input list.
      *
-     * @param time to wait for all requests to complete
-     * @param unit the time is in
-     * @param fibers to combine
+     * @param timeout to wait for all requests to complete
+     * @param unit    the time is in
+     * @param fibers  to combine
      */
-    public static <V> List<V> get(final long time, final TimeUnit unit, final List<Fiber<V>> fibers) throws InterruptedException, TimeoutException {
-        Preconditions.checkArgument(time >= 0, "Time must be greater than or equal to zero.");
+    public static <V> List<V> get(long timeout, TimeUnit unit, List<Fiber<V>> fibers) throws InterruptedException, TimeoutException {
+        if (unit == null)
+            return get(fibers);
+        if (timeout < 0)
+            timeout = 0;
 
         final List<V> results = new ArrayList<>(fibers.size());
-        long duration = unit.toNanos(time);
+
+        long left = unit.toNanos(timeout);
+        final long deadline = System.nanoTime() + left;
 
         //TODO on interrupt, should all input fibers be canceled?
-        final Stopwatch stopwatch = Stopwatch.createUnstarted();
-        for (final Fiber<V> f : fibers) {
-            if(duration >= 0) {
-                try {
-                    stopwatch.reset().start();
-                    results.add(f.get(duration, TimeUnit.NANOSECONDS));
-                    duration -= stopwatch.stop().elapsed(TimeUnit.NANOSECONDS);
-                } catch (ExecutionException e) {
-                    throw Exceptions.rethrowUnwrap(e);
-                }
-            } else {
-                throw new TimeoutException("timed out sequencing fiber results");
+        try {
+            for (final Fiber<V> f : fibers) {
+                if (left >= 0) {
+                    results.add(f.get(left, TimeUnit.NANOSECONDS));
+                    left = deadline - System.nanoTime();
+                } else
+                    throw new TimeoutException("timed out sequencing fiber results");
             }
+            return Collections.unmodifiableList(results);
+        } catch (ExecutionException e) {
+            throw Exceptions.rethrowUnwrap(e);
         }
-
-        return results;
     }
 
     /**
      * Blocks on the input fibers and creates a new list from the results. The result list is the same order as the
      * input list.
      *
-     * @param time to wait for all requests to complete
-     * @param unit the time is in
+     * @param time   to wait for all requests to complete
+     * @param unit   the time is in
      * @param fibers to combine
      */
     public static <V> List<V> get(final long time, final TimeUnit unit, final Fiber<V>... fibers) throws InterruptedException, TimeoutException {
