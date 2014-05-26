@@ -83,8 +83,8 @@ subprojects {
         testCompile("org.mockito:mockito-all:1.9.5") {
             exclude group: "org.ow2.asm", module: '*'
         }
-        testCompile 'org.openjdk.jmh:jmh-core:0.7.2'
-        testCompile 'org.openjdk.jmh:jmh-generator-annprocess:0.7.2'
+        testCompile 'org.openjdk.jmh:jmh-core:0.7.3'
+        testCompile 'org.openjdk.jmh:jmh-generator-annprocess:0.7.3'
         compileOnly 'org.kohsuke.metainf-services:metainf-services:1.5'
         markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
     }
@@ -271,10 +271,10 @@ project (':quasar-core') {
         compile ":jsr166e"
         compile ":high-scale-lib"
         compile ":HdrHistogram"
-        compile "org.ow2.asm:asm:5.0.2" 
-        compile "org.ow2.asm:asm-analysis:5.0.2"
-        compile "org.ow2.asm:asm-commons:5.0.2"
-        compile "org.ow2.asm:asm-util:5.0.2"
+        compile "org.ow2.asm:asm:5.0.3" 
+        compile "org.ow2.asm:asm-analysis:5.0.3"
+        compile "org.ow2.asm:asm-commons:5.0.3"
+        compile "org.ow2.asm:asm-util:5.0.3"
         compile "com.lmax:disruptor:3.2.1"
         compile("com.esotericsoftware.kryo:kryo:2.24.0") {
             exclude group: "org.ow2.asm", module: '*'
