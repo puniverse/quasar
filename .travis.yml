@@ -16,3 +16,6 @@ env:
 after_success:
   - chmod a+x travis/post_build.sh
   - ./travis/post_build.sh
+
+notifications:
+  slack: puniverse:OsnbakHrYeTcLyalVgtUeI4F
