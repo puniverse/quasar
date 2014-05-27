@@ -217,7 +217,7 @@ public class MethodDatabase implements Log {
 
     public ClassEntry getOrLoadClassEntry(String className) {
         ClassEntry entry = getClassEntry(className);
-        if(entry == null) {
+        if (entry == null) {
             if (cl != null) {
                 log(LogLevel.INFO, "Reading class: %s", className);
 
@@ -233,7 +233,7 @@ public class MethodDatabase implements Log {
         }
         return entry;
     }
-    
+
     private int isMethodSuspendable0(String className, String methodName, String methodDesc, int opcode) {
         if (methodName.charAt(0) == '<')
             return NONSUSPENDABLE;   // special methods are never suspendable
@@ -284,7 +284,7 @@ public class MethodDatabase implements Log {
             if (opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESTATIC || opcode == Opcodes.INVOKESPECIAL) {
                 if (entry.getSuperName() != null)
                     suspendable = isMethodSuspendable0(entry.getSuperName(), methodName, methodDesc, opcode);
-            } 
+            }
             if (opcode == Opcodes.INVOKEINTERFACE || opcode == Opcodes.INVOKEVIRTUAL) { // can be INVOKEVIRTUAL on an abstract class implementing the interface
                 for (String iface : entry.getInterfaces()) {
                     int s = isMethodSuspendable0(iface, methodName, methodDesc, opcode);
@@ -357,12 +357,11 @@ public class MethodDatabase implements Log {
 
     public boolean isException(String className) {
         for (;;) {
-            if ("java/lang/Throwable".equals(className)) {
+            if ("java/lang/Throwable".equals(className))
                 return true;
-            }
-            if ("java/lang/Object".equals(className)) {
+
+            if ("java/lang/Object".equals(className))
                 return false;
-            }
 
             String superClass = getDirectSuperClass(className);
             if (superClass == null) {
@@ -386,13 +385,13 @@ public class MethodDatabase implements Log {
      *
      * @param className the class the needs to be analysed
      * @return a new CheckInstrumentationVisitor that has visited the specified
-     * class or null if the class was not found
+     *         class or null if the class was not found
      */
     protected CheckInstrumentationVisitor checkClass(String className) {
         InputStream is = cl.getResourceAsStream(className + ".class");
         if (is != null)
             return checkFileAndClose(is, className);
-        
+
         return null;
     }
 
@@ -417,7 +416,7 @@ public class MethodDatabase implements Log {
     }
 
     private String extractSuperClass(String className) {
-        InputStream is = cl.getResourceAsStream(className + ".class");
+        final InputStream is = cl.getResourceAsStream(className + ".class");
         if (is != null) {
             try {
                 try {
@@ -454,9 +453,8 @@ public class MethodDatabase implements Log {
 
     protected String getDirectSuperClass(String className) {
         ClassEntry entry = getClassEntry(className);
-        if (entry != null && entry != CLASS_NOT_FOUND) {
+        if (entry != null && entry != CLASS_NOT_FOUND)
             return entry.getSuperName();
-        }
 
         String superClass;
         synchronized (this) {
@@ -470,9 +468,8 @@ public class MethodDatabase implements Log {
                     oldSuperClass = superClasses.put(className, superClass);
                 }
                 if (oldSuperClass != null) {
-                    if (!oldSuperClass.equals(superClass)) {
+                    if (!oldSuperClass.equals(superClass))
                         log(LogLevel.WARNING, "Duplicate super class entry with different value: %s vs %s", oldSuperClass, superClass);
-                    }
                 }
             }
         }
@@ -500,8 +497,10 @@ public class MethodDatabase implements Log {
         return className.startsWith("org/gradle/")
                 || className.startsWith("javax/jms/")
                 || className.startsWith("ch/qos/logback/")
-                || className.startsWith("org/apache/logging/log4j/");
+                || className.startsWith("org/apache/logging/log4j/")
+                || className.startsWith("org/apache/log4j/");
     }
+    
     private static final ClassEntry CLASS_NOT_FOUND = new ClassEntry("<class not found>");
 
     public enum SuspendableType {
