@@ -137,7 +137,7 @@ public class FiberForkJoinScheduler extends FiberScheduler {
     public Executor getExecutor() {
         return fjPool;
     }
-    
+
     @Override
     Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit) {
         return timer.schedule(fiber, blocker, delay, unit);
@@ -220,9 +220,9 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         private final Fiber<V> fiber;
 
         public FiberForkJoinTask(Fiber<V> fiber) {
-            this(fiber , null);
+            this(fiber, null);
         }
-        
+
         public FiberForkJoinTask(Fiber<V> fiber, ForkJoinPool fjPool) {
             this.fiber = fiber;
             this.fjPool = fjPool;
@@ -337,6 +337,11 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         @Override
         public Object getUnparker() {
             return super.getUnparker();
+        }
+
+        @Override
+        public StackTraceElement[] getUnparkStackTrace() {
+            return super.getUnparkStackTrace();
         }
 
         @Override

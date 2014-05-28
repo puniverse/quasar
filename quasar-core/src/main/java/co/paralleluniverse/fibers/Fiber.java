@@ -1164,6 +1164,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return task.getUnparker();
     }
 
+    StackTraceElement[] getUnparkStackTrace() {
+        return task.getUnparkStackTrace();
+    }
+    
     /**
      * Makes available the permit for this fiber, if it was not already available.
      * If the fiber was blocked on {@code park} then it will unblock.

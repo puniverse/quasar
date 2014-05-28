@@ -58,4 +58,6 @@ interface FiberTask<V> extends Future<V> {
     Object getBlocker();
 
     Object getUnparker();
+    
+    StackTraceElement[] getUnparkStackTrace();
 }

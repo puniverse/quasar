@@ -31,6 +31,7 @@ import sun.misc.Unsafe;
  */
 class RunnableFiberTask<V> implements Runnable, FiberTask {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
+    public static final boolean CAPTURE_UNPARK_STACK = Debug.isDebug() || Boolean.getBoolean("co.paralleluniverse.fibers.captureUnparkStackTrace");
     //public static final Object EMERGENCY_UNBLOCKER = new Object();
     //
 //    private final DummyRunnable taskRef = new DummyRunnable(this);
@@ -41,6 +42,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
 //    private RunnableFiberTask enclosing;
     private boolean parkExclusive;
     private Object unparker;
+    private StackTraceElement[] unparkStackTrace;
     private final SettableFuture<V> future = new SettableFuture<>();
 
     public RunnableFiberTask(Fiber<V> fiber, Executor executor) {
@@ -107,7 +109,6 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
 //    RunnableFiberTask getEnclosing() {
 //        return enclosing;
 //    }
-
     protected void onExec() {
         if (Debug.isDebug())
             record("doExec", "executing %s", this);
@@ -136,6 +137,11 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
     @Override
     public Object getUnparker() {
         return unparker;
+    }
+
+    @Override
+    public StackTraceElement[] getUnparkStackTrace() {
+        return unparkStackTrace;
     }
 
     @Override
@@ -230,6 +236,8 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
             record("unpark", "current: %s - %s -> %s", this, _state, newState);
         if (newState == RUNNABLE) {
             this.unparker = unblocker;
+            if (CAPTURE_UNPARK_STACK)
+                this.unparkStackTrace = Thread.currentThread().getStackTrace();
             submit();
         }
     }

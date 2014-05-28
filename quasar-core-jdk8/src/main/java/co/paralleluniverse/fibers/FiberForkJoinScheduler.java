@@ -340,6 +340,11 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         }
 
         @Override
+        public StackTraceElement[] getUnparkStackTrace() {
+            return super.getUnparkStackTrace();
+        }
+        
+        @Override
         public String toString() {
             return super.toString() + "(Fiber@" + fiber.getId() + ')';
         }

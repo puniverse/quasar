@@ -30,6 +30,7 @@ import sun.misc.Unsafe;
  */
 public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
+    public static final boolean CAPTURE_UNPARK_STACK = Debug.isDebug() || Boolean.getBoolean("co.paralleluniverse.fibers.captureUnparkStackTrace");
     //public static final Object EMERGENCY_UNBLOCKER = new Object();
     public static final Park PARK = new Park();
     public static final int RUNNABLE = 0;
@@ -43,6 +44,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     private ParkableForkJoinTask enclosing;
     private boolean parkExclusive;
     private Object unparker;
+    private StackTraceElement[] unparkStackTrace;
 
     public ParkableForkJoinTask() {
         state = RUNNABLE;
@@ -155,6 +157,10 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         return unparker;
     }
 
+    protected StackTraceElement[] getUnparkStackTrace() {
+        return unparkStackTrace;
+    }
+
     protected void doPark(boolean yield) {
         if (yield)
             submit();
@@ -245,6 +251,8 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             record("unpark", "current: %s - %s -> %s", this, _state, newState);
         if (newState == RUNNABLE) {
             this.unparker = unblocker;
+            if (CAPTURE_UNPARK_STACK)
+                this.unparkStackTrace = Thread.currentThread().getStackTrace();
             if (fjPool != null)
                 submit(fjPool);
             else
