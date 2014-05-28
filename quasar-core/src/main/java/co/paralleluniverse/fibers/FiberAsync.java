@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.util.CheckedCallable;
+import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -132,10 +133,13 @@ public abstract class FiberAsync<V, E extends Throwable> {
             }
         })); // make sure we actually park and run PostParkActions
 
-        if (Fiber.interrupted())
-            throw new InterruptedException();
+        while (!completed) { // the fiber can be awakened spuriously, in particular, from calls to getStackTrace
+            if (Fiber.interrupted())
+                throw new InterruptedException();
+            Fiber.park(this);
+        }
 
-        assert isCompleted() : "Unblocker: " + Fiber.currentFiber().getUnparker();
+        assert isCompleted() : "Unblocker: " + Fiber.currentFiber().getUnparker() + " " + Strand.toString(Fiber.currentFiber().getUnparkStackTrace());
 
 //        while (!isCompleted() || (immediateExec && !Fiber.currentFiber().isInExec())) {
 //            Fiber.park((Object) this);
@@ -191,15 +195,18 @@ public abstract class FiberAsync<V, E extends Throwable> {
             }
         })); // make sure we actually park and run PostParkActions
 
-        if (!isCompleted()) {
+        while (!completed) { // the fiber can be awakened spuriously, in particular, from calls to getStackTrace
             if (Fiber.interrupted())
                 throw new InterruptedException();
 
-            assert System.nanoTime() >= deadline;
-            exception = new TimeoutException();
-            completed = true;
-            fiber.record(1, "FiberAsync", "run", "FibeAsync %s on fiber %s has timed out", this, fiber);
-            throw (TimeoutException) exception;
+            final long now = System.nanoTime();
+            if (now >= deadline) {
+                exception = new TimeoutException();
+                completed = true;
+                fiber.record(1, "FiberAsync", "run", "FibeAsync %s on fiber %s has timed out", this, fiber);
+                throw (TimeoutException) exception;
+            }
+            Fiber.park(this, deadline - now, TimeUnit.NANOSECONDS);
         }
 
         return getResult();

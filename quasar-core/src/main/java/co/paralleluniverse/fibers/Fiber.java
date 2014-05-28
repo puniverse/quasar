@@ -1338,7 +1338,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                     threadStack = execStackTrace(1, TimeUnit.MILLISECONDS);
                     if (threadStack != null) {
                         // we need to unpark because if someone else had tried to unpark while we were in execStackTrace(), it would have silently failed.
-                        unpark();
+                        unpark("getStackTrace");
                         break;
                     }
                 }
