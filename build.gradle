@@ -83,8 +83,8 @@ subprojects {
         testCompile("org.mockito:mockito-all:1.9.5") {
             exclude group: "org.ow2.asm", module: '*'
         }
-        testCompile 'org.openjdk.jmh:jmh-core:0.7.3'
-        testCompile 'org.openjdk.jmh:jmh-generator-annprocess:0.7.3'
+        testCompile 'org.openjdk.jmh:jmh-core:0.8'
+        testCompile 'org.openjdk.jmh:jmh-generator-annprocess:0.8'
         compileOnly 'org.kohsuke.metainf-services:metainf-services:1.5'
         markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
     }
@@ -107,8 +107,9 @@ subprojects {
 	// systemProperty "java.util.logging.config.file", "jul.properties"
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
         // systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
-	    
-        // systemProperty 'co.paralleluniverse.debugMode', 'true'
+	
+        systemProperty 'co.paralleluniverse.debugMode', 'true'
+        systemProperty 'co.paralleluniverse.monitoring.flightRecorderLevel', '5'
         systemProperty 'co.paralleluniverse.globalFlightRecorder', 'true'
         systemProperty 'co.paralleluniverse.flightRecorderDumpFile', 'quasar.log'
         systemProperty 'co.paralleluniverse.monitoring.flightRecorderSize', '200000'
