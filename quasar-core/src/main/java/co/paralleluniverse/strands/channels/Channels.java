@@ -441,7 +441,15 @@ public final class Channels {
         return newDoubleChannel(bufferSize, defaultPolicy);
     }
 
-    ///
+    /**
+     * Tests whether a given channel is a <i>ticker channel</i>, namely a channel with a bounded buffer 
+     * and an {@link OverflowPolicy overflow policy} of {@code DISPLACE}.
+     * A ticker channel can be passed to one of the {@link #newTickerConsumerFor(Channel) newTickerConsumerFor} methods.
+     */
+    public static boolean isTickerChannel(ReceivePort<?> channel) {
+        return channel instanceof QueueChannel 
+                && ((QueueChannel)channel).overflowPolicy == OverflowPolicy.DISPLACE && ((QueueChannel)channel).capacity() > 0;
+    }
     /**
      * Creates a {@link ReceivePort} that can be used to receive messages from a a <i>ticker channel</i>:
      * a channel of bounded capacity and the {@link OverflowPolicy#DISPLACE DISPLACE} overflow policy.
