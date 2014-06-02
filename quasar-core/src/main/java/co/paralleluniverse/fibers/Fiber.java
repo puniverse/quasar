@@ -525,6 +525,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * Suspends (deschedules) the currently running Fiber unless the
      * permit is available.
      * <p/>
+     * This method must be called directly on the fiber class, even when subclassing Fiber, i.e., like this {@code Fiber.park}.
+     * <p/>
      * Returns {@code true} iff we've been suspended and then resumed.
      *
      * @throws SuspendExecution      This exception is used for control transfer and must never be caught.

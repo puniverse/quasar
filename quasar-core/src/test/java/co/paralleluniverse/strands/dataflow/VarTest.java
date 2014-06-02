@@ -16,15 +16,12 @@ package co.paralleluniverse.strands.dataflow;
 import co.paralleluniverse.common.test.Matchers;
 import static co.paralleluniverse.common.test.Matchers.*;
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.FiberForkJoinScheduler;
-import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
-import java.util.concurrent.TimeUnit;
 import static java.util.concurrent.TimeUnit.*;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
@@ -198,11 +195,10 @@ public class VarTest {
         f2.join();
     }
 
-    @Ignore
     @Test
     public void testFunction1() throws Exception {
         final Channel<Integer> ch = Channels.newChannel(-1);
-
+        
         final Var<Integer> a = new Var<Integer>();
         final Var<Integer> b = new Var<Integer>();
 
@@ -218,19 +214,23 @@ public class VarTest {
 
         b.set(2);
         assertThat(ch.receive(50, MILLISECONDS), is(nullValue()));
+
         a.set(1);
         assertThat(ch.receive(50, MILLISECONDS), is(3));
 
+        assertThat(ch.receive(), is(3));
+        
         assertThat(ch.receive(50, MILLISECONDS), is(nullValue()));
-        b.set(2);
-        assertThat(ch.receive(50, MILLISECONDS), is(4));
+
+        a.set(2);
+        assertThat(ch.receive(), is(4));
 
         assertThat(ch.receive(50, MILLISECONDS), is(nullValue()));
         b.set(3);
         assertThat(ch.receive(50, MILLISECONDS), is(5));
 
         assertThat(ch.receive(50, MILLISECONDS), is(nullValue()));
-        a.set(2);
-        assertThat(ch.receive(50, MILLISECONDS), is(6));
+        a.set(4);
+        assertThat(ch.receive(50, MILLISECONDS), is(7));
     }
 }

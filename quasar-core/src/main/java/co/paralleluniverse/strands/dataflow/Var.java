@@ -13,6 +13,9 @@
  */
 package co.paralleluniverse.strands.dataflow;
 
+import co.paralleluniverse.common.monitoring.FlightRecorder;
+import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.Fiber;
@@ -39,7 +42,7 @@ public class Var<T> {
 
     private final Channel<T> ch;
     private final SuspendableCallable<T> f;
-    private final Set<Fiber<?>> registeredFibers = Collections.newSetFromMap(MapUtil.<Fiber<?>, Boolean>newConcurrentHashMap());
+    private final Set<VarFiber<?>> registeredFibers = Collections.newSetFromMap(MapUtil.<VarFiber<?>, Boolean>newConcurrentHashMap());
 
     private final ThreadLocal<TLVar> tlv = new ThreadLocal<TLVar>() {
         @Override
@@ -90,10 +93,8 @@ public class Var<T> {
 
     public void set(T val) {
         try {
-            if (val == null)
-                val = (T) NULL;
-            ch.send(val);
-
+            record("set", "Set %s to %s", this, val);
+            ch.send(val == null ? (T) NULL : val);
             notifyRegistered();
         } catch (Throwable e) {
             throw new AssertionError(e);
@@ -101,8 +102,8 @@ public class Var<T> {
     }
 
     private void notifyRegistered() {
-        for (Fiber<?> f : registeredFibers)
-            f.unpark();
+        for (VarFiber<?> f : registeredFibers)
+            f.signalNewValue(this);
     }
 
     /**
@@ -114,9 +115,10 @@ public class Var<T> {
         if (tl.type == UNKNOWN) {
             Fiber currentFiber = Fiber.currentFiber();
             if (currentFiber != null && currentFiber instanceof VarFiber) {
+                final VarFiber<?> vf = (VarFiber<?>) currentFiber;
                 tl.type = VARFIBER;
-                registeredFibers.add(currentFiber);
-                ((VarFiber<?>) currentFiber).registeredVars.add(this);
+                registeredFibers.add(vf);
+                vf.registeredVars.add(this);
             } else
                 tl.type = PLAIN;
         }
@@ -126,8 +128,7 @@ public class Var<T> {
             if (tl.val == null) {
                 val = tl.c.receive();
                 tl.val = val;
-            }
-            else {
+            } else {
                 T v = tl.c.tryReceive();
                 if (v != null)
                     tl.val = v;
@@ -157,6 +158,7 @@ public class Var<T> {
     private static class VarFiber<T> extends Fiber<Void> {
         private final WeakReference<Var<T>> var;
         final Set<Var<?>> registeredVars = Collections.newSetFromMap(MapUtil.<Var<?>, Boolean>newConcurrentHashMap());
+        private volatile boolean hasNewVal;
 
         VarFiber(FiberScheduler scheduler, Var<T> v) {
             super(scheduler);
@@ -167,16 +169,33 @@ public class Var<T> {
             this.var = new WeakReference<Var<T>>(v);
         }
 
+        void signalNewValue(Var var) {
+            try {
+                System.out.println("Signalling " + this + " " + var + " " + var.get());
+                hasNewVal = true;
+                unpark(var);
+            } catch (InterruptedException | SuspendExecution e) {
+                throw new AssertionError(e);
+            }
+        }
+
         @Override
         protected Void run() throws SuspendExecution, InterruptedException {
             Var<T> v = null;
             try {
                 for (;;) {
+                    hasNewVal = false;
+                    Var.record("run", "Fiber %s for var %s computing new value", this, var);
                     v = var.get();
                     if (v == null)
                         break;
-                    v.set(v.f.run());
-                    park();
+                    T newVal = v.f.run();
+                    Var.record("run", "Fiber %s for var %s computed new value %s", this, var, newVal);
+                    v.set(newVal);
+                    while (!hasNewVal) {
+                        Var.record("run", "Fiber %s for var %s parking", this, var);
+                        Fiber.park(v);
+                    }
                 }
             } catch (Throwable t) {
                 if (v != null)
@@ -189,5 +208,41 @@ public class Var<T> {
             }
             return null;
         }
+    }
+
+    public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
+
+    boolean isRecording() {
+        return RECORDER != null;
+    }
+
+    static void record(String method, String format) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("Var", method, format, null));
+    }
+
+    static void record(String method, String format, Object arg1) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("Var", method, format, new Object[]{arg1}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("Var", method, format, new Object[]{arg1, arg2}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2, Object arg3) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("Var", method, format, new Object[]{arg1, arg2, arg3}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("Var", method, format, new Object[]{arg1, arg2, arg3, arg4}));
+    }
+
+    static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        if (RECORDER != null)
+            RECORDER.record(1, new FlightRecorderMessage("Var", method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
     }
 }
