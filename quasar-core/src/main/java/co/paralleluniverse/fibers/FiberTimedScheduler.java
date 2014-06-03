@@ -99,7 +99,6 @@ public class FiberTimedScheduler {
         this(scheduler, null);
     }
 
-
     public Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit) {
         if (fiber == null || unit == null)
             throw new NullPointerException();
@@ -169,7 +168,7 @@ public class FiberTimedScheduler {
     public int getQueueLength() {
         return workQueue.size();
     }
-    
+
     private void run(ScheduledFutureTask task) {
         try {
             final Fiber fiber = task.fiber;
@@ -326,12 +325,12 @@ public class FiberTimedScheduler {
      * Initiates an orderly shutdown in which previously submitted
      * tasks are executed, but no new tasks will be accepted.
      * Invocation has no additional effect if already shut down.
-     *
-     * <p>This method does not wait for previously submitted tasks to
+     * <p>
+     * This method does not wait for previously submitted tasks to
      * complete execution. Use {@link #awaitTermination awaitTermination}
      * to do that.
-     *
-     * <p>If the {@code ExecuteExistingDelayedTasksAfterShutdownPolicy}
+     * <p>
+     * If the {@code ExecuteExistingDelayedTasksAfterShutdownPolicy}
      * has been set {@code false}, existing delayed tasks whose delays
      * have not yet elapsed are cancelled. And unless the {@code
      * ContinueExistingPeriodicTasksAfterShutdownPolicy} has been set
@@ -353,12 +352,12 @@ public class FiberTimedScheduler {
      * Attempts to stop all actively executing tasks, halts the
      * processing of waiting tasks, and returns a list of the tasks
      * that were awaiting execution.
-     *
-     * <p>This method does not wait for actively executing tasks to
+     * <p>
+     * This method does not wait for actively executing tasks to
      * terminate. Use {@link #awaitTermination awaitTermination} to
      * do that.
-     *
-     * <p>There are no guarantees beyond best-effort attempts to stop
+     * <p>
+     * There are no guarantees beyond best-effort attempts to stop
      * processing actively executing tasks. This implementation
      * cancels tasks via {@link Thread#interrupt}, so any task that
      * fails to respond to interrupts may never terminate.
@@ -394,10 +393,10 @@ public class FiberTimedScheduler {
     private Collection<Fiber> findProblemFibers(long now, long nanos) {
         final List<Fiber> pfs = new ArrayList<Fiber>();
         final Map<Thread, Fiber> fibs = scheduler.getRunningFibers();
-        
-        if(fibs == null)
+
+        if (fibs == null)
             return null;
-        
+
         fibersInfo.keySet().retainAll(fibs.keySet());
 
         for (Iterator<Map.Entry<Thread, Fiber>> it = fibs.entrySet().iterator(); it.hasNext();) {
@@ -425,18 +424,26 @@ public class FiberTimedScheduler {
     private void reportProblemFibers(Collection<Fiber> fs) {
         scheduler.getMonitor().setRunawayFibers(fs);
 
-        if(fs == null)
+        if (fs == null)
             return;
-        
+
+        loop:
         for (Fiber f : fs) {
             Thread t = f.getRunningThread();
+            StackTraceElement[] stackTrace = f.getStackTrace();
+            
+            for (StackTraceElement ste : stackTrace) { // don't report on classloading
+                if ("defineClass".equals(ste.getMethodName()) && "java.lang.ClassLoader".equals(ste.getClassName()))
+                    continue loop;
+            }
+
             if (t == null)
                 System.err.println("WARNING: fiber " + f + " is hogging the CPU or blocking a thread.");
             else if (t.getState() == Thread.State.RUNNABLE)
                 System.err.println("WARNING: fiber " + f + " is hogging the CPU (" + t + ").");
             else
                 System.err.println("WARNING: fiber " + f + " is blocking a thread (" + t + ").");
-            Strand.printStackTrace(f.getStackTrace(), System.err);
+            Strand.printStackTrace(stackTrace, System.err);
         }
     }
 
