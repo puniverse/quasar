@@ -113,3 +113,25 @@ public class FiberOverheadJMHBenchmark {
         return a + b + c + res;
     }
 }
+
+
+//# Run complete. Total time: 00:11:16
+//
+//Benchmark                                  (DEPTH) (STACK)   Mode   Samples        Score  Score error    Units
+//c.p.f.FiberOverheadJMHBenchmark.baseline         3      16   avgt         5       17.278        0.480    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.baseline         3     100   avgt         5       18.303        4.226    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.baseline         5      16   avgt         5       24.707        3.141    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.baseline         5     100   avgt         5       24.095        3.880    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.baseline        10      16   avgt         5       41.161        3.055    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.baseline        10     100   avgt         5       39.576        1.520    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.baseline        20      16   avgt         5       69.398        7.747    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.baseline        20     100   avgt         5       69.023        1.179    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiber            3      16   avgt         5      234.897        5.489    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiber            3     100   avgt         5      239.196       17.656    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiber            5      16   avgt         5      239.292        5.923    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiber            5     100   avgt         5      242.205       14.829    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiber           10      16   avgt         5      264.956        7.680    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiber           10     100   avgt         5      282.650       46.519    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiber           20      16   avgt         5      370.537       42.557    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiber           20     100   avgt         5      315.896       10.556    ns/op
+//
