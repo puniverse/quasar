@@ -63,10 +63,19 @@ public class FiberOverheadJMHBenchmark {
         return res;
     }
 
+    @GenerateMicroBenchmark
+    public Object fiberNoPark() {
+        res = 0;
+        exec(fiber2);
+        exec(fiber2);
+        return res;
+    }
+
     private long res;
     private long rands[];
     private Runnable runnable;
     private Fiber fiber;
+    private Fiber fiber2;
 
     @Setup
     public void preapre() {
@@ -87,6 +96,13 @@ public class FiberOverheadJMHBenchmark {
             @Override
             public void run() throws SuspendExecution {
                 res = recursive2(DEPTH);
+            }
+        });
+        fiber2 = new Fiber((String) null, null, STACK, new SuspendableRunnable() {
+
+            @Override
+            public void run() throws SuspendExecution {
+                res = recursive3(DEPTH);
             }
         });
     }
@@ -112,8 +128,25 @@ public class FiberOverheadJMHBenchmark {
         }
         return a + b + c + res;
     }
-}
 
+    private long recursive3(int r) throws SuspendExecution {
+        long a = rands[(r << 2)];
+        long b = rands[(r << 2) + 1];
+        long c = rands[(r << 2) + 3];
+        long res;
+        if (r > 0)
+            res = recursive1(r - 1);
+        else {
+            nopark();
+            res = rands[(r << 2) + 4];
+        }
+        return a + b + c + res;
+    }
+
+    private static void nopark() throws SuspendExecution {
+
+    }
+}
 
 //# Run complete. Total time: 00:11:16
 //
