@@ -1601,8 +1601,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 // for tests only!
     @VisibleForTesting
     final boolean exec() {
-        if (!Debug.isUnitTest())
-            throw new AssertionError("This method can only be called by unit tests");
+//        if (!Debug.isUnitTest())
+//            throw new AssertionError("This method can only be called by unit tests");
         return exec1();
     }
 
