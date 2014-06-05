@@ -15,11 +15,16 @@
  * limitations under the License.
  */
 /*
- * Based on code from apache.commons-lang, released under the Apache License 2.0
+ * Based, in part, on code from apache.commons-lang, released under the Apache License 2.0
  */
 package co.paralleluniverse.common.reflection;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,8 +33,9 @@ import java.util.Map;
  * @author pron
  */
 public final class ReflectionUtil {
-    private ReflectionUtil() {}
-    
+    private ReflectionUtil() {
+    }
+
     public static Class<?>[] getTypes(Object... vals) {
         Class<?>[] types = new Class[vals.length];
         for (int i = 0; i < vals.length; i++)
@@ -77,10 +83,10 @@ public final class ReflectionUtil {
      * by the results of the comparison would return the best match first
      * (least).
      *
-     * @param left the "left" parameter set
-     * @param right the "right" parameter set
+     * @param left   the "left" parameter set
+     * @param right  the "right" parameter set
      * @param actual the runtime parameter types to match against
-     * <code>left</code>/<code>right</code>
+     *               <code>left</code>/<code>right</code>
      * @return int consistent with <code>compare</code> semantics
      */
     static int compareParameterTypes(final Class<?>[] left, final Class<?>[] right, final Class<?>[] actual) {
@@ -150,11 +156,11 @@ public final class ReflectionUtil {
     public static boolean isAssignable(Class<?> cls, final Class<?> toClass, final boolean autoboxing) {
         if (toClass == null)
             return false;
-        
+
         // have to check for null, as isAssignableFrom doesn't
         if (cls == null)
             return !toClass.isPrimitive();
-        
+
         //autoboxing:
         if (autoboxing) {
             if (cls.isPrimitive() && !toClass.isPrimitive()) {
@@ -172,11 +178,11 @@ public final class ReflectionUtil {
         }
         if (cls.equals(toClass))
             return true;
-        
+
         if (cls.isPrimitive()) {
             if (toClass.isPrimitive() == false)
                 return false;
-            
+
             if (Integer.TYPE.equals(cls)) {
                 return Long.TYPE.equals(toClass)
                         || Float.TYPE.equals(toClass)
@@ -231,6 +237,53 @@ public final class ReflectionUtil {
     public static Class<?> wrapperToPrimitive(final Class<?> cls) {
         return wrapperPrimitiveMap.get(cls);
     }
+
+    public static Type getGenericParameterType(Class<?> cls, Class<?> genericSuper, int paramIndex) {
+        if (!genericSuper.isAssignableFrom(cls))
+            throw new IllegalArgumentException("Class " + cls.getName() + " does not implement or extend " + genericSuper.getName());
+        Type res = getGenericParameterType0(cls, genericSuper, paramIndex);
+        return !(res instanceof TypeVariable) ? res : null;
+    }
+
+    private static Type getGenericParameterType0(Class<?> cls, Class<?> genericSuper, int paramIndex) {
+        if (!genericSuper.isAssignableFrom(cls))
+            return null;
+        if (genericSuper.isInterface()) {
+            for (Type type : cls.getGenericInterfaces()) {
+                final Class<?> clazz = getClass(type);
+                if (genericSuper.isAssignableFrom(clazz)) {
+                    if (genericSuper.equals(clazz))
+                        return type instanceof ParameterizedType ? ((ParameterizedType) type).getActualTypeArguments()[paramIndex] : null;
+                    else {
+                        for (Class<?> iface : cls.getInterfaces()) {
+                            final Type res = getGenericParameterType0(iface, genericSuper, paramIndex);
+                            if(res != null)
+                                return res;
+                        }
+                    }
+                }
+            }
+            return null;
+        } else {
+            Type type = cls.getGenericSuperclass();
+            assert genericSuper.isAssignableFrom(getClass(type));
+            if (genericSuper.equals(getClass(type)))
+                return type instanceof ParameterizedType ? ((ParameterizedType) type).getActualTypeArguments()[paramIndex] : null;
+            else
+                return getGenericParameterType0(cls.getSuperclass(), genericSuper, paramIndex);
+        }
+    }
+
+    public static Class<?> getClass(Type type) {
+        if (type instanceof Class)
+            return (Class<?>) type;
+        if (type instanceof ParameterizedType)
+            return (Class<?>) ((ParameterizedType) type).getRawType();
+        if (type instanceof GenericArrayType)
+            return Array.newInstance((Class<?>) ((GenericArrayType) type).getGenericComponentType(), 0).getClass();
+        return null;
+    }
+
     private static final Map<Class<?>, Class<?>> primitiveWrapperMap = new HashMap<Class<?>, Class<?>>();
 
     static {
