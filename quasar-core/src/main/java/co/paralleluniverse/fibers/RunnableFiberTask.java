@@ -16,6 +16,7 @@ import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.UtilUnsafe;
+import static co.paralleluniverse.fibers.Fiber.USE_VAL_FOR_RESULT;
 import static co.paralleluniverse.fibers.FiberTask.*;
 import co.paralleluniverse.fibers.instrument.DontInstrument;
 import co.paralleluniverse.strands.SettableFuture;
@@ -43,7 +44,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
     private boolean parkExclusive;
     private Object unparker;
     private StackTraceElement[] unparkStackTrace;
-    private final SettableFuture<V> future = new SettableFuture<>();
+    private final SettableFuture<V> future = USE_VAL_FOR_RESULT ? null : new SettableFuture<V>();
 
     public RunnableFiberTask(Fiber<V> fiber, Executor executor) {
         this.executor = executor;
@@ -94,7 +95,8 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
             return res;
         } catch (Throwable t) {
             onException(t);
-            future.setException(t);
+            if (!USE_VAL_FOR_RESULT)
+                future.setException(t);
             return true;
         }
     }
@@ -117,7 +119,8 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
     protected void onCompletion(boolean res) {
         if (res) {
             fiber.onCompletion();
-            future.set(fiber.getResult());
+            if (!USE_VAL_FOR_RESULT)
+                future.set(fiber.getResult());
         }
     }
 
@@ -203,7 +206,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
 
     @Override
     public void unpark(Object unblocker) {
-        if (isDone())
+        if (fiber.isDone())
             return;
 
         int newState;

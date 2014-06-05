@@ -15,7 +15,6 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
-import co.paralleluniverse.common.reflection.ReflectionUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.Objects;
@@ -39,7 +38,6 @@ import java.lang.reflect.Method;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.util.Arrays;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -65,7 +63,7 @@ import sun.misc.Unsafe;
  * @author pron
  */
 public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
-    private static final boolean USE_VAL_FOR_RESULT = true;
+    static final boolean USE_VAL_FOR_RESULT = true;
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.verifyInstrumentation", "false"));
     private static final ClassContext classContext = verifyInstrumentation ? new ClassContext() : null;
     private static final boolean traceInterrupt = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.traceInterrupt", "false"));
@@ -225,10 +223,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             throw new IllegalArgumentException("Target class " + t.getClass() + " has not been instrumented.");
     }
 
-    private boolean isVoidResult(SuspendableCallable<V> target) {
-        if (target != null)
-            return Void.class.equals(ReflectionUtil.getGenericParameterType(target.getClass(), SuspendableCallable.class, 0));
-        return Void.class.equals(ReflectionUtil.getGenericParameterType(getClass(), SuspendableCallable.class, 0));
+    private Future<V> future() {
+        return USE_VAL_FOR_RESULT ? (Val<V>) result : task;
     }
 
     public final SuspendableCallable<V> getTarget() {
@@ -665,9 +661,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     boolean exec() {
-        if (task.isDone() | state == State.RUNNING)
+        if (future().isDone() | state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
-
         cancelTimeoutTask();
 
         final FibersMonitor monitor = getMonitor();
@@ -694,10 +689,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             record(1, "Fiber", "exec", "finished %s %s res: %s", state, this, this.result);
             monitorFiberTerminated(monitor);
 
-            if (USE_VAL_FOR_RESULT & this.result != null)
-                ((Val<V>) this.result).set(res);
-            else
-                this.result = res;
+            setResult(res);
 
             return true;
         } catch (SuspendExecution ex) {
@@ -739,8 +731,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 }
             }
 
-            if (USE_VAL_FOR_RESULT)
-                ((Val<V>) this.result).setException(t);
+            setException(t);
             if (t instanceof InterruptedException) {
                 throw new RuntimeException(t);
             } else {
@@ -753,6 +744,24 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         }
     }
 
+    void setResult(V res) {
+        try {
+            if (USE_VAL_FOR_RESULT)
+                ((Val<V>) this.result).set(res);
+            else
+                this.result = res;
+        } catch (IllegalStateException e) {
+        }
+    }
+
+    private void setException(Throwable t) {
+        try {
+            if (USE_VAL_FOR_RESULT)
+                ((Val<V>) this.result).setException(t);
+        } catch (IllegalStateException e) {
+        }
+    }
+
     private void clearRunSettings() {
         this.prePark = null;
         this.postPark = null;
@@ -761,7 +770,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private StackTraceElement[] execStackTrace1() {
-        if (task.isDone() | state == State.RUNNING)
+        if (future().isDone() | state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
 
         this.getStackTrace = true;
@@ -1068,7 +1077,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final boolean isAlive() {
-        return state != State.NEW && !(USE_VAL_FOR_RESULT ? ((Val<V>)result).isDone() : task.isDone());
+        return state != State.NEW && !future().isDone();
     }
 
     @Override
@@ -1222,31 +1231,21 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     @Override
     @Suspendable
     public final V get() throws ExecutionException, InterruptedException {
-        if (USE_VAL_FOR_RESULT) {
-            if (isCancelled())
-                throw new CancellationException();
-            try {
-                return ((Val<V>) result).get();
-            } catch (RuntimeExecutionException t) {
-                throw new ExecutionException(t.getCause());
-            }
-        } else
-            return task.get();
+        try {
+            return future().get();
+        } catch (RuntimeExecutionException t) {
+            throw new ExecutionException(t.getCause());
+        }
     }
 
     @Override
     @Suspendable
     public final V get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
-        if (USE_VAL_FOR_RESULT) {
-            if (isCancelled())
-                throw new CancellationException();
-            try {
-                return ((Val<V>) result).get(timeout, unit);
-            } catch (RuntimeExecutionException t) {
-                throw new ExecutionException(t.getCause());
-            }
-        } else
-            return task.get(timeout, unit);
+        try {
+            return future().get(timeout, unit);
+        } catch (RuntimeExecutionException t) {
+            throw new ExecutionException(t.getCause());
+        }
     }
 
     @Override
@@ -1258,18 +1257,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     public final boolean cancel(boolean mayInterruptIfRunning) {
         if (mayInterruptIfRunning && !isDone())
             interrupt();
-        final boolean res = task.cancel(mayInterruptIfRunning);
-        try {
-            if (USE_VAL_FOR_RESULT && res)
-                ((Val<V>) result).setException(new CancellationException());
-        } catch (IllegalStateException e) {
-        }
-        return res;
+
+        return future().cancel(mayInterruptIfRunning);
     }
 
     @Override
     public final boolean isCancelled() {
-        return task.isCancelled();
+        return future().isCancelled();
     }
 
     private void sleep1(long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
@@ -1491,11 +1485,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (USE_VAL_FOR_RESULT)
             return null;
         return (V) result;
-    }
-
-    void setResult(V result) {
-        assert !USE_VAL_FOR_RESULT;
-        this.result = result;
     }
 
     @Override

@@ -23,6 +23,7 @@ import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.Timeout;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -102,20 +103,20 @@ public class Val<V> implements Future<V> {
     }
 
     private void set0(V value) {
-        if (sync == null)
+        final SimpleConditionSynchronizer s = sync;
+        if (s == null)
             throw new IllegalStateException("Value has already been set (and can only be set once)");
         this.value = value;
-        final SimpleConditionSynchronizer s = sync;
         sync = null; // must be done before signal
         this.f = null;
         s.signalAll();
     }
 
     private void setException0(Throwable t) {
-        if (sync == null)
+        final SimpleConditionSynchronizer s = sync;
+        if (s == null)
             throw new IllegalStateException("Value has already been set (and can only be set once)");
         this.t = t;
-        final SimpleConditionSynchronizer s = sync;
         sync = null; // must be done before signal
         this.f = null;
         s.signalAll();
@@ -184,6 +185,8 @@ public class Val<V> implements Future<V> {
                     final long deadline = start + left;
                     for (int i = 0; sync != null; i++) {
                         s.awaitNanos(i, left);
+                        if (sync == null)
+                            break;
                         left = deadline - System.nanoTime();
                         if (left <= 0)
                             throw new TimeoutException();
@@ -193,7 +196,7 @@ public class Val<V> implements Future<V> {
                 }
             }
             if (t != null)
-                throw new RuntimeExecutionException(t);
+                throw t instanceof CancellationException ? (CancellationException) t : new RuntimeExecutionException(t);
             return value;
         } catch (SuspendExecution e) {
             throw new AssertionError(e);
@@ -209,11 +212,16 @@ public class Val<V> implements Future<V> {
      */
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
-        throw new UnsupportedOperationException();
+        try {
+            setException0(new CancellationException());
+            return true;
+        } catch (IllegalStateException e) {
+            return false;
+        }
     }
 
     @Override
     public boolean isCancelled() {
-        return false;
+        return t instanceof CancellationException;
     }
 }
