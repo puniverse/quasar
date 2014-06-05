@@ -89,7 +89,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
         this.blocker = null;
         try {
             onExec();
-            boolean res = fiber.exec1();
+            boolean res = fiber.exec();
             onCompletion(res);
             return res;
         } catch (Throwable t) {

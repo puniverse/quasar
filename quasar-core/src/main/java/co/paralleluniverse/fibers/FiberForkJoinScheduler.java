@@ -245,7 +245,7 @@ public class FiberForkJoinScheduler extends FiberScheduler {
 
         @Override
         protected boolean exec1() {
-            return fiber.exec1();
+            return fiber.exec();
         }
 
         @Override

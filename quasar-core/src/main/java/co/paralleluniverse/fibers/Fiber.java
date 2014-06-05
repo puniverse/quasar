@@ -651,7 +651,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         task.yield();
     }
 
-    boolean exec1() {
+    boolean exec() {
         if (task.isDone() | state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
 
@@ -659,7 +659,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         final FibersMonitor monitor = getMonitor();
         if (Debug.isDebug())
-            record(1, "Fiber", "exec1", "running %s %s %s", state, this, run);
+            record(1, "Fiber", "exec", "running %s %s %s", state, this, run);
         // if (monitor != null && state == State.STARTED)
         //    monitor.fiberStarted(this); - done elsewhere
 
@@ -694,7 +694,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             restoreThreadData(currentThread, old);
             restored = true;
 
-            record(1, "Fiber", "exec1", "parked %s %s", state, this);
+            record(1, "Fiber", "exec", "parked %s %s", state, this);
             task.doPark(ex == SuspendExecution.YIELD); // now we can complete parking
 
             assert ppa == null || ex == SuspendExecution.PARK; // can't have postParkActions on yield
@@ -1433,7 +1433,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 if (x.startsWith("\tat ")) {
                     if (seenExec)
                         return;
-                    if (x.startsWith("\tat " + Fiber.class.getName() + ".exec1")) {
+                    if (x.startsWith("\tat " + Fiber.class.getName() + ".exec")) {
                         seenExec = true;
                         return;
                     }
@@ -1598,19 +1598,17 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             return false;
     }
 
-// for tests only!
-    @VisibleForTesting
-    final boolean exec() {
-//        if (!Debug.isUnitTest())
-//            throw new AssertionError("This method can only be called by unit tests");
-        return exec1();
-    }
-
     @VisibleForTesting
     void resetState() {
         task.tryUnpark(null);
         assert task.getState() == FiberTask.RUNNABLE;
     }
+
+    @VisibleForTesting
+    void reset() {
+        stack.resetStack();
+    }
+
     private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
     private static final long stateOffset;
 
