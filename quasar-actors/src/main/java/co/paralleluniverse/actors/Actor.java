@@ -24,6 +24,7 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
@@ -571,6 +572,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
 
     @Override
+    @Suspendable
     public final void join() throws ExecutionException, InterruptedException {
         runner.join();
     }

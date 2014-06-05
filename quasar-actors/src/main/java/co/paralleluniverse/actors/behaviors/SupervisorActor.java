@@ -333,6 +333,18 @@ public class SupervisorActor extends BehaviorActor {
             } catch (Exception e) {
                 replyError(req, e);
             }
+        } else if (m1 instanceof ExitMessage) {
+            final ExitMessage death = (ExitMessage) m1;
+            final ActorRef actor = death.actor;
+            final ChildEntry child = findEntry(actor);
+
+            if (child != null) {
+                log().info("Detected child death: " + child + ". cause: ", death.cause);
+                if (!restartStrategy.onChildDeath(this, child, death.cause)) {
+                    log().info("Supervisor {} giving up.", this);
+                    shutdown();
+                }
+            }
         }
     }
 
@@ -445,33 +457,16 @@ public class SupervisorActor extends BehaviorActor {
 
     @Override
     protected final Object handleLifecycleMessage(LifecycleMessage m) {
-        boolean handled = false;
-        try {
-            if (m instanceof ExitMessage) {
-                final ExitMessage death = (ExitMessage) m;
-                if (death.getWatch() != null) {
-                    final ActorRef actor = death.actor;
-                    final ChildEntry child = findEntry(actor);
-
-                    if (child != null) {
-                        log().info("Detected child death: " + child + ". cause: ", death.cause);
-                        if (!restartStrategy.onChildDeath(this, child, death.cause)) {
-                            log().info("Supervisor {} giving up.", this);
-                            shutdown();
-                        }
-                        handled = true;
-                    }
-                }
-            }
-        } catch (InterruptedException e) {
-            getStrand().interrupt();
+        if (m instanceof ExitMessage) {
+            final ExitMessage death = (ExitMessage) m;
+            if (death.getWatch() != null)
+                return death;
         }
-        if (!handled)
-            super.handleLifecycleMessage(m);
+        super.handleLifecycleMessage(m);
         return null;
     }
 
-    private boolean tryRestart(ChildEntry child, Throwable cause, long now, Iterator<ChildEntry> it, boolean isDead) throws InterruptedException {
+    private boolean tryRestart(ChildEntry child, Throwable cause, long now, Iterator<ChildEntry> it, boolean isDead) throws SuspendExecution, InterruptedException {
         verifyInActor();
         switch (child.spec.mode) {
             case TRANSIENT:
@@ -542,7 +537,7 @@ public class SupervisorActor extends BehaviorActor {
         return actor;
     }
 
-    private void shutdownChild(ChildEntry child, boolean beforeRestart) throws InterruptedException {
+    private void shutdownChild(ChildEntry child, boolean beforeRestart) throws SuspendExecution, InterruptedException {
         if (child.actor != null) {
             unwatch(child);
             if (!isLocal(child.actor) || !LocalActor.isDone(child.actor)) {
@@ -563,7 +558,7 @@ public class SupervisorActor extends BehaviorActor {
         }
     }
 
-    private void shutdownChildren() throws InterruptedException {
+    private void shutdownChildren() throws SuspendExecution, InterruptedException {
         log().info("{} shutting down all children.", this);
         for (ChildEntry child : children) {
             if (child.actor != null) {
@@ -584,7 +579,7 @@ public class SupervisorActor extends BehaviorActor {
         }
     }
 
-    private boolean joinChild(ChildEntry child) throws InterruptedException {
+    private boolean joinChild(ChildEntry child) throws SuspendExecution, InterruptedException {
         final ActorRef actor = child.actor;
 
         log().debug("Joining child {}", child);
@@ -669,68 +664,68 @@ public class SupervisorActor extends BehaviorActor {
          * Kill the supervisor along with all children.
          */
         ESCALATE {
-            @Override
-            boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
-                return false;
-            }
-        },
+                    @Override
+                    boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
+                        return false;
+                    }
+                },
         /**
          * Restart the dead actor.
          */
         ONE_FOR_ONE {
-            @Override
-            boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
-                return supervisor.tryRestart(child, cause, supervisor.now(), null, true);
-            }
-        },
+                    @Override
+                    boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException, SuspendExecution {
+                        return supervisor.tryRestart(child, cause, supervisor.now(), null, true);
+                    }
+                },
         /**
          * Kill all surviving children, and restart them all.
          */
         ALL_FOR_ONE {
-            @Override
-            boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
-                if (child.spec.mode == Supervisor.ChildMode.TEMPORARY
+                    @Override
+                    boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws SuspendExecution, InterruptedException {
+                        if (child.spec.mode == Supervisor.ChildMode.TEMPORARY
                         || (child.spec.mode == Supervisor.ChildMode.TRANSIENT && cause == null)) {
-                    if (!supervisor.tryRestart(child, cause, supervisor.now(), null, true))
-                        return false;
-                } else {
-                    supervisor.shutdownChildren();
-                    for (Iterator<ChildEntry> it = supervisor.children.iterator(); it.hasNext();) {
-                        final ChildEntry c = it.next();
-                        if (!supervisor.tryRestart(c, c == child ? cause : null, supervisor.now(), it, c == child))
-                            return false;
+                            if (!supervisor.tryRestart(child, cause, supervisor.now(), null, true))
+                                return false;
+                        } else {
+                            supervisor.shutdownChildren();
+                            for (Iterator<ChildEntry> it = supervisor.children.iterator(); it.hasNext();) {
+                                final ChildEntry c = it.next();
+                                if (!supervisor.tryRestart(c, c == child ? cause : null, supervisor.now(), it, c == child))
+                                    return false;
+                            }
+                        }
+                        return true;
                     }
-                }
-                return true;
-            }
-        },
+                },
         /**
          * Kill all children that were added to the supervisor <i>after</i> the addition of the dead actor, and restart them all
          * (including the actor whose death triggered the strategy).
          */
         REST_FOR_ONE {
-            @Override
-            boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException {
-                if (child.spec.mode == Supervisor.ChildMode.TEMPORARY
+                    @Override
+                    boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException, SuspendExecution {
+                        if (child.spec.mode == Supervisor.ChildMode.TEMPORARY
                         || (child.spec.mode == Supervisor.ChildMode.TRANSIENT && cause == null)) {
-                    if (!supervisor.tryRestart(child, cause, supervisor.now(), null, true))
-                        return false;
-                } else {
-                    boolean found = false;
-                    for (Iterator<ChildEntry> it = supervisor.children.iterator(); it.hasNext();) {
-                        final ChildEntry c = it.next();
-                        if (c == child)
-                            found = true;
+                            if (!supervisor.tryRestart(child, cause, supervisor.now(), null, true))
+                                return false;
+                        } else {
+                            boolean found = false;
+                            for (Iterator<ChildEntry> it = supervisor.children.iterator(); it.hasNext();) {
+                                final ChildEntry c = it.next();
+                                if (c == child)
+                                    found = true;
 
-                        if (found && !supervisor.tryRestart(c, c == child ? cause : null, supervisor.now(), it, c == child))
-                            return false;
+                                if (found && !supervisor.tryRestart(c, c == child ? cause : null, supervisor.now(), it, c == child))
+                                    return false;
+                            }
+                        }
+                        return true;
                     }
-                }
-                return true;
-            }
-        };
+                };
 
-        abstract boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws InterruptedException;
+        abstract boolean onChildDeath(SupervisorActor supervisor, ChildEntry child, Throwable cause) throws SuspendExecution, InterruptedException;
     }
 
     private static class ChildEntry {

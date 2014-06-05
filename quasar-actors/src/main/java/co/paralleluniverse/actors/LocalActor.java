@@ -14,6 +14,7 @@
 package co.paralleluniverse.actors;
 
 import static co.paralleluniverse.actors.ActorRefDelegateImpl.stripDelegates;
+import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.QueueChannel;
 import java.util.List;
@@ -50,18 +51,22 @@ public final class LocalActor {
         return stripDelegates(actor) instanceof LocalActorRef;
     }
 
+    @Suspendable
     public static void join(ActorRef<?> actor) throws ExecutionException, InterruptedException {
         actorOf(actor).join();
     }
 
+    @Suspendable
     public static void join(ActorRef<?> actor, long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
         actorOf(actor).join(timeout, unit);
     }
 
+    @Suspendable
     public static <V> V get(ActorRef<?> actor) throws ExecutionException, InterruptedException {
         return (V) actorOf(actor).get();
     }
 
+    @Suspendable
     public static <V> V get(ActorRef<?> actor, long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
         return (V) actorOf(actor).get(timeout, unit);
     }

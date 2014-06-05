@@ -15,6 +15,7 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
+import co.paralleluniverse.common.reflection.ReflectionUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.Objects;
@@ -29,6 +30,7 @@ import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.SuspendableUtils.VoidSuspendableCallable;
 import static co.paralleluniverse.strands.SuspendableUtils.runnableToCallable;
+import co.paralleluniverse.strands.dataflow.Val;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Serializable;
@@ -37,6 +39,7 @@ import java.lang.reflect.Method;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.util.Arrays;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -62,6 +65,7 @@ import sun.misc.Unsafe;
  * @author pron
  */
 public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
+    private static final boolean USE_VAL_FOR_RESULT = true;
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.verifyInstrumentation", "false"));
     private static final ClassContext classContext = verifyInstrumentation ? new ClassContext() : null;
     private static final boolean traceInterrupt = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.traceInterrupt", "false"));
@@ -131,7 +135,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private ParkAction prePark;
     private ParkAction postPark;
     //private boolean inExec;
-    private V result;
+    private Object result;
     private boolean getStackTrace;
     private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
     final DummyRunnable fiberRef = new DummyRunnable(this);
@@ -177,6 +181,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (MAINTAIN_ACCESS_CONTROL_CONTEXT)
             this.inheritedAccessControlContext = AccessController.getContext();
 
+        if (USE_VAL_FOR_RESULT /*&& !isVoidResult(target)*/)
+            this.result = new Val<V>();
+
         record(1, "Fiber", "<init>", "Created fiber %s", this);
     }
 
@@ -216,6 +223,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         if (verifyInstrumentation && !isInstrumented(t.getClass()))
             throw new IllegalArgumentException("Target class " + t.getClass() + " has not been instrumented.");
+    }
+
+    private boolean isVoidResult(SuspendableCallable<V> target) {
+        if (target != null)
+            return Void.class.equals(ReflectionUtil.getGenericParameterType(target.getClass(), SuspendableCallable.class, 0));
+        return Void.class.equals(ReflectionUtil.getGenericParameterType(getClass(), SuspendableCallable.class, 0));
     }
 
     public final SuspendableCallable<V> getTarget() {
@@ -674,12 +687,18 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         boolean restored = false;
         try {
-            this.result = run1(); // we jump into the continuation
+            final V res = run1(); // we jump into the continuation
 
             runningThread = null;
             state = State.TERMINATED;
-            record(1, "Fiber", "exec1", "finished %s %s res: %s", state, this, this.result);
+            record(1, "Fiber", "exec", "finished %s %s res: %s", state, this, this.result);
             monitorFiberTerminated(monitor);
+
+            if (USE_VAL_FOR_RESULT & this.result != null)
+                ((Val<V>) this.result).set(res);
+            else
+                this.result = res;
+
             return true;
         } catch (SuspendExecution ex) {
             assert ex == SuspendExecution.PARK || ex == SuspendExecution.YIELD;
@@ -704,29 +723,30 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             if (monitor != null)
                 monitor.fiberSuspended();
             return false;
-        } catch (InterruptedException e) {
-            clearRunSettings();
-            runningThread = null;
-            state = State.TERMINATED;
-            record(1, "Fiber", "exec1", "InterruptedException: %s, %s", state, this);
-            monitorFiberTerminated(monitor);
-            throw new RuntimeException(e);
         } catch (Throwable t) {
             clearRunSettings();
             runningThread = null;
             state = State.TERMINATED;
-
-            if (Debug.isDebug()) {
-                StringWriter sw = new StringWriter();
-                t.printStackTrace(new PrintWriter(sw));
-                record(1, "Fiber", "exec1", "Exception in %s %s: %s %s", state, this, t, sw.toString());
-            }
-
             monitorFiberTerminated(monitor);
 
-            onException(t);
+            if (Debug.isDebug()) {
+                if (t instanceof InterruptedException)
+                    record(1, "Fiber", "exec", "InterruptedException: %s, %s", state, this);
+                else {
+                    StringWriter sw = new StringWriter();
+                    t.printStackTrace(new PrintWriter(sw));
+                    record(1, "Fiber", "exec", "Exception in %s %s: %s %s", state, this, t, sw.toString());
+                }
+            }
 
-            throw t;
+            if (USE_VAL_FOR_RESULT)
+                ((Val<V>) this.result).setException(t);
+            if (t instanceof InterruptedException) {
+                throw new RuntimeException(t);
+            } else {
+                onException(t);
+                throw Exceptions.rethrow(t);
+            }
         } finally {
             if (!restored)
                 restoreThreadData(currentThread, old);
@@ -1048,7 +1068,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final boolean isAlive() {
-        return state != State.NEW && !task.isDone();
+        return state != State.NEW && !(USE_VAL_FOR_RESULT ? ((Val<V>)result).isDone() : task.isDone());
     }
 
     @Override
@@ -1169,7 +1189,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     StackTraceElement[] getUnparkStackTrace() {
         return task.getUnparkStackTrace();
     }
-    
+
     /**
      * Makes available the permit for this fiber, if it was not already available.
      * If the fiber was blocked on {@code park} then it will unblock.
@@ -1202,13 +1222,31 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     @Override
     @Suspendable
     public final V get() throws ExecutionException, InterruptedException {
-        return task.get();
+        if (USE_VAL_FOR_RESULT) {
+            if (isCancelled())
+                throw new CancellationException();
+            try {
+                return ((Val<V>) result).get();
+            } catch (RuntimeExecutionException t) {
+                throw new ExecutionException(t.getCause());
+            }
+        } else
+            return task.get();
     }
 
     @Override
     @Suspendable
     public final V get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
-        return task.get(timeout, unit);
+        if (USE_VAL_FOR_RESULT) {
+            if (isCancelled())
+                throw new CancellationException();
+            try {
+                return ((Val<V>) result).get(timeout, unit);
+            } catch (RuntimeExecutionException t) {
+                throw new ExecutionException(t.getCause());
+            }
+        } else
+            return task.get(timeout, unit);
     }
 
     @Override
@@ -1220,7 +1258,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     public final boolean cancel(boolean mayInterruptIfRunning) {
         if (mayInterruptIfRunning && !isDone())
             interrupt();
-        return task.cancel(mayInterruptIfRunning);
+        final boolean res = task.cancel(mayInterruptIfRunning);
+        try {
+            if (USE_VAL_FOR_RESULT && res)
+                ((Val<V>) result).setException(new CancellationException());
+        } catch (IllegalStateException e) {
+        }
+        return res;
     }
 
     @Override
@@ -1444,10 +1488,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     V getResult() {
-        return result;
+        if (USE_VAL_FOR_RESULT)
+            return null;
+        return (V) result;
     }
 
     void setResult(V result) {
+        assert !USE_VAL_FOR_RESULT;
         this.result = result;
     }
 

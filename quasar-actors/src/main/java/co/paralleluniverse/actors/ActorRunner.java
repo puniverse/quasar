@@ -16,6 +16,7 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
@@ -89,16 +90,19 @@ class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
     }
 
     @Override
+    @Suspendable
     public void join() throws ExecutionException, InterruptedException {
         strand.join();
     }
 
     @Override
+    @Suspendable
     public void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
         strand.join(timeout, unit);
     }
 
     @Override
+    @Suspendable
     public final V get() throws InterruptedException, ExecutionException {
         final Strand s = strand;
         if (s == null)
@@ -112,6 +116,7 @@ class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
     }
 
     @Override
+    @Suspendable
     public final V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         if (strand instanceof Fiber)
             return ((Fiber<V>) strand).get(timeout, unit);

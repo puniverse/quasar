@@ -21,12 +21,16 @@ import java.util.concurrent.TimeUnit;
  * @author pron
  */
 public interface Joinable<V> {
+    @Suspendable
     void join() throws ExecutionException, InterruptedException;
 
+    @Suspendable
     void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, java.util.concurrent.TimeoutException;
 
+    @Suspendable
     V get() throws ExecutionException, InterruptedException;
 
+    @Suspendable
     V get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, java.util.concurrent.TimeoutException;
 
     boolean isDone();
