@@ -82,6 +82,12 @@ public final class Stack implements Serializable {
         methodTOS = -1;
     }
 
+    // for testing/benchmarking only
+    void resetStack() {
+        Arrays.fill(method, 0); // Arrays.fill(method, 0, methodTOS + 1, 0);
+        resumeStack();
+    }
+
     /**
      * called at the beginning of a method
      *
@@ -107,10 +113,10 @@ public final class Stack implements Serializable {
     public final boolean isFirstInStackOrPushed() {
         boolean p = pushed;
         pushed = false;
-        
+
         if (methodTOS == 1 | p)
             return true;
-        
+
         // not first, but nextMethodEntry returned 0: revert changes
         methodTOS -= 2;
         curMethodSP = method[methodTOS - 1];

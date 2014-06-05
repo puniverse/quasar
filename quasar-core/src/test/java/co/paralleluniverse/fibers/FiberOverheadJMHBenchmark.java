@@ -60,6 +60,7 @@ public class FiberOverheadJMHBenchmark {
         res = 0;
         exec(fiber);
         exec(fiber);
+        fiber2.reset();
         return res;
     }
 
@@ -67,7 +68,7 @@ public class FiberOverheadJMHBenchmark {
     public Object fiberNoPark() {
         res = 0;
         exec(fiber2);
-        exec(fiber2);
+        fiber2.reset();
         return res;
     }
 
@@ -148,23 +149,32 @@ public class FiberOverheadJMHBenchmark {
     }
 }
 
-//# Run complete. Total time: 00:11:16
+
+//# Run complete. Total time: 00:17:02
 //
-//Benchmark                                  (DEPTH) (STACK)   Mode   Samples        Score  Score error    Units
-//c.p.f.FiberOverheadJMHBenchmark.baseline         3      16   avgt         5       17.278        0.480    ns/op
-//c.p.f.FiberOverheadJMHBenchmark.baseline         3     100   avgt         5       18.303        4.226    ns/op
-//c.p.f.FiberOverheadJMHBenchmark.baseline         5      16   avgt         5       24.707        3.141    ns/op
-//c.p.f.FiberOverheadJMHBenchmark.baseline         5     100   avgt         5       24.095        3.880    ns/op
-//c.p.f.FiberOverheadJMHBenchmark.baseline        10      16   avgt         5       41.161        3.055    ns/op
-//c.p.f.FiberOverheadJMHBenchmark.baseline        10     100   avgt         5       39.576        1.520    ns/op
-//c.p.f.FiberOverheadJMHBenchmark.baseline        20      16   avgt         5       69.398        7.747    ns/op
-//c.p.f.FiberOverheadJMHBenchmark.baseline        20     100   avgt         5       69.023        1.179    ns/op
-//c.p.f.FiberOverheadJMHBenchmark.fiber            3      16   avgt         5      234.897        5.489    ns/op
-//c.p.f.FiberOverheadJMHBenchmark.fiber            3     100   avgt         5      239.196       17.656    ns/op
-//c.p.f.FiberOverheadJMHBenchmark.fiber            5      16   avgt         5      239.292        5.923    ns/op
-//c.p.f.FiberOverheadJMHBenchmark.fiber            5     100   avgt         5      242.205       14.829    ns/op
-//c.p.f.FiberOverheadJMHBenchmark.fiber           10      16   avgt         5      264.956        7.680    ns/op
-//c.p.f.FiberOverheadJMHBenchmark.fiber           10     100   avgt         5      282.650       46.519    ns/op
-//c.p.f.FiberOverheadJMHBenchmark.fiber           20      16   avgt         5      370.537       42.557    ns/op
-//c.p.f.FiberOverheadJMHBenchmark.fiber           20     100   avgt         5      315.896       10.556    ns/op
-//
+//Benchmark                                     (DEPTH) (STACK)   Mode   Samples        Score  Score error    Units
+//c.p.f.FiberOverheadJMHBenchmark.baseline            3      16   avgt         5       17.505        1.383    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.baseline            3     100   avgt         5       17.765        1.090    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.baseline            5      16   avgt         5       24.441        4.977    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.baseline            5     100   avgt         5       24.013        1.754    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.baseline           10      16   avgt         5       40.672        3.638    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.baseline           10     100   avgt         5       40.686        3.991    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.baseline           20      16   avgt         5       72.567        2.746    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.baseline           20     100   avgt         5       87.319       79.382    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiber               3      16   avgt         5      260.138       58.866    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiber               3     100   avgt         5      268.705      171.018    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiber               5      16   avgt         5      253.835       38.156    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiber               5     100   avgt         5      248.000        8.047    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiber              10      16   avgt         5      311.743       99.902    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiber              10     100   avgt         5      388.300       55.353    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiber              20      16   avgt         5      418.294      169.621    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiber              20     100   avgt         5      403.151       68.215    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiberNoPark         3      16   avgt         5      138.126       56.220    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiberNoPark         3     100   avgt         5      230.779      134.021    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiberNoPark         5      16   avgt         5      305.320       94.170    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiberNoPark         5     100   avgt         5      301.954       81.243    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiberNoPark        10      16   avgt         5      301.045      216.137    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiberNoPark        10     100   avgt         5      228.395      151.494    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiberNoPark        20      16   avgt         5      222.974       61.968    ns/op
+//c.p.f.FiberOverheadJMHBenchmark.fiberNoPark        20     100   avgt         5      193.012       95.646    ns/op
+
