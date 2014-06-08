@@ -28,6 +28,8 @@ import java.util.concurrent.TimeUnit;
 public interface Supervisor extends Behavior {
     /**
      * Adds a new child actor to the supervisor. If the child has not been started, it will be started by the supervisor.
+     * This method does not block when called from within the Supervisor's context, so, in particular, it may be called by
+     * an actor constructor, constructed by the supervisor.
      *
      * @param spec the {@link ChildSpec child's spec}.
      * @return the actor (possibly after it has been started by the supervisor).
@@ -37,6 +39,8 @@ public interface Supervisor extends Behavior {
 
     /**
      * Retrieves a child actor by its {@link ChildSpec#getId() id}
+     * This method does not block when called from within the Supervisor's context, so, in particular, it may be called by
+     * an actor constructor, constructed by the supervisor.
      *
      * @param id the child's {@link ChildSpec#getId() id} in the supervisor.
      * @return the child, if found; {@code null} if the child was not found
@@ -47,6 +51,8 @@ public interface Supervisor extends Behavior {
 
     /**
      * Removes a child actor from the supervisor.
+     * This method does not block when called from within the Supervisor's context, so, in particular, it may be called by
+     * an actor constructor, constructed by the supervisor.
      *
      * @param id        the child's {@link ChildSpec#getId() id} in the supervisor.
      * @param terminate whether or not the supervisor should terminate the actor
