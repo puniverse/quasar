@@ -673,6 +673,9 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      * By default, if the message is an {@link ExitMessage} and its {@link ExitMessage#getWatch() watch} is {@code null}, i.e. it's a result
      * of a {@link #link(ActorRef) link} rather than a {@link #watch(ActorRef) watch}, it will throw a {@link LifecycleException}, which will,
      * in turn, cause this exception to be thrown by the call to {@code receive}.
+     * 
+     * This method is not allowed to block. If you want to block as a result of a lifecycle message, return the message from this method 
+     * (rather than returning {@code null}), and have it processed by the caller to {@code receive}.
      *
      * @param m the message
      * @return {@code null} if the message has been processed and should not be returned by {@code receive}
