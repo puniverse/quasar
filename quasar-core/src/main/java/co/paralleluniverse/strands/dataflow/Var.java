@@ -170,13 +170,8 @@ public class Var<T> {
         }
 
         void signalNewValue(Var var) {
-            try {
-                System.out.println("Signalling " + this + " " + var + " " + var.get());
-                hasNewVal = true;
-                unpark(var);
-            } catch (InterruptedException | SuspendExecution e) {
-                throw new AssertionError(e);
-            }
+            hasNewVal = true;
+            unpark(var);
         }
 
         @Override
