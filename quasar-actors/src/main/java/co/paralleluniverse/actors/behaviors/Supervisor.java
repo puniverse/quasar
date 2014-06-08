@@ -62,6 +62,18 @@ public interface Supervisor extends Behavior {
     boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException;
 
     /**
+     * Removes a child actor from the supervisor.
+     * This method does not block when called from within the Supervisor's context, so, in particular, it may be called by
+     * an actor constructor, constructed by the supervisor.
+     *
+     * @param actor     the child actor
+     * @param terminate whether or not the supervisor should terminate the actor
+     * @return {@code true} if the actor has been successfully removed from the supervisor; {@code false} if the child was not found.
+     * @throws InterruptedException
+     */
+    boolean removeChild(ActorRef<?> actor, boolean terminate) throws SuspendExecution, InterruptedException;
+
+    /**
      * Determines whether a child (supervised) actor should be restarted if the supervisor's {@link SupervisorActor.RestartStrategy restart strategy}
      * states that it should be restarted.
      */

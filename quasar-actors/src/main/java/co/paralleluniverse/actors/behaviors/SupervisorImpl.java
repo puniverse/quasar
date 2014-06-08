@@ -58,6 +58,15 @@ public class SupervisorImpl extends BehaviorImpl implements Supervisor {
     }
 
     @Override
+    public boolean removeChild(ActorRef<?> actor, boolean terminate) throws SuspendExecution, InterruptedException {
+        if (isInActor())
+            return SupervisorActor.currentSupervisor().removeChild(actor, terminate);
+
+        return (Boolean) call(this, new RemoveChildMessage(RequestReplyHelper.from(), null, actor, terminate));
+    }
+
+    
+    @Override
     public String toString() {
         return "Supervisor{" + super.toString() + "}";
     }

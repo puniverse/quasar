@@ -328,7 +328,7 @@ public class SupervisorActor extends BehaviorActor {
                     reply(req, addChild(((AddChildMessage) req).spec));
                 } else if (req instanceof RemoveChildMessage) {
                     final RemoveChildMessage m = (RemoveChildMessage) req;
-                    reply(req, removeChild(m.name, m.terminate));
+                    reply(req, m.name instanceof ActorRef ? removeChild((ActorRef<?>)m.name, m.terminate) : removeChild(m.name, m.terminate));
                 }
             } catch (Exception e) {
                 replyError(req, e);
@@ -442,7 +442,34 @@ public class SupervisorActor extends BehaviorActor {
         }
 
         removeChild(child, null);
+        return true;
+    }
 
+    /**
+     * Removes a child actor from the supervisor.
+     *
+     * @param actor     the actor
+     * @param terminate whether or not the supervisor should terminate the actor
+     * @return {@code true} if the actor has been successfully removed from the supervisor; {@code false} if the child was not found.
+     * @throws InterruptedException
+     */
+    protected final boolean removeChild(ActorRef actor, boolean terminate) throws SuspendExecution, InterruptedException {
+        verifyInActor();
+        final ChildEntry child = findEntry(actor);
+        if (child == null) {
+            log().warn("Child {} not found", actor);
+            return false;
+        }
+
+        log().debug("Removing child {}", child);
+        if (child.actor != null) {
+            unwatch(child);
+
+            if (terminate)
+                shutdownChild(child, false);
+        }
+
+        removeChild(child, null);
         return true;
     }
 
