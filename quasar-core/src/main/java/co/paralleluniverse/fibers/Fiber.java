@@ -598,7 +598,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     public static boolean interrupted() {
-        final Fiber current = verifySuspend();
+        final Fiber current = currentFiber();
+        if (current == null)
+            throw new IllegalStateException("Not called on a fiber");
         final boolean interrupted = current.isInterrupted();
         if (interrupted)
             current.interrupted = false;
