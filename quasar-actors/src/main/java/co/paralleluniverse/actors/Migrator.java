@@ -19,10 +19,8 @@ import co.paralleluniverse.fibers.SuspendExecution;
  *
  * @author pron
  */
-public interface GlobalRegistry {
-    Object register(ActorRef<?> actor, Object globalId) throws SuspendExecution;
-
-    void unregister(ActorRef<?> actor) throws SuspendExecution;
-    
-    <Message> ActorRef<Message> getActor(String name) throws SuspendExecution;
+public interface Migrator {
+    Object registerMigratingActor() throws SuspendExecution;
+    void migrate(Object id, Actor actor) throws SuspendExecution;
+    Actor hire(Object id) throws SuspendExecution;
 }

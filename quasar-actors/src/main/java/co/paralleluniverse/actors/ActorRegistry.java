@@ -64,7 +64,7 @@ public class ActorRegistry {
 
         LOG.info("Registering {}: {}", name, actor);
 
-        final Object globalId = globalRegistry != null ? registerGlobal(actor.ref()) : name;
+        final Object globalId = globalRegistry != null ? registerGlobal(actor.ref(), actor.getGlobalId()) : name;
         entry.globalId = globalId;
 
         actor.monitor();
@@ -72,12 +72,12 @@ public class ActorRegistry {
         return globalId;
     }
 
-    static private Object registerGlobal(final ActorRef<?> actor) {
+    static private Object registerGlobal(final ActorRef<?> actor, final Object globalId) {
         try {
             return new Fiber<Object>() {
                 @Override
                 protected Object run() throws SuspendExecution, InterruptedException {
-                    return globalRegistry.register(actor);
+                    return globalRegistry.register(actor, globalId);
                 }
             }.start().get();
         } catch (ExecutionException e) {

@@ -113,6 +113,17 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         ref.setActor(this);
     }
 
+    /**
+     * This constructor must only be called by hot code-swap actors, and never, ever, called by application code.
+     */
+    protected Actor() {
+        this.ref = null;
+        this.wrapperRef = null;
+        this.flightRecorder = null;
+        this.runner = null;
+        this.classRef = null;
+    }
+
     private void checkReplacement() {
         Actor<Message, V> impl = ActorLoader.getReplacementFor(this);
         ref.setActor(impl);
@@ -131,17 +142,6 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         this(name, mailboxConfig);
         if (strand != null)
             runner.setStrand(strand);
-    }
-
-    /**
-     * This constructor must only be referenced by hot code-swap actors, and never, ever, called by application code.
-     */
-    protected Actor() {
-        this.ref = null;
-        this.wrapperRef = null;
-        this.flightRecorder = null;
-        this.runner = null;
-        this.classRef = null;
     }
 
     void onCodeChange0() {
@@ -622,6 +622,9 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         if (!(runner.getStrand() instanceof Fiber))
             currentActor.set(this);
         try {
+            if (this instanceof MigratingActor && globalId == null)
+                this.globalId = MigrationService.registerMigratingActor();
+            
             result = doRun();
             die(null);
             return result;
@@ -673,8 +676,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      * By default, if the message is an {@link ExitMessage} and its {@link ExitMessage#getWatch() watch} is {@code null}, i.e. it's a result
      * of a {@link #link(ActorRef) link} rather than a {@link #watch(ActorRef) watch}, it will throw a {@link LifecycleException}, which will,
      * in turn, cause this exception to be thrown by the call to {@code receive}.
-     * 
-     * This method is not allowed to block. If you want to block as a result of a lifecycle message, return the message from this method 
+     *
+     * This method is not allowed to block. If you want to block as a result of a lifecycle message, return the message from this method
      * (rather than returning {@code null}), and have it processed by the caller to {@code receive}.
      *
      * @param m the message

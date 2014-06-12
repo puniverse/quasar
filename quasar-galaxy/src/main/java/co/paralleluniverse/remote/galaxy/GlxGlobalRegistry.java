@@ -52,7 +52,7 @@ public class GlxGlobalRegistry implements GlobalRegistry {
     }
 
     @Override
-    public Object register(ActorRef<?> actor) throws SuspendExecution {
+    public Object register(ActorRef<?> actor, Object globalId) throws SuspendExecution {
         final String rootName = actor.getName();
 
         LOG.info("Registering actor {} at root {}", actor, rootName);
@@ -62,7 +62,10 @@ public class GlxGlobalRegistry implements GlobalRegistry {
         serlock.lock();
         try {
             try {
-                final long root = store.getRoot(rootName, txn);
+                final long root = store.getRoot(rootName, globalId != null ? (Long) globalId : -1, txn);
+                // assert globalId == null || ((Long) globalId) == root;
+                if (globalId != null && ((Long) globalId) != root)
+                    throw new AssertionError();
                 store.getx(root, txn);
                 store.set(root, ser.write(actor), txn);
                 LOG.debug("commit Registering actor {} at rootId  {}", actor, root);
@@ -173,7 +176,7 @@ public class GlxGlobalRegistry implements GlobalRegistry {
                 store.abort(txn);
                 throw new RuntimeException("Actor discovery failed");
             } finally {
-                if(!error)
+                if (!error)
                     store.commit(txn);
             }
 

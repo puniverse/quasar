@@ -109,8 +109,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return idGen.incrementAndGet();
     }
     //
-    private final FiberScheduler scheduler;
-    private final FiberTask<V> task;
+    private final transient FiberScheduler scheduler;
+    private final transient FiberTask<V> task;
     final Stack stack;
     // private final Strand parent; // retaining the parent is a huge, complex memory leak
     private final String name;
@@ -122,16 +122,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private long run;
     private boolean noPreempt;
     // private int preemptionCredits;
-    private Thread runningThread;
+    private transient Thread runningThread;
     private final SuspendableCallable<V> target;
     private ClassLoader contextClassLoader;
     private AccessControlContext inheritedAccessControlContext;
     private Object fiberLocals;
     private Object inheritableFiberLocals;
     private long sleepStart;
-    private Future<Void> timeoutTask;
-    private ParkAction prePark;
-    private ParkAction postPark;
+    private transient Future<Void> timeoutTask;
+    private transient ParkAction prePark;
+    private transient ParkAction postPark;
     //private boolean inExec;
     private Object result;
     private boolean getStackTrace;

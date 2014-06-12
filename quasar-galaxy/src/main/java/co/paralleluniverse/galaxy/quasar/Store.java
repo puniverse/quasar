@@ -36,7 +36,9 @@ public interface Store {
     int getMaxItemSize();
 
     /**
-     * Creates a new transaction. <p>A transaction can be used by more than one thread.
+     * Creates a new transaction.
+     * <p>
+     * A transaction can be used by more than one thread.
      *
      * @return A newly created transaction.
      */
@@ -50,7 +52,9 @@ public interface Store {
     void commit(StoreTransaction txn) throws InterruptedException;
 
     /**
-     * Ends a transaction after a failure. <p> <b>This method must be called only after {@link #rollback(co.paralleluniverse.galaxy.StoreTransaction) rollback()}
+     * Ends a transaction after a failure.
+     * <p>
+     * <b>This method must be called only after {@link #rollback(co.paralleluniverse.galaxy.StoreTransaction) rollback()}
      * has been called, or a manual rollback has been done.</b>
      *
      * @param txn The current transaction, which we wish to complete after failure.
@@ -58,7 +62,9 @@ public interface Store {
     void abort(StoreTransaction txn) throws InterruptedException;
 
     /**
-     * Reverts {@code set} operations that were performed during the transactions. <p>This method does not complete the
+     * Reverts {@code set} operations that were performed during the transactions.
+     * <p>
+     * This method does not complete the
      * transaction. {@link #commit(co.paralleluniverse.galaxy.StoreTransaction) endTransaction()} must still be called.
      *
      * @param txn The current transaction.
@@ -67,7 +73,8 @@ public interface Store {
 
     /**
      * Releases a line that's been pinned to this node by one of the {@code gets}, {@code getx}, {@code put} operations.
-     * <p>This method must be called to release a line used in one of the {@code gets}, {@code getx}, {@code put}
+     * <p>
+     * This method must be called to release a line used in one of the {@code gets}, {@code getx}, {@code put}
      * operations, if they were called with a {@code null} transaction.
      *
      * @param id
@@ -82,25 +89,39 @@ public interface Store {
      *
      * @param rootName The root's name.
      * @return The root item's ID.
-     * @param txn The current transaction. May not be null.
+     * @param txn      The current transaction. May not be null.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
     long getRoot(String rootName, StoreTransaction txn) throws TimeoutException;
 
     /**
+     * Gets or possibly creates a root data item. The same item ID will be returned when this method is called on any
+     * cluster node with the same root name.
+     * <p/>
+     * You can test if the root has been newly created by this transaction by calling .
+     *
+     * @param rootName The root's name.
+     * @param id       If the root does not yet exist, it will be created and given this ID.
+     * @return The root item's ID.
+     * @param txn      The current transaction. May not be null.
+     * @throws TimeoutException This exception is thrown if the operation has times-out.
+     */
+    long getRoot(String rootName, long id, StoreTransaction txn) throws TimeoutException;
+
+    /**
      * Tests whether a root item has been newly created.
      *
      * @param rootId The root item's ID.
-     * @param txn The current transaction.
+     * @param txn    The current transaction.
      * @return {@code true} if the root has been created by the current transaction; {@code false} if it existed before
-     * current transaction.
+     *         current transaction.
      */
     boolean isRootCreated(long rootId, StoreTransaction txn);
 
     /**
      * Sets a listener listening for local cache events on the given item.
      *
-     * @param id The item's ID.
+     * @param id       The item's ID.
      * @param listener The listener.
      */
     void setListener(long id, CacheListener listener);
@@ -111,9 +132,9 @@ public interface Store {
      * structures might require allocating an array of items.<br/>
      *
      * @param count The number of items to allocate.
-     * @param txn The current transaction. May not be null.
+     * @param txn   The current transaction. May not be null.
      * @return The id of the first item in the allocated array. The following {@code count - 1} IDs belong to the
-     * following elements of the array.
+     *         following elements of the array.
      * @throws TimeoutException
      */
     long alloc(int count, StoreTransaction txn) throws TimeoutException, SuspendExecution;
@@ -122,7 +143,7 @@ public interface Store {
      * Puts a new item into the store and returns its (newly allocated) ID.<p/>
      *
      * @param data The item's contents.
-     * @param txn The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
+     * @param txn  The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
      * @return The item's (newly allocated) ID.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
@@ -132,7 +153,7 @@ public interface Store {
      * Puts a new item into the store and returns its (newly allocated) ID.<p/>
      *
      * @param data The item's contents.
-     * @param txn The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
+     * @param txn  The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
      * @return The item's (newly allocated) ID.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
@@ -142,7 +163,7 @@ public interface Store {
      * Puts a new item into the store and returns its (newly allocated) ID.<p/>
      *
      * @param object The item's contents.
-     * @param txn The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
+     * @param txn    The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
      * @return The item's (newly allocated) ID.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
@@ -160,7 +181,7 @@ public interface Store {
     /**
      * Retrieves a given data item into a {@link Persistable}.
      *
-     * @param id The item's ID.
+     * @param id     The item's ID.
      * @param object The object into which the contents of the item will be written.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
@@ -173,7 +194,7 @@ public interface Store {
      * If the item is indeed found on the hinted node, the retrieval performance might be superior. If not, the method
      * will still work, but performance may be worse.
      *
-     * @param id The item's ID.
+     * @param id       The item's ID.
      * @param nodeHint The ID of the node the data item is probably owned by.
      * @return The contents of the item.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
@@ -187,9 +208,9 @@ public interface Store {
      * If the item is indeed found on the hinted node, the retrieval performance might be superior. If not, the method
      * will still work, but performance may be worse.
      *
-     * @param id The item's ID.
+     * @param id       The item's ID.
      * @param nodeHint The ID of the node the data item is probably owned by.
-     * @param object The object into which the contents of the item will be written.
+     * @param object   The object into which the contents of the item will be written.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
     void get(long id, short nodeHint, Persistable object) throws TimeoutException, SuspendExecution;
@@ -202,7 +223,7 @@ public interface Store {
      * If the item is indeed found on the hinted node, the retrieval performance might be superior. If not, the method
      * will still work, but performance may be worse.
      *
-     * @param id The item's ID.
+     * @param id      The item's ID.
      * @param ownerOf The ID of an item whose owner is probably the owner of the requested item as well.
      * @return The contents of the item.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
@@ -217,9 +238,9 @@ public interface Store {
      * If the item is indeed found on the hinted node, the retrieval performance might be superior. If not, the method
      * will still work, but performance may be worse.
      *
-     * @param id The item's ID.
+     * @param id      The item's ID.
      * @param ownerOf The ID of an item whose owner is probably the owner of the requested item as well.
-     * @param object The object into which the contents of the item will be written.
+     * @param object  The object into which the contents of the item will be written.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
     void getFromOwner(long id, long ownerOf, Persistable object) throws TimeoutException, SuspendExecution;
@@ -229,7 +250,7 @@ public interface Store {
      * other nodes will be able to read the same item, no node will be able to update it until until we {@link #commit(co.paralleluniverse.galaxy.StoreTransaction) end the transaction}
      * or {@link #release(long) release} it.
      *
-     * @param id The item's ID.
+     * @param id  The item's ID.
      * @param txn The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
      * @return The contents of the item.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
@@ -242,9 +263,9 @@ public interface Store {
      * until we {@link #commit(co.paralleluniverse.galaxy.StoreTransaction) end the transaction} or {@link #release(long) release}
      * it.
      *
-     * @param id The item's ID.
+     * @param id     The item's ID.
      * @param object The object into which the contents of the item will be written.
-     * @param txn The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
+     * @param txn    The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
     void gets(long id, Persistable object, StoreTransaction txn) throws TimeoutException, SuspendExecution;
@@ -258,9 +279,9 @@ public interface Store {
      * If the item is indeed found on the hinted node, the retrieval performance might be superior. If not, the method
      * will still work, but performance may be worse.
      *
-     * @param id The item's ID.
+     * @param id       The item's ID.
      * @param nodeHint The ID of the node the data item is probably owned by.
-     * @param txn The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
+     * @param txn      The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
      * @return The contents of the item.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
@@ -275,10 +296,10 @@ public interface Store {
      * If the item is indeed found on the hinted node, the retrieval performance might be superior. If not, the method
      * will still work, but performance may be worse.
      *
-     * @param id The item's ID.
+     * @param id       The item's ID.
      * @param nodeHint The ID of the node the data item is probably owned by.
-     * @param txn The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
-     * @param object The object into which the contents of the item will be written.
+     * @param txn      The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
+     * @param object   The object into which the contents of the item will be written.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
     void gets(long id, short nodeHint, Persistable object, StoreTransaction txn) throws TimeoutException, SuspendExecution;
@@ -293,9 +314,9 @@ public interface Store {
      * If the item is indeed found on the hinted node, the retrieval performance might be superior. If not, the method
      * will still work, but performance may be worse.
      *
-     * @param id The item's ID.
+     * @param id      The item's ID.
      * @param ownerOf The ID of an item whose owner is probably the owner of the requested item as well.
-     * @param txn The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
+     * @param txn     The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
      * @return The contents of the item.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
@@ -311,10 +332,10 @@ public interface Store {
      * If the item is indeed found on the hinted node, the retrieval performance might be superior. If not, the method
      * will still work, but performance may be worse.
      *
-     * @param id The item's ID.
+     * @param id      The item's ID.
      * @param ownerOf The ID of an item whose owner is probably the owner of the requested item as well.
-     * @param object The object into which the contents of the item will be written.
-     * @param txn The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
+     * @param object  The object into which the contents of the item will be written.
+     * @param txn     The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
     void getsFromOwner(long id, long ownerOf, Persistable object, StoreTransaction txn) throws TimeoutException, SuspendExecution;
@@ -324,7 +345,7 @@ public interface Store {
      * node will be able to read or update the same item until until we {@link #commit(co.paralleluniverse.galaxy.StoreTransaction) end the transaction}
      * or {@link #release(long) release} it. it.
      *
-     * @param id The item's ID.
+     * @param id  The item's ID.
      * @return The contents of the item.
      * @param txn The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
@@ -336,9 +357,9 @@ public interface Store {
      * this means is that no other node will be able to read or update the same item until until we {@link #commit(co.paralleluniverse.galaxy.StoreTransaction) end the transaction}
      * or {@link #release(long) release} it.
      *
-     * @param id The item's ID.
+     * @param id     The item's ID.
      * @param object The object into which the contents of the item will be written.
-     * @param txn The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
+     * @param txn    The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
     void getx(long id, Persistable object, StoreTransaction txn) throws TimeoutException, SuspendExecution;
@@ -352,9 +373,9 @@ public interface Store {
      * If the item is indeed found on the hinted node, the retrieval performance might be superior. If not, the method
      * will still work, but performance may be worse.
      *
-     * @param id The item's ID.
+     * @param id       The item's ID.
      * @param nodeHint The ID of the node the data item is probably owned by.
-     * @param txn The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
+     * @param txn      The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
      * @return The contents of the item.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
@@ -369,10 +390,10 @@ public interface Store {
      * If the item is indeed found on the hinted node, the retrieval performance might be superior. If not, the method
      * will still work, but performance may be worse.
      *
-     * @param id The item's ID.
+     * @param id       The item's ID.
      * @param nodeHint The ID of the node the data item is probably owned by.
-     * @param object The object into which the contents of the item will be written.
-     * @param txn The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
+     * @param object   The object into which the contents of the item will be written.
+     * @param txn      The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
     void getx(long id, short nodeHint, Persistable object, StoreTransaction txn) throws TimeoutException, SuspendExecution;
@@ -389,9 +410,9 @@ public interface Store {
      * If the item is indeed found on the hinted node, the retrieval performance might be superior. If not, the method
      * will still work, but performance may be worse.
      *
-     * @param id The item's ID.
+     * @param id      The item's ID.
      * @param ownerOf The ID of an item whose owner is probably the owner of the requested item as well.
-     * @param txn The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
+     * @param txn     The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
      * @return The contents of the item.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
@@ -409,10 +430,10 @@ public interface Store {
      * If the item is indeed found on the hinted node, the retrieval performance might be superior. If not, the method
      * will still work, but performance may be worse.
      *
-     * @param id The item's ID.
+     * @param id      The item's ID.
      * @param ownerOf The ID of an item whose owner is probably the owner of the requested item as well.
-     * @param object The object into which the contents of the item will be written.
-     * @param txn The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
+     * @param object  The object into which the contents of the item will be written.
+     * @param txn     The current transaction. May be null, in which case you must later call {@link #release(long) release(id)}.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
     void getxFromOwner(long id, long ownerOf, Persistable object, StoreTransaction txn) throws TimeoutException, SuspendExecution;
@@ -421,9 +442,9 @@ public interface Store {
      * Gains ownership of an item and sets its contents. Upon return from this method, the item will be pinned if and
      * only if it had been pinned when the method was called.
      *
-     * @param id The item's ID.
+     * @param id   The item's ID.
      * @param data The contents to write into the item.
-     * @param txn The current transaction. May be null.
+     * @param txn  The current transaction. May be null.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
     void set(long id, byte[] data, StoreTransaction txn) throws TimeoutException, SuspendExecution;
@@ -432,9 +453,9 @@ public interface Store {
      * Gains ownership of an item and sets its contents. Upon return from this method, the item will be pinned if and
      * only if it had been pinned when the method was called.
      *
-     * @param id The item's ID.
+     * @param id   The item's ID.
      * @param data The contents to write into the item.
-     * @param txn The current transaction. May be null.
+     * @param txn  The current transaction. May be null.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
     void set(long id, ByteBuffer data, StoreTransaction txn) throws TimeoutException, SuspendExecution;
@@ -443,9 +464,9 @@ public interface Store {
      * Gains ownership of an item and sets its contents. Upon return from this method, the item will be pinned if and
      * only if it had been pinned when the method was called.
      *
-     * @param id The item's ID.
+     * @param id     The item's ID.
      * @param object The contents to write into the item.
-     * @param txn The current transaction. May be null.
+     * @param txn    The current transaction. May be null.
      * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
     void set(long id, Persistable object, StoreTransaction txn) throws TimeoutException, SuspendExecution;
@@ -467,7 +488,7 @@ public interface Store {
      * might improve performance if we know that the given nodes will soon be interested in reading the item (e.g. as a
      * result of a message we're about to send them).
      *
-     * @param id The ID of item to push.
+     * @param id      The ID of item to push.
      * @param toNodes The nodes to which the item is to be pushed.
      */
     void push(long id, short... toNodes);
@@ -479,7 +500,7 @@ public interface Store {
      * might improve performance if we know that the given node will soon be interested in reading or updating the item
      * (e.g. as a result of a message we're about to send it).
      *
-     * @param id The ID of item to push.
+     * @param id     The ID of item to push.
      * @param toNode The node to which the item is to be pushed.
      */
     void pushx(long id, short toNode);

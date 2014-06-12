@@ -124,5 +124,4 @@ class KryoObjectOutputStream extends OutputStream implements DataOutput, ObjectO
     public void close() throws IOException {
         out.close();
     }
-    
 }

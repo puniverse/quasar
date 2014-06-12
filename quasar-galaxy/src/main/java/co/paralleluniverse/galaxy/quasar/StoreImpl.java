@@ -209,6 +209,11 @@ public class StoreImpl implements Store {
     }
 
     @Override
+    public long getRoot(String rootName, long id, StoreTransaction txn) throws TimeoutException {
+        return store.getRoot(rootName, id, txn);
+    }
+    
+    @Override
     public boolean isRootCreated(long rootId, StoreTransaction txn) {
         return store.isRootCreated(rootId, txn);
     }

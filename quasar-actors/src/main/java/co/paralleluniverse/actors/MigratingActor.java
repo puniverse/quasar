@@ -13,16 +13,10 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-
 /**
  *
  * @author pron
  */
-public interface GlobalRegistry {
-    Object register(ActorRef<?> actor, Object globalId) throws SuspendExecution;
-
-    void unregister(ActorRef<?> actor) throws SuspendExecution;
+public interface MigratingActor {
     
-    <Message> ActorRef<Message> getActor(String name) throws SuspendExecution;
 }

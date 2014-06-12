@@ -14,12 +14,16 @@
 package co.paralleluniverse.concurrent.util;
 
 import co.paralleluniverse.common.util.UtilUnsafe;
+import java.io.PrintStream;
 import java.lang.ref.Reference;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.security.AccessControlContext;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import sun.misc.Unsafe;
 
 /**
@@ -138,6 +142,22 @@ public class ThreadAccess {
             final ThreadLocal key = ((Reference<ThreadLocal>) entry).get();
             final Object value = threadLocalMapEntryValueField.get(entry);
             return threadLocalMapEntryConstructor.newInstance(key, value);
+        } catch (Exception ex) {
+            throw new AssertionError(ex);
+        }
+    }
+
+    public static Map<ThreadLocal, Object> toMap(Object threadLocalMap) {
+        try {
+            final Map<ThreadLocal, Object> map = new HashMap<>();
+            Object table = threadLocalMapTableField.get(threadLocalMap);
+            final int len = Array.getLength(table);
+            for (int i = 0; i < len; i++) {
+                Object entry = Array.get(table, i);
+                if (entry != null)
+                    map.put(((Reference<ThreadLocal>) entry).get(), threadLocalMapEntryValueField.get(entry));
+            }
+            return map;
         } catch (Exception ex) {
             throw new AssertionError(ex);
         }
