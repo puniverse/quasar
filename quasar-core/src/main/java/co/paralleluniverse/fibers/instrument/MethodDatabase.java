@@ -217,20 +217,8 @@ public class MethodDatabase implements Log {
 
     public ClassEntry getOrLoadClassEntry(String className) {
         ClassEntry entry = getClassEntry(className);
-        if (entry == null) {
-            if (cl != null) {
-                log(LogLevel.INFO, "Reading class: %s", className);
-
-                CheckInstrumentationVisitor civ = checkClass(className);
-                if (civ == null)
-                    log(LogLevel.INFO, "Class not found: %s", className);
-                else
-                    entry = civ.getClassEntry();
-            } else
-                log(LogLevel.INFO, "Can't check class: %s", className);
-
-            recordSuspendableMethods(className, entry);
-        }
+        if (entry == null)
+            entry = checkClass(className);
         return entry;
     }
 
@@ -241,25 +229,8 @@ public class MethodDatabase implements Log {
         if (isYieldMethod(className, methodName))
             return SUSPENDABLE;
 
-        ClassEntry entry = getClassEntry(className);
+        final ClassEntry entry = getOrLoadClassEntry(className);
         if (entry == null) {
-            entry = CLASS_NOT_FOUND;
-
-            if (cl != null) {
-                log(LogLevel.INFO, "Trying to read class: %s", className);
-
-                CheckInstrumentationVisitor civ = checkClass(className);
-                if (civ == null)
-                    log(LogLevel.WARNING, "Class not found: %s", className);
-                else
-                    entry = civ.getClassEntry();
-            } else
-                log(LogLevel.WARNING, "Can't check class: %s", className);
-
-            recordSuspendableMethods(className, entry);
-        }
-
-        if (entry == CLASS_NOT_FOUND) {
             if (isJavaCore(className))
                 return MAYBE_CORE;
 
@@ -376,23 +347,33 @@ public class MethodDatabase implements Log {
         return workList;
     }
 
-    /**
-     * <p>
-     * Overwrite this function if library is used in a transformation chain.</p>
-     * <p>
-     * This method must create a new CheckInstrumentationVisitor and visit the
-     * specified class with it.</p>
-     *
-     * @param className the class the needs to be analysed
-     * @return a new CheckInstrumentationVisitor that has visited the specified
-     *         class or null if the class was not found
-     */
-    protected CheckInstrumentationVisitor checkClass(String className) {
-        InputStream is = cl.getResourceAsStream(className + ".class");
-        if (is != null)
-            return checkFileAndClose(is, className);
+    protected ClassEntry checkClass(String className) {
+        ClassEntry entry = null;
+        if (cl != null) {
+            log(LogLevel.INFO, "Reading class: %s", className);
 
-        return null;
+            final InputStream is = cl.getResourceAsStream(className + ".class");
+            entry = getClassEntry(className); // getResourceAsStream may have triggered instrumentation
+            if (entry == null) {
+                CheckInstrumentationVisitor civ = null;
+                if (is != null)
+                    civ = checkFileAndClose(is, className);
+                if (civ != null) {
+                    entry = civ.getClassEntry();
+                    recordSuspendableMethods(className, entry);
+                } else
+                    log(LogLevel.INFO, "Class not found: %s", className);
+            } else {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    error(className, e);
+                }
+            }
+        } else
+            log(LogLevel.INFO, "Can't check class: %s", className);
+
+        return entry;
     }
 
     private CheckInstrumentationVisitor checkFileAndClose(InputStream is, String name) {
@@ -500,7 +481,7 @@ public class MethodDatabase implements Log {
                 || className.startsWith("org/apache/logging/log4j/")
                 || className.startsWith("org/apache/log4j/");
     }
-    
+
     private static final ClassEntry CLASS_NOT_FOUND = new ClassEntry("<class not found>");
 
     public enum SuspendableType {
