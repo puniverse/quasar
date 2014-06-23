@@ -28,7 +28,7 @@ public abstract class ActorRefImpl<Message> implements java.io.Serializable {
     //
     private volatile String name;
     private final SendPort<Object> mailbox;
-    private final LifecycleListener lifecycleListener = new ActorLifecycleListener(this, null);
+    private LifecycleListener lifecycleListener;
     protected transient final FlightRecorder flightRecorder;
 
     @Override
@@ -54,7 +54,7 @@ public abstract class ActorRefImpl<Message> implements java.io.Serializable {
     }
 
     public abstract ActorRef<Message> ref();
-    
+
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
     protected SendPort<Object> mailbox() {
@@ -115,21 +115,23 @@ public abstract class ActorRefImpl<Message> implements java.io.Serializable {
     protected abstract void removeObserverListeners(ActorRef actor);
 
     protected LifecycleListener getLifecycleListener() {
+        if (lifecycleListener == null) // maybe benign race
+            lifecycleListener = new ActorLifecycleListener(ref(), null);
         return lifecycleListener;
     }
 
     protected static class ActorLifecycleListener implements LifecycleListener, java.io.Serializable {
-        private final ActorRefImpl observer;
+        private final ActorRef observer;
         private final Object id;
 
-        public ActorLifecycleListener(ActorRefImpl observer, Object id) {
+        public ActorLifecycleListener(ActorRef observer, Object id) {
             this.observer = observer;
             this.id = id;
         }
 
         @Override
         public void dead(ActorRef actor, Throwable cause) {
-            observer.internalSendNonSuspendable(new ExitMessage(actor, cause, id));
+            observer.getImpl().internalSendNonSuspendable(new ExitMessage(actor, cause, id));
         }
 
         @Override
@@ -155,7 +157,7 @@ public abstract class ActorRefImpl<Message> implements java.io.Serializable {
             return id;
         }
 
-        public ActorRefImpl getObserver() {
+        public ActorRef getObserver() {
             return observer;
         }
     }

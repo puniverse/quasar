@@ -40,6 +40,7 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
         this.ref = new ActorRef<>(this);
     }
 
+    @Override
     public ActorRef<Message> ref() {
         return ref;
     }
@@ -161,7 +162,7 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
         final Object id = ActorUtil.randtag();
 
         final ActorRefImpl other1 = getActorRefImpl(other);
-        final LifecycleListener listener = new ActorLifecycleListener(this, id);
+        final LifecycleListener listener = new ActorLifecycleListener(ref, id);
         record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other1, listener);
 
         other1.addLifecycleListener(listener);
@@ -178,7 +179,7 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
      */
     public final void unwatch(ActorRef other, Object watchId) {
         final ActorRefImpl other1 = getActorRefImpl(other);
-        final LifecycleListener listener = new ActorLifecycleListener(this, watchId);
+        final LifecycleListener listener = new ActorLifecycleListener(ref, watchId);
         record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other1, listener);
         other1.removeLifecycleListener(listener);
         observed.remove(getActorRefImpl(other));
@@ -202,7 +203,7 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
             if (listener instanceof ActorLifecycleListener) {
                 ActorLifecycleListener l = (ActorLifecycleListener) listener;
                 if (l.getId() == null) // link
-                    l.getObserver().removeObserverListeners(ref);
+                    l.getObserver().getImpl().removeObserverListeners(ref);
             }
         }
 

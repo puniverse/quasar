@@ -845,11 +845,9 @@ public abstract class Actor<Message, V> extends ActorRefImpl<Message> implements
      */
     public final Object watch(ActorRef other) {
         final Object id = ActorUtil.randtag();
-
+        final LifecycleListener listener = new ActorLifecycleListener(myRef(), id);
+        record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other, listener);
         final ActorRefImpl other1 = getActorRefImpl(other);
-        final LifecycleListener listener = new ActorLifecycleListener(this, id);
-        record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other1, listener);
-
         other1.addLifecycleListener(listener);
         observed.add(other1);
         return id;
@@ -863,9 +861,9 @@ public abstract class Actor<Message, V> extends ActorRefImpl<Message> implements
      * @see #watch(ActorRef)
      */
     public final void unwatch(ActorRef other, Object watchId) {
+        final LifecycleListener listener = new ActorLifecycleListener(myRef(), watchId);
+        record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other, listener);
         final ActorRefImpl other1 = getActorRefImpl(other);
-        final LifecycleListener listener = new ActorLifecycleListener(this, watchId);
-        record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other1, listener);
         other1.removeLifecycleListener(listener);
         observed.remove(getActorRefImpl(other));
     }
@@ -938,7 +936,7 @@ public abstract class Actor<Message, V> extends ActorRefImpl<Message> implements
             if (listener instanceof ActorLifecycleListener) {
                 ActorLifecycleListener l = (ActorLifecycleListener) listener;
                 if (l.getId() == null) // link
-                    l.getObserver().removeObserverListeners(myRef());
+                    l.getObserver().getImpl().removeObserverListeners(myRef());
             }
         }
 
