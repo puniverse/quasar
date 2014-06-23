@@ -21,6 +21,7 @@ import co.paralleluniverse.galaxy.cluster.NodeChangeListener;
 import co.paralleluniverse.galaxy.quasar.Grid;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.kohsuke.MetaInfServices;
@@ -55,10 +56,10 @@ public class GlxLifecycleListenerProxy extends LifecycleListenerProxy {
                 public void nodeRemoved(short id) {
                     for (Iterator<RegistryRecord> it = listenerRegistry.iterator(); it.hasNext();) {
                         RegistryRecord registryRecord = it.next();
-                        if (registryRecord.getOwnerNodeId()==id) {
-                            registryRecord.listener.dead(registryRecord.actor, new Throwable("cluster node removed"));
+                        if (registryRecord.getOwnerNodeId() == id) {
+                            registryRecord.listener.dead(registryRecord.actor.ref(), new Throwable("cluster node removed"));
                             //TODO: remove listeners
-                            it.remove();                                                        
+                            it.remove();
                         }
                     }
                 }
@@ -68,12 +69,16 @@ public class GlxLifecycleListenerProxy extends LifecycleListenerProxy {
         }
     }
 
+    protected static GlxRemoteActor getImpl(ActorRef<?> actor) {
+        return (GlxRemoteActor) LifecycleListenerProxy.getImpl(actor);
+    }
+
     @Override
-    public void addLifecycleListener(final RemoteActor actor, final LifecycleListener listener) {
+    public void addLifecycleListener(RemoteActor actor, final LifecycleListener listener) {
         final GlxRemoteActor glxActor = (GlxRemoteActor) actor;
         final short nodeId = glxActor.getOwnerNodeId();
         if (!grid.cluster().getNodes().contains(nodeId)) {
-            listener.dead(actor, null);
+            listener.dead(actor.ref(), null);
             return;
         }
         super.addLifecycleListener(actor, listener);
@@ -96,7 +101,7 @@ public class GlxLifecycleListenerProxy extends LifecycleListenerProxy {
         }
     }
 
-    class RegistryRecord {
+    final class RegistryRecord {
         final LifecycleListener listener;
         final GlxRemoteActor actor;
 
@@ -107,6 +112,28 @@ public class GlxLifecycleListenerProxy extends LifecycleListenerProxy {
 
         short getOwnerNodeId() {
             return actor.getOwnerNodeId();
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 7;
+            hash = 79 * hash + Objects.hashCode(this.listener);
+            hash = 79 * hash + Objects.hashCode(this.actor);
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null)
+                return false;
+            if (!(obj instanceof RegistryRecord))
+                return false;
+            final RegistryRecord other = (RegistryRecord) obj;
+            if (!Objects.equals(this.listener, other.listener))
+                return false;
+            if (!Objects.equals(this.actor, other.actor))
+                return false;
+            return true;
         }
     }
 }

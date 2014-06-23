@@ -319,6 +319,7 @@ public abstract class Actor<Message, V> extends ActorRefImpl<Message> implements
      *
      * @return the ActorRef of this actor if it has been started, or {@code null} otherwise.
      */
+    @Override
     public ActorRef<Message> ref() {
         if (!isStarted())
             throw new IllegalStateException("Actor has not been started");

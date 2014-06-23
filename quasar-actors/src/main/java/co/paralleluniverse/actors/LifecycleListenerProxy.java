@@ -17,12 +17,13 @@ import co.paralleluniverse.actors.RemoteActor.RemoteActorRegisterListenerAdminMe
 import co.paralleluniverse.actors.RemoteActor.RemoteActorUnregisterListenerAdminMessage;
 
 /**
- * Used by implementations of remote actors.
+ * Handles {@link LifecycleListener} registration on a remote actor.
+ * 
  * @author pron
  */
-abstract public class LifecycleListenerProxy {
+public abstract class LifecycleListenerProxy {
     public void addLifecycleListener(RemoteActor actor, LifecycleListener listener) {
-        actor.internalSendNonSuspendable(new RemoteActorRegisterListenerAdminMessage((ActorRefImpl.ActorLifecycleListener) listener));
+        actor.internalSendNonSuspendable(new RemoteActorRegisterListenerAdminMessage(listener));
     }
 
     public void removeLifecycleListener(RemoteActor actor, LifecycleListener listener) {
@@ -31,5 +32,9 @@ abstract public class LifecycleListenerProxy {
 
     public void removeLifecycleListeners(RemoteActor actor, ActorRef observer) {
         actor.internalSendNonSuspendable(new RemoteActorUnregisterListenerAdminMessage(observer));
+    }
+    
+    protected static ActorRefImpl getImpl(ActorRef<?> actor) {
+        return actor.getImpl();
     }
 }

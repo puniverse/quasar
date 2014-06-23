@@ -53,6 +53,8 @@ public abstract class ActorRefImpl<Message> implements java.io.Serializable {
         this.name = name;
     }
 
+    public abstract ActorRef<Message> ref();
+    
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
     protected SendPort<Object> mailbox() {

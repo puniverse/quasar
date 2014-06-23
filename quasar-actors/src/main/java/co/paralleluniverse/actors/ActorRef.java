@@ -36,7 +36,7 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
 
     protected ActorRef() {
     }
-    
+
     public String getName() {
         return impl.getName();
     }
@@ -170,17 +170,19 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
             return true;
         if (obj instanceof DelegatingEquals)
             return obj.equals(this);
+        if (getImpl() == null)
+            return false;
         if (!(obj instanceof ActorRef))
             return false;
         ActorRef other = (ActorRef) obj;
-        return other.getImpl() == getImpl();
+        return getImpl().equals(other.getImpl());
     }
 
     @Override
     public int hashCode() {
         return 581 + Objects.hashCode(getImpl());
     }
-    
+
     @Override
     public String toString() {
         return "ActorRef{" + getImpl() + '}';

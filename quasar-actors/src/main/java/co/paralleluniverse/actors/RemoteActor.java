@@ -27,10 +27,17 @@ public class RemoteActor<Message> extends ActorRefImpl<Message> {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteActor.class);
     private static LifecycleListenerProxy lifecycleListenerProxy = ServiceUtil.loadSingletonService(LifecycleListenerProxy.class);
     private final transient ActorRefImpl<Message> actor;
-
+    private final ActorRef<Message> ref;
+    
     protected RemoteActor(ActorRef<Message> actor) {
         super(actor.getName(), actor.getImpl().mailbox());
         this.actor = actor.getImpl();
+        this.ref = actor;
+    }
+
+    @Override
+    public ActorRef<Message> ref() {
+        return ref;
     }
 
     protected void handleAdminMessage(RemoteActorAdminMessage msg) {
@@ -90,22 +97,26 @@ public class RemoteActor<Message> extends ActorRefImpl<Message> {
         internalSendNonSuspendable(new RemoteActorInterruptAdminMessage());
     }
 
+    protected static ActorRefImpl getImpl(ActorRef<?> actor) {
+        return actor.getImpl();
+    }
+
     protected static abstract class RemoteActorAdminMessage implements java.io.Serializable {
     }
 
     static class RemoteActorRegisterListenerAdminMessage extends RemoteActorAdminMessage {
-        private final ActorLifecycleListener listener;
+        private final LifecycleListener listener;
 
         @Override
         public String toString() {
             return "RemoteActorListenerAdminMessage{" + "listener=" + listener + '}';
         }
 
-        public RemoteActorRegisterListenerAdminMessage(ActorLifecycleListener listener) {
+        public RemoteActorRegisterListenerAdminMessage(LifecycleListener listener) {
             this.listener = listener;
         }
 
-        public ActorLifecycleListener getListener() {
+        public LifecycleListener getListener() {
             return listener;
         }
     }
