@@ -52,7 +52,7 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
     /**
      * Sends a message to the actor, possibly blocking until there's room available in the mailbox.
      *
-     * If the channel is full, this method may block or silently drop the message.
+     * If the mailbox is full, this method may block or silently drop the message.
      * The behavior is determined by the mailbox's {@link co.paralleluniverse.strands.channels.Channels.OverflowPolicy OverflowPolicy}, set at construction time.
      * However, unlike regular channels, this method never throws {@link co.paralleluniverse.strands.queues.QueueCapacityExceededException QueueCapacityExceededException}.
      * If the mailbox overflows, and has been configured with the {@link co.paralleluniverse.strands.channels.Channels.OverflowPolicy#THROW THROW} policy,
@@ -96,11 +96,11 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
     }
 
     /**
-     * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the
+     * Sends a message to the actor, possibly blocking until there's room available in the mailbox, but never longer than the
      * specified timeout.
      *
-     * If the channel is full, this method may block, throw an exception, silently drop the message, or displace an old message from
-     * the channel. The behavior is determined by the channel's {@link OverflowPolicy OverflowPolicy}, set at construction time.
+     * If the mailbox is full, this method may block, throw an exception, silently drop the message, or displace an old message from
+     * the channel. The behavior is determined by the mailbox's {@link OverflowPolicy OverflowPolicy}, set at construction time.
      * <p/>
      * <b/>Currently, this behavior is not yet supported. The message will be sent using {@link #send(Object)} and the timeout argument
      * will be disregarded</b>
@@ -118,11 +118,11 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
     }
 
     /**
-     * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the
+     * Sends a message to the actor, possibly blocking until there's room available in the mailbox, but never longer than the
      * specified timeout.
      *
      * If the channel is full, this method may block, throw an exception, silently drop the message, or displace an old message from
-     * the channel. The behavior is determined by the channel's {@link OverflowPolicy OverflowPolicy}, set at construction time.
+     * the channel. The behavior is determined by the mailbox's {@link OverflowPolicy OverflowPolicy}, set at construction time.
      * <p/>
      * <b/>Currently, this behavior is not yet supported. The message will be sent using {@link #send(Object)} and the timeout argument
      * will be disregarded</b>
@@ -139,7 +139,7 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
     }
 
     /**
-     * Sends a message to the channel if the channel has room available. This method never blocks.
+     * Sends a message to the actor if the channel has mailbox available. This method never blocks.
      *
      * @param msg the message
      * @return {@code true} if the message has been sent; {@code false} otherwise.
