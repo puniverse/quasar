@@ -21,14 +21,16 @@ import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.SendPort;
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+//import java.lang.reflect.Proxy;
+//import java.lang.reflect.InvocationHandler;
+import net.sf.cglib.proxy.Enhancer;
+import net.sf.cglib.proxy.InvocationHandler;
 
 /**
  * Wraps a Java object in a {@link ServerActor} that exposes the object's methods as an interface and processes them in an actor
@@ -262,9 +264,18 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
     }
 
     private Object makeProxyRef(Server<Invocation, Object, Invocation> ref) {
-        return Proxy.newProxyInstance(this.getClass().getClassLoader(),
-                combine(interfaces, standardInterfaces),
-                new ObjectProxyServerImpl(ref, callOnVoidMethods));
+        Enhancer enhancer = new Enhancer();
+        enhancer.setSuperclass(Server.class);
+        enhancer.setInterfaces(combine(interfaces, standardInterfaces));
+        enhancer.setCallback(new ObjectProxyServerImpl(ref, callOnVoidMethods));
+        return enhancer.create(new Class[]{ActorRef.class}, new Object[]{ref});
+//        return Enhancer.create(Server.class,
+//                combine(interfaces, standardInterfaces),
+//                new ObjectProxyServerImpl(ref, callOnVoidMethods));
+        
+//        return Proxy.newProxyInstance(this.getClass().getClassLoader(),
+//                combine(interfaces, standardInterfaces),
+//                new ObjectProxyServerImpl(ref, callOnVoidMethods));
     }
 
     private static Class<?>[] standardInterfaces = new Class[]{
@@ -288,7 +299,7 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
             final Class<?> cls = method.getDeclaringClass();
             if (cls == ActorRefDelegate.class && method.getName().equals("getRef"))
                 return ref;
-            if (Arrays.asList(standardInterfaces).contains(cls)) {
+            if (cls == Server.class || cls == Behavior.class || cls == ActorRef.class || Arrays.asList(standardInterfaces).contains(cls)) {
                 try {
                     return method.invoke(ref, args);
                 } catch (InvocationTargetException e) {

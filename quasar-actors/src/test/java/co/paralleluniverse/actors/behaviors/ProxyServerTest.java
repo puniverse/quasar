@@ -11,10 +11,6 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.ActorRef;
@@ -57,7 +53,6 @@ import static org.mockito.Mockito.*;
  *
  * @author pron
  */
-@Ignore
 public class ProxyServerTest {
     @Rule
     public TestName name = new TestName();
@@ -112,9 +107,9 @@ public class ProxyServerTest {
 
     @Suspendable
     public static interface A {
-        int foo(String str, int x); // throws SuspendExecution;
+        int foo(String str, int x) throws SuspendExecution;
 
-        void bar(int x); // throws SuspendExecution;
+        void bar(int x) throws SuspendExecution;
     }
 
     @Test

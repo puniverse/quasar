@@ -218,9 +218,11 @@ class InstrumentMethod {
 //            mv.visitVarInsn(Opcodes.ISTORE, lvarSuspendableCalled);
 //        }
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, EXCEPTION_NAME);
-        if (handleProxyInvocations)
+        if (handleProxyInvocations) {
             mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchUTE, UNDECLARED_THROWABLE_NAME);
-
+            //mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchUTE, UNDECLARED_THROWABLE_NAME2);
+        }
+        
         // Prepare visitTryCatchBlocks for InvocationTargetException.
         // With reflective invocations, the SuspendExecution exception will be wrapped in InvocationTargetException. We need to catch it and unwrap it.
         // Note that the InvocationTargetException will be regenrated on every park, adding further overhead on top of the reflective call.

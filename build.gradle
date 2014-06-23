@@ -346,6 +346,9 @@ project (':quasar-actors') {
         compile project(':quasar-core')
         // compile 'org.mutabilitydetector:MutabilityDetector:0.9.1'
         compile "org.slf4j:slf4j-api:1.7.7"
+        compile ("cglib:cglib:3.1") {
+            exclude group: "org.ow2.asm", module: '*'
+        }
 	//  runtime "org.slf4j:slf4j-jdk14:1.7.7"
         runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0-rc1"
         runtime "org.apache.logging.log4j:log4j-api:2.0-rc1"

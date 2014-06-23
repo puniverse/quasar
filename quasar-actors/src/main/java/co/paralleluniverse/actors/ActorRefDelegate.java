@@ -38,10 +38,10 @@ public class ActorRefDelegate<Message> extends ActorRef<Message> {
 
     @Override
     protected final ActorImpl<Message> getImpl() {
-        return ref.getImpl();
+        return getRef().getImpl();
     }
     
     protected boolean isInActor() {
-        return Objects.equals(ref, LocalActor.self());
+        return Objects.equals(getRef(), LocalActor.self());
     }
 }
