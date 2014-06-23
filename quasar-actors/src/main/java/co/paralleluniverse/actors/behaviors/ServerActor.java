@@ -212,8 +212,6 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
                         if (res != null)
                             reply((ActorRef<V>) m.getFrom(), m.getId(), res == NULL_RETURN_VALUE ? null : res);
                     } catch (Exception e) {
-                        System.err.println("WWWWWWW " + e);
-                        e.printStackTrace();
                         replyError((ActorRef<V>) m.getFrom(), m.getId(), e);
                     }
                     break;
