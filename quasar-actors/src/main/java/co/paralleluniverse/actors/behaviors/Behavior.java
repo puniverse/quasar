@@ -14,7 +14,9 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.ActorRefDelegate;
 import co.paralleluniverse.actors.ActorUtil;
+import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.ShutdownMessage;
 
 /**
@@ -22,9 +24,16 @@ import co.paralleluniverse.actors.ShutdownMessage;
  *
  * @author pron
  */
-public interface Behavior extends ActorRef<Object> {
+public class Behavior extends ActorRefDelegate<Object> {
+    protected Behavior(ActorRef<Object> actor) {
+        super(actor);
+    }
+
     /**
      * Asks this actor to shut down. Works by sending a {@link ShutdownMessage} via {@link ActorUtil#sendOrInterrupt(ActorRef, Object) ActorUtil.sendOrInterrupt}.
      */
-    void shutdown();
+    public void shutdown() {
+        final ShutdownMessage message = new ShutdownMessage(LocalActor.self());
+        ActorUtil.sendOrInterrupt(this, message);
+    }
 }

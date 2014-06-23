@@ -38,7 +38,7 @@ public class ActorRegistry {
         LOG.info("Global registry is {}", globalRegistry);
     }
 
-    static Object register(Actor<?, ?> actor) {
+    static Object register(Actor<?, ?> actor, Object globalId) {
         final String name = actor.getName();
         if (name == null)
             throw new IllegalArgumentException("name is null");
@@ -64,12 +64,12 @@ public class ActorRegistry {
 
         LOG.info("Registering {}: {}", name, actor);
 
-        final Object globalId = globalRegistry != null ? registerGlobal(actor.ref(), actor.getGlobalId()) : name;
-        entry.globalId = globalId;
+        final Object gid = globalRegistry != null ? registerGlobal(actor.ref(), globalId) : name;
+        entry.globalId = gid;
 
         actor.monitor();
 
-        return globalId;
+        return gid;
     }
 
     static private Object registerGlobal(final ActorRef<?> actor, final Object globalId) {

@@ -23,14 +23,14 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
-public class RemoteActorRef<Message> extends ActorRefImpl<Message> {
-    private static final Logger LOG = LoggerFactory.getLogger(RemoteActorRef.class);
+public class RemoteActor<Message> extends ActorRefImpl<Message> {
+    private static final Logger LOG = LoggerFactory.getLogger(RemoteActor.class);
     private static LifecycleListenerProxy lifecycleListenerProxy = ServiceUtil.loadSingletonService(LifecycleListenerProxy.class);
     private final transient ActorRefImpl<Message> actor;
 
-    protected RemoteActorRef(ActorRef<Message> actor) {
-        super(actor.getName(), ((ActorRefImpl) actor).mailbox());
-        this.actor = (ActorRefImpl) actor;
+    protected RemoteActor(ActorRef<Message> actor) {
+        super(actor.getName(), actor.getImpl().mailbox());
+        this.actor = actor.getImpl();
     }
 
     protected void handleAdminMessage(RemoteActorAdminMessage msg) {
@@ -111,10 +111,10 @@ public class RemoteActorRef<Message> extends ActorRefImpl<Message> {
     }
 
     static class RemoteActorUnregisterListenerAdminMessage extends RemoteActorAdminMessage {
-        private final ActorRefImpl observer;
+        private final ActorRef observer;
         private final LifecycleListener listener;
 
-        public RemoteActorUnregisterListenerAdminMessage(ActorRefImpl observer) {
+        public RemoteActorUnregisterListenerAdminMessage(ActorRef observer) {
             this.observer = observer;
             this.listener = null;
         }
@@ -124,7 +124,7 @@ public class RemoteActorRef<Message> extends ActorRefImpl<Message> {
             this.observer = null;
         }
 
-        public ActorRefImpl getObserver() {
+        public ActorRef getObserver() {
             return observer;
         }
 

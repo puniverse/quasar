@@ -33,11 +33,17 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(MapUtil.<LifecycleListener, Boolean>newConcurrentHashMap());
     private final Set<ActorRefImpl> observed = Collections.newSetFromMap(MapUtil.<ActorRefImpl, Boolean>newConcurrentHashMap());
     private volatile Throwable deathCause;
+    private final ActorRef<Message> ref;
 
     public FakeActor(String name, SendPort<Message> mailbox) {
         super(name, (SendPort<Object>) mailbox);
+        this.ref = new ActorRef<>(this);
     }
 
+    public ActorRef<Message> ref() {
+        return ref;
+    }
+    
     /**
      * All messages sent to the mailbox are passed to this method. If this method returns a non-null value, this value will be returned
      * from the {@code receive} methods. If it returns {@code null}, then {@code receive} will keep waiting.
@@ -98,12 +104,12 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
     protected void addLifecycleListener(LifecycleListener listener) {
         final Throwable cause = getDeathCause();
         if (isDone()) {
-            listener.dead(this, cause);
+            listener.dead(ref, cause);
             return;
         }
         lifecycleListeners.add(listener);
         if (isDone())
-            listener.dead(this, cause);
+            listener.dead(ref, cause);
     }
 
     /**
@@ -187,7 +193,7 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
         for (LifecycleListener listener : lifecycleListeners) {
             record(1, "Actor", "die", "Actor %s notifying listener %s of death.", this, listener);
             try {
-                listener.dead(this, cause);
+                listener.dead(ref, cause);
             } catch (Exception e) {
                 record(1, "Actor", "die", "Actor %s notifying listener %s of death failed with excetpion %s", this, listener, e);
             }
@@ -196,14 +202,14 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
             if (listener instanceof ActorLifecycleListener) {
                 ActorLifecycleListener l = (ActorLifecycleListener) listener;
                 if (l.getId() == null) // link
-                    l.getObserver().removeObserverListeners(this);
+                    l.getObserver().removeObserverListeners(ref);
             }
         }
 
         // avoid memory leaks:
         lifecycleListeners.clear();
         for (ActorRefImpl a : observed)
-            a.removeObserverListeners(this);
+            a.removeObserverListeners(ref);
         observed.clear();
     }
 }

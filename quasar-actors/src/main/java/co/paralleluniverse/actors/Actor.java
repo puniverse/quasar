@@ -15,8 +15,6 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.actors.ActorRefImpl.ActorLifecycleListener;
 import static co.paralleluniverse.actors.ActorRefImpl.getActorRefImpl;
-import co.paralleluniverse.common.monitoring.FlightRecorder;
-import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.concurrent.util.MapUtil;
@@ -48,7 +46,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @param <V>       The actor's return value type. Use {@link Void} if the actor does not return a result.
  * @author pron
  */
-public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joinable<V>, Stranded, ReceivePort<Message> {
+public abstract class Actor<Message, V> extends ActorRefImpl<Message> implements SuspendableCallable<V>, ActorBuilder<Message, V>, Joinable<V>, Stranded, ReceivePort<Message> {
     /**
      * Creates a new actor.
      * The actor must have a public constructor that can take the given parameters.
@@ -79,7 +77,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private static final Throwable NATURAL = new Throwable();
     private static final Object DEFUNCT = new Object();
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
-    private final LocalActorRef<Message, V> ref;
+    private final ActorRef<Message> ref;
     private ActorRef<Message> wrapperRef;
     private final AtomicReference<Class<?>> classRef;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(MapUtil.<LifecycleListener, Boolean>newConcurrentHashMap());
@@ -91,7 +89,6 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     private volatile ActorMonitor monitor;
     private ActorSpec<?, Message, V> spec;
     private Object aux;
-    protected transient final FlightRecorder flightRecorder;
     private final ActorRunner<V> runner;
 
     /**
@@ -102,31 +99,31 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      */
     @SuppressWarnings({"OverridableMethodCallInConstructor", "LeakingThisInConstructor"})
     public Actor(String name, MailboxConfig mailboxConfig) {
+        super(name, new Mailbox(mailboxConfig));
         // initialization order in this constructor matters because of replacement (code swap) instance constructor below
 
-        this.ref = new LocalActorRef<Message, V>(name, new Mailbox(mailboxConfig));
+        this.ref = new ActorRef<Message>();
         this.runner = new ActorRunner<>(ref);
         this.classRef = ActorLoader.getClassRef(getClass());
-        this.flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
         // we cannot checkReplacement() here because the actor is not fully constructed yet (we're in the middle of the subclass's constructor)
-        ref.setActor(this);
+        ref.setImpl(this);
     }
 
     /**
      * This constructor must only be called by hot code-swap actors, and never, ever, called by application code.
      */
     protected Actor() {
+        super(null, null);
         this.ref = null;
         this.wrapperRef = null;
-        this.flightRecorder = null;
         this.runner = null;
         this.classRef = null;
     }
 
     private void checkReplacement() {
         Actor<Message, V> impl = ActorLoader.getReplacementFor(this);
-        ref.setActor(impl);
+        ref.setImpl(impl);
         if (impl != this)
             defunct();
     }
@@ -145,7 +142,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     }
 
     void onCodeChange0() {
-        ref.setActor(this);
+        ref.setImpl(this);
         record(1, "Actor", "onCodeChange", "%s", this);
         onCodeChange();
     }
@@ -165,8 +162,9 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     /**
      * Returns this actor's name.
      */
+    @Override
     public String getName() {
-        return ref.getName();
+        return super.getName();
     }
 
     /**
@@ -174,12 +172,13 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      *
      * @param name
      */
+    @Override
     public void setName(String name) {
-        myRef().setName(name);
+        super.setName(name);
     }
 
-    private ActorRefImpl myRef() {
-        return ((ActorRefImpl) ref);
+    private ActorRef myRef() {
+        return ref;
     }
 
     /**
@@ -293,6 +292,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     /**
      * Interrupts the actor's strand.
      */
+    @Override
     final void interrupt() {
         getStrand().interrupt();
     }
@@ -362,15 +362,18 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     /**
      * Returns this actor's mailbox channel.
      */
+    @Override
     protected final Mailbox<Object> mailbox() {
-        return (Mailbox<Object>) ((ActorRefImpl) ref).mailbox();
+        return (Mailbox<Object>) super.mailbox();
     }
 
-    void internalSend(Object message) {
+    @Override
+    protected void internalSend(Object message) {
         internalSendNonSuspendable(message);
     }
 
-    void internalSendNonSuspendable(Object message) {
+    @Override
+    protected void internalSendNonSuspendable(Object message) {
         record(1, "Actor", "send", "Sending %s -> %s", message, this);
         if (Debug.isDebug() && flightRecorder != null && flightRecorder.get().recordsLevel(2))
             record(2, "Actor", "send", "%s queue %s", this, getQueueLength());
@@ -380,7 +383,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             record(1, "Actor", "send", "Message dropped. Owner not alive.");
     }
 
-    final void sendSync(Message message) throws SuspendExecution {
+    @Override
+    protected final void sendSync(Message message) throws SuspendExecution {
         record(1, "Actor", "sendSync", "Sending sync %s -> %s", message, this);
         if (Debug.isDebug() && flightRecorder != null && flightRecorder.get().recordsLevel(2))
             record(2, "Actor", "sendSync", "%s queue %s", this, getQueueLength());
@@ -390,7 +394,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             record(1, "Actor", "sendSync", "Message dropped. Owner not alive.");
     }
 
-    boolean trySend(Message message) {
+    @Override
+    protected final boolean trySend(Message message) {
         record(1, "Actor", "trySend", "Sending %s -> %s", message, this);
         if (Debug.isDebug() && flightRecorder != null && flightRecorder.get().recordsLevel(2))
             record(2, "Actor", "trySend", "%s queue %s", this, getQueueLength());
@@ -624,7 +629,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         try {
             if (this instanceof MigratingActor && globalId == null)
                 this.globalId = MigrationService.registerMigratingActor();
-            
+
             result = doRun();
             die(null);
             return result;
@@ -687,7 +692,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         record(1, "Actor", "handleLifecycleMessage", "%s got LifecycleMessage %s", this, m);
         if (m instanceof ExitMessage) {
             ExitMessage exit = (ExitMessage) m;
-            removeObserverListeners(getActorRefImpl(exit.getActor()));
+            removeObserverListeners(exit.getActor());
             if (exit.getWatch() == null)
                 throw new LifecycleException(m);
         }
@@ -719,7 +724,8 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
     protected void onCodeChange() {
     }
 
-    final void addLifecycleListener(LifecycleListener listener) {
+    @Override
+    protected final void addLifecycleListener(LifecycleListener listener) {
         final Throwable cause = getDeathCause();
         if (isDone()) {
             listener.dead(ref, cause);
@@ -730,11 +736,13 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             listener.dead(ref, cause);
     }
 
-    void removeLifecycleListener(LifecycleListener listener) {
+    @Override
+    protected void removeLifecycleListener(LifecycleListener listener) {
         lifecycleListeners.remove(listener);
     }
 
-    void removeObserverListeners(ActorRef actor) {
+    @Override
+    protected void removeObserverListeners(ActorRef actor) {
         for (Iterator<LifecycleListener> it = lifecycleListeners.iterator(); it.hasNext();) {
             LifecycleListener lifecycleListener = it.next();
             if (lifecycleListener instanceof ActorLifecycleListener)
@@ -765,6 +773,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         return globalId;
     }
 
+    @Override
     public final void throwIn(RuntimeException e) {
         record(1, "Actor", "throwIn", "Exception %s thrown into actor %s", e, this);
         this.exception = e; // last exception thrown in wins
@@ -798,7 +807,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
             other1.getLifecycleListener().dead(ref, getDeathCause());
         } else {
             addLifecycleListener(other1.getLifecycleListener());
-            other1.addLifecycleListener(myRef().getLifecycleListener());
+            other1.addLifecycleListener(this.getLifecycleListener());
         }
         return this;
     }
@@ -814,7 +823,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         final ActorRefImpl other1 = getActorRefImpl(other);
         record(1, "Actor", "unlink", "Uninking actors %s, %s", this, other1);
         removeLifecycleListener(other1.getLifecycleListener());
-        other1.removeLifecycleListener(myRef().getLifecycleListener());
+        other1.removeLifecycleListener(this.getLifecycleListener());
         return this;
     }
 
@@ -837,7 +846,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         final Object id = ActorUtil.randtag();
 
         final ActorRefImpl other1 = getActorRefImpl(other);
-        final LifecycleListener listener = new ActorLifecycleListener(ref, id);
+        final LifecycleListener listener = new ActorLifecycleListener(this, id);
         record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other1, listener);
 
         other1.addLifecycleListener(listener);
@@ -854,7 +863,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      */
     public final void unwatch(ActorRef other, Object watchId) {
         final ActorRefImpl other1 = getActorRefImpl(other);
-        final LifecycleListener listener = new ActorLifecycleListener(ref, watchId);
+        final LifecycleListener listener = new ActorLifecycleListener(this, watchId);
         record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other1, listener);
         other1.removeLifecycleListener(listener);
         observed.remove(getActorRefImpl(other));
@@ -883,7 +892,7 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
      */
     public final Actor register() {
         record(1, "Actor", "register", "Registering actor %s as %s", this, getName());
-        this.globalId = ActorRegistry.register(this);
+        this.globalId = ActorRegistry.register(this, globalId);
         return this;
     }
 
@@ -937,6 +946,40 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
         for (ActorRefImpl a : observed)
             a.removeObserverListeners(myRef());
         observed.clear();
+    }
+
+    public void migrateAndRestart() {
+        verifyInActor();
+
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="ActorBuilder">
+    /////////// ActorBuilder ///////////////////////////////////
+    @Override
+    public final Actor<Message, V> build() {
+        if (!isDone())
+            throw new IllegalStateException("Actor " + this + " isn't dead. Cannot build a copy");
+
+        final Actor newInstance = reinstantiate();
+
+        if (newInstance.getName() == null)
+            newInstance.setName(getName());
+        newInstance.setStrand(null);
+
+        ActorMonitor monitor = getMonitor();
+        newInstance.setMonitor(monitor);
+        if (getName() != null && ActorRegistry.getActor(getName()) == ref)
+            newInstance.register();
+        return newInstance;
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Serialization">
+    /////////// Serialization ///////////////////////////////////
+    protected final Object writeReplace() throws java.io.ObjectStreamException {
+        final RemoteActor<Message> repl = RemoteActorProxyFactoryService.create(ref(), getGlobalId());
+        return repl;
     }
     //</editor-fold>
 
@@ -1010,93 +1053,6 @@ public abstract class Actor<Message, V> implements SuspendableCallable<V>, Joina
 
     StackTraceElement[] getStackTrace() {
         return runner.getStrand().getStackTrace();
-    }
-    //</editor-fold>
-
-    //<editor-fold defaultstate="collapsed" desc="Recording">
-    /////////// Recording ///////////////////////////////////
-    protected final boolean isRecordingLevel(int level) {
-        if (flightRecorder == null)
-            return false;
-        final FlightRecorder.ThreadRecorder recorder = flightRecorder.get();
-        if (recorder == null)
-            return false;
-        return recorder.recordsLevel(level);
-    }
-
-    protected final void record(int level, String clazz, String method, String format) {
-        if (flightRecorder != null)
-            record(flightRecorder.get(), level, clazz, method, format);
-    }
-
-    protected final void record(int level, String clazz, String method, String format, Object arg1) {
-        if (flightRecorder != null)
-            record(flightRecorder.get(), level, clazz, method, format, arg1);
-    }
-
-    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2) {
-        if (flightRecorder != null)
-            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2);
-    }
-
-    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3) {
-        if (flightRecorder != null)
-            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3);
-    }
-
-    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
-        if (flightRecorder != null)
-            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3, arg4);
-    }
-
-    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
-        if (flightRecorder != null)
-            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3, arg4, arg5);
-    }
-
-    protected final void record(int level, String clazz, String method, String format, Object... args) {
-        if (flightRecorder != null)
-            record(flightRecorder.get(), level, clazz, method, format, args);
-    }
-
-    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format) {
-        if (recorder != null)
-            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, null));
-    }
-
-    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1) {
-        if (recorder != null)
-            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1}));
-    }
-
-    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2) {
-        if (recorder != null)
-            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2}));
-    }
-
-    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3) {
-        if (recorder != null)
-            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2, arg3}));
-    }
-
-    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4) {
-        if (recorder != null)
-            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2, arg3, arg4}));
-    }
-
-    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
-        if (recorder != null)
-            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
-    }
-
-    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object... args) {
-        if (recorder != null)
-            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, args));
-    }
-
-    private static FlightRecorderMessage makeFlightRecorderMessage(FlightRecorder.ThreadRecorder recorder, String clazz, String method, String format, Object[] args) {
-        return new FlightRecorderMessage(clazz, method, format, args);
-        //return ((FlightRecorderMessageFactory) recorder.getAux()).makeFlightRecorderMessage(clazz, method, format, args);
     }
     //</editor-fold>
 }

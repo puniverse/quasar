@@ -19,11 +19,6 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Store;
 import co.paralleluniverse.io.serialization.Serialization;
-import co.paralleluniverse.io.serialization.kryo.KryoSerializer;
-import java.nio.ByteBuffer;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.kohsuke.MetaInfServices;
 
 /**
@@ -57,7 +52,7 @@ public class GlxMigrator implements Migrator {
     public void migrate(Object id, Actor actor) throws SuspendExecution {
         final long _id = (Long) id;
         try {
-            store.set(_id, new KryoSerializer().write(actor), null);
+            store.set(_id, Serialization.getInstance().write(actor), null);
             store.release(_id);
         } catch (co.paralleluniverse.galaxy.TimeoutException e) {
             throw new RuntimeException(e);
@@ -68,7 +63,7 @@ public class GlxMigrator implements Migrator {
     public Actor hire(Object id) throws SuspendExecution {
         try {
             byte[] buf = store.getx((Long) id, null);
-            return (Actor)new KryoSerializer().read(buf);
+            return (Actor)Serialization.getInstance().read(buf);
         } catch (co.paralleluniverse.galaxy.TimeoutException e) {
             throw new RuntimeException(e);
         }

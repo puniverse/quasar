@@ -25,9 +25,9 @@ import co.paralleluniverse.actors.ShutdownMessage;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.replyError;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
-import co.paralleluniverse.actors.behaviors.SupervisorImpl.AddChildMessage;
-import co.paralleluniverse.actors.behaviors.SupervisorImpl.GetChildMessage;
-import co.paralleluniverse.actors.behaviors.SupervisorImpl.RemoveChildMessage;
+import co.paralleluniverse.actors.behaviors.Supervisor.AddChildMessage;
+import co.paralleluniverse.actors.behaviors.Supervisor.GetChildMessage;
+import co.paralleluniverse.actors.behaviors.Supervisor.RemoveChildMessage;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
@@ -113,7 +113,7 @@ public class SupervisorActor extends BehaviorActor {
     /////////// Behavior boilerplate ///////////////////////////////////
     @Override
     protected Supervisor makeRef(ActorRef<Object> ref) {
-        return new SupervisorImpl.Local(ref);
+        return new Supervisor(ref);
     }
 
     @Override

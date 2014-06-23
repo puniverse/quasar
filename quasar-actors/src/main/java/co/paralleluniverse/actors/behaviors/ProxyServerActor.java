@@ -13,14 +13,11 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorLoader;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorRefDelegate;
-import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MailboxConfig;
-import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.SendPort;
@@ -40,7 +37,7 @@ import java.util.Objects;
  * You can either supply a target object to any of the public constructors, or extend this class and use the subclass itself as the target,
  * in which case use the protected constructors that don't take a {@code target} argument.
  * <p/>
- * The interface(s) exposed must 
+ * The interface(s) exposed must
  *
  * @author pron
  */
@@ -226,7 +223,7 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
 
     /**
      * This constructor is for use by subclasses that are intended to serve as the target. This object will serve as the target
-     * for the method calls, and all of the interfaces implemented by the subclass will be exposed by the {@link ActorRef}. 
+     * for the method calls, and all of the interfaces implemented by the subclass will be exposed by the {@link ActorRef}.
      * The default mailbox settings will be used.
      *
      * @param name              the actor's name (may be null)
@@ -265,36 +262,19 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
     }
 
     private Object makeProxyRef(Server<Invocation, Object, Invocation> ref) {
-        final boolean local = ref instanceof LocalBehavior;
         return Proxy.newProxyInstance(this.getClass().getClassLoader(),
-                combine(interfaces, local ? standardLocalInterfaces : standardInterfaces),
-                new ObjectProxyServerImpl(local ? this : null,
-                        ref,
-                        callOnVoidMethods));
+                combine(interfaces, standardInterfaces),
+                new ObjectProxyServerImpl(ref, callOnVoidMethods));
     }
+
     private static Class<?>[] standardInterfaces = new Class[]{
-        Server.class,
-        ActorRef.class,
-        Behavior.class,
-        SendPort.class,
-        ActorRefDelegate.class,};
-    private static Class<?>[] standardLocalInterfaces = new Class[]{
-        Server.class,
-        ActorRef.class,
-        Behavior.class,
-        SendPort.class,
-        ActorBuilder.class,
-        Joinable.class,
-        LocalBehavior.class,
-        ActorRefDelegate.class,};
+        SendPort.class,};
 
     private static class ObjectProxyServerImpl implements InvocationHandler, java.io.Serializable {
-        private transient final ProxyServerActor actor;
         private final boolean callOnVoidMethods;
         private final Server<Invocation, Object, Invocation> ref;
 
-        ObjectProxyServerImpl(ProxyServerActor actor, Server<Invocation, Object, Invocation> ref, boolean callOnVoidMethods) {
-            this.actor = actor;
+        ObjectProxyServerImpl(Server<Invocation, Object, Invocation> ref, boolean callOnVoidMethods) {
             this.ref = ref;
             this.callOnVoidMethods = callOnVoidMethods;
         }
@@ -308,9 +288,7 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
             final Class<?> cls = method.getDeclaringClass();
             if (cls == ActorRefDelegate.class && method.getName().equals("getRef"))
                 return ref;
-            if (proxy instanceof LocalBehavior && method.getName().equals("writeReplace"))
-                return actor.makeProxyRef((Server<Invocation, Object, Invocation>) ((LocalBehavior) ref).writeReplace());
-            if (Arrays.asList(standardLocalInterfaces).contains(cls)) {
+            if (Arrays.asList(standardInterfaces).contains(cls)) {
                 try {
                     return method.invoke(ref, args);
                 } catch (InvocationTargetException e) {
@@ -322,9 +300,7 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
                     case "hashCode":
                         return Objects.hashCode(ref);
                     case "equals":
-                        if (!(args[0] instanceof ActorRef))
-                            return false;
-                        return ActorUtil.equals(ref, (ActorRef) args[0]);
+                        return ref.equals(args[0]);
                     case "toString":
                         return "ObjectProxyServer{" + ref.toString() + "}";
                     default:

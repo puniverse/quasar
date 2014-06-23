@@ -15,6 +15,7 @@ package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.ActorRefImpl;
 import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.actors.ExitMessage;
 import co.paralleluniverse.actors.LifecycleMessage;
@@ -263,7 +264,7 @@ public final class RequestReplyHelper {
         return actorRef;
     }
 
-    private static class TempActor<Message> implements ActorRef<Message> {
+    private static class TempActor<Message> extends ActorRef<Message> {
         private WeakReference<Actor<Message, Void>> actor;
         private volatile boolean done = false;
 
@@ -276,75 +277,14 @@ public final class RequestReplyHelper {
             this.done = true;
         }
 
-        private ActorRef getActor() {
-            ActorRef a = null;
+        @Override
+        protected ActorRefImpl<Message> getImpl() {
+            Actor a = null;
             if (actor != null)
-                a = actor.get().ref();
-            return a;
-        }
-
-        private ActorRef actor() {
-            final ActorRef a = getActor();
+                a = actor.get();
             if (a == null)
                 throw new RuntimeException("Temporary actor is out of scope");
             return a;
-        }
-
-        @Override
-        public String getName() {
-            return actor().getName();
-        }
-
-        @Override
-        public void interrupt() {
-            final ActorRef a = getActor();
-            if (a != null)
-                a.interrupt();
-        }
-
-        @Override
-        public void send(Message message) throws SuspendExecution {
-            final ActorRef a = getActor();
-            if (a != null)
-                a.send(message);
-        }
-
-        @Override
-        public void sendSync(Message message) throws SuspendExecution {
-            final ActorRef a = getActor();
-            if (a != null)
-                a.sendSync(message);
-        }
-
-        @Override
-        public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-            final ActorRef a = getActor();
-            if (a != null)
-                return a.send(message, timeout, unit);
-            return true;
-        }
-
-        @Override
-        public boolean send(Message msg, Timeout timeout) throws SuspendExecution, InterruptedException {
-            return send(msg, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
-        }
-
-        @Override
-        public boolean trySend(Message message) {
-            final ActorRef a = getActor();
-            if (a != null)
-                return a.trySend(message);
-            return true;
-        }
-
-        @Override
-        public void close() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void close(Throwable t) {
-            throw new UnsupportedOperationException();
         }
     }
 

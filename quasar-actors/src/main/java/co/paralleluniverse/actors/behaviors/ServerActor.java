@@ -16,7 +16,7 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.MailboxConfig;
-import co.paralleluniverse.actors.behaviors.ServerImpl.ServerRequest;
+import co.paralleluniverse.actors.behaviors.Server.ServerRequest;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -60,7 +60,7 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
     /////////// Behavior boilerplate ///////////////////////////////////
     @Override
     protected Server<CallMessage, V, CastMessage> makeRef(ActorRef<Object> ref) {
-        return new ServerImpl.Local<CallMessage, V, CastMessage>(ref);
+        return new Server<CallMessage, V, CastMessage>(ref);
     }
 
     @Override

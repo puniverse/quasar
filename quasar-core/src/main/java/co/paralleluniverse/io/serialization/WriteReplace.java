@@ -1,5 +1,4 @@
 /*
- * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
@@ -11,15 +10,12 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors.behaviors;
-
-import co.paralleluniverse.actors.ActorBuilder;
-import co.paralleluniverse.fibers.Joinable;
+package co.paralleluniverse.io.serialization;
 
 /**
  *
  * @author pron
  */
-public interface LocalBehavior<T> extends ActorBuilder<Object, Void>, Joinable<Void>, java.io.Serializable {
-    T writeReplace() throws java.io.ObjectStreamException;
+public interface WriteReplace {
+    Object writeReplace(Object obj);
 }

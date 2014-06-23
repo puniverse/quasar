@@ -29,7 +29,7 @@ public final class RemoteActorProxyFactoryService {
         LOG.info("RemoteActorProxyFactory is {}", factory);
     }
     
-    public static <Message> RemoteActorRef<Message> create(ActorRef<Message> actor, Object globalId) {
+    public static <Message> RemoteActor<Message> create(ActorRef<Message> actor, Object globalId) {
         return factory.create(actor, globalId);
     }
 

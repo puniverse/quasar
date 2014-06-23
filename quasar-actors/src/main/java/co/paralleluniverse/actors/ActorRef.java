@@ -13,10 +13,13 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.common.util.DelegatingEquals;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.channels.SendPort;
+import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -24,8 +27,27 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public interface ActorRef<Message> extends SendPort<Message> {
-    String getName();
+public class ActorRef<Message> implements SendPort<Message>, java.io.Serializable {
+    private ActorRefImpl<Message> impl;
+
+    protected ActorRef(ActorRefImpl<Message> impl) {
+        this.impl = impl;
+    }
+
+    protected ActorRef() {
+    }
+    
+    public String getName() {
+        return impl.getName();
+    }
+
+    protected ActorRefImpl<Message> getImpl() {
+        return impl;
+    }
+
+    void setImpl(ActorRefImpl<Message> impl) {
+        this.impl = impl;
+    }
 
     /**
      * Sends a message to the actor, possibly blocking until there's room available in the mailbox.
@@ -40,7 +62,15 @@ public interface ActorRef<Message> extends SendPort<Message> {
      * @throws SuspendExecution
      */
     @Override
-    void send(Message message) throws SuspendExecution;
+    public void send(Message message) throws SuspendExecution {
+        MutabilityTester.testMutability(message);
+        ActorRefImpl<Message> x = getImpl();
+        try {
+            x.internalSend(message);
+        } catch (QueueCapacityExceededException e) {
+            x.throwIn(e);
+        }
+    }
 
     /**
      * Sends a message to the actor, and attempts to schedule the actor's strand for immediate execution.
@@ -50,7 +80,10 @@ public interface ActorRef<Message> extends SendPort<Message> {
      * @param message
      * @throws SuspendExecution
      */
-    void sendSync(Message message) throws SuspendExecution;
+    public void sendSync(Message message) throws SuspendExecution {
+        MutabilityTester.testMutability(message);
+        getImpl().sendSync(message);
+    }
 
     /**
      * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the
@@ -69,7 +102,10 @@ public interface ActorRef<Message> extends SendPort<Message> {
      * @throws SuspendExecution
      */
     @Override
-    boolean send(Message msg, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
+    public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        send(message);
+        return true;
+    }
 
     /**
      * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the
@@ -87,7 +123,10 @@ public interface ActorRef<Message> extends SendPort<Message> {
      * @throws SuspendExecution
      */
     @Override
-    boolean send(Message msg, Timeout timeout) throws SuspendExecution, InterruptedException;
+    public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
+        send(message);
+        return true;
+    }
 
     /**
      * Sends a message to the channel if the channel has room available. This method never blocks.
@@ -96,16 +135,54 @@ public interface ActorRef<Message> extends SendPort<Message> {
      * @return {@code true} if the message has been sent; {@code false} otherwise.
      */
     @Override
-    boolean trySend(Message msg);
+    public boolean trySend(Message msg) {
+        return getImpl().trySend(msg);
+    }
 
     /**
      * This implementation throws {@code UnsupportedOperationException}.
      */
     @Override
-    void close();
+    public void close() {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * This implementation throws {@code UnsupportedOperationException}.
+     */
+    @Override
+    public void close(Throwable t) {
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * Interrupts the actor's strand
      */
-    void interrupt();
+    protected void interrupt() {
+        getImpl().interrupt();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null)
+            return false;
+        if (obj == this)
+            return true;
+        if (obj instanceof DelegatingEquals)
+            return obj.equals(this);
+        if (!(obj instanceof ActorRef))
+            return false;
+        ActorRef other = (ActorRef) obj;
+        return other.getImpl() == getImpl();
+    }
+
+    @Override
+    public int hashCode() {
+        return 581 + Objects.hashCode(getImpl());
+    }
+    
+    @Override
+    public String toString() {
+        return "ActorRef{" + getImpl() + '}';
+    }
 }

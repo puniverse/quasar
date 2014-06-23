@@ -186,7 +186,7 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
         submitSend(new RefMessage(false, myNodeId), global, address, topic);
     }
 
-    private static void submitSend(final Object message, final boolean global, final long address, final Object topic) throws SuspendExecution {
+    private static void submitSend(final Object message, final boolean global, final long address, final Object topic) {
         LOG.debug("sending: " + message);
         sendThreadPool.submit(new Runnable() {
             @Override

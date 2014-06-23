@@ -55,7 +55,7 @@ public class EventSourceActor<Event> extends BehaviorActor {
     /////////// Behavior boilerplate ///////////////////////////////////
     @Override
     protected EventSource<Event> makeRef(ActorRef<Object> ref) {
-        return new EventSourceImpl.Local<Event>(ref);
+        return new EventSource<Event>(ref);
     }
 
     @Override

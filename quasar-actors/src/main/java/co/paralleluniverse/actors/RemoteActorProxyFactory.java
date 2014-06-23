@@ -18,5 +18,5 @@ package co.paralleluniverse.actors;
  * @author pron
  */
 public interface RemoteActorProxyFactory {
-    <Message> RemoteActorRef<Message> create(ActorRef<Message> actor, Object globalId);
+    <Message> RemoteActor<Message> create(ActorRef<Message> actor, Object globalId);
 }

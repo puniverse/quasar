@@ -30,7 +30,10 @@ import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.SuspendableUtils.VoidSuspendableCallable;
 import static co.paralleluniverse.strands.SuspendableUtils.runnableToCallable;
 import co.paralleluniverse.strands.dataflow.Val;
+import java.io.Externalizable;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
@@ -62,7 +65,7 @@ import sun.misc.Unsafe;
  *
  * @author pron
  */
-public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
+public class Fiber<V> extends Strand implements Joinable<V>, Externalizable, Future<V> {
     static final boolean USE_VAL_FOR_RESULT = true;
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.verifyInstrumentation", "false"));
     private static final ClassContext classContext = verifyInstrumentation ? new ClassContext() : null;
@@ -115,7 +118,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     // private final Strand parent; // retaining the parent is a huge, complex memory leak
     private final String name;
     private final int initialStackSize;
-    private final long fid;
+    private final transient long fid;
     private volatile State state;
     private InterruptedException interruptStack;
     private volatile boolean interrupted;
@@ -184,6 +187,21 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         record(1, "Fiber", "<init>", "Created fiber %s", this);
     }
+    
+//    private Fiber() {
+//        this.fid = nextFiberId();
+//        this.scheduler = scheduler;
+//        Strand parent = Strand.currentStrand();
+//        // this.parent = Strand.currentStrand();
+//        this.target = target;
+//        this.task = scheduler != null ? scheduler.newFiberTask(this) : new FiberForkJoinScheduler.FiberForkJoinTask(this);
+//        final Thread currentThread = Thread.currentThread();
+//        this.contextClassLoader = ThreadAccess.getContextClassLoader(currentThread);
+//        if (MAINTAIN_ACCESS_CONTROL_CONTEXT)
+//            this.inheritedAccessControlContext = AccessController.getContext();
+//        if (USE_VAL_FOR_RESULT /*&& !isVoidResult(target)*/)
+//            this.result = new Val<V>();
+//    }
 
     /**
      * Creates a new fiber from the given {@link SuspendableCallable} scheduled in the {@link DefaultFiberScheduler default fiber scheduler}
@@ -1662,6 +1680,17 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return UNSAFE.compareAndSwapObject(this, stateOffset, expected, update);
     }
 
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    
     //<editor-fold defaultstate="collapsed" desc="Recording">
     /////////// Recording ///////////////////////////////////
     protected final boolean isRecordingLevel(int level) {

@@ -16,15 +16,12 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
-import co.paralleluniverse.common.util.DelegatingEquals;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.SendPort;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
-abstract class ActorRefImpl<Message> implements ActorRef<Message>, SendPort<Message>, java.io.Serializable {
+public abstract class ActorRefImpl<Message> implements java.io.Serializable {
     static final long serialVersionUID = 894359345L;
     //
     private static final int MAX_SEND_RETRIES = 10;
@@ -46,12 +43,11 @@ abstract class ActorRefImpl<Message> implements ActorRef<Message>, SendPort<Mess
         this.flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
     }
 
-    @Override
     public String getName() {
         return name;
     }
 
-    public final void setName(String name) {
+    protected void setName(String name) {
         if (this.name != null)
             throw new IllegalStateException("Actor " + this + " already has a name: " + this.name);
         this.name = name;
@@ -67,28 +63,6 @@ abstract class ActorRefImpl<Message> implements ActorRef<Message>, SendPort<Mess
         return mailbox;
     }
 
-    @Override
-    public final void send(Message message) throws SuspendExecution {
-        MutabilityTester.testMutability(message);
-        try {
-            internalSend(message);
-        } catch (QueueCapacityExceededException e) {
-            throwIn(e);
-        }
-    }
-
-    @Override
-    public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        send(message);
-        return true;
-    }
-
-    @Override
-    public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
-        send(message);
-        return true;
-    }
-
     public void sendOrInterrupt(Object message) {
         try {
             internalSendNonSuspendable(message);
@@ -97,27 +71,26 @@ abstract class ActorRefImpl<Message> implements ActorRef<Message>, SendPort<Mess
         }
     }
 
-    @Override
-    public void sendSync(Message message) throws SuspendExecution {
+    protected void sendSync(Message message) throws SuspendExecution {
+        MutabilityTester.testMutability(message);
         try {
-            send(message);
+            internalSend(message);
         } catch (QueueCapacityExceededException e) {
             throwIn(e);
         }
     }
 
-    @Override
     public void close() {
         throw new UnsupportedOperationException();
     }
 
-    @Override
     public void close(Throwable t) {
         throw new UnsupportedOperationException();
     }
 
-    @Override
-    public abstract boolean trySend(Message message);
+    abstract void interrupt();
+
+    protected abstract boolean trySend(Message message);
 
     /**
      * For internal use
@@ -147,8 +120,8 @@ abstract class ActorRefImpl<Message> implements ActorRef<Message>, SendPort<Mess
         private final ActorRefImpl observer;
         private final Object id;
 
-        public ActorLifecycleListener(ActorRef observer, Object id) {
-            this.observer = (ActorRefImpl) observer;
+        public ActorLifecycleListener(ActorRefImpl observer, Object id) {
+            this.observer = observer;
             this.id = id;
         }
 
@@ -186,33 +159,23 @@ abstract class ActorRefImpl<Message> implements ActorRef<Message>, SendPort<Mess
     }
     //</editor-fold>
 
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null)
-            return false;
-        if (obj == this)
-            return true;
-        if (obj instanceof DelegatingEquals)
-            return obj.equals(this);
-        if (!(obj instanceof ActorRef))
-            return false;
-        ActorRef other = (ActorRef) obj;
-        while (other instanceof ActorRefDelegate)
-            other = ((ActorRefDelegate) other).getRef();
-        return other == this;
-    }
-
     static ActorRefImpl getActorRefImpl(ActorRef actor) {
         while (actor instanceof ActorRefDelegate)
             actor = ((ActorRefDelegate) actor).getRef();
-        if (actor instanceof ActorRefImpl)
-            return (ActorRefImpl) actor;
-        else
-            throw new AssertionError("Actor " + actor + " is not an ActorRefImpl");
+        return actor.getImpl();
     }
 
     //<editor-fold defaultstate="collapsed" desc="Recording">
     /////////// Recording ///////////////////////////////////
+    protected final boolean isRecordingLevel(int level) {
+        if (flightRecorder == null)
+            return false;
+        final FlightRecorder.ThreadRecorder recorder = flightRecorder.get();
+        if (recorder == null)
+            return false;
+        return recorder.recordsLevel(level);
+    }
+
     protected final void record(int level, String clazz, String method, String format) {
         if (flightRecorder != null)
             record(flightRecorder.get(), level, clazz, method, format);

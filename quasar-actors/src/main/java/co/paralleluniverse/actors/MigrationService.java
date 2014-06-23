@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
-public class MigrationService {
+class MigrationService {
     private static final Logger LOG = LoggerFactory.getLogger(MigrationService.class);
     private static final Migrator migrator = ServiceUtil.loadSingletonService(Migrator.class);
 

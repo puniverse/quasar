@@ -13,10 +13,10 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.LocalActor;
+import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.TimeUnit;
 
@@ -25,7 +25,17 @@ import java.util.concurrent.TimeUnit;
  *
  * @author pron
  */
-public interface Supervisor extends Behavior {
+public class Supervisor extends Behavior {
+    /**
+     * If {@code actor} is known to be a {@link ServerActor}, creates a new {@link Server} interface to it.
+     * Normally, you don't use this constructor, but the {@code Supervisor} instance returned by {@link SupervisorActor#spawn() }.
+     *
+     * @param actor a {@link ServerActor}
+     */
+    public Supervisor(ActorRef<Object> actor) {
+        super(actor);
+    }
+
     /**
      * Adds a new child actor to the supervisor. If the child has not been started, it will be started by the supervisor.
      * This method does not block when called from within the Supervisor's context, so, in particular, it may be called by
@@ -35,7 +45,12 @@ public interface Supervisor extends Behavior {
      * @return the actor (possibly after it has been started by the supervisor).
      * @throws InterruptedException
      */
-    <T extends ActorRef<M>, M> T addChild(ChildSpec spec) throws SuspendExecution, InterruptedException;
+    public final <T extends ActorRef<M>, M> T addChild(ChildSpec spec) throws SuspendExecution, InterruptedException {
+        if (isInActor())
+            return (T) SupervisorActor.currentSupervisor().addChild(spec);
+
+        return (T) call(this, new AddChildMessage(RequestReplyHelper.from(), null, spec));
+    }
 
     /**
      * Retrieves a child actor by its {@link ChildSpec#getId() id}
@@ -47,7 +62,12 @@ public interface Supervisor extends Behavior {
      * @throws SuspendExecution
      * @throws InterruptedException
      */
-    <T extends ActorRef<M>, M> T getChild(Object id) throws SuspendExecution, InterruptedException;
+    public final <T extends ActorRef<M>, M> T getChild(Object id) throws SuspendExecution, InterruptedException {
+        if (isInActor())
+            return (T) SupervisorActor.currentSupervisor().getChild(id);
+
+        return (T) call(this, new GetChildMessage(RequestReplyHelper.from(), null, id));
+    }
 
     /**
      * Removes a child actor from the supervisor.
@@ -59,7 +79,12 @@ public interface Supervisor extends Behavior {
      * @return {@code true} if the actor has been successfully removed from the supervisor; {@code false} if the child was not found.
      * @throws InterruptedException
      */
-    boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException;
+    public final boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException {
+        if (isInActor())
+            return SupervisorActor.currentSupervisor().removeChild(id, terminate);
+
+        return (Boolean) call(this, new RemoveChildMessage(RequestReplyHelper.from(), null, id, terminate));
+    }
 
     /**
      * Removes a child actor from the supervisor.
@@ -71,7 +96,12 @@ public interface Supervisor extends Behavior {
      * @return {@code true} if the actor has been successfully removed from the supervisor; {@code false} if the child was not found.
      * @throws InterruptedException
      */
-    boolean removeChild(ActorRef<?> actor, boolean terminate) throws SuspendExecution, InterruptedException;
+    public boolean removeChild(ActorRef<?> actor, boolean terminate) throws SuspendExecution, InterruptedException {
+        if (isInActor())
+            return SupervisorActor.currentSupervisor().removeChild(actor, terminate);
+
+        return (Boolean) call(this, new RemoveChildMessage(RequestReplyHelper.from(), null, actor, terminate));
+    }
 
     /**
      * Determines whether a child (supervised) actor should be restarted if the supervisor's {@link SupervisorActor.RestartStrategy restart strategy}
@@ -203,6 +233,56 @@ public interface Supervisor extends Behavior {
         @Override
         public String toString() {
             return "ChildSpec{" + "builder: " + builder + ", mode: " + mode + ", maxRestarts: " + maxRestarts + ", duration: " + duration + ", unit: " + unit + ", shutdownDeadline: " + shutdownDeadline + '}';
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "Supervisor{" + super.toString() + "}";
+    }
+
+    ///////// Messages
+    static class AddChildMessage extends RequestMessage {
+        final ChildSpec spec;
+
+        public AddChildMessage(ActorRef from, Object id, ChildSpec info) {
+            super(from, id);
+            this.spec = info;
+        }
+
+        @Override
+        protected String contentString() {
+            return super.contentString() + " spec: " + spec;
+        }
+    }
+
+    static class GetChildMessage extends RequestMessage {
+        final Object name;
+
+        public GetChildMessage(ActorRef from, Object id, Object name) {
+            super(from, id);
+            this.name = name;
+        }
+
+        @Override
+        protected String contentString() {
+            return super.contentString() + " name: " + name;
+        }
+    }
+
+    static class RemoveChildMessage extends RequestMessage {
+        final Object name;
+        final boolean terminate;
+
+        public RemoveChildMessage(ActorRef from, Object id, Object name, boolean terminate) {
+            super(from, id);
+            this.name = name;
+            this.terminate = terminate;
+        }
+
+        @Override
+        protected String contentString() {
+            return super.contentString() + " name: " + name + " terminate: " + terminate;
         }
     }
 }
