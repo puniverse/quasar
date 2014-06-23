@@ -63,12 +63,17 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
      */
     @Override
     public void send(Message message) throws SuspendExecution {
-        MutabilityTester.testMutability(message);
-        ActorRefImpl<Message> x = getImpl();
         try {
-            x.internalSend(message);
-        } catch (QueueCapacityExceededException e) {
-            x.throwIn(e);
+            MutabilityTester.testMutability(message);
+            ActorRefImpl<Message> x = getImpl();
+            try {
+                x.internalSend(message);
+            } catch (QueueCapacityExceededException e) {
+                x.throwIn(e);
+            }
+        } catch (RuntimeException e) {
+            LostActor.instance.ref().send(message);
+            LostActor.instance.throwIn(e);
         }
     }
 
@@ -81,8 +86,13 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
      * @throws SuspendExecution
      */
     public void sendSync(Message message) throws SuspendExecution {
-        MutabilityTester.testMutability(message);
-        getImpl().sendSync(message);
+        try {
+            MutabilityTester.testMutability(message);
+            getImpl().sendSync(message);
+        } catch (RuntimeException e) {
+            LostActor.instance.ref().sendSync(message);
+            LostActor.instance.throwIn(e);
+        }
     }
 
     /**
@@ -136,7 +146,13 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
      */
     @Override
     public boolean trySend(Message msg) {
-        return getImpl().trySend(msg);
+        try {
+            return getImpl().trySend(msg);
+        } catch (RuntimeException e) {
+            LostActor.instance.ref().trySend(msg);
+            LostActor.instance.throwIn(e);
+            return false;
+        }
     }
 
     /**
@@ -187,6 +203,5 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
     public String toString() {
         return "ActorRef{" + getImpl() + '}';
     }
-    
-    
+
 }
