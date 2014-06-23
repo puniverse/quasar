@@ -34,7 +34,7 @@ public abstract class LifecycleListenerProxy {
         actor.internalSendNonSuspendable(new RemoteActorUnregisterListenerAdminMessage(observer));
     }
     
-    protected static ActorRefImpl getImpl(ActorRef<?> actor) {
+    protected static ActorImpl getImpl(ActorRef<?> actor) {
         return actor.getImpl();
     }
 }

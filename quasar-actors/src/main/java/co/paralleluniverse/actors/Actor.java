@@ -13,8 +13,8 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.actors.ActorRefImpl.ActorLifecycleListener;
-import static co.paralleluniverse.actors.ActorRefImpl.getActorRefImpl;
+import co.paralleluniverse.actors.ActorImpl.ActorLifecycleListener;
+import static co.paralleluniverse.actors.ActorImpl.getActorRefImpl;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.concurrent.util.MapUtil;
@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @param <V>       The actor's return value type. Use {@link Void} if the actor does not return a result.
  * @author pron
  */
-public abstract class Actor<Message, V> extends ActorRefImpl<Message> implements SuspendableCallable<V>, ActorBuilder<Message, V>, Joinable<V>, Stranded, ReceivePort<Message> {
+public abstract class Actor<Message, V> extends ActorImpl<Message> implements SuspendableCallable<V>, ActorBuilder<Message, V>, Joinable<V>, Stranded, ReceivePort<Message> {
     /**
      * Creates a new actor.
      * The actor must have a public constructor that can take the given parameters.
@@ -81,7 +81,7 @@ public abstract class Actor<Message, V> extends ActorRefImpl<Message> implements
     private ActorRef<Message> wrapperRef;
     private final AtomicReference<Class<?>> classRef;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(MapUtil.<LifecycleListener, Boolean>newConcurrentHashMap());
-    private final Set<ActorRefImpl> observed = Collections.newSetFromMap(MapUtil.<ActorRefImpl, Boolean>newConcurrentHashMap());
+    private final Set<ActorImpl> observed = Collections.newSetFromMap(MapUtil.<ActorImpl, Boolean>newConcurrentHashMap());
     private volatile V result;
     private volatile Throwable exception;
     private volatile Throwable deathCause;
@@ -802,7 +802,7 @@ public abstract class Actor<Message, V> extends ActorRefImpl<Message> implements
      * @see #unlink(ActorRef)
      */
     public final Actor link(ActorRef other) {
-        final ActorRefImpl other1 = getActorRefImpl(other);
+        final ActorImpl other1 = getActorRefImpl(other);
         record(1, "Actor", "link", "Linking actors %s, %s", this, other1);
         if (this.isDone()) {
             other1.getLifecycleListener().dead(ref, getDeathCause());
@@ -821,7 +821,7 @@ public abstract class Actor<Message, V> extends ActorRefImpl<Message> implements
      * @see #link(ActorRef)
      */
     public final Actor unlink(ActorRef other) {
-        final ActorRefImpl other1 = getActorRefImpl(other);
+        final ActorImpl other1 = getActorRefImpl(other);
         record(1, "Actor", "unlink", "Uninking actors %s, %s", this, other1);
         removeLifecycleListener(other1.getLifecycleListener());
         other1.removeLifecycleListener(this.getLifecycleListener());
@@ -847,7 +847,7 @@ public abstract class Actor<Message, V> extends ActorRefImpl<Message> implements
         final Object id = ActorUtil.randtag();
         final LifecycleListener listener = new ActorLifecycleListener(myRef(), id);
         record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other, listener);
-        final ActorRefImpl other1 = getActorRefImpl(other);
+        final ActorImpl other1 = getActorRefImpl(other);
         other1.addLifecycleListener(listener);
         observed.add(other1);
         return id;
@@ -863,7 +863,7 @@ public abstract class Actor<Message, V> extends ActorRefImpl<Message> implements
     public final void unwatch(ActorRef other, Object watchId) {
         final LifecycleListener listener = new ActorLifecycleListener(myRef(), watchId);
         record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other, listener);
-        final ActorRefImpl other1 = getActorRefImpl(other);
+        final ActorImpl other1 = getActorRefImpl(other);
         other1.removeLifecycleListener(listener);
         observed.remove(getActorRefImpl(other));
     }
@@ -942,7 +942,7 @@ public abstract class Actor<Message, V> extends ActorRefImpl<Message> implements
 
         // avoid memory leaks:
         lifecycleListeners.clear();
-        for (ActorRefImpl a : observed)
+        for (ActorImpl a : observed)
             a.removeObserverListeners(myRef());
         observed.clear();
     }

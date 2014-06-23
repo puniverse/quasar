@@ -28,9 +28,9 @@ import java.util.concurrent.TimeUnit;
  * @author pron
  */
 public class ActorRef<Message> implements SendPort<Message>, java.io.Serializable {
-    private ActorRefImpl<Message> impl;
+    private ActorImpl<Message> impl;
 
-    protected ActorRef(ActorRefImpl<Message> impl) {
+    protected ActorRef(ActorImpl<Message> impl) {
         this.impl = impl;
     }
 
@@ -41,11 +41,11 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
         return impl.getName();
     }
 
-    protected ActorRefImpl<Message> getImpl() {
+    protected ActorImpl<Message> getImpl() {
         return impl;
     }
 
-    void setImpl(ActorRefImpl<Message> impl) {
+    void setImpl(ActorImpl<Message> impl) {
         this.impl = impl;
     }
 
@@ -65,7 +65,7 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
     public void send(Message message) throws SuspendExecution {
         try {
             MutabilityTester.testMutability(message);
-            ActorRefImpl<Message> x = getImpl();
+            ActorImpl<Message> x = getImpl();
             try {
                 x.internalSend(message);
             } catch (QueueCapacityExceededException e) {

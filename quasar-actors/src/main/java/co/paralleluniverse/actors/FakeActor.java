@@ -28,10 +28,10 @@ import java.util.Set;
  *
  * @author pron
  */
-public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
+public abstract class FakeActor<Message> extends ActorImpl<Message> {
     private static final Throwable NATURAL = new Throwable();
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(MapUtil.<LifecycleListener, Boolean>newConcurrentHashMap());
-    private final Set<ActorRefImpl> observed = Collections.newSetFromMap(MapUtil.<ActorRefImpl, Boolean>newConcurrentHashMap());
+    private final Set<ActorImpl> observed = Collections.newSetFromMap(MapUtil.<ActorImpl, Boolean>newConcurrentHashMap());
     private volatile Throwable deathCause;
     private final ActorRef<Message> ref;
 
@@ -161,7 +161,7 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
     public final Object watch(ActorRef other) {
         final Object id = ActorUtil.randtag();
 
-        final ActorRefImpl other1 = getActorRefImpl(other);
+        final ActorImpl other1 = getActorRefImpl(other);
         final LifecycleListener listener = new ActorLifecycleListener(ref, id);
         record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other1, listener);
 
@@ -178,7 +178,7 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
      * @see #watch(ActorRef)
      */
     public final void unwatch(ActorRef other, Object watchId) {
-        final ActorRefImpl other1 = getActorRefImpl(other);
+        final ActorImpl other1 = getActorRefImpl(other);
         final LifecycleListener listener = new ActorLifecycleListener(ref, watchId);
         record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other1, listener);
         other1.removeLifecycleListener(listener);
@@ -209,7 +209,7 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
 
         // avoid memory leaks:
         lifecycleListeners.clear();
-        for (ActorRefImpl a : observed)
+        for (ActorImpl a : observed)
             a.removeObserverListeners(ref);
         observed.clear();
     }

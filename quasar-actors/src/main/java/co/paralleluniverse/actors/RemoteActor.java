@@ -23,10 +23,10 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
-public class RemoteActor<Message> extends ActorRefImpl<Message> {
+public class RemoteActor<Message> extends ActorImpl<Message> {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteActor.class);
     private static LifecycleListenerProxy lifecycleListenerProxy = ServiceUtil.loadSingletonService(LifecycleListenerProxy.class);
-    private final transient ActorRefImpl<Message> actor;
+    private final transient ActorImpl<Message> actor;
     private final ActorRef<Message> ref;
     
     protected RemoteActor(ActorRef<Message> actor) {
@@ -97,7 +97,7 @@ public class RemoteActor<Message> extends ActorRefImpl<Message> {
         internalSendNonSuspendable(new RemoteActorInterruptAdminMessage());
     }
 
-    protected static ActorRefImpl getImpl(ActorRef<?> actor) {
+    protected static ActorImpl getImpl(ActorRef<?> actor) {
         return actor.getImpl();
     }
 

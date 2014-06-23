@@ -143,7 +143,7 @@ public final class LocalActor {
     }
 
     private static Actor actorOf(ActorRef<?> ar) {
-        ActorRefImpl impl = ar.getImpl();
+        ActorImpl impl = ar.getImpl();
         if (!(impl instanceof Actor))
             throw new IllegalArgumentException("ActorRef " + ar + " is not a local actor.");
         return (Actor) impl;

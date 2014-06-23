@@ -21,7 +21,7 @@ import co.paralleluniverse.strands.channels.SendPort;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.Objects;
 
-public abstract class ActorRefImpl<Message> implements java.io.Serializable {
+public abstract class ActorImpl<Message> implements java.io.Serializable {
     static final long serialVersionUID = 894359345L;
     //
     private static final int MAX_SEND_RETRIES = 10;
@@ -36,7 +36,7 @@ public abstract class ActorRefImpl<Message> implements java.io.Serializable {
         return "Actor@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this)));
     }
 
-    protected ActorRefImpl(String name, SendPort<Object> mailbox) {
+    protected ActorImpl(String name, SendPort<Object> mailbox) {
         this.name = name;
 
         this.mailbox = mailbox;
@@ -163,7 +163,7 @@ public abstract class ActorRefImpl<Message> implements java.io.Serializable {
     }
     //</editor-fold>
 
-    static ActorRefImpl getActorRefImpl(ActorRef actor) {
+    static ActorImpl getActorRefImpl(ActorRef actor) {
         while (actor instanceof ActorRefDelegate)
             actor = ((ActorRefDelegate) actor).getRef();
         return actor.getImpl();

@@ -15,7 +15,7 @@ package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.ActorRefImpl;
+import co.paralleluniverse.actors.ActorImpl;
 import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.actors.ExitMessage;
 import co.paralleluniverse.actors.LifecycleMessage;
@@ -278,7 +278,7 @@ public final class RequestReplyHelper {
         }
 
         @Override
-        protected ActorRefImpl<Message> getImpl() {
+        protected ActorImpl<Message> getImpl() {
             Actor a = null;
             if (actor != null)
                 a = actor.get();

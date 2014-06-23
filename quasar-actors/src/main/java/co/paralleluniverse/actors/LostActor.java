@@ -21,8 +21,8 @@ import co.paralleluniverse.strands.channels.SendPort;
  *
  * @author pron
  */
-class LostActor extends ActorRefImpl<Object> {
-    public static final ActorRefImpl<Object> instance = new LostActor();
+class LostActor extends ActorImpl<Object> {
+    public static final ActorImpl<Object> instance = new LostActor();
     
     private final ActorRef<Object> ref = new ActorRef<Object>(this);
     

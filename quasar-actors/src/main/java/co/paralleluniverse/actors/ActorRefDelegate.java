@@ -37,7 +37,7 @@ public class ActorRefDelegate<Message> extends ActorRef<Message> {
     }
 
     @Override
-    protected final ActorRefImpl<Message> getImpl() {
+    protected final ActorImpl<Message> getImpl() {
         return ref.getImpl();
     }
     
