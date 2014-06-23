@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -56,6 +57,7 @@ import static org.mockito.Mockito.*;
  *
  * @author pron
  */
+@Ignore
 public class ProxyServerTest {
     @Rule
     public TestName name = new TestName();
