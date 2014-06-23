@@ -60,9 +60,12 @@ public final class QuasarURLClassLoaderHelper {
                 exc.printStackTrace(System.out);
             }
         });
-//        inst.setVerbose(true);
-//        inst.setDebug(true);
         return inst;
+    }
+
+    public void setLog(final boolean verbose, final boolean debug) {
+        instrumentor.setVerbose(verbose);
+        instrumentor.setDebug(debug);
     }
 
     public Class<?> findClass(final String name)
@@ -90,12 +93,11 @@ public final class QuasarURLClassLoaderHelper {
         }
     }
 
-    public InputStream getResourceAsStream(String name) {
-        InputStream is = cl.getResourceAsStream(name);
-        if (name.endsWith(".class")) {
+    public InputStream instrumentResourceStream(String resourceName, InputStream is) {
+        if (resourceName.endsWith(".class")) {
             try {
                 byte[] bytes = ByteStreams.toByteArray(is);
-                byte[] instrumented = instrumentor.instrumentClass(name.substring(0, name.length() - ".class".length()), bytes);
+                byte[] instrumented = instrumentor.instrumentClass(resourceName.substring(0, resourceName.length() - ".class".length()), bytes);
                 return new ByteArrayInputStream(instrumented);
             } catch (final IOException e) {
                 return new InputStream() {
