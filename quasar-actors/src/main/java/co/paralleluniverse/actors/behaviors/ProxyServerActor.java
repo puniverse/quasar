@@ -18,6 +18,7 @@ import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorRefDelegate;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MailboxConfig;
+import co.paralleluniverse.fibers.RuntimeSuspendExecution;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.SendPort;
@@ -27,10 +28,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import net.sf.cglib.proxy.Callback;
+import net.sf.cglib.proxy.CallbackFilter;
 //import java.lang.reflect.Proxy;
 //import java.lang.reflect.InvocationHandler;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.InvocationHandler;
+import net.sf.cglib.proxy.NoOp;
 
 /**
  * Wraps a Java object in a {@link ServerActor} that exposes the object's methods as an interface and processes them in an actor
@@ -267,12 +271,22 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(Server.class);
         enhancer.setInterfaces(combine(interfaces, standardInterfaces));
-        enhancer.setCallback(new ObjectProxyServerImpl(ref, callOnVoidMethods));
+        enhancer.setCallbacks(new Callback[]{new ObjectProxyServerImpl(ref, callOnVoidMethods), NoOp.INSTANCE});
+        enhancer.setCallbackFilter(new CallbackFilter() {
+
+            @Override
+            public int accept(Method method) {
+                final Class<?> cls = method.getDeclaringClass();
+                if (cls.isAssignableFrom(ActorRefDelegate.class))
+                    return 1; // call super
+                return 0;
+            }
+        });
         return enhancer.create(new Class[]{ActorRef.class}, new Object[]{ref});
 //        return Enhancer.create(Server.class,
 //                combine(interfaces, standardInterfaces),
 //                new ObjectProxyServerImpl(ref, callOnVoidMethods));
-        
+
 //        return Proxy.newProxyInstance(this.getClass().getClassLoader(),
 //                combine(interfaces, standardInterfaces),
 //                new ObjectProxyServerImpl(ref, callOnVoidMethods));
@@ -295,44 +309,35 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
         }
 
         @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws SuspendExecution, Throwable {
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             final Class<?> cls = method.getDeclaringClass();
-            if (cls == ActorRefDelegate.class && method.getName().equals("getRef"))
-                return ref;
-            if (cls == Server.class || cls == Behavior.class || cls == ActorRef.class || Arrays.asList(standardInterfaces).contains(cls)) {
+            assert !cls.isAssignableFrom(ActorRefDelegate.class);
+            if (cls.isAssignableFrom(Server.class) || Arrays.asList(standardInterfaces).contains(cls)) {
                 try {
                     return method.invoke(ref, args);
                 } catch (InvocationTargetException e) {
                     throw e.getCause();
                 }
             }
-            if (cls == Object.class) {
-                switch (method.getName()) {
-                    case "hashCode":
-                        return Objects.hashCode(ref);
-                    case "equals":
-                        return ref.equals(args[0]);
-                    case "toString":
-                        return "ObjectProxyServer{" + ref.toString() + "}";
-                    default:
-                        throw new UnsupportedOperationException();
-                }
-            }
 
-            if (isInActor()) {
-                try {
-                    return method.invoke(ServerActor.currentServerActor(), args);
-                } catch (InvocationTargetException e) {
-                    throw e.getCause();
+            try {
+                if (isInActor()) {
+                    try {
+                        return method.invoke(ServerActor.currentServerActor(), args);
+                    } catch (InvocationTargetException e) {
+                        throw e.getCause();
+                    }
+                } else {
+                    final Invocation m = new Invocation(method, args, false);
+                    if (callOnVoidMethods || (method.getReturnType() != void.class && method.getReturnType() != Void.class))
+                        return ref.call(m);
+                    else {
+                        ref.cast(m);
+                        return null;
+                    }
                 }
-            } else {
-                final Invocation m = new Invocation(method, args, false);
-                if (callOnVoidMethods || (method.getReturnType() != void.class && method.getReturnType() != Void.class))
-                    return ref.call(m);
-                else {
-                    ref.cast(m);
-                    return null;
-                }
+            } catch (SuspendExecution e) {
+                throw new RuntimeSuspendExecution(e);
             }
         }
     }

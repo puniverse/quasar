@@ -187,7 +187,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Externalizable, Fut
 
         record(1, "Fiber", "<init>", "Created fiber %s", this);
     }
-    
+
 //    private Fiber() {
 //        this.fid = nextFiberId();
 //        this.scheduler = scheduler;
@@ -202,7 +202,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Externalizable, Fut
 //        if (USE_VAL_FOR_RESULT /*&& !isVoidResult(target)*/)
 //            this.result = new Val<V>();
 //    }
-
     /**
      * Creates a new fiber from the given {@link SuspendableCallable} scheduled in the {@link DefaultFiberScheduler default fiber scheduler}
      *
@@ -702,16 +701,20 @@ public class Fiber<V> extends Strand implements Joinable<V>, Externalizable, Fut
 
         boolean restored = false;
         try {
-            final V res = run1(); // we jump into the continuation
+            try {
+                final V res = run1(); // we jump into the continuation
 
-            runningThread = null;
-            state = State.TERMINATED;
-            record(1, "Fiber", "exec", "finished %s %s res: %s", state, this, this.result);
-            monitorFiberTerminated(monitor);
+                runningThread = null;
+                state = State.TERMINATED;
+                record(1, "Fiber", "exec", "finished %s %s res: %s", state, this, this.result);
+                monitorFiberTerminated(monitor);
 
-            setResult(res);
+                setResult(res);
 
-            return true;
+                return true;
+            } catch (RuntimeSuspendExecution e) {
+                throw (SuspendExecution) e.getCause();
+            }
         } catch (SuspendExecution ex) {
             assert ex == SuspendExecution.PARK || ex == SuspendExecution.YIELD;
             //stack.dump();
@@ -801,8 +804,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Externalizable, Fut
             setCurrentFiber(this, currentThread);
 
         try {
-            run1(); // we jump into the continuation
-            throw new AssertionError();
+            try {
+                run1(); // we jump into the continuation
+                throw new AssertionError();
+            } catch (RuntimeSuspendExecution e) {
+                throw (SuspendExecution) e.getCause();
+            }
         } catch (SuspendExecution | IllegalStateException ex) {
             assert ex != SuspendExecution.PARK && ex != SuspendExecution.YIELD;
             //stack.dump();
@@ -1690,7 +1697,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Externalizable, Fut
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-    
     //<editor-fold defaultstate="collapsed" desc="Recording">
     /////////// Recording ///////////////////////////////////
     protected final boolean isRecordingLevel(int level) {

@@ -43,6 +43,7 @@ package co.paralleluniverse.fibers.instrument;
 
 import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
+import static co.paralleluniverse.fibers.instrument.Classes.RUNTIME_EXCEPTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.STACK_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.UNDECLARED_THROWABLE_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.isAllowedToBlock;
@@ -80,7 +81,7 @@ import org.objectweb.asm.tree.analysis.Value;
  * @author pron
  */
 class InstrumentMethod {
-    private static final boolean HANDLE_PROXY_INVOCATIONS = true;
+    private static final boolean HANDLE_PROXY_INVOCATIONS = false;
     // private final boolean verifyInstrumentation; // 
     private static final int PREEMPTION_BACKBRANCH = 0;
     private static final int PREEMPTION_CALL = 1;
@@ -218,11 +219,10 @@ class InstrumentMethod {
 //            mv.visitVarInsn(Opcodes.ISTORE, lvarSuspendableCalled);
 //        }
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, EXCEPTION_NAME);
-        if (handleProxyInvocations) {
+        mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, RUNTIME_EXCEPTION_NAME);
+        if (handleProxyInvocations)
             mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchUTE, UNDECLARED_THROWABLE_NAME);
-            //mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchUTE, UNDECLARED_THROWABLE_NAME2);
-        }
-        
+
         // Prepare visitTryCatchBlocks for InvocationTargetException.
         // With reflective invocations, the SuspendExecution exception will be wrapped in InvocationTargetException. We need to catch it and unwrap it.
         // Note that the InvocationTargetException will be regenrated on every park, adding further overhead on top of the reflective call.

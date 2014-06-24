@@ -107,9 +107,9 @@ public class ProxyServerTest {
 
     @Suspendable
     public static interface A {
-        int foo(String str, int x) throws SuspendExecution;
+        int foo(String str, int x); // throws SuspendExecution;
 
-        void bar(int x) throws SuspendExecution;
+        void bar(int x); // throws SuspendExecution;
     }
 
     @Test
