@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.actors.spi.RemoteActorProxyFactory;
+import co.paralleluniverse.actors.spi.ActorRefCanonicalizer;
 import co.paralleluniverse.common.util.ServiceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,18 +22,18 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
-public final class RemoteActorProxyFactoryService {
-    private static final Logger LOG = LoggerFactory.getLogger(RemoteActorProxyFactoryService.class);
-    private static final RemoteActorProxyFactory factory = ServiceUtil.loadSingletonService(RemoteActorProxyFactory.class);
+final class ActorRefCanonicalizerService {
+    private static final Logger LOG = LoggerFactory.getLogger(ActorRefCanonicalizerService.class);
+    private static final ActorRefCanonicalizer canonicalizer = ServiceUtil.loadSingletonService(ActorRefCanonicalizer.class);
 
     static {
-        LOG.info("RemoteActorProxyFactory is {}", factory);
-    }
-    
-    public static <Message> RemoteActor<Message> create(ActorRef<Message> actor, Object globalId) {
-        return factory.create(actor, globalId);
+        LOG.info("ActorRefCanonicalizer is {}", canonicalizer);
     }
 
-    private RemoteActorProxyFactoryService() {
+    public static <Message> ActorRef<Message> getRef(ActorImpl<Message> impl) {
+        return canonicalizer.getRef(impl);
+    }
+
+    private ActorRefCanonicalizerService() {
     }
 }

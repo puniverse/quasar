@@ -77,7 +77,6 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     private static final Throwable NATURAL = new Throwable();
     private static final Object DEFUNCT = new Object();
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
-    private final ActorRef<Message> ref;
     private ActorRef<Message> wrapperRef;
     private final AtomicReference<Class<?>> classRef;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(MapUtil.<LifecycleListener, Boolean>newConcurrentHashMap());
@@ -99,10 +98,9 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      */
     @SuppressWarnings({"OverridableMethodCallInConstructor", "LeakingThisInConstructor"})
     public Actor(String name, MailboxConfig mailboxConfig) {
-        super(name, new Mailbox(mailboxConfig));
+        super(name, new Mailbox(mailboxConfig), new ActorRef<Message>());
         // initialization order in this constructor matters because of replacement (code swap) instance constructor below
 
-        this.ref = new ActorRef<Message>();
         this.runner = new ActorRunner<>(ref);
         this.classRef = ActorLoader.getClassRef(getClass());
 
@@ -114,8 +112,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * This constructor must only be called by hot code-swap actors, and never, ever, called by application code.
      */
     protected Actor() {
-        super(null, null);
-        this.ref = null;
+        super(null, null, null);
         this.wrapperRef = null;
         this.runner = null;
         this.classRef = null;

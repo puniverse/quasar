@@ -11,12 +11,17 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors;
+package co.paralleluniverse.actors.spi;
+
+import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.fibers.SuspendExecution;
 
 /**
  *
  * @author pron
  */
-public interface RemoteActorProxyFactory {
-    <Message> RemoteActor<Message> create(ActorRef<Message> actor, Object globalId);
+public interface Migrator {
+    Object registerMigratingActor() throws SuspendExecution;
+    void migrate(Object id, Actor actor) throws SuspendExecution;
+    Actor hire(Object id) throws SuspendExecution;
 }

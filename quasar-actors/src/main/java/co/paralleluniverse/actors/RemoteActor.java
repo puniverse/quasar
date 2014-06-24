@@ -27,17 +27,10 @@ public class RemoteActor<Message> extends ActorImpl<Message> {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteActor.class);
     private static LifecycleListenerProxy lifecycleListenerProxy = ServiceUtil.loadSingletonService(LifecycleListenerProxy.class);
     private final transient ActorImpl<Message> actor;
-    private final ActorRef<Message> ref;
     
     protected RemoteActor(ActorRef<Message> actor) {
-        super(actor.getName(), actor.getImpl().mailbox());
+        super(actor.getName(), actor.getImpl().mailbox(), actor);
         this.actor = actor.getImpl();
-        this.ref = actor;
-    }
-
-    @Override
-    public ActorRef<Message> ref() {
-        return ref;
     }
 
     protected void handleAdminMessage(RemoteActorAdminMessage msg) {

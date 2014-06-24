@@ -11,16 +11,15 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.actors;
+package co.paralleluniverse.actors.spi;
 
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.actors.ActorImpl;
+import co.paralleluniverse.actors.ActorRef;
 
 /**
  *
  * @author pron
  */
-public interface Migrator {
-    Object registerMigratingActor() throws SuspendExecution;
-    void migrate(Object id, Actor actor) throws SuspendExecution;
-    Actor hire(Object id) throws SuspendExecution;
+public interface ActorRefCanonicalizer {
+    <Message> ActorRef<Message> getRef(ActorImpl<Message> impl);
 }

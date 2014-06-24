@@ -14,7 +14,7 @@
 package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.Migrator;
+import co.paralleluniverse.actors.spi.Migrator;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Store;

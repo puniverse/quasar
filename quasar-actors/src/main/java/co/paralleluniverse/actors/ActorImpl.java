@@ -26,6 +26,7 @@ public abstract class ActorImpl<Message> implements java.io.Serializable {
     //
     private static final int MAX_SEND_RETRIES = 10;
     //
+    protected final ActorRef<Message> ref;
     private volatile String name;
     private final SendPort<Object> mailbox;
     private LifecycleListener lifecycleListener;
@@ -36,11 +37,12 @@ public abstract class ActorImpl<Message> implements java.io.Serializable {
         return "Actor@" + (name != null ? name : Integer.toHexString(System.identityHashCode(this)));
     }
 
-    protected ActorImpl(String name, SendPort<Object> mailbox) {
+    protected ActorImpl(String name, SendPort<Object> mailbox, ActorRef<Message> ref) {
         this.name = name;
 
         this.mailbox = mailbox;
         this.flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
+        this.ref = ref != null ? ref : new ActorRef<>(this);
     }
 
     public String getName() {
@@ -53,7 +55,9 @@ public abstract class ActorImpl<Message> implements java.io.Serializable {
         this.name = name;
     }
 
-    public abstract ActorRef<Message> ref();
+    public ActorRef<Message> ref() {
+        return ref;
+    }
 
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////

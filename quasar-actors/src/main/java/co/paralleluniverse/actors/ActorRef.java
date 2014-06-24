@@ -31,7 +31,7 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
     private ActorImpl<Message> impl;
 
     protected ActorRef(ActorImpl<Message> impl) {
-        this.impl = impl;
+        setImpl(impl);
     }
 
     protected ActorRef() {
@@ -45,8 +45,12 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
         return impl;
     }
 
-    void setImpl(ActorImpl<Message> impl) {
+    final void setImpl(ActorImpl<Message> impl) {
         this.impl = impl;
+        
+        ActorRef<Message> r = impl.ref;
+        if(r != null && ActorRefDelegate.stripDelegates(r) != this)
+            throw new IllegalStateException("Actor " + impl + " already has a ref: " + ActorRefDelegate.stripDelegates(r));
     }
 
     /**
@@ -201,7 +205,10 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
 
     @Override
     public String toString() {
-        return "ActorRef{" + getImpl() + '}';
+        return "ActorRef@" + Integer.toHexString(System.identityHashCode(this)) + "{" + getImpl() + '}';
     }
-
+    
+    Object readResolve() {
+        return ActorRefCanonicalizerService.getRef(impl);
+    }
 }

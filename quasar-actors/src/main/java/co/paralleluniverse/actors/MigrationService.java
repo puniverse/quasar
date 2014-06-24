@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.actors.spi.Migrator;
 import co.paralleluniverse.common.util.ServiceUtil;
 import co.paralleluniverse.fibers.SuspendExecution;
 import org.slf4j.Logger;

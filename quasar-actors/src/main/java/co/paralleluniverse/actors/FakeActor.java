@@ -33,16 +33,9 @@ public abstract class FakeActor<Message> extends ActorImpl<Message> {
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(MapUtil.<LifecycleListener, Boolean>newConcurrentHashMap());
     private final Set<ActorImpl> observed = Collections.newSetFromMap(MapUtil.<ActorImpl, Boolean>newConcurrentHashMap());
     private volatile Throwable deathCause;
-    private final ActorRef<Message> ref;
 
     public FakeActor(String name, SendPort<Message> mailbox) {
-        super(name, (SendPort<Object>) mailbox);
-        this.ref = new ActorRef<>(this);
-    }
-
-    @Override
-    public ActorRef<Message> ref() {
-        return ref;
+        super(name, (SendPort<Object>) mailbox, null);
     }
     
     /**
@@ -105,12 +98,12 @@ public abstract class FakeActor<Message> extends ActorImpl<Message> {
     protected void addLifecycleListener(LifecycleListener listener) {
         final Throwable cause = getDeathCause();
         if (isDone()) {
-            listener.dead(ref, cause);
+            listener.dead(ref(), cause);
             return;
         }
         lifecycleListeners.add(listener);
         if (isDone())
-            listener.dead(ref, cause);
+            listener.dead(ref(), cause);
     }
 
     /**
@@ -162,7 +155,7 @@ public abstract class FakeActor<Message> extends ActorImpl<Message> {
         final Object id = ActorUtil.randtag();
 
         final ActorImpl other1 = getActorRefImpl(other);
-        final LifecycleListener listener = new ActorLifecycleListener(ref, id);
+        final LifecycleListener listener = new ActorLifecycleListener(ref(), id);
         record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other1, listener);
 
         other1.addLifecycleListener(listener);
@@ -179,7 +172,7 @@ public abstract class FakeActor<Message> extends ActorImpl<Message> {
      */
     public final void unwatch(ActorRef other, Object watchId) {
         final ActorImpl other1 = getActorRefImpl(other);
-        final LifecycleListener listener = new ActorLifecycleListener(ref, watchId);
+        final LifecycleListener listener = new ActorLifecycleListener(ref(), watchId);
         record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other1, listener);
         other1.removeLifecycleListener(listener);
         observed.remove(getActorRefImpl(other));
@@ -194,7 +187,7 @@ public abstract class FakeActor<Message> extends ActorImpl<Message> {
         for (LifecycleListener listener : lifecycleListeners) {
             record(1, "Actor", "die", "Actor %s notifying listener %s of death.", this, listener);
             try {
-                listener.dead(ref, cause);
+                listener.dead(ref(), cause);
             } catch (Exception e) {
                 record(1, "Actor", "die", "Actor %s notifying listener %s of death failed with excetpion %s", this, listener, e);
             }
@@ -203,14 +196,14 @@ public abstract class FakeActor<Message> extends ActorImpl<Message> {
             if (listener instanceof ActorLifecycleListener) {
                 ActorLifecycleListener l = (ActorLifecycleListener) listener;
                 if (l.getId() == null) // link
-                    l.getObserver().getImpl().removeObserverListeners(ref);
+                    l.getObserver().getImpl().removeObserverListeners(ref());
             }
         }
 
         // avoid memory leaks:
         lifecycleListeners.clear();
         for (ActorImpl a : observed)
-            a.removeObserverListeners(ref);
+            a.removeObserverListeners(ref());
         observed.clear();
     }
 }

@@ -11,21 +11,15 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.remote.galaxy;
+package co.paralleluniverse.actors.spi;
 
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.spi.RemoteActorProxyFactory;
-import org.kohsuke.MetaInfServices;
+import co.paralleluniverse.actors.RemoteActor;
 
 /**
  *
  * @author pron
  */
-@MetaInfServices
-public class GlxRemoteActorProxyFactory implements RemoteActorProxyFactory {
-
-    @Override
-    public <Message> GlxRemoteActor<Message> create(ActorRef<Message> actor, Object globalId) {
-        return new GlxRemoteActor<Message>(actor, globalId);
-    }
+public interface RemoteActorProxyFactory {
+    <Message> RemoteActor<Message> create(ActorRef<Message> actor, Object globalId);
 }

@@ -40,8 +40,14 @@ public class ActorRefDelegate<Message> extends ActorRef<Message> {
     protected final ActorImpl<Message> getImpl() {
         return getRef().getImpl();
     }
-    
+
     protected boolean isInActor() {
         return Objects.equals(getRef(), LocalActor.self());
+    }
+
+    static <T> ActorRef<T> stripDelegates(ActorRef<T> r) {
+        while (r instanceof ActorRefDelegate)
+            r = ((ActorRefDelegate<T>) r).getRef();
+        return r;
     }
 }

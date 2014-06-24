@@ -15,7 +15,6 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.channels.SendPort;
 
 /**
  *
@@ -24,10 +23,8 @@ import co.paralleluniverse.strands.channels.SendPort;
 class LostActor extends ActorImpl<Object> {
     public static final ActorImpl<Object> instance = new LostActor();
     
-    private final ActorRef<Object> ref = new ActorRef<Object>(this);
-    
     private LostActor() {
-        super("Lost", null);
+        super("Lost", null, null);
     }
 
     @Override
