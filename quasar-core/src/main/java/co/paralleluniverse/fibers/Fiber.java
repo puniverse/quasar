@@ -1255,6 +1255,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Externalizable, Fut
         get(timeout, unit);
     }
 
+    public final Fiber<V> joinNoSuspend() throws ExecutionException, InterruptedException {
+        task.get();
+        return this;
+    }
+
+    public final Fiber<V>  joinNoSuspend(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+        task.get(timeout, unit);
+        return this;
+    }
+
     @Override
     @Suspendable
     public final V get() throws ExecutionException, InterruptedException {
