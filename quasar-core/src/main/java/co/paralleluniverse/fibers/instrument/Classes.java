@@ -19,7 +19,6 @@ import org.objectweb.asm.tree.MethodInsnNode;
 final class Classes {
     static final String EXCEPTION_NAME = "co/paralleluniverse/fibers/SuspendExecution";
     static final String UNDECLARED_THROWABLE_NAME = "java/lang/reflect/UndeclaredThrowableException";
-    //static final String UNDECLARED_THROWABLE_NAME2 = "net/sf/cglib/proxy/UndeclaredThrowableException";
     static final String ANNOTATION_NAME = "co/paralleluniverse/fibers/Suspendable";
     static final String DONT_INSTRUMENT_ANNOTATION_NAME = "co/paralleluniverse/fibers/instrument/DontInstrument";
     static final String FIBER_CLASS_NAME = "co/paralleluniverse/fibers/Fiber"; //Type.getInternalName(COROUTINE_CLASS);

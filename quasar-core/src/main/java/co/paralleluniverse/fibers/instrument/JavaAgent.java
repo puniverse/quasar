@@ -173,9 +173,9 @@ public class JavaAgent {
 
         @Override
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
-            if(className.startsWith("clojure/lang/Compiler"))
+            if (className.startsWith("clojure/lang/Compiler"))
                 return crazyClojureOnceDisable(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
-                
+
             if (!instrumentor.shouldInstrument(className))
                 return null;
 
@@ -197,11 +197,11 @@ public class JavaAgent {
             }
         }
     }
-    
+
     public static byte[] crazyClojureOnceDisable(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
-        if(!Boolean.parseBoolean(System.getProperty("co.paralleluniverse.pulsar.disableOnce", "false")))
+        if (!Boolean.parseBoolean(System.getProperty("co.paralleluniverse.pulsar.disableOnce", "false")))
             return classfileBuffer;
-        
+
         ClassReader cr = new ClassReader(classfileBuffer);
         ClassWriter cw = new ClassWriter(cr, 0);
         ClassVisitor cv = new ClassVisitor(Opcodes.ASM4, cw) {
@@ -212,12 +212,12 @@ public class JavaAgent {
 
                     @Override
                     public void visitLdcInsn(Object cst) {
-                        if(cst instanceof String && cst.equals("once")) {
+                        if (cst instanceof String && cst.equals("once")) {
                             super.visitLdcInsn("once$disabled-by-pulsar");
                         } else
                             super.visitLdcInsn(cst);
                     }
-                    
+
                 };
             }
         };
