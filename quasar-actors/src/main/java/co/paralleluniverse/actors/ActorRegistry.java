@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.actors.spi.GlobalRegistry;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.ServiceUtil;
 import co.paralleluniverse.concurrent.util.MapUtil;
@@ -121,14 +122,13 @@ public class ActorRegistry {
         ActorRef<Message> actor = entry != null ? (ActorRef<Message>) entry.actor : null;
 
         if (actor == null && globalRegistry != null) {
-            // TODO: will only work if called from a fiber
             try {
                 actor = new Fiber<ActorRef<Message>>() {
                     @Override
                     protected ActorRef<Message> run() throws SuspendExecution, InterruptedException {
                         return globalRegistry.getActor(name);
                     }
-                }.start().get();
+                }.start().joinNoSuspend().get();
             } catch (ExecutionException e) {
                 throw Exceptions.rethrow(e.getCause());
             } catch (InterruptedException e) {

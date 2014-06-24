@@ -14,7 +14,7 @@
 package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.GlobalRegistry;
+import co.paralleluniverse.actors.spi.GlobalRegistry;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.Cache;

@@ -32,7 +32,8 @@ import org.slf4j.LoggerFactory;
  */
 public class GlxRemoteActor<Message> extends RemoteActor<Message> {
     private static final Logger LOG = LoggerFactory.getLogger(GlxRemoteActor.class);
-    
+    private static Canonicalizer<GlxGlobalChannelId, GlxRemoteActor> canonicalizer = new Canonicalizer<>();
+
     public GlxRemoteActor(final ActorRef<Message> actor, Object globalId) {
         super(actor);
         final RemoteChannelReceiver<Object> receiver = RemoteChannelReceiver.getReceiver((QueueChannel<Object>) LocalActor.getMailbox(actor), globalId != null);
@@ -95,5 +96,13 @@ public class GlxRemoteActor<Message> extends RemoteActor<Message> {
 
     static Class getActorLifecycleListenerClass() {
         return ActorLifecycleListener.class;
+    }
+
+    public GlxGlobalChannelId getId() {
+        return ((GlxRemoteChannel) mailbox()).getId();
+    }
+    
+    protected Object readResolve() throws java.io.ObjectStreamException, SuspendExecution {
+        return canonicalizer.get(getId(), this);
     }
 }
