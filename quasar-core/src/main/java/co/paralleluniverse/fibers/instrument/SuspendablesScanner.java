@@ -153,7 +153,7 @@ public class SuspendablesScanner extends Task {
     public void readSuspandables() {
         if (suspendablesFile != null) {
             if (!new File(suspendablesFile).isFile())
-                log("suspendable file " + suspendablesFile + " not found", Project.MSG_ERR);
+                log("suspendable file " + suspendablesFile + " not found", Project.MSG_INFO);
             ssc = new SimpleSuspendableClassifier(suspendablesFile);
             log("suspendablesFile: " + suspendablesFile, Project.MSG_INFO);
         }
