@@ -27,7 +27,7 @@ public class GlxActorRefCanonicalizer implements ActorRefCanonicalizer {
     private final Canonicalizer<GlxGlobalChannelId, ActorRef<?>> canonicalizer = new Canonicalizer<>();
 
     @Override
-    public <Message> ActorRef<Message> getRef(final ActorImpl<Message> impl) {
-        return (ActorRef<Message>)canonicalizer.get(((GlxRemoteActor) impl).getId(), impl.ref());
+    public <Message> ActorRef<Message> getRef(ActorImpl<Message> impl, ActorRef<Message> ref) {
+        return (ActorRef<Message>)canonicalizer.get(((GlxRemoteActor) impl).getId(), ref);
     }
 }

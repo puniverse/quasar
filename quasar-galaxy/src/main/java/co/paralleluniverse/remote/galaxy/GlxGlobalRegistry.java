@@ -137,9 +137,13 @@ public class GlxGlobalRegistry implements GlobalRegistry {
             try {
                 final long root = store.getRoot(rootName, txn);
                 byte[] buf = store.get(root);
-                if (buf == null)
+                if (buf == null) {
+                    LOG.debug("Store returned null for root {}", rootName);
                     return null;
+                }
 
+                LOG.debug("Store returned a buffer ({} bytes) for root {}", buf.length, rootName);
+                
                 if (buf.length == 0)
                     return null; // TODO: Galaxy should return null
 
@@ -147,9 +151,12 @@ public class GlxGlobalRegistry implements GlobalRegistry {
                 try {
                     actor = (ActorRef<Message>) ser.read(buf);
                 } catch (Exception e) {
-                    LOG.info("Deserializing actor at root " + rootName + " has failed with exception", e);
+                    LOG.error("Deserializing actor at root " + rootName + " has failed with exception", e);
                     return null;
                 }
+                
+                LOG.debug("Deserialized actor {} for root {}", actor, rootName);
+                
                 store.setListener(root, new CacheListener() {
                     @Override
                     public void invalidated(Cache cache, long id) {

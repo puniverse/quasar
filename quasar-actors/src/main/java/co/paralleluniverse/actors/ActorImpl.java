@@ -26,7 +26,7 @@ public abstract class ActorImpl<Message> implements java.io.Serializable {
     //
     private static final int MAX_SEND_RETRIES = 10;
     //
-    protected final ActorRef<Message> ref;
+    protected final ActorRef<Message> ref; // can actually be set after onstruction by ActorRef.readResolve()
     private volatile String name;
     private final SendPort<Object> mailbox;
     private LifecycleListener lifecycleListener;

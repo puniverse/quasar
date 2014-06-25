@@ -21,5 +21,5 @@ import co.paralleluniverse.actors.ActorRef;
  * @author pron
  */
 public interface ActorRefCanonicalizer {
-    <Message> ActorRef<Message> getRef(ActorImpl<Message> impl);
+    <Message> ActorRef<Message> getRef(ActorImpl<Message> impl, ActorRef<Message> ref);
 }

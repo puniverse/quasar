@@ -30,8 +30,8 @@ final class ActorRefCanonicalizerService {
         LOG.info("ActorRefCanonicalizer is {}", canonicalizer);
     }
 
-    public static <Message> ActorRef<Message> getRef(ActorImpl<Message> impl) {
-        return canonicalizer.getRef(impl);
+    public static <Message> ActorRef<Message> getRef(ActorImpl<Message> impl, ActorRef<Message> ref) {
+        return canonicalizer.getRef(impl, ref);
     }
 
     private ActorRefCanonicalizerService() {

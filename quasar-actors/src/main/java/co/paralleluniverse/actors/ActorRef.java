@@ -19,6 +19,7 @@ import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.channels.SendPort;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
+import java.lang.reflect.Field;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -47,9 +48,9 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
 
     final void setImpl(ActorImpl<Message> impl) {
         this.impl = impl;
-        
+
         ActorRef<Message> r = impl.ref;
-        if(r != null && ActorRefDelegate.stripDelegates(r) != this)
+        if (r != null && ActorRefDelegate.stripDelegates(r) != this)
             throw new IllegalStateException("Actor " + impl + " already has a ref: " + ActorRefDelegate.stripDelegates(r));
     }
 
@@ -207,8 +208,32 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
     public String toString() {
         return "ActorRef@" + Integer.toHexString(System.identityHashCode(this)) + "{" + getImpl() + '}';
     }
-    
+
     Object readResolve() {
-        return ActorRefCanonicalizerService.getRef(impl);
+        if (impl == null)
+            return null;
+        ActorRef<Message> ref = ActorRefCanonicalizerService.getRef(impl, this);
+        if (impl.ref == null)
+            setRef(impl, ref);
+        return ref;
+    }
+
+    private static final Field actorImplRefField;
+
+    static {
+        try {
+            actorImplRefField = ActorImpl.class.getDeclaredField("ref");
+            actorImplRefField.setAccessible(true);
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    private static <T> void setRef(ActorImpl<T> impl, ActorRef<T> ref) {
+        try {
+            actorImplRefField.set(impl, ref);
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
     }
 }

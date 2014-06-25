@@ -20,6 +20,7 @@
 package co.paralleluniverse.galaxy.example.pingpong;
 
 import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -37,6 +38,7 @@ public class Pong {
         System.setProperty("galaxy.port", Integer.toString(7050 + nodeId));
         System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
 
+        ActorRegistry.hasGlobalRegistry();
         ActorRef<Message> pong = new BasicActor<Message, Void>() {
             @Override
             protected Void doRun() throws InterruptedException, SuspendExecution {

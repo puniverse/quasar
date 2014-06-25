@@ -19,7 +19,7 @@ import java.util.Objects;
  *
  * @author pron
  */
-public final class GlxGlobalChannelId {
+public final class GlxGlobalChannelId implements java.io.Serializable {
     final Object topic; // serializable (String or Long)
     final long address; // either my node or my ref
     final boolean global;
