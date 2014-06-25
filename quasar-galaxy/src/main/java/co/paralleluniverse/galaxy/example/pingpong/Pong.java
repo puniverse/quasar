@@ -42,6 +42,7 @@ public class Pong {
             protected Void doRun() throws InterruptedException, SuspendExecution {
                 register("pong");
 
+                System.out.println("Pong started");
                 loop:
                 while (true) {
                     Message msg = receive();

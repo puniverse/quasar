@@ -80,7 +80,7 @@ public class ActorRegistry {
                 protected Object run() throws SuspendExecution, InterruptedException {
                     return globalRegistry.register(actor, globalId);
                 }
-            }.start().get();
+            }.start().joinNoSuspend().get();
         } catch (ExecutionException e) {
             throw Exceptions.rethrow(e.getCause());
         } catch (InterruptedException e) {
@@ -100,7 +100,7 @@ public class ActorRegistry {
                         globalRegistry.unregister(registeredActors.get(name).actor);
                         return null;
                     }
-                }.start().join();
+                }.start().joinNoSuspend().join();
             } catch (ExecutionException e) {
                 throw Exceptions.rethrow(e.getCause());
             } catch (InterruptedException e) {

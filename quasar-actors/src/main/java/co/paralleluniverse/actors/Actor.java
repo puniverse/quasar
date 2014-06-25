@@ -99,6 +99,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     @SuppressWarnings({"OverridableMethodCallInConstructor", "LeakingThisInConstructor"})
     public Actor(String name, MailboxConfig mailboxConfig) {
         super(name, new Mailbox(mailboxConfig), new ActorRef<Message>());
+        mailbox().setActor(this);
+
         // initialization order in this constructor matters because of replacement (code swap) instance constructor below
 
         this.runner = new ActorRunner<>(ref);
