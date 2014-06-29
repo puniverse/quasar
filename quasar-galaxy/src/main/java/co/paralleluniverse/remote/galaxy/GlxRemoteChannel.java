@@ -25,6 +25,7 @@ import co.paralleluniverse.remote.RemoteException;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.SendPort;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.Serializable;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
@@ -46,7 +47,7 @@ import org.slf4j.LoggerFactory;
 public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializable {
     private static final Logger LOG = LoggerFactory.getLogger(GlxRemoteChannel.class);
     private static final Grid grid;
-    private static final ExecutorService sendThreadPool = Executors.newSingleThreadExecutor(); //Executors.newCachedThreadPool();
+    private static final ExecutorService sendThreadPool = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build()); //Executors.newCachedThreadPool();
     private static Canonicalizer<GlxGlobalChannelId, GlxRemoteChannel> canonicalizer = new Canonicalizer<>();
 
     static {
