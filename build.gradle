@@ -44,8 +44,8 @@ subprojects {
             dirs baselib
         }
         repositories {
-            mavenCentral()
             mavenLocal()
+            mavenCentral()
             maven { url "https://oss.sonatype.org/content/repositories/releases" }
             maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
             maven { url "http://download.oracle.com/maven/" }
