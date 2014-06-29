@@ -191,4 +191,9 @@ public class GlxGlobalRegistry implements GlobalRegistry {
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public void shutdown() {
+        grid.cluster().goOffline();
+    }
 }

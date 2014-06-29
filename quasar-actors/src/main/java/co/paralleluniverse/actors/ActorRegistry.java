@@ -157,4 +157,9 @@ public class ActorRegistry {
             this.actor = actor;
         }
     }
+    
+    public static void shutdown() {
+        if (globalRegistry!=null)
+            globalRegistry.shutdown();
+    }
 }
