@@ -366,11 +366,24 @@ project (':quasar-galaxy') {
             exclude group: "com.lmax", module: 'disruptor'
         }
         
-        testCompile('org.gridkit.lab:nanocloud:0.8.2.2') {
+        testCompile ('org.gridkit.lab:telecontrol-ssh:0.7.22'){
             exclude group: "org.ow2.asm", module: '*'
         }
+        //        testCompile 'ch.qos.logback:logback-classic:1.0.6'
+        testCompile group: 'junit', name: 'junit', version: '4.11' 
+        testRuntime files(jar.archivePath)
     }
     
+
+    tasks.withType(Test) {
+        systemProperty "co.paralleluniverse.quasarJar", "${quasarJar}"
+        systemProperty "jgroups.bind_addr", "127.0.0.1"
+        systemProperty "galaxy.multicast.address", "225.0.0.1"
+        systemProperty "galaxy.multicast.port", "7050"
+        systemProperty "co.paralleluniverse.galaxy.configFile", "${sourceSets.main.output.resourcesDir}/config/peer.xml"
+        systemProperty "co.paralleluniverse.galaxy.autoGoOnline", "true"
+    }
+
     tasks.withType(JavaExec) {
         main = mainClass
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
