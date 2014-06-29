@@ -62,6 +62,7 @@ public class Ping {
         }.spawn();
         LocalActor.join(ping);
         System.out.println("finished ping");
-        System.exit(0);
+        Thread.sleep(500);
+        ActorRegistry.shutdown();
     }
 }

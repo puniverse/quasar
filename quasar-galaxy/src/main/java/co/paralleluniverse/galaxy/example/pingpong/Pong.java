@@ -32,7 +32,7 @@ import static co.paralleluniverse.galaxy.example.pingpong.Message.Type.*;
  */
 public class Pong {
     private static final int nodeId = 2;
-    
+
     public static void main(String[] args) throws Exception {
         System.setProperty("galaxy.nodeId", Integer.toString(nodeId));
         System.setProperty("galaxy.port", Integer.toString(7050 + nodeId));
@@ -62,6 +62,7 @@ public class Pong {
         }.spawn();
         LocalActor.join(pong);
         System.out.println("finished pong");
-        System.exit(0);
+        Thread.sleep(500);
+        ActorRegistry.shutdown();
     }
 }
