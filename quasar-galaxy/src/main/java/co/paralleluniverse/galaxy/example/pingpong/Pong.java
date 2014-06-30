@@ -25,6 +25,9 @@ import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.galaxy.example.pingpong.Message.Type.*;
+import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -33,36 +36,48 @@ import static co.paralleluniverse.galaxy.example.pingpong.Message.Type.*;
 public class Pong {
     private static final int nodeId = 2;
 
-    public static void main(String[] args) throws Exception {
-        System.setProperty("galaxy.nodeId", Integer.toString(nodeId));
-        System.setProperty("galaxy.port", Integer.toString(7050 + nodeId));
-        System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
+    public static void main(String[] args) {
+        int pings = runPong();
+        System.out.println(pings + " pings received");
+    }
 
-        ActorRegistry.hasGlobalRegistry();
-        ActorRef<Message> pong = new BasicActor<Message, Void>() {
-            @Override
-            protected Void doRun() throws InterruptedException, SuspendExecution {
-                register("pong");
-
-                System.out.println("Pong started");
-                loop:
-                while (true) {
-                    Message msg = receive();
-                    System.out.println("pong received " + msg.type);
-                    switch (msg.type) {
-                        case PING:
-                            msg.from.send(new Message(self(), PONG));
-                            break;
-                        case FINISHED:
-                            break loop;
+    public static int runPong()  {
+        try {
+            System.setProperty("galaxy.nodeId", Integer.toString(nodeId));
+            System.setProperty("galaxy.port", Integer.toString(7050 + nodeId));
+            System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
+            
+            ActorRegistry.hasGlobalRegistry();
+            ActorRef<Message> pong = new BasicActor<Message, Integer>() {
+                @Override
+                protected Integer doRun() throws InterruptedException, SuspendExecution {
+                    register("pong");
+                    int pings = 0;
+                    
+                    System.out.println("Pong started");
+                    loop:
+                    while (true) {
+                        Message msg = receive();
+                        System.out.println("pong received " + msg.type);
+                        switch (msg.type) {
+                            case PING:
+                                pings++;
+                                msg.from.send(new Message(self(), PONG));
+                                break;
+                            case FINISHED:
+                                break loop;
+                        }
                     }
+                    return pings;
                 }
-                return null;
-            }
-        }.spawn();
-        LocalActor.join(pong);
-        System.out.println("finished pong");
-        Thread.sleep(500);
-        ActorRegistry.shutdown();
+            }.spawn();
+            int pings = LocalActor.get(pong);
+            System.out.println("finished pong");
+            Thread.sleep(100);
+            ActorRegistry.shutdown();
+            return pings;
+        } catch (ExecutionException | InterruptedException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 }

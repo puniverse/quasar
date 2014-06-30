@@ -26,6 +26,7 @@ import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.galaxy.example.pingpong.Message.Type.*;
 import co.paralleluniverse.strands.Strand;
+import java.util.concurrent.ExecutionException;
 
 /**
  *
@@ -34,35 +35,43 @@ import co.paralleluniverse.strands.Strand;
 public class Ping {
     private static final int nodeId = 1;
 
-    public static void main(String[] args) throws Exception {
-        System.setProperty("galaxy.nodeId", Integer.toString(nodeId));
-        System.setProperty("galaxy.port", Integer.toString(7050 + nodeId));
-        System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
+    public static void main(String[] args) {
+        runPing();
+    }
 
-        ActorRegistry.hasGlobalRegistry();
-        ActorRef<Message> ping = new BasicActor<Message, Void>() {
-            @Override
-            protected Void doRun() throws InterruptedException, SuspendExecution {
-                ActorRef pong;
-                while ((pong = ActorRegistry.getActor("pong")) == null) {
-                    System.out.println("waiting for pong");
-                    Strand.sleep(3000);
+    public static void runPing() throws RuntimeException {
+        try {
+            System.setProperty("galaxy.nodeId", Integer.toString(nodeId));
+            System.setProperty("galaxy.port", Integer.toString(7050 + nodeId));
+            System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
+
+            ActorRegistry.hasGlobalRegistry();
+            ActorRef<Message> ping = new BasicActor<Message, Void>() {
+                @Override
+                protected Void doRun() throws InterruptedException, SuspendExecution {
+                    ActorRef pong;
+                    while ((pong = ActorRegistry.getActor("pong")) == null) {
+                        System.out.println("waiting for pong");
+                        Strand.sleep(3000);
+                    }
+                    System.out.println("pong is " + pong);
+
+                    for (int i = 0; i < 3; i++) {
+                        pong.send(new Message(self(), PING));
+                        Message msg = receive();
+                        System.out.println("ping received " + msg.type);
+                    }
+
+                    pong.send(new Message(null, FINISHED));
+                    return null;
                 }
-                System.out.println("pong is " + pong);
-
-                for (int i = 0; i < 3; i++) {
-                    pong.send(new Message(self(), PING));
-                    Message msg = receive();
-                    System.out.println("ping received " + msg.type);
-                }
-
-                pong.send(new Message(null, FINISHED));
-                return null;
-            }
-        }.spawn();
-        LocalActor.join(ping);
-        System.out.println("finished ping");
-        Thread.sleep(500);
-        ActorRegistry.shutdown();
+            }.spawn();
+            LocalActor.join(ping);
+            System.out.println("finished ping");
+            Thread.sleep(100);
+            ActorRegistry.shutdown();
+        } catch (ExecutionException | InterruptedException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 }

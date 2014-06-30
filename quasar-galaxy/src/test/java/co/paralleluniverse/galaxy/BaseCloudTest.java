@@ -1,3 +1,5 @@
+package co.paralleluniverse.galaxy;
+
 
 
 import java.lang.management.ManagementFactory;
@@ -72,5 +74,6 @@ public abstract class BaseCloudTest {
 				// do nothing
 			}
 		});
+                
 	}		
 }
