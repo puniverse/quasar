@@ -15,7 +15,7 @@ package co.paralleluniverse.data.record;
 
 import java.util.concurrent.ThreadLocalRandom;
 import org.openjdk.jmh.Main;
-import org.openjdk.jmh.annotations.GenerateMicroBenchmark;
+import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
@@ -87,27 +87,27 @@ public class RecordJMHBenchmark {
         dynamicGeneration = rt.wrap(new Foo4(), RecordType.Mode.GENERATION);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public Object timeSimple() {
         return foo(simple);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public Object timeDynamicMethodHandle() {
         return foo(dynamicMethodHandle);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public Object timeDynamicReflection() {
         return foo(dynamicReflection);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public Object timeDynamicUnsafe() {
         return foo(dynamicUnsafe);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public Object timeDynamicGeneration() {
         return foo(dynamicGeneration);
     }
@@ -120,7 +120,7 @@ public class RecordJMHBenchmark {
         return x;
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public Object timePojo() {
         x.a = (int) x.c + r.nextInt(100);
         x.b = x.a + r.nextDouble(100);
