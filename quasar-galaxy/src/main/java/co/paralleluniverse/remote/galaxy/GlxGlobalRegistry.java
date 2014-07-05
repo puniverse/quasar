@@ -1,13 +1,13 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -18,7 +18,7 @@ import co.paralleluniverse.actors.GlobalRegistry;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.Cache;
-import co.paralleluniverse.galaxy.CacheListener;
+import co.paralleluniverse.galaxy.AbstractCacheListener;
 import co.paralleluniverse.galaxy.StoreTransaction;
 import co.paralleluniverse.galaxy.TimeoutException;
 import co.paralleluniverse.galaxy.quasar.Grid;
@@ -150,7 +150,7 @@ public class GlxGlobalRegistry implements GlobalRegistry {
                     LOG.info("Deserializing actor at root " + rootName + " has failed with exception", e);
                     return null;
                 }
-                store.setListener(root, new CacheListener() {
+                store.setListener(root, new AbstractCacheListener() {
                     @Override
                     public void invalidated(Cache cache, long id) {
                         evicted(cache, id);
