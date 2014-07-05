@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.common.util.ServiceUtil;
 import co.paralleluniverse.fibers.SuspendExecution;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,9 +22,8 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
-public class RemoteActor<Message> extends ActorImpl<Message> {
+public abstract class RemoteActor<Message> extends ActorImpl<Message> {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteActor.class);
-    private static LifecycleListenerProxy lifecycleListenerProxy = ServiceUtil.loadSingletonService(LifecycleListenerProxy.class);
     private final transient ActorImpl<Message> actor;
     
     protected RemoteActor(ActorRef<Message> actor) {
@@ -35,10 +33,9 @@ public class RemoteActor<Message> extends ActorImpl<Message> {
 
     protected void handleAdminMessage(RemoteActorAdminMessage msg) {
         if (msg instanceof RemoteActorRegisterListenerAdminMessage) {
-            final RemoteActorRegisterListenerAdminMessage m = (RemoteActorRegisterListenerAdminMessage) msg;
             actor.addLifecycleListener(((RemoteActorRegisterListenerAdminMessage) msg).getListener());
         } else if (msg instanceof RemoteActorUnregisterListenerAdminMessage) {
-            RemoteActorUnregisterListenerAdminMessage unreg = (RemoteActorUnregisterListenerAdminMessage) msg;
+            final RemoteActorUnregisterListenerAdminMessage unreg = (RemoteActorUnregisterListenerAdminMessage) msg;
             if (unreg.getObserver() != null)
                 actor.removeObserverListeners(unreg.getObserver());
             else
@@ -48,6 +45,10 @@ public class RemoteActor<Message> extends ActorImpl<Message> {
         } else if (msg instanceof RemoteActorThrowInAdminMessage) {
             actor.throwIn(((RemoteActorThrowInAdminMessage) msg).getException());
         }
+    }
+
+    public ActorImpl<Message> getActor() {
+        return actor;
     }
 
     @Override
@@ -67,17 +68,17 @@ public class RemoteActor<Message> extends ActorImpl<Message> {
 
     @Override
     protected void addLifecycleListener(LifecycleListener listener) {
-        lifecycleListenerProxy.addLifecycleListener(this, listener);
+        actor.internalSendNonSuspendable(new RemoteActorRegisterListenerAdminMessage(listener));
     }
 
     @Override
     protected void removeLifecycleListener(LifecycleListener listener) {
-        lifecycleListenerProxy.removeLifecycleListener(this, listener);
+        actor.internalSendNonSuspendable(new RemoteActorUnregisterListenerAdminMessage(listener));
     }
 
     @Override
-    protected void removeObserverListeners(ActorRef actor) {
-        lifecycleListenerProxy.removeLifecycleListeners(this, actor);
+    protected void removeObserverListeners(ActorRef observer) {
+        actor.internalSendNonSuspendable(new RemoteActorUnregisterListenerAdminMessage(observer));
     }
 
     @Override

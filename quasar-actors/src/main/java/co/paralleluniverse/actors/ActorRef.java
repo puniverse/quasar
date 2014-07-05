@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  * @author pron
  */
 public class ActorRef<Message> implements SendPort<Message>, java.io.Serializable {
-    private ActorImpl<Message> impl;
+    private volatile ActorImpl<Message> impl;
 
     protected ActorRef(ActorImpl<Message> impl) {
         setImpl(impl);

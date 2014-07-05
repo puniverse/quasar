@@ -20,6 +20,7 @@ import co.paralleluniverse.galaxy.Cluster;
 import co.paralleluniverse.galaxy.TimeoutException;
 import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Messenger;
+import co.paralleluniverse.galaxy.quasar.Store;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.remote.RemoteException;
 import co.paralleluniverse.strands.SuspendableRunnable;
@@ -62,12 +63,15 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
         return grid.messenger();
     }
 
+    static Store getStore() {
+        return grid.store();
+    }
+
     static Cluster getCluster() {
         return grid.cluster();
     }
 
     private final GlxGlobalChannelId id;
-    private final short ownerNodeId;
 
     /**
      * Used on the creating (receiving) side
@@ -75,26 +79,19 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
      * @param channel
      */
     public GlxRemoteChannel(SendPort<Message> channel, Object globalId) {
-        final RemoteChannelReceiver<Message> receiver = RemoteChannelReceiver.getReceiver(channel, globalId != null);
-        final Object topic = receiver.getTopic();
-        this.ownerNodeId = getCluster().getMyNodeId();
-        if (globalId != null)
-            this.id = new GlxGlobalChannelId(true, (Long) globalId, topic);
-        else
-            this.id = new GlxGlobalChannelId(false, ownerNodeId, topic);
+        final boolean global = globalId != null;
+        final long topic = global ? -1 : RemoteChannelReceiver.getReceiver(channel).getTopic();
+        final short ownerNodeId = global ? -1 : getCluster().getMyNodeId();
+        this.id = new GlxGlobalChannelId(global, global ? (Long) globalId : ownerNodeId, topic);
     }
 
     public GlxGlobalChannelId getId() {
         return id;
     }
 
-    public short getOwnerNodeId() {
-        return ownerNodeId;
-    }
-
     @Override
     public void send(Message message) throws SuspendExecution {
-        submitSend(message, getId());
+        send(message, getId());
     }
 
     @Override
@@ -189,8 +186,7 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
             @Override
             public void run() {
                 try {
-                    staticSend(message, id);
-                    LOG.debug("sent {}", message);
+                    send(message, id);
                 } catch (SuspendExecution e) {
                     throw new AssertionError(e);
                 }
@@ -198,35 +194,24 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
         });
     }
 
-    private static void staticSend(Object message, GlxGlobalChannelId id) throws SuspendExecution {
+    private static void send(Object message, GlxGlobalChannelId id) throws SuspendExecution {
+        LOG.debug("sent {}", message);
         try {
-            if (id.global) {
-                final long ref = id.address;
+            if (id.isGlobal()) {
+                final long ref = id.getAddress();
                 if (message instanceof Streamable) {
-                    if (id.topic instanceof String)
-                        getMessenger().sendToOwnerOf(ref, (String) id.topic, (Streamable) message);
-                    else
-                        getMessenger().sendToOwnerOf(ref, (Long) id.topic, (Streamable) message);
+                    getStore().send(ref, (Streamable) message);
                 } else {
                     final byte[] buf = Serialization.getInstance().write(message);
-                    if (id.topic instanceof String)
-                        getMessenger().sendToOwnerOf(ref, (String) id.topic, buf);
-                    else
-                        getMessenger().sendToOwnerOf(ref, (Long) id.topic, buf);
+                    getStore().send(ref, buf);
                 }
             } else {
-                final short node = (short) id.address;
+                final short node = (short) id.getAddress();
                 if (message instanceof Streamable) {
-                    if (id.topic instanceof String)
-                        getMessenger().send(node, (String) id.topic, (Streamable) message);
-                    else
-                        getMessenger().send(node, (Long) id.topic, (Streamable) message);
+                    getMessenger().send(node, (Long) id.getTopic(), (Streamable) message);
                 } else {
                     final byte[] buf = Serialization.getInstance().write(message);
-                    if (id.topic instanceof String)
-                        getMessenger().send(node, (String) id.topic, buf);
-                    else
-                        getMessenger().send(node, (Long) id.topic, buf);
+                    getMessenger().send(node, (Long) id.getTopic(), buf);
                 }
             }
         } catch (TimeoutException e) {

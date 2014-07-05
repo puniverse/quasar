@@ -18,13 +18,9 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.MessageListener;
 import co.paralleluniverse.galaxy.cluster.NodeChangeListener;
 import co.paralleluniverse.galaxy.quasar.Grid;
-import co.paralleluniverse.galaxy.quasar.Messenger;
 import co.paralleluniverse.io.serialization.Serialization;
-import co.paralleluniverse.strands.channels.QueueChannel;
 import co.paralleluniverse.strands.channels.SendPort;
-import java.lang.ref.ReferenceQueue;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -38,28 +34,22 @@ import org.slf4j.LoggerFactory;
 public class RemoteChannelReceiver<Message> implements MessageListener {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteChannelReceiver.class);
     private static final ConcurrentMap<SendPort<?>, RemoteChannelReceiver<?>> receivers = MapUtil.newConcurrentHashMap();
-    private static final ReferenceQueue<QueueChannel> refQueue = new ReferenceQueue<>();
     private static final AtomicLong topicGen = new AtomicLong(1000);
 
-    public static <Message> RemoteChannelReceiver<Message> getReceiver(SendPort<Message> channel, boolean global) {
+    public static <Message> RemoteChannelReceiver<Message> getReceiver(SendPort<Message> channel) {
         RemoteChannelReceiver<Message> receiver = (RemoteChannelReceiver<Message>) receivers.get(channel);
         if (receiver == null) {
-            receiver = createrReceiver(channel, global);
+            receiver = new RemoteChannelReceiver<Message>(channel);
             RemoteChannelReceiver<Message> tmp = (RemoteChannelReceiver<Message>) receivers.putIfAbsent(channel, receiver);
-            if (tmp == null) {
+            if (tmp == null)
                 receiver.subscribe();
-            } else
+            else
                 receiver = tmp;
         }
         return receiver;
     }
 
-    private static <Message> RemoteChannelReceiver<Message> createrReceiver(SendPort<Message> channel, boolean global) {
-        return new RemoteChannelReceiver<Message>(channel, global);
-    }
-
     void shutdown() {
-        LOG.debug("shutdown of receiver due to zero references" + this);
         unsubscribe();
         receivers.remove(this.channel);
     }
@@ -69,13 +59,13 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
     }
     //////////////////////////////
     private final SendPort<Message> channel;
-    private final Object topic;
+    private final long topic;
     private volatile MessageFilter<Message> filter;
     private final Map<Short, Integer> references = new ConcurrentHashMap<>();
 
-    private RemoteChannelReceiver(SendPort<Message> channel, boolean isGlobal) {
+    private RemoteChannelReceiver(SendPort<Message> channel) {
         this.channel = channel;
-        this.topic = isGlobal ? UUID.randomUUID().toString() : topicGen.incrementAndGet();
+        this.topic = topicGen.incrementAndGet();
         try {
             new Grid(co.paralleluniverse.galaxy.Grid.getInstance()).cluster().addNodeChangeListener(new NodeChangeListener() {
                 @Override
@@ -90,8 +80,10 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
                 public void nodeRemoved(short id) {
                     LOG.debug("decrease RefCount for {} from node {}", this, id);
                     references.remove(id);
-                    if (references.isEmpty())
+                    if (references.isEmpty()) {
+                        LOG.debug("Shutting down receiver due to zero references" + this);
                         shutdown();
+                    }
                 }
             });
         } catch (InterruptedException ex) {
@@ -134,22 +126,14 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
     }
 
     private void subscribe() {
-        final Messenger messenger = GlxRemoteChannel.getMessenger();
-        if (topic instanceof String)
-            messenger.addMessageListener((String) topic, this);
-        else
-            messenger.addMessageListener((Long) topic, this);
+        GlxRemoteChannel.getMessenger().addMessageListener((Long) topic, this);
     }
 
     private void unsubscribe() {
-        final Messenger messenger = GlxRemoteChannel.getMessenger();
-        if (topic instanceof String)
-            messenger.removeMessageListener((String) topic, this);
-        else
-            messenger.removeMessageListener((Long) topic, this);
+        GlxRemoteChannel.getMessenger().removeMessageListener(topic, this);
     }
 
-    public Object getTopic() {
+    public long getTopic() {
         return topic;
     }
 
@@ -170,9 +154,8 @@ public class RemoteChannelReceiver<Message> implements MessageListener {
                     references.put(msg.getNodeId(), refCount);
                 else {
                     references.remove(msg.getNodeId());
-                    if (references.isEmpty()) {
+                    if (references.isEmpty())
                         shutdown();
-                    }
                 }
             }
         }

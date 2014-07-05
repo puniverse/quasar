@@ -17,8 +17,8 @@ import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.spi.GlobalRegistry;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.galaxy.AbstractCacheListener;
 import co.paralleluniverse.galaxy.Cache;
-import co.paralleluniverse.galaxy.CacheListener;
 import co.paralleluniverse.galaxy.StoreTransaction;
 import co.paralleluniverse.galaxy.TimeoutException;
 import co.paralleluniverse.galaxy.quasar.Grid;
@@ -70,7 +70,6 @@ public class GlxGlobalRegistry implements GlobalRegistry {
                 store.set(root, ser.write(actor), txn);
                 LOG.debug("commit Registering actor {} at rootId  {}", actor, root);
                 store.commit(txn);
-                RemoteChannelReceiver.getReceiver(LocalActor.getMailbox(actor), true).handleRefMessage(new GlxRemoteChannel.RefMessage(true, grid.cluster().getMyNodeId()));
                 return root; // root is the global id
             } catch (TimeoutException e) {
                 LOG.error("Registering actor {} at root {} failed due to timeout", actor, rootName);
@@ -99,7 +98,6 @@ public class GlxGlobalRegistry implements GlobalRegistry {
                 final long root = store.getRoot(rootName, txn);
                 store.set(root, (byte[]) null, txn);
                 store.commit(txn);
-                RemoteChannelReceiver.getReceiver(LocalActor.getMailbox(actor), true).handleRefMessage(new GlxRemoteChannel.RefMessage(false, grid.cluster().getMyNodeId()));
             } catch (TimeoutException e) {
                 LOG.error("Unregistering {} failed due to timeout", rootName);
                 store.rollback(txn);
@@ -157,7 +155,7 @@ public class GlxGlobalRegistry implements GlobalRegistry {
                 
                 LOG.debug("Deserialized actor {} for root {}", actor, rootName);
                 
-                store.setListener(root, new CacheListener() {
+                store.setListener(root, new AbstractCacheListener() {
                     @Override
                     public void invalidated(Cache cache, long id) {
                         evicted(cache, id);

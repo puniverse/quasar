@@ -49,9 +49,10 @@ public class GlxMigrator implements Migrator {
     }
 
     @Override
-    public void migrate(Object id, Actor actor) throws SuspendExecution {
+    public void migrate(Object id, Actor<?, ?> actor) throws SuspendExecution {
         final long _id = (Long) id;
         try {
+            store.setListener(_id, null);
             store.set(_id, Serialization.getInstance().write(actor), null);
             store.release(_id);
         } catch (co.paralleluniverse.galaxy.TimeoutException e) {
@@ -61,11 +62,19 @@ public class GlxMigrator implements Migrator {
 
     @Override
     public Actor hire(Object id) throws SuspendExecution {
+        final long _id = (Long) id;
         try {
-            byte[] buf = store.getx((Long) id, null);
-            return (Actor)Serialization.getInstance().read(buf);
+            store.setListener(_id, null);
+            final byte[] buf = store.getx(_id, null);
+            final Actor actor = (Actor)Serialization.getInstance().read(buf);
+            GlobalRemoteChannelReceiver.getReceiver(actor.getMailbox(), _id);
+            return actor;
         } catch (co.paralleluniverse.galaxy.TimeoutException e) {
             throw new RuntimeException(e);
         }
+    }
+    
+    private static GlxGlobalChannelId channelId(Object id) {
+        return new GlxGlobalChannelId(true, (Long)id, -1);
     }
 }

@@ -13,32 +13,39 @@
  */
 package co.paralleluniverse.remote.galaxy;
 
-import java.util.Objects;
-
 /**
  *
  * @author pron
  */
 public final class GlxGlobalChannelId implements java.io.Serializable {
-    final Object topic; // serializable (String or Long)
-    final long address; // either my node or my ref
-    final boolean global;
+    private final long topic;
+    private final long address; // either my node or my ref
 
-    public GlxGlobalChannelId(boolean global, long address, Object topic) {
-        this.global = global;
+    public GlxGlobalChannelId(boolean global, long address, long topic) {
         this.address = address;
-        this.topic = topic;
+        this.topic = global ? -1L : topic;
     }
 
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 43 * hash + Objects.hashCode(this.topic);
-        hash = 43 * hash + (int) (this.address ^ (this.address >>> 32));
-        hash = 43 * hash + (this.global ? 1 : 0);
+        hash = 43 * hash + (int)(topic ^ (topic >>> 32));
+        hash = 43 * hash + (int) (address ^ (address >>> 32));
         return hash;
     }
 
+    public long getTopic() {
+        return topic;
+    }
+
+    public long getAddress() {
+        return address;
+    }
+
+    public boolean isGlobal() {
+        return topic < 0;
+    }
+    
     @Override
     public boolean equals(Object obj) {
         if (obj == null)
@@ -46,17 +53,15 @@ public final class GlxGlobalChannelId implements java.io.Serializable {
         if (!(obj instanceof GlxGlobalChannelId))
             return false;
         final GlxGlobalChannelId other = (GlxGlobalChannelId) obj;
-        if (!Objects.equals(this.topic, other.topic))
+        if (this.topic != other.topic)
             return false;
         if (this.address != other.address)
-            return false;
-        if (this.global != other.global)
             return false;
         return true;
     }
 
     @Override
     public String toString() {
-        return "GlxGlobalChannelId{" + "global: " + global  + " address: " + address + " topic: " + topic + '}';
+        return "GlxGlobalChannelId{" + "global: " + isGlobal()  + " address: " + address + " topic: " + topic + '}';
     }
 }

@@ -102,7 +102,6 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         mailbox().setActor(this);
 
         // initialization order in this constructor matters because of replacement (code swap) instance constructor below
-
         this.runner = new ActorRunner<>(ref);
         this.classRef = ActorLoader.getClassRef(getClass());
 
@@ -946,9 +945,20 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         observed.clear();
     }
 
-    public void migrateAndRestart() {
-        verifyInActor();
+    private static final ThreadLocal<Boolean> migrating = new ThreadLocal<Boolean>();
 
+    public void migrateAndRestart() throws SuspendExecution {
+        verifyInActor();
+        final RemoteActor<Message> remote = RemoteActorProxyFactoryService.create(ref(), getGlobalId());
+
+        migrating.set(Boolean.TRUE);
+        try {
+            MigrationService.migrate(getGlobalId(), this);
+        } finally {
+            migrating.remove();
+        }
+        // xxx;
+        ref.setImpl(remote);
     }
     //</editor-fold>
 
@@ -965,8 +975,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             newInstance.setName(getName());
         newInstance.setStrand(null);
 
-        ActorMonitor monitor = getMonitor();
-        newInstance.setMonitor(monitor);
+        newInstance.setMonitor(getMonitor());
         if (getName() != null && ActorRegistry.getActor(getName()) == ref)
             newInstance.register();
         return newInstance;
@@ -976,8 +985,12 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     //<editor-fold desc="Serialization">
     /////////// Serialization ///////////////////////////////////
     protected final Object writeReplace() throws java.io.ObjectStreamException {
-        final RemoteActor<Message> repl = RemoteActorProxyFactoryService.create(ref(), getGlobalId());
-        return repl;
+        if (migrating.get() == Boolean.TRUE)
+            return this;
+
+        final RemoteActor<Message> remote = RemoteActorProxyFactoryService.create(ref(), getGlobalId());
+        // remote.startReceiver();
+        return remote;
     }
     //</editor-fold>
 

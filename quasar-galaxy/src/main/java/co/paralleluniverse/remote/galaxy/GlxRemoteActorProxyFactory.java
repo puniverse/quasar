@@ -26,6 +26,6 @@ public class GlxRemoteActorProxyFactory implements RemoteActorProxyFactory {
 
     @Override
     public <Message> GlxRemoteActor<Message> create(ActorRef<Message> actor, Object globalId) {
-        return new GlxRemoteActor<Message>(actor, globalId);
+        return globalId != null ? new GlxGlobalRemoteActor<Message>(actor, globalId) : new GlxNonGlobalRemoteActor<Message>(actor);
     }
 }

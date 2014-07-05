@@ -13,34 +13,27 @@
  */
 package co.paralleluniverse.remote.galaxy;
 
+import co.paralleluniverse.actors.ActorImpl;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.LifecycleListener;
-import co.paralleluniverse.actors.LifecycleListenerProxy;
-import co.paralleluniverse.actors.RemoteActor;
 import co.paralleluniverse.galaxy.cluster.NodeChangeListener;
 import co.paralleluniverse.galaxy.quasar.Grid;
+import co.paralleluniverse.strands.channels.QueueChannel;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import org.kohsuke.MetaInfServices;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author pron
  */
-@MetaInfServices
-public class GlxLifecycleListenerProxy extends LifecycleListenerProxy {
-    private static final Logger LOG = LoggerFactory.getLogger(GlxLifecycleListenerProxy.class);
-//    private static final ReferenceQueue<LifecycleListener> oldlistenerRefQueue = new ReferenceQueue<>();
-    private final Grid grid;
-//    private static final Map<Short, Set<RAPhantomReference>> map = new ConcurrentHashMap<>();
-    private final static Set<RegistryRecord> listenerRegistry = Collections.newSetFromMap(new ConcurrentHashMap<RegistryRecord, Boolean>());
+public class GlxNonGlobalRemoteActor<Message> extends GlxRemoteActor<Message> {
+    private static final Grid grid;
+    private static final Set<RegistryRecord> listenerRegistry = Collections.newSetFromMap(new ConcurrentHashMap<RegistryRecord, Boolean>());
 
-    public GlxLifecycleListenerProxy() {
+    static {
         try {
             grid = new Grid(co.paralleluniverse.galaxy.Grid.getInstance());
             grid.cluster().addNodeChangeListener(new NodeChangeListener() {
@@ -69,43 +62,68 @@ public class GlxLifecycleListenerProxy extends LifecycleListenerProxy {
         }
     }
 
-    protected static GlxRemoteActor getImpl(ActorRef<?> actor) {
-        return (GlxRemoteActor) LifecycleListenerProxy.getImpl(actor);
+    public GlxNonGlobalRemoteActor(ActorRef<Message> actor) {
+        super(actor);
+        startReceiver();
+    }
+
+    private void startReceiver() {
+        final ActorImpl<Message> actor = getActor();
+        if (actor == null)
+            throw new IllegalStateException("Actor for " + this + " not running locally");
+
+        final RemoteChannelReceiver<Object> receiver = RemoteChannelReceiver.getReceiver((QueueChannel<Object>) getActor().getMailbox());
+        receiver.setFilter(new RemoteChannelReceiver.MessageFilter<Object>() {
+            @Override
+            public boolean shouldForwardMessage(Object msg) {
+                if (msg instanceof RemoteActorAdminMessage) {
+                    handleAdminMessage((RemoteActorAdminMessage) msg);
+                    return false;
+                }
+                return true;
+            }
+        });
+    }
+
+    private boolean isNodeAlive() {
+        return grid.cluster().getNodes().contains(getOwnerNodeId());
     }
 
     @Override
-    public void addLifecycleListener(RemoteActor actor, final LifecycleListener listener) {
-        final GlxRemoteActor glxActor = (GlxRemoteActor) actor;
-        final short nodeId = glxActor.getOwnerNodeId();
-        if (!grid.cluster().getNodes().contains(nodeId)) {
-            listener.dead(actor.ref(), null);
+    protected void addLifecycleListener(LifecycleListener listener) {
+        if (!isNodeAlive()) {
+            listener.dead(ref(), null);
             return;
         }
-        super.addLifecycleListener(actor, listener);
-        listenerRegistry.add(new RegistryRecord(listener, glxActor));
+        super.addLifecycleListener(listener);
+        listenerRegistry.add(new RegistryRecord(listener, this));
     }
 
     @Override
-    public void removeLifecycleListener(RemoteActor actor, LifecycleListener listener) {
-        super.removeLifecycleListener(actor, listener);
-        listenerRegistry.remove(new RegistryRecord(listener, (GlxRemoteActor) actor));
+    protected void removeLifecycleListener(LifecycleListener listener) {
+        super.removeLifecycleListener(listener);
+        listenerRegistry.remove(new RegistryRecord(listener, this));
     }
 
     @Override
-    public void removeLifecycleListeners(RemoteActor actor, ActorRef observer) {
-        super.removeLifecycleListeners(actor, observer);
+    protected void removeObserverListeners(ActorRef actor) {
+        super.removeObserverListeners(actor);
         for (Iterator<RegistryRecord> it = listenerRegistry.iterator(); it.hasNext();) {
             RegistryRecord registryRecord = it.next();
-            if (registryRecord.actor.equals(actor))
+            if (registryRecord.actor.equals(this))
                 it.remove();
         }
     }
 
-    final class RegistryRecord {
-        final LifecycleListener listener;
-        final GlxRemoteActor actor;
+    short getOwnerNodeId() {
+        return (short) ((GlxRemoteChannel) getMailbox()).getId().getAddress();
+    }
 
-        public RegistryRecord(LifecycleListener listener, GlxRemoteActor actor) {
+    static final class RegistryRecord {
+        final LifecycleListener listener;
+        final GlxNonGlobalRemoteActor actor;
+
+        public RegistryRecord(LifecycleListener listener, GlxNonGlobalRemoteActor actor) {
             this.listener = listener;
             this.actor = actor;
         }
