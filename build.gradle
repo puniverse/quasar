@@ -58,9 +58,9 @@ subprojects {
 
             force "com.google.guava:guava:17.0"
             force "org.slf4j:slf4j-api:1.7.7"
-            force "org.apache.logging.log4j:log4j-slf4j-impl:2.0-rc1"
-            force "org.apache.logging.log4j:log4j-api:2.0-rc1"
-            force "org.apache.logging.log4j:log4j-core:2.0-rc1"
+            force "org.apache.logging.log4j:log4j-slf4j-impl:2.0-rc2"
+            force "org.apache.logging.log4j:log4j-api:2.0-rc2"
+            force "org.apache.logging.log4j:log4j-core:2.0-rc2"
             force "log4j:log4j:1.2.17"
             force "junit:junit:4.11"
             force "com.codahale.metrics:metrics-core:3.0.2"
@@ -83,8 +83,8 @@ subprojects {
         testCompile("org.mockito:mockito-all:1.9.5") {
             exclude group: "org.ow2.asm", module: '*'
         }
-        testCompile 'org.openjdk.jmh:jmh-core:0.8'
-        testCompile 'org.openjdk.jmh:jmh-generator-annprocess:0.8'
+        testCompile 'org.openjdk.jmh:jmh-core:0.9.2'
+        testCompile 'org.openjdk.jmh:jmh-generator-annprocess:0.9.2'
         compileOnly 'org.kohsuke.metainf-services:metainf-services:1.5'
         markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
     }
@@ -350,9 +350,9 @@ project (':quasar-actors') {
             exclude group: "org.ow2.asm", module: '*'
         }
 	//  runtime "org.slf4j:slf4j-jdk14:1.7.7"
-        runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0-rc1"
-        runtime "org.apache.logging.log4j:log4j-api:2.0-rc1"
-        runtime "org.apache.logging.log4j:log4j-core:2.0-rc1"
+        runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0-rc2"
+        runtime "org.apache.logging.log4j:log4j-api:2.0-rc2"
+        runtime "org.apache.logging.log4j:log4j-core:2.0-rc2"
         compile "com.lmax:disruptor:3.2.1" // required for log4j
     }
 }

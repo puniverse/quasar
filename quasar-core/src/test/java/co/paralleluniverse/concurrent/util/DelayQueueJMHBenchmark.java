@@ -16,7 +16,7 @@ package co.paralleluniverse.concurrent.util;
 import java.util.Queue;
 import java.util.concurrent.ThreadLocalRandom;
 import org.openjdk.jmh.Main;
-import org.openjdk.jmh.annotations.GenerateMicroBenchmark;
+import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Group;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
@@ -80,37 +80,37 @@ public class DelayQueueJMHBenchmark {
     }
 
     // it is important that "read" is lexicographically lower than "write", as this is the order specified in the -tg flag
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("delayQueue")
     public Object read_DelayQueue(Control cnt, BenchmarkState b, Q q) {
         return read(cnt, q.delayQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("delayQueue")
     public void write_DelayQueue(Control cnt, BenchmarkState b, Q q) {
         write(cnt, b, q.delayQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("delayQueue1")
     public Object read_DelayQueue1(Control cnt, BenchmarkState b, Q q) {
         return read(cnt, q.delayQueue1);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("delayQueue1")
     public void write_DelayQueue1(Control cnt, BenchmarkState b, Q q) {
         write(cnt, b, q.delayQueue1);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("singleConsumerNonblockingProducerDelayQueue")
     public Object read_SingleConsumerLinkedObjectQueue(Control cnt, BenchmarkState b, Q q) {
         return read(cnt, q.singleConsumerNonblockingProducerDelayQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("singleConsumerNonblockingProducerDelayQueue")
     public void write_SingleConsumerLinkedObjectQueue(Control cnt, BenchmarkState b, Q q) {
         write(cnt, b, q.singleConsumerNonblockingProducerDelayQueue);

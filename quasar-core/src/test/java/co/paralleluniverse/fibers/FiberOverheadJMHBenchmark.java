@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
-import org.openjdk.jmh.runner.parameters.TimeValue;
+import org.openjdk.jmh.runner.options.TimeValue;
 import org.openjdk.jmh.profile.*;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
 
@@ -48,14 +48,14 @@ public class FiberOverheadJMHBenchmark {
                 .build()).run();
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public Object baseline() {
         res = 0;
         runnable.run();
         return res;
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public Object fiber() {
         res = 0;
         exec(fiber);
@@ -64,7 +64,7 @@ public class FiberOverheadJMHBenchmark {
         return res;
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public Object fiberNoPark() {
         res = 0;
         exec(fiber2);
