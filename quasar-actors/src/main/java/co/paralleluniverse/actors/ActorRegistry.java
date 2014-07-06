@@ -19,6 +19,7 @@ import co.paralleluniverse.common.util.ServiceUtil;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
+import com.google.common.base.Objects;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
@@ -47,7 +48,7 @@ public class ActorRegistry {
         // atomically register
         final ActorRef ref = actor.ref();
         final Entry old = registeredActors.get(name);
-        if (old != null && old.actor == actor.ref())
+        if (old != null && Objects.equal(old.actor, actor.ref()))
             return old.globalId;
 
         if (old != null && LocalActor.isLocal(old.actor) && !LocalActor.isDone(old.actor))
@@ -157,9 +158,9 @@ public class ActorRegistry {
             this.actor = actor;
         }
     }
-    
+
     public static void shutdown() {
-        if (globalRegistry!=null)
+        if (globalRegistry != null)
             globalRegistry.shutdown();
     }
 }

@@ -26,8 +26,6 @@ import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.galaxy.example.pingpong.Message.Type.*;
 import java.util.concurrent.ExecutionException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *

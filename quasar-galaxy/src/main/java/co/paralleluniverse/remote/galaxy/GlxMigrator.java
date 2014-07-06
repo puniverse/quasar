@@ -14,6 +14,9 @@
 package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorImpl;
+import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.RemoteActor;
 import co.paralleluniverse.actors.spi.Migrator;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.quasar.Grid;
@@ -61,20 +64,24 @@ public class GlxMigrator implements Migrator {
     }
 
     @Override
-    public Actor hire(Object id) throws SuspendExecution {
-        final long _id = (Long) id;
+    public <M> Actor<M, ?> hire(ActorRef<M> actorRef, ActorImpl<M> impl) throws SuspendExecution {
+        final GlxGlobalChannelId gcid = ((GlxRemoteActor) impl).getId();
+        if (!gcid.isGlobal())
+            throw new IllegalArgumentException("Actor " + actorRef + " is not a migrating actor");
+        
+        final long id = gcid.getAddress();
         try {
-            store.setListener(_id, null);
-            final byte[] buf = store.getx(_id, null);
-            final Actor actor = (Actor)Serialization.getInstance().read(buf);
-            GlobalRemoteChannelReceiver.getReceiver(actor.getMailbox(), _id);
+            store.setListener(id, null);
+            final byte[] buf = store.getx(id, null);
+            final Actor actor = (Actor) Serialization.getInstance().read(buf);
+            GlobalRemoteChannelReceiver.getReceiver(actor.getMailbox(), id);
             return actor;
         } catch (co.paralleluniverse.galaxy.TimeoutException e) {
             throw new RuntimeException(e);
         }
     }
-    
+
     private static GlxGlobalChannelId channelId(Object id) {
-        return new GlxGlobalChannelId(true, (Long)id, -1);
+        return new GlxGlobalChannelId(true, (Long) id, -1);
     }
 }

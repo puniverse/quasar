@@ -960,6 +960,10 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         // xxx;
         ref.setImpl(remote);
     }
+    
+    public static <M> Actor<M, ?> hire(ActorRef<M> ref) throws SuspendExecution {
+        return MigrationService.hire(ref);
+    }
     //</editor-fold>
 
     //<editor-fold desc="ActorBuilder">

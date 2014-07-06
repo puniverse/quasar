@@ -39,10 +39,10 @@ class MigrationService {
     }
 
     public static void migrate(Object id, Actor<?, ?> actor) throws SuspendExecution {
-        migrator.migrate(id, actor);
+        migrator.migrate(actor.getGlobalId(), actor);
     }
 
-    public static Actor hire(Object id) throws SuspendExecution {
-        return migrator.hire(id);
+    public static <M> Actor<M, ?> hire(ActorRef<M> actorRef) throws SuspendExecution {
+        return migrator.hire(actorRef, actorRef.getImpl());
     }
 }

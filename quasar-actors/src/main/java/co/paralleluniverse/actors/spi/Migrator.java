@@ -14,6 +14,8 @@
 package co.paralleluniverse.actors.spi;
 
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorImpl;
+import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.fibers.SuspendExecution;
 
 /**
@@ -23,5 +25,5 @@ import co.paralleluniverse.fibers.SuspendExecution;
 public interface Migrator {
     Object registerMigratingActor() throws SuspendExecution;
     void migrate(Object id, Actor<?, ?> actor) throws SuspendExecution;
-    Actor hire(Object id) throws SuspendExecution;
+    <M> Actor<M, ?> hire(ActorRef<M> actorRef, ActorImpl<M> actorImpl) throws SuspendExecution;
 }

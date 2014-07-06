@@ -15,7 +15,6 @@ package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.spi.GlobalRegistry;
-import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.AbstractCacheListener;
 import co.paralleluniverse.galaxy.Cache;
@@ -27,6 +26,7 @@ import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.strands.concurrent.ReentrantLock;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Condition;
 import org.kohsuke.MetaInfServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,7 +133,17 @@ public class GlxGlobalRegistry implements GlobalRegistry {
         try {
             boolean error = false;
             try {
+                
                 final long root = store.getRoot(rootName, txn);
+//                Condition cond = serlock.newCondition();
+//                
+//                store.setListener(root, new AbstractCacheListener() {
+//                    @Override
+//                    public void received(Cache cache, long id, long version, ByteBuffer data) {
+//                        cond.signalAll();
+//                    }
+//                });
+                
                 byte[] buf = store.get(root);
                 if (buf == null) {
                     LOG.debug("Store returned null for root {}", rootName);
