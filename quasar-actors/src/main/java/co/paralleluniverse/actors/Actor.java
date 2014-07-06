@@ -962,7 +962,9 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     }
     
     public static <M> Actor<M, ?> hire(ActorRef<M> ref) throws SuspendExecution {
-        return MigrationService.hire(ref);
+        final Actor<M, ?> actor = MigrationService.hire(ref);
+        actor.ref.setImpl(actor);
+        return actor;
     }
     //</editor-fold>
 
