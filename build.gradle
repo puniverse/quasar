@@ -123,8 +123,14 @@ subprojects {
     }
 
     task run(type: JavaExec, dependsOn:[testClasses]) {
-        main = mainClass
-        
+        classpath = sourceSets.main.runtimeClasspath
+        if(project.hasProperty('mainClass')){
+            main = project.mainClass
+        }    
+        if(project.hasProperty('args')){
+            args project.args.split('\\s+')
+        }
+    
         jvmArgs '-Xmx2048m'
     
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
@@ -350,7 +356,7 @@ project (':quasar-actors') {
         compile ("cglib:cglib:3.1") {
             exclude group: "org.ow2.asm", module: '*'
         }
-	//  runtime "org.slf4j:slf4j-jdk14:1.7.7"
+        //  runtime "org.slf4j:slf4j-jdk14:1.7.7"
         runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0-rc2"
         runtime "org.apache.logging.log4j:log4j-api:2.0-rc2"
         runtime "org.apache.logging.log4j:log4j-core:2.0-rc2"
