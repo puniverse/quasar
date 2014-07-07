@@ -15,7 +15,6 @@ package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.actors.ActorImpl;
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.Cache;
 import co.paralleluniverse.galaxy.CacheListener;
 import co.paralleluniverse.galaxy.quasar.Grid;
@@ -42,7 +41,7 @@ public class GlxGlobalRemoteActor<Message> extends GlxRemoteActor<Message> imple
     }
 
     @Override
-    protected Object readResolve() throws java.io.ObjectStreamException, SuspendExecution {
+    protected Object readResolve() throws java.io.ObjectStreamException {
         try {
             GlxGlobalRemoteActor remote = (GlxGlobalRemoteActor) super.readResolve();
             CacheListener l1 = new Grid(co.paralleluniverse.galaxy.Grid.getInstance()).store().setListenerIfAbsent(ref, remote);

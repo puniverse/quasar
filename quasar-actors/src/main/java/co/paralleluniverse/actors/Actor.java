@@ -85,10 +85,13 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     private volatile Throwable exception;
     private volatile Throwable deathCause;
     private volatile Object globalId;
-    private volatile ActorMonitor monitor;
+    private transient volatile ActorMonitor monitor;
+    private volatile boolean registered;
+    private boolean globalIdFixed;
+    private boolean hasMonitor;
     private ActorSpec<?, Message, V> spec;
     private Object aux;
-    private final ActorRunner<V> runner;
+    private transient final ActorRunner<V> runner;
 
     /**
      * Creates a new actor.
@@ -114,9 +117,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      */
     protected Actor() {
         super(null, null, null);
-        this.wrapperRef = null;
-        this.runner = null;
-        this.classRef = null;
+        this.runner = new ActorRunner<>(ref);
+        this.classRef = ActorLoader.getClassRef(getClass());
     }
 
     private void checkReplacement() {
@@ -626,8 +628,11 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         if (!(runner.getStrand() instanceof Fiber))
             currentActor.set(this);
         try {
-            if (this instanceof MigratingActor && globalId == null)
+            if (this instanceof MigratingActor && globalId == null) {
+                if (globalIdFixed)
+                    throw new AssertionError();
                 this.globalId = MigrationService.registerMigratingActor();
+            }
 
             result = doRun();
             die(null);
@@ -765,10 +770,11 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * @return {@code true} if the actor is registered; {@code false} otherwise.
      */
     public final boolean isRegistered() {
-        return globalId != null;
+        return registered;
     }
 
     Object getGlobalId() {
+        this.globalIdFixed = true;
         return globalId;
     }
 
@@ -889,7 +895,10 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      */
     public final Actor register() {
         record(1, "Actor", "register", "Registering actor %s as %s", this, getName());
+        if (globalIdFixed)
+            throw new IllegalStateException("Actor has already been shared over the cluster and cannot be registered");
         this.globalId = ActorRegistry.register(this, globalId);
+        this.registered = true;
         return this;
     }
 
@@ -907,7 +916,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         ActorRegistry.unregister(getName());
         if (monitor != null)
             this.monitor.setActor(null);
-        this.globalId = null;
+        this.registered = false;
         return this;
     }
 
@@ -949,6 +958,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
 
     public void migrateAndRestart() throws SuspendExecution {
         verifyInActor();
+        this.globalIdFixed = true;
         final RemoteActor<Message> remote = RemoteActorProxyFactoryService.create(ref(), getGlobalId());
 
         migrating.set(Boolean.TRUE);
@@ -957,10 +967,11 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         } finally {
             migrating.remove();
         }
-        // xxx;
+        
         ref.setImpl(remote);
+        System.out.println("XXXXXXXX: " + ref.getImpl());
     }
-    
+
     public static <M> Actor<M, ?> hire(ActorRef<M> ref) throws SuspendExecution {
         final Actor<M, ?> actor = MigrationService.hire(ref);
         actor.ref.setImpl(actor);
@@ -991,12 +1002,22 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     //<editor-fold desc="Serialization">
     /////////// Serialization ///////////////////////////////////
     protected final Object writeReplace() throws java.io.ObjectStreamException {
-        if (migrating.get() == Boolean.TRUE)
+        globalIdFixed = true;
+        if (migrating.get() == Boolean.TRUE) {
+            if (monitor != null)
+                hasMonitor = true;
             return this;
+        }
 
         final RemoteActor<Message> remote = RemoteActorProxyFactoryService.create(ref(), getGlobalId());
         // remote.startReceiver();
         return remote;
+    }
+
+    protected Object readResolve() throws java.io.ObjectStreamException {
+        if (hasMonitor)
+            monitor();
+        return this;
     }
     //</editor-fold>
 

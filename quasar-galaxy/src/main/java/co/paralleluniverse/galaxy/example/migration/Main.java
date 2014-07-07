@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        final int nodeId = Integer.parseInt(args[0]);
+        final int nodeId = 1; // Integer.parseInt(args[0]);
         System.setProperty("galaxy.nodeId", Integer.toString(nodeId));
         System.setProperty("galaxy.port", Integer.toString(7050 + nodeId));
         System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
@@ -49,6 +49,7 @@ public class Main {
             if (r < 0.1) {
                 actor.send(new Message(null, MIGRATE));
                 System.out.println("Hiring actor...");
+                Thread.sleep(500);
                 Actor.hire(actor).spawn();
                 System.out.println("Hired!");
             } else

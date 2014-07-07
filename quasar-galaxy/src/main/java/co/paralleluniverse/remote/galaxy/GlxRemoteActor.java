@@ -85,7 +85,7 @@ public abstract class GlxRemoteActor<Message> extends RemoteActor<Message> {
         return ((GlxRemoteChannel) mailbox()).getId();
     }
 
-    protected Object readResolve() throws java.io.ObjectStreamException, SuspendExecution {
+    protected Object readResolve() throws java.io.ObjectStreamException {
         return canonicalizer.get(getId(), this);
     }
 

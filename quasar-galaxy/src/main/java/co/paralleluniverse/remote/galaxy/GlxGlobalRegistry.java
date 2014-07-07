@@ -63,9 +63,7 @@ public class GlxGlobalRegistry implements GlobalRegistry {
         try {
             try {
                 final long root = store.getRoot(rootName, globalId != null ? (Long) globalId : -1, txn);
-                // assert globalId == null || ((Long) globalId) == root;
-                if (globalId != null && ((Long) globalId) != root)
-                    throw new AssertionError();
+                // assert globalId == null || ((Long) globalId) == root; -- it's OK to replace the actor's globalId -- until it's too late
                 store.getx(root, txn);
                 store.set(root, ser.write(actor), txn);
                 LOG.debug("commit Registering actor {} at rootId  {}", actor, root);
