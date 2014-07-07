@@ -41,7 +41,6 @@ public class Server {
         System.setProperty("galaxy.port", Integer.toString(7050 + nodeId));
         System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
 
-        final Val<String> dv = new Val<>();
         EventSource<String> ge = new EventSourceActor<String>(new Initializer() {
             @Override
             public void init() throws SuspendExecution {

@@ -4,48 +4,39 @@ import co.paralleluniverse.galaxy.example.pingpong.Ping;
 import co.paralleluniverse.galaxy.example.pingpong.Pong;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import org.gridkit.nanocloud.CloudFactory;
 import org.gridkit.vicluster.ViManager;
-import org.gridkit.vicluster.ViProps;
 import org.gridkit.vicluster.telecontrol.jvm.JvmProps;
 import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
+import static co.paralleluniverse.galaxy.testing.GalaxyTestingUtils.*;
+
 
 public class NanoCloudLocalTest extends BaseCloudTest {
 
     @Before
     public void setUp() throws InterruptedException {
         cloud = createLocalCloud();
+        
     }
 
-    @Test
+//    @Test
     public void pingPongTest() throws InterruptedException, ExecutionException {
         cloud.nodes("ping", "pong");
         setJvmArgs(cloud);
-        warmUp(cloud);
-
-        Future<Integer> pong = cloud.node("pong").submit(new Callable<Integer>() {
-            @Override
-            public Integer call() {
-                return Pong.runPong();
-            }
-        });
         cloud.node("ping").submit(new Runnable() {
             @Override
             public void run() {
                 Ping.runPing();
             }
+        });
+        int pings = cloud.node("pong").submit(new Callable<Integer>() {
+            @Override
+            public Integer call() {
+                return Pong.runPong();
+            }
         }).get();
-        int pings = pong.get();
         assertEquals("Number of pings received by pong", 3, pings);
-    }
-
-    private static ViManager createLocalCloud() {
-        ViManager vim = CloudFactory.createCloud();
-        ViProps.at(vim.node("**")).setLocalType();
-        return vim;
     }
 
     private static void setJvmArgs(final ViManager cloud) {

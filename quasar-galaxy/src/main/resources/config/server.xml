@@ -14,6 +14,6 @@
     See "Getting Started" in the docs for details.
 -->
 
-    <import resource="_jgroups.xml"/> 
+    <import resource="_zookeeper.xml"/> 
     <import resource="_bdb.xml"/> 
 </beans>

@@ -20,7 +20,7 @@
         <property name="sessionTimeoutMs" value="1500"/>
         <property name="connectionTimeoutMs" value="1000"/>
         <property name="retryPolicy">
-            <bean class="com.netflix.curator.retry.ExponentialBackoffRetry">
+            <bean class="org.apache.curator.retry.ExponentialBackoffRetry">
                 <constructor-arg index="0" value="20"/>
                 <constructor-arg index="1" value="20"/>
             </bean>
