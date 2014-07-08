@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration status="WARN">
+<configuration status="INFO">
   <appenders>
     <Console name="Console" target="SYSTEM_ERR">
       <!-- ThreadContext: %x = stack, %X = map-->
@@ -7,13 +7,13 @@
     </Console>
   </appenders>
   <loggers>
-    <root level="WARN">
+    <root level="INFO">
       <appender-ref ref="Console"/>
     </root>
-    <logger name="co.paralleluniverse.actors" level="DEBUG"/>
-    <logger name="co.paralleluniverse.remote.galaxy" level="DEBUG"/>
+    <!--<logger name="co.paralleluniverse.actors" level="DEBUG"/>-->
+    <!--<logger name="co.paralleluniverse.remote.galaxy" level="DEBUG"/>-->
     <!-- <logger name="co.paralleluniverse.galaxy.core.StringRootManager" level="DEBUG"/> -->
-    <logger name="co.paralleluniverse.galaxy.core.Cache" level="DEBUG"/>
+    <!--<logger name="co.paralleluniverse.galaxy.core.Cache" level="DEBUG"/>-->
     <!-- <logger name="co.paralleluniverse.galaxy.core.AbstractCluster" level="DEBUG"/> -->
     <!--<logger name="co.paralleluniverse.galaxy.netty.UDPComm" level="DEBUG"/>-->
     <!--<logger name="co.paralleluniverse.galaxy.core.BackupImpl" level="DEBUG"/>-->

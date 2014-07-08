@@ -35,8 +35,7 @@ public class Pong {
     private static final int nodeId = 2;
 
     public static void main(String[] args) {
-        int pings = runPong();
-        System.out.println(pings + " pings received");
+        System.out.println(runPong() + " pings received");
     }
 
     public static int runPong()  {
