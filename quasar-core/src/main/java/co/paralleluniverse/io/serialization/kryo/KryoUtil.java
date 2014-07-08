@@ -61,6 +61,7 @@ public final class KryoUtil {
         kryo.register(java.util.EnumSet.class);
 
         kryo.register(java.util.Arrays.asList("").getClass(), new ArraysAsListSerializer());
+        kryo.register(java.util.Collections.newSetFromMap(new java.util.HashMap()).getClass(), new CollectionsSetFromMapSerializer());
 //        kryo.register(java.util.Collections.EMPTY_LIST.getClass(), new CollectionsEmptyListSerializer());
 //        kryo.register(java.util.Collections.EMPTY_MAP.getClass(), new CollectionsEmptyMapSerializer());
 //        kryo.register(java.util.Collections.EMPTY_SET.getClass(), new CollectionsEmptySetSerializer());
