@@ -15,7 +15,7 @@
     <bean id="cache" class="co.paralleluniverse.galaxy.core.Cache"> <!-- depends-on="memory" -->
         <constructor-arg name="monitoringType" value="METRICS"/> <!-- METRICS/JMX -->
         <constructor-arg name="maxCapacity" value="100000000"/> 
-        <property name="maxItemSize" value="1024"/>
+        <property name="maxItemSize" value="2000"/>
         <property name="reuseLines" value="true"/>
         <property name="reuseSharerSets" value="true"/>
         <property name="rollbackSupported" value="true"/>
@@ -59,7 +59,7 @@
     
     <bean id="localStorage" class="co.paralleluniverse.galaxy.core.OffHeapLocalStorage">
         <constructor-arg name="pageSize" value="1024"/>
-        <constructor-arg name="maxItemSize" value="1024"/>
+        <constructor-arg name="maxItemSize" value="2000"/>
         <constructor-arg name="monitoringType" value="METRICS"/> 
         <property name="maxPagesForConcurrency" value="4"/>
     </bean>
