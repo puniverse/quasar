@@ -13,8 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
-class CodeSwap extends ActorAbort {
-    static final CodeSwap CODE_SWAP = new CodeSwap();
-    private CodeSwap() {
+class ActorAbort extends Error /* SuspendExecution */ {
+    ActorAbort() {
     }
 }

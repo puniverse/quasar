@@ -22,8 +22,8 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public class SelectiveReceiveHelper<Message> {
-    private final Actor<Message, ?> actor;
+public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
+    private transient Actor<Message, ?> actor;
     private Message currentMessage; // this works because channel is single-consumer
 
     /**
@@ -37,6 +37,11 @@ public class SelectiveReceiveHelper<Message> {
         this.actor = actor;
     }
 
+    // used only during deserialization
+    void setActor(Actor<Message, ?> actor) {
+        this.actor = actor;
+    }
+    
     /**
      * Performs a selective receive. This method blocks until a message that is {@link MessageProcessor#process(java.lang.Object) selected} by
      * the given {@link MessageProcessor} is available in the mailbox, and returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.

@@ -15,6 +15,7 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.monitoring.Counter;
 import co.paralleluniverse.common.monitoring.MonitoringServices;
+import co.paralleluniverse.strands.Strand;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -129,9 +130,9 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
         actors.put(LocalActor.getStrand(actor).getId(), actor);
     }
 
-    void actorTerminated(ActorRef<?> actor) {
+    void actorTerminated(ActorRef<?> actor, Strand strand) {
         activeCount.dec();
-        actors.remove(LocalActor.getStrand(actor).getId());
+        actors.remove(strand.getId());
     }
 
     @Override

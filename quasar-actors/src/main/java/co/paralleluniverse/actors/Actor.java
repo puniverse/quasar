@@ -77,8 +77,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     private static final Throwable NATURAL = new Throwable();
     private static final Object DEFUNCT = new Object();
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
-    private ActorRef<Message> wrapperRef;
-    private final AtomicReference<Class<?>> classRef;
+    private transient ActorRef<Message> wrapperRef;
+    private transient /*final*/ AtomicReference<Class<?>> classRef;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(MapUtil.<LifecycleListener, Boolean>newConcurrentHashMap());
     private final Set<ActorImpl> observed = Collections.newSetFromMap(MapUtil.<ActorImpl, Boolean>newConcurrentHashMap());
     private volatile V result;
@@ -91,7 +91,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     private boolean hasMonitor;
     private ActorSpec<?, Message, V> spec;
     private Object aux;
-    private transient final ActorRunner<V> runner;
+    private transient /*final*/ ActorRunner<V> runner;
 
     /**
      * Creates a new actor.
@@ -628,17 +628,19 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         if (!(runner.getStrand() instanceof Fiber))
             currentActor.set(this);
         try {
-            if (this instanceof MigratingActor && globalId == null) {
-                if (globalIdFixed)
+            if (this instanceof MigratingActor) {
+                Object gid = MigrationService.registerMigratingActor(globalId);
+                if (!globalIdFixed)
+                    this.globalId = gid;
+                else if (!Objects.equal(this.globalId, gid))
                     throw new AssertionError();
-                this.globalId = MigrationService.registerMigratingActor();
             }
 
             result = doRun();
             die(null);
             return result;
-        } catch (CodeSwap cs) {
-            throw cs;
+        } catch (ActorAbort abort) {
+            throw abort;
         } catch (InterruptedException e) {
             if (this.exception != null) {
                 die(exception);
@@ -663,7 +665,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             record(1, "Actor", "die", "Actor %s is now dead of %s", this, getDeathCause());
             if (!(runner.getStrand() instanceof Fiber))
                 currentActor.set(null);
-            JMXActorsMonitor.getInstance().actorTerminated(ref);
+            JMXActorsMonitor.getInstance().actorTerminated(ref, runner.getStrand());
         }
     }
 
@@ -879,7 +881,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * @param name the name of the actor in the registry, must be equal to the {@link #getName() actor's name} if it has one.
      * @return {@code this}
      */
-    public final Actor register(String name) {
+    public final Actor register(String name) throws SuspendExecution {
         if (getName() == null)
             setName(name);
         else if (!getName().equals(name))
@@ -893,11 +895,15 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      *
      * @return {@code this}
      */
-    public final Actor register() {
+    public final Actor register() throws SuspendExecution {
+        if (registered)
+            return this;
         record(1, "Actor", "register", "Registering actor %s as %s", this, getName());
         if (globalIdFixed)
             throw new IllegalStateException("Actor has already been shared over the cluster and cannot be registered");
         this.globalId = ActorRegistry.register(this, globalId);
+        if (this instanceof MigratingActor)
+            MigrationService.registerMigratingActor(globalId);
         this.registered = true;
         return this;
     }
@@ -954,26 +960,38 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         observed.clear();
     }
 
-    private static final ThreadLocal<Boolean> migrating = new ThreadLocal<Boolean>();
+    static final ThreadLocal<Boolean> migrating = new ThreadLocal<Boolean>();
 
     public void migrateAndRestart() throws SuspendExecution {
+        record(1, "Actor", "migrateAndRestart", "Actor %s is migrating.", this);
         verifyInActor();
         this.globalIdFixed = true;
         final RemoteActor<Message> remote = RemoteActorProxyFactoryService.create(ref(), getGlobalId());
 
         migrating.set(Boolean.TRUE);
         try {
+            if (monitor != null) {
+                hasMonitor = true;
+                stopMonitor();
+            }
+
             MigrationService.migrate(getGlobalId(), this);
         } finally {
             migrating.remove();
         }
-        
+
+        // TODO: copy messages
         ref.setImpl(remote);
-        System.out.println("XXXXXXXX: " + ref.getImpl());
+
+        throw Migrate.MIGRATE;
     }
 
     public static <M> Actor<M, ?> hire(ActorRef<M> ref) throws SuspendExecution {
         final Actor<M, ?> actor = MigrationService.hire(ref);
+        actor.setRef(ref);
+        actor.runner = new ActorRunner<>(ref);
+
+        // TODO: copy messages
         actor.ref.setImpl(actor);
         return actor;
     }
@@ -982,7 +1000,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     //<editor-fold desc="ActorBuilder">
     /////////// ActorBuilder ///////////////////////////////////
     @Override
-    public final Actor<Message, V> build() {
+    public final Actor<Message, V> build() throws SuspendExecution {
         if (!isDone())
             throw new IllegalStateException("Actor " + this + " isn't dead. Cannot build a copy");
 
@@ -1003,11 +1021,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     /////////// Serialization ///////////////////////////////////
     protected final Object writeReplace() throws java.io.ObjectStreamException {
         globalIdFixed = true;
-        if (migrating.get() == Boolean.TRUE) {
-            if (monitor != null)
-                hasMonitor = true;
+        if (migrating.get() == Boolean.TRUE)
             return this;
-        }
 
         final RemoteActor<Message> remote = RemoteActorProxyFactoryService.create(ref(), getGlobalId());
         // remote.startReceiver();
@@ -1015,6 +1030,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     }
 
     protected Object readResolve() throws java.io.ObjectStreamException {
+        this.classRef = ActorLoader.getClassRef(getClass());
+        mailbox().setActor(this);
         if (hasMonitor)
             monitor();
         return this;

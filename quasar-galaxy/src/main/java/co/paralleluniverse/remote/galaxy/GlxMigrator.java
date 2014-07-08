@@ -16,12 +16,12 @@ package co.paralleluniverse.remote.galaxy;
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorImpl;
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.RemoteActor;
 import co.paralleluniverse.actors.spi.Migrator;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Store;
 import co.paralleluniverse.io.serialization.Serialization;
+import co.paralleluniverse.io.serialization.kryo.KryoSerializer;
 import org.kohsuke.MetaInfServices;
 
 /**
@@ -43,9 +43,14 @@ public class GlxMigrator implements Migrator {
     }
 
     @Override
-    public Object registerMigratingActor() throws SuspendExecution {
+    public Object registerMigratingActor(Object id) throws SuspendExecution {
         try {
-            return store.put(new byte[0], null);
+            if (id == null)
+                return store.put(new byte[0], null);
+            else {
+                store.getx((Long) id, null);
+                return id;
+            }
         } catch (co.paralleluniverse.galaxy.TimeoutException e) {
             throw new RuntimeException(e);
         }
@@ -68,11 +73,12 @@ public class GlxMigrator implements Migrator {
         final GlxGlobalChannelId gcid = ((GlxRemoteActor) impl).getId();
         if (!gcid.isGlobal())
             throw new IllegalArgumentException("Actor " + actorRef + " is not a migrating actor");
-        
+
         final long id = gcid.getAddress();
         try {
             store.setListener(id, null);
             final byte[] buf = store.getx(id, null);
+            assert buf != null : actorRef + " " + impl;
             final Actor actor = (Actor) Serialization.getInstance().read(buf);
             GlobalRemoteChannelReceiver.getReceiver(actor.getMailbox(), id);
             return actor;

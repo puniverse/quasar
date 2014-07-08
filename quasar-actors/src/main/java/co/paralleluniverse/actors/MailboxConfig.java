@@ -20,7 +20,7 @@ import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
  *
  * @author pron
  */
-public class MailboxConfig {
+public class MailboxConfig implements java.io.Serializable {
     private final int mailboxSize;
     private final OverflowPolicy policy;
 

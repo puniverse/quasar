@@ -526,7 +526,7 @@ public class SupervisorActor extends BehaviorActor {
         }
     }
 
-    private ActorRef<?> start(ChildEntry child) {
+    private ActorRef<?> start(ChildEntry child) throws SuspendExecution {
         final ActorRef old = child.actor;
         if (old != null && !LocalActor.isDone(old))
             throw new IllegalStateException("Actor " + child.actor + " cannot be restarted because it is not dead");

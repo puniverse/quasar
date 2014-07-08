@@ -34,8 +34,8 @@ class MigrationService {
     private MigrationService() {
     }
 
-    public static Object registerMigratingActor() throws SuspendExecution {
-        return migrator.registerMigratingActor();
+    public static Object registerMigratingActor(Object id) throws SuspendExecution {
+        return migrator.registerMigratingActor(id);
     }
 
     public static void migrate(Object id, Actor<?, ?> actor) throws SuspendExecution {

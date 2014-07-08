@@ -23,7 +23,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
  * @author pron
  */
 public interface Migrator {
-    Object registerMigratingActor() throws SuspendExecution;
+    Object registerMigratingActor(Object id) throws SuspendExecution;
     void migrate(Object id, Actor<?, ?> actor) throws SuspendExecution;
     <M> Actor<M, ?> hire(ActorRef<M> actorRef, ActorImpl<M> actorImpl) throws SuspendExecution;
 }

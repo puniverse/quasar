@@ -14,6 +14,7 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.remote.RemoteChannelProxyFactoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +28,9 @@ public abstract class RemoteActor<Message> extends ActorImpl<Message> {
     private final transient ActorImpl<Message> actor;
     
     protected RemoteActor(ActorRef<Message> actor) {
-        super(actor.getName(), actor.getImpl().mailbox(), actor);
+        super(actor.getName(), 
+                RemoteChannelProxyFactoryService.create(actor.getImpl().mailbox(), ((Actor)actor.getImpl()).getGlobalId()), 
+                actor);
         this.actor = actor.getImpl();
     }
 

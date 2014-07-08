@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.QueueChannel;
@@ -94,11 +95,11 @@ public final class LocalActor {
         actorOf(actor).stopMonitor();
     }
 
-    public static void register(ActorRef<?> actor, String name) {
+    public static void register(ActorRef<?> actor, String name) throws SuspendExecution {
         actorOf(actor).register(name);
     }
 
-    public static void register(ActorRef<?> actor) {
+    public static void register(ActorRef<?> actor) throws SuspendExecution {
         actorOf(actor).register();
     }
 

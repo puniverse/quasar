@@ -13,6 +13,8 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.fibers.SuspendExecution;
+
 /**
  * An object that can construct a new actor
  *
@@ -24,5 +26,5 @@ public interface ActorBuilder<Message, V> {
      *
      * @return a newly created actor.
      */
-    Actor<Message, V> build();
+    Actor<Message, V> build() throws SuspendExecution;
 }

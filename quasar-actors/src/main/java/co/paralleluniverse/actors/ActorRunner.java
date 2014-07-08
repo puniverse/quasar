@@ -58,6 +58,8 @@ class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
                     this.actor = newActor;
                     assert actor != null && actor == actorRef.getImpl();
                 }
+            } catch(ActorAbort e) {
+                return null;
             }
         }
     }
@@ -75,7 +77,8 @@ class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
         this.strand = strand;
         if (actor == null) {
             this.actor = (Actor<?, V>) actorRef.getImpl();
-            assert actor != null && actor == actorRef.getImpl();
+            assert actor != null : "actor == null";
+            assert actor == actorRef.getImpl() : "actor (" + actor + ") != actorRef.getImpl() (" + actorRef.getImpl() + ")";
         }
         actor.setStrand0(strand);
     }

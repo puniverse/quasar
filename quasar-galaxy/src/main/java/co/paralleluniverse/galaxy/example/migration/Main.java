@@ -36,6 +36,8 @@ public class Main {
         System.setProperty("galaxy.port", Integer.toString(7050 + nodeId));
         System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
 
+        // com.esotericsoftware.minlog.Log.set(1);
+        
         ActorRegistry.hasGlobalRegistry();
         ActorRef<Message> actor = ActorRegistry.getActor("migrant");
         if (actor == null) {
@@ -46,7 +48,7 @@ public class Main {
 
         for (int i = 0; i < 100; i++) {
             final double r = ThreadLocalRandom.current().nextDouble();
-            if (r < 0.1) {
+            if (r < 0.2) {
                 actor.send(new Message(null, MIGRATE));
                 System.out.println("Hiring actor...");
                 Thread.sleep(500);
@@ -67,7 +69,7 @@ public class Main {
         private int messageCount;
 
         public Migrant(String name) {
-            super(name);
+            super(name, null);
         }
 
         @Override

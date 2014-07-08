@@ -31,12 +31,14 @@ import java.util.concurrent.TimeUnit;
 public final class Mailbox<Message> extends SingleConsumerQueueChannel<Message> {
     private transient Actor<?, ?> actor;
     private Object registrationToken;
+    private final MailboxConfig config;
 
     Mailbox(MailboxConfig config) {
         super(mailboxSize(config) > 0
                 ? new SingleConsumerArrayObjectQueue<Message>(config.getMailboxSize())
                 : new SingleConsumerLinkedArrayObjectQueue<Message>(),
                 overflowPolicy(config));
+        this.config = config;
     }
 
     private static int mailboxSize(MailboxConfig config) {
@@ -103,10 +105,25 @@ public final class Mailbox<Message> extends SingleConsumerQueueChannel<Message> 
     protected Object writeReplace() throws java.io.ObjectStreamException {
         if (!actor.isStarted())
             throw new IllegalStateException("Owning actor " + actor + " not started");
+        if (Actor.migrating.get() == Boolean.TRUE)
+            return new SerializedMailbox(config);
+        
         return RemoteChannelProxyFactoryService.create(this, actor.getGlobalId());
     }
 
     List<Message> getSnapshot() {
         return queue().snapshot();
+    }
+
+    private static class SerializedMailbox implements java.io.Serializable {
+        private final MailboxConfig config;
+
+        public SerializedMailbox(MailboxConfig config) {
+            this.config = config;
+        }
+
+        protected Object readResolve() throws java.io.ObjectStreamException {
+            return new Mailbox(config);
+        }
     }
 }
