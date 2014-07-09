@@ -968,6 +968,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         this.globalIdFixed = true;
         final RemoteActor<Message> remote = RemoteActorProxyFactoryService.create(ref(), getGlobalId());
 
+        final Mailbox mbox = mailbox();
+
         migrating.set(Boolean.TRUE);
         try {
             if (monitor != null) {
@@ -980,8 +982,16 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             migrating.remove();
         }
 
-        // TODO: copy messages
         ref.setImpl(remote);
+
+        // copy messages already in the mailbox
+        // TODO: this might change the message order, as ne messages are coming in
+        for (;;) {
+            Object m = mbox.tryReceive();
+            if (m == null)
+                break;
+            remote.internalSendNonSuspendable(m);
+        }
 
         throw Migrate.MIGRATE;
     }
@@ -991,7 +1001,6 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         actor.setRef(ref);
         actor.runner = new ActorRunner<>(ref);
 
-        // TODO: copy messages
         actor.ref.setImpl(actor);
         return actor;
     }
