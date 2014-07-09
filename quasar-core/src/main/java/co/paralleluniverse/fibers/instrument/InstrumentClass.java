@@ -133,7 +133,7 @@ public class InstrumentClass extends ClassVisitor {
         if (setSuspendable == null)
             classEntry.set(name, desc, markedSuspendable != null ? markedSuspendable : SuspendableType.NON_SUSPENDABLE);
 
-        final boolean suspendable = markedSuspendable == SuspendableType.SUSPENDABLE | setSuspendable == SuspendableType.SUSPENDABLE;
+        final SuspendableType suspendable = max(markedSuspendable, setSuspendable, SuspendableType.NON_SUSPENDABLE);
 
         if (checkAccess(access) && !isYieldMethod(className, name)) {
             if (isSynchronized(access)) {
@@ -155,15 +155,15 @@ public class InstrumentClass extends ClassVisitor {
 //                return mn; // this causes the mn to be initialized
 //            } else { // look for @Suspendable or @DontInstrument annotation
             return new MethodVisitor(Opcodes.ASM4, mn) {
-                private boolean susp = suspendable;
+                private SuspendableType susp = suspendable;
                 private boolean commited = false;
 
                 @Override
                 public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
                     if (adesc.equals(ANNOTATION_DESC))
-                        susp = true;
+                        susp = SuspendableType.SUSPENDABLE;
                     else if (adesc.equals(DONT_INSTRUMENT_ANNOTATION_DESC))
-                        susp = false;
+                        susp = SuspendableType.NON_SUSPENDABLE;
 
                     return super.visitAnnotation(adesc, visible);
                 }
@@ -194,9 +194,9 @@ public class InstrumentClass extends ClassVisitor {
 
                     if (db.isDebug())
                         db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, setSuspendable);
-                    classEntry.set(name, desc, susp ? SuspendableType.SUSPENDABLE : SuspendableType.NON_SUSPENDABLE);
+                    classEntry.set(name, desc, susp);
 
-                    if (susp)
+                    if (susp != SuspendableType.NON_SUSPENDABLE)
                         methods.add(mn);
                     else {
                         MethodVisitor _mv = makeOutMV(mn);
@@ -291,6 +291,19 @@ public class InstrumentClass extends ClassVisitor {
 
     private static boolean checkAccess(int access) {
         return (access & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE)) == 0;
+    }
+
+    private static SuspendableType max(SuspendableType a, SuspendableType b, SuspendableType def) {
+        final SuspendableType res = max(a, b);
+        return res != null ? res : def;
+    }
+    
+    private static SuspendableType max(SuspendableType a, SuspendableType b) {
+        if (a == null)
+            return b;
+        if (b == null)
+            return a;
+        return b.compareTo(a) > 0 ? b : a;
     }
 
     private static String[] toStringArray(List<?> l) {
