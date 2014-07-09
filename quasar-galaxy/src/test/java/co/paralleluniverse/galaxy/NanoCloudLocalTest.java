@@ -39,7 +39,7 @@ public class NanoCloudLocalTest extends BaseCloudTest {
             zk.shutdown();
     }
 
-    @Test
+    @Test(timeout = 90000)
     public void pingPongTest() throws InterruptedException, ExecutionException {
         cloud.nodes(SERVER, "ping", "pong");
         setJvmArgs(cloud);
@@ -51,7 +51,7 @@ public class NanoCloudLocalTest extends BaseCloudTest {
                 return Pong.runPong();
             }
         });
-        Thread.sleep(500);
+        Thread.sleep(1000);
         Future<Void> ping = cloud.node("ping").submit(new Runnable() {
             @Override
             public void run() {
