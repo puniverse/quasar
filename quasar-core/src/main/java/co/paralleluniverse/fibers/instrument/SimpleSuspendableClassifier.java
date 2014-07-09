@@ -46,7 +46,7 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
     }
 
     SimpleSuspendableClassifier(String suspendablesFileName) {
-        readSuspendablesFile(suspendablesFileName, suspendables, suspendables);
+        readSuspendablesFile(suspendablesFileName, suspendables, suspendableClasses);
     }
 
     Set<String> getSuspendables() {
