@@ -111,13 +111,17 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
         }
     }
 
-    public boolean isSuspendable(String className, String methodName) {
-        return (suspendables.contains(className + '.' + methodName) || suspendableClasses.contains(className));
+    public boolean isSuspendable(String className, String methodName, String methodDesc) {
+        return (suspendables.contains(className + '.' + methodName + methodDesc)
+                || suspendables.contains(className + '.' + methodName)
+                || suspendableClasses.contains(className));
     }
 
     @Override
     public SuspendableType isSuspendable(MethodDatabase db, String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
         final String fullMethodName = className + '.' + methodName;
+        if (suspendables.contains(fullMethodName+methodDesc))
+            return SuspendableType.SUSPENDABLE;
         if (suspendables.contains(fullMethodName))
             return SuspendableType.SUSPENDABLE;
         if (suspendableClasses.contains(className))

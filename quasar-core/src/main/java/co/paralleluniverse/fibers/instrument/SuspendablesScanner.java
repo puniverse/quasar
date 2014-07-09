@@ -220,7 +220,7 @@ public class SuspendablesScanner extends Task {
 
     boolean isSuspendable(ClassNode cls, MethodNode m) {
         return hasAnnotation(Suspendable.class, m)
-                || (ssc != null && ssc.isSuspendable(cls.name, m.name));
+                || (ssc != null && ssc.isSuspendable(cls.name, m.name, m.desc));
     }
 
     /////////// ASM
