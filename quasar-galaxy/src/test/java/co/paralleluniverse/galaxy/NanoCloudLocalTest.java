@@ -51,7 +51,7 @@ public class NanoCloudLocalTest extends BaseCloudTest {
                 return Pong.runPong();
             }
         });
-        Thread.sleep(1000);
+        // Thread.sleep(1000);
         Future<Void> ping = cloud.node("ping").submit(new Runnable() {
             @Override
             public void run() {
