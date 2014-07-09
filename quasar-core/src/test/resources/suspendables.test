@@ -1,0 +1,3 @@
+co.paralleluniverse.fibers.instrument.ScannerTest.foo
+co.paralleluniverse.fibers.instrument.ScannerTest.bar(I)V
+co.paralleluniverse.fibers.instrument.ScannerTestB.*
