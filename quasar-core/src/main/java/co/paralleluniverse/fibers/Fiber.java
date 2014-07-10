@@ -1260,7 +1260,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Externalizable, Fut
         return this;
     }
 
-    public final Fiber<V>  joinNoSuspend(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+    public final Fiber<V> joinNoSuspend(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
         task.get(timeout, unit);
         return this;
     }
@@ -1618,13 +1618,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Externalizable, Fut
                     // The next probelm happends when some function is in the STE but not in the context
                     // consider fix the skipSTE to fix it
                     if (!context[k].getName().equals(ste.getClassName()))
-                        stackTrace.append("oops. probelm with stacktrace can't be trusted");
+                        stackTrace.append("oops. problem with stacktrace can't be trusted");
                     notInstrumented = true;
                 }
             } else if (ste.getClassName().equals(Fiber.class.getName()) && ste.getMethodName().equals("run1")) {
                 if (notInstrumented) {
-                    System.err.println("WARNING: Uninstrumented methods on the call stack (marked with **): " + stackTrace);
-                    //throw new IllegalStateException(str);
+                    final String str = "Uninstrumented methods on the call stack (marked with **): " + stackTrace;
+                    if (Debug.isUnitTest())
+                        throw new IllegalStateException(str);
+                    System.err.println("WARNING: "+str);
                 }
                 return !notInstrumented;
             }
