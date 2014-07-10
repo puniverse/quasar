@@ -15,6 +15,7 @@ package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.spi.ActorRegistry;
+import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.AbstractCacheListener;
 import co.paralleluniverse.galaxy.Cache;
@@ -90,7 +91,18 @@ public class GlxGlobalRegistry implements ActorRegistry {
     }
 
     @Override
-    public void unregister(ActorRef<?> actor) throws SuspendExecution {
+    public void unregister(final ActorRef<?> actor) {
+        new Fiber<Void>() {
+
+            @Override
+            protected Void run() throws SuspendExecution, InterruptedException {
+                unregister0(actor);
+                return null;
+            }
+        };
+    }
+
+    private void unregister0(ActorRef<?> actor) throws SuspendExecution {
         final String rootName = actor.getName();
 
         LOG.info("Uregistering {}", rootName);
@@ -128,7 +140,7 @@ public class GlxGlobalRegistry implements ActorRegistry {
     @Override
     public <Message> ActorRef<Message> getActor(String name) throws InterruptedException, SuspendExecution {
 //        try {
-            return getActor(name, 0, null);
+        return getActor(name, 0, null);
 //        } catch (java.util.concurrent.TimeoutException e) {
 //            throw new AssertionError(e);
 //        }

@@ -13,15 +13,10 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.ServiceUtil;
-import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.SuspendableCallable;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,49 +27,33 @@ import org.slf4j.LoggerFactory;
  */
 public class ActorRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(ActorRegistry.class);
-    private static final co.paralleluniverse.actors.spi.ActorRegistry globalRegistry = ServiceUtil.loadSingletonServiceOrNull(co.paralleluniverse.actors.spi.ActorRegistry.class);
-    private static final LocalActorRegistry localRegistry = new LocalActorRegistry();
+    private static final co.paralleluniverse.actors.spi.ActorRegistry registry;
 
     static {
-        LOG.info("Global registry is {}", globalRegistry);
+
+        co.paralleluniverse.actors.spi.ActorRegistry tmp = ServiceUtil.loadSingletonServiceOrNull(co.paralleluniverse.actors.spi.ActorRegistry.class);
+        if (tmp == null)
+            tmp = new LocalActorRegistry();
+        registry = tmp;
+        LOG.info("Actor registry is {}", registry);
+
     }
 
-    static Object register(final Actor<?, ?> actor, final Object globalId) {
+    static Object register(final Actor<?, ?> actor, final Object globalId) throws SuspendExecution {
         final String name = actor.getName();
         if (name == null)
             throw new IllegalArgumentException("name is null");
         LOG.info("Registering {}: {}", name, actor);
 
-        final Object res;
-        if (globalRegistry != null)
-            res = runInFiber(new SuspendableCallable<Object>() {
-
-                @Override
-                public Object run() throws SuspendExecution, InterruptedException {
-                    return globalRegistry.register(actor.ref(), globalId);
-                }
-            });
-        else
-            res = localRegistry.register(actor.ref(), globalId);
-
+        final Object res = registry.register(actor.ref(), globalId);
         actor.monitor();
-
         return res;
     }
 
     static void unregister(final ActorRef<?> actor) {
         LOG.info("Unregistering actor: {}", actor.getName());
 
-        if (globalRegistry != null) {
-            runInFiber(new SuspendableCallable<Void>() {
-                @Override
-                public Void run() throws SuspendExecution, InterruptedException {
-                    globalRegistry.unregister(actor);
-                    return null;
-                }
-            });
-        } else
-            localRegistry.unregister(actor);
+        registry.unregister(actor);
     }
 
     /**
@@ -84,18 +63,7 @@ public class ActorRegistry {
      * @return the actor, or {@code null} if no actor by that name is currently registered.
      */
     public static <Message> ActorRef<Message> tryGetActor(final String name) throws SuspendExecution {
-        final ActorRef<Message> actor;
-        if (globalRegistry != null)
-            actor = runInFiber(new SuspendableCallable<ActorRef<Message>>() {
-                @Override
-                public ActorRef<Message> run() throws SuspendExecution, InterruptedException {
-                    return globalRegistry.getActor(name);
-                }
-            });
-        else
-            actor = localRegistry.tryGetActor(name);
-
-        return actor;
+        return registry.tryGetActor(name);
     }
 
     /**
@@ -107,18 +75,7 @@ public class ActorRegistry {
      * @return the actor, or {@code null} if the timeout expires before one is registered.
      */
     public static <Message> ActorRef<Message> getActor(final String name, final long timeout, final TimeUnit unit) throws InterruptedException, SuspendExecution {
-        final ActorRef<Message> actor;
-        if (globalRegistry != null)
-            actor = runInFiber(new SuspendableCallable<ActorRef<Message>>() {
-                @Override
-                public ActorRef<Message> run() throws SuspendExecution, InterruptedException {
-                    return globalRegistry.getActor(name, timeout, unit);
-                }
-            });
-        else
-            actor = localRegistry.getActor(name, timeout, unit);
-
-        return actor;
+        return registry.getActor(name, timeout, unit);
     }
 
     /**
@@ -141,18 +98,7 @@ public class ActorRegistry {
      * @return the actor.
      */
     public static <Message> ActorRef<Message> getOrRegisterActor(final String name, final Callable<ActorRef<Message>> actorFactory) throws SuspendExecution {
-        final ActorRef<Message> actor;
-        if (globalRegistry != null)
-            actor = runInFiber(new SuspendableCallable<ActorRef<Message>>() {
-                @Override
-                public ActorRef<Message> run() throws SuspendExecution, InterruptedException {
-                    return globalRegistry.getOrRegisterActor(name, actorFactory);
-                }
-            });
-        else
-            actor = localRegistry.getOrRegisterActor(name, actorFactory);
-
-        return actor;
+        return registry.getOrRegisterActor(name, actorFactory);
     }
 
     /**
@@ -161,21 +107,10 @@ public class ActorRegistry {
      * @return {@code true} if the registry is global to the entire cluster, or {@code false} if it is local to this JVM instance.
      */
     public static boolean hasGlobalRegistry() {
-        return globalRegistry != null;
+        return !(registry instanceof LocalActorRegistry);
     }
 
     public static void shutdown() {
-        if (globalRegistry != null)
-            globalRegistry.shutdown();
-    }
-
-    private static <T> T runInFiber(SuspendableCallable<T> target) {
-        try {
-            return new Fiber<T>(target).start().joinNoSuspend().get();
-        } catch (ExecutionException e) {
-            throw Exceptions.rethrow(e.getCause());
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        registry.shutdown();
     }
 }

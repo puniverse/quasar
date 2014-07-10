@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 public interface ActorRegistry {
     Object register(ActorRef<?> actor, Object globalId) throws SuspendExecution;
 
-    void unregister(ActorRef<?> actor) throws SuspendExecution;
+    void unregister(ActorRef<?> actor);
 
     <Message> ActorRef<Message> getActor(String name) throws InterruptedException, SuspendExecution;
 
