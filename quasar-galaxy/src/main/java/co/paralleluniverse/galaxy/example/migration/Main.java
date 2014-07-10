@@ -26,6 +26,7 @@ import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.MigratingActor;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.galaxy.example.migration.Message.Type.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -37,9 +38,14 @@ public class Main {
         System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
 
         // com.esotericsoftware.minlog.Log.set(1);
-        
         ActorRegistry.hasGlobalRegistry();
-        ActorRef<Message> actor = ActorRegistry.getActor("migrant");
+        ActorRef<Message> actor = ActorRegistry.getOrRegisterActor("migrant", new Callable<ActorRef<Message>>() {
+
+            @Override
+            public ActorRef<Message> call() throws Exception {
+                return new Migrant().spawn();
+            }
+        });
         if (actor == null) {
             System.out.println("Creating actor");
             actor = new Migrant("migrant").spawn();
@@ -68,13 +74,16 @@ public class Main {
         private int loopCount;
         private int messageCount;
 
+        public Migrant() {
+            super();
+        }
+
         public Migrant(String name) {
             super(name, null);
         }
 
         @Override
         protected Void doRun() throws InterruptedException, SuspendExecution {
-            register();
             loop:
             for (;;) {
                 Message m = receive(2, TimeUnit.SECONDS);

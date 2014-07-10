@@ -25,11 +25,11 @@ import java.nio.ByteBuffer;
  * @author pron
  */
 public class GlxGlobalRemoteActor<Message> extends GlxRemoteActor<Message> implements CacheListener {
-    private final long ref;
+    private final long id;
 
     public GlxGlobalRemoteActor(final ActorRef<Message> actor, Object globalId) {
         super(actor);
-        this.ref = (Long) globalId;
+        this.id = (Long) globalId;
         startReceiver();
     }
 
@@ -37,24 +37,18 @@ public class GlxGlobalRemoteActor<Message> extends GlxRemoteActor<Message> imple
         final ActorImpl<Message> actor = getActor();
         if (actor == null)
             throw new IllegalStateException("Actor for " + this + " not running locally");
-        GlobalRemoteChannelReceiver.getReceiver(actor.getMailbox(), ref);
+        GlobalRemoteChannelReceiver.getReceiver(actor.getMailbox(), id);
     }
 
     @Override
     protected Object readResolve() throws java.io.ObjectStreamException {
         try {
-            GlxGlobalRemoteActor remote = (GlxGlobalRemoteActor) super.readResolve();
-            CacheListener l1 = new Grid(co.paralleluniverse.galaxy.Grid.getInstance()).store().setListenerIfAbsent(ref, remote);
-            assert l1 == remote;
+            final GlxGlobalRemoteActor remote = (GlxGlobalRemoteActor) super.readResolve();
+            new Grid(co.paralleluniverse.galaxy.Grid.getInstance()).store().setListener(id, remote);
             return remote;
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @Override
-    public void killed(Cache cache, long id) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
@@ -66,7 +60,14 @@ public class GlxGlobalRemoteActor<Message> extends GlxRemoteActor<Message> imple
     }
 
     @Override
+    public void killed(Cache cache, long id) {
+        evicted(cache, id);
+        // throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
     public void evicted(Cache cache, long id) {
+        GlxGlobalRegistry.INSTANCE.evict(getName(), ref);
     }
 
     @Override

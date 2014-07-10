@@ -15,17 +15,25 @@ package co.paralleluniverse.actors.spi;
 
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.fibers.SuspendExecution;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
  * @author pron
  */
-public interface GlobalRegistry {
+public interface ActorRegistry {
     Object register(ActorRef<?> actor, Object globalId) throws SuspendExecution;
 
     void unregister(ActorRef<?> actor) throws SuspendExecution;
-    
-    <Message> ActorRef<Message> getActor(String name) throws SuspendExecution;
-    
+
+    <Message> ActorRef<Message> getActor(String name) throws InterruptedException, SuspendExecution;
+
+    <Message> ActorRef<Message> getActor(String name, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution;
+
+    <Message> ActorRef<Message> tryGetActor(String name) throws SuspendExecution;
+
+    <Message> ActorRef<Message> getOrRegisterActor(String name, Callable<ActorRef<Message>> factory) throws SuspendExecution;
+
     void shutdown();
 }

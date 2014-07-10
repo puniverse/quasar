@@ -919,7 +919,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         record(1, "Actor", "unregister", "Unregistering actor %s (name: %s)", this, getName());
         if (getName() == null)
             throw new IllegalArgumentException("name is null");
-        ActorRegistry.unregister(getName());
+        ActorRegistry.unregister(ref());
         if (monitor != null)
             this.monitor.setActor(null);
         this.registered = false;
@@ -1020,7 +1020,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         newInstance.setStrand(null);
 
         newInstance.setMonitor(getMonitor());
-        if (getName() != null && ActorRegistry.getActor(getName()) == ref)
+        if (getName() != null && ActorRegistry.tryGetActor(getName()) == ref)
             newInstance.register();
         return newInstance;
     }
