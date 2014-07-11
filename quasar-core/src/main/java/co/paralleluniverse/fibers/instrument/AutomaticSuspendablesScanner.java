@@ -36,10 +36,51 @@ public class AutomaticSuspendablesScanner {
         this.cl = classLoader;
         this.supers = AutomaticSuspendablesScanner.<String, String>newHashMultimap();
         this.callers = AutomaticSuspendablesScanner.<String, String>newHashMultimap();
-        mapCallersAndSupers(callers, supers);
+        mapCallersAndSupers();
     }
 
-    private static void visitClassFile(File file, final SetMultimap<String, String> callers, final SetMultimap<String, String> supers) throws FileNotFoundException, IOException {
+    public Set<String> findSuspendables() {
+        Queue<String> q = Queues.newArrayDeque();
+        Set<String> susps = new HashSet<>();
+        for (String callee : callers.keySet()) {
+            final String className = getClassName(callee);
+            final String methodName = getMethodName(callee);
+            if (Classes.isYieldMethod(className, methodName)) {
+                q.add(callee);
+                susps.add(callee);
+            }
+        }
+        while (!q.isEmpty()) {
+            final String node = q.poll();
+            for (String superCls : supers.get(getClassName(node)))
+                q.add(superCls + "." + getMethodDescName(node));
+            for (String caller : callers.get(node)) {
+                if (!susps.contains(caller)) {
+                    q.add(caller);
+                    susps.add(caller);
+                }
+            }
+        }
+        return susps;
+    }
+
+    private void mapCallersAndSupers() {
+        URLClassLoader ucl = (URLClassLoader) cl;
+        URL[] urLs = ucl.getURLs();
+        for (URL url : urLs) {
+            for (File file : recursiveWalk(url.getPath())) {
+                if (file.getName().endsWith(CLASSFILE_SUFFIX) && file.isFile())
+                    try {
+                        visitClassFile(file);
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
+            }
+
+        }
+    }
+
+    private void visitClassFile(File file) throws FileNotFoundException, IOException {
         FileInputStream fis = new FileInputStream(file);
         ClassReader cr = new ClassReader(fis);
         final ClassNode cn = new ClassNode();
@@ -48,10 +89,10 @@ public class AutomaticSuspendablesScanner {
             @Override
             public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
                 String cn = name.intern();
-                if (!superName.equals("java/lang/Object"))
+                if (!superName.equals(JAVALANG_OBJECT))
                     supers.put(cn, superName);
                 for (String iface : interfaces)
-                    if (!iface.equals("java/lang/Object"))
+                    if (!iface.equals(JAVALANG_OBJECT))
                         supers.put(cn, iface.intern());
                 super.visit(version, access, name, signature, superName, interfaces);
             }
@@ -90,48 +131,6 @@ public class AutomaticSuspendablesScanner {
         });
     }
 
-    private static Set<String> findSuspendables(final SetMultimap<String, String> callers, final SetMultimap<String, String> supers) {
-        Queue<String> q = Queues.newArrayDeque();
-        Set<String> susps = new HashSet<>();
-        for (String callee : callers.keySet()) {
-            final String className = getClassName(callee);
-            final String methodName = getMethodName(callee);
-            if (Classes.isYieldMethod(className, methodName)) {
-                q.add(callee);
-                susps.add(callee);
-            }
-        }
-        while (!q.isEmpty()) {
-            final String node = q.poll();
-            for (String superCls : supers.get(getClassName(node)))
-                q.add(superCls + "." + getMethodDescName(node));
-            for (String caller : callers.get(node)) {
-                if (!susps.contains(caller)) {
-                    q.add(caller);
-                    susps.add(caller);
-                }
-            }
-        }
-        return susps;
-    }
-
-    private void mapCallersAndSupers(final SetMultimap<String, String> callers, final SetMultimap<String, String> supers) {
-        URLClassLoader ucl = (URLClassLoader) cl;
-        URL[] urLs = ucl.getURLs();
-        for (URL url : urLs) {
-            for (File file : recursiveWalk(url.getPath())) {
-                if (file.getName().endsWith(CLASSFILE_SUFFIX) && file.isFile())
-                    try {
-                        visitClassFile(file, callers, supers);
-                    } catch (IOException ex) {
-                        throw new RuntimeException(ex);
-                    }
-            }
-
-        }
-    }
-    private static final String CLASSFILE_SUFFIX = ".class";
-
     private static List<File> recursiveWalk(String path) {
         File[] list = new File(path).listFiles();
         List<File> result = new ArrayList<>();
@@ -157,8 +156,6 @@ public class AutomaticSuspendablesScanner {
     private static String getMethodDescName(String fullMethodWithDesc) {
         return fullMethodWithDesc.substring(fullMethodWithDesc.lastIndexOf('.') + 1);
     }
-
-    public Set<String> findSuspendables() {
-        return findSuspendables(callers, supers);
-    }
+    private static final String CLASSFILE_SUFFIX = ".class";
+    private static final String JAVALANG_OBJECT = "java/lang/Object";
 }
