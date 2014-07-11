@@ -29,6 +29,7 @@ public class Debug {
     private static boolean recordStackTraces = false;
     private static final boolean assertionsEnabled;
     private static final boolean unitTest;
+    private static final boolean ci;
     private static final AtomicBoolean requestShutdown = new AtomicBoolean(false);
     private static final AtomicBoolean fileDumped = new AtomicBoolean(false);
 
@@ -49,6 +50,7 @@ public class Debug {
         }
         unitTest = isUnitTest;
 
+        ci = (isEnvTrue("CI") || isEnvTrue("CONTINUOUS_INTEGRATION") || isEnvTrue("TRAVIS"));
         if (debugMode) {
             Runtime.getRuntime().addShutdownHook(new Thread() {
                 @Override
@@ -62,6 +64,10 @@ public class Debug {
 
     public static boolean isDebug() {
         return debugMode;
+    }
+    
+    public static boolean isCI() {
+        return ci;
     }
 
     public static boolean isAssertionsEnabled() {
@@ -96,7 +102,7 @@ public class Debug {
         }
 
         if (requestShutdown.compareAndSet(false, true)) {
-            System.err.println("DEBUG EXIT REQUEST ON STRAND " + currentStrand 
+            System.err.println("DEBUG EXIT REQUEST ON STRAND " + currentStrand
                     + (currentStrand.isFiber() ? " (THREAD " + Thread.currentThread() + ")" : "")
                     + ": SHUTTING DOWN THE JVM.");
             Thread.dumpStack();
@@ -220,6 +226,17 @@ public class Debug {
         Throwable ourCause = t.getCause();
         if (ourCause != null)
             printStackTraceAsCause(s, trace, ourCause, filter);
+    }
+
+    private static boolean isEnvTrue(String envVar) {
+        final String ev = System.getenv(envVar);
+        if (ev == null)
+            return false;
+        try {
+            return Boolean.parseBoolean(ev);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private Debug() {
