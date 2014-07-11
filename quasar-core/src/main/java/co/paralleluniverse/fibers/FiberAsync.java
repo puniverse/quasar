@@ -68,14 +68,14 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public abstract class FiberAsync<V, E extends Throwable> {
+public abstract class FiberAsync<V, E extends Throwable> implements java.io.Serializable {
     private final Fiber fiber;
     private final boolean immediateExec;
     private long deadline;
     private volatile boolean completed;
     private Throwable exception;
     private V result;
-    private Thread registrationThread;
+    private transient Thread registrationThread;
     private volatile boolean registrationComplete;
 
     /**
