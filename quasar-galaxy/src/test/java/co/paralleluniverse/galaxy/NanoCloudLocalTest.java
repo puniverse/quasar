@@ -1,5 +1,6 @@
 package co.paralleluniverse.galaxy;
 
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.galaxy.example.pingpong.Ping;
 import co.paralleluniverse.galaxy.example.pingpong.Pong;
 import static co.paralleluniverse.galaxy.testing.GalaxyTestingUtils.*;
@@ -13,6 +14,7 @@ import org.gridkit.vicluster.ViManager;
 import org.gridkit.vicluster.telecontrol.jvm.JvmProps;
 import org.junit.After;
 import static org.junit.Assert.*;
+import static org.junit.Assume.*;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,6 +43,8 @@ public class NanoCloudLocalTest extends BaseCloudTest {
 
     @Test(timeout = 180000)
     public void pingPongTest() throws InterruptedException, ExecutionException {
+        assumeTrue(!Debug.isCI());
+        
         cloud.nodes(SERVER, "ping", "pong");
         setJvmArgs(cloud);
         if (CFG.hasServer)
