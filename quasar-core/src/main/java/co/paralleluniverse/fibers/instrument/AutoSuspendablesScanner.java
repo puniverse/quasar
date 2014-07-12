@@ -1,20 +1,16 @@
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.common.reflection.ClassLoaderUtil;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.SetMultimap;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import org.objectweb.asm.ClassReader;
@@ -42,14 +38,6 @@ public class AutoSuspendablesScanner {
         mapSuspendables();
     }
 
-    public Set<String> getSuspendables() {
-        return suspendables;
-    }
-
-    public Set<String> getSuperSuspendables() {
-        return superSuspendables;
-    }
-
     private void mapSuspendables() {
         Queue<String> q = Queues.newArrayDeque();
         suspendables = new HashSet<>();
@@ -69,7 +57,7 @@ public class AutoSuspendablesScanner {
                 if (callers.keySet().contains(superMethod) && !suspendables.contains(superMethod) && !superSuspendables.contains(superMethod)) {
                     q.add(superMethod);
                     superSuspendables.add(superMethod);
-                }                
+                }
             }
             for (String caller : callers.get(node)) {
                 if (!suspendables.contains(caller)) {
@@ -81,24 +69,26 @@ public class AutoSuspendablesScanner {
     }
 
     private void mapCallersAndSupers() {
-        URLClassLoader ucl = (URLClassLoader) cl;
-        URL[] urLs = ucl.getURLs();
-        for (URL url : urLs) {
-            for (File file : recursiveWalk(url.getPath())) {
-                if (file.getName().endsWith(CLASSFILE_SUFFIX) && file.isFile())
-                    try {
-                        visitClassFile(file);
-                    } catch (IOException ex) {
-                        throw new RuntimeException(ex);
-                    }
-            }
+        try {
+            ClassLoaderUtil.accept(cl, new ClassLoaderUtil.Visitor() {
 
+                @Override
+                public void visit(String resource, URL url, ClassLoader cl) {
+                    if (url.getFile().endsWith(CLASSFILE_SUFFIX))
+                        try {
+                            visitClassFile(cl.getResourceAsStream(resource));
+                        } catch (IOException ex) {
+                            throw new RuntimeException(ex);
+                        }
+                }
+            });
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
         }
     }
 
-    private void visitClassFile(File file) throws FileNotFoundException, IOException {
-        FileInputStream fis = new FileInputStream(file);
-        ClassReader cr = new ClassReader(fis);
+    private void visitClassFile(InputStream classStream) throws IOException {
+        ClassReader cr = new ClassReader(classStream);
         final ClassNode cn = new ClassNode();
         cr.accept(new ClassVisitor(Opcodes.ASM4, cn) {
 
@@ -147,19 +137,6 @@ public class AutoSuspendablesScanner {
         });
     }
 
-    private static List<File> recursiveWalk(String path) {
-        File[] list = new File(path).listFiles();
-        List<File> result = new ArrayList<>();
-        if (list == null)
-            return result;
-        for (File f : list)
-            if (f.isDirectory())
-                result.addAll(recursiveWalk(f.getAbsolutePath()));
-            else
-                result.add(f);
-        return result;
-    }
-
     private static String getClassName(String fullMethodWithDesc) {
         return fullMethodWithDesc.substring(0, fullMethodWithDesc.lastIndexOf('.'));
     }
@@ -171,6 +148,24 @@ public class AutoSuspendablesScanner {
 
     private static String getMethodDescName(String fullMethodWithDesc) {
         return fullMethodWithDesc.substring(fullMethodWithDesc.lastIndexOf('.') + 1);
+    }
+
+    public Set<String> getSuspendables() {
+        return suspendables;
+    }
+
+    public Set<String> getSuperSuspendables() {
+        return superSuspendables;
+    }
+
+    // visible for testing
+    SetMultimap<String, String> getSupers() {
+        return supers;
+    }
+
+    // visible for testing
+    SetMultimap<String, String> getCallers() {
+        return callers;
     }
     private static final String CLASSFILE_SUFFIX = ".class";
     private static final String JAVALANG_OBJECT = "java/lang/Object";
