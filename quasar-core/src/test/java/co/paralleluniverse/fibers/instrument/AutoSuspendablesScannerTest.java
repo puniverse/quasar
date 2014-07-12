@@ -7,58 +7,63 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import java.util.Set;
 import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class AutomaticSuspendablesScannerTest {
-    private static Set<String> susps;
+public class AutoSuspendablesScannerTest {
+    private static AutoSuspendablesScanner scanner;
 
     @BeforeClass
     public static void buildGraph() {
-        AutomaticSuspendablesScanner scanner = new AutomaticSuspendablesScanner(AutomaticSuspendablesScannerTest.class.getClassLoader());
-        susps = scanner.findSuspendables();
+        scanner = new AutoSuspendablesScanner(AutoSuspendablesScannerTest.class.getClassLoader());
     }
 
     @Test
     public void suspendableCallTest() {
         final String suspCallMethod = MyXXXClassB.class.getSimpleName() + ".foo(I)V";
-        for (String susp : susps)
+        for (String susp : scanner.getSuspendables())
             if (susp.contains(suspCallMethod))
                 return;
-        fail(suspCallMethod +" is not suspendable");
+        fail(suspCallMethod + " is not suspendable");
     }
 
     @Test
     public void superSuspendableCallTest() {
         final String suspCallMethod = MyXXXClassA.class.getSimpleName() + ".foo(L"; // foo with class parameter
-        for (String susp : susps)
-            if (susp.contains(suspCallMethod)) {
-                System.out.println("superSuspendableCallTest "+susp);
+        for (String susp : scanner.getSuspendables())
+            if (susp.contains(suspCallMethod))
                 return;
-            }
-        fail(suspCallMethod +" is not suspendable");
+        fail(suspCallMethod + " is not suspendable");
     }
 
     @Test
     public void nonSuperSuspendableCallTest() {
         final String suspCallMethod = MyXXXClassA.class.getSimpleName() + ".foo()"; // foo without parameters
-        for (String susp : susps)
+        for (String susp : scanner.getSuspendables())
             if (susp.contains(suspCallMethod))
-                fail(susp +" should not be suspendable");
+                fail(susp + " should not be suspendable");
     }
 
     @Test
     public void superNonSuspendableCallTest() {
         final String suspCallMethod = MyXXXClassA.class.getSimpleName() + ".bar(";
-        for (String susp : susps)
+        for (String susp : scanner.getSuspendables())
             if (susp.contains(suspCallMethod))
-                fail(suspCallMethod +" should not be suspendable");
+                fail(suspCallMethod + " should not be suspendable");
+    }
+
+    @Test
+    public void superSuspendableTest() {
+        final String superSuspMethod = MyXXXInterfaceA.class.getSimpleName() + ".foo";
+        for (String susp : scanner.getSuperSuspendables())
+            if (susp.contains(superSuspMethod))
+                return;
+        fail(superSuspMethod + " is not super suspendable");
     }
 
     static interface MyXXXInterfaceA {
-        // has suspandable implementation
+        // super suspendable
         void foo(int t);
 
         // doesn't have suspandable implementation
@@ -97,11 +102,4 @@ public class AutomaticSuspendablesScannerTest {
         public void bar(int t) {
         }
     }
-
-    public AutomaticSuspendablesScannerTest() {
-    }
-
-    // TODO add test methods here.
-    // The methods must be annotated with annotation @Test. For example:
-    //
 }

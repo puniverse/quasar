@@ -27,41 +27,57 @@ import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
-public class AutomaticSuspendablesScanner {
+public class AutoSuspendablesScanner {
     SetMultimap<String, String> callers;
     SetMultimap<String, String> supers;
     private final ClassLoader cl;
+    private Set<String> suspendables;
+    private Set<String> superSuspendables;
 
-    public AutomaticSuspendablesScanner(final ClassLoader classLoader) {
+    public AutoSuspendablesScanner(final ClassLoader classLoader) {
         this.cl = classLoader;
-        this.supers = AutomaticSuspendablesScanner.<String, String>newHashMultimap();
-        this.callers = AutomaticSuspendablesScanner.<String, String>newHashMultimap();
+        this.supers = AutoSuspendablesScanner.<String, String>newHashMultimap();
+        this.callers = AutoSuspendablesScanner.<String, String>newHashMultimap();
         mapCallersAndSupers();
+        mapSuspendables();
     }
 
-    public Set<String> findSuspendables() {
+    public Set<String> getSuspendables() {
+        return suspendables;
+    }
+
+    public Set<String> getSuperSuspendables() {
+        return superSuspendables;
+    }
+
+    private void mapSuspendables() {
         Queue<String> q = Queues.newArrayDeque();
-        Set<String> susps = new HashSet<>();
+        suspendables = new HashSet<>();
+        superSuspendables = new HashSet<>();
         for (String callee : callers.keySet()) {
             final String className = getClassName(callee);
             final String methodName = getMethodName(callee);
             if (Classes.isYieldMethod(className, methodName)) {
                 q.add(callee);
-                susps.add(callee);
+                suspendables.add(callee);
             }
         }
         while (!q.isEmpty()) {
             final String node = q.poll();
-            for (String superCls : supers.get(getClassName(node)))
-                q.add(superCls + "." + getMethodDescName(node));
+            for (String superCls : supers.get(getClassName(node))) {
+                final String superMethod = superCls + "." + getMethodDescName(node);
+                if (callers.keySet().contains(superMethod) && !suspendables.contains(superMethod) && !superSuspendables.contains(superMethod)) {
+                    q.add(superMethod);
+                    superSuspendables.add(superMethod);
+                }                
+            }
             for (String caller : callers.get(node)) {
-                if (!susps.contains(caller)) {
+                if (!suspendables.contains(caller)) {
                     q.add(caller);
-                    susps.add(caller);
+                    suspendables.add(caller);
                 }
             }
         }
-        return susps;
     }
 
     private void mapCallersAndSupers() {
