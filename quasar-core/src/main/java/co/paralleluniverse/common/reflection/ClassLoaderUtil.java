@@ -70,7 +70,7 @@ public final class ClassLoaderUtil {
         return classToResource(clazz.getName());
     }
 
-     public static String classToSlashed(String className) {
+    public static String classToSlashed(String className) {
         return className.replace('.', '/');
     }
 
@@ -85,14 +85,21 @@ public final class ClassLoaderUtil {
     }
 
     public static void accept(ClassLoader classLoader, Visitor visitor) throws IOException {
+        accept(classLoader, false, visitor);
+    }
+    
+    public static void accept(ClassLoader classLoader, boolean dirsOnly, Visitor visitor) throws IOException {
         URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
         if (classLoader instanceof URLClassLoader) {
             try {
                 final Set<URI> scannedUris = new HashSet<>();
                 for (URL entry : urlClassLoader.getURLs()) {
                     URI uri = entry.toURI();
-                    if (uri.getScheme().equals("file") && scannedUris.add(uri))
-                        scanFrom(new File(uri), classLoader, scannedUris, visitor);
+                    if (uri.getScheme().equals("file") && scannedUris.add(uri)) {
+                        final File path = new File(uri);
+                        if (!dirsOnly || path.isDirectory())
+                            scanFrom(path, classLoader, scannedUris, visitor);
+                    }
                 }
             } catch (URISyntaxException e) {
                 throw new RuntimeException(e);
