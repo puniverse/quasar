@@ -12,10 +12,10 @@
     </root>
     <!-- <logger name="co.paralleluniverse.actors" level="DEBUG"/> -->
     <!-- <logger name="co.paralleluniverse.remote.galaxy" level="DEBUG"/> -->
-    <!-- <logger name="co.paralleluniverse.galaxy.core.StringRootManager" level="DEBUG"/> -->
+    <!-- <logger name="co.paralleluniverse.galaxy.core.AbstractCluster" level="DEBUG"/> -->
     <!-- <logger name="co.paralleluniverse.galaxy.core.Cache" level="DEBUG"/> -->
     <!-- <logger name="co.paralleluniverse.galaxy.core.MainMemory" level="DEBUG"/> -->
-    <!-- <logger name="co.paralleluniverse.galaxy.core.AbstractCluster" level="DEBUG"/> -->
+    <!-- <logger name="co.paralleluniverse.galaxy.core.StringRootManager" level="DEBUG"/> -->
     <!-- <logger name="co.paralleluniverse.galaxy.netty.UDPComm" level="DEBUG"/> -->
     <!-- <logger name="co.paralleluniverse.galaxy.core.BackupImpl" level="DEBUG"/> -->
   </loggers>

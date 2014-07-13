@@ -19,7 +19,6 @@
  */
 package co.paralleluniverse.galaxy.example.migration;
 
-import co.paralleluniverse.actors.ActorRef;
 import java.io.Serializable;
 
 /**
@@ -29,11 +28,18 @@ import java.io.Serializable;
 class Message implements Serializable {
     enum Type { MIGRATE, PRINT, FINISHED }
     
-    final ActorRef from;
+    final int from;
+    final int index;
     final Type type;
     
-    public Message(ActorRef from, Type type) {
+    public Message(int from, int index, Type type) {
         this.from = from;
+        this.index = index;
         this.type = type;
+    }
+
+    @Override
+    public String toString() {
+        return "Message{" + "from: " + from + " " + index + " " + type + '}';
     }
 }

@@ -21,7 +21,6 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Store;
 import co.paralleluniverse.io.serialization.Serialization;
-import co.paralleluniverse.io.serialization.kryo.KryoSerializer;
 import org.kohsuke.MetaInfServices;
 
 /**
@@ -43,14 +42,14 @@ public class GlxMigrator implements Migrator {
     }
 
     @Override
-    public Object registerMigratingActor(Object id) throws SuspendExecution {
+    public Object registerMigratingActor() throws SuspendExecution {
         try {
-            if (id == null)
+//            if (id == null)
                 return store.put(new byte[0], null);
-            else {
-                store.getx((Long) id, null);
-                return id;
-            }
+//            else {
+//                store.getx((Long) id, null);
+//                return id;
+//            }
         } catch (co.paralleluniverse.galaxy.TimeoutException e) {
             throw new RuntimeException(e);
         }

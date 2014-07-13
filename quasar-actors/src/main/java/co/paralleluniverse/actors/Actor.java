@@ -84,10 +84,10 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     private volatile V result;
     private volatile Throwable exception;
     private volatile Throwable deathCause;
-    private volatile Object globalId;
+    private Object globalId;
+    private volatile Object registrationId;
     private transient volatile ActorMonitor monitor;
     private volatile boolean registered;
-    private boolean globalIdFixed;
     private boolean hasMonitor;
     private ActorSpec<?, Message, V> spec;
     private Object aux;
@@ -628,13 +628,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         if (!(runner.getStrand() instanceof Fiber))
             currentActor.set(this);
         try {
-            if (this instanceof MigratingActor) {
-                Object gid = MigrationService.registerMigratingActor(globalId);
-                if (!globalIdFixed)
-                    this.globalId = gid;
-                else if (!Objects.equal(this.globalId, gid))
-                    throw new AssertionError();
-            }
+            if (this instanceof MigratingActor && globalId == null)
+                this.globalId = MigrationService.registerMigratingActor();
 
             result = doRun();
             die(null);
@@ -776,8 +771,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     }
 
     Object getGlobalId() {
-        this.globalIdFixed = true;
-        return globalId;
+        return globalId != null ? globalId : registrationId;
     }
 
     @Override
@@ -889,6 +883,21 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         return register();
     }
 
+    // called by ActorRegistry
+    void preRegister(String name) throws SuspendExecution {
+        if (getName() == null)
+            setName(name);
+        else if (!getName().equals(name))
+            throw new RegistrationException("Cannot register actor named " + getName() + " under a different name (" + name + ")");
+        assert !registered;
+        if (this instanceof MigratingActor && globalId == null)
+            this.globalId = MigrationService.registerMigratingActor();
+    }
+
+    void postRegister() {
+        this.registered = true;
+    }
+
     /**
      * Registers this actor in the actor registry under its name.
      * This also creates a {@link #monitor() monitor} for this actor.
@@ -899,12 +908,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         if (registered)
             return this;
         record(1, "Actor", "register", "Registering actor %s as %s", this, getName());
-        if (globalIdFixed)
-            throw new IllegalStateException("Actor has already been shared over the cluster and cannot be registered");
-        this.globalId = ActorRegistry.register(this, globalId);
-        if (this instanceof MigratingActor)
-            MigrationService.registerMigratingActor(globalId);
-        this.registered = true;
+        this.registrationId = ActorRegistry.register(this, null);
         return this;
     }
 
@@ -965,7 +969,6 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     public void migrateAndRestart() throws SuspendExecution {
         record(1, "Actor", "migrateAndRestart", "Actor %s is migrating.", this);
         verifyInActor();
-        this.globalIdFixed = true;
         final RemoteActor<Message> remote = RemoteActorProxyFactoryService.create(ref(), getGlobalId());
 
         final Mailbox mbox = mailbox();
@@ -1029,7 +1032,6 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     //<editor-fold desc="Serialization">
     /////////// Serialization ///////////////////////////////////
     protected final Object writeReplace() throws java.io.ObjectStreamException {
-        globalIdFixed = true;
         if (migrating.get() == Boolean.TRUE)
             return this;
 

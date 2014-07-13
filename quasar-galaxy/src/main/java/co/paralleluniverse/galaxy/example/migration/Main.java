@@ -24,6 +24,8 @@ import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.MigratingActor;
+import co.paralleluniverse.actors.behaviors.Server;
+import co.paralleluniverse.actors.behaviors.ServerActor;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.galaxy.example.migration.Message.Type.*;
 import java.util.concurrent.Callable;
@@ -32,39 +34,46 @@ import java.util.concurrent.TimeUnit;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        final int nodeId = 1; // Integer.parseInt(args[0]);
+        final int nodeId = Integer.parseInt(args[0]);
         System.setProperty("galaxy.nodeId", Integer.toString(nodeId));
         System.setProperty("galaxy.port", Integer.toString(7050 + nodeId));
         System.setProperty("galaxy.slave_port", Integer.toString(8050 + nodeId));
 
         // com.esotericsoftware.minlog.Log.set(1);
         ActorRegistry.hasGlobalRegistry();
-        ActorRef<Message> actor = ActorRegistry.getOrRegisterActor("migrant", new Callable<ActorRef<Message>>() {
+        ActorRef<Message> actor = ActorRegistry.getOrRegisterActor("migrant", new Callable<Actor<Message, ?>>() {
 
             @Override
-            public ActorRef<Message> call() throws Exception {
-                return new Migrant().spawn();
+            public Actor<Message, Void> call() throws Exception {
+                return new Migrant();
             }
         });
-        if (actor == null) {
-            System.out.println("Creating actor");
-            actor = new Migrant("migrant").spawn();
-        } else
-            System.out.println("Found registered actor");
+//        Server<Message, Integer, Message> actor = (Server<Message, Integer, Message>)ActorRegistry.getOrRegisterActor("migrant", new Callable() {
+//
+//            @Override
+//            public ServerActor call() throws Exception {
+//                return new Migrant();
+//            }
+//        });
 
-        for (int i = 0; i < 100; i++) {
+        int i;
+        for (i = 0; i < 500; i++) {
             final double r = ThreadLocalRandom.current().nextDouble();
-            if (r < 0.2) {
-                actor.send(new Message(null, MIGRATE));
+            if (r < 0.1) {
                 System.out.println("Hiring actor...");
-                Thread.sleep(500);
+                // actor.call(new Message(nodeId, i, MIGRATE));
+                actor.send(new Message(nodeId, i, MIGRATE));
+                Thread.sleep(100);
                 Actor.hire(actor).spawn();
                 System.out.println("Hired!");
-            } else
-                actor.send(new Message(null, PRINT));
-            Thread.sleep(1000);
+            } else {
+                actor.send(new Message(nodeId, i, PRINT));
+                // actor.cast(new Message(nodeId, i, PRINT));
+            }
+            Thread.sleep(500);
         }
-        actor.send(new Message(null, FINISHED));
+        actor.send(new Message(nodeId, i, FINISHED));
+//        actor.cast(new Message(nodeId, i, FINISHED));
 
         System.out.println("Done");
         ActorRegistry.shutdown();
@@ -88,6 +97,7 @@ public class Main {
             for (;;) {
                 Message m = receive(2, TimeUnit.SECONDS);
                 if (m != null) {
+                    System.out.println("received: " + m);
                     messageCount++;
                     switch (m.type) {
                         case PRINT:
@@ -106,4 +116,52 @@ public class Main {
             return null;
         }
     }
+//    static class Migrant extends ServerActor<Message, Integer, Message> implements MigratingActor {
+//        private int loopCount;
+//        private int messageCount;
+//
+//        public Migrant() {
+//            super();
+//            setTimeout(2, TimeUnit.SECONDS);
+//        }
+//
+//        public Migrant(String name) {
+//            super(name);
+//            setTimeout(2, TimeUnit.SECONDS);
+//        }
+//
+//        @Override
+//        protected void handleMessage(Object m1) throws InterruptedException, SuspendExecution {
+//            messageCount++;
+//            loopCount++;
+//            super.handleMessage(m1);
+//        }
+//
+//        @Override
+//        protected void handleCast(ActorRef<?> from, Object id, Message m) throws SuspendExecution {
+//            switch (m.type) {
+//                case PRINT:
+//                    System.out.println("iter: " + loopCount + " messages: " + messageCount);
+//                    break;
+//                case FINISHED:
+//                    shutdown();
+//            }
+//        }
+//
+//        @Override
+//        protected Integer handleCall(ActorRef<?> from, Object id, Message m) throws Exception, SuspendExecution {
+//            switch (m.type) {
+//                case MIGRATE:
+//                    migrateAndRestart();
+//                    return messageCount;
+//                default:
+//                    throw new UnsupportedOperationException(m.toString());
+//            }
+//        }
+//
+//        @Override
+//        protected void handleTimeout() throws SuspendExecution {
+//            loopCount++;
+//        }
+//    }
 }

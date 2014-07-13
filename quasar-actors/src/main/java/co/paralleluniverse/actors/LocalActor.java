@@ -143,6 +143,13 @@ public final class LocalActor {
         return actorOf(actor).getStackTrace();
     }
 
+    static void postRegister(ActorRef<?> ar) {
+        ActorImpl impl = ar.getImpl();
+        if (!(impl instanceof Actor))
+            return;
+        ((Actor)impl).postRegister();
+    }
+    
     private static Actor actorOf(ActorRef<?> ar) {
         ActorImpl impl = ar.getImpl();
         if (!(impl instanceof Actor))

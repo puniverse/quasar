@@ -13,9 +13,12 @@
  */
 package co.paralleluniverse.remote.galaxy;
 
+import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorImpl;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.spi.ActorRegistry;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.AbstractCacheListener;
 import co.paralleluniverse.galaxy.Cache;
@@ -278,6 +281,7 @@ public class GlxGlobalRegistry implements ActorRegistry {
         try {
             try {
                 final long root = store.getRoot(rootName, txn);
+
                 final ActorRef<Message> actor;
                 byte[] buf = store.getx(root, txn);
                 if (buf == null || buf.length == 0) {
