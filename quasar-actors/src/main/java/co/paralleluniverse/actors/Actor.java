@@ -15,14 +15,19 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.actors.ActorImpl.ActorLifecycleListener;
 import static co.paralleluniverse.actors.ActorImpl.getActorRefImpl;
+import co.paralleluniverse.actors.spi.MigrationRecord;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.concurrent.util.MapUtil;
+import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
+import co.paralleluniverse.fibers.FiberWriter;
 import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
+import co.paralleluniverse.io.serialization.ByteArraySerializer;
+import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
@@ -969,43 +974,94 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     public void migrateAndRestart() throws SuspendExecution {
         record(1, "Actor", "migrateAndRestart", "Actor %s is migrating.", this);
         verifyInActor();
-        final RemoteActor<Message> remote = RemoteActorProxyFactoryService.create(ref(), getGlobalId());
-
-        final Mailbox mbox = mailbox();
 
         migrating.set(Boolean.TRUE);
         try {
-            if (monitor != null) {
-                hasMonitor = true;
-                stopMonitor();
-            }
-
-            MigrationService.migrate(getGlobalId(), this);
+            preMigrate();
+            MigrationService.migrate(getGlobalId(), this, Serialization.getInstance().write(new MigrationRecord(this, null)));
+            postMigrate();
+            throw Migrate.MIGRATE;
         } finally {
             migrating.remove();
         }
+    }
 
+    /**
+     * Must be called on a fiber.
+     *
+     * @param writer
+     * @throws SuspendExecution
+     */
+    public void migrate(FiberWriter writer) throws SuspendExecution {
+        record(1, "Actor", "migrate", "Actor %s is migrating.", this);
+        verifyInActor();
+
+        migrating.set(Boolean.TRUE);
+        preMigrate();
+        Fiber.parkAndSerialize(new FiberWriter() {
+
+            @Override
+            public void write(Fiber fiber, ByteArraySerializer ser) {
+                final byte[] buf = ser.write(new MigrationRecord(Actor.this, fiber));
+                new Fiber<Void>() {
+                    @Override
+                    protected Void run() throws SuspendExecution, InterruptedException {
+                        MigrationService.migrate(getGlobalId(), Actor.this, buf);
+                        postMigrate();
+                        return null;
+                    }
+                }.start();
+            }
+        });
+        migrating.remove();
+    }
+
+    private void preMigrate() {
+        if (monitor != null) {
+            hasMonitor = true;
+            stopMonitor();
+        }
+    }
+
+    private void postMigrate() {
+        final RemoteActor<Message> remote = RemoteActorProxyFactoryService.create(ref, getGlobalId());
         ref.setImpl(remote);
 
         // copy messages already in the mailbox
-        // TODO: this might change the message order, as ne messages are coming in
+        // TODO: this might change the message order, as new messages are coming in
+        final Mailbox mbox = mailbox();
         for (;;) {
             Object m = mbox.tryReceive();
             if (m == null)
                 break;
             remote.internalSendNonSuspendable(m);
         }
-
-        throw Migrate.MIGRATE;
     }
 
-    public static <M> Actor<M, ?> hire(ActorRef<M> ref) throws SuspendExecution {
-        final Actor<M, ?> actor = MigrationService.hire(ref);
+    public static <M> ActorRef<M> hire(ActorRef<M> ref) throws SuspendExecution {
+        return hire(ref, DefaultFiberScheduler.getInstance());
+    }
+
+    public static <M> ActorRef<M> hire(ActorRef<M> ref, FiberScheduler scheduler) throws SuspendExecution {
+        MigrationRecord mr = MigrationService.hire(ref, Fiber.newFiberSerializer());
+
+        final Actor<M, ?> actor = (Actor<M, ?>) mr.getActor();
+        final Fiber<?> fiber = mr.getFiber();
         actor.setRef(ref);
-        actor.runner = new ActorRunner<>(ref);
+        actor.runner = fiber != null ? (ActorRunner) fiber.getTarget() : new ActorRunner<>(ref);
 
         actor.ref.setImpl(actor);
-        return actor;
+        assert ref == actor.ref : ref + " - " + actor.ref;
+
+        if (fiber != null)
+            Fiber.unparkDeserialized(fiber, scheduler);
+        else {
+            if (scheduler != null)
+                actor.spawn(scheduler);
+            else
+                actor.spawnThread();
+        }
+        return ref;
     }
     //</editor-fold>
 

@@ -64,7 +64,7 @@ public class Main {
                 // actor.call(new Message(nodeId, i, MIGRATE));
                 actor.send(new Message(nodeId, i, MIGRATE));
                 Thread.sleep(100);
-                Actor.hire(actor).spawn();
+                Actor.hire(actor);
                 System.out.println("Hired!");
             } else {
                 actor.send(new Message(nodeId, i, PRINT));

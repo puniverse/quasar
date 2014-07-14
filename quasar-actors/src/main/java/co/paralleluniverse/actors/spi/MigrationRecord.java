@@ -14,17 +14,26 @@
 package co.paralleluniverse.actors.spi;
 
 import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.ActorImpl;
-import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.io.serialization.ByteArraySerializer;
+import co.paralleluniverse.fibers.Fiber;
 
 /**
  *
  * @author pron
  */
-public interface Migrator {
-    Object registerMigratingActor() throws SuspendExecution;
-    void migrate(Object id, Actor actor, byte[] serializedMigrationRecord) throws SuspendExecution;
-    MigrationRecord hire(ActorRef actorRef, ActorImpl actorImpl, ByteArraySerializer ser) throws SuspendExecution;
+public class MigrationRecord implements java.io.Serializable {
+    final Actor actor;
+    final Fiber fiber;
+
+    public MigrationRecord(Actor<?, ?> actor, Fiber fiber) {
+        this.actor = actor;
+        this.fiber = fiber;
+    }
+
+    public Actor<?, ?> getActor() {
+        return actor;
+    }
+
+    public Fiber getFiber() {
+        return fiber;
+    }
 }

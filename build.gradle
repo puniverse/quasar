@@ -423,6 +423,7 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
         ]
     }
     excludes = [
+        "co/paralleluniverse/actors/spi/**",
         "co/paralleluniverse/actors/ActorMonitor.java",
         "co/paralleluniverse/actors/GlobalRegistry.java",
         "co/paralleluniverse/actors/JMXActorMonitor.java",

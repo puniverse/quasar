@@ -16,10 +16,12 @@ package co.paralleluniverse.remote.galaxy;
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorImpl;
 import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.spi.MigrationRecord;
 import co.paralleluniverse.actors.spi.Migrator;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Store;
+import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import co.paralleluniverse.io.serialization.Serialization;
 import org.kohsuke.MetaInfServices;
 
@@ -45,7 +47,7 @@ public class GlxMigrator implements Migrator {
     public Object registerMigratingActor() throws SuspendExecution {
         try {
 //            if (id == null)
-                return store.put(new byte[0], null);
+            return store.put(new byte[0], null);
 //            else {
 //                store.getx((Long) id, null);
 //                return id;
@@ -56,11 +58,11 @@ public class GlxMigrator implements Migrator {
     }
 
     @Override
-    public void migrate(Object id, Actor<?, ?> actor) throws SuspendExecution {
+    public void migrate(Object id, Actor actor, byte[] serializedMigrationRecord) throws SuspendExecution {
         final long _id = (Long) id;
         try {
             store.setListener(_id, null);
-            store.set(_id, Serialization.getInstance().write(actor), null);
+            store.set(_id, serializedMigrationRecord, null);
             store.release(_id);
         } catch (co.paralleluniverse.galaxy.TimeoutException e) {
             throw new RuntimeException(e);
@@ -68,7 +70,7 @@ public class GlxMigrator implements Migrator {
     }
 
     @Override
-    public <M> Actor<M, ?> hire(ActorRef<M> actorRef, ActorImpl<M> impl) throws SuspendExecution {
+    public MigrationRecord hire(ActorRef actorRef, ActorImpl impl, ByteArraySerializer ser) throws SuspendExecution {
         final GlxGlobalChannelId gcid = ((GlxRemoteActor) impl).getId();
         if (!gcid.isGlobal())
             throw new IllegalArgumentException("Actor " + actorRef + " is not a migrating actor");
@@ -78,9 +80,9 @@ public class GlxMigrator implements Migrator {
             store.setListener(id, null);
             final byte[] buf = store.getx(id, null);
             assert buf != null : actorRef + " " + impl;
-            final Actor actor = (Actor) Serialization.getInstance().read(buf);
-            GlobalRemoteChannelReceiver.getReceiver(actor.getMailbox(), id);
-            return actor;
+            final MigrationRecord mr = (MigrationRecord) ser.read(buf);
+            GlobalRemoteChannelReceiver.getReceiver(mr.getActor().getMailbox(), id);
+            return mr;
         } catch (co.paralleluniverse.galaxy.TimeoutException e) {
             throw new RuntimeException(e);
         }

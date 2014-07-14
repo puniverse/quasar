@@ -13,9 +13,11 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.actors.spi.MigrationRecord;
 import co.paralleluniverse.actors.spi.Migrator;
 import co.paralleluniverse.common.util.ServiceUtil;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,11 +41,11 @@ class MigrationService {
         return res;
     }
 
-    public static void migrate(Object id, Actor<?, ?> actor) throws SuspendExecution {
-        migrator.migrate(actor.getGlobalId(), actor);
+    public static void migrate(Object id, Actor actor, byte[] serializedMigrationRecord) throws SuspendExecution {
+        migrator.migrate(actor.getGlobalId(), actor, serializedMigrationRecord);
     }
 
-    public static <M> Actor<M, ?> hire(ActorRef<M> actorRef) throws SuspendExecution {
-        return migrator.hire(actorRef, actorRef.getImpl());
+    public static MigrationRecord hire(ActorRef<?> actorRef, ByteArraySerializer ser) throws SuspendExecution {
+        return migrator.hire(actorRef, actorRef.getImpl(), ser);
     }
 }
