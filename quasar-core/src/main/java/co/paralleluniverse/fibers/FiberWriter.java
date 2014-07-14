@@ -14,10 +14,12 @@
 
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.io.serialization.ByteArraySerializer;
+
 /**
  *
  * @author pron
  */
 public interface FiberWriter {
-    void write(byte[] serFiber);
+    void write(Fiber fiber, ByteArraySerializer ser);
 }

@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import co.paralleluniverse.strands.Condition;
 import co.paralleluniverse.strands.SettableFuture;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
@@ -786,9 +787,15 @@ public class FiberTest implements Serializable {
             this.buf = buf;
         }
 
+        
         @Override
-        public void write(byte[] serFiber) {
-            buf.set(serFiber);
+        public void write(Fiber fiber, ByteArraySerializer ser) {
+            buf.set(ser.write(fiber));
         }
+        
+//        @Override
+//        public void write(byte[] serFiber) {
+//            buf.set(serFiber);
+//        }
     }
 }

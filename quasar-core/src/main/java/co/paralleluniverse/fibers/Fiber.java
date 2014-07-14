@@ -23,6 +23,7 @@ import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
 import co.paralleluniverse.fibers.instrument.SuspendableHelper;
+import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import co.paralleluniverse.io.serialization.kryo.KryoSerializer;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
@@ -45,6 +46,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.Registration;
+import com.esotericsoftware.kryo.Serializer;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import sun.misc.Unsafe;
 
 /**
@@ -1822,54 +1829,18 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             @Override
             public void run(Fiber f) {
                 f.record(1, "Fiber", "parkAndSerialize", "Serializing fiber %s", f);
-                final KryoSerializer kryo = newFiberSerializer();
-
-                final Thread currentThread = Thread.currentThread();
-                final Object tmpThreadLocals = ThreadAccess.getThreadLocals(currentThread);
-                final Object tmpInheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
-                ThreadAccess.setThreadLocals(currentThread, f.fiberLocals);
-                ThreadAccess.setInheritablehreadLocals(currentThread, f.inheritableFiberLocals);
-                try {
-                    f.fiberLocals = f.fiberLocals != null
-                            ? filterThreadLocalMap(ThreadAccess.toMap(f.fiberLocals)).keySet().toArray() : null;
-                    f.inheritableFiberLocals = f.inheritableFiberLocals != null
-                            ? filterThreadLocalMap(ThreadAccess.toMap(f.inheritableFiberLocals)).keySet().toArray() : null;
-                    f.stack.resumeStack();
-
-                    writer.write(kryo.write(f));
-                } catch (Throwable t) {
-                    t.printStackTrace();
-                    throw t;
-                } finally {
-                    ThreadAccess.setThreadLocals(currentThread, tmpThreadLocals);
-                    ThreadAccess.setInheritablehreadLocals(currentThread, tmpInheritableThreadLocals);
-                }
+                writer.write(f, newFiberSerializer());
             }
         }));
     }
 
     public static <V> Fiber<V> unparkSerialized(byte[] serFiber, FiberScheduler scheduler) {
-        final KryoSerializer kryo = newFiberSerializer();
+        final Fiber<V> f = (Fiber<V>) newFiberSerializer().read(serFiber);
+        return unparkDeserialized(f, scheduler);
+    }
 
-        final Fiber<V> f;
+    public static <V> Fiber<V> unparkDeserialized(Fiber<V> f, FiberScheduler scheduler) {
         final Thread currentThread = Thread.currentThread();
-        final Object tmpThreadLocals = ThreadAccess.getThreadLocals(currentThread);
-        final Object tmpInheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
-        ThreadAccess.setThreadLocals(currentThread, null);
-        ThreadAccess.setInheritablehreadLocals(currentThread, null);
-        try {
-            f = (Fiber<V>) kryo.read(serFiber);
-
-            f.fiberLocals = ThreadAccess.getThreadLocals(currentThread);
-            f.inheritableFiberLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
-        } catch (Throwable t) {
-            t.printStackTrace();
-            throw t;
-        } finally {
-            ThreadAccess.setThreadLocals(currentThread, tmpThreadLocals);
-            ThreadAccess.setInheritablehreadLocals(currentThread, tmpInheritableThreadLocals);
-        }
-
         f.fiberRef = new DummyRunnable(f);
         f.fid = nextFiberId();
         f.scheduler = scheduler;
@@ -1887,11 +1858,68 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return f;
     }
 
-    private static KryoSerializer newFiberSerializer() {
+    public static ByteArraySerializer newFiberSerializer() {
         final KryoSerializer s = new KryoSerializer();
+        s.getKryo().addDefaultSerializer(Fiber.class, new FiberSerializer());
         s.getKryo().addDefaultSerializer(ThreadLocal.class, new ThreadLocalSerializer());
         s.getKryo().addDefaultSerializer(FiberWriter.class, new FiberWriterSerializer());
         return s;
+    }
+
+    private static class FiberSerializer extends Serializer<Fiber> {
+        public FiberSerializer() {
+            setImmutable(true);
+        }
+
+        @Override
+        public void write(Kryo kryo, Output output, Fiber f) {
+            final Thread currentThread = Thread.currentThread();
+            final Object tmpThreadLocals = ThreadAccess.getThreadLocals(currentThread);
+            final Object tmpInheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
+            ThreadAccess.setThreadLocals(currentThread, f.fiberLocals);
+            ThreadAccess.setInheritablehreadLocals(currentThread, f.inheritableFiberLocals);
+            try {
+                f.fiberLocals = f.fiberLocals != null
+                        ? filterThreadLocalMap(ThreadAccess.toMap(f.fiberLocals)).keySet().toArray() : null;
+                f.inheritableFiberLocals = f.inheritableFiberLocals != null
+                        ? filterThreadLocalMap(ThreadAccess.toMap(f.inheritableFiberLocals)).keySet().toArray() : null;
+                f.stack.resumeStack();
+
+                kryo.writeClass(output, f.getClass());
+                new FieldSerializer(kryo, f.getClass()).write(kryo, output, f);
+            } catch (Throwable t) {
+                t.printStackTrace();
+                throw t;
+            } finally {
+                ThreadAccess.setThreadLocals(currentThread, tmpThreadLocals);
+                ThreadAccess.setInheritablehreadLocals(currentThread, tmpInheritableThreadLocals);
+            }
+        }
+
+        @Override
+        public Fiber read(Kryo kryo, Input input, Class<Fiber> type) {
+            final Fiber f;
+            final Thread currentThread = Thread.currentThread();
+            final Object tmpThreadLocals = ThreadAccess.getThreadLocals(currentThread);
+            final Object tmpInheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
+            ThreadAccess.setThreadLocals(currentThread, null);
+            ThreadAccess.setInheritablehreadLocals(currentThread, null);
+            try {
+                final Registration reg = kryo.readClass(input);
+                f = (Fiber) new FieldSerializer(kryo, reg.getType()).read(kryo, input, reg.getType());
+                
+                f.fiberLocals = ThreadAccess.getThreadLocals(currentThread);
+                f.inheritableFiberLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
+
+                return f;
+            } catch (Throwable t) {
+                t.printStackTrace();
+                throw t;
+            } finally {
+                ThreadAccess.setThreadLocals(currentThread, tmpThreadLocals);
+                ThreadAccess.setInheritablehreadLocals(currentThread, tmpInheritableThreadLocals);
+            }
+        }
     }
 
     private static Map<ThreadLocal, Object> filterThreadLocalMap(Map<ThreadLocal, Object> map) {
