@@ -659,19 +659,17 @@ public class FiberTest implements Serializable {
     @Test
     public void testSerialization1() throws Exception {
         // com.esotericsoftware.minlog.Log.set(1);
-
         final SettableFuture<byte[]> buf = new SettableFuture<>();
 
-        Fiber<Integer> f1 = new SerFiber1(scheduler, buf).start();
+        Fiber<Integer> f1 = new SerFiber1(scheduler, new SettableFutureFiberWriter(buf)).start();
+        Fiber<Integer> f2 = Fiber.unparkSerialized(buf.get(), scheduler);
 
-        final Fiber<Integer> f2 = Fiber.unparkSerialized(buf.get(), scheduler);
-        final Integer res = f2.get();
-        assertThat(res, is(55));
+        assertThat(f2.get(), is(55));
     }
 
     static class SerFiber1 extends SerFiber<Integer> {
-        public SerFiber1(FiberScheduler scheduler, SettableFuture<byte[]> buf) {
-            super(scheduler, buf);
+        public SerFiber1(FiberScheduler scheduler, FiberWriter fiberWriter) {
+            super(scheduler, fiberWriter);
         }
 
         @Override
@@ -679,16 +677,43 @@ public class FiberTest implements Serializable {
             int sum = 0;
             for (int i = 1; i <= 10; i++) {
                 sum += i;
-                if (i == 5)
-                    parkAndSerialize(new FiberWriter() {
-
-                        @Override
-                        public void write(byte[] serFiber) {
-                            buf.set(serFiber);
-                        }
-                    });
+                if (i == 5) {
+                    Fiber.parkAndSerialize(fiberWriter);
+                    assert i == 5 && sum == 15;
+                }
             }
             return sum;
+        }
+    }
+
+    @Test
+    public void testSerialization2() throws Exception {
+        // com.esotericsoftware.minlog.Log.set(1);
+        final SettableFuture<byte[]> buf = new SettableFuture<>();
+
+        Fiber<Integer> f1 = new SerFiber2(scheduler, new SettableFutureFiberWriter(buf)).start();
+        Fiber<Integer> f2 = Fiber.unparkSerialized(buf.get(), scheduler);
+
+        assertThat(f2.get(), is(55));
+    }
+
+    static class SerFiber2 extends Fiber<Integer> {
+        public SerFiber2(FiberScheduler scheduler, final FiberWriter fiberWriter) {
+            super(scheduler, new SuspendableCallable<Integer>() {
+
+                @Override
+                public Integer run() throws SuspendExecution, InterruptedException {
+                    int sum = 0;
+                    for (int i = 1; i <= 10; i++) {
+                        sum += i;
+                        if (i == 5) {
+                            Fiber.parkAndSerialize(fiberWriter);
+                            assert i == 5 && sum == 15;
+                        }
+                    }
+                    return sum;
+                }
+            });
         }
     }
 
@@ -725,16 +750,29 @@ public class FiberTest implements Serializable {
     }
 
     static class SerFiber<V> extends Fiber<V> implements java.io.Serializable {
-        protected final transient SettableFuture<byte[]> buf;
+        protected final transient FiberWriter fiberWriter;
 
-        public SerFiber(FiberScheduler scheduler, SuspendableCallable<V> target, SettableFuture<byte[]> buf) {
+        public SerFiber(FiberScheduler scheduler, SuspendableCallable<V> target, FiberWriter fiberWriter) {
             super(scheduler, target);
-            this.buf = buf;
+            this.fiberWriter = fiberWriter;
         }
 
-        public SerFiber(FiberScheduler scheduler, SettableFuture<byte[]> buf) {
+        public SerFiber(FiberScheduler scheduler, FiberWriter fiberWriter) {
             super(scheduler);
+            this.fiberWriter = fiberWriter;
+        }
+    }
+    
+    static class SettableFutureFiberWriter implements FiberWriter {
+        private final transient SettableFuture<byte[]> buf;
+
+        public SettableFutureFiberWriter(SettableFuture<byte[]> buf) {
             this.buf = buf;
+        }
+        
+        @Override
+        public void write(byte[] serFiber) {
+            buf.set(serFiber);
         }
     }
 }

@@ -21,6 +21,6 @@ import co.paralleluniverse.fibers.SuspendExecution;
  * 
  * @author pron
  */
-public interface SuspendableRunnable {
+public interface SuspendableRunnable extends java.io.Serializable {
     void run() throws SuspendExecution, InterruptedException;
 }

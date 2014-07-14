@@ -1815,13 +1815,13 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     @SuppressWarnings("empty-statement")
-    public void parkAndSerialize(final FiberWriter writer) throws SuspendExecution {
-        if (writer == null)
-            return; // should only happen during unparkSerialized 
+    public static void parkAndSerialize(final FiberWriter writer) throws SuspendExecution {
+//        if (writer == null)
+//            return; // should only happen during unparkSerialized 
         while (!park(SERIALIZER_BLOCKER, new ParkAction() {
             @Override
             public void run(Fiber f) {
-                record(1, "Fiber", "parkAndSerialize", "Serializing fiber %s", f);
+                f.record(1, "Fiber", "parkAndSerialize", "Serializing fiber %s", f);
                 final KryoSerializer kryo = newFiberSerializer();
 
                 final Thread currentThread = Thread.currentThread();
@@ -1834,7 +1834,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                             ? filterThreadLocalMap(ThreadAccess.toMap(f.fiberLocals)).keySet().toArray() : null;
                     f.inheritableFiberLocals = f.inheritableFiberLocals != null
                             ? filterThreadLocalMap(ThreadAccess.toMap(f.inheritableFiberLocals)).keySet().toArray() : null;
-                    stack.resumeStack();
+                    f.stack.resumeStack();
 
                     writer.write(kryo.write(f));
                 } catch (Throwable t) {
