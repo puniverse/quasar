@@ -718,35 +718,51 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testSerialization3() throws Exception {
+    public void testSerializationWithThreadLocals() throws Exception {
         final ThreadLocal<String> tl1 = new ThreadLocal<>();
         final InheritableThreadLocal<String> tl2 = new InheritableThreadLocal<>();
         tl1.set("foo");
         tl2.set("bar");
 
-        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                assertThat(tl1.get(), is(nullValue()));
-                assertThat(tl2.get(), is("bar"));
+        final SettableFuture<byte[]> buf = new SettableFuture<>();
 
-                tl1.set("koko");
-                tl2.set("bubu");
+        Fiber<Integer> f1 = new SerFiber3(scheduler, new SettableFutureFiberWriter(buf), tl1, tl2).start();
+        Fiber<Integer> f2 = Fiber.unparkSerialized(buf.get(), scheduler);
 
-                assertThat(tl1.get(), is("koko"));
-                assertThat(tl2.get(), is("bubu"));
+        assertThat(f2.get(), is(55));
+    }
 
-                Fiber.sleep(100);
+    static class SerFiber3 extends SerFiber<Integer> {
+        private final ThreadLocal<String> tl1;
+        private final InheritableThreadLocal<String> tl2;
 
-                assertThat(tl1.get(), is("koko"));
-                assertThat(tl2.get(), is("bubu"));
+        public SerFiber3(FiberScheduler scheduler, FiberWriter fiberWriter, ThreadLocal<String> tl1, InheritableThreadLocal<String> tl2) {
+            super(scheduler, fiberWriter);
+            this.tl1 = tl1;
+            this.tl2 = tl2;
+        }
+
+        @Override
+        public Integer run() throws SuspendExecution, InterruptedException {
+            assertThat(tl1.get(), is(nullValue()));
+            assertThat(tl2.get(), is("bar"));
+
+            tl1.set("koko");
+            tl2.set("bubu");
+
+            int sum = 0;
+            for (int i = 1; i <= 10; i++) {
+                sum += i;
+                if (i == 5) {
+                    Fiber.parkAndSerialize(fiberWriter);
+                    assert i == 5 && sum == 15;
+                }
             }
-        });
-        fiber.start();
-        fiber.join();
 
-        assertThat(tl1.get(), is("foo"));
-        assertThat(tl2.get(), is("bar"));
+            assertThat(tl1.get(), is("koko"));
+            assertThat(tl2.get(), is("bubu"));
+            return sum;
+        }
     }
 
     static class SerFiber<V> extends Fiber<V> implements java.io.Serializable {
@@ -762,14 +778,14 @@ public class FiberTest implements Serializable {
             this.fiberWriter = fiberWriter;
         }
     }
-    
+
     static class SettableFutureFiberWriter implements FiberWriter {
         private final transient SettableFuture<byte[]> buf;
 
         public SettableFutureFiberWriter(SettableFuture<byte[]> buf) {
             this.buf = buf;
         }
-        
+
         @Override
         public void write(byte[] serFiber) {
             buf.set(serFiber);
