@@ -39,14 +39,14 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
     }
 
     public String getName() {
-        return impl.getName();
+        return getImpl().getName();
     }
 
     protected ActorImpl<Message> getImpl() {
         return impl;
     }
 
-    final void setImpl(ActorImpl<Message> impl) {
+    void setImpl(ActorImpl<Message> impl) {
         this.impl = impl;
 
         ActorRef<Message> r = impl.ref;

@@ -41,6 +41,11 @@ public class ActorRefDelegate<Message> extends ActorRef<Message> {
         return getRef().getImpl();
     }
 
+    @Override
+    void setImpl(ActorImpl<Message> impl) {
+        getRef().setImpl(impl); //To change body of generated methods, choose Tools | Templates.
+    }
+    
     protected boolean isInActor() {
         return Objects.equals(getRef(), LocalActor.self());
     }

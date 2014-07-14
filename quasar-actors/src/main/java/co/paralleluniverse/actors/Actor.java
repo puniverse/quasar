@@ -989,10 +989,9 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     /**
      * Must be called on a fiber.
      *
-     * @param writer
      * @throws SuspendExecution
      */
-    public void migrate(FiberWriter writer) throws SuspendExecution {
+    public void migrate() throws SuspendExecution {
         record(1, "Actor", "migrate", "Actor %s is migrating.", this);
         verifyInActor();
 

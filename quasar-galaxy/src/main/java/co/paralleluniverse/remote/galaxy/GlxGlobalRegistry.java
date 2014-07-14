@@ -13,12 +13,9 @@
  */
 package co.paralleluniverse.remote.galaxy;
 
-import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.ActorImpl;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.spi.ActorRegistry;
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.AbstractCacheListener;
 import co.paralleluniverse.galaxy.Cache;
@@ -288,7 +285,7 @@ public class GlxGlobalRegistry implements ActorRegistry {
                     try {
                         actor = actorFactory.call();
                     } catch (Exception e) {
-                        throw new RuntimeException("Exception while creating actor");
+                        throw new RuntimeException("Exception while creating actor", e);
                     }
                     LOG.debug("Store returned null for root {}. Registering actor {} at rootId  {}", rootName, actor, root);
 
