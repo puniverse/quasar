@@ -330,6 +330,11 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         }
 
         @Override
+        public void setState(int state) {
+            super.setState(state);
+        }
+
+        @Override
         public boolean tryUnpark(Object unblocker) {
             return super.tryUnpark(unblocker);
         }
@@ -343,7 +348,7 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         public StackTraceElement[] getUnparkStackTrace() {
             return super.getUnparkStackTrace();
         }
-        
+
         @Override
         public String toString() {
             return super.toString() + "(Fiber@" + fiber.getId() + ')';

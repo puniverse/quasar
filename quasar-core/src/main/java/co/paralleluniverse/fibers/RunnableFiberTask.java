@@ -269,6 +269,11 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
         return state;
     }
 
+    @Override
+    public void setState(int state) {
+        this.state = state;
+    }
+    
     boolean compareAndSetState(int expect, int update) {
         return UNSAFE.compareAndSwapInt(this, stateOffset, expect, update);
     }

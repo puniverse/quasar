@@ -73,6 +73,7 @@ public final class KryoUtil {
         UnmodifiableCollectionsSerializer.registerSerializers(kryo);
         SynchronizedCollectionsSerializer.registerSerializers(kryo);
         kryo.addDefaultSerializer(Externalizable.class, new ExternalizableKryoSerializer());
+        kryo.addDefaultSerializer(java.lang.ref.Reference.class, new ReferenceSerializer());
     }
 
     public static ObjectOutput asObjectOutput(Output output, Kryo kryo) {

@@ -330,6 +330,11 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         }
 
         @Override
+        public void setState(int state) {
+            super.setState(state);
+        }
+        
+        @Override
         public boolean tryUnpark(Object unblocker) {
             return super.tryUnpark(unblocker);
         }

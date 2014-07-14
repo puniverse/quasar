@@ -45,6 +45,10 @@ public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
             register(r);
     }
 
+    public Kryo getKryo() {
+        return kryo;
+    }
+
     public static void register(Class type) {
         register(type, NULL_SERIALIZER, -1);
     }
