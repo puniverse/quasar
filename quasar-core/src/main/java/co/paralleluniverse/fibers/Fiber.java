@@ -1926,7 +1926,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         // System.out.println("THREAD LOCALS: " + map);
         for (Iterator<Map.Entry<ThreadLocal, Object>> it = map.entrySet().iterator(); it.hasNext();) {
             Map.Entry<ThreadLocal, Object> entry = it.next();
-            if (entry.getKey().getClass().getName().startsWith("org.gradle."))
+            if (entry.getKey().getClass().getName().startsWith("org.gradle.") || entry.getValue().getClass().getName().startsWith("org.gradle."))
+                it.remove();
+            if (entry.getValue() instanceof co.paralleluniverse.io.serialization.Serialization)
                 it.remove();
         }
         return map;
