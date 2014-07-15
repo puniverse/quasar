@@ -66,22 +66,23 @@ public abstract class RemoteActor<Message> extends ActorImpl<Message> {
 
     @Override
     public boolean trySend(Message message) {
-        return actor.trySend(message);
+        internalSendNonSuspendable(message);
+        return true;
     }
 
     @Override
     protected void addLifecycleListener(LifecycleListener listener) {
-        actor.internalSendNonSuspendable(new RemoteActorRegisterListenerAdminMessage(listener));
+        internalSendNonSuspendable(new RemoteActorRegisterListenerAdminMessage(listener));
     }
 
     @Override
     protected void removeLifecycleListener(LifecycleListener listener) {
-        actor.internalSendNonSuspendable(new RemoteActorUnregisterListenerAdminMessage(listener));
+        internalSendNonSuspendable(new RemoteActorUnregisterListenerAdminMessage(listener));
     }
 
     @Override
     protected void removeObserverListeners(ActorRef observer) {
-        actor.internalSendNonSuspendable(new RemoteActorUnregisterListenerAdminMessage(observer));
+        internalSendNonSuspendable(new RemoteActorUnregisterListenerAdminMessage(observer));
     }
 
     @Override

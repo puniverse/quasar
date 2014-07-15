@@ -50,7 +50,7 @@ public abstract class GlxRemoteActor<Message> extends RemoteActor<Message> {
                     internalSend(message);
                     return null;
                 }
-            }.start().get();
+            }.start().joinNoSuspend();
         } catch (ExecutionException e) {
             throw Exceptions.rethrow(e.getCause());
         } catch (InterruptedException e) {
