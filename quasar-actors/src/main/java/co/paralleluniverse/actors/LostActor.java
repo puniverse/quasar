@@ -33,7 +33,7 @@ class LostActor extends ActorImpl<Object> {
     }
 
     @Override
-    void interrupt() {
+    protected void interrupt() {
     }
 
     @Override

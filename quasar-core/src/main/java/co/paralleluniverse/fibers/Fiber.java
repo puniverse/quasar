@@ -1923,6 +1923,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private static Map<ThreadLocal, Object> filterThreadLocalMap(Map<ThreadLocal, Object> map) {
+        // System.out.println("THREAD LOCALS: " + map);
         for (Iterator<Map.Entry<ThreadLocal, Object>> it = map.entrySet().iterator(); it.hasNext();) {
             Map.Entry<ThreadLocal, Object> entry = it.next();
             if (entry.getKey().getClass().getName().startsWith("org.gradle."))

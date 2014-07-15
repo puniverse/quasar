@@ -47,7 +47,9 @@ class ThreadLocalSerializer extends Serializer<ThreadLocal<?>> {
     }
 
     private static boolean shouldReset(ThreadLocal<?> tl, Object val) {
-        return tl.getClass().getName().startsWith("org.gradle.") || val.getClass().getName().startsWith("org.gradle.");
+        return val instanceof co.paralleluniverse.io.serialization.Serialization
+                || tl.getClass().getName().startsWith("org.gradle.") 
+                || val.getClass().getName().startsWith("org.gradle.");
     }
 
     static class ThreadLocalValue implements Serializable {

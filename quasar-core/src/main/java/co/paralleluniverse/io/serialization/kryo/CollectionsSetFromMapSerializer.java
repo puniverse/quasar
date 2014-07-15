@@ -28,12 +28,15 @@ import java.util.Set;
  */
 class CollectionsSetFromMapSerializer extends Serializer<Set> {
     private static final Field mf;
+    private static final Field sf;
 
     static {
         try {
             final Class<?> cl = Collections.newSetFromMap(new HashMap()).getClass();
             mf = cl.getDeclaredField("m");
             mf.setAccessible(true);
+            sf = cl.getDeclaredField("s");
+            sf.setAccessible(true);
         } catch (Exception e) {
             throw new AssertionError(e);
         }
@@ -54,7 +57,14 @@ class CollectionsSetFromMapSerializer extends Serializer<Set> {
 
     @Override
     public Set read(Kryo kryo, Input input, Class<Set> type) {
-        final Map m = (Map) kryo.readClassAndObject(input);
-        return Collections.newSetFromMap(m);
+        try {
+            final Map m = (Map) kryo.readClassAndObject(input);
+            final Set s = Collections.newSetFromMap(Collections.EMPTY_MAP); // must be created with an empty map
+            mf.set(s, m);
+            sf.set(s, m.keySet());
+            return s;
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
     }
 }

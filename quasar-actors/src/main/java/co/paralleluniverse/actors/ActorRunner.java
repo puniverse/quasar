@@ -30,7 +30,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
-    private final ActorRef<?> actorRef;
+    private /*final*/ transient ActorRef<?> actorRef;
     private volatile Actor<?, V> actor;
     private Strand strand;
 
@@ -58,7 +58,7 @@ class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
                     this.actor = newActor;
                     assert actor != null && actor == actorRef.getImpl();
                 }
-            } catch(ActorAbort e) {
+            } catch (ActorAbort e) {
                 return null;
             }
         }
@@ -132,5 +132,10 @@ class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
     @Override
     public boolean isDone() {
         return actor.getDeathCause0() != null || strand.isTerminated();
+    }
+
+    private Object readResolve() {
+        this.actorRef = actor.ref;
+        return this;
     }
 }

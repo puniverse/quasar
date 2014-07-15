@@ -97,6 +97,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     private ActorSpec<?, Message, V> spec;
     private Object aux;
     private transient /*final*/ ActorRunner<V> runner;
+    private boolean migrating;
 
     /**
      * Creates a new actor.
@@ -298,7 +299,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * Interrupts the actor's strand.
      */
     @Override
-    final void interrupt() {
+    protected final void interrupt() {
         getStrand().interrupt();
     }
 
@@ -969,20 +970,22 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         observed.clear();
     }
 
-    static final ThreadLocal<Boolean> migrating = new ThreadLocal<Boolean>();
+    boolean isMigrating() {
+        return migrating;
+    }
 
     public void migrateAndRestart() throws SuspendExecution {
         record(1, "Actor", "migrateAndRestart", "Actor %s is migrating.", this);
         verifyInActor();
 
-        migrating.set(Boolean.TRUE);
+        migrating = true;
         try {
             preMigrate();
             MigrationService.migrate(getGlobalId(), this, Serialization.getInstance().write(new MigrationRecord(this, null)));
             postMigrate();
             throw Migrate.MIGRATE;
         } finally {
-            migrating.remove();
+            migrating = false;
         }
     }
 
@@ -995,7 +998,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         record(1, "Actor", "migrate", "Actor %s is migrating.", this);
         verifyInActor();
 
-        migrating.set(Boolean.TRUE);
+        migrating = true;
         preMigrate();
         Fiber.parkAndSerialize(new FiberWriter() {
 
@@ -1012,7 +1015,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
                 }.start();
             }
         });
-        migrating.remove();
+        migrating = false;
     }
 
     private void preMigrate() {
@@ -1087,7 +1090,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     //<editor-fold desc="Serialization">
     /////////// Serialization ///////////////////////////////////
     protected final Object writeReplace() throws java.io.ObjectStreamException {
-        if (migrating.get() == Boolean.TRUE)
+        if (migrating)
             return this;
 
         final RemoteActor<Message> remote = RemoteActorProxyFactoryService.create(ref(), getGlobalId());

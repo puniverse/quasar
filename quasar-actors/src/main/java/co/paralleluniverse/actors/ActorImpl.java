@@ -97,7 +97,7 @@ public abstract class ActorImpl<Message> implements java.io.Serializable {
         throw new UnsupportedOperationException();
     }
 
-    abstract void interrupt();
+    protected abstract void interrupt();
 
     protected abstract boolean trySend(Message message);
 

@@ -123,6 +123,14 @@ public final class LocalActor {
         return actorOf(actor).toString();
     }
 
+    public static boolean isInstance(ActorRef<?> actor, Class<? extends Actor> type) {
+        return type.isInstance(actorOf(actor));
+    }
+
+    public static Class<? extends Actor> getClass(ActorRef<?> actor) {
+        return actorOf(actor).getClass();
+    }
+
     public static <M, V> ActorBuilder<M, V> toActorBuilder(ActorRef<M> actor) {
         try {
             return actorOf(actor);
@@ -147,9 +155,9 @@ public final class LocalActor {
         ActorImpl impl = ar.getImpl();
         if (!(impl instanceof Actor))
             return;
-        ((Actor)impl).postRegister();
+        ((Actor) impl).postRegister();
     }
-    
+
     private static Actor actorOf(ActorRef<?> ar) {
         ActorImpl impl = ar.getImpl();
         if (!(impl instanceof Actor))

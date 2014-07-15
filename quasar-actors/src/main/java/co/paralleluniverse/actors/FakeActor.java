@@ -37,7 +37,7 @@ public abstract class FakeActor<Message> extends ActorImpl<Message> {
     public FakeActor(String name, SendPort<Message> mailbox) {
         super(name, (SendPort<Object>) mailbox, null);
     }
-    
+
     /**
      * All messages sent to the mailbox are passed to this method. If this method returns a non-null value, this value will be returned
      * from the {@code receive} methods. If it returns {@code null}, then {@code receive} will keep waiting.
@@ -205,5 +205,10 @@ public abstract class FakeActor<Message> extends ActorImpl<Message> {
         for (ActorImpl a : observed)
             a.removeObserverListeners(ref());
         observed.clear();
+    }
+
+    /////////// Serialization ///////////////////////////////////
+    protected final Object writeReplace() throws java.io.ObjectStreamException {
+        return RemoteActorProxyFactoryService.create(ref(), null);
     }
 }

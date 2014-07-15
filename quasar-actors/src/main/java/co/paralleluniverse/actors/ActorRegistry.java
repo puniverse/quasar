@@ -32,7 +32,6 @@ public class ActorRegistry {
     private static final co.paralleluniverse.actors.spi.ActorRegistry registry;
 
     static {
-
         co.paralleluniverse.actors.spi.ActorRegistry tmp = ServiceUtil.loadSingletonServiceOrNull(co.paralleluniverse.actors.spi.ActorRegistry.class);
         if (tmp == null)
             tmp = new LocalActorRegistry();
