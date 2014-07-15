@@ -52,9 +52,7 @@ class ThreadLocalSerializer extends Serializer<ThreadLocal<?>> {
             return false;
         if (val instanceof Serializable || kryo.getClassResolver().getRegistration(val.getClass()) != null)
             return false;
-        if (val instanceof co.paralleluniverse.io.serialization.Serialization
-                || tl.getClass().getName().startsWith("org.gradle.")
-                || val.getClass().getName().startsWith("org.gradle."))
+        if (val instanceof co.paralleluniverse.io.serialization.Serialization)
             return true;
         if (!kryo.getDefaultSerializer(val.getClass()).getClass().isAssignableFrom(FieldSerializer.class))
             return false;

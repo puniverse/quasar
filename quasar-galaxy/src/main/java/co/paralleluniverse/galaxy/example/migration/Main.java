@@ -61,7 +61,7 @@ public class Main {
         int i;
         for (i = 0; i < 500; i++) {
             final double r = ThreadLocalRandom.current().nextDouble();
-            if (r < 0.1) {
+            if (r < 0.05) {
                 System.out.println("Hiring actor...");
                 new Thread() {
                     @Override
@@ -139,14 +139,15 @@ public class Main {
         }
 
         @Override
-        protected void handleMessage(Object m1) throws InterruptedException, SuspendExecution {
+        protected void handleMessage(Object m) throws InterruptedException, SuspendExecution {
             messageCount++;
             loopCount++;
-            super.handleMessage(m1);
+            super.handleMessage(m);
         }
 
         @Override
         protected void handleCast(ActorRef<?> from, Object id, Message m) throws SuspendExecution {
+            System.out.println("received: " + m);
             switch (m.type) {
                 case PRINT:
                     System.out.println("iter: " + loopCount + " messages: " + messageCount);
@@ -158,6 +159,7 @@ public class Main {
 
         @Override
         protected Integer handleCall(ActorRef<?> from, Object id, Message m) throws Exception, SuspendExecution {
+            System.out.println("received: " + m);
             switch (m.type) {
                 case MIGRATE:
                     System.out.println("111111");

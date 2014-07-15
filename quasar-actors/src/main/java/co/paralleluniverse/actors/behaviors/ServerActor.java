@@ -202,26 +202,26 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * {@link #handleCast(ActorRef, Object, Object) handleCast} or {@link #handleInfo(Object) handleInfo} as appropriate.
      */
     @Override
-    protected void handleMessage(Object m1) throws InterruptedException, SuspendExecution {
-        if (m1 instanceof ServerRequest) {
-            ServerRequest m = (ServerRequest) m1;
-            switch (m.getType()) {
+    protected void handleMessage(Object m) throws InterruptedException, SuspendExecution {
+        if (m instanceof ServerRequest) {
+            ServerRequest r = (ServerRequest) m;
+            switch (r.getType()) {
                 case CALL:
                     try {
-                        final V res = handleCall((ActorRef<V>) m.getFrom(), m.getId(), (CallMessage) m.getMessage());
+                        final V res = handleCall((ActorRef<V>) r.getFrom(), r.getId(), (CallMessage) r.getMessage());
                         if (res != null)
-                            reply((ActorRef<V>) m.getFrom(), m.getId(), res == NULL_RETURN_VALUE ? null : res);
+                            reply((ActorRef<V>) r.getFrom(), r.getId(), res == NULL_RETURN_VALUE ? null : res);
                     } catch (Exception e) {
-                        replyError((ActorRef<V>) m.getFrom(), m.getId(), e);
+                        replyError((ActorRef<V>) r.getFrom(), r.getId(), e);
                     }
                     break;
 
                 case CAST:
-                    handleCast((ActorRef<V>) m.getFrom(), m.getId(), (CastMessage) m.getMessage());
+                    handleCast((ActorRef<V>) r.getFrom(), r.getId(), (CastMessage) r.getMessage());
                     break;
             }
         } else
-            handleInfo(m1);
+            handleInfo(m);
     }
 
     @Override
