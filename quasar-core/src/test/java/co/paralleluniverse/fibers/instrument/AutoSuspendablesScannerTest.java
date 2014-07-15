@@ -18,7 +18,6 @@ public class AutoSuspendablesScannerTest {
     public static void buildGraph() {
         scanner = new AutoSuspendablesScanner(AutoSuspendablesScannerTest.class.getClassLoader());
         System.out.println("callers : "+scanner.getCallers().size());
-        System.out.println("supers : "+scanner.getSupers().size());
     }
 
     @Test
