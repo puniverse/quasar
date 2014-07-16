@@ -81,7 +81,7 @@ import org.objectweb.asm.tree.analysis.Value;
  * @author pron
  */
 class InstrumentMethod {
-    private static final boolean HANDLE_PROXY_INVOCATIONS = false;
+    private static final boolean HANDLE_PROXY_INVOCATIONS = true;
     // private final boolean verifyInstrumentation; // 
     private static final int PREEMPTION_BACKBRANCH = 0;
     private static final int PREEMPTION_CALL = 1;
