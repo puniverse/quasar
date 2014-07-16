@@ -394,7 +394,11 @@ public class SupervisorActor extends BehaviorActor {
         verifyInActor();
         final ChildEntry child = addChild1(spec);
 
-        ActorRef<?> actor = spec.builder instanceof Actor ? ((Actor) spec.builder).ref() : null;
+        ActorRef<?> actor = null;
+        if(spec.builder instanceof Actor) {
+            final Actor a = ((Actor) spec.builder);
+            actor = a.isStarted() ? a.ref() : a.spawn();
+        }
         if (actor == null)
             actor = start(child);
         else
