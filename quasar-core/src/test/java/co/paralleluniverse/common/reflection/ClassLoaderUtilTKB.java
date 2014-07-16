@@ -26,7 +26,7 @@ public class ClassLoaderUtilTKB {
         File f = new File("build/libs/quasar-core-0.4.0-SNAPSHOT.jar");
         System.out.println(f.exists());
         URLClassLoader cl = new URLClassLoader(new URL[]{f.toURI().toURL()});
-        ClassLoaderUtil.accept(cl, false, new ClassLoaderUtil.Visitor() {
+        ClassLoaderUtil.accept(cl, new ClassLoaderUtil.Visitor() {
 
             @Override
             public void visit(String resource, URL url, ClassLoader cl) {

@@ -85,10 +85,10 @@ public final class ClassLoaderUtil {
     }
 
     public static void accept(ClassLoader classLoader, Visitor visitor) throws IOException {
-        accept(classLoader, false, visitor);
+        accept(classLoader, ScanMode.WHOLE_CLASSPATH, visitor);
     }
-    
-    public static void accept(ClassLoader classLoader, boolean dirsOnly, Visitor visitor) throws IOException {
+
+    public static void accept(ClassLoader classLoader, ScanMode scanMode, Visitor visitor) throws IOException {
         URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
         if (classLoader instanceof URLClassLoader) {
             try {
@@ -97,7 +97,7 @@ public final class ClassLoaderUtil {
                     URI uri = entry.toURI();
                     if (uri.getScheme().equals("file") && scannedUris.add(uri)) {
                         final File path = new File(uri);
-                        if (!dirsOnly || path.isDirectory())
+                        if (scanMode != ScanMode.WITHOUT_JARS || path.isDirectory())
                             scanFrom(path, classLoader, scannedUris, visitor);
                     }
                 }
@@ -220,5 +220,9 @@ public final class ClassLoaderUtil {
     }
 
     private ClassLoaderUtil() {
+    }
+
+    public enum ScanMode {
+        WHOLE_CLASSPATH, WITHOUT_JARS
     }
 }
