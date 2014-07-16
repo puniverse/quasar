@@ -39,7 +39,6 @@ import java.lang.reflect.Method;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -1294,7 +1293,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final boolean isDone() {
-        return state == State.TERMINATED;
+        return isTerminated();
     }
 
     @Override
