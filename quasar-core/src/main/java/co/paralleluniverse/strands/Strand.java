@@ -146,6 +146,14 @@ public abstract class Strand {
      */
     public abstract void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException;
 
+    public abstract Object get() throws ExecutionException, InterruptedException;
+
+    public abstract Object get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException;
+
+    public boolean isDone() {
+        return isTerminated();
+    }
+
     /**
      * Interrupts this strand.
      *
@@ -974,6 +982,16 @@ public abstract class Strand {
         }
 
         @Override
+        public Object get() throws ExecutionException, InterruptedException {
+            return null;
+        }
+
+        @Override
+        public Object get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+            return null;
+        }
+
+        @Override
         public void interrupt() {
             thread.interrupt();
         }
@@ -1109,6 +1127,16 @@ public abstract class Strand {
         @Override
         public void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
             fiber.join(timeout, unit);
+        }
+
+        @Override
+        public Object get() throws ExecutionException, InterruptedException {
+            return fiber.get();
+        }
+
+        @Override
+        public Object get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+            return fiber.get(timeout, unit);
         }
 
         @Override
