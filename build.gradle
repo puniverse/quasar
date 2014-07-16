@@ -156,7 +156,7 @@ subprojects {
     }
 
     tasks.withType(JavaExec) { 
-        classpath = sourceSets.test.runtimeClasspath   
+        classpath += sourceSets.test.runtimeClasspath   
     }
 
     
