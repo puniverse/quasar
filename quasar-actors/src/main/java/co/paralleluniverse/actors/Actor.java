@@ -34,6 +34,7 @@ import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import java.lang.reflect.Constructor;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -427,7 +428,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     public final Message receive() throws SuspendExecution, InterruptedException {
         try {
             for (;;) {
-                checkThrownIn();
+                checkThrownIn0();
                 record(1, "Actor", "receive", "%s waiting for a message", this);
                 final Object m = mailbox().receive();
                 record(1, "Actor", "receive", "Received %s <- %s", this, m);
@@ -439,7 +440,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
                     return msg;
             }
         } catch (InterruptedException e) {
-            checkThrownIn();
+            checkThrownIn0();
             throw e;
         }
     }
@@ -467,7 +468,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             for (;;) {
                 if (flightRecorder != null)
                     record(1, "Actor", "receive", "%s waiting for a message. millis left: ", this, TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS));
-                checkThrownIn();
+                checkThrownIn0();
                 final Object m = mailbox().receive(left, TimeUnit.NANOSECONDS);
                 if (m == null)
                     left = -1; // timeout
@@ -488,7 +489,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
                 }
             }
         } catch (InterruptedException e) {
-            checkThrownIn();
+            checkThrownIn0();
             throw e;
         }
     }
@@ -514,7 +515,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     @Override
     public final Message tryReceive() {
         for (;;) {
-            checkThrownIn();
+            checkThrownIn0();
             Object m = mailbox().tryReceive();
             if (m == null)
                 return null;
@@ -787,9 +788,20 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         runner.getStrand().interrupt();
     }
 
-    final void checkThrownIn() {
+    /**
+     * Tests whether an exception has been {@link #throwIn(RuntimeException) thrown into} this actor, and if so, throws it.
+     * This method must only be called within the actor's strand.
+     */
+    public final void checkThrownIn() {
+        if (!Strand.currentStrand().equals(getStrand()))
+            throw new ConcurrencyException("Operation not called from within the actor's strand (" + getStrand() + ", but called in " + Strand.currentStrand() + ")");
+        checkThrownIn0();
+    }
+
+    final void checkThrownIn0() {
         if (exception != null) {
-            record(1, "Actor", "checkThrownIn", "%s detected thrown in exception %s", this, exception);
+            if (isRecordingLevel(1))
+                record(1, "Actor", "checkThrownIn", "%s detected thrown in exception %s - %s", this, exception, Arrays.toString(exception.getStackTrace()));
             exception.setStackTrace(new Throwable().getStackTrace());
             throw (RuntimeException) exception;
         }

@@ -149,8 +149,9 @@ public final class RequestReplyHelper {
             m.setFrom(from());
 
         final Actor currentActor;
-        if (m.getFrom() instanceof TempActorRef)
-            currentActor = (Actor) ((TempActorRef)m.getFrom()).getImpl();
+        final boolean tmpActor = m.getFrom() instanceof TempActorRef;
+        if (tmpActor)
+            currentActor = (Actor) ((TempActorRef) m.getFrom()).getImpl();
         else
             currentActor = Actor.currentActor();
 
@@ -187,8 +188,12 @@ public final class RequestReplyHelper {
             if (response instanceof ErrorResponseMessage)
                 throw Exceptions.rethrow(((ErrorResponseMessage) response).getError());
             return ((ValueResponseMessage<V>) response).getValue();
+        } catch (InterruptedException e) {
+            if (tmpActor)
+                currentActor.checkThrownIn();
+            throw e;
         } finally {
-//            if (m.getFrom() instanceof TempActor)
+//            if (tmpActor)
 //                ((TempActor) m.getFrom()).done();
         }
     }
@@ -262,7 +267,7 @@ public final class RequestReplyHelper {
         TempActor() {
             super(Strand.currentStrand(), null, new MailboxConfig(5, OverflowPolicy.THROW));
         }
-        
+
         @Override
         protected Void doRun() throws InterruptedException, SuspendExecution {
             throw new AssertionError();
@@ -273,7 +278,7 @@ public final class RequestReplyHelper {
             return new TempActorRef(ref);
         }
     }
-    
+
     private static class TempActorRef extends ActorRefDelegate<Object> {
         public TempActorRef(ActorRef<Object> ref) {
             super(ref);
@@ -284,7 +289,7 @@ public final class RequestReplyHelper {
             return super.getImpl();
         }
     }
-    
+
 //    private static class TempActor<Message> extends ActorRef<Message> {
 //        private WeakReference<Actor<Message, Void>> actor;
 //        private volatile boolean done = false;
@@ -308,7 +313,6 @@ public final class RequestReplyHelper {
 //            return a;
 //        }
 //    }
-
     private RequestReplyHelper() {
     }
 }

@@ -83,7 +83,7 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
 
         final Mailbox<Object> mailbox = actor.mailbox();
 
-        actor.checkThrownIn();
+        actor.checkThrownIn0();
         mailbox.maybeSetCurrentStrandAsOwner();
 
         final long start = timeout > 0 ? System.nanoTime() : 0;
