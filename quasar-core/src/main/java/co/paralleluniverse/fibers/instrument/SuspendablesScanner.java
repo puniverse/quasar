@@ -25,10 +25,10 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import org.apache.tools.ant.BuildException;
@@ -124,7 +124,7 @@ public class SuspendablesScanner extends Task {
                         }
                     }
                 } catch (BuildException ex) {
-                    log(ex.getMessage(),ex, Project.MSG_WARN);
+                    log(ex.getMessage(), ex, Project.MSG_WARN);
                 }
             }
 
@@ -192,13 +192,13 @@ public class SuspendablesScanner extends Task {
         }
     }
 
-    public static void outputResults(String outputFile, boolean append1, Set<String> results) throws Exception {
+    private static void outputResults(String outputFile, boolean append1, Collection<String> results) throws Exception {
         try (PrintStream out = getOutputStream(outputFile, append1)) {
             List<String> sorted = new ArrayList<>(results);
             Collections.sort(sorted);
             for (String s : sorted) {
-                //            if(out != System.out)
-                //                System.out.println(s);
+                // if (out != System.out)
+                //    System.out.println(s);
                 out.println(s);
             }
         }

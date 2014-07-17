@@ -55,6 +55,11 @@ public final class ClassLoaderUtil {
     public interface Visitor {
         void visit(String resource, URL url, ClassLoader cl);
     }
+
+    public enum ScanMode {
+        WHOLE_CLASSPATH, WITHOUT_JARS
+    }
+
     private static final Splitter CLASS_PATH_ATTRIBUTE_SEPARATOR = Splitter.on(" ").omitEmptyStrings();
     private static final String CLASS_FILE_NAME_EXTENSION = ".class";
 
@@ -79,9 +84,13 @@ public final class ClassLoaderUtil {
     }
 
     public static String resourceToClass(String resourceName) {
+        return resourceToSlashed(resourceName).replace('/', '.');
+    }
+
+    public static String resourceToSlashed(String resourceName) {
         if (!resourceName.endsWith(CLASS_FILE_NAME_EXTENSION))
             throw new IllegalArgumentException("Resource " + resourceName + " is not a class file");
-        return resourceName.substring(0, resourceName.length() - CLASS_FILE_NAME_EXTENSION.length()).replace('/', '.');
+        return resourceName.substring(0, resourceName.length() - CLASS_FILE_NAME_EXTENSION.length());
     }
 
     public static void accept(URLClassLoader ucl, Visitor visitor) throws IOException {
@@ -90,7 +99,6 @@ public final class ClassLoaderUtil {
 
     public static void accept(URLClassLoader ucl, ScanMode scanMode, Visitor visitor) throws IOException {
         accept(ucl, ucl.getURLs(), scanMode, visitor);
-
     }
 
     public static void accept(ClassLoader cl, URL[] urls, ScanMode scanMode, Visitor visitor) throws IOException {
@@ -222,9 +230,5 @@ public final class ClassLoaderUtil {
     }
 
     private ClassLoaderUtil() {
-    }
-
-    public enum ScanMode {
-        WHOLE_CLASSPATH, WITHOUT_JARS
     }
 }

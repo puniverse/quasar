@@ -16,6 +16,8 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.net.URLClassLoader;
+import java.util.HashSet;
+import java.util.Set;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
@@ -27,48 +29,64 @@ public class AutoSuspendablesScannerTest {
     @BeforeClass
     public static void buildGraph() {
         scanner = new AutoSuspendablesScanner((URLClassLoader) AutoSuspendablesScannerTest.class.getClassLoader());
+        scanner.run();
     }
 
     @Test
     public void suspendableCallTest() {
         final String suspCallMethod = MyXXXClassB.class.getSimpleName() + ".foo(I)V";
-        for (String susp : scanner.getSuspendables())
+        final Set<String> suspependables = new HashSet<>();
+        scanner.getSuspenablesAndSupers(suspependables, null);
+        for (String susp : suspependables) {
             if (susp.contains(suspCallMethod))
                 return;
+        }
         fail(suspCallMethod + " is not suspendable");
     }
 
     @Test
     public void superSuspendableCallTest() {
         final String suspCallMethod = MyXXXClassA.class.getSimpleName() + ".foo(L";
-        for (String susp : scanner.getSuspendables())
+        final Set<String> suspependables = new HashSet<>();
+        scanner.getSuspenablesAndSupers(suspependables, null);
+        for (String susp : suspependables) {
             if (susp.contains(suspCallMethod))
                 return;
+        }
         fail(suspCallMethod + " is not suspendable");
     }
 
     @Test
     public void nonSuperSuspendableCallTest() {
         final String suspCallMethod = MyXXXClassA.class.getSimpleName() + ".foo()";
-        for (String susp : scanner.getSuspendables())
+        final Set<String> suspependables = new HashSet<>();
+        scanner.getSuspenablesAndSupers(suspependables, null);
+        for (String susp : suspependables) {
             if (susp.contains(suspCallMethod))
                 fail(susp + " should not be suspendable");
+        }
     }
 
     @Test
     public void superNonSuspendableCallTest() {
         final String suspCallMethod = MyXXXClassA.class.getSimpleName() + ".bar(";
-        for (String susp : scanner.getSuspendables())
+        final Set<String> suspependables = new HashSet<>();
+        scanner.getSuspenablesAndSupers(suspependables, null);
+        for (String susp : suspependables) {
             if (susp.contains(suspCallMethod))
                 fail(suspCallMethod + " should not be suspendable");
+        }
     }
 
     @Test
     public void superSuspendableTest() {
         final String superSuspMethod = MyXXXInterfaceA.class.getSimpleName() + ".foo";
-        for (String susp : scanner.getSuperSuspendables())
+        final Set<String> suspependableSupers = new HashSet<>();
+        scanner.getSuspenablesAndSupers(null, suspependableSupers);
+        for (String susp : suspependableSupers) {
             if (susp.contains(superSuspMethod))
                 return;
+        }
         fail(superSuspMethod + " is not super suspendable");
     }
 
