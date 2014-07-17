@@ -747,8 +747,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         } catch (Throwable t) {
             clearRunSettings();
             runningThread = null;
-            state = State.TERMINATED;
-            monitorFiberTerminated(monitor);
 
             if (Debug.isDebug()) {
                 if (t instanceof InterruptedException)
@@ -760,12 +758,17 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 }
             }
 
-            setException(t);
-            if (t instanceof InterruptedException) {
-                throw new RuntimeException(t);
-            } else {
-                onException(t);
-                throw Exceptions.rethrow(t);
+            try {
+                if (t instanceof InterruptedException) {
+                    throw new RuntimeException(t);
+                } else {
+                    onException(t);
+                    throw Exceptions.rethrow(t);
+                }
+            } finally {
+                state = State.TERMINATED;
+                monitorFiberTerminated(monitor);
+                setException(t);
             }
         } finally {
             if (!restored)
@@ -1910,7 +1913,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             try {
                 final Registration reg = kryo.readClass(input);
                 f = (Fiber) new FieldSerializer(kryo, reg.getType()).read(kryo, input, reg.getType());
-                
+
                 f.fiberLocals = ThreadAccess.getThreadLocals(currentThread);
                 f.inheritableFiberLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
 

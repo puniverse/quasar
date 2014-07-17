@@ -574,8 +574,10 @@ public class FiberTest implements Serializable {
         } catch (ExecutionException e) {
             assertThat(e.getCause().getMessage(), equalTo("foo"));
         }
-
-        assertThat(t.get().getMessage(), equalTo("foo"));
+        final Throwable th = t.get();
+        
+        assertTrue(th != null);
+        assertThat(th.getMessage(), equalTo("foo"));
     }
 
     @Test
