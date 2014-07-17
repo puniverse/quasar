@@ -2,6 +2,9 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.common.reflection.ASMUtil;
 import co.paralleluniverse.common.reflection.ClassLoaderUtil;
+import static co.paralleluniverse.common.reflection.ClassLoaderUtil.ScanMode;
+import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
+import static co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType.*;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Queues;
@@ -9,6 +12,7 @@ import com.google.common.collect.SetMultimap;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,13 +27,10 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-import static co.paralleluniverse.common.reflection.ClassLoaderUtil.ScanMode;
-import static co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 
 public class AutoSuspendablesScanner {
 
-    private final Map<String, MethodEntry> methods;
-    private final SetMultimap<String, String> callers;
+    private final Map<String, MethodEntry> callGraph;
     private final ClassLoader cl;
     private final Set<String> suspendables;
     private final Set<String> superSuspendables;
@@ -38,14 +39,14 @@ public class AutoSuspendablesScanner {
     public AutoSuspendablesScanner(final ClassLoader classLoader) {
         this.cl = classLoader;
         this.db = new ClassDb(cl);
-        this.methods = new HashMap<>();
-        this.callers = AutoSuspendablesScanner.<String, String>newHashMultimap();
-        this.suspendables = new HashSet<>();
-        this.superSuspendables = new HashSet<>();
+        this.callGraph = new HashMap<>();
         try {
             scanSuspendables();
             mapMethodCalls();
             mapSuspendablesAndSupers();
+            this.suspendables = new HashSet<>();
+            this.superSuspendables = new HashSet<>();
+            indexSuspenablesAndSupers();
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
@@ -58,24 +59,28 @@ public class AutoSuspendablesScanner {
         q.addAll(db.getSuspendables());
 
         while (!q.isEmpty()) {
-            final String node = q.poll();
+            final String currentMethod = q.poll();
             // mark as super suspendables methods which are supers of the given bfs node and called somewhere by project methods
-            for (String superCls : db.getClassEntry(getClassName(node)).getAllSupers()) {
+            for (String superCls : db.getClassEntry(getClassName(currentMethod)).allSupers) {
                 if (superCls == null || superCls.matches(JAVALANG_REGEXP) || superCls.matches(JAVAUTIL_REGEXP))
                     continue;
-                final String superMethod = superCls + "." + getMethodDescName(node);
-                if (callers.keySet().contains(superMethod) && !suspendables.contains(superMethod) && !superSuspendables.contains(superMethod)) {
+                final String superMethod = (superCls + "." + getMethodDescName(currentMethod)).intern();
+                if (!callGraph.containsKey(superMethod)) // continue if superMethods has no reference in the callGraph
+                    continue;
+                MethodEntry superMethodEntry = callGraph.get(superMethod);
+                if (superMethodEntry.suspendType == null) { // not yet marked as suspendable or superSuspendable
                     q.add(superMethod);
-                    superSuspendables.add(superMethod);
+                    superMethodEntry.suspendType = SUSPENDABLE_SUPER;
                 }
             }
-            // mark as suspendables methods from the bproject which are calling of the given bfs node (which is superSuspenable or suspendable)
-            for (String caller : callers.get(node)) {
-                if (!suspendables.contains(caller)) {
-                    q.add(caller);
-                    suspendables.add(caller);
+            // mark as suspendables methods from the project which are calling of the given bfs node (which is superSuspenable or suspendable)
+            if (callGraph.containsKey(currentMethod))
+                for (MethodEntry caller : callGraph.get(currentMethod).callers) {
+                    if (caller.suspendType != SUSPENDABLE) { // not yet marked
+                        q.add(caller.name);
+                        caller.suspendType = SUSPENDABLE;
+                    }
                 }
-            }
         }
     }
 
@@ -108,18 +113,16 @@ public class AutoSuspendablesScanner {
             cr.accept(new ClassVisitor(Opcodes.ASM4, cn) {
                 @Override
                 public MethodVisitor visitMethod(int access, String methodname, String desc, String signature, String[] exceptions) {
-                    final String caller = (cn.name + "." + methodname + desc).intern();
+                    final MethodEntry caller = getOrCreateMethodEntry((cn.name + "." + methodname + desc).intern());
                     return new MethodVisitor(Opcodes.ASM4) {
 
                         @Override
                         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
-                            final String specificOwner = db.findSpecificImpl(owner, name + desc);
+                            final String specificOwner = db.findSpecificClassImpl(owner, name + desc);
                             // enum values/clone or native methods
                             if (specificOwner == null)
                                 return;
-                            final String callee = (specificOwner + "." + name + desc).intern();
-                            callers.put(callee, caller);
-
+                            getOrCreateMethodEntry((specificOwner + "." + name + desc).intern()).callers.add(caller);
                             super.visitMethodInsn(opcode, owner, name, desc, itf); //To change body of generated methods, choose Tools | Templates.
                         }
 
@@ -170,9 +173,12 @@ public class AutoSuspendablesScanner {
         return null;
     }
 
-    // visible for testing
-    SetMultimap<String, String> getCallers() {
-        return callers;
+    private void indexSuspenablesAndSupers() {
+        for (MethodEntry methodEntry : callGraph.values())
+            if (methodEntry.suspendType == SUSPENDABLE)
+                suspendables.add(methodEntry.name);
+            else if (methodEntry.suspendType == SUSPENDABLE_SUPER)
+                superSuspendables.add(methodEntry.name);
     }
 
     static class ClassDb {
@@ -200,9 +206,9 @@ public class AutoSuspendablesScanner {
                 String[] methods = new String[cn.methods.size()];
                 int i = 0;
                 for (MethodNode mn : (List<MethodNode>) cn.methods) {
-                    methods[i++] = mn.name + mn.desc;
+                    methods[i++] = (mn.name + mn.desc).intern();
                     if (isSuspendable(cn, mn, ssc))
-                        suspendables.add(cn.name + "." + mn.name + mn.desc);
+                        suspendables.add((cn.name + "." + mn.name + mn.desc).intern());
                 }
                 final ClassEntry classEntry = new ClassEntry(cn.superName, ((List<String>) cn.interfaces).toArray(new String[cn.interfaces.size()]), methods);
                 classes.put(classname, classEntry);
@@ -212,15 +218,15 @@ public class AutoSuspendablesScanner {
             }
         }
 
-        public String findSpecificImpl(String className, String methodDesc) {
+        public String findSpecificClassImpl(String className, String methodDesc) {
             ClassEntry entry = getClassEntry(className);
             if (entry != null) {
                 String cn = className;
-                for (String method : entry.methodsDescs)
+                for (String method : entry.methods)
                     if (method.equals(methodDesc))
                         return cn;
-                for (String superOrIFace : entry.getAllSupers()) {
-                    String superImplClass = findSpecificImpl(superOrIFace, methodDesc);
+                for (String superOrIFace : entry.allSupers) {
+                    String superImplClass = findSpecificClassImpl(superOrIFace, methodDesc);
                     if (superImplClass != null)
                         return superImplClass;
                 }
@@ -236,49 +242,40 @@ public class AutoSuspendablesScanner {
     }
 
     static class ClassEntry {
-        final String superName;
-        final String[] interfaces;
-        final String[] methodsDescs;
+        final String[] allSupers; // super and interfaces classnames
+        final String[] methods; // name+desc
 
-        public ClassEntry(String superName, String[] interfaces, String[] methodsDescs) {
-            this.superName = superName;
-            this.interfaces = interfaces;
-            this.methodsDescs = methodsDescs;
-        }
-
-        public String[] getAllSupers() {
-            String[] ar = new String[interfaces.length + 1];
-            ar[0] = superName;
-            System.arraycopy(interfaces, 0, ar, 1, interfaces.length);
-            return ar;
-        }
-
-        @Override
-        public String toString() {
-            return "ClassEntry{" + "superName=" + superName + ", interfaces=" + interfaces + ", methodsDescs=" + methodsDescs + '}';
+        public ClassEntry(String superName, String[] interfaces, String[] methodsWithDescs) {
+            this.methods = methodsWithDescs;
+            this.allSupers = new String[interfaces.length + 1];
+            this.allSupers[0] = superName;
+            System.arraycopy(interfaces, 0, this.allSupers, 1, interfaces.length);
+            for (int i = 0; i < allSupers.length; i++)
+                allSupers[i] = allSupers[i] != null ? allSupers[i].intern() : null;
         }
     }
 
     public class MethodEntry {
-        String name;
+        String name; // classname.methodname+desc
         List<MethodEntry> callers;
         SuspendableType suspendType;
 
         public MethodEntry(String name) {
             this.name = name;
+            this.callers = new ArrayList<>();
+            this.suspendType = null;
         }
     }
 
     private MethodEntry getOrCreateMethodEntry(String methodName) {
-        MethodEntry entry = methods.get(methodName);
+        MethodEntry entry = callGraph.get(methodName);
         if (entry == null) {
             entry = new MethodEntry(methodName);
-            methods.put(methodName, entry);
+            callGraph.put(methodName, entry);
         }
         return entry;
     }
 
-    ;
     private static String removeClassFileExtension(String resource) {
         return resource.substring(0, resource.length() - ".class".length());
     }

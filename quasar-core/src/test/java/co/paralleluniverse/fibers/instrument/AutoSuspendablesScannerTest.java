@@ -17,7 +17,6 @@ public class AutoSuspendablesScannerTest {
     @BeforeClass
     public static void buildGraph() {
         scanner = new AutoSuspendablesScanner(AutoSuspendablesScannerTest.class.getClassLoader());
-        System.out.println("callers : "+scanner.getCallers().size());
     }
 
     @Test
@@ -79,11 +78,13 @@ public class AutoSuspendablesScannerTest {
 
         // not suspendable
         void foo() {
+            bar(null); // test that if foo->bar->foo->... doesn't cause infinite loop
         }
 
         // not suspendable
         void bar(MyXXXInterfaceA a) {
             a.bar(0);
+            foo();
         }
     }
 
