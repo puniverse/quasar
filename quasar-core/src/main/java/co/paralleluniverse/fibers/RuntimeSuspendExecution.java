@@ -14,7 +14,19 @@
 package co.paralleluniverse.fibers;
 
 public final class RuntimeSuspendExecution extends RuntimeException { // InterruptedException {
-    public RuntimeSuspendExecution(SuspendExecution e) {
+    static final RuntimeSuspendExecution PARK = new RuntimeSuspendExecution(SuspendExecution.PARK);
+    static final RuntimeSuspendExecution YIELD = new RuntimeSuspendExecution(SuspendExecution.YIELD);
+
+    public static RuntimeSuspendExecution of(SuspendExecution e) {
+        if (e == SuspendExecution.PARK)
+            return PARK;
+        else if (e == SuspendExecution.YIELD)
+            return YIELD;
+        else
+            return new RuntimeSuspendExecution(e);
+    }
+
+    private RuntimeSuspendExecution(SuspendExecution e) {
         super(e);
     }
 

@@ -337,7 +337,7 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
                     }
                 }
             } catch (SuspendExecution e) {
-                throw new RuntimeSuspendExecution(e);
+                throw RuntimeSuspendExecution.of(e);
             }
         }
     }
