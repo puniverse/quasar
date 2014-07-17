@@ -56,7 +56,7 @@ public class AutoSuspendablesScanner {
         final Queue<String> q = Queues.newArrayDeque();
 
         // start the bfs from the manualSusp (all classpath)
-        q.addAll(db.getSuspendables());
+        q.addAll(db.getManualSuspendablesOrSupers());
 
         while (!q.isEmpty()) {
             final String currentMethod = q.poll();
@@ -183,7 +183,7 @@ public class AutoSuspendablesScanner {
 
     static class ClassDb {
         private final Map<String, ClassEntry> classes = new HashMap<>();
-        private final Set<String> suspendables = new HashSet<>();
+        private final Set<String> manualSuspendablesOrSupers = new HashSet<>();
         private final ClassLoader cl;
         private final SimpleSuspendableClassifier ssc;
 
@@ -192,8 +192,8 @@ public class AutoSuspendablesScanner {
             this.ssc = new SimpleSuspendableClassifier(cl);
         }
 
-        public Set<String> getSuspendables() {
-            return suspendables;
+        public Set<String> getManualSuspendablesOrSupers() {
+            return manualSuspendablesOrSupers;
         }
 
         private ClassEntry getClassEntry(String classname) {
@@ -207,8 +207,8 @@ public class AutoSuspendablesScanner {
                 int i = 0;
                 for (MethodNode mn : (List<MethodNode>) cn.methods) {
                     methods[i++] = (mn.name + mn.desc).intern();
-                    if (isSuspendable(cn, mn, ssc))
-                        suspendables.add((cn.name + "." + mn.name + mn.desc).intern());
+                    if (isSuspendable(cn, mn) || isSuperSuspendable(cn, mn))
+                        manualSuspendablesOrSupers.add((cn.name + "." + mn.name + mn.desc).intern());
                 }
                 final ClassEntry classEntry = new ClassEntry(cn.superName, ((List<String>) cn.interfaces).toArray(new String[cn.interfaces.size()]), methods);
                 classes.put(classname, classEntry);
@@ -234,11 +234,15 @@ public class AutoSuspendablesScanner {
             return null;
         }
 
-        private static boolean isSuspendable(final ClassNode cn, MethodNode mn, SimpleSuspendableClassifier ssc) {
+        private  boolean isSuspendable(final ClassNode cn, MethodNode mn) {
             return ASMUtil.hasAnnotation(Classes.ANNOTATION_DESC, mn)
                     || ssc.isSuspendable(cn.name, mn.name, mn.desc)
                     || mn.exceptions.contains(Classes.EXCEPTION_NAME);
         }
+        
+        private boolean isSuperSuspendable(final ClassNode cn, MethodNode mn) {
+            return  ssc.isSuperSuspendable(cn.name, mn.name, mn.desc);
+        }        
     }
 
     static class ClassEntry {
