@@ -620,6 +620,11 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             throw new ConcurrencyException("Operation not called from within the actor (" + this + ", but called in " + currentActor() + ")");
     }
 
+    protected final void verifyOnActorStrand() {
+        if (!Strand.currentStrand().equals(getStrand()))
+            throw new ConcurrencyException("Operation not called from within the actor's strand (" + getStrand() + ", but called in " + Strand.currentStrand() + ")");
+    }
+
     /**
      * Tests whether this code is executing in this actor's strand.
      */
@@ -793,8 +798,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * This method must only be called within the actor's strand.
      */
     public final void checkThrownIn() {
-        if (!Strand.currentStrand().equals(getStrand()))
-            throw new ConcurrencyException("Operation not called from within the actor's strand (" + getStrand() + ", but called in " + Strand.currentStrand() + ")");
+        verifyOnActorStrand();
         checkThrownIn0();
     }
 
@@ -988,7 +992,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
 
     public void migrateAndRestart() throws SuspendExecution {
         record(1, "Actor", "migrateAndRestart", "Actor %s is migrating.", this);
-        verifyInActor();
+        verifyOnActorStrand();
 
         migrating = true;
         try {
@@ -1008,7 +1012,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      */
     public void migrate() throws SuspendExecution {
         record(1, "Actor", "migrate", "Actor %s is migrating.", this);
-        verifyInActor();
+        verifyOnActorStrand();
 
         migrating = true;
         preMigrate();

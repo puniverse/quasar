@@ -51,7 +51,6 @@ import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
-import sun.misc.Unsafe;
 
 /**
  * A lightweight thread.
@@ -101,7 +100,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
     // private static final FiberTimedScheduler timeoutService = new FiberTimedScheduler(new ThreadFactoryBuilder().setNameFormat("fiber-timeout-%d").setDaemon(true).build());
     private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler = new UncaughtExceptionHandler() {
-
         @Override
         public void uncaughtException(Strand s, Throwable e) {
             System.err.print("Exception in Fiber \"" + s.getName() + "\" ");
@@ -1484,9 +1482,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             return threadStack;
 
         int count = 0;
-        for (int i = 0; i < threadStack.length; i++) {
+        for (StackTraceElement ste : threadStack) {
             count++;
-            StackTraceElement ste = threadStack[i];
             if (Fiber.class.getName().equals(ste.getClassName())) {
                 if ("run".equals(ste.getMethodName()))
                     break;
@@ -1584,6 +1581,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return current;
     }
 
+    @SuppressWarnings("null")
     public static boolean checkInstrumentation() {
         assert verifyInstrumentation;
 
@@ -1686,7 +1684,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         stack.resetStack();
     }
 
-    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
+    private static final sun.misc.Unsafe UNSAFE = UtilUnsafe.getUnsafe();
     private static final long stateOffset;
 
     static {
@@ -1842,6 +1840,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     public static <V> Fiber<V> unparkDeserialized(Fiber<V> f, FiberScheduler scheduler) {
+        f.record(1, "Fiber", "unparkDeserialized", "Deserialized fiber %s", f);
         final Thread currentThread = Thread.currentThread();
         f.fiberRef = new DummyRunnable(f);
         f.fid = nextFiberId();
@@ -1855,6 +1854,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (MAINTAIN_ACCESS_CONTROL_CONTEXT)
             f.inheritedAccessControlContext = AccessController.getContext();
 
+        f.record(1, "Fiber", "unparkDeserialized", "Unparking deserialized fiber %s", f);
         f.unpark(SERIALIZER_BLOCKER);
 
         return f;
@@ -1878,6 +1878,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         }
 
         @Override
+        @SuppressWarnings("CallToPrintStackTrace")
         public void write(Kryo kryo, Output output, Fiber f) {
             final Thread currentThread = Thread.currentThread();
             final Object tmpThreadLocals = ThreadAccess.getThreadLocals(currentThread);
@@ -1903,6 +1904,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         }
 
         @Override
+        @SuppressWarnings("CallToPrintStackTrace")
         public Fiber read(Kryo kryo, Input input, Class<Fiber> type) {
             final Fiber f;
             final Thread currentThread = Thread.currentThread();
