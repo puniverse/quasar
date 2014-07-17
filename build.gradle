@@ -314,6 +314,18 @@ project (':quasar-core') {
             } 
         }
     }
+
+    // The outputs of the following task are tested by AutoSuspendablesScannerTest
+    compileTestJava {
+        doLast {
+            ant.taskdef(
+                name:'autoScanSuspendables', classname:'co.paralleluniverse.fibers.instrument.AutoSuspendablesScanner$AntTask', 
+                classpath: configurations.compile.asPath + ":${jar.archivePath}:build/classes/test")
+            ant.autoScanSuspendables(
+                outputSuspenableFile:"$sourceSets.test.output.resourcesDir/META-INF/testSuspendables", 
+                outputSupersFile:"$sourceSets.test.output.resourcesDir/META-INF/testSuspendableSupers"            )             
+        }
+    }
     
     jar {
         from zipTree("${baselib}/jsr166e.jar")  // include non-Maven jars

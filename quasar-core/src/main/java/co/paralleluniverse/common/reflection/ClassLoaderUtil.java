@@ -84,26 +84,28 @@ public final class ClassLoaderUtil {
         return resourceName.substring(0, resourceName.length() - CLASS_FILE_NAME_EXTENSION.length()).replace('/', '.');
     }
 
-    public static void accept(ClassLoader classLoader, Visitor visitor) throws IOException {
-        accept(classLoader, ScanMode.WHOLE_CLASSPATH, visitor);
+    public static void accept(URLClassLoader ucl, Visitor visitor) throws IOException {
+        accept(ucl, ScanMode.WHOLE_CLASSPATH, visitor);
     }
 
-    public static void accept(ClassLoader classLoader, ScanMode scanMode, Visitor visitor) throws IOException {
-        URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
-        if (classLoader instanceof URLClassLoader) {
-            try {
-                final Set<URI> scannedUris = new HashSet<>();
-                for (URL entry : urlClassLoader.getURLs()) {
-                    URI uri = entry.toURI();
-                    if (uri.getScheme().equals("file") && scannedUris.add(uri)) {
-                        final File path = new File(uri);
-                        if (scanMode != ScanMode.WITHOUT_JARS || path.isDirectory())
-                            scanFrom(path, classLoader, scannedUris, visitor);
-                    }
+    public static void accept(URLClassLoader ucl, ScanMode scanMode, Visitor visitor) throws IOException {
+        accept(ucl, ucl.getURLs(), scanMode, visitor);
+
+    }
+
+    public static void accept(ClassLoader cl, URL[] urls, ScanMode scanMode, Visitor visitor) throws IOException {
+        try {
+            final Set<URI> scannedUris = new HashSet<>();
+            for (URL entry : urls) {
+                URI uri = entry.toURI();
+                if (uri.getScheme().equals("file") && scannedUris.add(uri)) {
+                    final File path = new File(uri);
+                    if (scanMode != ScanMode.WITHOUT_JARS || path.isDirectory())
+                        scanFrom(path, cl, scannedUris, visitor);
                 }
-            } catch (URISyntaxException e) {
-                throw new RuntimeException(e);
             }
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
         }
     }
 

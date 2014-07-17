@@ -24,6 +24,7 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -45,7 +46,7 @@ import org.objectweb.asm.tree.MethodNode;
 public class SuspendablesScanner extends Task {
     private static final boolean USE_REFLECTION = false;
     private static final String CLASSFILE_SUFFIX = ".class";
-    private ClassLoader cl;
+    private URLClassLoader cl;
     private final ArrayList<FileSet> filesets = new ArrayList<FileSet>();
     private final Set<String> results = new HashSet<String>();
     private String supersFile;
@@ -72,7 +73,7 @@ public class SuspendablesScanner extends Task {
     public void run(String[] prefixes) throws Exception {
         for (String prefix : prefixes)
             collect(prefix);
-        outputResults(supersFile);
+        outputResults(supersFile, append, results);
     }
 
     public void nonAntExecute(String[] paths) throws Exception {
@@ -92,7 +93,7 @@ public class SuspendablesScanner extends Task {
             }
         }
         scanSuspendablesFile();
-        outputResults(supersFile);
+        outputResults(supersFile, append, results);
     }
 
     @Override
@@ -104,8 +105,8 @@ public class SuspendablesScanner extends Task {
             List<URL> urls = new ArrayList<>();
             for (FileSet fs : filesets)
                 urls.add(fs.getDir().toURI().toURL());
-            log("URLs: " + urls, Project.MSG_VERBOSE);
             cl = new URLClassLoader(urls.toArray(new URL[0]), getClass().getClassLoader());
+            log("URLs: " + Arrays.toString(cl.getURLs()), Project.MSG_INFO);
 
             // scan classes in filesets
             for (FileSet fs : filesets) {
@@ -128,7 +129,8 @@ public class SuspendablesScanner extends Task {
             }
 
             scanSuspendablesFile();
-            outputResults(supersFile);
+            log("OUTPUT: " + supersFile, Project.MSG_INFO);
+            outputResults(supersFile, append, results);
         } catch (Exception e) {
             log(e, Project.MSG_ERR);
             throw new BuildException(e);
@@ -190,9 +192,9 @@ public class SuspendablesScanner extends Task {
         }
     }
 
-    private void outputResults(String outputFile) throws Exception {
-        try (PrintStream out = getOutputStream(outputFile)) {
-            List<String> sorted = new ArrayList<String>(results);
+    public static void outputResults(String outputFile, boolean append1, Set<String> results) throws Exception {
+        try (PrintStream out = getOutputStream(outputFile, append1)) {
+            List<String> sorted = new ArrayList<>(results);
             Collections.sort(sorted);
             for (String s : sorted) {
                 //            if(out != System.out)
@@ -202,8 +204,7 @@ public class SuspendablesScanner extends Task {
         }
     }
 
-    private PrintStream getOutputStream(String outputFile) throws Exception {
-        log("OUTPUT: " + outputFile, Project.MSG_INFO);
+    private static PrintStream getOutputStream(String outputFile, boolean append1) throws Exception {
         if (outputFile != null) {
             outputFile = outputFile.trim();
             if (outputFile.isEmpty())
@@ -213,7 +214,7 @@ public class SuspendablesScanner extends Task {
             File file = new File(outputFile);
             if (file.getParent() != null && !file.getParentFile().exists())
                 file.getParentFile().mkdirs();
-            return new PrintStream(new FileOutputStream(file, append));
+            return new PrintStream(new FileOutputStream(file, append1));
         } else
             return System.out;
     }

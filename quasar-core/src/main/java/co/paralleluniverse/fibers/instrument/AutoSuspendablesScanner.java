@@ -9,17 +9,28 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.SetMultimap;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import org.apache.tools.ant.AntClassLoader;
+import org.apache.tools.ant.BuildException;
+import org.apache.tools.ant.DirectoryScanner;
+import org.apache.tools.ant.Project;
+import org.apache.tools.ant.Task;
+import org.apache.tools.ant.types.FileSet;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Handle;
@@ -35,8 +46,11 @@ public class AutoSuspendablesScanner {
     private final Set<String> suspendables;
     private final Set<String> superSuspendables;
     private final ClassDb db;
+    private URL[] urls;
 
-    public AutoSuspendablesScanner(final ClassLoader classLoader) {
+    // needed for AntClassLoader where urls cannot be retrieved useing getURLS
+    public AutoSuspendablesScanner(final ClassLoader classLoader, URL[] urls) {
+        this.urls = urls;
         this.cl = classLoader;
         this.db = new ClassDb(cl);
         this.callGraph = new HashMap<>();
@@ -50,6 +64,10 @@ public class AutoSuspendablesScanner {
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    public AutoSuspendablesScanner(final URLClassLoader classLoader) {
+        this(classLoader, classLoader.getURLs());
     }
 
     private void mapSuspendablesAndSupers() {
@@ -85,7 +103,7 @@ public class AutoSuspendablesScanner {
     }
 
     private void mapMethodCalls() throws IOException {
-        ClassLoaderUtil.accept(cl, ScanMode.WITHOUT_JARS, new ClassLoaderUtil.Visitor() {
+        ClassLoaderUtil.accept(cl, urls, ScanMode.WITHOUT_JARS, new ClassLoaderUtil.Visitor() {
             @Override
             public void visit(String resource, URL url, ClassLoader cl) {
                 if (ClassLoaderUtil.isClassFile(url.getFile()))
@@ -95,14 +113,13 @@ public class AutoSuspendablesScanner {
     }
 
     private void scanSuspendables() throws IOException {
-        ClassLoaderUtil.accept(cl, ScanMode.WHOLE_CLASSPATH, new ClassLoaderUtil.Visitor() {
+        ClassLoaderUtil.accept(cl, urls, ScanMode.WHOLE_CLASSPATH, new ClassLoaderUtil.Visitor() {
             @Override
             public void visit(String resource, URL url, ClassLoader cl) {
                 if (ClassLoaderUtil.isClassFile(url.getFile())) {
                     db.getClassEntry(removeClassFileExtension(resource));
                 }
             }
-
         });
     }
 
@@ -234,15 +251,15 @@ public class AutoSuspendablesScanner {
             return null;
         }
 
-        private  boolean isSuspendable(final ClassNode cn, MethodNode mn) {
+        private boolean isSuspendable(final ClassNode cn, MethodNode mn) {
             return ASMUtil.hasAnnotation(Classes.ANNOTATION_DESC, mn)
                     || ssc.isSuspendable(cn.name, mn.name, mn.desc)
                     || mn.exceptions.contains(Classes.EXCEPTION_NAME);
         }
-        
+
         private boolean isSuperSuspendable(final ClassNode cn, MethodNode mn) {
-            return  ssc.isSuperSuspendable(cn.name, mn.name, mn.desc);
-        }        
+            return ssc.isSuperSuspendable(cn.name, mn.name, mn.desc);
+        }
     }
 
     static class ClassEntry {
@@ -286,4 +303,45 @@ public class AutoSuspendablesScanner {
 
     private static final String JAVALANG_REGEXP = "java/lang/[^/]*\\..*";
     private static final String JAVAUTIL_REGEXP = "java/util/[^/]*\\..*";
+
+    public static class AntTask extends Task {
+        private String supersFile;
+        private String suspendablesFile;
+
+        public void setOutputSuspenableFile(String outputFile) {
+            this.suspendablesFile = outputFile;
+        }
+
+        public void setOutputSupersFile(String outputFile) {
+            this.supersFile = outputFile;
+        }
+
+        @Override
+        public void execute() throws BuildException {
+            try {
+                AntClassLoader cl = (AntClassLoader) getClass().getClassLoader();
+                AutoSuspendablesScanner scanner = new AutoSuspendablesScanner(cl, classpathToUrls(cl.getClasspath().split(":")));
+                if (suspendablesFile!=null) 
+                    SuspendablesScanner.outputResults(suspendablesFile, false, scanner.getSuspendables());
+                if (supersFile!=null) 
+                    SuspendablesScanner.outputResults(supersFile, false, scanner.getSuperSuspendables());
+            } catch (Exception e) {
+                log(e, Project.MSG_ERR);
+                throw new BuildException(e);
+            }
+        }
+
+        private static URL[] classpathToUrls(String[] classPath) throws RuntimeException {
+            URL[] ar = null;
+            try {
+                List<URL> list = new ArrayList<>();
+                for (String cp : classPath)
+                    list.add(new File(cp).toURI().toURL());
+                ar = list.toArray(new URL[0]);
+            } catch (MalformedURLException ex) {
+                throw new RuntimeException(ex);
+            }
+            return ar;
+        }
+    }
 }

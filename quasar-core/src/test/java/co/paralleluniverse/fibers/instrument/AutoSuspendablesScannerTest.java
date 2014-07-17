@@ -1,12 +1,9 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
+import java.net.URLClassLoader;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -16,7 +13,7 @@ public class AutoSuspendablesScannerTest {
 
     @BeforeClass
     public static void buildGraph() {
-        scanner = new AutoSuspendablesScanner(AutoSuspendablesScannerTest.class.getClassLoader());
+        scanner = new AutoSuspendablesScanner((URLClassLoader) AutoSuspendablesScannerTest.class.getClassLoader());
     }
 
     @Test
@@ -30,7 +27,7 @@ public class AutoSuspendablesScannerTest {
 
     @Test
     public void superSuspendableCallTest() {
-        final String suspCallMethod = MyXXXClassA.class.getSimpleName() + ".foo(L"; // foo with class parameter
+        final String suspCallMethod = MyXXXClassA.class.getSimpleName() + ".foo(L";
         for (String susp : scanner.getSuspendables())
             if (susp.contains(suspCallMethod))
                 return;
@@ -39,7 +36,7 @@ public class AutoSuspendablesScannerTest {
 
     @Test
     public void nonSuperSuspendableCallTest() {
-        final String suspCallMethod = MyXXXClassA.class.getSimpleName() + ".foo()"; // foo without parameters
+        final String suspCallMethod = MyXXXClassA.class.getSimpleName() + ".foo()";
         for (String susp : scanner.getSuspendables())
             if (susp.contains(suspCallMethod))
                 fail(susp + " should not be suspendable");
@@ -62,6 +59,13 @@ public class AutoSuspendablesScannerTest {
         fail(superSuspMethod + " is not super suspendable");
     }
 
+    @Test
+    public void suspendableFileByAntTaskTest() {
+        String suspFile = AutoSuspendablesScannerTest.class.getClassLoader().getResource("META-INF/testSuspendables").getFile();
+        SimpleSuspendableClassifier ssc = new SimpleSuspendableClassifier(suspFile);
+        assertTrue(ssc.isSuspendable(MyXXXClassB.class.getName().replace(".", "/"), "foo", "(I)V"));
+    }
+    
     static interface MyXXXInterfaceA {
         // super suspendable
         void foo(int t);
