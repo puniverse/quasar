@@ -15,6 +15,7 @@ package co.paralleluniverse.common.util;
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.strands.Strand;
 import java.io.PrintStream;
+import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -30,6 +31,7 @@ public class Debug {
     private static final boolean assertionsEnabled;
     private static final boolean unitTest;
     private static final boolean ci;
+    private static final boolean debugger;
     private static final AtomicBoolean requestShutdown = new AtomicBoolean(false);
     private static final AtomicBoolean fileDumped = new AtomicBoolean(false);
 
@@ -60,14 +62,20 @@ public class Debug {
                 }
             });
         }
+
+        debugger = ManagementFactory.getRuntimeMXBean().getInputArguments().toString().contains("-agentlib:jdwp");
     }
 
     public static boolean isDebug() {
         return debugMode;
     }
-    
+
     public static boolean isCI() {
         return ci;
+    }
+
+    public static boolean isDebugger() {
+        return debugger;
     }
 
     public static boolean isAssertionsEnabled() {
