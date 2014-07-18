@@ -323,7 +323,7 @@ project (':quasar-core') {
                 classpath: configurations.compile.asPath + ":${jar.archivePath}:build/classes/test")
             ant.autoScanSuspendables(
                 outputSuspendableFile:"$sourceSets.test.output.resourcesDir/META-INF/testSuspendables", 
-                outputSupersFile:"$sourceSets.test.output.resourcesDir/META-INF/testSuspendableSupers"            )             
+                outputSupersFile:"$sourceSets.test.output.resourcesDir/META-INF/testSuspendableSupers")             
         }
     }
     
