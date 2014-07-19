@@ -15,10 +15,10 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.actors.ActorImpl.ActorLifecycleListener;
 import static co.paralleluniverse.actors.ActorImpl.getActorRefImpl;
-import co.paralleluniverse.actors.spi.MigrationRecord;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.concurrent.util.MapUtil;
+import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
@@ -97,7 +97,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     private boolean hasMonitor;
     private ActorSpec<?, Message, V> spec;
     private Object aux;
-    private transient /*final*/ ActorRunner<V> runner;
+    private /*final*/ ActorRunner<V> runner;
     private boolean migrating;
 
     /**
@@ -599,7 +599,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * Tests whether this actor has been started, i.e. whether the strand executing it has been started.
      */
     public final boolean isStarted() {
-        return runner.isStarted();
+        return runner == null || runner.isStarted(); // runner == null iff migrateAndRestart
     }
 
     /**
@@ -637,7 +637,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     /////////// Lifecycle ///////////////////////////////////
     final V run0() throws InterruptedException, SuspendExecution {
         JMXActorsMonitor.getInstance().actorStarted(ref);
-        if (!(runner.getStrand() instanceof Fiber))
+        final Strand strand = runner.getStrand(); // runner might be nulled by running actor
+        if (!strand.isFiber())
             currentActor.set(this);
         try {
             if (this instanceof MigratingActor && globalId == null)
@@ -670,9 +671,9 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             throw t;
         } finally {
             record(1, "Actor", "die", "Actor %s is now dead of %s", this, getDeathCause());
-            if (!(runner.getStrand() instanceof Fiber))
+            if (!strand.isFiber())
                 currentActor.set(null);
-            JMXActorsMonitor.getInstance().actorTerminated(ref, runner.getStrand());
+            JMXActorsMonitor.getInstance().actorTerminated(ref, strand);
         }
     }
 
@@ -994,10 +995,11 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         record(1, "Actor", "migrateAndRestart", "Actor %s is migrating.", this);
         verifyOnActorStrand();
 
+        this.runner = null;
         migrating = true;
         try {
             preMigrate();
-            MigrationService.migrate(getGlobalId(), this, Serialization.getInstance().write(new MigrationRecord(this, null)));
+            MigrationService.migrate(getGlobalId(), this, Serialization.getInstance().write(this));
             postMigrate();
             throw Migrate.MIGRATE;
         } finally {
@@ -1020,7 +1022,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
 
             @Override
             public void write(Fiber fiber, ByteArraySerializer ser) {
-                final byte[] buf = ser.write(new MigrationRecord(Actor.this, fiber));
+                final byte[] buf = ser.write(fiber);
                 new Fiber<Void>() {
                     @Override
                     protected Void run() throws SuspendExecution, InterruptedException {
@@ -1039,6 +1041,20 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             hasMonitor = true;
             stopMonitor();
         }
+    }
+
+    /**
+     * Returns the actor associated with the given strand, or {@code null} if none is.
+     */
+    public static Actor getActor(Strand s) {
+        final ActorRunner runner;
+        if (s.isFiber())
+            runner = (ActorRunner) ((Fiber) s.getUnderlying()).getTarget();
+        else
+            runner = (ActorRunner) Strand.unwrapSuspendable(ThreadAccess.getTarget((Thread) s.getUnderlying()));
+        if (runner == null)
+            return null;
+        return runner.getActor();
     }
 
     private void postMigrate() {
@@ -1061,12 +1077,13 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     }
 
     public static <M> ActorRef<M> hire(ActorRef<M> ref, FiberScheduler scheduler) throws SuspendExecution {
-        MigrationRecord mr = MigrationService.hire(ref, Fiber.newFiberSerializer());
+        Actor actor = MigrationService.hire(ref, Fiber.newFiberSerializer());
 
-        final Actor<M, ?> actor = (Actor<M, ?>) mr.getActor();
-        final Fiber<?> fiber = mr.getFiber();
+        final Fiber<?> fiber = actor.runner != null ? (Fiber) actor.getStrand() : null;
         actor.setRef(ref);
-        actor.runner = fiber != null ? (ActorRunner) fiber.getTarget() : new ActorRunner<>(ref);
+        if (fiber == null)
+            actor.runner = new ActorRunner<>(ref);
+        // actor.runner = fiber != null ? (ActorRunner) fiber.getTarget() : new ActorRunner<>(ref);
 
         actor.ref.setImpl(actor);
         assert ref == actor.ref : ref + " - " + actor.ref;

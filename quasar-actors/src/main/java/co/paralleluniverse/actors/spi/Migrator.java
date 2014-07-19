@@ -25,6 +25,6 @@ import co.paralleluniverse.io.serialization.ByteArraySerializer;
  */
 public interface Migrator {
     Object registerMigratingActor() throws SuspendExecution;
-    void migrate(Object id, Actor actor, byte[] serializedMigrationRecord) throws SuspendExecution;
-    MigrationRecord hire(ActorRef actorRef, ActorImpl actorImpl, ByteArraySerializer ser) throws SuspendExecution;
+    void migrate(Object id, Actor actor, byte[] serialized) throws SuspendExecution;
+    Actor hire(ActorRef actorRef, ActorImpl actorImpl, ByteArraySerializer ser) throws SuspendExecution;
 }

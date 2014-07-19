@@ -29,7 +29,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
+class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V>, java.io.Serializable {
     private /*final*/ transient ActorRef<?> actorRef;
     private volatile Actor<?, V> actor;
     private Strand strand;

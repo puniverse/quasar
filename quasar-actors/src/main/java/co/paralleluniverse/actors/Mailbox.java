@@ -103,10 +103,10 @@ public final class Mailbox<Message> extends SingleConsumerQueueChannel<Message> 
 
     @Override
     protected Object writeReplace() throws java.io.ObjectStreamException {
-        if (!actor.isStarted())
-            throw new IllegalStateException("Owning actor " + actor + " not started");
         if (actor.isMigrating())
             return new SerializedMailbox(config);
+        if (!actor.isStarted())
+            throw new IllegalStateException("Owning actor " + actor + " not started");
         
         return RemoteChannelProxyFactoryService.create(this, actor.getGlobalId());
     }

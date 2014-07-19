@@ -1914,6 +1914,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             ThreadAccess.setInheritablehreadLocals(currentThread, null);
             try {
                 final Registration reg = kryo.readClass(input);
+                if (reg == null)
+                    return null;
                 f = (Fiber) new FieldSerializer(kryo, reg.getType()).read(kryo, input, reg.getType());
 
                 f.fiberLocals = ThreadAccess.getThreadLocals(currentThread);

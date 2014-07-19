@@ -42,6 +42,13 @@ public final class Serialization {
             return tlInstance.get();
     }
 
+    public static Serialization newInstance() {
+        if (instance != null)
+            return instance;
+        else
+            return new Serialization(new KryoSerializer());
+    }
+
     public static Kryo getKryo() {
         return ((KryoSerializer) tlInstance.get().bas).getKryo();
     }

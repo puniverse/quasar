@@ -18,6 +18,7 @@ import co.paralleluniverse.actors.ActorImpl;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.spi.MigrationRecord;
 import co.paralleluniverse.actors.spi.Migrator;
+import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Store;
@@ -58,11 +59,11 @@ public class GlxMigrator implements Migrator {
     }
 
     @Override
-    public void migrate(Object id, Actor actor, byte[] serializedMigrationRecord) throws SuspendExecution {
+    public void migrate(Object id, Actor actor, byte[] serialized) throws SuspendExecution {
         final long _id = (Long) id;
         try {
             store.setListener(_id, null);
-            store.set(_id, serializedMigrationRecord, null);
+            store.set(_id, serialized, null);
             store.release(_id);
         } catch (co.paralleluniverse.galaxy.TimeoutException e) {
             throw new RuntimeException(e);
@@ -70,7 +71,7 @@ public class GlxMigrator implements Migrator {
     }
 
     @Override
-    public MigrationRecord hire(ActorRef actorRef, ActorImpl impl, ByteArraySerializer ser) throws SuspendExecution {
+    public Actor hire(ActorRef actorRef, ActorImpl impl, ByteArraySerializer ser) throws SuspendExecution {
         final GlxGlobalChannelId gcid = ((GlxRemoteActor) impl).getId();
         if (!gcid.isGlobal())
             throw new IllegalArgumentException("Actor " + actorRef + " is not a migrating actor");
@@ -80,9 +81,18 @@ public class GlxMigrator implements Migrator {
             store.setListener(id, null);
             final byte[] buf = store.getx(id, null);
             assert buf != null : actorRef + " " + impl;
-            final MigrationRecord mr = (MigrationRecord) ser.read(buf);
-            GlobalRemoteChannelReceiver.getReceiver(mr.getActor().getMailbox(), id);
-            return mr;
+            
+            final Object obj = ser.read(buf);
+            final Actor actor;
+            if (obj instanceof Actor)
+                actor = (Actor) obj;
+            else if (obj instanceof Fiber)
+                actor = Actor.getActor((Fiber) obj);
+            else
+                throw new IllegalArgumentException("Serialized object " + obj + " is not an actor or a fiber");
+            
+            GlobalRemoteChannelReceiver.getReceiver(actor.getMailbox(), id);
+            return actor;
         } catch (co.paralleluniverse.galaxy.TimeoutException e) {
             throw new RuntimeException(e);
         }

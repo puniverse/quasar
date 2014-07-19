@@ -781,17 +781,7 @@ public abstract class Strand {
      * as the target of a thread.
      */
     public static Runnable toRunnable(final SuspendableRunnable runnable) {
-        return new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    runnable.run();
-                } catch (SuspendExecution ex) {
-                    throw new AssertionError(ex);
-                } catch (InterruptedException ex) {
-                }
-            }
-        };
+        return new SuspendableRunnableRunnable(runnable);
     }
 
     /**
@@ -799,19 +789,59 @@ public abstract class Strand {
      * as the target of a thread. The return value of the callable is ignored.
      */
     public static Runnable toRunnable(final SuspendableCallable<?> callable) {
-        return new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    callable.run();
-                } catch (SuspendExecution ex) {
-                    throw new AssertionError(ex);
-                } catch (InterruptedException ex) {
-                } catch (Exception e) {
-                    throw Exceptions.rethrow(e);
-                }
+        return new SuspendableCallableRunnable(callable);
+    }
+
+    /**
+     * Returns the {@link SuspendableCallable} or {@link SuspendableRunnable}, wrapped by the given {@code Runnable}
+     * by {@code toRunnable}.
+     */
+    public static Object unwrapSuspendable(Runnable r) {
+        if (r instanceof SuspendableCallableRunnable)
+            return ((SuspendableCallableRunnable) r).callable;
+        if (r instanceof SuspendableRunnableRunnable)
+            return ((SuspendableRunnableRunnable) r).runnable;
+        return null;
+    }
+
+    private static class SuspendableRunnableRunnable implements Runnable {
+        private final SuspendableRunnable runnable;
+
+        public SuspendableRunnableRunnable(SuspendableRunnable runnable) {
+            this.runnable = runnable;
+        }
+
+        @Override
+        public void run() {
+            try {
+                runnable.run();
+            } catch (SuspendExecution ex) {
+                throw new AssertionError(ex);
+            } catch (InterruptedException ex) {
+            } catch (Exception e) {
+                throw Exceptions.rethrow(e);
             }
-        };
+        }
+    }
+
+    private static class SuspendableCallableRunnable implements Runnable {
+        private final SuspendableCallable<?> callable;
+
+        public SuspendableCallableRunnable(SuspendableCallable<?> callable) {
+            this.callable = callable;
+        }
+
+        @Override
+        public void run() {
+            try {
+                callable.run();
+            } catch (SuspendExecution ex) {
+                throw new AssertionError(ex);
+            } catch (InterruptedException ex) {
+            } catch (Exception e) {
+                throw Exceptions.rethrow(e);
+            }
+        }
     }
 
     private static Thread cloneThread(Thread thread, Runnable target) {
