@@ -74,7 +74,7 @@ public class GlxGlobalRegistry implements ActorRegistry {
                 final long root = store.getRoot(rootName, globalId != null ? (Long) globalId : -1, txn);
                 // assert globalId == null || ((Long) globalId) == root; -- it's OK to replace the actor's globalId -- until it's too late
                 store.getx(root, txn);
-                store.set(root, Serialization.newInstance().write(actor), txn);
+                store.set(root, Serialization.getInstance().write(actor), txn);
                 LOG.debug("Registered actor {} at rootId  {}", actor, Long.toHexString(root));
                 store.commit(txn);
                 return root; // root is the global id
@@ -290,7 +290,7 @@ public class GlxGlobalRegistry implements ActorRegistry {
                     }
                     LOG.debug("Store returned null for root {}. Registering actor {} at rootId  {}", rootName, actor, root);
 
-                    store.set(root, Serialization.newInstance().write(actor), txn);
+                    store.set(root, Serialization.getInstance().write(actor), txn);
                 } else
                     actor = deserActor(rootName, buf);
 
@@ -310,7 +310,7 @@ public class GlxGlobalRegistry implements ActorRegistry {
 
     private <Message> ActorRef<Message> deserActor(final String rootName, byte[] buf) {
         try {
-            final ActorRef<Message> actor = (ActorRef<Message>) Serialization.newInstance().read(buf);
+            final ActorRef<Message> actor = (ActorRef<Message>) Serialization.getInstance().read(buf);
             LOG.debug("Deserialized actor {} for root {}", actor, rootName);
             return actor;
         } catch (Exception e) {
