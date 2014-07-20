@@ -68,7 +68,7 @@ public class AutoSuspendablesScanner extends Task {
     private final Map<String, ClassNode> classes = new HashMap<>();
     private final Set<MethodNode> knownSuspendablesOrSupers = new HashSet<>();
     private final boolean ant;
-    private ClassLoader cl;
+    private URLClassLoader cl;
     private final ArrayList<FileSet> filesets = new ArrayList<FileSet>();
     private final Path projectDir;
     private URL[] urls;
@@ -160,8 +160,11 @@ public class AutoSuspendablesScanner extends Task {
             log("Classpath URLs: " + Arrays.toString(this.urls), Project.MSG_INFO);
 
             List<URL> pus = new ArrayList<>();
-            for (FileSet fs : filesets)
-                pus.add(fs.getDir().toURI().toURL());
+            if (ant) {
+                for (FileSet fs : filesets)
+                    pus.add(fs.getDir().toURI().toURL());
+            } else
+                pus.add(projectDir.toUri().toURL());
             log("Project URLs: " + pus, Project.MSG_INFO);
 
             final long tStart = System.nanoTime();
@@ -171,13 +174,13 @@ public class AutoSuspendablesScanner extends Task {
             
             final long tScanExternal = System.nanoTime();
             if (auto)
-                log("Scanned external suspendables in " + (tScanExternal - tStart)/1000000 + " ms", Project.MSG_INFO);
+                log("Scanned external suspendables in " + (tScanExternal - tStart) / 1000000 + " ms", Project.MSG_INFO);
 
             // scan classes in filesets
             Function<File, Void> fileVisitor = new Function<File, Void>() {
                 public Void apply(File file) {
-                    try {
-                        createGraph(new FileInputStream(file));
+                    try (InputStream is = new FileInputStream(file)) {
+                        createGraph(is);
                         return null;
                     } catch (IOException e) {
                         throw new RuntimeException(e);
@@ -200,24 +203,19 @@ public class AutoSuspendablesScanner extends Task {
     }
 
     private void scanExternalSuspendables() throws IOException {
-        ClassLoaderUtil.accept(cl, urls, new ClassLoaderUtil.Visitor() {
+        ClassLoaderUtil.accept(cl, new ClassLoaderUtil.Visitor() {
             @Override
-            public void visit(String resource, URL url, ClassLoader cl) {
+            public void visit(String resource, URL url, ClassLoader cl) throws IOException {
                 if (resource.startsWith("java/util") || resource.startsWith("java/lang"))
                     return;
-                if (isClassFile(url.getFile()))
-                    scanSuspendables(cl.getResourceAsStream(resource));
+                if (isClassFile(url.getFile())) {
+                    try (InputStream is = cl.getResourceAsStream(resource)) { // cl.getResourceAsStream(resource)
+                        new ClassReader(is) // cl.getResourceAsStream(resource)
+                                .accept(new SuspendableClassifier(false, API, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
+                    }
+                }
             }
         });
-    }
-
-    private void scanSuspendables(InputStream classStream) {
-        try {
-            final ClassReader cr = new ClassReader(classStream);
-            cr.accept(new SuspendableClassifier(false, API, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
     }
 
     private void visitAntProject(Function<File, Void> fileVisitor) {
@@ -244,7 +242,8 @@ public class AutoSuspendablesScanner extends Task {
         Files.walkFileTree(projectDir, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                fileVisitor.apply(file.toFile());
+                if(isClassFile(file.getFileName().toString()))
+                    fileVisitor.apply(file.toFile());
                 return FileVisitResult.CONTINUE;
             }
         });
@@ -384,10 +383,12 @@ public class AutoSuspendablesScanner extends Task {
     }
 
     private class CallGraphVisitor extends ClassVisitor {
+        private final boolean inProject;
         private String className;
 
-        public CallGraphVisitor(int api, ClassVisitor cv) {
+        public CallGraphVisitor(boolean inProject, int api, ClassVisitor cv) {
             super(api, cv);
+            this.inProject = inProject;
         }
 
         @Override
@@ -400,6 +401,7 @@ public class AutoSuspendablesScanner extends Task {
         public MethodVisitor visitMethod(int access, final String methodname, final String desc, String signature, String[] exceptions) {
             final MethodVisitor mv = super.visitMethod(access, methodname, desc, signature, exceptions);
             final MethodNode caller = getOrCreateMethodNode(className + '.' + methodname + desc);
+            caller.inProject |= inProject;
             return new MethodVisitor(api, mv) {
                 @Override
                 public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
@@ -437,7 +439,7 @@ public class AutoSuspendablesScanner extends Task {
             cv = new SuspendableClassifier(true, API, cv);
             cv = new ClassNodeVisitor(true, API, cv);
             if (auto)
-                cv = new CallGraphVisitor(API, cv);
+                cv = new CallGraphVisitor(true, API, cv);
 
             cr.accept(cv, ClassReader.SKIP_DEBUG | (auto ? 0 : ClassReader.SKIP_CODE));
         } catch (IOException ex) {
@@ -543,7 +545,7 @@ public class AutoSuspendablesScanner extends Task {
         }
         return node;
     }
-    
+
     private ClassNode getOrLoadClassNode(String className) {
         return fill(getOrCreateClassNode(className.intern()));
     }
@@ -551,9 +553,11 @@ public class AutoSuspendablesScanner extends Task {
     private ClassNode fill(ClassNode node) {
         try {
             if (node.supers == null) {
-                final ClassReader cr = new ClassReader(cl.getResourceAsStream(classToResource(node.name)));
-                cr.accept(new ClassNodeVisitor(false, API, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
-                assert node.supers != null;
+                try (InputStream is = cl.getResourceAsStream(classToResource(node.name))) {
+                    final ClassReader cr = new ClassReader(is);
+                    cr.accept(new ClassNodeVisitor(false, API, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
+                    assert node.supers != null;
+                }
             }
             return node;
         } catch (IOException e) {

@@ -53,7 +53,7 @@ import java.util.jar.Manifest;
  */
 public final class ClassLoaderUtil {
     public interface Visitor {
-        void visit(String resource, URL url, ClassLoader cl);
+        void visit(String resource, URL url, ClassLoader cl) throws IOException;
     }
 
     private static final Splitter CLASS_PATH_ATTRIBUTE_SEPARATOR = Splitter.on(" ").omitEmptyStrings();

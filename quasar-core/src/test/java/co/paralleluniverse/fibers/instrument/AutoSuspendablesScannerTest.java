@@ -15,96 +15,69 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import java.net.URLClassLoader;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.objectweb.asm.Type;
 
-@Ignore
 public class AutoSuspendablesScannerTest {
     private static AutoSuspendablesScanner scanner;
-
+    private static final Set<String> suspependables = new HashSet<>();
+    private static final Set<String> suspependableSupers = new HashSet<>();
+    
     @BeforeClass
-    public static void buildGraph() {
-//        scanner = new AutoSuspendablesScanner((URLClassLoader) AutoSuspendablesScannerTest.class.getClassLoader());
-//        scanner.run();
+    public static void buildGraph() throws Exception {
+        scanner = new AutoSuspendablesScanner(Paths.get("build", "classes", "test"));
+//        scanner = new AutoSuspendablesScanner(
+//                Paths.get(AutoSuspendablesScannerTest.class.getClassLoader()
+//                        .getResource(AutoSuspendablesScannerTest.class.getName().replace('.', '/') + ".class").toURI()));
+        scanner.setAuto(true);
+        scanner.run();
+        scanner.getSuspenablesAndSupers(suspependables, suspependableSupers);
     }
 
-    @Ignore
     @Test
     public void suspendableCallTest() {
-        final String suspCallMethod = MyXXXClassB.class.getSimpleName() + ".foo(I)V";
-        final Set<String> suspependables = new HashSet<>();
-        scanner.getSuspenablesAndSupers(suspependables, null);
-        for (String susp : suspependables) {
-            if (susp.contains(suspCallMethod))
-                return;
-        }
-        fail(suspCallMethod + " is not suspendable");
+        final String method = B.class.getName() + ".foo(I)V";
+        assertTrue(suspependables.contains(method));
     }
 
-    @Ignore
     @Test
     public void superSuspendableCallTest() {
-        final String suspCallMethod = MyXXXClassA.class.getSimpleName() + ".foo(L";
-        final Set<String> suspependables = new HashSet<>();
-        scanner.getSuspenablesAndSupers(suspependables, null);
-        for (String susp : suspependables) {
-            if (susp.contains(suspCallMethod))
-                return;
-        }
-        fail(suspCallMethod + " is not suspendable");
+        final String method = A.class.getName() + ".foo" + Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(IA.class));
+        assertTrue(suspependables.contains(method));
     }
 
-    @Ignore
     @Test
     public void nonSuperSuspendableCallTest() {
-        final String suspCallMethod = MyXXXClassA.class.getSimpleName() + ".foo()";
-        final Set<String> suspependables = new HashSet<>();
-        scanner.getSuspenablesAndSupers(suspependables, null);
-        for (String susp : suspependables) {
-            if (susp.contains(suspCallMethod))
-                fail(susp + " should not be suspendable");
-        }
+        final String method = A.class.getName() + ".foo()";
+        assertTrue(!suspependables.contains(method));
     }
 
-    @Ignore
     @Test
     public void superNonSuspendableCallTest() {
-        final String suspCallMethod = MyXXXClassA.class.getSimpleName() + ".bar(";
-        final Set<String> suspependables = new HashSet<>();
-        scanner.getSuspenablesAndSupers(suspependables, null);
-        for (String susp : suspependables) {
-            if (susp.contains(suspCallMethod))
-                fail(suspCallMethod + " should not be suspendable");
-        }
+        final String method = A.class.getName() + ".bar" + Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(IA.class));
+        assertTrue(!suspependables.contains(method));
     }
 
-    @Ignore
     @Test
     public void superSuspendableTest() {
-        final String superSuspMethod = MyXXXInterfaceA.class.getSimpleName() + ".foo";
-        final Set<String> suspependableSupers = new HashSet<>();
-        scanner.getSuspenablesAndSupers(null, suspependableSupers);
-        for (String susp : suspependableSupers) {
-            if (susp.contains(superSuspMethod))
-                return;
-        }
-        fail(superSuspMethod + " is not super suspendable");
+        final String method = IA.class.getName() + ".foo(I)V";
+        assertTrue(suspependableSupers.contains(method));
     }
 
     @Test
     public void suspendableFileByAntTaskTest() {
         String suspFile = AutoSuspendablesScannerTest.class.getClassLoader().getResource("META-INF/testSuspendables").getFile();
         SimpleSuspendableClassifier ssc = new SimpleSuspendableClassifier(suspFile);
-        assertTrue(ssc.isSuspendable(MyXXXClassB.class.getName().replace(".", "/"), "foo", "(I)V"));
+        assertTrue(ssc.isSuspendable(B.class.getName().replace(".", "/"), "foo", "(I)V"));
     }
 
-    static interface MyXXXInterfaceA {
+    static interface IA {
         // super suspendable
         void foo(int t);
 
@@ -112,9 +85,9 @@ public class AutoSuspendablesScannerTest {
         void bar(int t);
     }
 
-    static class MyXXXClassA {
+    static class A {
         // suspendable
-        void foo(MyXXXInterfaceA a) {
+        void foo(IA a) {
             a.foo(0);
         }
 
@@ -124,13 +97,13 @@ public class AutoSuspendablesScannerTest {
         }
 
         // not suspendable
-        void bar(MyXXXInterfaceA a) {
+        void bar(IA a) {
             a.bar(0);
             foo();
         }
     }
 
-    static class MyXXXClassB implements MyXXXInterfaceA {
+    static class B implements IA {
         // suspendable
         @Override
         public void foo(int t) {
