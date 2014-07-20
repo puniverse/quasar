@@ -319,11 +319,15 @@ project (':quasar-core') {
     compileTestJava {
         doLast {
             ant.taskdef(
-                name:'autoScanSuspendables', classname:'co.paralleluniverse.fibers.instrument.AutoSuspendablesScanner$AntTask', 
-                classpath: configurations.compile.asPath + ":${jar.archivePath}:build/classes/test")
+                name:'autoScanSuspendables', classname:'co.paralleluniverse.fibers.instrument.AutoSuspendablesScanner', 
+                classpath: "${configurations.compile.asPath}:${jar.archivePath}")
             ant.autoScanSuspendables(
+                auto:"true",
                 outputSuspendableFile:"$sourceSets.test.output.resourcesDir/META-INF/testSuspendables", 
-                outputSupersFile:"$sourceSets.test.output.resourcesDir/META-INF/testSuspendableSupers")             
+                outputSupersFile:"$sourceSets.test.output.resourcesDir/META-INF/testSuspendableSupers",
+                append: 'true') {
+                fileset(dir: sourceSets.test.output.classesDir)
+            }            
         }
     }
     

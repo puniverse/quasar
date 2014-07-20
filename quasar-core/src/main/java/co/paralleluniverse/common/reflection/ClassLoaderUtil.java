@@ -56,10 +56,6 @@ public final class ClassLoaderUtil {
         void visit(String resource, URL url, ClassLoader cl);
     }
 
-    public enum ScanMode {
-        WHOLE_CLASSPATH, WITHOUT_JARS
-    }
-
     private static final Splitter CLASS_PATH_ATTRIBUTE_SEPARATOR = Splitter.on(" ").omitEmptyStrings();
     private static final String CLASS_FILE_NAME_EXTENSION = ".class";
 
@@ -94,23 +90,16 @@ public final class ClassLoaderUtil {
     }
 
     public static void accept(URLClassLoader ucl, Visitor visitor) throws IOException {
-        accept(ucl, ScanMode.WHOLE_CLASSPATH, visitor);
+        accept(ucl, ucl.getURLs(), visitor);
     }
 
-    public static void accept(URLClassLoader ucl, ScanMode scanMode, Visitor visitor) throws IOException {
-        accept(ucl, ucl.getURLs(), scanMode, visitor);
-    }
-
-    public static void accept(ClassLoader cl, URL[] urls, ScanMode scanMode, Visitor visitor) throws IOException {
+    public static void accept(ClassLoader cl, URL[] urls, Visitor visitor) throws IOException {
         try {
             final Set<URI> scannedUris = new HashSet<>();
             for (URL entry : urls) {
                 URI uri = entry.toURI();
-                if (uri.getScheme().equals("file") && scannedUris.add(uri)) {
-                    final File path = new File(uri);
-                    if (scanMode != ScanMode.WITHOUT_JARS || path.isDirectory())
-                        scanFrom(path, cl, scannedUris, visitor);
-                }
+                if (uri.getScheme().equals("file") && scannedUris.add(uri))
+                    scanFrom(new File(uri), cl, scannedUris, visitor);
             }
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
