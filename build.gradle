@@ -306,6 +306,16 @@ project (':quasar-core') {
             //                fileset(file: "${sourceSets.main.resources.srcDirs.iterator().next()}/META-INF/suspendable-supers")
             //            }
             
+            ant.taskdef(
+                name:'autoScanSuspendables', classname:'co.paralleluniverse.fibers.instrument.AutoSuspendablesScanner', 
+                classpath: "build/classes/main:" + configurations.compile.asPath)
+            ant.autoScanSuspendables(
+                auto:false,
+                outputSupersFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers1",
+                append: 'true') {
+                fileset(dir: sourceSets.main.output.classesDir)
+            }
+            
             ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/resources/main:" + "build/classes/main:" + configurations.compile.asPath)
             ant.instrumentation(verbose:'true', check:'true', debug:'true') {
                 fileset(dir: sourceSets.main.output.classesDir) {
