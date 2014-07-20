@@ -118,46 +118,7 @@ public class AutoSuspendablesScanner extends Task {
     @Override
     public void execute() throws BuildException {
         try {
-            final List<URL> us = new ArrayList<>();
-
-            if (ant) {
-//              for (FileSet fs : filesets)
-//                  urls.add(fs.getDir().toURI().toURL());
-                final AntClassLoader acl = (AntClassLoader) getClass().getClassLoader();
-                classpathToUrls(acl.getClasspath().split(":"), us);
-            } else {
-                final URLClassLoader ucl = (URLClassLoader) getClass().getClassLoader();
-                us.addAll(Arrays.asList(ucl.getURLs()));
-            }
-            setURLs(us);
-
-            log("Classpath URLs: " + Arrays.toString(this.urls), Project.MSG_INFO);
-
-            List<URL> pus = new ArrayList<>();
-            for (FileSet fs : filesets)
-                pus.add(fs.getDir().toURI().toURL());
-            log("Project URLs: " + pus, Project.MSG_INFO);
-
-            if (auto)
-                scanExternalSuspendables();
-            // scan classes in filesets
-            Function<File, Void> fileVisitor = new Function<File, Void>() {
-                public Void apply(File file) {
-                    try {
-                        createGraph(new FileInputStream(file));
-                        return null;
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            };
-            
-            if (ant)
-                visitAntProject(fileVisitor);
-            else
-                visitProjectDir(fileVisitor);
-
-            walkGraph();
+            run();
 
             log("OUTPUT: " + supersFile, Project.MSG_INFO);
             log("OUTPUT: " + suspendablesFile, Project.MSG_INFO);
@@ -178,6 +139,63 @@ public class AutoSuspendablesScanner extends Task {
         } catch (Exception e) {
             log(e, Project.MSG_ERR);
             throw new BuildException(e);
+        }
+    }
+    
+    public void run() {
+        try {
+            final List<URL> us = new ArrayList<>();
+
+            if (ant) {
+//              for (FileSet fs : filesets)
+//                  urls.add(fs.getDir().toURI().toURL());
+                final AntClassLoader acl = (AntClassLoader) getClass().getClassLoader();
+                classpathToUrls(acl.getClasspath().split(":"), us);
+            } else {
+                final URLClassLoader ucl = (URLClassLoader) getClass().getClassLoader();
+                us.addAll(Arrays.asList(ucl.getURLs()));
+            }
+            setURLs(us);
+
+            log("Classpath URLs: " + Arrays.toString(this.urls), Project.MSG_INFO);
+
+            List<URL> pus = new ArrayList<>();
+            for (FileSet fs : filesets)
+                pus.add(fs.getDir().toURI().toURL());
+            log("Project URLs: " + pus, Project.MSG_INFO);
+
+            final long tStart = System.nanoTime();
+            
+            if (auto)
+                scanExternalSuspendables();
+            
+            final long tScanExternal = System.nanoTime();
+            if (auto)
+                log("Scanned external suspendables in " + (tScanExternal - tStart)/1000000 + " ms", Project.MSG_INFO);
+
+            // scan classes in filesets
+            Function<File, Void> fileVisitor = new Function<File, Void>() {
+                public Void apply(File file) {
+                    try {
+                        createGraph(new FileInputStream(file));
+                        return null;
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            };
+            if (ant)
+                visitAntProject(fileVisitor);
+            else
+                visitProjectDir(fileVisitor);
+            final long tBuildGraph = System.nanoTime();
+            log("Built method graph in " + (tBuildGraph - tScanExternal)/1000000 + " ms", Project.MSG_INFO);
+            
+            walkGraph();
+            final long tWalkGraph = System.nanoTime();
+            log("Walked method graph in " + (tWalkGraph - tBuildGraph)/1000000 + " ms", Project.MSG_INFO);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -465,7 +483,7 @@ public class AutoSuspendablesScanner extends Task {
         final boolean res = foundMethod | methodInParent;
         if (res) {
             MethodNode m = getOrCreateMethodNode(cls.name + '.' + method.name);
-            if (m.suspendType != SuspendableType.SUSPENDABLE) {
+            if (m.suspendType != SuspendableType.SUSPENDABLE && m.suspendType != SuspendableType.SUSPENDABLE_SUPER) {
                 m.suspendType = SuspendableType.SUSPENDABLE_SUPER;
                 q.add(m);
             }
