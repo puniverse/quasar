@@ -17,6 +17,7 @@ import co.paralleluniverse.common.reflection.ClassLoaderUtil;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.isClassFile;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToResource;
 import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
+import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_ANNOTATION_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import com.google.common.base.Function;
@@ -64,7 +65,7 @@ import org.objectweb.asm.Type;
 public class AutoSuspendablesScanner extends Task {
     private static final int API = Opcodes.ASM4;
     //
-    private final Map<String, MethodNode> callGraph = new HashMap<>();
+    private final Map<String, MethodNode> methods = new HashMap<>();
     private final Map<String, ClassNode> classes = new HashMap<>();
     private final Set<MethodNode> knownSuspendablesOrSupers = new HashSet<>();
     private final boolean ant;
@@ -287,31 +288,31 @@ public class AutoSuspendablesScanner extends Task {
                 suspendable = max(suspendable, SuspendableType.SUSPENDABLE_SUPER);
             if (suspendable != SuspendableType.SUSPENDABLE && ssc.isSuspendable(className, methodname, desc))
                 suspendable = max(suspendable, SuspendableType.SUSPENDABLE);
+            
+            final SuspendableType suspendable1 = suspendable;
+            return new MethodVisitor(api, mv) {
+                private SuspendableType susp = suspendable1 != SuspendableType.NON_SUSPENDABLE ? suspendable1 : null;
 
-            if (suspendable != null && suspendable != SuspendableType.NON_SUSPENDABLE)
-                markSuspendable(methodname, desc, suspendable);
-            if (suspendable == SuspendableType.SUSPENDABLE)
-                return mv;
-            else {
-                return new MethodVisitor(api, mv) {
-                    private boolean susp = false;
+                @Override
+                public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
+                    final AnnotationVisitor av = super.visitAnnotation(desc, visible);
 
-                    @Override
-                    public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
-                        if (adesc.equals(ANNOTATION_DESC))
-                            susp = true;
-                        return null;
-                    }
+                    if (adesc.equals(ANNOTATION_DESC))
+                        susp = noImpl ? SuspendableType.SUSPENDABLE_SUPER : SuspendableType.SUSPENDABLE;
+                    else if (adesc.equals(DONT_INSTRUMENT_ANNOTATION_DESC))
+                        susp = SuspendableType.NON_SUSPENDABLE;
 
-                    @Override
-                    public void visitEnd() {
-                        super.visitEnd();
+                    return av;
+                }
 
-                        if (susp)
-                            markSuspendable(methodname, desc, noImpl ? SuspendableType.SUSPENDABLE_SUPER : SuspendableType.SUSPENDABLE);
-                    }
-                };
-            }
+                @Override
+                public void visitEnd() {
+                    super.visitEnd();
+
+                    if (susp != null)
+                        markSuspendable(methodname, desc, susp);
+                }
+            };
         }
 
         private void markSuspendable(String methodname, String desc, SuspendableType sus) {
@@ -463,14 +464,20 @@ public class AutoSuspendablesScanner extends Task {
         if (cls == null)
             return false;
 
-        assert method.suspendType != SuspendableType.NON_SUSPENDABLE;
+        if (method.suspendType == SuspendableType.NON_SUSPENDABLE)
+            return false;
 
         boolean foundMethod = false;
 
         if (cls.hasMethod(method.name) && method.classNode != cls) {
-            log("Found parent of suspendable method: " + method.owner + '.' + method.name + " in " + cls.name
-                    + (cls.inProject ? "" : " NOT IN PROJECT"), cls.inProject ? Project.MSG_VERBOSE : Project.MSG_WARN);
-            foundMethod = true;
+            final MethodNode m1 = methods.get((cls.name + '.' + method.name).intern());
+            if (m1 != null && m1.suspendType == SuspendableType.NON_SUSPENDABLE)
+                return false;
+            if (m1 == null || m1.suspendType == null) {
+                log("Found parent of suspendable method: " + method.owner + '.' + method.name + " in " + cls.name
+                        + (cls.inProject ? "" : " NOT IN PROJECT"), cls.inProject ? Project.MSG_VERBOSE : Project.MSG_WARN);
+                foundMethod = true;
+            }
         }
 
         // recursively look in superclass and interfaces
@@ -505,7 +512,7 @@ public class AutoSuspendablesScanner extends Task {
     }
 
     public void getSuspenablesAndSupers(Collection<String> suspendables, Collection<String> suspendableSupers) {
-        for (MethodNode method : callGraph.values()) {
+        for (MethodNode method : methods.values()) {
             if (!method.known) {
                 if (method.suspendType == SuspendableType.SUSPENDABLE && suspendables != null)
                     suspendables.add(output(method));
@@ -528,10 +535,10 @@ public class AutoSuspendablesScanner extends Task {
 
     private MethodNode getOrCreateMethodNode(String methodName) {
         methodName = methodName.intern();
-        MethodNode entry = callGraph.get(methodName);
+        MethodNode entry = methods.get(methodName);
         if (entry == null) {
             entry = new MethodNode(getClassName(methodName), getMethodWithDesc(methodName));
-            callGraph.put(methodName, entry);
+            methods.put(methodName, entry);
         }
         return entry;
     }
