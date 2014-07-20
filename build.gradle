@@ -310,9 +310,8 @@ project (':quasar-core') {
                 name:'autoScanSuspendables', classname:'co.paralleluniverse.fibers.instrument.AutoSuspendablesScanner', 
                 classpath: "build/classes/main:" + configurations.compile.asPath)
             ant.autoScanSuspendables(
-                auto:true,
+                auto:false,
                 outputSupersFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers1",
-                outputSuspendableFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendables1",
                 append: 'true') {
                 fileset(dir: sourceSets.main.output.classesDir)
             }
