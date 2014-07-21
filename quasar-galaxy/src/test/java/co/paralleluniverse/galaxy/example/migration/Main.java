@@ -30,6 +30,7 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.galaxy.example.migration.Message.Type.*;
 import co.paralleluniverse.strands.Strand;
+import java.util.Date;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -43,6 +44,7 @@ public class Main {
 
         // com.esotericsoftware.minlog.Log.set(1);
         ActorRegistry.hasGlobalRegistry();
+        
 //        final ActorRef<Message> actor = ActorRegistry.getOrRegisterActor("migrant", new Callable<Actor<Message, ?>>() {
 //
 //            @Override
@@ -50,6 +52,7 @@ public class Main {
 //                return new Migrant();
 //            }
 //        });
+        
         final Server<Message, Integer, Message> actor = (Server<Message, Integer, Message>) ActorRegistry.getOrRegisterActor("migrant", new Callable() {
 
             @Override
@@ -62,30 +65,34 @@ public class Main {
         for (i = 0; i < 500; i++) {
             final double r = ThreadLocalRandom.current().nextDouble();
             if (r < 0.05) {
-                System.out.println("Hiring actor...");
+                System.out.println(new Date() + " Hiring actor...");
                 new Thread() {
                     @Override
                     public void run() {
                         try {
                             Strand.sleep(1000);
-                            System.out.println("22222");
+                            System.out.println(new Date() + " Acturally hiring...");
                             Actor.hire(actor);
-                            System.out.println("Hired!");
+                            System.out.println(new Date() + " Hired!");
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
                     }
                 }.start();
 
-                actor.call(new Message(nodeId, i, MIGRATE));
-//                 actor.send(new Message(nodeId, i, MIGRATE));
+                Message m = new Message(nodeId, i, MIGRATE);
+                System.out.println(new Date() + " Sending " + m);
+                actor.call(m);
+//                actor.send(m);
             } else {
-//                 actor.send(new Message(nodeId, i, PRINT));
-                actor.cast(new Message(nodeId, i, PRINT));
+                Message m = new Message(nodeId, i, PRINT);
+                System.out.println(new Date() + " Sending " + m);
+//                actor.send(m);
+                actor.cast(m);
             }
             Thread.sleep(500);
         }
-//         actor.send(new Message(nodeId, i, FINISHED));
+//        actor.send(new Message(nodeId, i, FINISHED));
         actor.cast(new Message(nodeId, i, FINISHED));
 
         System.out.println("Done");
@@ -125,6 +132,7 @@ public class Main {
 //            return null;
 //        }
 //    }
+    
     static class Migrant extends ServerActor<Message, Integer, Message> implements MigratingActor {
         private int loopCount;
         private int messageCount;
@@ -147,10 +155,10 @@ public class Main {
 
         @Override
         protected void handleCast(ActorRef<?> from, Object id, Message m) throws SuspendExecution {
-            System.out.println("received: " + m);
+            System.out.println(new Date() + " received: " + m);
             switch (m.type) {
                 case PRINT:
-                    System.out.println("iter: " + loopCount + " messages: " + messageCount);
+                    System.out.println(new Date() + " iter: " + loopCount + " messages: " + messageCount);
                     break;
                 case FINISHED:
                     shutdown();
@@ -159,10 +167,9 @@ public class Main {
 
         @Override
         protected Integer handleCall(ActorRef<?> from, Object id, Message m) throws Exception, SuspendExecution {
-            System.out.println("received: " + m);
+            System.out.println(new Date() + " received: " + m);
             switch (m.type) {
                 case MIGRATE:
-                    System.out.println("111111");
                     migrate();
                     return messageCount;
                 default:
