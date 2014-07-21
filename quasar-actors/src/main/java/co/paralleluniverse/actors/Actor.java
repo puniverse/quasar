@@ -1022,7 +1022,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
 
             @Override
             public void write(Fiber fiber, ByteArraySerializer ser) {
-                final byte[] buf = ser.write(fiber);
+                final byte[] buf = ser.write(Actor.this);
                 new Fiber<Void>() {
                     @Override
                     protected Void run() throws SuspendExecution, InterruptedException {
@@ -1077,7 +1077,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     }
 
     public static <M> ActorRef<M> hire(ActorRef<M> ref, FiberScheduler scheduler) throws SuspendExecution {
-        Actor actor = MigrationService.hire(ref, Fiber.newFiberSerializer());
+        Actor actor = MigrationService.hire(ref, Fiber.getFiberSerializer());
 
         final Fiber<?> fiber = actor.runner != null ? (Fiber) actor.getStrand() : null;
         actor.setRef(ref);

@@ -11,12 +11,12 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.io.serialization.ByteArraySerializer;
 
 /**
+ * A callback used by {@link Fiber#parkAndSerialize(FiberWriter) Fiber.parkAndSerialize}..
  *
  * @author pron
  */

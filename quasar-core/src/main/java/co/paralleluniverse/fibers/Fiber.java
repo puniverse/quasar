@@ -1829,16 +1829,30 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             @Override
             public void run(Fiber f) {
                 f.record(1, "Fiber", "parkAndSerialize", "Serializing fiber %s", f);
-                writer.write(f, newFiberSerializer());
+                writer.write(f, getFiberSerializer());
             }
         }));
     }
 
+    /**
+     * Deserializes a fiber from the given byte array and unparks it.
+     *
+     * @param serFiber  The byte array containing a fiber's serialized form.
+     * @param scheduler The {@link FiberScheduler} to use for scheduling the fiber.
+     * @return The deserialized, running fiber.
+     */
     public static <V> Fiber<V> unparkSerialized(byte[] serFiber, FiberScheduler scheduler) {
-        final Fiber<V> f = (Fiber<V>) newFiberSerializer().read(serFiber);
+        final Fiber<V> f = (Fiber<V>) getFiberSerializer().read(serFiber);
         return unparkDeserialized(f, scheduler);
     }
 
+    /**
+     * Unparks a fiber that's been deserialized (with the help of {@link #getFiberSerializer()}
+     *
+     * @param f         The deserialized fiber
+     * @param scheduler The {@link FiberScheduler} to use for scheduling the fiber.
+     * @return The fiber
+     */
     public static <V> Fiber<V> unparkDeserialized(Fiber<V> f, FiberScheduler scheduler) {
         f.record(1, "Fiber", "unparkDeserialized", "Deserialized fiber %s", f);
         final Thread currentThread = Thread.currentThread();
@@ -1860,7 +1874,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return f;
     }
 
-    public static ByteArraySerializer newFiberSerializer() {
+    /**
+     * Returns a {@link ByteArraySerializer} capable of serializing an object graph containing fibers.
+     */
+    public static ByteArraySerializer getFiberSerializer() {
         final KryoSerializer s = new KryoSerializer();
         s.getKryo().addDefaultSerializer(Fiber.class, new FiberSerializer());
         s.getKryo().addDefaultSerializer(ThreadLocal.class, new ThreadLocalSerializer());

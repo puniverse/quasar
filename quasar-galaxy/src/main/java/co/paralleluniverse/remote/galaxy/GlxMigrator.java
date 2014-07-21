@@ -16,14 +16,11 @@ package co.paralleluniverse.remote.galaxy;
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorImpl;
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.spi.MigrationRecord;
 import co.paralleluniverse.actors.spi.Migrator;
-import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Store;
 import co.paralleluniverse.io.serialization.ByteArraySerializer;
-import co.paralleluniverse.io.serialization.Serialization;
 import org.kohsuke.MetaInfServices;
 
 /**
@@ -86,10 +83,8 @@ public class GlxMigrator implements Migrator {
             final Actor actor;
             if (obj instanceof Actor)
                 actor = (Actor) obj;
-            else if (obj instanceof Fiber)
-                actor = Actor.getActor((Fiber) obj);
             else
-                throw new IllegalArgumentException("Serialized object " + obj + " is not an actor or a fiber");
+                throw new IllegalArgumentException("Serialized object " + obj + " is not an actor.");
             
             GlobalRemoteChannelReceiver.getReceiver(actor.getMailbox(), id);
             return actor;
