@@ -80,12 +80,11 @@ public class GlobalRemoteChannelReceiver<Message> implements CacheListener {
     @Override
     public void killed(Cache cache, long id) {
     }
-
     
     @Override
     public void messageReceived(byte[] message) {
         Object m1 = Serialization.getInstance().read(message);
-        LOG.debug("Received: " + m1);
+        LOG.debug("Received: {} -> {}", m1, channel);
         if (m1 instanceof GlxRemoteChannel.CloseMessage) {
             Throwable t = ((GlxRemoteChannel.CloseMessage) m1).getException();
             if (t != null)

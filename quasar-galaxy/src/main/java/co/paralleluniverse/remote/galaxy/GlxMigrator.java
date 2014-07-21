@@ -59,7 +59,7 @@ public class GlxMigrator implements Migrator {
     public void migrate(Object id, Actor actor, byte[] serialized) throws SuspendExecution {
         final long _id = (Long) id;
         try {
-            store.setListener(_id, null);
+            store.setListener(_id, null); // stops the receiver
             store.set(_id, serialized, null);
             store.release(_id);
         } catch (co.paralleluniverse.galaxy.TimeoutException e) {
