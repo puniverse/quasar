@@ -378,7 +378,7 @@ project (':quasar-actors') {
     
     dependencies {
         compile project(':quasar-core')
-        // compile 'org.mutabilitydetector:MutabilityDetector:0.9.1'
+        // compile 'org.mutabilitydetector:MutabilityDetector:0.9.2'
         compile "org.slf4j:slf4j-api:1.7.7"
         compile ("cglib:cglib:3.1") {
             exclude group: "org.ow2.asm", module: '*'
@@ -403,7 +403,6 @@ project (':quasar-galaxy') {
         testCompile ('org.gridkit.lab:telecontrol-ssh:0.7.22'){
             exclude group: "org.ow2.asm", module: '*'
         }
-        //        testCompile 'ch.qos.logback:logback-classic:1.0.6'
         testCompile group: 'junit', name: 'junit', version: '4.11' 
         testRuntime files(jar.archivePath)
     }
