@@ -1,5 +1,5 @@
 markdown: enhanced_kramdown
-highligeter: pygments
+highlighter: pygments
 lsi: false
 safe: false
 baseurl: /quasar
