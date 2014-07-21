@@ -217,4 +217,12 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
     public final String getName() {
         return (String) super.getName();
     }
+
+    @Override
+    protected Object readResolve() throws java.io.ObjectStreamException {
+        Object x = super.readResolve();
+        assert x == this;
+        helper.setActor(this);
+        return this;
+    }
 }

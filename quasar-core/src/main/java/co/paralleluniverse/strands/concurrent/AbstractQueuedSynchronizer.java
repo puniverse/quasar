@@ -22,7 +22,7 @@
 
 /*
  * Adaptations:
- *   trhead -> strand
+ *   thread -> strand
  *   Thread -> Strand
  *   LockSupport -> Strand
  * 

@@ -29,14 +29,10 @@
 package co.paralleluniverse.fibers.instrument;
 
 /**
- * Allow access to the ANT logging routines
- * 
  * @author Matthias Mann
  */
 public interface Log {
-
     public void log(LogLevel level, String msg, Object ... args);
     
     public void error(String msg, Exception ex);
-    
 }

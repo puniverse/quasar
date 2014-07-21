@@ -13,11 +13,46 @@
  */
 package co.paralleluniverse.actors;
 
+import java.util.Objects;
+
 /**
  * An {@link ActorRef} which delegates all operations to another {@code ActorRef}.
  *
  * @author pron
  */
-public interface ActorRefDelegate<Message> {
-    ActorRef<Message> getRef();
+public class ActorRefDelegate<Message> extends ActorRef<Message> {
+    private final ActorRef<Message> ref;
+
+    /**
+     * Constructs an {@code ActorRefDelegate}
+     *
+     * @param ref the {@link ActorRef} to which all operations will be delegated
+     */
+    public ActorRefDelegate(ActorRef<Message> ref) {
+        this.ref = ref;
+    }
+
+    ActorRef<Message> getRef() {
+        return ref;
+    }
+
+    @Override
+    protected ActorImpl<Message> getImpl() {
+        return getRef().getImpl();
+    }
+
+    @Override
+    void setImpl(ActorImpl<Message> impl) {
+        getRef().setImpl(impl); //To change body of generated methods, choose Tools | Templates.
+    }
+    
+    protected boolean isInActor() {
+        return Objects.equals(getRef(), LocalActor.self());
+    }
+
+    static <T> ActorRef<T> stripDelegates(ActorRef<T> r) {
+        while (r instanceof ActorRefDelegate)
+            r = ((ActorRefDelegate<T>) r).getRef();
+        return r;
+    }
 }

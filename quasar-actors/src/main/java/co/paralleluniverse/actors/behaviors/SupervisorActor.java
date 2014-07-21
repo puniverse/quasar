@@ -25,9 +25,9 @@ import co.paralleluniverse.actors.ShutdownMessage;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.replyError;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
-import co.paralleluniverse.actors.behaviors.SupervisorImpl.AddChildMessage;
-import co.paralleluniverse.actors.behaviors.SupervisorImpl.GetChildMessage;
-import co.paralleluniverse.actors.behaviors.SupervisorImpl.RemoveChildMessage;
+import co.paralleluniverse.actors.behaviors.Supervisor.AddChildMessage;
+import co.paralleluniverse.actors.behaviors.Supervisor.GetChildMessage;
+import co.paralleluniverse.actors.behaviors.Supervisor.RemoveChildMessage;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
@@ -113,7 +113,7 @@ public class SupervisorActor extends BehaviorActor {
     /////////// Behavior boilerplate ///////////////////////////////////
     @Override
     protected Supervisor makeRef(ActorRef<Object> ref) {
-        return new SupervisorImpl.Local(ref);
+        return new Supervisor(ref);
     }
 
     @Override
@@ -394,7 +394,11 @@ public class SupervisorActor extends BehaviorActor {
         verifyInActor();
         final ChildEntry child = addChild1(spec);
 
-        ActorRef<?> actor = spec.builder instanceof ActorRef ? (ActorRef<?>) spec.builder : null;
+        ActorRef<?> actor = null;
+        if(spec.builder instanceof Actor) {
+            final Actor a = ((Actor) spec.builder);
+            actor = a.isStarted() ? a.ref() : a.spawn();
+        }
         if (actor == null)
             actor = start(child);
         else
@@ -526,7 +530,7 @@ public class SupervisorActor extends BehaviorActor {
         }
     }
 
-    private ActorRef<?> start(ChildEntry child) {
+    private ActorRef<?> start(ChildEntry child) throws SuspendExecution {
         final ActorRef old = child.actor;
         if (old != null && !LocalActor.isDone(old))
             throw new IllegalStateException("Actor " + child.actor + " cannot be restarted because it is not dead");

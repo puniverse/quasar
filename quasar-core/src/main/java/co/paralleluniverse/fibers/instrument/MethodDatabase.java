@@ -348,30 +348,32 @@ public class MethodDatabase implements Log {
     }
 
     protected ClassEntry checkClass(String className) {
-        ClassEntry entry = null;
-        if (cl != null) {
-            log(LogLevel.INFO, "Reading class: %s", className);
-
-            final InputStream is = cl.getResourceAsStream(className + ".class");
-            entry = getClassEntry(className); // getResourceAsStream may have triggered instrumentation
-            if (entry == null) {
-                CheckInstrumentationVisitor civ = null;
-                if (is != null)
-                    civ = checkFileAndClose(is, className);
-                if (civ != null) {
-                    entry = civ.getClassEntry();
-                    recordSuspendableMethods(className, entry);
-                } else
-                    log(LogLevel.INFO, "Class not found: %s", className);
-            } else {
-                try {
-                    is.close();
-                } catch (IOException e) {
-                    error(className, e);
-                }
-            }
-        } else
+        if (cl == null) {
             log(LogLevel.INFO, "Can't check class: %s", className);
+            return null;
+        }
+        
+        log(LogLevel.INFO, "Reading class: %s", className);
+        final InputStream is = cl.getResourceAsStream(className + ".class");
+        if (is == null) {
+            log(LogLevel.INFO, "Class not found: %s", className);
+            return null;
+        }
+        ClassEntry entry = getClassEntry(className); // getResourceAsStream may have triggered instrumentation
+        if (entry == null) {
+            final CheckInstrumentationVisitor civ = checkFileAndClose(is, className);
+            if (civ != null) {
+                entry = civ.getClassEntry();
+                recordSuspendableMethods(className, entry);
+            } else
+                log(LogLevel.INFO, "Class not found: %s", className);
+        } else {
+            try {
+                is.close();
+            } catch (IOException e) {
+                error(className, e);
+            }
+        }
 
         return entry;
     }

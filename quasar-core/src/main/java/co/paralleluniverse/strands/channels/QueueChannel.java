@@ -420,7 +420,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
     @Override
     public String toString() {
-        return "Channel{" + "sync: " + sync + ", queue: " + Objects.systemToString(queue) + '}';
+        return "Channel{" + "sync: " + sync + ", queue: " + Objects.systemToString(queue) + ", capacity: " + capacity() + '}';
     }
 
     protected Object writeReplace() throws java.io.ObjectStreamException {

@@ -20,11 +20,13 @@ import co.paralleluniverse.galaxy.Cluster;
 import co.paralleluniverse.galaxy.TimeoutException;
 import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Messenger;
+import co.paralleluniverse.galaxy.quasar.Store;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.remote.RemoteException;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.SendPort;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.Serializable;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
@@ -46,7 +48,8 @@ import org.slf4j.LoggerFactory;
 public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializable {
     private static final Logger LOG = LoggerFactory.getLogger(GlxRemoteChannel.class);
     private static final Grid grid;
-    private static final ExecutorService sendThreadPool = Executors.newSingleThreadExecutor(); //Executors.newCachedThreadPool();
+    private static final ExecutorService sendThreadPool = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build()); //Executors.newCachedThreadPool();
+    private static Canonicalizer<GlxGlobalChannelId, GlxRemoteChannel> canonicalizer = new Canonicalizer<>();
 
     static {
         try {
@@ -60,13 +63,15 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
         return grid.messenger();
     }
 
+    static Store getStore() {
+        return grid.store();
+    }
+
     static Cluster getCluster() {
         return grid.cluster();
     }
-    private final Object topic; // serializable (String or Long)
-    private final long address; // either my node or my ref
-    private final boolean global;
-    private final short ownerNodeId;
+
+    private final GlxGlobalChannelId id;
 
     /**
      * Used on the creating (receiving) side
@@ -74,25 +79,19 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
      * @param channel
      */
     public GlxRemoteChannel(SendPort<Message> channel, Object globalId) {
-        final RemoteChannelReceiver<Message> receiver = RemoteChannelReceiver.getReceiver(channel, globalId != null);
-        this.topic = receiver.getTopic();
-        this.ownerNodeId = getCluster().getMyNodeId();
-        if (globalId != null) {
-            this.address = (Long) globalId;
-            this.global = true;
-        } else {
-            this.address = ownerNodeId;
-            this.global = false;
-        }
+        final boolean global = globalId != null;
+        final long topic = global ? -1 : RemoteChannelReceiver.getReceiver(channel).getTopic();
+        final short ownerNodeId = global ? -1 : getCluster().getMyNodeId();
+        this.id = new GlxGlobalChannelId(global, global ? (Long) globalId : ownerNodeId, topic);
     }
 
-    public short getOwnerNodeId() {
-        return ownerNodeId;
+    public GlxGlobalChannelId getId() {
+        return id;
     }
 
     @Override
     public void send(Message message) throws SuspendExecution {
-        submitSend(message, global, address, topic);
+        send(message, getId());
     }
 
     @Override
@@ -151,9 +150,7 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 43 * hash + Objects.hashCode(this.topic);
-        hash = 43 * hash + (int) (this.address ^ (this.address >>> 32));
-        hash = 43 * hash + (this.global ? 1 : 0);
+        hash = 43 * hash + Objects.hashCode(this.id);
         return hash;
     }
 
@@ -164,36 +161,32 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
         if (!(obj instanceof GlxRemoteChannel))
             return false;
         final GlxRemoteChannel<Message> other = (GlxRemoteChannel<Message>) obj;
-        if (!Objects.equals(this.topic, other.topic))
-            return false;
-        if (this.address != other.address)
-            return false;
-        if (this.global != other.global)
+        if (!Objects.equals(this.id, other.id))
             return false;
         return true;
     }
 
     protected Object readResolve() throws java.io.ObjectStreamException, SuspendExecution {
-        new RCPhantomReference(this).register();
-        return this;
+        GlxRemoteChannel<Message> self = canonicalizer.get(getId(), this);
+        new RCPhantomReference(self).register();
+        return self;
     }
 
-    private static void registerRemoteRef(final short myNodeId, final boolean global, final long address, final Object topic) throws SuspendExecution {
-        submitSend(new RefMessage(true, myNodeId), global, address, topic);
+    private static void registerRemoteRef(final short myNodeId, GlxGlobalChannelId id) throws SuspendExecution {
+        submitSend(new RefMessage(true, myNodeId), id);
     }
 
-    private static void unregisterRemoteRef(final short myNodeId, final boolean global, final long address, final Object topic) throws SuspendExecution {
-        submitSend(new RefMessage(false, myNodeId), global, address, topic);
+    private static void unregisterRemoteRef(final short myNodeId, GlxGlobalChannelId id) throws SuspendExecution {
+        submitSend(new RefMessage(false, myNodeId), id);
     }
 
-    private static void submitSend(final Object message, final boolean global, final long address, final Object topic) throws SuspendExecution {
+    private static void submitSend(final Object message, final GlxGlobalChannelId id) {
         LOG.debug("sending: " + message);
         sendThreadPool.submit(new Runnable() {
             @Override
             public void run() {
                 try {
-                    staticSend(message, global, address, topic);
-                    LOG.debug("sent {}", message);
+                    send(message, id);
                 } catch (SuspendExecution e) {
                     throw new AssertionError(e);
                 }
@@ -201,35 +194,24 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
         });
     }
 
-    private static void staticSend(Object message, final boolean global, final long address, final Object topic) throws SuspendExecution {
+    private static void send(Object message, GlxGlobalChannelId id) throws SuspendExecution {
+        LOG.debug("sent {}", message);
         try {
-            if (global) {
-                final long ref = address;
+            if (id.isGlobal()) {
+                final long ref = id.getAddress();
                 if (message instanceof Streamable) {
-                    if (topic instanceof String)
-                        getMessenger().sendToOwnerOf(ref, (String) topic, (Streamable) message);
-                    else
-                        getMessenger().sendToOwnerOf(ref, (Long) topic, (Streamable) message);
+                    getStore().send(ref, (Streamable) message);
                 } else {
                     final byte[] buf = Serialization.getInstance().write(message);
-                    if (topic instanceof String)
-                        getMessenger().sendToOwnerOf(ref, (String) topic, buf);
-                    else
-                        getMessenger().sendToOwnerOf(ref, (Long) topic, buf);
+                    getStore().send(ref, buf);
                 }
             } else {
-                final short node = (short) address;
+                final short node = (short) id.getAddress();
                 if (message instanceof Streamable) {
-                    if (topic instanceof String)
-                        getMessenger().send(node, (String) topic, (Streamable) message);
-                    else
-                        getMessenger().send(node, (Long) topic, (Streamable) message);
+                    getMessenger().send(node, (Long) id.getTopic(), (Streamable) message);
                 } else {
                     final byte[] buf = Serialization.getInstance().write(message);
-                    if (topic instanceof String)
-                        getMessenger().send(node, (String) topic, buf);
-                    else
-                        getMessenger().send(node, (Long) topic, buf);
+                    getMessenger().send(node, (Long) id.getTopic(), buf);
                 }
             }
         } catch (TimeoutException e) {
@@ -284,26 +266,22 @@ public class GlxRemoteChannel<Message> implements SendPort<Message>, Serializabl
         private final static Set<RCPhantomReference> rcs = Collections.newSetFromMap(new ConcurrentHashMap<RCPhantomReference, Boolean>());
         private final static ReferenceQueue<GlxRemoteChannel> q = new ReferenceQueue<>();
         final short myNodeId;
-        final public boolean globalCopy;
-        final public long addressCopy;
-        final public Object topicCopy;
+        final public GlxGlobalChannelId id;
 
         public RCPhantomReference(GlxRemoteChannel referent) {
             super(referent, q);
-            this.topicCopy = referent.topic;
-            this.addressCopy = referent.address;
-            this.globalCopy = referent.global;
+            this.id = referent.id;
             this.myNodeId = referent.getNodeId();
         }
 
         public void unregister() throws SuspendExecution {
-            GlxRemoteChannel.unregisterRemoteRef(myNodeId, globalCopy, addressCopy, topicCopy);
+            GlxRemoteChannel.unregisterRemoteRef(myNodeId, id);
             rcs.remove(this);
         }
 
         public void register() throws SuspendExecution {
             rcs.add(this);
-            GlxRemoteChannel.registerRemoteRef(myNodeId, globalCopy, addressCopy, topicCopy);
+            GlxRemoteChannel.registerRemoteRef(myNodeId, id);
         }
 
         static {

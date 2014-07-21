@@ -18,6 +18,7 @@ import org.objectweb.asm.tree.MethodInsnNode;
  */
 final class Classes {
     static final String EXCEPTION_NAME = "co/paralleluniverse/fibers/SuspendExecution";
+    static final String RUNTIME_EXCEPTION_NAME = "co/paralleluniverse/fibers/RuntimeSuspendExecution";
     static final String UNDECLARED_THROWABLE_NAME = "java/lang/reflect/UndeclaredThrowableException";
     static final String ANNOTATION_NAME = "co/paralleluniverse/fibers/Suspendable";
     static final String DONT_INSTRUMENT_ANNOTATION_NAME = "co/paralleluniverse/fibers/instrument/DontInstrument";
@@ -37,7 +38,7 @@ final class Classes {
     static final String ALREADY_INSTRUMENTED_DESC = Type.getDescriptor(Instrumented.class);
 
     private static final Set<String> yieldMethods = new HashSet<>(Arrays.asList(new String[] {
-        "park", "yield", "parkAndUnpark", "yieldAndUnpark"
+        "park", "yield", "parkAndUnpark", "yieldAndUnpark", "parkAndSerialize"
     }));
     static boolean isYieldMethod(String className, String methodName) {
         return FIBER_CLASS_NAME.equals(className) && yieldMethods.contains(methodName);

@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
-import static co.paralleluniverse.actors.ActorRefDelegateImpl.stripDelegates;
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.QueueChannel;
@@ -24,7 +24,7 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * Static methods that provide access to {@link Actor}'s functionality through an {@link ActorRef} if the actor is local.
- * With the exception of the {@link #self()} method, application code shouldn't normally use these methods. 
+ * With the exception of the {@link #self()} method, application code shouldn't normally use these methods.
  * They are provided mainly for testing, and defining sophisticated behaviors.
  * <p/>
  * These services are provided as static methods rather than return a reference to the actor reference to the actor itself should not
@@ -48,7 +48,7 @@ public final class LocalActor {
     }
 
     public static boolean isLocal(ActorRef<?> actor) {
-        return stripDelegates(actor) instanceof LocalActorRef;
+        return actor.getImpl() instanceof Actor;
     }
 
     @Suspendable
@@ -95,11 +95,11 @@ public final class LocalActor {
         actorOf(actor).stopMonitor();
     }
 
-    public static void register(ActorRef<?> actor, String name) {
+    public static void register(ActorRef<?> actor, String name) throws SuspendExecution {
         actorOf(actor).register(name);
     }
 
-    public static void register(ActorRef<?> actor) {
+    public static void register(ActorRef<?> actor) throws SuspendExecution {
         actorOf(actor).register();
     }
 
@@ -123,11 +123,20 @@ public final class LocalActor {
         return actorOf(actor).toString();
     }
 
+    public static boolean isInstance(ActorRef<?> actor, Class<? extends Actor> type) {
+        return type.isInstance(actorOf(actor));
+    }
+
+    public static Class<? extends Actor> getClass(ActorRef<?> actor) {
+        return actorOf(actor).getClass();
+    }
+
     public static <M, V> ActorBuilder<M, V> toActorBuilder(ActorRef<M> actor) {
-        actor = stripDelegates(actor);
-        if (!(actor instanceof LocalActorRef))
+        try {
+            return actorOf(actor);
+        } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("ActorRef " + actor + " is not a local actor, and cannot be used as an ActorBuilder.");
-        return (ActorBuilder<M, V>) actor;
+        }
     }
 
     static void setMonitor(ActorRef<?> actor, ActorMonitor mon) {
@@ -142,11 +151,18 @@ public final class LocalActor {
         return actorOf(actor).getStackTrace();
     }
 
+    static void postRegister(ActorRef<?> ar) {
+        ActorImpl impl = ar.getImpl();
+        if (!(impl instanceof Actor))
+            return;
+        ((Actor) impl).postRegister();
+    }
+
     private static Actor actorOf(ActorRef<?> ar) {
-        ar = stripDelegates(ar);
-        if (!(ar instanceof LocalActorRef))
+        ActorImpl impl = ar.getImpl();
+        if (!(impl instanceof Actor))
             throw new IllegalArgumentException("ActorRef " + ar + " is not a local actor.");
-        return ((LocalActorRef) ar).getActor();
+        return (Actor) impl;
     }
 
     private LocalActor() {

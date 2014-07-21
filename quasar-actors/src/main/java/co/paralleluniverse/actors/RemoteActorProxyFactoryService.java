@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.actors.spi.RemoteActorProxyFactory;
 import co.paralleluniverse.common.util.ServiceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +30,7 @@ public final class RemoteActorProxyFactoryService {
         LOG.info("RemoteActorProxyFactory is {}", factory);
     }
     
-    public static <Message> RemoteActorRef<Message> create(ActorRef<Message> actor, Object globalId) {
+    public static <Message> RemoteActor<Message> create(ActorRef<Message> actor, Object globalId) {
         return factory.create(actor, globalId);
     }
 

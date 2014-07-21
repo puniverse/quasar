@@ -13,25 +13,28 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorLoader;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorRefDelegate;
-import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MailboxConfig;
-import co.paralleluniverse.fibers.Joinable;
+import co.paralleluniverse.fibers.RuntimeSuspendExecution;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.SendPort;
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import net.sf.cglib.proxy.Callback;
+import net.sf.cglib.proxy.CallbackFilter;
+//import java.lang.reflect.Proxy;
+//import java.lang.reflect.InvocationHandler;
+import net.sf.cglib.proxy.Enhancer;
+import net.sf.cglib.proxy.InvocationHandler;
+import net.sf.cglib.proxy.NoOp;
 
 /**
  * Wraps a Java object in a {@link ServerActor} that exposes the object's methods as an interface and processes them in an actor
@@ -40,7 +43,7 @@ import java.util.Objects;
  * You can either supply a target object to any of the public constructors, or extend this class and use the subclass itself as the target,
  * in which case use the protected constructors that don't take a {@code target} argument.
  * <p/>
- * The interface(s) exposed must 
+ * The interface(s) exposed must
  *
  * @author pron
  */
@@ -226,7 +229,7 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
 
     /**
      * This constructor is for use by subclasses that are intended to serve as the target. This object will serve as the target
-     * for the method calls, and all of the interfaces implemented by the subclass will be exposed by the {@link ActorRef}. 
+     * for the method calls, and all of the interfaces implemented by the subclass will be exposed by the {@link ActorRef}.
      * The default mailbox settings will be used.
      *
      * @param name              the actor's name (may be null)
@@ -265,36 +268,38 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
     }
 
     private Object makeProxyRef(Server<Invocation, Object, Invocation> ref) {
-        final boolean local = ref instanceof LocalBehavior;
-        return Proxy.newProxyInstance(this.getClass().getClassLoader(),
-                combine(interfaces, local ? standardLocalInterfaces : standardInterfaces),
-                new ObjectProxyServerImpl(local ? this : null,
-                        ref,
-                        callOnVoidMethods));
+        Enhancer enhancer = new Enhancer();
+        enhancer.setSuperclass(Server.class);
+        enhancer.setInterfaces(combine(interfaces, standardInterfaces));
+        enhancer.setCallbacks(new Callback[]{new ObjectProxyServerImpl(ref, callOnVoidMethods), NoOp.INSTANCE});
+        enhancer.setCallbackFilter(new CallbackFilter() {
+
+            @Override
+            public int accept(Method method) {
+                final Class<?> cls = method.getDeclaringClass();
+                if (cls.isAssignableFrom(ActorRefDelegate.class))
+                    return 1; // call super
+                return 0;
+            }
+        });
+        return enhancer.create(new Class[]{ActorRef.class}, new Object[]{ref});
+//        return Enhancer.create(Server.class,
+//                combine(interfaces, standardInterfaces),
+//                new ObjectProxyServerImpl(ref, callOnVoidMethods));
+
+//        return Proxy.newProxyInstance(this.getClass().getClassLoader(),
+//                combine(interfaces, standardInterfaces),
+//                new ObjectProxyServerImpl(ref, callOnVoidMethods));
     }
+
     private static Class<?>[] standardInterfaces = new Class[]{
-        Server.class,
-        ActorRef.class,
-        Behavior.class,
-        SendPort.class,
-        ActorRefDelegate.class,};
-    private static Class<?>[] standardLocalInterfaces = new Class[]{
-        Server.class,
-        ActorRef.class,
-        Behavior.class,
-        SendPort.class,
-        ActorBuilder.class,
-        Joinable.class,
-        LocalBehavior.class,
-        ActorRefDelegate.class,};
+        SendPort.class,};
 
     private static class ObjectProxyServerImpl implements InvocationHandler, java.io.Serializable {
-        private transient final ProxyServerActor actor;
         private final boolean callOnVoidMethods;
         private final Server<Invocation, Object, Invocation> ref;
 
-        ObjectProxyServerImpl(ProxyServerActor actor, Server<Invocation, Object, Invocation> ref, boolean callOnVoidMethods) {
-            this.actor = actor;
+        ObjectProxyServerImpl(Server<Invocation, Object, Invocation> ref, boolean callOnVoidMethods) {
             this.ref = ref;
             this.callOnVoidMethods = callOnVoidMethods;
         }
@@ -304,48 +309,35 @@ public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocat
         }
 
         @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws SuspendExecution, Throwable {
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             final Class<?> cls = method.getDeclaringClass();
-            if (cls == ActorRefDelegate.class && method.getName().equals("getRef"))
-                return ref;
-            if (proxy instanceof LocalBehavior && method.getName().equals("writeReplace"))
-                return actor.makeProxyRef((Server<Invocation, Object, Invocation>) ((LocalBehavior) ref).writeReplace());
-            if (Arrays.asList(standardLocalInterfaces).contains(cls)) {
+            assert !cls.isAssignableFrom(ActorRefDelegate.class);
+            if (cls.isAssignableFrom(Server.class) || Arrays.asList(standardInterfaces).contains(cls)) {
                 try {
                     return method.invoke(ref, args);
                 } catch (InvocationTargetException e) {
                     throw e.getCause();
                 }
             }
-            if (cls == Object.class) {
-                switch (method.getName()) {
-                    case "hashCode":
-                        return Objects.hashCode(ref);
-                    case "equals":
-                        if (!(args[0] instanceof ActorRef))
-                            return false;
-                        return ActorUtil.equals(ref, (ActorRef) args[0]);
-                    case "toString":
-                        return "ObjectProxyServer{" + ref.toString() + "}";
-                    default:
-                        throw new UnsupportedOperationException();
-                }
-            }
 
-            if (isInActor()) {
-                try {
-                    return method.invoke(ServerActor.currentServerActor(), args);
-                } catch (InvocationTargetException e) {
-                    throw e.getCause();
+            try {
+                if (isInActor()) {
+                    try {
+                        return method.invoke(ServerActor.currentServerActor(), args);
+                    } catch (InvocationTargetException e) {
+                        throw e.getCause();
+                    }
+                } else {
+                    final Invocation m = new Invocation(method, args, false);
+                    if (callOnVoidMethods || (method.getReturnType() != void.class && method.getReturnType() != Void.class))
+                        return ref.call(m);
+                    else {
+                        ref.cast(m);
+                        return null;
+                    }
                 }
-            } else {
-                final Invocation m = new Invocation(method, args, false);
-                if (callOnVoidMethods || (method.getReturnType() != void.class && method.getReturnType() != Void.class))
-                    return ref.call(m);
-                else {
-                    ref.cast(m);
-                    return null;
-                }
+            } catch (SuspendExecution e) {
+                throw RuntimeSuspendExecution.of(e);
             }
         }
     }

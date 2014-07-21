@@ -43,6 +43,8 @@ interface FiberTask<V> extends Future<V> {
 
     int getState();
 
+    void setState(int state);
+    
     boolean park(Object blocker, boolean exclusive) throws SuspendExecution;
 
     void yield() throws SuspendExecution;

@@ -44,8 +44,8 @@ subprojects {
             dirs baselib
         }
         repositories {
-            mavenCentral()
             mavenLocal()
+            mavenCentral()
             maven { url "https://oss.sonatype.org/content/repositories/releases" }
             maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
             maven { url "http://download.oracle.com/maven/" }
@@ -58,9 +58,9 @@ subprojects {
 
             force "com.google.guava:guava:17.0"
             force "org.slf4j:slf4j-api:1.7.7"
-            force "org.apache.logging.log4j:log4j-slf4j-impl:2.0-rc1"
-            force "org.apache.logging.log4j:log4j-api:2.0-rc1"
-            force "org.apache.logging.log4j:log4j-core:2.0-rc1"
+            force "org.apache.logging.log4j:log4j-slf4j-impl:2.0"
+            force "org.apache.logging.log4j:log4j-api:2.0"
+            force "org.apache.logging.log4j:log4j-core:2.0"
             force "log4j:log4j:1.2.17"
             force "junit:junit:4.11"
             force "com.codahale.metrics:metrics-core:3.0.2"
@@ -79,13 +79,15 @@ subprojects {
         compile "org.apache.ant:ant:1.9.4"
         compile "com.google.guava:guava:17.0"
         testCompile 'junit:junit:4.11'
+        testCompile 'org.truth0:truth:0.22'
         testCompile 'org.hamcrest:hamcrest-all:1.3'
         testCompile("org.mockito:mockito-all:1.9.5") {
             exclude group: "org.ow2.asm", module: '*'
         }
-        testCompile 'org.openjdk.jmh:jmh-core:0.8'
-        testCompile 'org.openjdk.jmh:jmh-generator-annprocess:0.8'
+        testCompile 'org.openjdk.jmh:jmh-core:0.9.3'
+        testCompile 'org.openjdk.jmh:jmh-generator-annprocess:0.9.3'
         compileOnly 'org.kohsuke.metainf-services:metainf-services:1.5'
+        // compileOnly 'com.google.auto.service:auto-service:1.0-rc1' // same as metainf-services
         markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
     }
 
@@ -122,8 +124,14 @@ subprojects {
     }
 
     task run(type: JavaExec, dependsOn:[testClasses]) {
-        main = mainClass
-        
+        classpath = sourceSets.main.runtimeClasspath
+        if(project.hasProperty('mainClass')){
+            main = project.mainClass
+        }    
+        if(project.hasProperty('args')){
+            args project.args.split('\\s+')
+        }
+    
         jvmArgs '-Xmx2048m'
     
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
@@ -148,7 +156,7 @@ subprojects {
     }
 
     tasks.withType(JavaExec) { 
-        classpath = sourceSets.test.runtimeClasspath   
+        classpath += sourceSets.test.runtimeClasspath   
     }
 
     
@@ -298,12 +306,38 @@ project (':quasar-core') {
             //                fileset(file: "${sourceSets.main.resources.srcDirs.iterator().next()}/META-INF/suspendable-supers")
             //            }
             
+            ant.taskdef(
+                name:'autoScanSuspendables', classname:'co.paralleluniverse.fibers.instrument.AutoSuspendablesScanner', 
+                classpath: "build/classes/main:" + configurations.compile.asPath)
+            ant.autoScanSuspendables(
+                auto:false,
+                outputSupersFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers1",
+                append: 'true') {
+                fileset(dir: sourceSets.main.output.classesDir)
+            }
+            
             ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/resources/main:" + "build/classes/main:" + configurations.compile.asPath)
             ant.instrumentation(verbose:'true', check:'true', debug:'true') {
                 fileset(dir: sourceSets.main.output.classesDir) {
                     exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
                 }
             } 
+        }
+    }
+
+    // The outputs of the following task are tested by AutoSuspendablesScannerTest
+    compileTestJava {
+        doLast {
+            ant.taskdef(
+                name:'autoScanSuspendables', classname:'co.paralleluniverse.fibers.instrument.AutoSuspendablesScanner', 
+                classpath: "${configurations.compile.asPath}:${jar.archivePath}")
+            ant.autoScanSuspendables(
+                auto:"true",
+                outputSuspendableFile:"$sourceSets.test.output.resourcesDir/META-INF/testSuspendables", 
+                outputSupersFile:"$sourceSets.test.output.resourcesDir/META-INF/testSuspendableSupers",
+                append: 'true') {
+                fileset(dir: sourceSets.test.output.classesDir)
+            }            
         }
     }
     
@@ -346,10 +380,13 @@ project (':quasar-actors') {
         compile project(':quasar-core')
         // compile 'org.mutabilitydetector:MutabilityDetector:0.9.1'
         compile "org.slf4j:slf4j-api:1.7.7"
-	//  runtime "org.slf4j:slf4j-jdk14:1.7.7"
-        runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0-rc1"
-        runtime "org.apache.logging.log4j:log4j-api:2.0-rc1"
-        runtime "org.apache.logging.log4j:log4j-core:2.0-rc1"
+        compile ("cglib:cglib:3.1") {
+            exclude group: "org.ow2.asm", module: '*'
+        }
+        //  runtime "org.slf4j:slf4j-jdk14:1.7.7"
+        runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0"
+        runtime "org.apache.logging.log4j:log4j-api:2.0"
+        runtime "org.apache.logging.log4j:log4j-core:2.0"
         compile "com.lmax:disruptor:3.2.1" // required for log4j
     }
 }
@@ -363,16 +400,30 @@ project (':quasar-galaxy') {
             exclude group: "com.lmax", module: 'disruptor'
         }
         
-        testCompile('org.gridkit.lab:nanocloud:0.8.2.2') {
+        testCompile ('org.gridkit.lab:telecontrol-ssh:0.7.22'){
             exclude group: "org.ow2.asm", module: '*'
         }
+        //        testCompile 'ch.qos.logback:logback-classic:1.0.6'
+        testCompile group: 'junit', name: 'junit', version: '4.11' 
+        testRuntime files(jar.archivePath)
     }
     
+
+    tasks.withType(Test) {
+        systemProperty "co.paralleluniverse.quasarJar", "${quasarJar}"
+        systemProperty "jgroups.bind_addr", "127.0.0.1"
+        systemProperty "galaxy.multicast.address", "225.0.0.1"
+        systemProperty "galaxy.multicast.port", "7050"
+        systemProperty "co.paralleluniverse.galaxy.configFile", "${sourceSets.main.output.resourcesDir}/config/peer.xml"
+        systemProperty "co.paralleluniverse.galaxy.autoGoOnline", "true"
+    }
+
     tasks.withType(JavaExec) {
         main = mainClass
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
         systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
         // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+        // systemProperty "co.paralleluniverse.io.useJDKSerialization", "true"
         jvmArgs "-javaagent:${quasarJar}" // =v, =d
         jvmArgs "-ea", "-XX:MaxDirectMemorySize=100M"
         systemProperty "jgroups.bind_addr", "127.0.0.1"
@@ -399,6 +450,7 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
         ]
     }
     excludes = [
+        "co/paralleluniverse/actors/spi/**",
         "co/paralleluniverse/actors/ActorMonitor.java",
         "co/paralleluniverse/actors/GlobalRegistry.java",
         "co/paralleluniverse/actors/JMXActorMonitor.java",

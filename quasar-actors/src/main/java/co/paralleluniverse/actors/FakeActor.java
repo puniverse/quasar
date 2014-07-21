@@ -28,14 +28,14 @@ import java.util.Set;
  *
  * @author pron
  */
-public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
+public abstract class FakeActor<Message> extends ActorImpl<Message> {
     private static final Throwable NATURAL = new Throwable();
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(MapUtil.<LifecycleListener, Boolean>newConcurrentHashMap());
-    private final Set<ActorRefImpl> observed = Collections.newSetFromMap(MapUtil.<ActorRefImpl, Boolean>newConcurrentHashMap());
+    private final Set<ActorImpl> observed = Collections.newSetFromMap(MapUtil.<ActorImpl, Boolean>newConcurrentHashMap());
     private volatile Throwable deathCause;
 
     public FakeActor(String name, SendPort<Message> mailbox) {
-        super(name, (SendPort<Object>) mailbox);
+        super(name, (SendPort<Object>) mailbox, null);
     }
 
     /**
@@ -98,12 +98,12 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
     protected void addLifecycleListener(LifecycleListener listener) {
         final Throwable cause = getDeathCause();
         if (isDone()) {
-            listener.dead(this, cause);
+            listener.dead(ref(), cause);
             return;
         }
         lifecycleListeners.add(listener);
         if (isDone())
-            listener.dead(this, cause);
+            listener.dead(ref(), cause);
     }
 
     /**
@@ -154,8 +154,8 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
     public final Object watch(ActorRef other) {
         final Object id = ActorUtil.randtag();
 
-        final ActorRefImpl other1 = getActorRefImpl(other);
-        final LifecycleListener listener = new ActorLifecycleListener(this, id);
+        final ActorImpl other1 = getActorRefImpl(other);
+        final LifecycleListener listener = new ActorLifecycleListener(ref(), id);
         record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other1, listener);
 
         other1.addLifecycleListener(listener);
@@ -171,8 +171,8 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
      * @see #watch(ActorRef)
      */
     public final void unwatch(ActorRef other, Object watchId) {
-        final ActorRefImpl other1 = getActorRefImpl(other);
-        final LifecycleListener listener = new ActorLifecycleListener(this, watchId);
+        final ActorImpl other1 = getActorRefImpl(other);
+        final LifecycleListener listener = new ActorLifecycleListener(ref(), watchId);
         record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other1, listener);
         other1.removeLifecycleListener(listener);
         observed.remove(getActorRefImpl(other));
@@ -187,7 +187,7 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
         for (LifecycleListener listener : lifecycleListeners) {
             record(1, "Actor", "die", "Actor %s notifying listener %s of death.", this, listener);
             try {
-                listener.dead(this, cause);
+                listener.dead(ref(), cause);
             } catch (Exception e) {
                 record(1, "Actor", "die", "Actor %s notifying listener %s of death failed with excetpion %s", this, listener, e);
             }
@@ -196,14 +196,19 @@ public abstract class FakeActor<Message> extends ActorRefImpl<Message> {
             if (listener instanceof ActorLifecycleListener) {
                 ActorLifecycleListener l = (ActorLifecycleListener) listener;
                 if (l.getId() == null) // link
-                    l.getObserver().removeObserverListeners(this);
+                    l.getObserver().getImpl().removeObserverListeners(ref());
             }
         }
 
         // avoid memory leaks:
         lifecycleListeners.clear();
-        for (ActorRefImpl a : observed)
-            a.removeObserverListeners(this);
+        for (ActorImpl a : observed)
+            a.removeObserverListeners(ref());
         observed.clear();
+    }
+
+    /////////// Serialization ///////////////////////////////////
+    protected final Object writeReplace() throws java.io.ObjectStreamException {
+        return RemoteActorProxyFactoryService.create(ref(), null);
     }
 }

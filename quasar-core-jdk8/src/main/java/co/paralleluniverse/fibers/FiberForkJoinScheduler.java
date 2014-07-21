@@ -258,8 +258,8 @@ public class FiberForkJoinScheduler extends FiberScheduler {
             return done;
         }
 
-        @DontInstrument
         @Override
+        @DontInstrument
         public boolean park(Object blocker, boolean exclusive) throws SuspendExecution {
             try {
                 return super.park(blocker, exclusive);
@@ -270,8 +270,8 @@ public class FiberForkJoinScheduler extends FiberScheduler {
             }
         }
 
-        @DontInstrument
         @Override
+        @DontInstrument
         public void yield() throws SuspendExecution {
             try {
                 super.yield();
@@ -299,6 +299,7 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         }
 
         @Override
+        @DontInstrument
         protected void throwPark(boolean yield) throws SuspendExecution {
             throw yield ? SuspendExecution.YIELD : SuspendExecution.PARK;
         }
@@ -330,6 +331,11 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         }
 
         @Override
+        public void setState(int state) {
+            super.setState(state);
+        }
+
+        @Override
         public boolean tryUnpark(Object unblocker) {
             return super.tryUnpark(unblocker);
         }
@@ -343,7 +349,7 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         public StackTraceElement[] getUnparkStackTrace() {
             return super.getUnparkStackTrace();
         }
-        
+
         @Override
         public String toString() {
             return super.toString() + "(Fiber@" + fiber.getId() + ')';

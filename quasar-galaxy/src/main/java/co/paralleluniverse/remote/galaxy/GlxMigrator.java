@@ -14,16 +14,13 @@
 package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.Migrator;
+import co.paralleluniverse.actors.ActorImpl;
+import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.spi.Migrator;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.quasar.Grid;
 import co.paralleluniverse.galaxy.quasar.Store;
-import co.paralleluniverse.io.serialization.Serialization;
-import co.paralleluniverse.io.serialization.kryo.KryoSerializer;
-import java.nio.ByteBuffer;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import org.kohsuke.MetaInfServices;
 
 /**
@@ -47,17 +44,23 @@ public class GlxMigrator implements Migrator {
     @Override
     public Object registerMigratingActor() throws SuspendExecution {
         try {
+//            if (id == null)
             return store.put(new byte[0], null);
+//            else {
+//                store.getx((Long) id, null);
+//                return id;
+//            }
         } catch (co.paralleluniverse.galaxy.TimeoutException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public void migrate(Object id, Actor actor) throws SuspendExecution {
+    public void migrate(Object id, Actor actor, byte[] serialized) throws SuspendExecution {
         final long _id = (Long) id;
         try {
-            store.set(_id, new KryoSerializer().write(actor), null);
+            store.setListener(_id, null); // stops the receiver
+            store.set(_id, serialized, null);
             store.release(_id);
         } catch (co.paralleluniverse.galaxy.TimeoutException e) {
             throw new RuntimeException(e);
@@ -65,12 +68,32 @@ public class GlxMigrator implements Migrator {
     }
 
     @Override
-    public Actor hire(Object id) throws SuspendExecution {
+    public Actor hire(ActorRef actorRef, ActorImpl impl, ByteArraySerializer ser) throws SuspendExecution {
+        final GlxGlobalChannelId gcid = ((GlxRemoteActor) impl).getId();
+        if (!gcid.isGlobal())
+            throw new IllegalArgumentException("Actor " + actorRef + " is not a migrating actor");
+
+        final long id = gcid.getAddress();
         try {
-            byte[] buf = store.getx((Long) id, null);
-            return (Actor)new KryoSerializer().read(buf);
+            store.setListener(id, null);
+            final byte[] buf = store.getx(id, null);
+            assert buf != null : actorRef + " " + impl;
+            
+            final Object obj = ser.read(buf);
+            final Actor actor;
+            if (obj instanceof Actor)
+                actor = (Actor) obj;
+            else
+                throw new IllegalArgumentException("Serialized object " + obj + " is not an actor.");
+            
+            GlobalRemoteChannelReceiver.getReceiver(actor.getMailbox(), id);
+            return actor;
         } catch (co.paralleluniverse.galaxy.TimeoutException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static GlxGlobalChannelId channelId(Object id) {
+        return new GlxGlobalChannelId(true, (Long) id, -1);
     }
 }

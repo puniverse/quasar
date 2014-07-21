@@ -5,7 +5,7 @@
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *   
  *   or (per the licensee's choosing)
  *  
  * under the terms of the GNU Lesser General Public License version 3.0
@@ -15,15 +15,13 @@
 package co.paralleluniverse.fibers;
 
 import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 
 /**
  *
  * @author pron
  */
-public class FiberSerializer {
+class FiberSerializer {
     /**
      * This method returns once the fiber has been deserialized
      * @param os

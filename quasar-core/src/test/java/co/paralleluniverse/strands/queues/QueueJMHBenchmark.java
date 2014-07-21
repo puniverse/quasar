@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.LinkedTransferQueue;
 import org.openjdk.jmh.Main;
-import org.openjdk.jmh.annotations.GenerateMicroBenchmark;
+import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Group;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
@@ -82,121 +82,121 @@ public class QueueJMHBenchmark {
     }
 
     // it is important that "read" is lexicographically lower than "write", as this is the order specified in the -tg flag
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("singleConsumerArrayObjectQueue")
     public Object read_singleConsumerArrayObjectQueue(Control cnt, Q q) {
         return read(cnt, q.singleConsumerArrayObjectQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("singleConsumerArrayObjectQueue")
     public void write_singleConsumerArrayObjectQueue(Control cnt, Q q) {
         write(cnt, q.singleConsumerArrayObjectQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("singleConsumerLinkedObjectQueue")
     public Object read_SingleConsumerLinkedObjectQueue(Control cnt, Q q) {
         return read(cnt, q.singleConsumerLinkedObjectQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("singleConsumerLinkedObjectQueue")
     public void write_SingleConsumerLinkedObjectQueue(Control cnt, Q q) {
         write(cnt, q.singleConsumerLinkedObjectQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("singleConsumerLinkedArrayObjectQueue")
     public Object read_SingleConsumerLinkedArrayObjectQueue(Control cnt, Q q) {
         return read(cnt, q.singleConsumerLinkedArrayObjectQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("singleConsumerLinkedArrayObjectQueue")
     public void write_SingleConsumerLinkedArrayObjectQueue(Control cnt, Q q) {
         write(cnt, q.singleConsumerLinkedArrayObjectQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("singleConsumerArrayIntQueue")
     public Object read_SingleConsumerArrayIntQueue(Control cnt, Q q) {
         return read(cnt, q.singleConsumerArrayIntQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("singleConsumerArrayIntQueue")
     public void write_SingleConsumerArrayIntQueue(Control cnt, Q q) {
         write(cnt, q.singleConsumerArrayIntQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("singleConsumerLinkedIntQueue")
     public Object read_SingleConsumerLinkedIntQueue(Control cnt, Q q) {
         return read(cnt, q.singleConsumerLinkedIntQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("singleConsumerLinkedIntQueue")
     public void write_SingleConsumerLinkedIntQueue(Control cnt, Q q) {
         write(cnt, q.singleConsumerLinkedIntQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("singleConsumerLinkedArrayIntQueue")
     public Object read_SingleConsumerLinkedArrayIntQueue(Control cnt, Q q) {
         return read(cnt, q.singleConsumerLinkedArrayIntQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("singleConsumerLinkedArrayIntQueue")
     public void write_SingleConsumerLinkedArrayIntQueue(Control cnt, Q q) {
         write(cnt, q.singleConsumerLinkedArrayIntQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("arrayBlockingQueue")
     public Object read_ArrayBlockingQueue(Control cnt, Q q) {
         return read(cnt, q.arrayBlockingQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("arrayBlockingQueue")
     public void write_ArrayBlockingQueue(Control cnt, Q q) {
         write(cnt, q.arrayBlockingQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("linkedBlockingQueue")
     public Object read_LinkedBlockingQueue(Control cnt, Q q) {
         return read(cnt, q.linkedBlockingQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("linkedBlockingQueue")
     public void write_LinkedBlockingQueue(Control cnt, Q q) {
         write(cnt, q.linkedBlockingQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("concurrentLinkedQueue")
     public Object read_ConcurrentLinkedQueue(Control cnt, Q q) {
         return read(cnt, q.concurrentLinkedQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("concurrentLinkedQueue")
     public void write_ConcurrentLinkedQueue(Control cnt, Q q) {
         write(cnt, q.concurrentLinkedQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("linkedTransferQueue")
     public Object read_LinkedTransferQueue(Control cnt, Q q) {
         return read(cnt, q.linkedTransferQueue);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     @Group("linkedTransferQueue")
     public void write_LinkedTransferQueue(Control cnt, Q q) {
         write(cnt, q.linkedTransferQueue);

@@ -13,13 +13,12 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.ServiceUtil;
-import co.paralleluniverse.concurrent.util.MapUtil;
-import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.DefaultFiberScheduler;
+import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,85 +28,35 @@ import org.slf4j.LoggerFactory;
  * @author pron
  */
 public class ActorRegistry {
-    // TODO: there are probably race conditions here
     private static final Logger LOG = LoggerFactory.getLogger(ActorRegistry.class);
-    private static final ConcurrentMap<String, Entry> registeredActors = MapUtil.newConcurrentHashMap();
-    private static final GlobalRegistry globalRegistry = ServiceUtil.loadSingletonServiceOrNull(GlobalRegistry.class);
+    private static final co.paralleluniverse.actors.spi.ActorRegistry registry;
 
     static {
-        LOG.info("Global registry is {}", globalRegistry);
+        co.paralleluniverse.actors.spi.ActorRegistry tmp = ServiceUtil.loadSingletonServiceOrNull(co.paralleluniverse.actors.spi.ActorRegistry.class);
+        if (tmp == null)
+            tmp = new LocalActorRegistry();
+        registry = tmp;
+        LOG.info("Actor registry is {}", registry);
+
     }
 
-    static Object register(Actor<?, ?> actor) {
+    static Object register(Actor<?, ?> actor, Object globalId) throws SuspendExecution {
         final String name = actor.getName();
         if (name == null)
             throw new IllegalArgumentException("name is null");
-
-        // atomically register
-        final ActorRef ref = actor.ref();
-        final Entry old = registeredActors.get(name);
-        if (old != null && old.actor == actor.ref())
-            return old.globalId;
-
-        if (old != null && LocalActor.isLocal(old.actor) && !LocalActor.isDone(old.actor))
-            throw new RegistrationException("Actor " + old + " is not dead and is already registered under " + name);
-
-        if (old != null)
-            LOG.info("Re-registering {}: old was {}", name, old);
-
-        if (old != null && !registeredActors.remove(name, old))
-            throw new RegistrationException("Concurrent registration under the name " + name);
-
-        final Entry entry = new Entry(null, ref);
-        if (registeredActors.putIfAbsent(name, entry) != null)
-            throw new RegistrationException("Concurrent registration under the name " + name);
-
         LOG.info("Registering {}: {}", name, actor);
 
-        final Object globalId = globalRegistry != null ? registerGlobal(actor.ref(), actor.getGlobalId()) : name;
-        entry.globalId = globalId;
-
+        actor.preRegister(name);
+        final Object res = registry.register(actor.ref, globalId);
+        
         actor.monitor();
-
-        return globalId;
+        return res;
     }
 
-    static private Object registerGlobal(final ActorRef<?> actor, final Object globalId) {
-        try {
-            return new Fiber<Object>() {
-                @Override
-                protected Object run() throws SuspendExecution, InterruptedException {
-                    return globalRegistry.register(actor, globalId);
-                }
-            }.start().get();
-        } catch (ExecutionException e) {
-            throw Exceptions.rethrow(e.getCause());
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    static void unregister(final ActorRef<?> actor) {
+        LOG.info("Unregistering actor: {}", actor.getName());
 
-    static void unregister(final String name) {
-        LOG.info("Unregistering actor: {}", name);
-
-        if (globalRegistry != null) {
-            // TODO: will only work if called from a fiber
-            try {
-                new Fiber<Void>() {
-                    @Override
-                    protected Void run() throws SuspendExecution, InterruptedException {
-                        globalRegistry.unregister(registeredActors.get(name).actor);
-                        return null;
-                    }
-                }.start().join();
-            } catch (ExecutionException e) {
-                throw Exceptions.rethrow(e.getCause());
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        registeredActors.remove(name);
+        registry.unregister(actor);
     }
 
     /**
@@ -116,27 +65,68 @@ public class ActorRegistry {
      * @param name the actor's name.
      * @return the actor, or {@code null} if no actor by that name is currently registered.
      */
-    public static <Message> ActorRef<Message> getActor(final String name) {
-        Entry entry = registeredActors.get(name);
-        ActorRef<Message> actor = entry != null ? (ActorRef<Message>) entry.actor : null;
+    public static <Message> ActorRef<Message> tryGetActor(String name) throws SuspendExecution {
+        return registry.tryGetActor(name);
+    }
 
-        if (actor == null && globalRegistry != null) {
-            // TODO: will only work if called from a fiber
-            try {
-                actor = new Fiber<ActorRef<Message>>() {
-                    @Override
-                    protected ActorRef<Message> run() throws SuspendExecution, InterruptedException {
-                        return globalRegistry.getActor(name);
-                    }
-                }.start().get();
-            } catch (ExecutionException e) {
-                throw Exceptions.rethrow(e.getCause());
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+    /**
+     * Locates a registered actor by name, or blocks until one is registered, but no more than the given timeout.
+     *
+     * @param name    the actor's name.
+     * @param timeout the timeout
+     * @param unit    the timeout's unit
+     * @return the actor, or {@code null} if the timeout expires before one is registered.
+     */
+    public static <Message> ActorRef<Message> getActor(String name, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
+        return registry.getActor(name, timeout, unit);
+    }
+
+    /**
+     * Locates a registered actor by name, or blocks until one is registered.
+     *
+     * @param name the actor's name.
+     * @return the actor.
+     */
+    public static <Message> ActorRef<Message> getActor(String name) throws InterruptedException, SuspendExecution {
+        return getActor(name, 0, null);
+    }
+
+    /**
+     * Locates a registered actor by name, or, if not actor by that name is currently registered, spawns and registers it.
+     * This method atomically checks if an actor by the given name is registers, and if so, returns it; otherwise it spawns and registers the
+     * actor returned by the given factory.
+     *
+     * @param name         the actor's name.
+     * @param actorFactory returns an actor that will be registered if one isn't currently registered.
+     * @param scheduler    the {@link FiberScheduler} to use when spawning the actor, or {@code null} to spawn the fiber using the default scheduler.
+     * @return the actor.
+     */
+    public static <Message> ActorRef<Message> getOrRegisterActor(final String name, final Callable<Actor<Message, ?>> actorFactory, final FiberScheduler scheduler) throws SuspendExecution {
+        Callable<ActorRef<Message>> factory = new Callable<ActorRef<Message>>() {
+
+            @Override
+            public ActorRef<Message> call() throws Exception {
+                Actor actor = actorFactory.call();
+                actor.preRegister(name);
+                return scheduler != null ? actor.spawn(scheduler) : actor.spawnThread();
             }
-        }
-
+        };
+        ActorRef<Message> actor = registry.getOrRegisterActor(name, factory);
+        LocalActor.postRegister(actor);
         return actor;
+    }
+
+    /**
+     * Locates a registered actor by name, or, if not actor by that name is currently registered, spawns and registers it.
+     * This method atomically checks if an actor by the given name is registers, and if so, returns it; otherwise it spawns the actor
+     * returned by the given factory using the default fiber scheduler, and registers it.
+     *
+     * @param name         the actor's name.
+     * @param actorFactory returns an actor that will be registered if one isn't currently registered.
+     * @return the actor.
+     */
+    public static <Message> ActorRef<Message> getOrRegisterActor(String name, Callable<Actor<Message, ?>> actorFactory) throws SuspendExecution {
+        return getOrRegisterActor(name, actorFactory, DefaultFiberScheduler.getInstance());
     }
 
     /**
@@ -145,16 +135,10 @@ public class ActorRegistry {
      * @return {@code true} if the registry is global to the entire cluster, or {@code false} if it is local to this JVM instance.
      */
     public static boolean hasGlobalRegistry() {
-        return globalRegistry != null;
+        return !(registry instanceof LocalActorRegistry);
     }
 
-    private static class Entry {
-        Object globalId;
-        final ActorRef<?> actor;
-
-        public Entry(Object globalId, ActorRef<?> actor) {
-            this.globalId = globalId;
-            this.actor = actor;
-        }
+    public static void shutdown() {
+        registry.shutdown();
     }
 }

@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.common.reflection;
 
-import co.paralleluniverse.common.reflection.ClassLoaderUtil;
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;

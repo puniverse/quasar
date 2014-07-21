@@ -46,7 +46,7 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
     }
 
     SimpleSuspendableClassifier(String suspendablesFileName) {
-        readSuspendablesFile(suspendablesFileName, suspendables, suspendables);
+        readSuspendablesFile(suspendablesFileName, suspendables, suspendableClasses);
     }
 
     Set<String> getSuspendables() {
@@ -58,10 +58,6 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
     }
 
     private void readFiles(ClassLoader classLoader, String fileName, Set<String> set, Set<String> classSet) {
-//        System.out.println("ZZZZ classLoader: " + classLoader);
-//        if (classLoader instanceof java.net.URLClassLoader)
-//            System.out.println("ZZZZ URLs: " + classLoader + " - " + Arrays.toString(((java.net.URLClassLoader) classLoader).getURLs()));
-
         try {
             for (Enumeration<URL> susFiles = classLoader.getResources(PREFIX + fileName); susFiles.hasMoreElements();) {
                 URL file = susFiles.nextElement();
@@ -111,13 +107,25 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
         }
     }
 
-    public boolean isSuspendable(String className, String methodName) {
-        return (suspendables.contains(className + '.' + methodName) || suspendableClasses.contains(className));
+    // test if the given method exists expicitly in the suspendables files
+    public boolean isSuspendable(String className, String methodName, String methodDesc) {
+        return (suspendables.contains(className + '.' + methodName + methodDesc)
+                || suspendables.contains(className + '.' + methodName)
+                || suspendableClasses.contains(className));
+    }
+
+    // test if the given method exists expicitly in the super-suspendable files
+    public boolean isSuperSuspendable(String className, String methodName, String methodDesc) {
+        return (suspendableSupers.contains(className + '.' + methodName + methodDesc)
+                || suspendableSupers.contains(className + '.' + methodName)
+                || suspendableSuperInterfaces.contains(className));
     }
 
     @Override
     public SuspendableType isSuspendable(MethodDatabase db, String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
         final String fullMethodName = className + '.' + methodName;
+        if (suspendables.contains(fullMethodName + methodDesc))
+            return SuspendableType.SUSPENDABLE;
         if (suspendables.contains(fullMethodName))
             return SuspendableType.SUSPENDABLE;
         if (suspendableClasses.contains(className))

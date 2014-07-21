@@ -13,8 +13,10 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.actors.spi.Migrator;
 import co.paralleluniverse.common.util.ServiceUtil;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +24,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
-public class MigrationService {
+class MigrationService {
     private static final Logger LOG = LoggerFactory.getLogger(MigrationService.class);
     private static final Migrator migrator = ServiceUtil.loadSingletonService(Migrator.class);
 
@@ -34,14 +36,19 @@ public class MigrationService {
     }
 
     public static Object registerMigratingActor() throws SuspendExecution {
-        return migrator.registerMigratingActor();
+        Object res = migrator.registerMigratingActor();
+        return res;
     }
 
-    public static void migrate(Object id, Actor actor) throws SuspendExecution {
-        migrator.migrate(id, actor);
+    public static void migrate(Object id, byte[] serialized) throws SuspendExecution {
+        migrate(id, null, serialized);
     }
 
-    public static Actor hire(Object id) throws SuspendExecution {
-        return migrator.hire(id);
+    public static void migrate(Object id, Actor actor, byte[] serialized) throws SuspendExecution {
+        migrator.migrate(actor.getGlobalId(), actor, serialized);
+    }
+
+    public static Actor hire(ActorRef<?> actorRef, ByteArraySerializer ser) throws SuspendExecution {
+        return migrator.hire(actorRef, actorRef.getImpl(), ser);
     }
 }

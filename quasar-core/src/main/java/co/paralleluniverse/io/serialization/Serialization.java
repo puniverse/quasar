@@ -13,6 +13,7 @@
 package co.paralleluniverse.io.serialization;
 
 import co.paralleluniverse.io.serialization.kryo.KryoSerializer;
+import com.esotericsoftware.kryo.Kryo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -30,7 +31,7 @@ public final class Serialization {
             return new Serialization(new KryoSerializer());
         }
     };
-    
+
     private final ByteArraySerializer bas;
     private final IOStreamSerializer ioss;
 
@@ -39,6 +40,17 @@ public final class Serialization {
             return instance;
         else
             return tlInstance.get();
+    }
+
+    public static Serialization newInstance() {
+        if (instance != null)
+            return instance;
+        else
+            return new Serialization(new KryoSerializer());
+    }
+
+    public static Kryo getKryo() {
+        return ((KryoSerializer) tlInstance.get().bas).getKryo();
     }
 
     private Serialization(ByteArraySerializer bas) {

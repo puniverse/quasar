@@ -29,12 +29,12 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
-    private final LocalActorRef<?, V> actorRef;
+class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V>, java.io.Serializable {
+    private /*final*/ transient ActorRef<?> actorRef;
     private volatile Actor<?, V> actor;
     private Strand strand;
 
-    ActorRunner(LocalActorRef<?, V> actorRef) {
+    ActorRunner(ActorRef<?> actorRef) {
         this.actorRef = actorRef;
     }
 
@@ -43,8 +43,8 @@ class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
         if (strand == null)
             setStrand(Strand.currentStrand());
         if (actor == null) {
-            this.actor = (Actor<?, V>) actorRef.getActor();
-            assert actor != null && actor == actorRef.getActor();
+            this.actor = (Actor<?, V>) actorRef.getImpl();
+            assert actor != null && actor == actorRef.getImpl();
         }
         for (;;) {
             try {
@@ -56,8 +56,10 @@ class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
                     newActor.onCodeChange0();
                     actor.defunct();
                     this.actor = newActor;
-                    assert actor != null && actor == actorRef.getActor();
+                    assert actor != null && actor == actorRef.getImpl();
                 }
+            } catch (ActorAbort e) {
+                return null;
             }
         }
     }
@@ -74,8 +76,9 @@ class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
             throw new IllegalStateException("Strand already set to " + strand);
         this.strand = strand;
         if (actor == null) {
-            this.actor = (Actor<?, V>) actorRef.getActor();
-            assert actor != null && actor == actorRef.getActor();
+            this.actor = (Actor<?, V>) actorRef.getImpl();
+            assert actor != null : "actor == null";
+            assert actor == actorRef.getImpl() : "actor (" + actor + ") != actorRef.getImpl() (" + actorRef.getImpl() + ")";
         }
         actor.setStrand0(strand);
     }
@@ -129,5 +132,10 @@ class ActorRunner<V> implements SuspendableCallable<V>, Stranded, Joinable<V> {
     @Override
     public boolean isDone() {
         return actor.getDeathCause0() != null || strand.isTerminated();
+    }
+
+    private Object readResolve() {
+        this.actorRef = actor.ref;
+        return this;
     }
 }

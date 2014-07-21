@@ -3,7 +3,7 @@
   <appenders>
     <Console name="Console" target="SYSTEM_ERR">
       <!-- ThreadContext: %x = stack, %X = map-->
-      <PatternLayout pattern="%d{HH:mm:ss.SSS} %highlight{[%t] %30logger{2} [%-5level]} %X %msg %throwable{5}%n"/>
+      <PatternLayout pattern="%d{HH:mm:ss.SSS} %highlight{[%t] %30logger{2} [%-5level]} %X %msg %throwable%n"/>
     </Console>
   </appenders>
   <loggers>
@@ -11,12 +11,12 @@
       <appender-ref ref="Console"/>
     </root>
     <!-- <logger name="co.paralleluniverse.actors" level="DEBUG"/> -->
-    <!--<logger name="co.paralleluniverse.galaxy.core.StringRootManager" level="DEBUG"/>-->
-    <!--<logger name="co.paralleluniverse.galaxy.core.Cache" level="DEBUG"/>-->
-    <!--<logger name="co.paralleluniverse.galaxy.netty.UDPComm" level="DEBUG"/>-->
-    <!--<logger name="co.paralleluniverse.actors" level="DEBUG"/>-->
-    <!--<logger name="co.paralleluniverse.remote.galaxy" level="DEBUG"/>-->
-    <!--<logger name="co.paralleluniverse.galaxy.core.BackupImpl" level="DEBUG"/>-->
-    
+    <!-- <logger name="co.paralleluniverse.remote.galaxy" level="DEBUG"/> -->
+    <!-- <logger name="co.paralleluniverse.galaxy.core.AbstractCluster" level="DEBUG"/> -->
+    <!-- <logger name="co.paralleluniverse.galaxy.core.Cache" level="DEBUG"/> -->
+    <!-- <logger name="co.paralleluniverse.galaxy.core.MainMemory" level="DEBUG"/> -->
+    <!-- <logger name="co.paralleluniverse.galaxy.core.StringRootManager" level="DEBUG"/> -->
+    <!-- <logger name="co.paralleluniverse.galaxy.netty.UDPComm" level="DEBUG"/> -->
+    <!-- <logger name="co.paralleluniverse.galaxy.core.BackupImpl" level="DEBUG"/> -->
   </loggers>
 </configuration>

@@ -14,7 +14,7 @@
 package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.RemoteActorProxyFactory;
+import co.paralleluniverse.actors.spi.RemoteActorProxyFactory;
 import org.kohsuke.MetaInfServices;
 
 /**
@@ -26,6 +26,6 @@ public class GlxRemoteActorProxyFactory implements RemoteActorProxyFactory {
 
     @Override
     public <Message> GlxRemoteActor<Message> create(ActorRef<Message> actor, Object globalId) {
-        return new GlxRemoteActor<Message>(actor, globalId);
+        return globalId != null ? new GlxGlobalRemoteActor<Message>(actor, globalId) : new GlxNonGlobalRemoteActor<Message>(actor);
     }
 }

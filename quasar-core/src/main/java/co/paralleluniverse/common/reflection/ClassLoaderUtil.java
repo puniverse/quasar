@@ -53,8 +53,9 @@ import java.util.jar.Manifest;
  */
 public final class ClassLoaderUtil {
     public interface Visitor {
-        void visit(String resource, URL url, ClassLoader cl);
+        void visit(String resource, URL url, ClassLoader cl) throws IOException;
     }
+
     private static final Splitter CLASS_PATH_ATTRIBUTE_SEPARATOR = Splitter.on(" ").omitEmptyStrings();
     private static final String CLASS_FILE_NAME_EXTENSION = ".class";
 
@@ -70,7 +71,7 @@ public final class ClassLoaderUtil {
         return classToResource(clazz.getName());
     }
 
-     public static String classToSlashed(String className) {
+    public static String classToSlashed(String className) {
         return className.replace('.', '/');
     }
 
@@ -79,24 +80,29 @@ public final class ClassLoaderUtil {
     }
 
     public static String resourceToClass(String resourceName) {
-        if (!resourceName.endsWith(CLASS_FILE_NAME_EXTENSION))
-            throw new IllegalArgumentException("Resource " + resourceName + " is not a class file");
-        return resourceName.substring(0, resourceName.length() - CLASS_FILE_NAME_EXTENSION.length()).replace('/', '.');
+        return resourceToSlashed(resourceName).replace('/', '.');
     }
 
-    public static void accept(ClassLoader classLoader, Visitor visitor) throws IOException {
-        URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
-        if (classLoader instanceof URLClassLoader) {
-            try {
-                final Set<URI> scannedUris = new HashSet<>();
-                for (URL entry : urlClassLoader.getURLs()) {
-                    URI uri = entry.toURI();
-                    if (uri.getScheme().equals("file") && scannedUris.add(uri))
-                        scanFrom(new File(uri), classLoader, scannedUris, visitor);
-                }
-            } catch (URISyntaxException e) {
-                throw new RuntimeException(e);
+    public static String resourceToSlashed(String resourceName) {
+        if (!resourceName.endsWith(CLASS_FILE_NAME_EXTENSION))
+            throw new IllegalArgumentException("Resource " + resourceName + " is not a class file");
+        return resourceName.substring(0, resourceName.length() - CLASS_FILE_NAME_EXTENSION.length());
+    }
+
+    public static void accept(URLClassLoader ucl, Visitor visitor) throws IOException {
+        accept(ucl, ucl.getURLs(), visitor);
+    }
+
+    public static void accept(ClassLoader cl, URL[] urls, Visitor visitor) throws IOException {
+        try {
+            final Set<URI> scannedUris = new HashSet<>();
+            for (URL entry : urls) {
+                URI uri = entry.toURI();
+                if (uri.getScheme().equals("file") && scannedUris.add(uri))
+                    scanFrom(new File(uri), cl, scannedUris, visitor);
             }
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
         }
     }
 

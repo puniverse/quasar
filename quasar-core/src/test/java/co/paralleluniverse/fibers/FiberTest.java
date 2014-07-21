@@ -14,12 +14,15 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import co.paralleluniverse.strands.Condition;
+import co.paralleluniverse.strands.SettableFuture;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.io.Serializable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,6 +30,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -45,17 +49,17 @@ import org.junit.runners.Parameterized;
  *
  * @author pron
  */
-@RunWith(Parameterized.class)
-public class FiberTest {
-    private FiberScheduler scheduler;
+//@RunWith(Parameterized.class)
+public class FiberTest implements Serializable {
+    private transient FiberScheduler scheduler;
 
-//    public FiberTest() {
+    public FiberTest() {
 //        this.scheduler = new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1)); 
-//        // this.scheduler = new FiberForkJoinScheduler("test", 4, null, false);
-//    }
-    public FiberTest(FiberScheduler scheduler) {
-        this.scheduler = scheduler;
+        this.scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
+//    public FiberTest(FiberScheduler scheduler) {
+//        this.scheduler = scheduler;
+//    }
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -570,15 +574,17 @@ public class FiberTest {
         } catch (ExecutionException e) {
             assertThat(e.getCause().getMessage(), equalTo("foo"));
         }
-
-        assertThat(t.get().getMessage(), equalTo("foo"));
+        final Throwable th = t.get();
+        
+        assertTrue(th != null);
+        assertThat(th.getMessage(), equalTo("foo"));
     }
 
     @Test
-    public void testUtilsGet() throws ExecutionException, InterruptedException {
+    public void testUtilsGet() throws Exception {
         final List<Fiber<String>> fibers = new ArrayList<>();
         final List<String> expectedResults = new ArrayList<>();
-        for(int i = 0; i < 20; i++) {
+        for (int i = 0; i < 20; i++) {
             final int tmpI = i;
             expectedResults.add("testUtilsSequence-" + tmpI);
             fibers.add(new Fiber<>(new SuspendableCallable<String>() {
@@ -594,10 +600,10 @@ public class FiberTest {
     }
 
     @Test
-    public void testUtilsGetWithTimeout() throws ExecutionException, InterruptedException, TimeoutException {
+    public void testUtilsGetWithTimeout() throws Exception {
         final List<Fiber<String>> fibers = new ArrayList<>();
         final List<String> expectedResults = new ArrayList<>();
-        for(int i = 0; i < 20; i++) {
+        for (int i = 0; i < 20; i++) {
             final int tmpI = i;
             expectedResults.add("testUtilsSequence-" + tmpI);
             fibers.add(new Fiber<>(new SuspendableCallable<String>() {
@@ -613,10 +619,10 @@ public class FiberTest {
     }
 
     @Test(expected = TimeoutException.class)
-    public void testUtilsGetZeroWait() throws ExecutionException, InterruptedException, TimeoutException {
+    public void testUtilsGetZeroWait() throws Exception {
         final List<Fiber<String>> fibers = new ArrayList<>();
         final List<String> expectedResults = new ArrayList<>();
-        for(int i = 0; i < 20; i++) {
+        for (int i = 0; i < 20; i++) {
             final int tmpI = i;
             expectedResults.add("testUtilsSequence-" + tmpI);
             fibers.add(new Fiber<>(new SuspendableCallable<String>() {
@@ -632,10 +638,10 @@ public class FiberTest {
     }
 
     @Test(expected = TimeoutException.class)
-    public void testUtilsGetSmallWait() throws ExecutionException, InterruptedException, TimeoutException {
+    public void testUtilsGetSmallWait() throws Exception {
         final List<Fiber<String>> fibers = new ArrayList<>();
         final List<String> expectedResults = new ArrayList<>();
-        for(int i = 0; i < 20; i++) {
+        for (int i = 0; i < 20; i++) {
             final int tmpI = i;
             expectedResults.add("testUtilsSequence-" + tmpI);
             fibers.add(new Fiber<>(new SuspendableCallable<String>() {
@@ -651,5 +657,147 @@ public class FiberTest {
         // must be less than 60 (3 * 20) or else the test could sometimes pass.
         final List<String> results = FiberUtil.get(55, TimeUnit.MILLISECONDS, fibers);
         assertThat(results, equalTo(expectedResults));
+    }
+
+    @Test
+    public void testSerialization1() throws Exception {
+        // com.esotericsoftware.minlog.Log.set(1);
+        final SettableFuture<byte[]> buf = new SettableFuture<>();
+
+        Fiber<Integer> f1 = new SerFiber1(scheduler, new SettableFutureFiberWriter(buf)).start();
+        Fiber<Integer> f2 = Fiber.unparkSerialized(buf.get(), scheduler);
+
+        assertThat(f2.get(), is(55));
+    }
+
+    static class SerFiber1 extends SerFiber<Integer> {
+        public SerFiber1(FiberScheduler scheduler, FiberWriter fiberWriter) {
+            super(scheduler, fiberWriter);
+        }
+
+        @Override
+        public Integer run() throws SuspendExecution, InterruptedException {
+            int sum = 0;
+            for (int i = 1; i <= 10; i++) {
+                sum += i;
+                if (i == 5) {
+                    Fiber.parkAndSerialize(fiberWriter);
+                    assert i == 5 && sum == 15;
+                }
+            }
+            return sum;
+        }
+    }
+
+    @Test
+    public void testSerialization2() throws Exception {
+        // com.esotericsoftware.minlog.Log.set(1);
+        final SettableFuture<byte[]> buf = new SettableFuture<>();
+
+        Fiber<Integer> f1 = new SerFiber2(scheduler, new SettableFutureFiberWriter(buf)).start();
+        Fiber<Integer> f2 = Fiber.unparkSerialized(buf.get(), scheduler);
+
+        assertThat(f2.get(), is(55));
+    }
+
+    static class SerFiber2 extends Fiber<Integer> {
+        public SerFiber2(FiberScheduler scheduler, final FiberWriter fiberWriter) {
+            super(scheduler, new SuspendableCallable<Integer>() {
+
+                @Override
+                public Integer run() throws SuspendExecution, InterruptedException {
+                    int sum = 0;
+                    for (int i = 1; i <= 10; i++) {
+                        sum += i;
+                        if (i == 5) {
+                            Fiber.parkAndSerialize(fiberWriter);
+                            assert i == 5 && sum == 15;
+                        }
+                    }
+                    return sum;
+                }
+            });
+        }
+    }
+
+    @Test
+    public void testSerializationWithThreadLocals() throws Exception {
+        final ThreadLocal<String> tl1 = new ThreadLocal<>();
+        final InheritableThreadLocal<String> tl2 = new InheritableThreadLocal<>();
+        tl1.set("foo");
+        tl2.set("bar");
+
+        final SettableFuture<byte[]> buf = new SettableFuture<>();
+
+        Fiber<Integer> f1 = new SerFiber3(scheduler, new SettableFutureFiberWriter(buf), tl1, tl2).start();
+        Fiber<Integer> f2 = Fiber.unparkSerialized(buf.get(), scheduler);
+
+        assertThat(f2.get(), is(55));
+    }
+
+    static class SerFiber3 extends SerFiber<Integer> {
+        private final ThreadLocal<String> tl1;
+        private final InheritableThreadLocal<String> tl2;
+
+        public SerFiber3(FiberScheduler scheduler, FiberWriter fiberWriter, ThreadLocal<String> tl1, InheritableThreadLocal<String> tl2) {
+            super(scheduler, fiberWriter);
+            this.tl1 = tl1;
+            this.tl2 = tl2;
+        }
+
+        @Override
+        public Integer run() throws SuspendExecution, InterruptedException {
+            assertThat(tl1.get(), is(nullValue()));
+            assertThat(tl2.get(), is("bar"));
+
+            tl1.set("koko");
+            tl2.set("bubu");
+
+            int sum = 0;
+            for (int i = 1; i <= 10; i++) {
+                sum += i;
+                if (i == 5) {
+                    Fiber.parkAndSerialize(fiberWriter);
+                    assert i == 5 && sum == 15;
+                }
+            }
+
+            assertThat(tl1.get(), is("koko"));
+            assertThat(tl2.get(), is("bubu"));
+            return sum;
+        }
+    }
+
+    static class SerFiber<V> extends Fiber<V> implements java.io.Serializable {
+        protected final transient FiberWriter fiberWriter;
+
+        public SerFiber(FiberScheduler scheduler, SuspendableCallable<V> target, FiberWriter fiberWriter) {
+            super(scheduler, target);
+            this.fiberWriter = fiberWriter;
+        }
+
+        public SerFiber(FiberScheduler scheduler, FiberWriter fiberWriter) {
+            super(scheduler);
+            this.fiberWriter = fiberWriter;
+        }
+    }
+
+    static class SettableFutureFiberWriter implements FiberWriter {
+        private final transient SettableFuture<byte[]> buf;
+
+        public SettableFutureFiberWriter(SettableFuture<byte[]> buf) {
+            this.buf = buf;
+        }
+
+        
+        @Override
+        public void write(Fiber fiber, ByteArraySerializer ser) {
+            buf.set(ser.write(fiber));
+        }
+        
+//        @Override
+//        public void write(byte[] serFiber) {
+//            buf.set(serFiber);
+//        }
     }
 }

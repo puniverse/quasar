@@ -14,6 +14,7 @@
 package co.paralleluniverse.galaxy.quasar;
 
 import co.paralleluniverse.common.io.Persistable;
+import co.paralleluniverse.common.io.Streamable;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.CacheListener;
 import co.paralleluniverse.galaxy.ItemState;
@@ -125,6 +126,15 @@ public interface Store {
      * @param listener The listener.
      */
     void setListener(long id, CacheListener listener);
+
+    /**
+     * Sets a listener listening for local cache events on the given item if absent.
+     *
+     * @param id       The item's ID.
+     * @param listener The listener.
+     * @return The given listener if it was set or the existing one otherwise.
+     */
+    CacheListener setListenerIfAbsent(long id, CacheListener listener);
 
     /**
      * Allocates one or more new (and empty) items in the store.<p/>
@@ -520,4 +530,24 @@ public interface Store {
      * @return The item's state.
      */
     ItemState getState(long id);
+
+    /**
+     * Sends a message to an item, which will be received by {@link CacheListener#messageReceived(byte[]) CacheListener.messageReceived}
+     * on the item's owning node.
+     *
+     * @param id  The item's ID.
+     * @param msg The message.
+     * @throws TimeoutException This exception is thrown if the operation has times-out.
+     */
+    void send(long id, Streamable data) throws TimeoutException, SuspendExecution;
+
+    /**
+     * Sends a message to an item, which will be received by {@link CacheListener#messageReceived(byte[]) CacheListener.messageReceived}
+     * on the item's owning node.
+     *
+     * @param id  The item's ID.
+     * @param msg The message.
+     * @throws TimeoutException This exception is thrown if the operation has times-out.
+     */
+    void send(long id, byte[] msg) throws TimeoutException, SuspendExecution;
 }

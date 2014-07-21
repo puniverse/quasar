@@ -15,6 +15,8 @@ package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.ActorImpl;
+import co.paralleluniverse.actors.ActorRefDelegate;
 import co.paralleluniverse.actors.ActorUtil;
 import co.paralleluniverse.actors.ExitMessage;
 import co.paralleluniverse.actors.LifecycleMessage;
@@ -143,12 +145,13 @@ public final class RequestReplyHelper {
     public static <V> V call(final ActorRef actor, RequestMessage<V> m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
         assert !actor.equals(LocalActor.self()) : "Can't \"call\" self - deadlock guaranteed";
 
-        if (m.getFrom() == null || m.getFrom() instanceof TempActor)
+        if (m.getFrom() == null || LocalActor.isInstance(m.getFrom(), TempActor.class))
             m.setFrom(from());
 
         final Actor currentActor;
-        if (m.getFrom() instanceof TempActor)
-            currentActor = ((TempActor<?>) m.getFrom()).actor.get();
+        final boolean tmpActor = m.getFrom() instanceof TempActorRef;
+        if (tmpActor)
+            currentActor = (Actor) ((TempActorRef) m.getFrom()).getImpl();
         else
             currentActor = Actor.currentActor();
 
@@ -185,9 +188,13 @@ public final class RequestReplyHelper {
             if (response instanceof ErrorResponseMessage)
                 throw Exceptions.rethrow(((ErrorResponseMessage) response).getError());
             return ((ValueResponseMessage<V>) response).getValue();
+        } catch (InterruptedException e) {
+            if (tmpActor)
+                currentActor.checkThrownIn();
+            throw e;
         } finally {
-            if (m.getFrom() instanceof TempActor)
-                ((TempActor) m.getFrom()).done();
+//            if (tmpActor)
+//                ((TempActor) m.getFrom()).done();
         }
     }
 
@@ -250,104 +257,62 @@ public final class RequestReplyHelper {
     private static ActorRef getCurrentActor() {
         ActorRef actorRef = LocalActor.self();
         if (actorRef == null) {
-            // create a "dummy actor" on the current strand
-            Actor actor = new Actor(Strand.currentStrand(), null, new MailboxConfig(5, OverflowPolicy.THROW)) {
-                @Override
-                protected Object doRun() throws InterruptedException, SuspendExecution {
-                    throw new AssertionError();
-                }
-            };
-            actorRef = new TempActor(actor);
-        } else
-            assert !(actorRef instanceof TempActor);
+            Actor actor = new TempActor(); // create a "dummy actor" on the current strand
+            actorRef = actor.ref();
+        }
         return actorRef;
     }
 
-    private static class TempActor<Message> implements ActorRef<Message> {
-        private WeakReference<Actor<Message, Void>> actor;
-        private volatile boolean done = false;
-
-        public TempActor(Actor actor) {
-            this.actor = new WeakReference<Actor<Message, Void>>(actor);
-        }
-
-        public void done() {
-            this.actor = null;
-            this.done = true;
-        }
-
-        private ActorRef getActor() {
-            ActorRef a = null;
-            if (actor != null)
-                a = actor.get().ref();
-            return a;
-        }
-
-        private ActorRef actor() {
-            final ActorRef a = getActor();
-            if (a == null)
-                throw new RuntimeException("Temporary actor is out of scope");
-            return a;
+    private static class TempActor extends Actor<Object, Void> {
+        TempActor() {
+            super(Strand.currentStrand(), null, new MailboxConfig(5, OverflowPolicy.THROW));
         }
 
         @Override
-        public String getName() {
-            return actor().getName();
+        protected Void doRun() throws InterruptedException, SuspendExecution {
+            throw new AssertionError();
         }
 
         @Override
-        public void interrupt() {
-            final ActorRef a = getActor();
-            if (a != null)
-                a.interrupt();
-        }
-
-        @Override
-        public void send(Message message) throws SuspendExecution {
-            final ActorRef a = getActor();
-            if (a != null)
-                a.send(message);
-        }
-
-        @Override
-        public void sendSync(Message message) throws SuspendExecution {
-            final ActorRef a = getActor();
-            if (a != null)
-                a.sendSync(message);
-        }
-
-        @Override
-        public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-            final ActorRef a = getActor();
-            if (a != null)
-                return a.send(message, timeout, unit);
-            return true;
-        }
-
-        @Override
-        public boolean send(Message msg, Timeout timeout) throws SuspendExecution, InterruptedException {
-            return send(msg, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
-        }
-
-        @Override
-        public boolean trySend(Message message) {
-            final ActorRef a = getActor();
-            if (a != null)
-                return a.trySend(message);
-            return true;
-        }
-
-        @Override
-        public void close() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void close(Throwable t) {
-            throw new UnsupportedOperationException();
+        protected ActorRef<Object> makeRef(ActorRef<Object> ref) {
+            return new TempActorRef(ref);
         }
     }
 
+    private static class TempActorRef extends ActorRefDelegate<Object> {
+        public TempActorRef(ActorRef<Object> ref) {
+            super(ref);
+        }
+
+        @Override
+        protected ActorImpl<Object> getImpl() {
+            return super.getImpl();
+        }
+    }
+
+//    private static class TempActor<Message> extends ActorRef<Message> {
+//        private WeakReference<Actor<Message, Void>> actor;
+//        private volatile boolean done = false;
+//
+//        public TempActor(Actor actor) {
+//            this.actor = new WeakReference<Actor<Message, Void>>(actor);
+//        }
+//
+//        public void done() {
+//            this.actor = null;
+//            this.done = true;
+//        }
+//
+//        @Override
+//        protected ActorImpl<Message> getImpl() {
+//            Actor a = null;
+//            if (actor != null)
+//                a = actor.get();
+//            if (a == null)
+//                throw new RuntimeException("Temporary actor is out of scope");
+//            return a;
+//        }
+//    }
     private RequestReplyHelper() {
     }
 }

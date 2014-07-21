@@ -43,6 +43,7 @@ package co.paralleluniverse.fibers.instrument;
 
 import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
+import static co.paralleluniverse.fibers.instrument.Classes.RUNTIME_EXCEPTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.STACK_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.UNDECLARED_THROWABLE_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.isAllowedToBlock;
@@ -147,7 +148,7 @@ class InstrumentMethod {
                             if (st == SuspendableType.NON_SUSPENDABLE)
                                 susp = false;
                             else if (st == null) {
-                                db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s (at%s#%s)", min.owner, min.name, min.desc, className, mn.name);
+                                db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s (at %s#%s)", min.owner, min.name, min.desc, className, mn.name);
                                 susp = true;
                             } else if (susp)
                                 db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is suspendable", i, min.owner, min.name, min.desc);
@@ -218,6 +219,7 @@ class InstrumentMethod {
 //            mv.visitVarInsn(Opcodes.ISTORE, lvarSuspendableCalled);
 //        }
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, EXCEPTION_NAME);
+        mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, RUNTIME_EXCEPTION_NAME);
         if (handleProxyInvocations)
             mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchUTE, UNDECLARED_THROWABLE_NAME);
 
@@ -228,8 +230,8 @@ class InstrumentMethod {
         // will be matched according to the order of in which visitTryCatchBlock has been called. Earlier calls take precedence.
         Label[][] refInvokeTryCatch = new Label[numCodeBlocks - 1][];
         for (int i = 1; i < numCodeBlocks; i++) {
-            FrameInfo fi = codeBlocks[i];
-            AbstractInsnNode in = mn.instructions.get(fi.endInstruction);
+            final FrameInfo fi = codeBlocks[i];
+            final AbstractInsnNode in = mn.instructions.get(fi.endInstruction);
             if (mn.instructions.get(fi.endInstruction) instanceof MethodInsnNode) {
                 MethodInsnNode min = (MethodInsnNode) in;
                 if (isReflectInvocation(min.owner, min.name)) {
@@ -243,14 +245,13 @@ class InstrumentMethod {
         }
 
         for (Object o : mn.tryCatchBlocks) {
-            TryCatchBlockNode tcb = (TryCatchBlockNode) o;
+            final TryCatchBlockNode tcb = (TryCatchBlockNode) o;
             if (EXCEPTION_NAME.equals(tcb.type) && !hasAnnotation) // we allow catch of SuspendExecution in method annotated with @Suspendable.
                 throw new UnableToInstrumentException("catch for SuspendExecution", className, mn.name, mn.desc);
             if (handleProxyInvocations && UNDECLARED_THROWABLE_NAME.equals(tcb.type)) // we allow catch of SuspendExecution in method annotated with @Suspendable.
                 throw new UnableToInstrumentException("catch for UndeclaredThrowableException", className, mn.name, mn.desc);
 //          if (INTERRUPTED_EXCEPTION_NAME.equals(tcb.type))
 //              throw new UnableToInstrumentException("catch for " + InterruptedException.class.getSimpleName(), className, mn.name, mn.desc);
-
             tcb.accept(mv);
         }
 

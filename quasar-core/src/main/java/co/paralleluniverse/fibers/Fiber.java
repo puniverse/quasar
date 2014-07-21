@@ -23,6 +23,8 @@ import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
 import co.paralleluniverse.fibers.instrument.SuspendableHelper;
+import co.paralleluniverse.io.serialization.ByteArraySerializer;
+import co.paralleluniverse.io.serialization.kryo.KryoSerializer;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
@@ -30,7 +32,6 @@ import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.SuspendableUtils.VoidSuspendableCallable;
 import static co.paralleluniverse.strands.SuspendableUtils.runnableToCallable;
 import co.paralleluniverse.strands.dataflow.Val;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
@@ -38,12 +39,18 @@ import java.lang.reflect.Method;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
-import sun.misc.Unsafe;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.Registration;
+import com.esotericsoftware.kryo.Serializer;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.serializers.FieldSerializer;
 
 /**
  * A lightweight thread.
@@ -68,6 +75,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private static final ClassContext classContext = verifyInstrumentation ? new ClassContext() : null;
     private static final boolean traceInterrupt = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.traceInterrupt", "false"));
     public static final int DEFAULT_STACK_SIZE = 32;
+    private static final Object SERIALIZER_BLOCKER = new Object();
     private static final boolean MAINTAIN_ACCESS_CONTROL_CONTEXT = (System.getSecurityManager() != null);
 //    private static final boolean PREEMPTION = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.enablePreemption", "false"));
 //    private static final int PREEMPTION_CREDITS = 3000;
@@ -92,7 +100,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
     // private static final FiberTimedScheduler timeoutService = new FiberTimedScheduler(new ThreadFactoryBuilder().setNameFormat("fiber-timeout-%d").setDaemon(true).build());
     private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler = new UncaughtExceptionHandler() {
-
         @Override
         public void uncaughtException(Strand s, Throwable e) {
             System.err.print("Exception in Fiber \"" + s.getName() + "\" ");
@@ -109,23 +116,22 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return idGen.incrementAndGet();
     }
     //
-    private final transient FiberScheduler scheduler;
-    private final transient FiberTask<V> task;
+    private /*final*/ transient FiberScheduler scheduler;
+    private /*final*/ transient FiberTask<V> task;
+    private /*final*/ String name;
+    private /*final*/ int initialStackSize;
+    private /*final*/ transient long fid;
     final Stack stack;
-    // private final Strand parent; // retaining the parent is a huge, complex memory leak
-    private final String name;
-    private final int initialStackSize;
-    private final long fid;
     private volatile State state;
     private InterruptedException interruptStack;
     private volatile boolean interrupted;
     private long run;
-    private boolean noPreempt;
+    private transient boolean noPreempt;
     // private int preemptionCredits;
     private transient Thread runningThread;
     private final SuspendableCallable<V> target;
-    private ClassLoader contextClassLoader;
-    private AccessControlContext inheritedAccessControlContext;
+    private transient ClassLoader contextClassLoader;
+    private transient AccessControlContext inheritedAccessControlContext;
     private Object fiberLocals;
     private Object inheritableFiberLocals;
     private long sleepStart;
@@ -133,10 +139,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private transient ParkAction prePark;
     private transient ParkAction postPark;
     //private boolean inExec;
-    private Object result;
-    private boolean getStackTrace;
+    private transient Object result; // transient b/c completed fibers are not serialized
+    private transient boolean getStackTrace;
     private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
-    final DummyRunnable fiberRef = new DummyRunnable(this);
+    /*final*/ transient DummyRunnable fiberRef = new DummyRunnable(this);
 
     /**
      * Creates a new fiber from the given {@link SuspendableCallable}.
@@ -151,8 +157,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         this.name = name;
         this.fid = nextFiberId();
         this.scheduler = scheduler;
-        Strand parent = Strand.currentStrand();
-        // this.parent = Strand.currentStrand();
+        Strand parent = Strand.currentStrand(); // retaining the parent as a field is a huge, complex memory leak
         this.target = target;
         this.task = scheduler != null ? scheduler.newFiberTask(this) : new FiberForkJoinScheduler.FiberForkJoinTask(this);
         this.initialStackSize = stackSize;
@@ -185,6 +190,20 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         record(1, "Fiber", "<init>", "Created fiber %s", this);
     }
 
+//    private Fiber() {
+//        this.fid = nextFiberId();
+//        this.scheduler = scheduler;
+//        Strand parent = Strand.currentStrand();
+//        // this.parent = Strand.currentStrand();
+//        this.target = target;
+//        this.task = scheduler != null ? scheduler.newFiberTask(this) : new FiberForkJoinScheduler.FiberForkJoinTask(this);
+//        final Thread currentThread = Thread.currentThread();
+//        this.contextClassLoader = ThreadAccess.getContextClassLoader(currentThread);
+//        if (MAINTAIN_ACCESS_CONTROL_CONTEXT)
+//            this.inheritedAccessControlContext = AccessController.getContext();
+//        if (USE_VAL_FOR_RESULT /*&& !isVoidResult(target)*/)
+//            this.result = new Val<V>();
+//    }
     /**
      * Creates a new fiber from the given {@link SuspendableCallable} scheduled in the {@link DefaultFiberScheduler default fiber scheduler}
      *
@@ -676,6 +695,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         final Thread currentThread = Thread.currentThread();
         final Object old = getCurrentTarget(currentThread);// getCurrentFiber(); // a fiber can directly call exec on another fiber, e.g.: Channel.sendSync
         installFiberDataInThread(currentThread);
+        // as of now we're no longer running in the enclosing thread, but in the fiber itself.
 
         run++;
         // preemptionCredits = PREEMPTION_CREDITS;
@@ -684,16 +704,20 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         boolean restored = false;
         try {
-            final V res = run1(); // we jump into the continuation
+            try {
+                final V res = run1(); // we jump into the continuation
 
-            runningThread = null;
-            state = State.TERMINATED;
-            record(1, "Fiber", "exec", "finished %s %s res: %s", state, this, this.result);
-            monitorFiberTerminated(monitor);
+                runningThread = null;
+                state = State.TERMINATED;
+                record(1, "Fiber", "exec", "finished %s %s res: %s", state, this, this.result);
+                monitorFiberTerminated(monitor);
 
-            setResult(res);
+                setResult(res);
 
-            return true;
+                return true;
+            } catch (RuntimeSuspendExecution e) {
+                throw (SuspendExecution) e.getCause();
+            }
         } catch (SuspendExecution ex) {
             assert ex == SuspendExecution.PARK || ex == SuspendExecution.YIELD;
             //stack.dump();
@@ -705,6 +729,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             clearRunSettings();
 
             restoreThreadData(currentThread, old);
+            // as of now we're no longer running in the fiber (but in the enclosing thread)
             restored = true;
 
             record(1, "Fiber", "exec", "parked %s %s", state, this);
@@ -720,8 +745,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         } catch (Throwable t) {
             clearRunSettings();
             runningThread = null;
-            state = State.TERMINATED;
-            monitorFiberTerminated(monitor);
 
             if (Debug.isDebug()) {
                 if (t instanceof InterruptedException)
@@ -733,12 +756,17 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 }
             }
 
-            setException(t);
-            if (t instanceof InterruptedException) {
-                throw new RuntimeException(t);
-            } else {
-                onException(t);
-                throw Exceptions.rethrow(t);
+            try {
+                if (t instanceof InterruptedException) {
+                    throw new RuntimeException(t);
+                } else {
+                    onException(t);
+                    throw Exceptions.rethrow(t);
+                }
+            } finally {
+                state = State.TERMINATED;
+                monitorFiberTerminated(monitor);
+                setException(t);
             }
         } finally {
             if (!restored)
@@ -783,8 +811,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             setCurrentFiber(this, currentThread);
 
         try {
-            run1(); // we jump into the continuation
-            throw new AssertionError();
+            try {
+                run1(); // we jump into the continuation
+                throw new AssertionError();
+            } catch (RuntimeSuspendExecution e) {
+                throw (SuspendExecution) e.getCause();
+            }
         } catch (SuspendExecution | IllegalStateException ex) {
             assert ex != SuspendExecution.PARK && ex != SuspendExecution.YIELD;
             //stack.dump();
@@ -1230,6 +1262,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         get(timeout, unit);
     }
 
+    public final Fiber<V> joinNoSuspend() throws ExecutionException, InterruptedException {
+        task.get();
+        return this;
+    }
+
+    public final Fiber<V> joinNoSuspend(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+        task.get(timeout, unit);
+        return this;
+    }
+
     @Override
     @Suspendable
     public final V get() throws ExecutionException, InterruptedException {
@@ -1252,7 +1294,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final boolean isDone() {
-        return state == State.TERMINATED;
+        return isTerminated();
     }
 
     @Override
@@ -1440,9 +1482,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             return threadStack;
 
         int count = 0;
-        for (int i = 0; i < threadStack.length; i++) {
+        for (StackTraceElement ste : threadStack) {
             count++;
-            StackTraceElement ste = threadStack[i];
             if (Fiber.class.getName().equals(ste.getClassName())) {
                 if ("run".equals(ste.getMethodName()))
                     break;
@@ -1499,12 +1540,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return stack;
     }
 
-    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-        if (state == State.RUNNING)
-            throw new IllegalStateException("trying to serialize a running Fiber");
-        out.defaultWriteObject();
-    }
-
     /**
      * An action to perform before or after a park (but always before the fiber has woken up)
      */
@@ -1546,6 +1581,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return current;
     }
 
+    @SuppressWarnings("null")
     public static boolean checkInstrumentation() {
         assert verifyInstrumentation;
 
@@ -1565,7 +1601,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 continue;
             if (skipSTE(ste)) {
                 k--;
-                continue;
             } else if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
                     && !ste.getClassName().equals(Stack.class.getName())) {
                 if (!SuspendableHelper.isWaiver(ste.getClassName(), ste.getMethodName())
@@ -1583,13 +1618,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                     // The next probelm happends when some function is in the STE but not in the context
                     // consider fix the skipSTE to fix it
                     if (!context[k].getName().equals(ste.getClassName()))
-                        stackTrace.append("oops. probelm with stacktrace can't be trusted");
+                        stackTrace.append("oops. problem with stacktrace can't be trusted");
                     notInstrumented = true;
                 }
             } else if (ste.getClassName().equals(Fiber.class.getName()) && ste.getMethodName().equals("run1")) {
                 if (notInstrumented) {
-                    System.err.println("WARNING: Uninstrumented methods on the call stack (marked with **): " + stackTrace);
-                    //throw new IllegalStateException(str);
+                    final String str = "Uninstrumented methods on the call stack (marked with **): " + stackTrace;
+                    if (Debug.isUnitTest())
+                        throw new IllegalStateException(str);
+                    System.err.println("WARNING: " + str);
                 }
                 return !notInstrumented;
             }
@@ -1647,7 +1684,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         stack.resetStack();
     }
 
-    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
+    private static final sun.misc.Unsafe UNSAFE = UtilUnsafe.getUnsafe();
     private static final long stateOffset;
 
     static {
@@ -1782,5 +1819,146 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         public Class[] getClassContext() {
             return super.getClassContext();
         }
+    }
+
+    @SuppressWarnings("empty-statement")
+    public static void parkAndSerialize(final FiberWriter writer) throws SuspendExecution {
+//        if (writer == null)
+//            return; // should only happen during unparkSerialized 
+        while (!park(SERIALIZER_BLOCKER, new ParkAction() {
+            @Override
+            public void run(Fiber f) {
+                f.record(1, "Fiber", "parkAndSerialize", "Serializing fiber %s", f);
+                writer.write(f, getFiberSerializer());
+            }
+        }));
+    }
+
+    /**
+     * Deserializes a fiber from the given byte array and unparks it.
+     *
+     * @param serFiber  The byte array containing a fiber's serialized form.
+     * @param scheduler The {@link FiberScheduler} to use for scheduling the fiber.
+     * @return The deserialized, running fiber.
+     */
+    public static <V> Fiber<V> unparkSerialized(byte[] serFiber, FiberScheduler scheduler) {
+        final Fiber<V> f = (Fiber<V>) getFiberSerializer().read(serFiber);
+        return unparkDeserialized(f, scheduler);
+    }
+
+    /**
+     * Unparks a fiber that's been deserialized (with the help of {@link #getFiberSerializer()}
+     *
+     * @param f         The deserialized fiber
+     * @param scheduler The {@link FiberScheduler} to use for scheduling the fiber.
+     * @return The fiber
+     */
+    public static <V> Fiber<V> unparkDeserialized(Fiber<V> f, FiberScheduler scheduler) {
+        f.record(1, "Fiber", "unparkDeserialized", "Deserialized fiber %s", f);
+        final Thread currentThread = Thread.currentThread();
+        f.fiberRef = new DummyRunnable(f);
+        f.fid = nextFiberId();
+        f.scheduler = scheduler;
+        f.task = scheduler.newFiberTask(f);
+        f.task.setState(FiberTask.PARKED);
+        if (USE_VAL_FOR_RESULT /*&& !isVoidResult(target)*/)
+            f.result = new Val<V>();
+
+        f.contextClassLoader = ThreadAccess.getContextClassLoader(currentThread);
+        if (MAINTAIN_ACCESS_CONTROL_CONTEXT)
+            f.inheritedAccessControlContext = AccessController.getContext();
+
+        f.record(1, "Fiber", "unparkDeserialized", "Unparking deserialized fiber %s", f);
+        f.unpark(SERIALIZER_BLOCKER);
+
+        return f;
+    }
+
+    /**
+     * Returns a {@link ByteArraySerializer} capable of serializing an object graph containing fibers.
+     */
+    public static ByteArraySerializer getFiberSerializer() {
+        final KryoSerializer s = new KryoSerializer();
+        s.getKryo().addDefaultSerializer(Fiber.class, new FiberSerializer());
+        s.getKryo().addDefaultSerializer(ThreadLocal.class, new ThreadLocalSerializer());
+        s.getKryo().addDefaultSerializer(FiberWriter.class, new FiberWriterSerializer());
+        s.getKryo().register(Fiber.class);
+        s.getKryo().register(ThreadLocal.class);
+        s.getKryo().register(InheritableThreadLocal.class);
+        s.getKryo().register(FiberWriter.class);
+        return s;
+    }
+
+    private static class FiberSerializer extends Serializer<Fiber> {
+        public FiberSerializer() {
+            setImmutable(true);
+        }
+
+        @Override
+        @SuppressWarnings("CallToPrintStackTrace")
+        public void write(Kryo kryo, Output output, Fiber f) {
+            final Thread currentThread = Thread.currentThread();
+            final Object tmpThreadLocals = ThreadAccess.getThreadLocals(currentThread);
+            final Object tmpInheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
+            ThreadAccess.setThreadLocals(currentThread, f.fiberLocals);
+            ThreadAccess.setInheritablehreadLocals(currentThread, f.inheritableFiberLocals);
+            try {
+                f.fiberLocals = f.fiberLocals != null
+                        ? filterThreadLocalMap(ThreadAccess.toMap(f.fiberLocals)).keySet().toArray() : null;
+                f.inheritableFiberLocals = f.inheritableFiberLocals != null
+                        ? filterThreadLocalMap(ThreadAccess.toMap(f.inheritableFiberLocals)).keySet().toArray() : null;
+                f.stack.resumeStack();
+
+                kryo.writeClass(output, f.getClass());
+                new FieldSerializer(kryo, f.getClass()).write(kryo, output, f);
+            } catch (Throwable t) {
+                t.printStackTrace();
+                throw t;
+            } finally {
+                ThreadAccess.setThreadLocals(currentThread, tmpThreadLocals);
+                ThreadAccess.setInheritablehreadLocals(currentThread, tmpInheritableThreadLocals);
+            }
+        }
+
+        @Override
+        @SuppressWarnings("CallToPrintStackTrace")
+        public Fiber read(Kryo kryo, Input input, Class<Fiber> type) {
+            final Fiber f;
+            final Thread currentThread = Thread.currentThread();
+            final Object tmpThreadLocals = ThreadAccess.getThreadLocals(currentThread);
+            final Object tmpInheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
+            ThreadAccess.setThreadLocals(currentThread, null);
+            ThreadAccess.setInheritablehreadLocals(currentThread, null);
+            try {
+                final Registration reg = kryo.readClass(input);
+                if (reg == null)
+                    return null;
+                f = (Fiber) new FieldSerializer(kryo, reg.getType()).read(kryo, input, reg.getType());
+
+                f.fiberLocals = ThreadAccess.getThreadLocals(currentThread);
+                f.inheritableFiberLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
+
+                return f;
+            } catch (Throwable t) {
+                t.printStackTrace();
+                throw t;
+            } finally {
+                ThreadAccess.setThreadLocals(currentThread, tmpThreadLocals);
+                ThreadAccess.setInheritablehreadLocals(currentThread, tmpInheritableThreadLocals);
+            }
+        }
+    }
+
+    private static Map<ThreadLocal, Object> filterThreadLocalMap(Map<ThreadLocal, Object> map) {
+        // System.out.println("XXXXX THREAD LOCALS: " + map);
+        return map;
+//        for (Iterator<Map.Entry<ThreadLocal, Object>> it = map.entrySet().iterator(); it.hasNext();) {
+//            Map.Entry<ThreadLocal, Object> entry = it.next();
+//            if (entry.getValue() instanceof co.paralleluniverse.io.serialization.Serialization)
+//                it.remove();
+//            if (entry.getKey().getClass().getName().startsWith("org.gradle.") || (entry.getValue() != null && entry.getValue().getClass().getName().startsWith("org.gradle.")))
+//                it.remove();
+//        }
+//        return map;
     }
 }

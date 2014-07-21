@@ -53,7 +53,7 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
     /////////// Behavior boilerplate ///////////////////////////////////
     @Override
     protected Behavior makeRef(ActorRef<Object> ref) {
-        return new BehaviorImpl.Local(ref);
+        return new Behavior(ref);
     }
 
     @Override

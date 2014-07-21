@@ -68,15 +68,16 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public abstract class FiberAsync<V, E extends Throwable> {
+public abstract class FiberAsync<V, E extends Throwable> implements java.io.Serializable {
     private final Fiber fiber;
     private final boolean immediateExec;
-    private long deadline;
     private volatile boolean completed;
     private Throwable exception;
     private V result;
-    private Thread registrationThread;
-    private volatile boolean registrationComplete;
+    private transient Thread registrationThread;
+    private transient volatile boolean registrationComplete;
+    private long timeoutNanos;
+    private transient long deadline;
 
     /**
      * Same as `FiberAsync(false)`
@@ -114,8 +115,8 @@ public abstract class FiberAsync<V, E extends Throwable> {
 
         // We call the verifySuspend first here, because instrumentation problems may corrupt
         // the second call inside Fiber.park
-        Fiber.verifySuspend(fiber); 
-        
+        Fiber.verifySuspend(fiber);
+
         fiber.record(1, "FiberAsync", "run", "Blocking fiber %s on FibeAsync %s", fiber, this);
         while (!Fiber.park(this, new Fiber.ParkAction() {
             @Override
@@ -175,7 +176,8 @@ public abstract class FiberAsync<V, E extends Throwable> {
         if (timeout <= 0)
             throw new TimeoutException();
 
-        this.deadline = System.nanoTime() + unit.toNanos(timeout);
+        this.timeoutNanos = unit.toNanos(timeout);
+        this.deadline = System.nanoTime() + timeoutNanos;
 
         fiber.record(1, "FiberAsync", "run", "Blocking fiber %s on FibeAsync %s", fiber, this);
         while (!Fiber.park(this, new Fiber.ParkAction() {
@@ -194,6 +196,9 @@ public abstract class FiberAsync<V, E extends Throwable> {
                 }
             }
         })); // make sure we actually park and run PostParkActions
+
+        if (timeoutNanos > 0 && deadline == 0) // must have been deserialized
+            this.deadline = System.nanoTime() + timeoutNanos;
 
         while (!completed) { // the fiber can be awakened spuriously, in particular, from calls to getStackTrace
             if (Fiber.interrupted())
@@ -250,10 +255,11 @@ public abstract class FiberAsync<V, E extends Throwable> {
     }
 
     /**
-     * Spins until {@code requestAsync} returns. Can be called from overrides of {@code run}.
+     * Spins until {@code requestAsync} returns. Can be called from overrides of {@code run} (and must be called by the fiber that's
+     * calling {@code run}).
      */
     protected final void waitForRegistration() {
-        if (Thread.currentThread() != registrationThread) {
+        if (registrationThread != null && Thread.currentThread() != registrationThread) {
             while (!registrationComplete)
              ; // spin
         }

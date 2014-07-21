@@ -169,6 +169,6 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
 
     @Override
     public String toString() {
-        return "Channel{" + "owner: " + owner + ", sync: " + sync + ", queue: " + Objects.systemToString(queue) + '}';
+        return "Channel{" + "owner: " + owner + ", sync: " + sync + ", queue: " + Objects.systemToString(queue) + ", capacity: " + capacity() + '}';
     }
 }

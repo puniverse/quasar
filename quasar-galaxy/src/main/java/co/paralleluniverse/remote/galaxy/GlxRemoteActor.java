@@ -14,13 +14,11 @@
 package co.paralleluniverse.remote.galaxy;
 
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.LocalActor;
-import co.paralleluniverse.actors.RemoteActorRef;
+import co.paralleluniverse.actors.RemoteActor;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.channels.QueueChannel;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
@@ -30,26 +28,12 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
-public class GlxRemoteActor<Message> extends RemoteActorRef<Message> {
+public abstract class GlxRemoteActor<Message> extends RemoteActor<Message> {
     private static final Logger LOG = LoggerFactory.getLogger(GlxRemoteActor.class);
+    private static Canonicalizer<GlxGlobalChannelId, GlxRemoteActor> canonicalizer = new Canonicalizer<>();
 
-    public GlxRemoteActor(final ActorRef<Message> actor, Object globalId) {
+    public GlxRemoteActor(final ActorRef<Message> actor) {
         super(actor);
-        final RemoteChannelReceiver<Object> receiver = RemoteChannelReceiver.getReceiver((QueueChannel<Object>) LocalActor.getMailbox(actor), globalId != null);
-        receiver.setFilter(new RemoteChannelReceiver.MessageFilter<Object>() {
-            @Override
-            public boolean shouldForwardMessage(Object msg) {
-                if (msg instanceof RemoteActorAdminMessage) {
-                    handleAdminMessage((RemoteActorAdminMessage) msg);
-                    return false;
-                }
-                return true;
-            }
-        });
-    }
-
-    short getOwnerNodeId() {
-        return ((GlxRemoteChannel) getMailbox()).getOwnerNodeId();
     }
 
     @Override
@@ -66,7 +50,7 @@ public class GlxRemoteActor<Message> extends RemoteActorRef<Message> {
                     internalSend(message);
                     return null;
                 }
-            }.start().get();
+            }.start().joinNoSuspend();
         } catch (ExecutionException e) {
             throw Exceptions.rethrow(e.getCause());
         } catch (InterruptedException e) {
@@ -95,5 +79,17 @@ public class GlxRemoteActor<Message> extends RemoteActorRef<Message> {
 
     static Class getActorLifecycleListenerClass() {
         return ActorLifecycleListener.class;
+    }
+
+    public GlxGlobalChannelId getId() {
+        return ((GlxRemoteChannel) mailbox()).getId();
+    }
+
+    protected Object readResolve() throws java.io.ObjectStreamException {
+        return canonicalizer.get(getId(), this);
+    }
+
+    protected static GlxRemoteActor getImpl(ActorRef<?> actor) {
+        return (GlxRemoteActor) RemoteActor.getImpl(actor);
     }
 }

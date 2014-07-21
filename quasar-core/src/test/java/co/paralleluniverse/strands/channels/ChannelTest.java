@@ -97,7 +97,7 @@ public class ChannelTest {
         this.singleProducer = singleProducer;
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name = "{0} {1} {2} {3}")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
             {5, OverflowPolicy.THROW, true, false},

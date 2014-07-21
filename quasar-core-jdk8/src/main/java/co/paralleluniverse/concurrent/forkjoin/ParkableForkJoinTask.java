@@ -287,6 +287,10 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         return state;
     }
 
+    protected void setState(int state) {
+        this.state = state;
+    }
+
     boolean compareAndSetState(int expect, int update) {
         return UNSAFE.compareAndSwapInt(this, stateOffset, expect, update);
     }

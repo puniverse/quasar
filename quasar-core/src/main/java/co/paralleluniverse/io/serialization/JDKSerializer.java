@@ -25,24 +25,39 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  *
  * @author pron
  */
 public final class JDKSerializer implements ByteArraySerializer, IOStreamSerializer {
+    private final List<WriteReplaceEntry> writeReplace = new CopyOnWriteArrayList<>();
+
+    public void registerWriteReplace(Class<?> clazz, WriteReplace wr) {
+        writeReplace.add(new WriteReplaceEntry(clazz, wr));
+    }
+
     @Override
     public byte[] write(Object object) {
         try {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             final ObjectOutputStream oos = new ObjectOutputStream(baos);
-            oos.writeObject(object);
-            oos.flush();
-            baos.close();
+            oos.writeObject(writeReplace(object));
+            oos.close();
             return baos.toByteArray();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private Object writeReplace(Object object) {
+        for (WriteReplaceEntry entry : writeReplace) {
+            if (entry.clazz.isInstance(object))
+                return entry.writeReplace.writeReplace(object);
+        }
+        return object;
     }
 
     @Override
@@ -100,5 +115,15 @@ public final class JDKSerializer implements ByteArraySerializer, IOStreamSeriali
         if (is instanceof ObjectInput)
             return (ObjectInput) is;
         return new ObjectInputStream(is);
+    }
+
+    static class WriteReplaceEntry {
+        final Class<?> clazz;
+        final WriteReplace writeReplace;
+
+        public WriteReplaceEntry(Class<?> clazz, WriteReplace writeReplace) {
+            this.clazz = clazz;
+            this.writeReplace = writeReplace;
+        }
     }
 }

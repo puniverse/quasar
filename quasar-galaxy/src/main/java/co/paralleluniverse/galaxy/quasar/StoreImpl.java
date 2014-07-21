@@ -14,6 +14,7 @@
 package co.paralleluniverse.galaxy.quasar;
 
 import co.paralleluniverse.common.io.Persistable;
+import co.paralleluniverse.common.io.Streamable;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.futures.AsyncListenableFuture;
 import co.paralleluniverse.galaxy.CacheListener;
@@ -212,7 +213,7 @@ public class StoreImpl implements Store {
     public long getRoot(String rootName, long id, StoreTransaction txn) throws TimeoutException {
         return store.getRoot(rootName, id, txn);
     }
-    
+
     @Override
     public boolean isRootCreated(long rootId, StoreTransaction txn) {
         return store.isRootCreated(rootId, txn);
@@ -223,6 +224,11 @@ public class StoreImpl implements Store {
         store.setListener(id, listener);
     }
 
+    @Override
+    public CacheListener setListenerIfAbsent(long id, CacheListener listener) {
+        return store.setListenerIfAbsent(id, listener);
+    }
+    
     @Override
     public void push(long id, short... toNodes) {
         store.push(id, toNodes);
@@ -241,6 +247,16 @@ public class StoreImpl implements Store {
     @Override
     public ItemState getState(long id) {
         return store.getState(id);
+    }
+
+    @Override
+    public void send(long id, Streamable msg) throws TimeoutException, SuspendExecution {
+        result(store.sendAsync(id, msg));
+    }
+
+    @Override
+    public void send(long id, byte[] msg) throws TimeoutException, SuspendExecution {
+        result(store.sendAsync(id, msg));
     }
 
     private <V> V result(ListenableFuture<V> future) throws TimeoutException, SuspendExecution {

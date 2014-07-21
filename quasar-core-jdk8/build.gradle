@@ -16,6 +16,10 @@ sourceSets {
         java {
             srcDirs += "../quasar-core/src/test/java" // project(":quasar-core").sourceSets.test.java.srcDirs
         }
+        resources {
+            srcDirs += "../quasar-core/src/test/resources" // project(":quasar-core").sourceSets.test.resources.srcDirs
+            runtimeClasspath += files("../quasar-core/build/resources/test") // project(':quasar-core').sourceSets.test.resources
+        }
     }
 }
 
