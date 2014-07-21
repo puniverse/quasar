@@ -1,11 +1,8 @@
 markdown: enhanced_kramdown
-pygments: true
+highligeter: pygments
 lsi: false
 safe: false
 baseurl: /quasar
-
-kramdown:
-  use_coderay: false
 
 ## Site globals used throughout docs.
 project: Quasar
