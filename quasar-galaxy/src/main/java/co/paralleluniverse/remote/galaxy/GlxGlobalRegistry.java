@@ -19,10 +19,6 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.AbstractCacheListener;
 import co.paralleluniverse.galaxy.Cache;
-<<<<<<< HEAD
-import co.paralleluniverse.galaxy.AbstractCacheListener;
-=======
->>>>>>> actor-migration
 import co.paralleluniverse.galaxy.StoreTransaction;
 import co.paralleluniverse.galaxy.TimeoutException;
 import co.paralleluniverse.galaxy.quasar.Grid;
@@ -220,14 +216,6 @@ public class GlxGlobalRegistry implements ActorRegistry {
                 public void evicted(Cache cache, long id) {
                     invalidated(cache, id);
                 }
-<<<<<<< HEAD
-                store.setListener(root, new AbstractCacheListener() {
-                    @Override
-                    public void invalidated(Cache cache, long id) {
-                        evicted(cache, id);
-                    }
-=======
->>>>>>> actor-migration
 
                 @Override
                 public void invalidated(Cache cache, long id) {
