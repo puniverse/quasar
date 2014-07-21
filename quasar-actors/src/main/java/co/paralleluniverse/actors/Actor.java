@@ -631,6 +631,20 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     protected final boolean isInActor() {
         return (currentActor() == this);
     }
+
+    /**
+     * Returns the actor associated with the given strand, or {@code null} if none is.
+     */
+    public static Actor getActor(Strand s) {
+        final ActorRunner runner;
+        if (s.isFiber())
+            runner = (ActorRunner) ((Fiber) s.getUnderlying()).getTarget();
+        else
+            runner = (ActorRunner) Strand.unwrapSuspendable(ThreadAccess.getTarget((Thread) s.getUnderlying()));
+        if (runner == null)
+            return null;
+        return runner.getActor();
+    }
     //</editor-fold>
 
     //<editor-fold desc="Lifecycle">
@@ -1041,26 +1055,13 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             hasMonitor = true;
             stopMonitor();
         }
-    }
-
-    /**
-     * Returns the actor associated with the given strand, or {@code null} if none is.
-     */
-    public static Actor getActor(Strand s) {
-        final ActorRunner runner;
-        if (s.isFiber())
-            runner = (ActorRunner) ((Fiber) s.getUnderlying()).getTarget();
-        else
-            runner = (ActorRunner) Strand.unwrapSuspendable(ThreadAccess.getTarget((Thread) s.getUnderlying()));
-        if (runner == null)
-            return null;
-        return runner.getActor();
+        // must be done before migration because this sets up a local listener (which will be removed when migrating)
+        ref.setImpl(RemoteActorProxyFactoryService.create(ref, getGlobalId()));
     }
 
     private void postMigrate() {
-        final RemoteActor<Message> remote = RemoteActorProxyFactoryService.create(ref, getGlobalId());
-        ref.setImpl(remote);
-
+        assert ref.getImpl() instanceof RemoteActor;
+        
         // copy messages already in the mailbox
         // TODO: this might change the message order, as new messages are coming in
         final Mailbox mbox = mailbox();
@@ -1068,7 +1069,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             Object m = mbox.tryReceive();
             if (m == null)
                 break;
-            remote.internalSendNonSuspendable(m);
+            // System.out.println("XXXXXXX ---> " + m);
+            ref.getImpl().internalSendNonSuspendable(m);
         }
     }
 
