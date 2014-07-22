@@ -78,12 +78,12 @@ public class AutoSuspendablesScanner extends Task {
     private boolean append = false;
     private String supersFile;
     private String suspendablesFile;
-
+    
     public AutoSuspendablesScanner() {
         this.ant = getClass().getClassLoader() instanceof AntClassLoader;
         this.projectDir = null;
     }
-    
+
     public AutoSuspendablesScanner(Path projectDir) {
         this.ant = getClass().getClassLoader() instanceof AntClassLoader;
         this.projectDir = projectDir;
@@ -94,18 +94,25 @@ public class AutoSuspendablesScanner extends Task {
         filesets.add(fs);
     }
 
-    public void setOutputSuspendableFile(String outputFile) {
+    public void setSuspendablesFile(String outputFile) {
         this.suspendablesFile = outputFile;
     }
 
-    public void setOutputSupersFile(String outputFile) {
+    public void setSupersFile(String outputFile) {
         this.supersFile = outputFile;
     }
 
-    public void setAuto(boolean auto) {
-        this.auto = auto;
+    /**
+     * Whether suspendables should be found based on the method call-graph.
+     * I false, only suspendabel-supers of known suspendables will be found.
+     */
+    public void setAuto(boolean value) {
+        this.auto = value;
     }
 
+    /**
+     * Whether the found methods should be appended to the output files(s) or replace them.
+     */
     public void setAppend(boolean value) {
         this.append = value;
     }
@@ -123,7 +130,7 @@ public class AutoSuspendablesScanner extends Task {
 
             log("OUTPUT: " + supersFile, Project.MSG_INFO);
             log("OUTPUT: " + suspendablesFile, Project.MSG_INFO);
-            
+
             // output results
             final ArrayList<String> suspendables = suspendablesFile != null ? new ArrayList<String>() : null;
             final ArrayList<String> suspendableSupers = supersFile != null ? new ArrayList<String>() : null;
@@ -142,7 +149,7 @@ public class AutoSuspendablesScanner extends Task {
             throw new BuildException(e);
         }
     }
-    
+
     public void run() {
         try {
             final List<URL> us = new ArrayList<>();
@@ -169,18 +176,17 @@ public class AutoSuspendablesScanner extends Task {
             log("Project URLs: " + pus, Project.MSG_INFO);
 
             final long tStart = System.nanoTime();
-            
-            if (auto)
-                scanExternalSuspendables();
-            
+
+            scanExternalSuspendables();
+
             final long tScanExternal = System.nanoTime();
             if (auto)
                 log("Scanned external suspendables in " + (tScanExternal - tStart) / 1000000 + " ms", Project.MSG_INFO);
 
             // scan classes in filesets
-            Function<File, Void> fileVisitor = new Function<File, Void>() {
-                public Void apply(File file) {
-                    try (InputStream is = new FileInputStream(file)) {
+            Function<InputStream, Void> fileVisitor = new Function<InputStream, Void>() {
+                public Void apply(InputStream is1) {
+                    try (InputStream is = is1) {
                         createGraph(is);
                         return null;
                     } catch (IOException e) {
@@ -192,12 +198,14 @@ public class AutoSuspendablesScanner extends Task {
                 visitAntProject(fileVisitor);
             else
                 visitProjectDir(fileVisitor);
-            final long tBuildGraph = System.nanoTime();
-            log("Built method graph in " + (tBuildGraph - tScanExternal)/1000000 + " ms", Project.MSG_INFO);
+            scanSuspendablesFile(fileVisitor);
             
+            final long tBuildGraph = System.nanoTime();
+            log("Built method graph in " + (tBuildGraph - tScanExternal) / 1000000 + " ms", Project.MSG_INFO);
+
             walkGraph();
             final long tWalkGraph = System.nanoTime();
-            log("Walked method graph in " + (tWalkGraph - tBuildGraph)/1000000 + " ms", Project.MSG_INFO);
+            log("Walked method graph in " + (tWalkGraph - tBuildGraph) / 1000000 + " ms", Project.MSG_INFO);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -219,7 +227,7 @@ public class AutoSuspendablesScanner extends Task {
         });
     }
 
-    private void visitAntProject(Function<File, Void> fileVisitor) {
+    private void visitAntProject(Function<InputStream, Void> classFileVisitor) throws IOException {
         for (FileSet fs : filesets) {
             try {
                 final DirectoryScanner ds = fs.getDirectoryScanner(getProject());
@@ -228,7 +236,7 @@ public class AutoSuspendablesScanner extends Task {
                     if (isClassFile(filename)) {
                         File file = new File(fs.getDir(), filename);
                         if (file.isFile())
-                            fileVisitor.apply(file);
+                            classFileVisitor.apply(new FileInputStream(file));
                         else
                             log("File not found: " + filename);
                     }
@@ -238,18 +246,37 @@ public class AutoSuspendablesScanner extends Task {
             }
         }
     }
-    
-    private void visitProjectDir(final Function<File, Void> fileVisitor) throws IOException {
+
+    private void visitProjectDir(final Function<InputStream, Void> classFileVisitor) throws IOException {
         Files.walkFileTree(projectDir, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                if(isClassFile(file.getFileName().toString()))
-                    fileVisitor.apply(file.toFile());
+                if (isClassFile(file.getFileName().toString()))
+                    classFileVisitor.apply(Files.newInputStream(file));
                 return FileVisitResult.CONTINUE;
             }
         });
     }
-    
+
+    /**
+     * Visits classes whose methods are found in the suspendables file, as if they were part of the project 
+     */
+    private void scanSuspendablesFile(Function<InputStream, Void> classFileVisitor) {
+        // scan classes in suspendables file
+        if (suspendablesFile != null) {
+            SimpleSuspendableClassifier tssc = new SimpleSuspendableClassifier(suspendablesFile);
+            final Set<String> cs = new HashSet<>();
+            cs.addAll(tssc.getSuspendableClasses());
+            for (String susMethod : tssc.getSuspendables())
+                cs.add(susMethod.substring(0, susMethod.indexOf('.')));
+            
+            for (String className : cs) {
+                log("Scanning suspendable class:" + className, Project.MSG_VERBOSE);
+                classFileVisitor.apply(cl.getResourceAsStream(classToResource(className)));
+            }
+        }
+    }
+
     private class SuspendableClassifier extends ClassVisitor {
         private final boolean inProject;
         private String className;
@@ -264,6 +291,7 @@ public class AutoSuspendablesScanner extends Task {
         public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
             super.visit(version, access, name, signature, superName, interfaces);
             this.className = name.intern();
+            log("Searching suspendables in " + className, Project.MSG_DEBUG);
         }
 
         @Override
@@ -288,7 +316,7 @@ public class AutoSuspendablesScanner extends Task {
                 suspendable = max(suspendable, SuspendableType.SUSPENDABLE_SUPER);
             if (suspendable != SuspendableType.SUSPENDABLE && ssc.isSuspendable(className, methodname, desc))
                 suspendable = max(suspendable, SuspendableType.SUSPENDABLE);
-            
+
             final SuspendableType suspendable1 = suspendable;
             return new MethodVisitor(api, mv) {
                 private SuspendableType susp = suspendable1 != SuspendableType.NON_SUSPENDABLE ? suspendable1 : null;
@@ -322,11 +350,12 @@ public class AutoSuspendablesScanner extends Task {
             method.suspendType = max(method.suspendType, sus);
             method.known = true;
 
-            knownSuspendablesOrSupers.add(method);
-            
-            log("Known suspendable " + className + '.' + methodname + desc, Project.MSG_DEBUG);
+            if (inProject)
+                knownSuspendablesOrSupers.add(method);
+
+            log("Known suspendable " + className + '.' + methodname + desc, Project.MSG_VERBOSE);
         }
-        
+
         private boolean checkExceptions(String[] exceptions) {
             if (exceptions != null) {
                 for (String ex : exceptions) {
@@ -360,7 +389,10 @@ public class AutoSuspendablesScanner extends Task {
         @Override
         public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
             super.visit(version, access, name, signature, superName, interfaces);
+
             this.className = name;
+            log("Loading and analyzing class " + className, Project.MSG_DEBUG);
+
             cn = getOrCreateClassNode(className);
             cn.inProject |= inProject;
             cn.setSupers(superName, interfaces);
@@ -369,7 +401,9 @@ public class AutoSuspendablesScanner extends Task {
         @Override
         public MethodVisitor visitMethod(int access, String methodname, String desc, String signature, String[] exceptions) {
             final MethodVisitor mv = super.visitMethod(access, methodname, desc, signature, exceptions);
+
             methods.add((methodname + desc).intern());
+
             return mv;
         }
 
@@ -378,8 +412,6 @@ public class AutoSuspendablesScanner extends Task {
             super.visitEnd();
 
             cn.setMethods(methods);
-            
-            log("Loaded class " + className, Project.MSG_DEBUG);
         }
     }
 
@@ -423,7 +455,8 @@ public class AutoSuspendablesScanner extends Task {
                 @Override
                 public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
                     super.visitInvokeDynamicInsn(name, desc, bsm, bsmArgs);
-                    System.err.println("NOTE: InvokeDynamic in " + methodToString());
+
+                    log("NOTE: InvokeDynamic invocation in " + methodToString(), Project.MSG_WARN);
                 }
 
                 private String methodToString() {
@@ -432,7 +465,7 @@ public class AutoSuspendablesScanner extends Task {
             };
         }
     }
-    
+
     private void createGraph(InputStream classStream) {
         try {
             final ClassReader cr = new ClassReader(classStream);
@@ -461,6 +494,7 @@ public class AutoSuspendablesScanner extends Task {
     }
 
     private boolean followSupers(Queue<MethodNode> q, ClassNode cls, MethodNode method) {
+        log("followSupers " + method + " " + cls, Project.MSG_DEBUG);
         if (cls == null)
             return false;
 
@@ -488,7 +522,7 @@ public class AutoSuspendablesScanner extends Task {
         if (!foundMethod && methodInParent)
             log("Found parent of suspendable method in a parent of: " + method.owner + '.' + method.name + " in " + cls.name
                     + (cls.inProject ? "" : " NOT IN PROJECT"), cls.inProject ? Project.MSG_VERBOSE : Project.MSG_WARN);
-        
+
         final boolean res = foundMethod | methodInParent;
         if (res) {
             MethodNode m = getOrCreateMethodNode(cls.name + '.' + method.name);
@@ -505,7 +539,7 @@ public class AutoSuspendablesScanner extends Task {
         for (MethodNode caller : method.getCallers()) {
             if (caller.suspendType == null) { // not yet visited
                 q.add(caller);
-                log("Marking " + caller + " suspendable because it calls " + method, Project.MSG_DEBUG);
+                log("Marking " + caller + " suspendable because it calls " + method, Project.MSG_VERBOSE);
                 caller.suspendType = SuspendableType.SUSPENDABLE;
             }
         }
@@ -525,7 +559,7 @@ public class AutoSuspendablesScanner extends Task {
     private static String output(MethodNode method) {
         return method.owner.replace('/', '.') + '.' + method.name;
     }
-    
+
     private static void outputResults(String outputFile, boolean append, Collection<String> results) throws Exception {
         try (PrintStream out = getOutputStream(outputFile, append)) {
             for (String s : results)
@@ -615,6 +649,11 @@ public class AutoSuspendablesScanner extends Task {
             }
             return false;
         }
+
+        @Override
+        public String toString() {
+            return "ClassNode{" + name + " inProject: " + inProject + '}';
+        }
     }
 
     private static class MethodNode {
@@ -659,7 +698,7 @@ public class AutoSuspendablesScanner extends Task {
 
         @Override
         public String toString() {
-            return "MethodNode{" + owner + '.' + name + ", inProject: " + inProject + ", suspendType: " + suspendType + '}';
+            return "MethodNode{" + owner + '.' + name + " inProject: " + inProject + " suspendType: " + suspendType + '}';
         }
     }
 
@@ -682,7 +721,7 @@ public class AutoSuspendablesScanner extends Task {
     private static boolean isMethodHandleInvocation(String className, String methodName) {
         return className.equals("java/lang/invoke/MethodHandle") && methodName.startsWith("invoke");
     }
-    
+
     private static void classpathToUrls(String[] classPath, List<URL> urls) throws RuntimeException {
         try {
             for (String cp : classPath)

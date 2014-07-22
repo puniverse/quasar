@@ -71,6 +71,7 @@ subprojects {
 
     configurations {
         compileOnly
+        provided
         markdownDoclet
     }
     
@@ -92,12 +93,12 @@ subprojects {
     }
 
     sourceSets {  
-        main {
-            compileClasspath += configurations.compileOnly  
-        }  
-        test {  
-            compileClasspath += configurations.compileOnly
-        }  
+        main.compileClasspath += configurations.compileOnly  
+        test.compileClasspath += configurations.compileOnly
+        
+        main.compileClasspath = main.compileClasspath + configurations.provided
+        test.compileClasspath = test.compileClasspath + configurations.provided
+        test.runtimeClasspath = test.runtimeClasspath + configurations.provided
     } 
 
     test.dependsOn jar
@@ -297,9 +298,7 @@ project (':quasar-core') {
     compileJava {
         doLast {
             ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner', classpath: "build/classes/main:" + configurations.compile.asPath)
-            ant.scanSuspendables(outputFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers", 
-                //                suspendablesFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendables",
-                append: 'true') {
+            ant.scanSuspendables(outputFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
                 fileset(dir: sourceSets.main.output.classesDir)
             }
             //            ant.concat(destfile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers", append: 'true', fixlastline: 'yes') {
@@ -311,8 +310,8 @@ project (':quasar-core') {
                 classpath: "build/classes/main:" + configurations.compile.asPath)
             ant.autoScanSuspendables(
                 auto:false,
-                outputSupersFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers1",
-                append: 'true') {
+                supersFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers1",
+                append: 'false') {
                 fileset(dir: sourceSets.main.output.classesDir)
             }
             
@@ -333,9 +332,9 @@ project (':quasar-core') {
                 classpath: "${configurations.compile.asPath}:${jar.archivePath}")
             ant.autoScanSuspendables(
                 auto:"true",
-                outputSuspendableFile:"$sourceSets.test.output.resourcesDir/META-INF/testSuspendables", 
-                outputSupersFile:"$sourceSets.test.output.resourcesDir/META-INF/testSuspendableSupers",
-                append: 'true') {
+                suspendablesFile:"$sourceSets.test.output.resourcesDir/META-INF/testSuspendables", 
+                supersFile:"$sourceSets.test.output.resourcesDir/META-INF/testSuspendableSupers",
+                append: 'false') {
                 fileset(dir: sourceSets.test.output.classesDir)
             }            
         }
@@ -384,10 +383,10 @@ project (':quasar-actors') {
             exclude group: "org.ow2.asm", module: '*'
         }
         //  runtime "org.slf4j:slf4j-jdk14:1.7.7"
-        runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.0"
-        runtime "org.apache.logging.log4j:log4j-api:2.0"
-        runtime "org.apache.logging.log4j:log4j-core:2.0"
-        compile "com.lmax:disruptor:3.2.1" // required for log4j
+        testRuntime "org.apache.logging.log4j:log4j-slf4j-impl:2.0"
+        testRuntime "org.apache.logging.log4j:log4j-api:2.0"
+        testRuntime "org.apache.logging.log4j:log4j-core:2.0"
+        testRuntime "com.lmax:disruptor:3.2.1" // required for log4j
     }
 }
 

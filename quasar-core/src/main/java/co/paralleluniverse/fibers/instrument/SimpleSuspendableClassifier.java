@@ -130,6 +130,8 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
             return SuspendableType.SUSPENDABLE;
         if (suspendableClasses.contains(className))
             return SuspendableType.SUSPENDABLE;
+        if (suspendableSupers.contains(fullMethodName + methodDesc))
+            return SuspendableType.SUSPENDABLE_SUPER;
         if (suspendableSupers.contains(fullMethodName))
             return SuspendableType.SUSPENDABLE_SUPER;
         if (suspendableSuperInterfaces.contains(className))

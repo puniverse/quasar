@@ -50,8 +50,8 @@ jar {
     from(project(':quasar-core').sourceSets.main.output.classesDir) {
         exclude fileTree(project.sourceSets.main.output.classesDir).collect { it.path - "${project.sourceSets.main.output.classesDir.path}/" }
     }
-    from(project(':quasar-core').sourceSets.main.resources) {
-        exclude fileTree(project.sourceSets.main.resources).collect { it.path - "${project.sourceSets.main.resources.path}/" }
+    from(project(':quasar-core').sourceSets.main.resources.srcDirs) {
+        exclude fileTree(project.sourceSets.main.resources.srcDirs[0]).collect { it.path - "${project.sourceSets.main.resources.srcDirs.path}/" }
     }
     from project.sourceSets.main.output.classesDir
     from project.sourceSets.main.resources
