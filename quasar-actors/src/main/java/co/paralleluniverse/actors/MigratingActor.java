@@ -14,9 +14,7 @@
 package co.paralleluniverse.actors;
 
 /**
- *
- * @author pron
+ * A marker interface that must be implemented by actors wishing to support migration
  */
 public interface MigratingActor {
-    
 }

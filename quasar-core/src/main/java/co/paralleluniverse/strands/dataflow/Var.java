@@ -31,6 +31,9 @@ import java.util.Collections;
 import java.util.Set;
 
 /**
+ * A dataflow variable.
+ * Represents a variable whose value can be set multiple times and by multiple strands, and whose changing values can be monitored and
+ * propagated.
  *
  * @author pron
  */
@@ -61,6 +64,16 @@ public class Var<T> {
         }
     }
 
+    /**
+     * Creates a new {@code Var}, whose value is set to the value returned by the given function {@code f}; the
+     * function will be re-applied, and the {@code Var}'s value re-set, whenever any of the {@code Var}s referenced
+     * by {@code f} change value.
+     *
+     * @param history   how many historical values to maintain for each strand reading the var.
+     * @param scheduler the {@link FiberScheduler} to use to schedule the fiber that will run, and re-run {@code f}.
+     * @param f         this var's value is set to the return value of {@code f}
+     * @see #get()
+     */
     public Var(int history, FiberScheduler scheduler, SuspendableCallable<T> f) {
         if (history < 0)
             throw new IllegalArgumentException("history must be >= 0, but is " + history);
@@ -71,26 +84,68 @@ public class Var<T> {
             new VarFiber<T>(scheduler != null ? scheduler : DefaultFiberScheduler.getInstance(), this).start();
     }
 
+    /**
+     * Creates a new {@code Var}, whose value is set to the value returned by the given function {@code f}; the
+     * function will be re-applied, and the {@code Var}'s value re-set, whenever any of the {@code Var}s referenced
+     * by {@code f} change value. The fiber running {@code f} will be scheduled by the default fiber scheduler.
+     *
+     * @param history   how many historical values to maintain for each strand reading the var.
+     * @param f         this var's value is set to the return value of {@code f}
+     * @see #get()
+     */
     public Var(int history, SuspendableCallable<T> f) {
         this(history, null, f);
     }
 
+    /**
+     * Creates a new {@code Var} with no history, whose value is set to the value returned by the given function {@code f}; the
+     * function will be re-applied, and the {@code Var}'s value re-set, whenever any of the {@code Var}s referenced
+     * by {@code f} change value. The fiber running {@code f} will be scheduled by the default fiber scheduler.
+     *
+     * @param history   how many historical values to maintain for each strand reading the var.
+     * @param scheduler the {@link FiberScheduler} to use to schedule the fiber that will run, and re-run {@code f}.
+     * @param f         this var's value is set to the return value of {@code f}
+     * @see #get()
+     */
     public Var(SuspendableCallable<T> f) {
         this(0, null, f);
     }
 
+    /**
+     * Creates a new {@code Var} with no history, whose value is set to the value returned by the given function {@code f}; the
+     * function will be re-applied, and the {@code Var}'s value re-set, whenever any of the {@code Var}s referenced
+     * by {@code f} change value.
+     *
+     * @param scheduler the {@link FiberScheduler} to use to schedule the fiber that will run, and re-run {@code f}.
+     * @param f         this var's value is set to the return value of {@code f}
+     * @see #get()
+     */
     public Var(FiberScheduler scheduler, SuspendableCallable<T> f) {
         this(0, scheduler, f);
     }
 
+    /**
+     * Creates a new {@code Var}.
+     *
+     * @param history how many historical values to maintain for each strand reading the var.
+     * @see #get()
+     */
     public Var(int history) {
         this(history, null, null);
     }
 
+    /**
+     * Creates a new {@code Var} with no history.
+     */
     public Var() {
         this(0, null, null);
     }
 
+    /**
+     * Sets a new value for this {@code Var}. The Var can be set multiple times and by multiple strands.
+     *
+     * @param val the new value.
+     */
     public void set(T val) {
         try {
             record("set", "Set %s to %s", this, val);
@@ -107,7 +162,7 @@ public class Var<T> {
     }
 
     /**
-     * This method returns the Var's current value (more precisely: it returns the oldest value in the maintained history that has
+     * Returns the Var's current value (more precisely: it returns the oldest value in the maintained history that has
      * not yet been returned), unless this Var does not yet have a value; only in that case will this method block.
      */
     public T get() throws SuspendExecution, InterruptedException {
@@ -147,6 +202,9 @@ public class Var<T> {
         }
     }
 
+    /**
+     * Blocks until a new value has been set and returns it.
+     */
     public T getNext() throws SuspendExecution, InterruptedException {
         TLVar tl = tlv.get();
         final T val;

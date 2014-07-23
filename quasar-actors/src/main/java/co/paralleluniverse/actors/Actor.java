@@ -729,7 +729,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
 
     /**
      * Tests whether this actor has been upgraded via hot code-swapping.
-     * If a new version of this actor is found, this method never returns.
+     * If a new version of this actor is found, this method never returns
+     * (a special {@code Error} is thrown which causes the actor to restart).
      *
      * @throws SuspendExecution
      */
@@ -1005,6 +1006,11 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         return migrating;
     }
 
+    /**
+     * Suspends and migrates the actor in such a way that when it is later hired, the actor is restarted
+     * (i.e., its `doRun` method will be called again and run from the top), but the current value of the actor's fields will be preserved.
+     * This method never returns.
+     */
     public void migrateAndRestart() throws SuspendExecution {
         record(1, "Actor", "migrateAndRestart", "Actor %s is migrating.", this);
         verifyOnActorStrand();
@@ -1022,9 +1028,10 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     }
 
     /**
-     * Must be called on a fiber.
-     *
-     * @throws SuspendExecution
+     * Suspends and migrate the actor.
+     * This method suspends the fiber the actor is running in (and is therefore available only for actors running in fibers),
+     * so that when the actor is hired, it will continue execution from the point this method was called.
+     * This method must be called on a fiber.
      */
     public void migrate() throws SuspendExecution {
         record(1, "Actor", "migrate", "Actor %s is migrating.", this);
@@ -1061,7 +1068,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
 
     private void postMigrate() {
         assert ref.getImpl() instanceof RemoteActor;
-        
+
         // copy messages already in the mailbox
         // TODO: this might change the message order, as new messages are coming in
         final Mailbox mbox = mailbox();
@@ -1074,10 +1081,24 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         }
     }
 
+    /**
+     * Hires and resumes/restarts a migrated actor.
+     *
+     * @param ref the {@link ActorRef} of the migrated actor.
+     * @return the ref
+     */
     public static <M> ActorRef<M> hire(ActorRef<M> ref) throws SuspendExecution {
         return hire(ref, DefaultFiberScheduler.getInstance());
     }
 
+    /**
+     * Hires and resumes/restarts a migrated actor.
+     *
+     * @param ref       the {@link ActorRef} of the migrated actor.
+     * @param scheduler the {@link FiberScheduler} on which to schedule this actor,
+     *                  or {@code null} to schedule the actor on a thread.
+     * @return the ref
+     */
     public static <M> ActorRef<M> hire(ActorRef<M> ref, FiberScheduler scheduler) throws SuspendExecution {
         Actor actor = MigrationService.hire(ref, Fiber.getFiberSerializer());
 

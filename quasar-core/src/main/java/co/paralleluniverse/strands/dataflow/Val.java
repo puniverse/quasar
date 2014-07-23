@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
+ * A dataflow constant.
  * Represents a delayed value that can be set at most once, and when read, blocks until a value has been set.
  *
  * @author pron
@@ -40,21 +41,21 @@ public class Val<V> implements Future<V> {
     private volatile SimpleConditionSynchronizer sync = new SimpleConditionSynchronizer(this);
 
     /**
-     * Creates a {@code DelayedVal} whose value will be the one returned by the given {@link SuspendableCallable}, which will be spawned
+     * Creates a {@code Val} whose value will be the one returned by the given {@link SuspendableCallable}, which will be spawned
      * into a new fiber.
      * <p>
-     * @param f The function that will compute this {@code DelayedVal}'s value in a newly spawned fiber
+     * @param f The function that will compute this {@code Val}'s value in a newly spawned fiber
      */
     public Val(final SuspendableCallable<V> f) {
         this(DefaultFiberScheduler.getInstance(), f);
     }
 
     /**
-     * Creates a {@code DelayedVal} whose value will be the one returned by the given {@link SuspendableCallable}, which will be spawned
+     * Creates a {@code Val} whose value will be the one returned by the given {@link SuspendableCallable}, which will be spawned
      * into a new fiber, scheduled by the given {@link FiberScheduler}.
      * <p>
      * @param scheduler the scheduler in which the new fiber will be spawned.
-     * @param f         The function that will compute this {@code DelayedVal}'s value in a newly spawned fiber
+     * @param f         The function that will compute this {@code Val}'s value in a newly spawned fiber
      */
     public Val(FiberScheduler scheduler, final SuspendableCallable<V> f) {
         this.f = f;

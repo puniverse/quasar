@@ -1821,6 +1821,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         }
     }
 
+    /**
+     * Parks the fiber and allows the given callback to serialize it.
+     *
+     * @param writer a callback that can serialize the fiber.
+     * @throws SuspendExecution
+     */
     @SuppressWarnings("empty-statement")
     public static void parkAndSerialize(final FiberWriter writer) throws SuspendExecution {
 //        if (writer == null)

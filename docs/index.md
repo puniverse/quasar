@@ -31,27 +31,31 @@ A core component of Quasar, bytecode instrumentation, is a fork of the wonderful
 
 ## News
 
+### July 23, 2014
+
+Quasar [0.6.0](https://github.com/puniverse/quasar/releases/tag/v0.6.0) has been released.
+
 ### March 26, 2014
 
-Quasar 0.5.0 has been released.
+Quasar [0.5.0](https://github.com/puniverse/quasar/releases/tag/v0.5.0) has been released.
 
 ### January 22, 2014
 
-Quasar 0.4.0 has been released.
+Quasar [0.4.0](https://github.com/puniverse/quasar/releases/tag/v0.4.0) has been released.
 
 ### October 15, 2013
 
-Quasar 0.3.0 has been released.
+Quasar [0.3.0](https://github.com/puniverse/quasar/releases/tag/v0.3.0) has been released.
 
 A [new spaceships demo](https://github.com/puniverse/spaceships-demo) showcases Quasar's (and SpaceBase's) abilities.
 
 ### July 19, 2013
 
-Quasar/Pulsar 0.2.0 [has been released](http://blog.paralleluniverse.co/post/55876031297/quasar-pulsar-0-2-0-distributed-actors-supervisors).
+Quasar/Pulsar [0.2.0](https://github.com/puniverse/quasar/releases/tag/v0.2.0) [has been released](http://blog.paralleluniverse.co/post/55876031297/quasar-pulsar-0-2-0-distributed-actors-supervisors).
 
 ### May 2, 2013
 
-Introductory blog post: [Erlang (and Go) in Clojure (and Java), Lightweight Threads, Channels and Actors for the JVM](<http://blog.paralleluniverse.co/post/49445260575/quasar-pulsar>). 
+Introductory blog post: [Erlang (and Go) in Clojure (and Java), Lightweight Threads, Channels and Actors for the JVM](<http://blog.paralleluniverse.co/post/49445260575/quasar-pulsar>).
 
 # Getting Started
 
@@ -175,7 +179,7 @@ jvmArgs "-javaagent:${configurations.quasar.iterator().next()}"
 
 #### Ahead-of-Time (AOT) Instrumentation {#aot}
 
-The easy and preferable way to instrument programs using Quasar is with the Java agent, which instruments code at runtime. Sometimes, however, running a Java agent is not an option. 
+The easy and preferable way to instrument programs using Quasar is with the Java agent, which instruments code at runtime. Sometimes, however, running a Java agent is not an option.
 
 Quasar supports AOT instrumentation with an Ant task. The task is `co.paralleluniverse.fibers.instrument.InstrumentationTask` found in `quasar-core.jar`, and it accepts a fileset of classes to instrument. Not all classes will actually be instrumented – only those with suspendable methods (see below) – so simply give the task all of the class files in your program. In fact, Quasar itself is instrumented ahead-of-time.
 
@@ -203,7 +207,7 @@ Or, if you have gradle installed, run:
 ### Fibers {#fibers}
 
 Quasar's chief contribution is that of the lightweight thread, called *fiber* in Quasar.  
-Fibers provide functionality similar to threads, and a similar API, but they're not managed by the OS. They are lightweight in terms of RAM (an idle fiber occupies ~400 bytes of RAM) and put a far lesser burden on the CPU when task-switching. You can have millions of fibers in an application. If you are familiar with Go, fibers are like goroutines. Fibers in Quasar are scheduled by one or more [ForkJoinPool](http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ForkJoinPool.html)s. 
+Fibers provide functionality similar to threads, and a similar API, but they're not managed by the OS. They are lightweight in terms of RAM (an idle fiber occupies ~400 bytes of RAM) and put a far lesser burden on the CPU when task-switching. You can have millions of fibers in an application. If you are familiar with Go, fibers are like goroutines. Fibers in Quasar are scheduled by one or more [ForkJoinPool](http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ForkJoinPool.html)s.
 
 Fibers are not meant to replace threads in all circumstances. A fiber should be used when its body (the code it executes) blocks very often waiting on other fibers (e.g. waiting for messages sent by other fibers on a channel, or waiting for the value of a dataflow-variable). For long-running computations that rarely block, traditional threads are preferable. Fortunately, as we shall see, fibers and threads interoperate very well.
 
@@ -269,7 +273,7 @@ A *strand* (represented by the [`Strand`]({{javadoc}}/strands/Strand.html) class
 
 #### `park` and `unpark`
 
-Most importantly (though relevant only for power-users who would like to implement their own concurrency primitives, such as locks), the `Strand` class contains the methods `park` and `unpark`, that delegate to `Fiber.park` and `Fiber.unpark` methods if the strand is a fiber, or to [`LockSupport`](http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/locks/LockSupport.html)'s `park` and `unpark` methods if the strand is a thread (`LockSupport` lies at the core of all `java.util.concurrent` classes). This allows to create synchronization mechanisms that work well for both fibers and threads. 
+Most importantly (though relevant only for power-users who would like to implement their own concurrency primitives, such as locks), the `Strand` class contains the methods `park` and `unpark`, that delegate to `Fiber.park` and `Fiber.unpark` methods if the strand is a fiber, or to [`LockSupport`](http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/locks/LockSupport.html)'s `park` and `unpark` methods if the strand is a thread (`LockSupport` lies at the core of all `java.util.concurrent` classes). This allows to create synchronization mechanisms that work well for both fibers and threads.
 
 Just as you almost never use `LockSupport` directly, so, too, you will never need to call `Strand.park` or `Strand.unpark`, unless you're writing your own concurrency constructs (like a new kind of lock).
 
@@ -278,7 +282,7 @@ Just as you almost never use `LockSupport` directly, so, too, you will never nee
 As we said above, fibers are great as a replacement for callbacks. The [FiberAsync]({{javadoc}}/fibers/FiberAsync.html) class helps us easily turn any callback-based asynchronous operation to as simple fiber-blocking call.
 
 Assume that operation `Foo.asyncOp(FooCompletion callback)` is an asynchronous operation, where `FooCompletion` is defined as:
- 
+
 ~~~ java
 interface FooCompletion {
   void success(String result);
@@ -287,23 +291,23 @@ interface FooCompletion {
 ~~~
 
 We then define the following subclass of `FiberAsync`:
- 
+
 ~~~ java
 class FooAsync extends FiberAsync<String, Void, FooException> implements FooCompletion {
   @Override
   public void success(String result) {
     asyncCompleted(result);
   }
- 
+
   @Override
   public void failure(FooException exception) {
     asyncFailed(exception);
   }
 }
 ~~~
- 
+
 Then, to transform the operation to a fiber-blocking one, we can define:
- 
+
 ~~~ java
 String op() {
   new FooAsync() {
@@ -320,7 +324,7 @@ Transforming asynchronous code to fiber-blocking calls has a negligible overhead
 
 ### Advanced Fiber Usage {#advanced-fibers}
 
-#### Fiber Internals 
+#### Fiber Internals
 
 We will now cover in some depth the inner workings of Quasar fibers. You should read this section if you'd like to annotate suspendable methods with the `@Suspendable` annotation rather than by declaring `throws SuspendExecution`, or if you're just curious.
 
@@ -336,7 +340,7 @@ This process sounds complicated, but its incurs a performance overhead of no mor
 
 So far, our way to specify a suspendable method is by declaring it throws `SuspendExecution`. This is convenient because `SuspendExecution` is a checked exception, so if `f` calls `g` and `g` is suspendable, the Java compiler will force us to declare that `f` is suspendable (and it must be because it calls `g` and `g` might be suspended).
 
-Sometimes, however, we cannot declare `f` to throw `SuspendExecution`. One example is that `f` is an implementation of an interface method, and we cannot (or don't want to) change the interface so that it throws `SuspendExecution`. It is also possible that we want `f` to be run in regular threads as well as fibers. 
+Sometimes, however, we cannot declare `f` to throw `SuspendExecution`. One example is that `f` is an implementation of an interface method, and we cannot (or don't want to) change the interface so that it throws `SuspendExecution`. It is also possible that we want `f` to be run in regular threads as well as fibers.
 
 An example for that are the synchronization primitives in the `co.paralleluniverse.strands.concurrent` package, which implement interfaces declared in `java.util.concurrent`, and we want to maintain compatibility. Also, no harm will come if we use these classes in regular threads. They will work just as well for threads as for fibers, because internally they call `Strand.park` which is fiber-blocking (suspends) if run in a fiber, but simply blocks the thread if not.
 
@@ -352,7 +356,7 @@ class C implements I {
       // do some stuff
       return g() * 2;
     } catch(SuspendExecution s) {
-      throw new AssertionError(s); 
+      throw new AssertionError(s);
     }
   }
 }
@@ -376,30 +380,59 @@ When `h` is encountered by the instrumentation module, it will be instrumented b
 Therefore, if you'd like to use the `@Suspendable` annotation, there's a step you need to add to your build step, after compilation and before creating the jar file: running the `co.paralleluniverse.fibers.instrument.SuspendablesScanner` Ant task. In Gradle it looks like this:
 
 ~~~ groovy
-ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner', 
-    classpath: "build/classes/main:" + configurations.compile.asPath)
-ant.scanSuspendables(outputFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
+ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
+    classpath: "build/classes/main:build/resources/main:${configurations.runtime.asPath}")
+ant.scanSuspendables(
+    auto:false,
+    suspendablesFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendables") {
     fileset(dir: sourceSets.main.output.classesDir)
 }
 ~~~
 
-`SuspendablesScanner` scans your code after it's been compiled for methods annotated with `@Suspendable`. In our example it will find `C.f`. It will then see that `C.f` is an implementation of `I.f`, and so it will list `I.f` in a text file (`META-INF/suspendable-supers`), that contains all methods that have overriding suspendable implementations. 
+`SuspendablesScanner` scans your code after it's been compiled for methods annotated with `@Suspendable`. In our example it will find `C.f`. It will then see that `C.f` is an implementation of `I.f`, and so it will list `I.f` in a text file (`META-INF/suspendable-supers`), that contains all methods that have overriding suspendable implementations.
 
 When the instrumentation module instruments `h`, it will find `I.f` in the file, and, knowing it might suspend, inject the appropriate code.
 
 Note that this has no effect on other calls to `I.f`. The instrumentation module only cares that `I.f` has suspendable implementations when it finds it called in suspendable methods (in our case: `h`).
 
-When using [AOT instrumentation](#aot), `InstrumentationTask` must be able to find the `suspendable-supers` in its classpath. 
+When using [AOT instrumentation](#aot), `InstrumentationTask` must be able to find `META-INF/suspendable-supers` in its classpath.
+
+#### Automatic Instrumentation
+
+Quasar supports automatic detection of suspendable methods, without manually marking them at all. The `SuspendableScanner` ant task can be configured to automatically find suspendable methods by analyzing the call graph:
+
+~~~ groovy
+ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
+    classpath: "build/classes/main:build/resources/main:${configurations.runtime.asPath}")
+ant.scanSuspendables(
+    auto:true,
+    suspendablesFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendables",
+    supersFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
+    fileset(dir: sourceSets.main.output.classesDir)
+}
+~~~
+
+This will create a `META-INF/suspendables` file containing the names of the suspendable methods.
+
+When using [AOT instrumentation](#aot), `InstrumentationTask` must be able to find `META-INF/suspendables` and `META-INF/suspendable-supers` in its classpath.
+
+Automatic detection of suspendable methods is an experimental feature.
+
+#### Fiber Serialization
+
+Fibers can be serialized while parked, and then deserialized an unparked to continue where they left off. The [`parkAndSerialize` method]({{javadoc}}/fibers/Fiber.html#parkAndSerialize(co.paralleluniverse.fibers.FiberWriter)) parks the currently running fiber, and then calls the passed callback, which can serialize the fiber (or any object graph containing the fiber) into a byte array using the supplied serializer.
+
+The [`unparkSerialized` method]({{javadoc}}/fibers//Fiber.html#unparkSerialized(byte[], co.paralleluniverse.fibers.FiberScheduler)) deserializes the serialized representation of the fiber, and unparks it. You can deserialize the byte array using the serializer returned from the [`getFiberSerializer` method]({{javadoc}}/fibers/Fiber.html#getFiberSerializer()), and pass the (uninitialized, unparked) deserialized fiber to the [`unparkDeserialized` method]({{javadoc}}/fibers/Fiber.html#unparkDeserialized(co.paralleluniverse.fibers.Fiber, co.paralleluniverse.fibers.FiberScheduler)). The latter approach is necessary if the serialized fiber is part of a bigger object graph serialized in the byte array.
 
 #### Troubleshooting Fibers {#troubleshooting}
 
-If you forget to mark a method as suspendable (with `throws SuspendExecution` or `@Suspendable`), you will encounter some strange errors. These will usually take the form of non-sensical `ClassCastException`s, `NullPointerException`s, or `SuspendExecution` being thrown. To troubleshoot those, set the value of the `co.paralleluniverse.fibers.verifyInstrumentation` system property to `true` and run your program. This will verify that all of your methods are instrumented properly, or print a warning to the console letting you know which methods that should have been marked suspendable weren't. 
+If you forget to mark a method as suspendable (with `throws SuspendExecution` or `@Suspendable`), you will encounter some strange errors. These will usually take the form of non-sensical `ClassCastException`s, `NullPointerException`s, or `SuspendExecution` being thrown. To troubleshoot those, set the value of the `co.paralleluniverse.fibers.verifyInstrumentation` system property to `true` and run your program. This will verify that all of your methods are instrumented properly, or print a warning to the console letting you know which methods that should have been marked suspendable weren't.
 
 Do not turn on `verifyInstrumentation` in production, as it will slow down your code considerably.
 
 ### Channels {#channels}
 
-Channels are queues used to pass messages between strands (remember, strands are a general name for threads and fibers). If you are familiar with Go, Quasar channels are like Go channels. 
+Channels are queues used to pass messages between strands (remember, strands are a general name for threads and fibers). If you are familiar with Go, Quasar channels are like Go channels.
 
 A [channel]({{javadoc}}/strands/channels/Channel.html) is an interface that extends two other interfaces: [`SendPort`]({{javadoc}}/strands/channels/SendPort.html), which defines the methods used to send messages to a channel, and [`ReceivePort`]({{javadoc}}/strands/channels/ReceivePort.html), which defines the methods used to receive messages from a channel.
 
@@ -411,7 +444,7 @@ Channels are normally created by calling any of the `newChannel` static methods 
 * `singleConsumer` – whether the channel will be used by a single consumer strand.
 
 Note that not all property combinations are supported. Consult the [`Javadoc`]({{javadoc}}/strands/channels/Channels.html) for details.
- 
+
 #### Sending and Receiving Messages
 
 Messages are sent to a channel using the [`SendPort.send`]({{javadoc}}/strands/channels/SendPort.html#send(Message)) method. The `send` method blocks if the channel's buffer is full and the channel has been configured with the `BLOCK` overflow policy. There are versions of `send` that block indefinitely or up to a given timeout, and the `trySend` method sends a message if the channel's buffer has room, or returns immediately, without blocking, if not. Consult the [Javadoc]({{javadoc}}/strands/channels/SendPort.html) for details.
@@ -438,7 +471,7 @@ The ticker channel is useful when a program component continually broadcasts som
 
 A ticker channel is single-consumer, i.e. only one strand is allowed to consume messages from the channel. On the other hand, it is possible, and useful, to create several views of the channel, each used by a different consumer strand. A view (which is of type [`TickerChannelConsumer`]({{javadoc}}/strands/channels/TickerChannelConsumer.html) is created with the [`Channels.newTickerConsumerFor`]({{javadoc}}/strands/channels/Channels.html#newTickerConsumerFor(Channel)) method.
 
-The method returns a `ReceivePort` that can be used to receive messages from `channel`. Each ticker-consumer will yield monotonic messages, namely no message will be received more than once, and the messages will be received in the order they're sent, but if the consumer is too slow, messages could be lost. 
+The method returns a `ReceivePort` that can be used to receive messages from `channel`. Each ticker-consumer will yield monotonic messages, namely no message will be received more than once, and the messages will be received in the order they're sent, but if the consumer is too slow, messages could be lost.
 
 Each consumer strand will use its own `ticker-consumer`, and each can consume messages at its own pace, and each `TickerChannelConsumer` port will return the same messages (messages consumed from one will not be removed from the other views), subject possibly to different messages being missed by different consumers depending on their pace.
 
@@ -487,9 +520,42 @@ SelectAction sa = Selector.select(Selector.receive(ch1), Selector.send(ch2, msg)
 
 The example will do exactly one of the following operations: send `msg` to `ch1` or receive a message from `ch2`.
 
-### Delay Variables
+### Dataflow (Reactive) Programming
 
-Delay variables, delayed values, or dataflow variables (represented by the [`DelayedVal`]({{javadoc}}/strands/channels/DelayedVal.html) class) are a simple and effective strand coordination mechanism. A `DelayedVal` can have its value set once, and when read, blocks until the value is set. `DelayVal` implements `j.u.c.Future`.
+Dataflow, or reactive programming, is a computation described by composing variables whose value may be set (and possibly changed) at any given time, without concern for when these values are set. Quasar provides two dataflow primitives: [`Val`]({{javadoc}}/strands/dataflow/Val.html) and [`Var`](({{javadoc}}/strands/dataflow/Var.html)) in the `co.paralleluniverse.strands.dataflow` package.
+
+A [`Val`]({{javadoc}}/strands/dataflow/Val.html) is a dataflow constant. It can have its value set once, and read multiple times. Attempting to read the value of a `Val` before it's been set, will block until a value is set.
+
+Vals can also be used as a simple and effective strand coordination mechanism. `Val` implements `j.u.c.Future`.
+
+A [`Var`](({{javadoc}}/strands/dataflow/Var.html)) is a dataflow variable. It can have it's value set multiple times, and every new value can trigger the re-computation of other Vars. You can set a `Var` to retain historical values (consult the Javadoc for more information).
+
+Here is a simple example of using Vals and Vars.
+
+~~~ java
+Val<Integer> a = new Val<>();
+Var<Integer> x = new Var<>();
+Var<Integer> y = new Var<>(() -> a.get() * x.get());
+Var<Integer> z = new Var<>(() -> a.get() + x.get());
+Var<Integer> r = new Var<>(() -> {
+    int res = y.get() + z.get();
+    System.out.println("res: " + res);
+    return res;
+});
+
+Fiber<?> f = new Fiber<Void>(() -> {
+    for (int i = 0; i < 200; i++) {
+        x.set(i);
+        Strand.sleep(100);
+    }
+}).start();
+
+Strand.sleep(2000);
+a.set(3); // this will trigger everything
+f.join();
+~~~
+
+In this examples, vars `y` and `z`, are dependent on val `a` and var `x`, and will have their values recomputed -- after `a` is set -- whenever `x` changes.
 
 ## Quasar's Actor System
 
@@ -566,7 +632,7 @@ protected Void doRun() {
 
 #### Actors vs. Channels
 
-One of the reasons of providing a different `receive` function for actors is because programming with actors is conceptually different from just using fibers and channels. I think of channels as hoses pumping data into a function, or as sort of like asynchronous parameters. A fiber may pull many different kinds of data from many different channels, and combine the data in some way. 
+One of the reasons of providing a different `receive` function for actors is because programming with actors is conceptually different from just using fibers and channels. I think of channels as hoses pumping data into a function, or as sort of like asynchronous parameters. A fiber may pull many different kinds of data from many different channels, and combine the data in some way.
 
 Actors are a different abstraction. They are more like objects in object-oriented languages, assigned to a single thread. The mailbox serves as the object's dispatch mechanism; it's not a hose but a switchboard. It's for this reason that actors often need to pattern-match their mailbox messages, while regular channels – each usually serving as a conduit for a single kind of data – don't.
 
@@ -594,7 +660,7 @@ Then, this call:
 
 ~~~ java
 ComplexMessage m = receive(new MessageProcessor<ComplexMessage, ComplexMessage>() {
-        public ComplexMessage process(ComplexMessage m) 
+        public ComplexMessage process(ComplexMessage m)
           throws SuspendExecution, InterruptedException {
             switch (m.type) {
             case FOO:
@@ -617,13 +683,13 @@ protected List<Integer> doRun() throws SuspendExecution, InterruptedException {
     final List<Integer> list = new ArrayList<>();
     for (int i = 0; i < 2; i++) {
         receive(new MessageProcessor<ComplexMessage, ComplexMessage>() {
-            public ComplexMessage process(ComplexMessage m) 
+            public ComplexMessage process(ComplexMessage m)
               throws SuspendExecution, InterruptedException {
                 switch (m.type) {
                 case FOO:
                     list.add(m.num);
                     receive(new MessageProcessor<ComplexMessage, ComplexMessage>() {
-                        public ComplexMessage process(ComplexMessage m) 
+                        public ComplexMessage process(ComplexMessage m)
                           throws SuspendExecution, InterruptedException {
                             switch (m.type) {
                             case BAZ:
@@ -667,7 +733,7 @@ The actor model does not only make concurrency easy; it also helps build fault-t
 
 In fact, when using actors, it is often best to to follow the [philosophy laid out by Joe Armstrong](http://www.erlang.org/download/armstrong_thesis_2003.pdf), Erlang's chief designer, of "let it crash". The idea is not to try and catch exceptions inside an actor, because attempting to catch and handle all exceptions is futile. Instead, we just let the actor crash, monitor its death elsewhere, and then take some action.
 
-The principle of actor error handling is that an actor can be asked to be notified of another actor's death and its cause. This is done through *linking* or *watching*. 
+The principle of actor error handling is that an actor can be asked to be notified of another actor's death and its cause. This is done through *linking* or *watching*.
 
 #### Linking and Watching Actors
 
@@ -677,7 +743,7 @@ A more robust way of being notified of actor death than linking is with a *watch
 
 #### Lifecycle Messages and Lifecycle Exceptions
 
-When actor B that is linked to or watched by actor A dies, it automatically sends an [`ExitMessage`]({{javadoc}}/actors/ExitMessage.html) to A. The message is put in A's mailbox and retrieved when A calls `receive` or `tryReceive`, but it isn't actually returned by those methods. 
+When actor B that is linked to or watched by actor A dies, it automatically sends an [`ExitMessage`]({{javadoc}}/actors/ExitMessage.html) to A. The message is put in A's mailbox and retrieved when A calls `receive` or `tryReceive`, but it isn't actually returned by those methods.
 
 When `receive` (or `tryRecive`) is called, it takes the next message in the mailbox, and passes it to a protected method called [`filterMessage`]({{javadoc}}/actors/Actor.html#filterMessage(java.lang.Object)). Whatever `filterMessage` returns, that's the message actually returned by `receive` (or `tryReceive`), but it `filterMessage` returns `null`, `receive` will not return and wait for the next message (and `tryReceive` will check if another message is already available, or otherwise return `null`). The default implementation of `filterMessage` always returns the message it received unless it is of type [`LifecycleMessage`]({{javadoc}}/actors/LifecycleMessage.html), in which case it passes it to the protected [`handleLifecycleMessage`]({{javadoc}}/actors/Actor.html#handleLifecycleMessage(co.paralleluniverse.actors.LifecycleMessage)) method.
 
@@ -705,16 +771,16 @@ A monitored actor (either as a result of it being registered or of having called
 
 ### Behaviors
 
-Erlang's designers have realized that many actors follow some common patterns - like an actor that receives requests for work and then sends back a result to the requester. They've turned those patterns into actor templates, called behaviors, in order to save people work and avoid some common errors. Erlang serves as the main inspiration to Quasar Actors, so some of these behaviors have been ported to Quasar. 
+Erlang's designers have realized that many actors follow some common patterns - like an actor that receives requests for work and then sends back a result to the requester. They've turned those patterns into actor templates, called behaviors, in order to save people work and avoid some common errors. Erlang serves as the main inspiration to Quasar Actors, so some of these behaviors have been ported to Quasar.
 
 {:.alert .alert-info}
 **Note**: All behaviors use SLF4J loggers for logging.
 
 #### RequestReplyHelper
 
-A very common pattern that emerges when working with patterns is request-response, whereby a *request* message is sent to an actor, and a *response* is sent back to the sender of the request. While simple, some care must be taken to ensure that the response is matched with the correct request. 
+A very common pattern that emerges when working with patterns is request-response, whereby a *request* message is sent to an actor, and a *response* is sent back to the sender of the request. While simple, some care must be taken to ensure that the response is matched with the correct request.
 
-This behavior is implemented for you in the [`RequestReplyHelper`]({{javadoc}}/actors/behaviors/RequestReplyHelper.html) class (in the `co.paralleluniverse.actors.behaviors` package). 
+This behavior is implemented for you in the [`RequestReplyHelper`]({{javadoc}}/actors/behaviors/RequestReplyHelper.html) class (in the `co.paralleluniverse.actors.behaviors` package).
 
 To use it, the request message must extend [`co.paralleluniverse.actors.behaviors.RequestMessage`]({{javadoc}}/actors/behaviors/RequestMessage.html). Suppose we have a `IsDivisibleBy` message class that extends `RequestMessage`. We can interact with a divisor-checking actor like so:
 
@@ -740,7 +806,7 @@ ActorRef<IsDivisibleBy> actor = new Actor<IsDivisibleBy, Void>(null, null) {
 }.spawn();
 ~~~
 
-In the case of an `ArithmeticException` (if the divisor is 0), the exception will be thrown by `RequestReplyHelper.call`. 
+In the case of an `ArithmeticException` (if the divisor is 0), the exception will be thrown by `RequestReplyHelper.call`.
 
 One of the nicest things about the `RequestReplyHelper` class, is that the code calling `call` does not have to be an actor. It can be called by a regular thread (or fiber). But if you examine the code of the `reply` method, you'll see that it simply sends a response message to the request's sender, which is an actor. This is achieved by the `call` method creating a temporary virtual actor, that will receive the reply message.
 
@@ -753,16 +819,16 @@ By itself, [`BehaviorActor`]({{javadoc}}/actors/behaviors/BehaviorActor.html) pr
 When a behavior actor is spawned, its `spawn` (or `spawnThread`) method returns its "interface" (which is also an `ActorRef`).
 
 {:.alert .alert-info}
-**Note:** Behavior actors usually have different constructors for convenience. Those that do not take an explicit `MailboxConfig` parameter, use the default configuration of *an unbounded mailbox*. 
+**Note:** Behavior actors usually have different constructors for convenience. Those that do not take an explicit `MailboxConfig` parameter, use the default configuration of *an unbounded mailbox*.
 
 #### Server
 
 The *server* behavior is an actor that implements a request-reply model. The behavior implementation is found in [`ServerActor`]({{javadoc}}/actors/behaviors/ServerActor.html), and the interface is [`Server`]({{javadoc}}/actors/behaviors/Server.html).
 
 You can implement a server actor by subclassing `ServerActor` and overriding the some or all of the methods:
- 
+
 * init
-* terminate 
+* terminate
 * handleCall
 * handleCast
 * handleInfo
@@ -792,7 +858,7 @@ Server a = new ProxyServerActor(false, new A() {
         public int foo(String str, int x) {
             return str.length() + x;
         }
-        
+
         public void bar(int x) {
             System.out.println("x = " + x);
         }
@@ -835,12 +901,12 @@ Actors provide fault isolation. When an exception occurs in an actor it can only
 
 Like other behaviors, the *supervisor* is a behavior that codifies and standardizes good actor practices; in this case: fault handling. As its name implies, a supervisor is an actor that supervises one or more other actors and watches them to detect their death. When a supervised (or *child*) actor dies, the supervisor can take several pre-configured actions such as restarting the dead actor or killing and restarting all children. The supervisor might also choose to kill itself and *escalate* the problem, possibly to its own supervisor.
 
-Actors performing business logic, "worker actors", are supervised by a supervisor actor that detects when they die and takes one of several pre-configured actions. Supervisors may, in turn, be supervised by other supervisors, thus forming a *supervision hierarchy* that compartmentalizes failure and recovery. 
+Actors performing business logic, "worker actors", are supervised by a supervisor actor that detects when they die and takes one of several pre-configured actions. Supervisors may, in turn, be supervised by other supervisors, thus forming a *supervision hierarchy* that compartmentalizes failure and recovery.
 
 The basic philosophy behind supervisor-based fault handling was named "let it crash" by Erlang's designer, Joe Armstrong. The idea is that instead of trying to fix the program state after every expected exception, we simply let an actor crash when it encounters an unexpected condition and "reboot" it.
 
-A supervisors works as follows: it has a number of *children*, worker actors or other supervisors that are registered to be supervised wither at the supervisor's construction time or at a later time. Each child has a mode (represented by the [`Supervisor.ChildMode`]({{javadoc}}/actors/behaviors/Supervisor.ChildMode.html) class): 
-`PERMANENT`, `TRANSIENT` or `TEMPORARY` that determines whether its death will trigger the supervisor's *recovery event*. When the recovery event is triggered, the supervisor takes action specified by its *restart strategy* - represented by the [`SupervisorActor.RestartStrategy`]({{javadoc}}/actors/behaviors/SupervisorActor.RestartStrategy.html) class - or it will give up and fail, depending on predefined failure modes. 
+A supervisors works as follows: it has a number of *children*, worker actors or other supervisors that are registered to be supervised wither at the supervisor's construction time or at a later time. Each child has a mode (represented by the [`Supervisor.ChildMode`]({{javadoc}}/actors/behaviors/Supervisor.ChildMode.html) class):
+`PERMANENT`, `TRANSIENT` or `TEMPORARY` that determines whether its death will trigger the supervisor's *recovery event*. When the recovery event is triggered, the supervisor takes action specified by its *restart strategy* - represented by the [`SupervisorActor.RestartStrategy`]({{javadoc}}/actors/behaviors/SupervisorActor.RestartStrategy.html) class - or it will give up and fail, depending on predefined failure modes.
 
 When a child actor in the `PERMANENT` mode dies, it will always trigger its supervisor's recovery event. When a child in the `TRANSIENT` mode dies, it will trigger a recovery event only if it has died as a result of an exception, but not if it has simply finished its operation. A `TEMPORARY` child never triggers it supervisor's recovery event.
 
@@ -873,7 +939,7 @@ The second way is by designating a special module directory by setting the `"co.
 
 #### State Upgrade
 
-When an actor is upgraded (which might require an explicit call, as we'll see in the next section), a new instance of the class's new version will be created, and all of the actor's state will be transferred to the new instance. 
+When an actor is upgraded (which might require an explicit call, as we'll see in the next section), a new instance of the class's new version will be created, and all of the actor's state will be transferred to the new instance.
 
 Actor state can be stored directly in primitive fields of the actor class, or in object fields that may, in turn, contain primitives or yet other objects. When an upgraded actor class is loaded, a new instance is created for each upgraded actor, and the old actor state is copied to it. Fields of the same name and type are copied as is. Referece (object) fields whose classes have upgraded versions in the loaded jar will be recursively replicated in the same way (fields will be copied by name). Whenever a new instance is created, any method marked with the [`@OnUpgrade`]({{javadoc}}/actors/actors/OnUpgrade.html) annotation will be called. This will happen both for the actor class, as well as for any class holding actor state (i.e. found somewhere in the object graph starting at the actor) that undergoes an upgrade. An upgraded class can have more or fewer fields than its previous versions. Dropped fields will simply not be copied to the new version; newly added fields can be initialized in `@OnUpgrade` methods.
 
@@ -906,9 +972,9 @@ class A {
   public static final RecordType<A> aType = RecordType.newType(A.class);
   public static final IntField<A> $id = stateType.intField("id");
   public static final DoubleField<A> $foo = stateType.doubleField("id", Field.TRANSIENT);
-  public static final ObjectField<A, String> $name = 
+  public static final ObjectField<A, String> $name =
         stateType.objectField("name", String.class);
-  public static final ObjectField<A, List<String>> $emails = 
+  public static final ObjectField<A, List<String>> $emails =
         stateType.objectField("emails", new TypeToken<List<String>() {});
 }
 ~~~
@@ -929,7 +995,7 @@ Because records are intended to control mutability, an `ObjectField` should neve
 
 {% capture examples %}https://github.com/{{site.github}}/tree/master/src/test/java/co/paralleluniverse/pulsar/examples{% endcapture %}
 
-Quasar is able to run on a cluster, thereby letting actors and channels communicate across machines. The Quasar cluster runs on top of [Galaxy](http://docs.paralleluniverse.co/galaxy/), Parallel Universe's in-memory data grid. 
+Quasar is able to run on a cluster, thereby letting actors and channels communicate across machines. The Quasar cluster runs on top of [Galaxy](http://docs.paralleluniverse.co/galaxy/), Parallel Universe's in-memory data grid.
 
 In this version, clustering is pretty rudimentary, but essential features should work: actors can be made discoverable on the network, messages can be passed among actors on different nodes, and an actor on a failing node will behave as expected of a dying actor with respect to exit messages sent to other, remote, *watching* it or *linked* to it.
 
@@ -939,13 +1005,19 @@ First, you will need to add the `co.paralleluniverse:quasar-galaxy` artifact as 
 
 Then, to make an actor discoverable cluster-wide, all you need to do is register it with the [`register`]({{javadoc}}/actors/Actor.html#register()) method of the `Actor` class.
 
-That's it. The actor is now known throughout the cluster, and can be accessed by calling [`ActorRegistry.getActor`]({{javadoc}}/actors/ActorRegistry.html#getActor(java.lang.String)) on any node. 
+That's it. The actor is now known throughout the cluster, and can be accessed by calling [`ActorRegistry.getActor`]({{javadoc}}/actors/ActorRegistry.html#getActor(java.lang.String)) on any node.
 
 An actor doesn't have to be registered in order to be reachable on the network. Registering it simply makes it *discoverable*. If we pass an `ActorRef` of local actor in a message to a remote actor, the remote actor will be able to send messages to the local actor as well.
 
 ### Cluster Configuration
 
 For instructions on how to configure the Galaxy cluster, please refer to Galaxy's [getting started guide](http://docs.paralleluniverse.co/galaxy/start/getting-started.html).
+
+### Actor Migration
+
+Running actors can migrate from one cluster node to another, while preserving their state. Migration happens in two steps. First an actor *migrates*, which suspends it and makes its internal state available to the cluster, and then it is *hired* by another cluster node an resumed.
+
+Actors that support migration, must implement the (empty) marker interface [`MigratingActor`]({{javadoc}}/actors/MigratingActor.html). Then, in order to migrate, an actor must call one of two methods: [`migrateAndRestart`]({{javadoc}}/actors/Actor.html#migrateAndRestart()) or [`migrate`]({{javadoc}}/actors/Actor.html#migrate()). [`migrateAndRestart`]({{javadoc}}/actors/Actor.html#migrateAndRestart()) suspends the actor in such a way that when it is later hired, it will be restarted (i.e., its `doRun` method will be called again and run from the top), but the current value of the actor's fields will be preserved, while [`migrate`]({{javadoc}}/actors/Actor.html#migrate()) suspends the fiber the actor is running in (and is therefore available only for actors running in fibers), so that when the actor is hired, it will continue execution from the point the `migrate` method was called. The [`hire` method]({{javadoc}}/actors/Actor.html#hire(co.paralleluniverse.actors.ActorRef)) hires and resumes the actor.
 
 ## Examples
 
@@ -965,7 +1037,7 @@ For examples of using Quasar, you can take a look at Quasar's test suite.
 ### Distributed Examples
 
 There are a few examples of distributed actors in the [example package](https://github.com/puniverse/quasar/tree/master/quasar-galaxy/src/main/java/co/paralleluniverse/galaxy/example).
-You can run them after cloning the repository. 
+You can run them after cloning the repository.
 
 In order to run the ping pong example, start the Pong actor by:
 
@@ -985,4 +1057,3 @@ To run the actors on different computers, change the following lines in the buil
 systemProperty "jgroups.bind_addr", "127.0.0.1"
 systemProperty "galaxy.multicast.address", "225.0.0.1"
 ~~~
-
