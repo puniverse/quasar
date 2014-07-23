@@ -234,11 +234,15 @@ public class AutoSuspendablesScanner extends Task {
                 final String[] includedFiles = ds.getIncludedFiles();
                 for (String filename : includedFiles) {
                     if (isClassFile(filename)) {
-                        File file = new File(fs.getDir(), filename);
-                        if (file.isFile())
-                            classFileVisitor.apply(new FileInputStream(file));
-                        else
-                            log("File not found: " + filename);
+                        try {
+                            File file = new File(fs.getDir(), filename);
+                            if (file.isFile())
+                                classFileVisitor.apply(new FileInputStream(file));
+                            else
+                                log("File not found: " + filename);
+                        } catch (Exception e) {
+                            throw new RuntimeException("Exception while processing " + filename, e);
+                        }
                     }
                 }
             } catch (BuildException ex) {
@@ -251,9 +255,13 @@ public class AutoSuspendablesScanner extends Task {
         Files.walkFileTree(projectDir, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                if (isClassFile(file.getFileName().toString()))
-                    classFileVisitor.apply(Files.newInputStream(file));
-                return FileVisitResult.CONTINUE;
+                try {
+                    if (isClassFile(file.getFileName().toString()))
+                        classFileVisitor.apply(Files.newInputStream(file));
+                    return FileVisitResult.CONTINUE;
+                } catch (Exception e) {
+                    throw new RuntimeException("Exception while processing " + file, e);
+                }
             }
         });
     }
@@ -269,10 +277,14 @@ public class AutoSuspendablesScanner extends Task {
             cs.addAll(tssc.getSuspendableClasses());
             for (String susMethod : tssc.getSuspendables())
                 cs.add(susMethod.substring(0, susMethod.indexOf('.')));
-            
+
             for (String className : cs) {
-                log("Scanning suspendable class:" + className, Project.MSG_VERBOSE);
-                classFileVisitor.apply(cl.getResourceAsStream(classToResource(className)));
+                try {
+                    log("Scanning suspendable class:" + className, Project.MSG_VERBOSE);
+                    classFileVisitor.apply(cl.getResourceAsStream(classToResource(className)));
+                } catch (Exception e) {
+                    throw new RuntimeException("Exception while processing " + className, e);
+                }
             }
         }
     }
@@ -350,7 +362,7 @@ public class AutoSuspendablesScanner extends Task {
             method.suspendType = max(method.suspendType, sus);
             method.known = true;
 
-            if (inProject)
+            if (auto || inProject)
                 knownSuspendablesOrSupers.add(method);
 
             log("Known suspendable " + className + '.' + methodname + desc, Project.MSG_VERBOSE);
@@ -433,6 +445,7 @@ public class AutoSuspendablesScanner extends Task {
         @Override
         public MethodVisitor visitMethod(int access, final String methodname, final String desc, String signature, String[] exceptions) {
             final MethodVisitor mv = super.visitMethod(access, methodname, desc, signature, exceptions);
+            
             final MethodNode caller = getOrCreateMethodNode(className + '.' + methodname + desc);
             caller.inProject |= inProject;
             return new MethodVisitor(api, mv) {
@@ -466,19 +479,15 @@ public class AutoSuspendablesScanner extends Task {
         }
     }
 
-    private void createGraph(InputStream classStream) {
-        try {
-            final ClassReader cr = new ClassReader(classStream);
-            ClassVisitor cv = null;
-            cv = new SuspendableClassifier(true, API, cv);
-            cv = new ClassNodeVisitor(true, API, cv);
-            if (auto)
-                cv = new CallGraphVisitor(true, API, cv);
+    private void createGraph(InputStream classStream) throws IOException {
+        final ClassReader cr = new ClassReader(classStream);
+        ClassVisitor cv = null;
+        cv = new SuspendableClassifier(true, API, cv);
+        cv = new ClassNodeVisitor(true, API, cv);
+        if (auto)
+            cv = new CallGraphVisitor(true, API, cv);
 
-            cr.accept(cv, ClassReader.SKIP_DEBUG | (auto ? 0 : ClassReader.SKIP_CODE));
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
+        cr.accept(cv, ClassReader.SKIP_DEBUG | (auto ? 0 : ClassReader.SKIP_CODE));
     }
 
     private void walkGraph() {

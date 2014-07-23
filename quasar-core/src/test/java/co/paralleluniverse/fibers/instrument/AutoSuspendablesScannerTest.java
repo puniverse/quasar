@@ -15,6 +15,8 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
+import java.net.URL;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
@@ -31,13 +33,24 @@ public class AutoSuspendablesScannerTest {
     
     @BeforeClass
     public static void buildGraph() throws Exception {
-        scanner = new AutoSuspendablesScanner(Paths.get("build", "classes", "test"));
+        // find test classes directory
+        final String resource = AutoSuspendablesScannerTest.class.getName().replace('.', '/') + ".class";
+        final URL url = AutoSuspendablesScannerTest.class.getClassLoader().getResource(resource);
+        final Path p1 = Paths.get(resource);
+        final Path p2 = Paths.get(url.toURI()).toAbsolutePath();
+        final Path p = p2.getRoot().resolve(p2.subpath(0, p2.getNameCount() - p1.getNameCount()));
+        System.out.println("Test classes: " + p);
+        
+        scanner = new AutoSuspendablesScanner(p);
 //        scanner = new AutoSuspendablesScanner(
 //                Paths.get(AutoSuspendablesScannerTest.class.getClassLoader()
 //                        .getResource(AutoSuspendablesScannerTest.class.getName().replace('.', '/') + ".class").toURI()));
         scanner.setAuto(true);
         scanner.run();
         scanner.getSuspenablesAndSupers(suspependables, suspependableSupers);
+        
+        System.out.println("SUSPENDABLES: " + suspependables);
+        System.out.println("SUPERS: " + suspependableSupers);
     }
 
     @Test
