@@ -43,7 +43,7 @@ import org.objectweb.asm.tree.MethodNode;
  *
  * @author pron
  */
-public class SuspendablesScanner extends Task {
+public class OldSuspendablesScanner extends Task {
     private static final boolean USE_REFLECTION = false;
     private static final String CLASSFILE_SUFFIX = ".class";
     private URLClassLoader cl;

@@ -25,11 +25,22 @@ sourceSets {
 
 compileJava {
     doLast {
-        ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner', classpath: "build/classes/main:" + configurations.compile.asPath)
-        ant.scanSuspendables(outputFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
+        ant.taskdef(
+            name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner', 
+            classpath: "build/classes/main:build/resources/main:" + configurations.compile.asPath)
+        ant.scanSuspendables(
+            auto: false,
+            supersFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers",
+            append: false) {
             fileset(dir: project(':quasar-core').sourceSets.main.output.classesDir)
             fileset(dir: sourceSets.main.output.classesDir)
         }
+        
+//        ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.OldSuspendablesScanner', classpath: "build/classes/main:" + configurations.compile.asPath)
+//        ant.scanSuspendables(outputFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
+//            fileset(dir: project(':quasar-core').sourceSets.main.output.classesDir)
+//            fileset(dir: sourceSets.main.output.classesDir)
+//        }
             
         ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/resources/main:" + "build/classes/main:" + configurations.compile.asPath)
         ant.instrumentation(verbose:'true', check:'true', debug:'true') {
