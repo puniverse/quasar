@@ -328,7 +328,7 @@ project (':quasar-core') {
     compileTestJava {
         doLast {
             ant.taskdef(
-                name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.AutoSuspendablesScanner', 
+                name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner', 
                 classpath: "build/classes/test:build/resources/test:${configurations.compile.asPath}:${jar.archivePath}")
             ant.scanSuspendables(
                 auto:"true",

@@ -26,22 +26,22 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.objectweb.asm.Type;
 
-public class AutoSuspendablesScannerTest {
-    private static AutoSuspendablesScanner scanner;
+public class SuspendablesScannerTest {
+    private static SuspendablesScanner scanner;
     private static final Set<String> suspependables = new HashSet<>();
     private static final Set<String> suspependableSupers = new HashSet<>();
     
     @BeforeClass
     public static void buildGraph() throws Exception {
         // find test classes directory
-        final String resource = AutoSuspendablesScannerTest.class.getName().replace('.', '/') + ".class";
-        final URL url = AutoSuspendablesScannerTest.class.getClassLoader().getResource(resource);
+        final String resource = SuspendablesScannerTest.class.getName().replace('.', '/') + ".class";
+        final URL url = SuspendablesScannerTest.class.getClassLoader().getResource(resource);
         final Path p1 = Paths.get(resource);
         final Path p2 = Paths.get(url.toURI()).toAbsolutePath();
         final Path p = p2.getRoot().resolve(p2.subpath(0, p2.getNameCount() - p1.getNameCount()));
         System.out.println("Test classes: " + p);
         
-        scanner = new AutoSuspendablesScanner(p);
+        scanner = new SuspendablesScanner(p);
 //        scanner = new AutoSuspendablesScanner(
 //                Paths.get(AutoSuspendablesScannerTest.class.getClassLoader()
 //                        .getResource(AutoSuspendablesScannerTest.class.getName().replace('.', '/') + ".class").toURI()));
@@ -85,7 +85,7 @@ public class AutoSuspendablesScannerTest {
 
     @Test
     public void suspendableFileByAntTaskTest() {
-        String suspFile = AutoSuspendablesScannerTest.class.getClassLoader().getResource("META-INF/testSuspendables").getFile();
+        String suspFile = SuspendablesScannerTest.class.getClassLoader().getResource("META-INF/testSuspendables").getFile();
         SimpleSuspendableClassifier ssc = new SimpleSuspendableClassifier(suspFile);
         assertTrue(ssc.isSuspendable(B.class.getName().replace(".", "/"), "foo", "(I)V"));
     }

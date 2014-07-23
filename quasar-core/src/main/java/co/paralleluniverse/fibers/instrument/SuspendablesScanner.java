@@ -62,7 +62,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class AutoSuspendablesScanner extends Task {
+public class SuspendablesScanner extends Task {
     private static final int API = Opcodes.ASM4;
     //
     private final Map<String, MethodNode> methods = new HashMap<>();
@@ -79,12 +79,12 @@ public class AutoSuspendablesScanner extends Task {
     private String supersFile;
     private String suspendablesFile;
     
-    public AutoSuspendablesScanner() {
+    public SuspendablesScanner() {
         this.ant = getClass().getClassLoader() instanceof AntClassLoader;
         this.projectDir = null;
     }
 
-    public AutoSuspendablesScanner(Path projectDir) {
+    public SuspendablesScanner(Path projectDir) {
         this.ant = getClass().getClassLoader() instanceof AntClassLoader;
         this.projectDir = projectDir;
         assert !ant;
