@@ -89,6 +89,7 @@
 </ul></li>
 <li>
 <a href="#news" class="cat-link">News</a><ul>
+<li><a href="#july-23-2014">July 23, 2014</a></li>
 <li><a href="#march-26-2014">March 26, 2014</a></li>
 <li><a href="#january-22-2014">January 22, 2014</a></li>
 <li><a href="#october-15-2013">October 15, 2013</a></li>
@@ -115,7 +116,7 @@
 <li><a href="#transforming-any-asynchronous-callback-to-a-fiber-blocking-operation">Transforming any Asynchronous Callback to A Fiber-Blocking Operation</a></li>
 <li><a href="#advanced-fibers">Advanced Fiber Usage</a></li>
 <li><a href="#channels">Channels</a></li>
-<li><a href="#delay-variables">Delay Variables</a></li>
+<li><a href="#dataflow-reactive-programming">Dataflow (Reactive) Programming</a></li>
 </ul>
 </li>
 <li>
@@ -134,6 +135,7 @@
 <a href="#clustering" class="cat-link">Clustering</a><ul>
 <li><a href="#enabling-clustering">Enabling Clustering</a></li>
 <li><a href="#cluster-configuration">Cluster Configuration</a></li>
+<li><a href="#actor-migration">Actor Migration</a></li>
 </ul>
 </li>
 <li>
@@ -172,27 +174,31 @@
 
 <h2 id="news">News</h2>
 
+<h3 id="july-23-2014">July 23,&nbsp;2014</h3>
+
+<p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.6.0"><span class="caps">0.6.0</span></a> has been&nbsp;released.</p>
+
 <h3 id="march-26-2014">March 26,&nbsp;2014</h3>
 
-<p>Quasar <span class="caps">0.5.0</span> has been&nbsp;released.</p>
+<p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.5.0"><span class="caps">0.5.0</span></a> has been&nbsp;released.</p>
 
 <h3 id="january-22-2014">January 22,&nbsp;2014</h3>
 
-<p>Quasar <span class="caps">0.4.0</span> has been&nbsp;released.</p>
+<p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.4.0"><span class="caps">0.4.0</span></a> has been&nbsp;released.</p>
 
 <h3 id="october-15-2013">October 15,&nbsp;2013</h3>
 
-<p>Quasar <span class="caps">0.3.0</span> has been&nbsp;released.</p>
+<p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.3.0"><span class="caps">0.3.0</span></a> has been&nbsp;released.</p>
 
 <p>A <a href="https://github.com/puniverse/spaceships-demo">new spaceships demo</a> showcases Quasar’s (and SpaceBase’s)&nbsp;abilities.</p>
 
 <h3 id="july-19-2013">July 19,&nbsp;2013</h3>
 
-<p>Quasar/Pulsar <span class="caps">0.2.0</span> <a href="http://blog.paralleluniverse.co/post/55876031297/quasar-pulsar-0-2-0-distributed-actors-supervisors">has been released</a>.</p>
+<p>Quasar/Pulsar <a href="https://github.com/puniverse/quasar/releases/tag/v0.2.0"><span class="caps">0.2.0</span></a> <a href="http://blog.paralleluniverse.co/post/55876031297/quasar-pulsar-0-2-0-distributed-actors-supervisors">has been released</a>.</p>
 
 <h3 id="may-2-2013">May 2,&nbsp;2013</h3>
 
-<p>Introductory blog post: <a href="http://blog.paralleluniverse.co/post/49445260575/quasar-pulsar">Erlang (and Go) in Clojure (and Java), Lightweight Threads, Channels and Actors for the <span class="caps">JVM</span></a>. </p>
+<p>Introductory blog post: <a href="http://blog.paralleluniverse.co/post/49445260575/quasar-pulsar">Erlang (and Go) in Clojure (and Java), Lightweight Threads, Channels and Actors for the <span class="caps">JVM</span></a>.</p>
 
 <h1 id="getting-started">Getting&nbsp;Started</h1>
 
@@ -207,7 +213,7 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-core<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.5.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.6.0<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <p>or, for&nbsp;<span class="caps">JDK8</span>:</p>
@@ -215,8 +221,8 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-core<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.5.0<span class="nt">&lt;/version&gt;</span>
-</span><span id="line-5">    <span class="nt">&lt;classifier&gt;</span>jdk8<span class="nt">&lt;classifier&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.6.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-5">    <span class="nt">&lt;classifier&gt;</span>jdk8<span class="nt">&lt;/classifier&gt;</span>
 </span><span id="line-6"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <p>To use actors,&nbsp;add:</p>
@@ -224,7 +230,7 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-actors<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.5.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.6.0<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <p>For clustering support,&nbsp;add:</p>
@@ -232,7 +238,7 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-galaxy<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.5.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.6.0<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <h3 id="instrumentation">Instrumenting Your&nbsp;Code</h3>
@@ -285,7 +291,7 @@
 
 <div class="highlight"><pre><code><span id="line-1"><span class="n">dependencies</span> <span class="o">{</span>
 </span><span id="line-2">    <span class="c1">// ....</span>
-</span><span id="line-3">    <span class="n">quasar</span>  <span class="s2">&quot;co.paralleluniverse:quasar-core:0.5.0&quot;</span>
+</span><span id="line-3">    <span class="n">quasar</span>  <span class="s2">&quot;co.paralleluniverse:quasar-core:0.6.0&quot;</span>
 </span><span id="line-4"><span class="o">}</span>
 </span></code></pre></div>
 <p>Finally, in your <code>run</code> task (or any task of type <code>JavaExec</code> or <code>Test</code>), add the system&nbsp;property:</p>
@@ -294,7 +300,7 @@
 </span></code></pre></div>
 <h4 id="aot">Ahead-of-Time (<span class="caps">AOT</span>)&nbsp;Instrumentation</h4>
 
-<p>The easy and preferable way to instrument programs using Quasar is with the Java agent, which instruments code at runtime. Sometimes, however, running a Java agent is not an&nbsp;option. </p>
+<p>The easy and preferable way to instrument programs using Quasar is with the Java agent, which instruments code at runtime. Sometimes, however, running a Java agent is not an&nbsp;option.</p>
 
 <p>Quasar supports <span class="caps">AOT</span> instrumentation with an Ant task. The task is <code>co.paralleluniverse.fibers.instrument.InstrumentationTask</code> found in <code>quasar-core.jar</code>, and it accepts a fileset of classes to instrument. Not all classes will actually be instrumented – only those with suspendable methods (see below) – so simply give the task all of the class files in your program. In fact, Quasar itself is instrumented&nbsp;ahead-of-time.</p>
 
@@ -319,11 +325,11 @@
 <h3 id="fibers">Fibers</h3>
 
 <p>Quasar’s chief contribution is that of the lightweight thread, called <em>fiber</em> in Quasar.<br />
-Fibers provide functionality similar to threads, and a similar <span class="caps">API</span>, but they’re not managed by the <span class="caps">OS.</span> They are lightweight in terms of <span class="caps">RAM</span> (an idle fiber occupies ~400 bytes of <span class="caps">RAM</span>) and put a far lesser burden on the <span class="caps">CPU</span> when task-switching. You can have millions of fibers in an application. If you are familiar with Go, fibers are like goroutines. Fibers in Quasar are scheduled by one or more <a href="http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ForkJoinPool.html">ForkJoinPool</a>s. </p>
+Fibers provide functionality similar to threads, and a similar <span class="caps">API</span>, but they’re not managed by the <span class="caps">OS.</span> They are lightweight in terms of <span class="caps">RAM</span> (an idle fiber occupies ~400 bytes of <span class="caps">RAM</span>) and put a far lesser burden on the <span class="caps">CPU</span> when task-switching. You can have millions of fibers in an application. If you are familiar with Go, fibers are like goroutines. Fibers in Quasar are scheduled by one or more <a href="http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ForkJoinPool.html">ForkJoinPool</a>s.</p>
 
 <p>Fibers are not meant to replace threads in all circumstances. A fiber should be used when its body (the code it executes) blocks very often waiting on other fibers (e.g. waiting for messages sent by other fibers on a channel, or waiting for the value of a dataflow-variable). For long-running computations that rarely block, traditional threads are preferable. Fortunately, as we shall see, fibers and threads interoperate very&nbsp;well.</p>
 
-<p>Fibers are especially useful for replacing callback-ridden asynchronous code. They allow you to enjoy the scalability and performance benefits of asynchronous code while keeping the simple to use and understand threaded&nbsp;modedl.</p>
+<p>Fibers are especially useful for replacing callback-ridden asynchronous code. They allow you to enjoy the scalability and performance benefits of asynchronous code while keeping the simple to use and understand threaded&nbsp;model.</p>
 
 <h4 id="using-fibers">Using&nbsp;Fibers</h4>
 
@@ -340,7 +346,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>You can also start a fiber by passing an instance of <a href="/quasar/javadoc/co/paralleluniverse/strands/SuspendableRunnable.html"><code>SuspendableRunnable</code></a> or <a href="/quasar/javadoc/co/paralleluniverse/strands/SuspendableCallable.html"><code>SuspendableCallable</code></a> to <code>Fiber</code>’s&nbsp;constructor:</p>
 
-<div class="highlight"><pre><code><span id="line-1"><span class="k">new</span> <span class="n">Fiber</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;(</span><span class="k">new</span> <span class="n">SuspendableRunnable</span><span class="o">()</span> <span class="o">{</span>
+<div class="highlight"><pre><code><span id="line-1"><span class="k">new</span> <span class="n">Fiber</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;(</span><span class="k">new</span> <span class="nf">SuspendableRunnable</span><span class="o">()</span> <span class="o">{</span>
 </span><span id="line-2">  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">run</span><span class="o">()</span> <span class="kd">throws</span> <span class="n">SuspendExecution</span><span class="o">,</span> <span class="n">InterruptedException</span> <span class="o">{</span>
 </span><span id="line-3">    <span class="c1">// your code</span>
 </span><span id="line-4">  <span class="o">}</span>
@@ -360,7 +366,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <h4 id="runaway-fibers">Runaway&nbsp;Fibers</h4>
 
-<p>A fiber that is stuck in a loop without blocking, or is blocking the thread its running on (by directly or indirectly performing a thread-blocking operation) is called a <em>runaway fiber</em>. It is <em>perfectly <span class="caps">OK</span></em> for fibers to do that spradically (as the work stealing scheduler will deal with that), but doing so frequently may severely impact system performance (as most of the scheduler’s threads might be tied up by runaway fibers). Quasar detects runaway fibers, and notifies you about which fibers are problematic, whether they’re blocking the thread or hogging the <span class="caps">CPU</span>, and gives you their stack trace, by printing this information to the console as well as reporting it to the runtime fiber monitor (exposed through a <span class="caps">JMX</span> MBean; see <a href="#runtime-monitoring">the previous section</a>).</p>
+<p>A fiber that is stuck in a loop without blocking, or is blocking the thread its running on (by directly or indirectly performing a thread-blocking operation) is called a <em>runaway fiber</em>. It is <em>perfectly <span class="caps">OK</span></em> for fibers to do that sporadically (as the work stealing scheduler will deal with that), but doing so frequently may severely impact system performance (as most of the scheduler’s threads might be tied up by runaway fibers). Quasar detects runaway fibers, and notifies you about which fibers are problematic, whether they’re blocking the thread or hogging the <span class="caps">CPU</span>, and gives you their stack trace, by printing this information to the console as well as reporting it to the runtime fiber monitor (exposed through a <span class="caps">JMX</span> MBean; see <a href="#runtime-monitoring">the previous section</a>).</p>
 
 <p>Note that this condition might happen when classes are encountered for the first time and need to be loaded from disk. This is alright because this happens only sporadically, but you may notice reports about problematic fibers during startup, as this when most class loading usually&nbsp;occurs.</p>
 
@@ -380,7 +386,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <h4 id="park-and-unpark"><code>park</code> and&nbsp;<code>unpark</code></h4>
 
-<p>Most importantly (though relevant only for power-users who would like to implement their own concurrency primitives, such as locks), the <code>Strand</code> classcontains the methods <code>park</code> and <code>unpark</code>, that delegate to <code>Fiber.park</code> and <code>Fiber.unpark</code> methods if the strand is a fiber, or to <a href="http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/locks/LockSupport.html"><code>LockSupport</code></a>’s <code>park</code> and <code>unpark</code> methods if the strand is a thread (<code>LockSupport</code> lies at the core of all <code>java.util.concurrent</code> classes). This allows to create synchronization mechanisms that work well for both fibers and&nbsp;threads. </p>
+<p>Most importantly (though relevant only for power-users who would like to implement their own concurrency primitives, such as locks), the <code>Strand</code> class contains the methods <code>park</code> and <code>unpark</code>, that delegate to <code>Fiber.park</code> and <code>Fiber.unpark</code> methods if the strand is a fiber, or to <a href="http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/locks/LockSupport.html"><code>LockSupport</code></a>’s <code>park</code> and <code>unpark</code> methods if the strand is a thread (<code>LockSupport</code> lies at the core of all <code>java.util.concurrent</code> classes). This allows to create synchronization mechanisms that work well for both fibers and&nbsp;threads.</p>
 
 <p>Just as you almost never use <code>LockSupport</code> directly, so, too, you will never need to call <code>Strand.park</code> or <code>Strand.unpark</code>, unless you’re writing your own concurrency constructs (like a new kind of&nbsp;lock).</p>
 
@@ -402,7 +408,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 </span><span id="line-3">  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">success</span><span class="o">(</span><span class="n">String</span> <span class="n">result</span><span class="o">)</span> <span class="o">{</span>
 </span><span id="line-4">    <span class="n">asyncCompleted</span><span class="o">(</span><span class="n">result</span><span class="o">);</span>
 </span><span id="line-5">  <span class="o">}</span>
-</span><span id="line-6"> 
+</span><span id="line-6">
 </span><span id="line-7">  <span class="nd">@Override</span>
 </span><span id="line-8">  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">failure</span><span class="o">(</span><span class="n">FooException</span> <span class="n">exception</span><span class="o">)</span> <span class="o">{</span>
 </span><span id="line-9">    <span class="n">asyncFailed</span><span class="o">(</span><span class="n">exception</span><span class="o">);</span>
@@ -439,9 +445,9 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <h4 id="suspendable">@Suspendable</h4>
 
-<p>So far, our way to specify a suspendable method is by declaring it throws <code>SusepndExecution</code>. This is convenient because <code>SuspendExecution</code> is a checked exception, so if <code>f</code> calls <code>g</code> and <code>g</code> is suspendable, the Java compiler will force us to declare that <code>f</code> is suspendable (and it must be because it calls <code>g</code> and <code>g</code> might be&nbsp;suspended).</p>
+<p>So far, our way to specify a suspendable method is by declaring it throws <code>SuspendExecution</code>. This is convenient because <code>SuspendExecution</code> is a checked exception, so if <code>f</code> calls <code>g</code> and <code>g</code> is suspendable, the Java compiler will force us to declare that <code>f</code> is suspendable (and it must be because it calls <code>g</code> and <code>g</code> might be&nbsp;suspended).</p>
 
-<p>Sometimes, however, we cannot declare <code>f</code> to throw <code>SuspendExecution</code>. One example is that <code>f</code> is an implementation of an interface method, and we cannot (or don’t want to) change the interface so that it throws <code>SuspendExecution</code>. It is also possible that we want <code>f</code> to be run in regular threads as well as&nbsp;fibers. </p>
+<p>Sometimes, however, we cannot declare <code>f</code> to throw <code>SuspendExecution</code>. One example is that <code>f</code> is an implementation of an interface method, and we cannot (or don’t want to) change the interface so that it throws <code>SuspendExecution</code>. It is also possible that we want <code>f</code> to be run in regular threads as well as&nbsp;fibers.</p>
 
 <p>An example for that are the synchronization primitives in the <code>co.paralleluniverse.strands.concurrent</code> package, which implement interfaces declared in <code>java.util.concurrent</code>, and we want to maintain compatibility. Also, no harm will come if we use these classes in regular threads. They will work just as well for threads as for fibers, because internally they call <code>Strand.park</code> which is fiber-blocking (suspends) if run in a fiber, but simply blocks the thread if&nbsp;not.</p>
 
@@ -456,12 +462,12 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 </span><span id="line-5">      <span class="c1">// do some stuff</span>
 </span><span id="line-6">      <span class="k">return</span> <span class="nf">g</span><span class="o">()</span> <span class="o">*</span> <span class="mi">2</span><span class="o">;</span>
 </span><span id="line-7">    <span class="o">}</span> <span class="k">catch</span><span class="o">(</span><span class="n">SuspendExecution</span> <span class="n">s</span><span class="o">)</span> <span class="o">{</span>
-</span><span id="line-8">      <span class="k">throw</span> <span class="k">new</span> <span class="nf">AssertionError</span><span class="o">(</span><span class="n">s</span><span class="o">);</span> 
+</span><span id="line-8">      <span class="k">throw</span> <span class="k">new</span> <span class="nf">AssertionError</span><span class="o">(</span><span class="n">s</span><span class="o">);</span>
 </span><span id="line-9">    <span class="o">}</span>
 </span><span id="line-10">  <span class="o">}</span>
 </span><span id="line-11"><span class="o">}</span>
 </span></code></pre></div>
-<p>The <code>catch</code> block will never be executed; the intstrumentation will take care of&nbsp;that.</p>
+<p>The <code>catch</code> block will never be executed; the instrumentation will take care of&nbsp;that.</p>
 
 <p>But now let’s consider method&nbsp;<code>h</code>:</p>
 
@@ -476,29 +482,56 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>Therefore, if you’d like to use the <code>@Suspendable</code> annotation, there’s a step you need to add to your build step, after compilation and before creating the jar file: running the <code>co.paralleluniverse.fibers.instrument.SuspendablesScanner</code> Ant task. In Gradle it looks like&nbsp;this:</p>
 
-<div class="highlight"><pre><code><span id="line-1"><span class="n">ant</span><span class="o">.</span><span class="na">taskdef</span><span class="o">(</span><span class="nl">name:</span><span class="s1">&#39;scanSuspendables&#39;</span><span class="o">,</span> <span class="nl">classname:</span><span class="s1">&#39;co.paralleluniverse.fibers.instrument.SuspendablesScanner&#39;</span><span class="o">,</span> 
-</span><span id="line-2">    <span class="nl">classpath:</span> <span class="s2">&quot;build/classes/main:&quot;</span> <span class="o">+</span> <span class="n">configurations</span><span class="o">.</span><span class="na">compile</span><span class="o">.</span><span class="na">asPath</span><span class="o">)</span>
-</span><span id="line-3"><span class="n">ant</span><span class="o">.</span><span class="na">scanSuspendables</span><span class="o">(</span><span class="nl">outputFile:</span><span class="s2">&quot;$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers&quot;</span><span class="o">)</span> <span class="o">{</span>
-</span><span id="line-4">    <span class="n">fileset</span><span class="o">(</span><span class="nl">dir:</span> <span class="n">sourceSets</span><span class="o">.</span><span class="na">main</span><span class="o">.</span><span class="na">output</span><span class="o">.</span><span class="na">classesDir</span><span class="o">)</span>
-</span><span id="line-5"><span class="o">}</span>
+<div class="highlight"><pre><code><span id="line-1"><span class="n">ant</span><span class="o">.</span><span class="na">taskdef</span><span class="o">(</span><span class="nl">name:</span><span class="s1">&#39;scanSuspendables&#39;</span><span class="o">,</span> <span class="nl">classname:</span><span class="s1">&#39;co.paralleluniverse.fibers.instrument.SuspendablesScanner&#39;</span><span class="o">,</span>
+</span><span id="line-2">    <span class="nl">classpath:</span> <span class="s2">&quot;build/classes/main:build/resources/main:${configurations.runtime.asPath}&quot;</span><span class="o">)</span>
+</span><span id="line-3"><span class="n">ant</span><span class="o">.</span><span class="na">scanSuspendables</span><span class="o">(</span>
+</span><span id="line-4">    <span class="nl">auto:</span><span class="kc">false</span><span class="o">,</span>
+</span><span id="line-5">    <span class="nl">suspendablesFile:</span> <span class="s2">&quot;$sourceSets.main.output.resourcesDir/META-INF/suspendables&quot;</span><span class="o">)</span> <span class="o">{</span>
+</span><span id="line-6">    <span class="n">fileset</span><span class="o">(</span><span class="nl">dir:</span> <span class="n">sourceSets</span><span class="o">.</span><span class="na">main</span><span class="o">.</span><span class="na">output</span><span class="o">.</span><span class="na">classesDir</span><span class="o">)</span>
+</span><span id="line-7"><span class="o">}</span>
 </span></code></pre></div>
-<p><code>SuspendablesScanner</code> scans your code after it’s been compiled for methods annotated with <code>@Suspendable</code>. In our example it will find <code>C.f</code>. It will then see that <code>C.f</code> is an implementation of <code>I.f</code>, and so it will list <code>I.f</code> in a text file (<code>META-INF/suspendable-supers</code>), that contains all methods that have overriding suspendable&nbsp;implementations. </p>
+<p><code>SuspendablesScanner</code> scans your code after it’s been compiled for methods annotated with <code>@Suspendable</code>. In our example it will find <code>C.f</code>. It will then see that <code>C.f</code> is an implementation of <code>I.f</code>, and so it will list <code>I.f</code> in a text file (<code>META-INF/suspendable-supers</code>), that contains all methods that have overriding suspendable&nbsp;implementations.</p>
 
 <p>When the instrumentation module instruments <code>h</code>, it will find <code>I.f</code> in the file, and, knowing it might suspend, inject the appropriate&nbsp;code.</p>
 
 <p>Note that this has no effect on other calls to <code>I.f</code>. The instrumentation module only cares that <code>I.f</code> has suspendable implementations when it finds it called in suspendable methods (in our case:&nbsp;<code>h</code>).</p>
 
-<p>When using <a href="#aot"><span class="caps">AOT</span> instrumentation</a>, <code>InstrumentationTask</code> must be able to find the <code>suspendable-supers</code> in its&nbsp;classpath. </p>
+<p>When using <a href="#aot"><span class="caps">AOT</span> instrumentation</a>, <code>InstrumentationTask</code> must be able to find <code>META-INF/suspendable-supers</code> in its&nbsp;classpath.</p>
+
+<h4 id="automatic-instrumentation">Automatic&nbsp;Instrumentation</h4>
+
+<p>Quasar supports automatic detection of suspendable methods, without manually marking them at all. The <code>SuspendableScanner</code> ant task can be configured to automatically find suspendable methods by analyzing the call&nbsp;graph:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="n">ant</span><span class="o">.</span><span class="na">taskdef</span><span class="o">(</span><span class="nl">name:</span><span class="s1">&#39;scanSuspendables&#39;</span><span class="o">,</span> <span class="nl">classname:</span><span class="s1">&#39;co.paralleluniverse.fibers.instrument.SuspendablesScanner&#39;</span><span class="o">,</span>
+</span><span id="line-2">    <span class="nl">classpath:</span> <span class="s2">&quot;build/classes/main:build/resources/main:${configurations.runtime.asPath}&quot;</span><span class="o">)</span>
+</span><span id="line-3"><span class="n">ant</span><span class="o">.</span><span class="na">scanSuspendables</span><span class="o">(</span>
+</span><span id="line-4">    <span class="nl">auto:</span><span class="kc">true</span><span class="o">,</span>
+</span><span id="line-5">    <span class="nl">suspendablesFile:</span> <span class="s2">&quot;$sourceSets.main.output.resourcesDir/META-INF/suspendables&quot;</span><span class="o">,</span>
+</span><span id="line-6">    <span class="nl">supersFile:</span> <span class="s2">&quot;$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers&quot;</span><span class="o">)</span> <span class="o">{</span>
+</span><span id="line-7">    <span class="n">fileset</span><span class="o">(</span><span class="nl">dir:</span> <span class="n">sourceSets</span><span class="o">.</span><span class="na">main</span><span class="o">.</span><span class="na">output</span><span class="o">.</span><span class="na">classesDir</span><span class="o">)</span>
+</span><span id="line-8"><span class="o">}</span>
+</span></code></pre></div>
+<p>This will create a <code>META-INF/suspendables</code> file containing the names of the suspendable&nbsp;methods.</p>
+
+<p>When using <a href="#aot"><span class="caps">AOT</span> instrumentation</a>, <code>InstrumentationTask</code> must be able to find <code>META-INF/suspendables</code> and <code>META-INF/suspendable-supers</code> in its&nbsp;classpath.</p>
+
+<p>Automatic detection of suspendable methods is an experimental&nbsp;feature.</p>
+
+<h4 id="fiber-serialization">Fiber&nbsp;Serialization</h4>
+
+<p>Fibers can be serialized while parked, and then deserialized an unparked to continue where they left off. The <a href="/quasar/javadoc/co/paralleluniverse/fibers/Fiber.html#parkAndSerialize(co.paralleluniverse.fibers.FiberWriter)"><code>parkAndSerialize</code> method</a> parks the currently running fiber, and then calls the passed callback, which can serialize the fiber (or any object graph containing the fiber) into a byte array using the supplied&nbsp;serializer.</p>
+
+<p>The <a href="/quasar/javadoc/co/paralleluniverse/fibers//Fiber.html#unparkSerialized(byte[], co.paralleluniverse.fibers.FiberScheduler)"><code>unparkSerialized</code> method</a> deserializes the serialized representation of the fiber, and unparks it. You can deserialize the byte array using the serializer returned from the <a href="/quasar/javadoc/co/paralleluniverse/fibers/Fiber.html#getFiberSerializer()"><code>getFiberSerializer</code> method</a>, and pass the (uninitialized, unparked) deserialized fiber to the <a href="/quasar/javadoc/co/paralleluniverse/fibers/Fiber.html#unparkDeserialized(co.paralleluniverse.fibers.Fiber, co.paralleluniverse.fibers.FiberScheduler)"><code>unparkDeserialized</code> method</a>. The latter approach is necessary if the serialized fiber is part of a bigger object graph serialized in the byte&nbsp;array.</p>
 
 <h4 id="troubleshooting">Troubleshooting&nbsp;Fibers</h4>
 
-<p>If you forget to mark a method as suspendable (with <code>throws SuspendExecution</code> or <code>@Suspendable</code>), you will encounter some strange errors. These will usually take the form of non-sensical <code>ClassCastException</code>s, <code>NullPointerException</code>s, or <code>SuspendExecution</code> being thrown. To troubleshoot those, set the value of the <code>co.paralleluniverse.fibers.verifyInstrumentation</code> system property to <code>true</code> and run your program. This will verify that all of your methods are instrumented properly, or print a warning to the console letting you know which methods that should have been marked suspendable&nbsp;weren’t. </p>
+<p>If you forget to mark a method as suspendable (with <code>throws SuspendExecution</code> or <code>@Suspendable</code>), you will encounter some strange errors. These will usually take the form of non-sensical <code>ClassCastException</code>s, <code>NullPointerException</code>s, or <code>SuspendExecution</code> being thrown. To troubleshoot those, set the value of the <code>co.paralleluniverse.fibers.verifyInstrumentation</code> system property to <code>true</code> and run your program. This will verify that all of your methods are instrumented properly, or print a warning to the console letting you know which methods that should have been marked suspendable&nbsp;weren’t.</p>
 
 <p>Do not turn on <code>verifyInstrumentation</code> in production, as it will slow down your code&nbsp;considerably.</p>
 
 <h3 id="channels">Channels</h3>
 
-<p>Channels are queues used to pass messages between strands (remember, strands are a general name for threads and fibers). If you are familiar with Go, Quasar channels are like Go&nbsp;channels. </p>
+<p>Channels are queues used to pass messages between strands (remember, strands are a general name for threads and fibers). If you are familiar with Go, Quasar channels are like Go&nbsp;channels.</p>
 
 <p>A <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channel.html">channel</a> is an interface that extends two other interfaces: <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/SendPort.html"><code>SendPort</code></a>, which defines the methods used to send messages to a channel, and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/ReceivePort.html"><code>ReceivePort</code></a>, which defines the methods used to receive messages from a&nbsp;channel.</p>
 
@@ -537,11 +570,11 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>A ticker channel is single-consumer, i.e. only one strand is allowed to consume messages from the channel. On the other hand, it is possible, and useful, to create several views of the channel, each used by a different consumer strand. A view (which is of type <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/TickerChannelConsumer.html"><code>TickerChannelConsumer</code></a> is created with the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#newTickerConsumerFor(Channel)"><code>Channels.newTickerConsumerFor</code></a>&nbsp;method.</p>
 
-<p>The method returns a <code>ReceivePort</code> that can be used to receive messages from <code>channel</code>. Each ticker-consumer will yield monotonic messages, namely no message will be received more than once, and the messages will be received in the order they’re sent, but if the consumer is too slow, messages could be&nbsp;lost. </p>
+<p>The method returns a <code>ReceivePort</code> that can be used to receive messages from <code>channel</code>. Each ticker-consumer will yield monotonic messages, namely no message will be received more than once, and the messages will be received in the order they’re sent, but if the consumer is too slow, messages could be&nbsp;lost.</p>
 
 <p>Each consumer strand will use its own <code>ticker-consumer</code>, and each can consume messages at its own pace, and each <code>TickerChannelConsumer</code> port will return the same messages (messages consumed from one will not be removed from the other views), subject possibly to different messages being missed by different consumers depending on their&nbsp;pace.</p>
 
-<h4 id="transofrming-channels-aka-reactive-extensions">Transofrming Channels (<span class="caps">AKA</span> Reactive&nbsp;Extensions)</h4>
+<h4 id="transforming-channels-aka-reactive-extensions">Transforming Channels (<span class="caps">AKA</span> Reactive&nbsp;Extensions)</h4>
 
 <p>The <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html"><code>Channels</code></a> class has several static methods that can be used to manipulate and compose values sent to or received off&nbsp;channels:</p>
 
@@ -584,13 +617,44 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 </span></code></pre></div>
 <p>The example will do exactly one of the following operations: send <code>msg</code> to <code>ch1</code> or receive a message from&nbsp;<code>ch2</code>.</p>
 
-<h3 id="delay-variables">Delay&nbsp;Variables</h3>
+<h3 id="dataflow-reactive-programming">Dataflow (Reactive)&nbsp;Programming</h3>
 
-<p>Delay variables, delayed values, or dataflow variables (represented by the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/DelayedVal.html"><code>DelayedVal</code></a> class) are a simple and effective strand coordination mechanism. A <code>DelayedVal</code> can have its value set once, and when read, blocks until the value is set. <code>DelayVal</code> implements&nbsp;<code>j.u.c.Future</code>.</p>
+<p>Dataflow, or reactive programming, is a computation described by composing variables whose value may be set (and possibly changed) at any given time, without concern for when these values are set. Quasar provides two dataflow primitives: <a href="/quasar/javadoc/co/paralleluniverse/strands/dataflow/Val.html"><code>Val</code></a> and <a href="(/quasar/javadoc/co/paralleluniverse/strands/dataflow/Var.html)"><code>Var</code></a> in the <code>co.paralleluniverse.strands.dataflow</code>&nbsp;package.</p>
+
+<p>A <a href="/quasar/javadoc/co/paralleluniverse/strands/dataflow/Val.html"><code>Val</code></a> is a dataflow constant. It can have its value set once, and read multiple times. Attempting to read the value of a <code>Val</code> before it’s been set, will block until a value is&nbsp;set.</p>
+
+<p>Vals can also be used as a simple and effective strand coordination mechanism. <code>Val</code> implements&nbsp;<code>j.u.c.Future</code>.</p>
+
+<p>A <a href="(/quasar/javadoc/co/paralleluniverse/strands/dataflow/Var.html)"><code>Var</code></a> is a dataflow variable. It can have it’s value set multiple times, and every new value can trigger the re-computation of other Vars. You can set a <code>Var</code> to retain historical values (consult the Javadoc for more&nbsp;information).</p>
+
+<p>Here is a simple example of using Vals and&nbsp;Vars.</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="n">Val</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="n">a</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Val</span><span class="o">&lt;&gt;();</span>
+</span><span id="line-2"><span class="n">Var</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="n">x</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Var</span><span class="o">&lt;&gt;();</span>
+</span><span id="line-3"><span class="n">Var</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="n">y</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Var</span><span class="o">&lt;&gt;(()</span> <span class="o">-&gt;</span> <span class="n">a</span><span class="o">.</span><span class="na">get</span><span class="o">()</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="na">get</span><span class="o">());</span>
+</span><span id="line-4"><span class="n">Var</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="n">z</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Var</span><span class="o">&lt;&gt;(()</span> <span class="o">-&gt;</span> <span class="n">a</span><span class="o">.</span><span class="na">get</span><span class="o">()</span> <span class="o">+</span> <span class="n">x</span><span class="o">.</span><span class="na">get</span><span class="o">());</span>
+</span><span id="line-5"><span class="n">Var</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="n">r</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Var</span><span class="o">&lt;&gt;(()</span> <span class="o">-&gt;</span> <span class="o">{</span>
+</span><span id="line-6">    <span class="kt">int</span> <span class="n">res</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="na">get</span><span class="o">()</span> <span class="o">+</span> <span class="n">z</span><span class="o">.</span><span class="na">get</span><span class="o">();</span>
+</span><span id="line-7">    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;res: &quot;</span> <span class="o">+</span> <span class="n">res</span><span class="o">);</span>
+</span><span id="line-8">    <span class="k">return</span> <span class="n">res</span><span class="o">;</span>
+</span><span id="line-9"><span class="o">});</span>
+</span><span id="line-10">
+</span><span id="line-11"><span class="n">Fiber</span><span class="o">&lt;?&gt;</span> <span class="n">f</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Fiber</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;(()</span> <span class="o">-&gt;</span> <span class="o">{</span>
+</span><span id="line-12">    <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">200</span><span class="o">;</span> <span class="n">i</span><span class="o">++)</span> <span class="o">{</span>
+</span><span id="line-13">        <span class="n">x</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">i</span><span class="o">);</span>
+</span><span id="line-14">        <span class="n">Strand</span><span class="o">.</span><span class="na">sleep</span><span class="o">(</span><span class="mi">100</span><span class="o">);</span>
+</span><span id="line-15">    <span class="o">}</span>
+</span><span id="line-16"><span class="o">}).</span><span class="na">start</span><span class="o">();</span>
+</span><span id="line-17">
+</span><span id="line-18"><span class="n">Strand</span><span class="o">.</span><span class="na">sleep</span><span class="o">(</span><span class="mi">2000</span><span class="o">);</span>
+</span><span id="line-19"><span class="n">a</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="mi">3</span><span class="o">);</span> <span class="c1">// this will trigger everything</span>
+</span><span id="line-20"><span class="n">f</span><span class="o">.</span><span class="na">join</span><span class="o">();</span>
+</span></code></pre></div>
+<p>In this examples, vars <code>y</code> and <code>z</code>, are dependent on val <code>a</code> and var <code>x</code>, and will have their values recomputed – after <code>a</code> is set – whenever <code>x</code>&nbsp;changes.</p>
 
 <h2 id="quasars-actor-system">Quasar’s Actor&nbsp;System</h2>
 
-<p>To use the terms we’ve learned so far, an <em>actor</em> is a strand that owns a single channel with some added lifecyce management and error handling. But this reductionist view of actors does them little justice. Actors are fundamental building blocks that are combined to build a fault-tolerant application. If you are familiar with Erlang, Quasar actors are just like Erlang&nbsp;processes.</p>
+<p>To use the terms we’ve learned so far, an <em>actor</em> is a strand that owns a single channel with some added lifecycle management and error handling. But this reductionist view of actors does them little justice. Actors are fundamental building blocks that are combined to build a fault-tolerant application. If you are familiar with Erlang, Quasar actors are just like Erlang&nbsp;processes.</p>
 
 <p>An actor is a self-contained execution unit with well-defined inputs and outputs. Actors communicate with other actors (as well as regular program threads and fibers) by passing&nbsp;messages.</p>
 
@@ -600,11 +664,11 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>All actors extends the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html"><code>Actor</code></a> class. The constructor takes the actor’s name (which does not have to be unique, and may even be <code>null</code>), and its mailbox settings (of type <a href="/quasar/javadoc/co/paralleluniverse/actors/MailboxConfig.html"><code>MailboxConfig</code></a>).</p>
 
-<p><code>MailboxConfig</code> defines the mailbox size (the number of messages that can wait in the mailbox channel), with <code>-1</code> specifying an unbounded mailbox, and an <em>overflow policy</em>. The overflow policy works the same as for plain channels, except that the <code>THROW</code> policy doesn’t cause an exception to be thrown in the sender if the mailbox capacity is exceeded, but rather throws an exception into the receiving actor (the exception will be thrown when the actor next blocks on a&nbsp;<code>recieve</code>).</p>
+<p><code>MailboxConfig</code> defines the mailbox size (the number of messages that can wait in the mailbox channel), with <code>-1</code> specifying an unbounded mailbox, and an <em>overflow policy</em>. The overflow policy works the same as for plain channels, except that the <code>THROW</code> policy doesn’t cause an exception to be thrown in the sender if the mailbox capacity is exceeded, but rather throws an exception into the receiving actor (the exception will be thrown when the actor next blocks on a&nbsp;<code>receive</code>).</p>
 
 <p>An actor is required to implement the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#doRun()"><code>doRun</code></a> method. This method is the actor body, and is run when the actor is&nbsp;spawned.</p>
 
-<p>It is prefereable to subclass <a href="/quasar/javadoc/co/paralleluniverse/actors/BasicActor.html"><code>BasicActor</code></a> rather than <code>Actor</code>; <code>BasicActor</code> provides the ability to perform selective receives (more on that&nbsp;later).</p>
+<p>It is preferable to subclass <a href="/quasar/javadoc/co/paralleluniverse/actors/BasicActor.html"><code>BasicActor</code></a> rather than <code>Actor</code>; <code>BasicActor</code> provides the ability to perform selective receives (more on that&nbsp;later).</p>
 
 <h4 id="spawning-actors">Spawning&nbsp;Actors</h4>
 
@@ -620,7 +684,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>An actor can be <code>join</code>ed, just like a fiber. Calling <code>get</code> on an actor will join it and return the value returned by&nbsp;<code>doRun</code>.</p>
 
-<p class="alert alert-info"><strong>Note</strong>: Just like fibers, spawning an actor is a very cheap operation in both computation and memory. Do not fear creating many (thousands, tens-of-thousands or even hundereds-of-thousands)&nbsp;actors.</p>
+<p class="alert alert-info"><strong>Note</strong>: Just like fibers, spawning an actor is a very cheap operation in both computation and memory. Do not fear creating many (thousands, tens-of-thousands or even hundreds-of-thousands)&nbsp;actors.</p>
 
 <h3 id="sending-and-receiving-messages-actorref">Sending and Receiving Messages,&nbsp;<code>ActorRef</code></h3>
 
@@ -632,7 +696,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>The <code>ActorRef</code> allows sending messages to the actor’s mailbox. In fact, <code>ActorRef</code> implements <code>SendPort</code> so it can be used just like a&nbsp;channel.</p>
 
-<p>An actor receives a message by calling the <a href="/quasar/javadoc/co/paralleluniverse/actors//Actor.html#receive()"><code>recieve</code></a> method. The method blocks until a message is available in the mailbox, and then returns it. <a href="/quasar/javadoc/co/paralleluniverse/actors//Actor.html#receive(long, java.util.concurrent.TimeUnit)">Another version</a> of <code>receive</code> blocks up to a given duration, and returns <code>null</code> if no message is received by that&nbsp;time.</p>
+<p>An actor receives a message by calling the <a href="/quasar/javadoc/co/paralleluniverse/actors//Actor.html#receive()"><code>receive</code></a> method. The method blocks until a message is available in the mailbox, and then returns it. <a href="/quasar/javadoc/co/paralleluniverse/actors//Actor.html#receive(long, java.util.concurrent.TimeUnit)">Another version</a> of <code>receive</code> blocks up to a given duration, and returns <code>null</code> if no message is received by that&nbsp;time.</p>
 
 <p>Normally, an actor is implements a loop similar to this&nbsp;one:</p>
 
@@ -651,7 +715,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <h4 id="actors-vs-channels">Actors vs.&nbsp;Channels</h4>
 
-<p>One of the reasons of providing a different <code>receive</code> function for actors is because programming with actors is conceptually different from just using fibers and channels. I think of channels as hoses pumping data into a function, or as sort of like asynchronous parameters. A fiber may pull many different kinds of data from many different channels, and combine the data in some&nbsp;way. </p>
+<p>One of the reasons of providing a different <code>receive</code> function for actors is because programming with actors is conceptually different from just using fibers and channels. I think of channels as hoses pumping data into a function, or as sort of like asynchronous parameters. A fiber may pull many different kinds of data from many different channels, and combine the data in some&nbsp;way.</p>
 
 <p>Actors are a different abstraction. They are more like objects in object-oriented languages, assigned to a single thread. The mailbox serves as the object’s dispatch mechanism; it’s not a hose but a switchboard. It’s for this reason that actors often need to pattern-match their mailbox messages, while regular channels – each usually serving as a conduit for a single kind of data –&nbsp;don’t.</p>
 
@@ -676,7 +740,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 <p>Then, this&nbsp;call:</p>
 
 <div class="highlight"><pre><code><span id="line-1"><span class="n">ComplexMessage</span> <span class="n">m</span> <span class="o">=</span> <span class="n">receive</span><span class="o">(</span><span class="k">new</span> <span class="n">MessageProcessor</span><span class="o">&lt;</span><span class="n">ComplexMessage</span><span class="o">,</span> <span class="n">ComplexMessage</span><span class="o">&gt;()</span> <span class="o">{</span>
-</span><span id="line-2">        <span class="kd">public</span> <span class="n">ComplexMessage</span> <span class="nf">process</span><span class="o">(</span><span class="n">ComplexMessage</span> <span class="n">m</span><span class="o">)</span> 
+</span><span id="line-2">        <span class="kd">public</span> <span class="n">ComplexMessage</span> <span class="nf">process</span><span class="o">(</span><span class="n">ComplexMessage</span> <span class="n">m</span><span class="o">)</span>
 </span><span id="line-3">          <span class="kd">throws</span> <span class="n">SuspendExecution</span><span class="o">,</span> <span class="n">InterruptedException</span> <span class="o">{</span>
 </span><span id="line-4">            <span class="k">switch</span> <span class="o">(</span><span class="n">m</span><span class="o">.</span><span class="na">type</span><span class="o">)</span> <span class="o">{</span>
 </span><span id="line-5">            <span class="k">case</span> <span class="nl">FOO:</span>
@@ -689,7 +753,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 </span><span id="line-12">    <span class="o">});</span>
 </span></code></pre></div>
 <p>will only return a message whose <code>type</code> value is <code>FOO</code> or <code>BAR</code>, but not <code>BAZ</code>. If a message of type <code>BAZ</code> is found in the mailbox,&nbsp;it
-will remain there and be skipped, until it is selcted by a subsequent call to <code>receive</code> (selective or&nbsp;plain).</p>
+will remain there and be skipped, until it is selected by a subsequent call to <code>receive</code> (selective or&nbsp;plain).</p>
 
 <p><code>MessageProcessor.process</code> can also process the message inline (rather than have it processed by the caller to <code>receive</code>), and even call a nested&nbsp;`receive:</p>
 
@@ -697,13 +761,13 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 </span><span id="line-2">    <span class="kd">final</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="n">list</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;();</span>
 </span><span id="line-3">    <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="o">;</span> <span class="n">i</span><span class="o">++)</span> <span class="o">{</span>
 </span><span id="line-4">        <span class="n">receive</span><span class="o">(</span><span class="k">new</span> <span class="n">MessageProcessor</span><span class="o">&lt;</span><span class="n">ComplexMessage</span><span class="o">,</span> <span class="n">ComplexMessage</span><span class="o">&gt;()</span> <span class="o">{</span>
-</span><span id="line-5">            <span class="kd">public</span> <span class="n">ComplexMessage</span> <span class="nf">process</span><span class="o">(</span><span class="n">ComplexMessage</span> <span class="n">m</span><span class="o">)</span> 
+</span><span id="line-5">            <span class="kd">public</span> <span class="n">ComplexMessage</span> <span class="nf">process</span><span class="o">(</span><span class="n">ComplexMessage</span> <span class="n">m</span><span class="o">)</span>
 </span><span id="line-6">              <span class="kd">throws</span> <span class="n">SuspendExecution</span><span class="o">,</span> <span class="n">InterruptedException</span> <span class="o">{</span>
 </span><span id="line-7">                <span class="k">switch</span> <span class="o">(</span><span class="n">m</span><span class="o">.</span><span class="na">type</span><span class="o">)</span> <span class="o">{</span>
 </span><span id="line-8">                <span class="k">case</span> <span class="nl">FOO:</span>
 </span><span id="line-9">                    <span class="n">list</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">m</span><span class="o">.</span><span class="na">num</span><span class="o">);</span>
 </span><span id="line-10">                    <span class="n">receive</span><span class="o">(</span><span class="k">new</span> <span class="n">MessageProcessor</span><span class="o">&lt;</span><span class="n">ComplexMessage</span><span class="o">,</span> <span class="n">ComplexMessage</span><span class="o">&gt;()</span> <span class="o">{</span>
-</span><span id="line-11">                        <span class="kd">public</span> <span class="n">ComplexMessage</span> <span class="nf">process</span><span class="o">(</span><span class="n">ComplexMessage</span> <span class="n">m</span><span class="o">)</span> 
+</span><span id="line-11">                        <span class="kd">public</span> <span class="n">ComplexMessage</span> <span class="nf">process</span><span class="o">(</span><span class="n">ComplexMessage</span> <span class="n">m</span><span class="o">)</span>
 </span><span id="line-12">                          <span class="kd">throws</span> <span class="n">SuspendExecution</span><span class="o">,</span> <span class="n">InterruptedException</span> <span class="o">{</span>
 </span><span id="line-13">                            <span class="k">switch</span> <span class="o">(</span><span class="n">m</span><span class="o">.</span><span class="na">type</span><span class="o">)</span> <span class="o">{</span>
 </span><span id="line-14">                            <span class="k">case</span> <span class="nl">BAZ:</span>
@@ -743,7 +807,7 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <p>In fact, when using actors, it is often best to to follow the <a href="http://www.erlang.org/download/armstrong_thesis_2003.pdf">philosophy laid out by Joe Armstrong</a>, Erlang’s chief designer, of “let it crash”. The idea is not to try and catch exceptions inside an actor, because attempting to catch and handle all exceptions is futile. Instead, we just let the actor crash, monitor its death elsewhere, and then take some&nbsp;action.</p>
 
-<p>The principle of actor error handling is that an actor can be asked to be notified of another actor’s death and its cause. This is done through <em>linking</em> or <em>watching</em>. </p>
+<p>The principle of actor error handling is that an actor can be asked to be notified of another actor’s death and its cause. This is done through <em>linking</em> or <em>watching</em>.</p>
 
 <h4 id="linking-and-watching-actors">Linking and Watching&nbsp;Actors</h4>
 
@@ -753,7 +817,7 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <h4 id="lifecycle-messages-and-lifecycle-exceptions">Lifecycle Messages and Lifecycle&nbsp;Exceptions</h4>
 
-<p>When actor B that is linked to or watched by actor A dies, it automatically sends an <a href="/quasar/javadoc/co/paralleluniverse/actors/ExitMessage.html"><code>ExitMessage</code></a> to A. The message is put in A’s mailbox and retrieved when A calls <code>receive</code> or <code>tryReceive</code>, but it isn’t actually returned by those&nbsp;methods. </p>
+<p>When actor B that is linked to or watched by actor A dies, it automatically sends an <a href="/quasar/javadoc/co/paralleluniverse/actors/ExitMessage.html"><code>ExitMessage</code></a> to A. The message is put in A’s mailbox and retrieved when A calls <code>receive</code> or <code>tryReceive</code>, but it isn’t actually returned by those&nbsp;methods.</p>
 
 <p>When <code>receive</code> (or <code>tryRecive</code>) is called, it takes the next message in the mailbox, and passes it to a protected method called <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#filterMessage(java.lang.Object)"><code>filterMessage</code></a>. Whatever <code>filterMessage</code> returns, that’s the message actually returned by <code>receive</code> (or <code>tryReceive</code>), but it <code>filterMessage</code> returns <code>null</code>, <code>receive</code> will not return and wait for the next message (and <code>tryReceive</code> will check if another message is already available, or otherwise return <code>null</code>). The default implementation of <code>filterMessage</code> always returns the message it received unless it is of type <a href="/quasar/javadoc/co/paralleluniverse/actors/LifecycleMessage.html"><code>LifecycleMessage</code></a>, in which case it passes it to the protected <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#handleLifecycleMessage(co.paralleluniverse.actors.LifecycleMessage)"><code>handleLifecycleMessage</code></a>&nbsp;method.</p>
 
@@ -781,19 +845,19 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <h3 id="behaviors">Behaviors</h3>
 
-<p>Erlang’s designers have realized that many actors follow some common patterns - like an actor that receives requests for work and then sends back a result to the requester. They’ve turned those patterns into actor templates, called behaviors, in order to save poeple work and avoid some common errors. Erlang serves as the main inspiration to Quasar Actors, so some of these behaviors have been ported to&nbsp;Quasar. </p>
+<p>Erlang’s designers have realized that many actors follow some common patterns - like an actor that receives requests for work and then sends back a result to the requester. They’ve turned those patterns into actor templates, called behaviors, in order to save people work and avoid some common errors. Erlang serves as the main inspiration to Quasar Actors, so some of these behaviors have been ported to&nbsp;Quasar.</p>
 
 <p class="alert alert-info"><strong>Note</strong>: All behaviors use <span class="caps">SLF4J</span> loggers for&nbsp;logging.</p>
 
 <h4 id="requestreplyhelper">RequestReplyHelper</h4>
 
-<p>A very common pattern that emerges when working with patterns is request-response, whereby a <em>request</em> message is sent to an actor, and a <em>response</em> is sent back to the sender of the request. While simple, some care must be taken to ensure that the response is matched with the correct&nbsp;request. </p>
+<p>A very common pattern that emerges when working with patterns is request-response, whereby a <em>request</em> message is sent to an actor, and a <em>response</em> is sent back to the sender of the request. While simple, some care must be taken to ensure that the response is matched with the correct&nbsp;request.</p>
 
-<p>This behavior is implemented for you in the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/RequestReplyHelper.html"><code>RequestReplyHelper</code></a> class (in the <code>co.paralleluniverse.actors.behaviors</code>&nbsp;package). </p>
+<p>This behavior is implemented for you in the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/RequestReplyHelper.html"><code>RequestReplyHelper</code></a> class (in the <code>co.paralleluniverse.actors.behaviors</code>&nbsp;package).</p>
 
 <p>To use it, the request message must extend <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/RequestMessage.html"><code>co.paralleluniverse.actors.behaviors.RequestMessage</code></a>. Suppose we have a <code>IsDivisibleBy</code> message class that extends <code>RequestMessage</code>. We can interact with a divisor-checking actor like&nbsp;so:</p>
 
-<div class="highlight"><pre><code><span id="line-1"><span class="kt">boolean</span> <span class="n">result</span> <span class="o">=</span> <span class="n">RequestReplyHelper</span><span class="o">.</span><span class="na">call</span><span class="o">(</span><span class="n">actor</span><span class="o">,</span> <span class="k">new</span> <span class="n">IsDivisibleBy</span><span class="o">(</span><span class="mi">100</span><span class="o">,</span> <span class="mi">50</span><span class="o">));</span>
+<div class="highlight"><pre><code><span id="line-1"><span class="kt">boolean</span> <span class="n">result</span> <span class="o">=</span> <span class="n">RequestReplyHelper</span><span class="o">.</span><span class="na">call</span><span class="o">(</span><span class="n">actor</span><span class="o">,</span> <span class="k">new</span> <span class="nf">IsDivisibleBy</span><span class="o">(</span><span class="mi">100</span><span class="o">,</span> <span class="mi">50</span><span class="o">));</span>
 </span></code></pre></div>
 <p>And define the actor&nbsp;thus:</p>
 
@@ -811,7 +875,7 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 </span><span id="line-12">    <span class="o">}</span>
 </span><span id="line-13"><span class="o">}.</span><span class="na">spawn</span><span class="o">();</span>
 </span></code></pre></div>
-<p>In the case of an <code>ArithmeticException</code> (if the divisor is 0), the exception will be thrown by&nbsp;<code>RequestReplyHelper.call</code>. </p>
+<p>In the case of an <code>ArithmeticException</code> (if the divisor is 0), the exception will be thrown by&nbsp;<code>RequestReplyHelper.call</code>.</p>
 
 <p>One of the nicest things about the <code>RequestReplyHelper</code> class, is that the code calling <code>call</code> does not have to be an actor. It can be called by a regular thread (or fiber). But if you examine the code of the <code>reply</code> method, you’ll see that it simply sends a response message to the request’s sender, which is an actor. This is achieved by the <code>call</code> method creating a temporary virtual actor, that will receive the reply&nbsp;message.</p>
 
@@ -823,7 +887,7 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <p>When a behavior actor is spawned, its <code>spawn</code> (or <code>spawnThread</code>) method returns its “interface” (which is also an&nbsp;<code>ActorRef</code>).</p>
 
-<p class="alert alert-info"><strong>Note:</strong> Behavior actors usually have different constructors for convenience. Those that do not take an explicit <code>MailboxConfig</code> parameter, use the default configuration of <em>an unbounded mailbox</em>. </p>
+<p class="alert alert-info"><strong>Note:</strong> Behavior actors usually have different constructors for convenience. Those that do not take an explicit <code>MailboxConfig</code> parameter, use the default configuration of <em>an unbounded mailbox</em>.</p>
 
 <h4 id="server">Server</h4>
 
@@ -833,7 +897,7 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <ul>
   <li>init</li>
-  <li>terminate </li>
+  <li>terminate</li>
   <li>handleCall</li>
   <li>handleCast</li>
   <li>handleInfo</li>
@@ -857,11 +921,11 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 </span></code></pre></div>
 <p>We can then spawn the following&nbsp;actor:</p>
 
-<div class="highlight"><pre><code><span id="line-1"><span class="n">Server</span> <span class="n">a</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ProxyServerActor</span><span class="o">(</span><span class="kc">false</span><span class="o">,</span> <span class="k">new</span> <span class="n">A</span><span class="o">()</span> <span class="o">{</span>
+<div class="highlight"><pre><code><span id="line-1"><span class="n">Server</span> <span class="n">a</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">ProxyServerActor</span><span class="o">(</span><span class="kc">false</span><span class="o">,</span> <span class="k">new</span> <span class="nf">A</span><span class="o">()</span> <span class="o">{</span>
 </span><span id="line-2">        <span class="kd">public</span> <span class="kt">int</span> <span class="nf">foo</span><span class="o">(</span><span class="n">String</span> <span class="n">str</span><span class="o">,</span> <span class="kt">int</span> <span class="n">x</span><span class="o">)</span> <span class="o">{</span>
 </span><span id="line-3">            <span class="k">return</span> <span class="n">str</span><span class="o">.</span><span class="na">length</span><span class="o">()</span> <span class="o">+</span> <span class="n">x</span><span class="o">;</span>
 </span><span id="line-4">        <span class="o">}</span>
-</span><span id="line-5">        
+</span><span id="line-5">
 </span><span id="line-6">        <span class="kd">public</span> <span class="kt">void</span> <span class="nf">bar</span><span class="o">(</span><span class="kt">int</span> <span class="n">x</span><span class="o">)</span> <span class="o">{</span>
 </span><span id="line-7">            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;x = &quot;</span> <span class="o">+</span> <span class="n">x</span><span class="o">);</span>
 </span><span id="line-8">        <span class="o">}</span>
@@ -895,20 +959,20 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <p>The last behavior actor, the <em>supervisor</em> deserves a chapter of its own, as it’s at the core of the actor model’s error handling&nbsp;philosophy.</p>
 
-<p>Actors provide fault isolation. When an exception occurs in an actor it can only (directly) take down that actor. Actors also provide fault detection and identification. As we’ve seen, other actors can be notified of an actor’s deat, as well as its cause, via watches and&nbsp;links.</p>
+<p>Actors provide fault isolation. When an exception occurs in an actor it can only (directly) take down that actor. Actors also provide fault detection and identification. As we’ve seen, other actors can be notified of an actor’s death, as well as its cause, via watches and&nbsp;links.</p>
 
 <p>Like other behaviors, the <em>supervisor</em> is a behavior that codifies and standardizes good actor practices; in this case: fault handling. As its name implies, a supervisor is an actor that supervises one or more other actors and watches them to detect their death. When a supervised (or <em>child</em>) actor dies, the supervisor can take several pre-configured actions such as restarting the dead actor or killing and restarting all children. The supervisor might also choose to kill itself and <em>escalate</em> the problem, possibly to its own&nbsp;supervisor.</p>
 
-<p>Actors performing business logic, “worker actors”, are supervised by a supervisor actor that detects when they die and takes one of several pre-configured actions. Supervisors may, in turn, be supervised by other supervisors, thus forming a <em>supervision hierarchy</em> that compartmentalizes failure and&nbsp;recovery. </p>
+<p>Actors performing business logic, “worker actors”, are supervised by a supervisor actor that detects when they die and takes one of several pre-configured actions. Supervisors may, in turn, be supervised by other supervisors, thus forming a <em>supervision hierarchy</em> that compartmentalizes failure and&nbsp;recovery.</p>
 
-<p>The basic philosophy behind supervisor-based fault handling was named “let it crash” by Erlang’s designer, Joe Armstrong. The idea is that instead of trying to fix the program state after every expected exception, we simply let an actor crash when it encounters an unexcpected condition and “reboot”&nbsp;it.</p>
+<p>The basic philosophy behind supervisor-based fault handling was named “let it crash” by Erlang’s designer, Joe Armstrong. The idea is that instead of trying to fix the program state after every expected exception, we simply let an actor crash when it encounters an unexpected condition and “reboot”&nbsp;it.</p>
 
-<p>A supervisors works as follows: it has a number of <em>children</em>, worker actors or other supervisors that are registered to be supervised wither at the supervisor’s construction time or at a later time. Each child has a mode (represented by the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/Supervisor.ChildMode.html"><code>Supervisor.ChildMode</code></a>&nbsp;class): 
-<code>PERMANENT</code>, <code>TRANSIENT</code> or <code>TEMPORARY</code> that determines whether its death will trigger the supervisor’s <em>recovery event</em>. When the recovery event is triggered, the supervisor takes action specified by its <em>restart strategy</em> - represented by the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/SupervisorActor.RestartStrategy.html"><code>SupervisorActor.RestartStrategy</code></a> class - or it will give up and fail, depending on predefined failure&nbsp;modes. </p>
+<p>A supervisors works as follows: it has a number of <em>children</em>, worker actors or other supervisors that are registered to be supervised wither at the supervisor’s construction time or at a later time. Each child has a mode (represented by the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/Supervisor.ChildMode.html"><code>Supervisor.ChildMode</code></a>&nbsp;class):
+<code>PERMANENT</code>, <code>TRANSIENT</code> or <code>TEMPORARY</code> that determines whether its death will trigger the supervisor’s <em>recovery event</em>. When the recovery event is triggered, the supervisor takes action specified by its <em>restart strategy</em> - represented by the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/SupervisorActor.RestartStrategy.html"><code>SupervisorActor.RestartStrategy</code></a> class - or it will give up and fail, depending on predefined failure&nbsp;modes.</p>
 
 <p>When a child actor in the <code>PERMANENT</code> mode dies, it will always trigger its supervisor’s recovery event. When a child in the <code>TRANSIENT</code> mode dies, it will trigger a recovery event only if it has died as a result of an exception, but not if it has simply finished its operation. A <code>TEMPORARY</code> child never triggers it supervisor’s recovery&nbsp;event.</p>
 
-<p>A supervisor’s <em>restart strategy</em> determines what it does during a <em>recovery event</em>: A strategy of <code>ESCALATE</code> measns that the supervisor will shut down (“kill”) all its surviving children and then die; a <code>ONE_FOR_ONE</code> strategy will restart the dead child; an <code>ALL_FOR_ONE</code> strategy will shut down all children and then restart them all; a <code>REST_FOR_ONE</code> strategy will shut down and restart all those children added to the suervisor after the dead&nbsp;child.</p>
+<p>A supervisor’s <em>restart strategy</em> determines what it does during a <em>recovery event</em>: A strategy of <code>ESCALATE</code> means that the supervisor will shut down (“kill”) all its surviving children and then die; a <code>ONE_FOR_ONE</code> strategy will restart the dead child; an <code>ALL_FOR_ONE</code> strategy will shut down all children and then restart them all; a <code>REST_FOR_ONE</code> strategy will shut down and restart all those children added to the supervisor after the dead&nbsp;child.</p>
 
 <p>Children can be added to the supervisor actor either at construction time or later, with <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/Supervisor.html"><code>Supervisor</code></a>’s <code>addChild</code> method. A child is added by passing a <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/Supervisor.ChildSpec.html"><code>ChildSpec</code></a> to the supervisor. The <code>ChildSpec</code> contains the means of how to start the actor, usually in the form of an <a href="/quasar/javadoc/co/paralleluniverse/actors/actors/ActorSpec.html"><code>ActorSpec</code></a> (see the <a href="#actor-restarts">next section</a>), or as an already constructed actor; the childs mode; and how many times an actor is allowed to be restarted in a given amount of time. If the actor is restarted too many times within the specified duration, the supervisor gives up and terminates (along with all its children) causing an&nbsp;escalation.</p>
 
@@ -926,7 +990,7 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <h4 id="creating-and-loading-code-modules">Creating and Loading Code&nbsp;Modules</h4>
 
-<p>To create an upgraded version of an actor class or several of them, package the upgraded classes, along with any other accompanying classes into a jar file. When the jar is loaded, as we’ll see below, those classes that are marked as upgrades will replace their current versions. Only classes representing actor implementation (or actor behavior implementation) can be upgraded directly. Other classes might be upgraded as well if they store actor state as we’ll see in the next section. Actor (and behavior) upgrades must be explicitely or implicitely specified. To explicitely specify an upgrade, annotate the class with the <a href="/quasar/javadoc/co/paralleluniverse/actors/actors/Upgrade.html"><code>@Upgrade</code></a> annotation, or include its fully qualified name in a space-separated list as the value of the <code>"Upgrade-Classes"</code> attribute in the jar’s manifest. Alternatively, if the <code>"Upgrade-Classes"</code> attribute has the value <code>*</code>, all classes in the jar extending an actor or behavior class (or implementing a behavior interface like <code>ServerHandler</code>) will be automatically&nbsp;upgraded.</p>
+<p>To create an upgraded version of an actor class or several of them, package the upgraded classes, along with any other accompanying classes into a jar file. When the jar is loaded, as we’ll see below, those classes that are marked as upgrades will replace their current versions. Only classes representing actor implementation (or actor behavior implementation) can be upgraded directly. Other classes might be upgraded as well if they store actor state as we’ll see in the next section. Actor (and behavior) upgrades must be explicitly or implicitly specified. To explicitly specify an upgrade, annotate the class with the <a href="/quasar/javadoc/co/paralleluniverse/actors/actors/Upgrade.html"><code>@Upgrade</code></a> annotation, or include its fully qualified name in a space-separated list as the value of the <code>"Upgrade-Classes"</code> attribute in the jar’s manifest. Alternatively, if the <code>"Upgrade-Classes"</code> attribute has the value <code>*</code>, all classes in the jar extending an actor or behavior class (or implementing a behavior interface like <code>ServerHandler</code>) will be automatically&nbsp;upgraded.</p>
 
 <p>Once the jar is created, there are two ways to load it into the program. The first involves calling the <code>reloadModule</code> operation of the <code>"co.paralleluniverse:type=ActorLoader"</code> MBean, passing a <span class="caps">URL</span> for the jar; this can be done via any <span class="caps">JMX</span> console, such as Visual<span class="caps">VM.</span> The <code>unloadModule</code> operation can be used to unload the jar and revert actors to their previous&nbsp;implementation.</p>
 
@@ -936,13 +1000,13 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <h4 id="state-upgrade">State&nbsp;Upgrade</h4>
 
-<p>When an actor is upgraded (which might require an explicit call, as we’ll see in the next section), a new instance of the class’s new version will be created, and all of the actor’s state will be transferred to the new&nbsp;instance. </p>
+<p>When an actor is upgraded (which might require an explicit call, as we’ll see in the next section), a new instance of the class’s new version will be created, and all of the actor’s state will be transferred to the new&nbsp;instance.</p>
 
 <p>Actor state can be stored directly in primitive fields of the actor class, or in object fields that may, in turn, contain primitives or yet other objects. When an upgraded actor class is loaded, a new instance is created for each upgraded actor, and the old actor state is copied to it. Fields of the same name and type are copied as is. Referece (object) fields whose classes have upgraded versions in the loaded jar will be recursively replicated in the same way (fields will be copied by name). Whenever a new instance is created, any method marked with the <a href="/quasar/javadoc/co/paralleluniverse/actors/actors/OnUpgrade.html"><code>@OnUpgrade</code></a> annotation will be called. This will happen both for the actor class, as well as for any class holding actor state (i.e. found somewhere in the object graph starting at the actor) that undergoes an upgrade. An upgraded class can have more or fewer fields than its previous versions. Dropped fields will simply not be copied to the new version; newly added fields can be initialized in <code>@OnUpgrade</code>&nbsp;methods.</p>
 
 <h4 id="swapping-plain-actors">Swapping Plain&nbsp;Actors</h4>
 
-<p>Plain actor code is not swapped automatically – an actor must explicitely support swapping; therefore plain actors must be origninally built with a possible upgrade in mind. As an actor runs, when it reaches a point where swapping in a new version makes sense (depending on your application logic, but often right before receiving a new message), it must call the <a href="/quasar/javadoc/co/paralleluniverse/actors/actors/Actor.html#checkCodeSwap()"><code>checkCodeSwap</code></a> method of the <code>Actor</code> class. If a new version of the actor class has been loaded, its <code>doRun</code> method will begin anew, after actor state has been copied. For that reason, initializtion code found at the beginning of <code>doRun</code> must take into account the fact that it may be run when some or all actor state already&nbsp;initialized.</p>
+<p>Plain actor code is not swapped automatically – an actor must explicitly support swapping; therefore plain actors must be originally built with a possible upgrade in mind. As an actor runs, when it reaches a point where swapping in a new version makes sense (depending on your application logic, but often right before receiving a new message), it must call the <a href="/quasar/javadoc/co/paralleluniverse/actors/actors/Actor.html#checkCodeSwap()"><code>checkCodeSwap</code></a> method of the <code>Actor</code> class. If a new version of the actor class has been loaded, its <code>doRun</code> method will begin anew, after actor state has been copied. For that reason, initialization code found at the beginning of <code>doRun</code> must take into account the fact that it may be run when some or all actor state already&nbsp;initialized.</p>
 
 <h4 id="swapping-behaviors">Swapping&nbsp;Behaviors</h4>
 
@@ -958,7 +1022,7 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <p>Records provide similar functionality to plain Java objects with public fields, but, unlike plain objects, they allow us to inject cross-cutting concerns on field-get and field-set operations, like restricting access to specific strands, or making sure that state is mutated (or read) only inside&nbsp;transactions.</p>
 
-<p>Just as objects are instances of a classe, so too are records instances of a <em>record type</em>, represented by the <a href="/quasar/javadoc/co/paralleluniverse/data/record/RecordType.html"><code>RecordType</code></a> class. A new record type must be declared as a static member of a class. The class must only include the definition of a single record type, and this class is called the type’s <em>identifier class</em>, because it is used only to uniquely identify the record type (only its name is used&nbsp;internally).</p>
+<p>Just as objects are instances of a classes, so too are records instances of a <em>record type</em>, represented by the <a href="/quasar/javadoc/co/paralleluniverse/data/record/RecordType.html"><code>RecordType</code></a> class. A new record type must be declared as a static member of a class. The class must only include the definition of a single record type, and this class is called the type’s <em>identifier class</em>, because it is used only to uniquely identify the record type (only its name is used&nbsp;internally).</p>
 
 <p>Here’s an example record type&nbsp;definition:</p>
 
@@ -966,9 +1030,9 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 </span><span id="line-2">  <span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">RecordType</span><span class="o">&lt;</span><span class="n">A</span><span class="o">&gt;</span> <span class="n">aType</span> <span class="o">=</span> <span class="n">RecordType</span><span class="o">.</span><span class="na">newType</span><span class="o">(</span><span class="n">A</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
 </span><span id="line-3">  <span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">IntField</span><span class="o">&lt;</span><span class="n">A</span><span class="o">&gt;</span> <span class="n">$id</span> <span class="o">=</span> <span class="n">stateType</span><span class="o">.</span><span class="na">intField</span><span class="o">(</span><span class="s">&quot;id&quot;</span><span class="o">);</span>
 </span><span id="line-4">  <span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">DoubleField</span><span class="o">&lt;</span><span class="n">A</span><span class="o">&gt;</span> <span class="n">$foo</span> <span class="o">=</span> <span class="n">stateType</span><span class="o">.</span><span class="na">doubleField</span><span class="o">(</span><span class="s">&quot;id&quot;</span><span class="o">,</span> <span class="n">Field</span><span class="o">.</span><span class="na">TRANSIENT</span><span class="o">);</span>
-</span><span id="line-5">  <span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">ObjectField</span><span class="o">&lt;</span><span class="n">A</span><span class="o">,</span> <span class="n">String</span><span class="o">&gt;</span> <span class="n">$name</span> <span class="o">=</span> 
+</span><span id="line-5">  <span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">ObjectField</span><span class="o">&lt;</span><span class="n">A</span><span class="o">,</span> <span class="n">String</span><span class="o">&gt;</span> <span class="n">$name</span> <span class="o">=</span>
 </span><span id="line-6">        <span class="n">stateType</span><span class="o">.</span><span class="na">objectField</span><span class="o">(</span><span class="s">&quot;name&quot;</span><span class="o">,</span> <span class="n">String</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
-</span><span id="line-7">  <span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">ObjectField</span><span class="o">&lt;</span><span class="n">A</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;&gt;</span> <span class="n">$emails</span> <span class="o">=</span> 
+</span><span id="line-7">  <span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">ObjectField</span><span class="o">&lt;</span><span class="n">A</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;&gt;</span> <span class="n">$emails</span> <span class="o">=</span>
 </span><span id="line-8">        <span class="n">stateType</span><span class="o">.</span><span class="na">objectField</span><span class="o">(</span><span class="s">&quot;emails&quot;</span><span class="o">,</span> <span class="k">new</span> <span class="n">TypeToken</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;()</span> <span class="o">{});</span>
 </span><span id="line-9"><span class="o">}</span>
 </span></code></pre></div>
@@ -980,13 +1044,13 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <p>So, instead of writing <code>obj.getX()</code>, or <code>obj.x</code> we write <code>obj.get($x)</code>. What does this get us other than re-inventing what is a basic Java functionality, minus the some type safety? Like actors, records give up some type safety (we preserve the type of the <code>x</code> field, but the compiler can’t tell us whether obj even has an <code>x</code> field; similarly, if we send message <code>m</code> to actor <code>a</code>, the compiler can’t know whether <code>a</code> supports an <code>m</code> operation), they do so at well-defined interface points between separate software components. What we gain is loose coupling. For example, among other things, we gain the ability to swap the implementation of the record or actor at runtime for maintenance (hot&nbsp;code-swapping).</p>
 
-<p>We gain other things by limiting component interaction to the narrow interfaces of actors and records, and that is the ability to insert cross-cutting concerns. For example, what happens if a method that consumes a resource is called too often? We need to explicitely insert load-handling code into the method. But if we communicate with the component through an actor interface, we can implement a general policy of handling too many messages that are thrown at any actor. Similarly with records. Parallel Universe’s database, SpaceBase, uses records to restrict read and writes of shared state to well-defined transactions. Attempts to read or write state outside a transaction will throw a runtime&nbsp;exception.</p>
+<p>We gain other things by limiting component interaction to the narrow interfaces of actors and records, and that is the ability to insert cross-cutting concerns. For example, what happens if a method that consumes a resource is called too often? We need to explicitly insert load-handling code into the method. But if we communicate with the component through an actor interface, we can implement a general policy of handling too many messages that are thrown at any actor. Similarly with records. Parallel Universe’s database, SpaceBase, uses records to restrict read and writes of shared state to well-defined transactions. Attempts to read or write state outside a transaction will throw a runtime&nbsp;exception.</p>
 
 <p>Because records are intended to control mutability, an <code>ObjectField</code> should never reference a mutable object. <code>RecordType</code> will perform a very simple test on an <code>ObjectField</code> type and output a warning to the console if the class appears mutable. Conclusively determining whether a class is mutable or not is extremely difficult, so the test is a very simple one: it will warn if the class has public non-static, non-final fields, or if it has public methods whose name begins with&nbsp;“set”.</p>
 
 <h2 id="clustering">Clustering</h2>
 
-<p>Quasar is able to run on a cluster, thereby letting actors and channels communicate across machines. The Quasar cluster runs on top of <a href="http://docs.paralleluniverse.co/galaxy/">Galaxy</a>, Parallel Universe’s in-memory data&nbsp;grid. </p>
+<p>Quasar is able to run on a cluster, thereby letting actors and channels communicate across machines. The Quasar cluster runs on top of <a href="http://docs.paralleluniverse.co/galaxy/">Galaxy</a>, Parallel Universe’s in-memory data&nbsp;grid.</p>
 
 <p>In this version, clustering is pretty rudimentary, but essential features should work: actors can be made discoverable on the network, messages can be passed among actors on different nodes, and an actor on a failing node will behave as expected of a dying actor with respect to exit messages sent to other, remote, <em>watching</em> it or <em>linked</em> to&nbsp;it.</p>
 
@@ -996,13 +1060,19 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 
 <p>Then, to make an actor discoverable cluster-wide, all you need to do is register it with the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#register()"><code>register</code></a> method of the <code>Actor</code>&nbsp;class.</p>
 
-<p>That’s it. The actor is now known throughout the cluster, and can be accessed by calling <a href="/quasar/javadoc/co/paralleluniverse/actors/ActorRegistry.html#getActor(java.lang.String)"><code>ActorRegistry.getActor</code></a> on any&nbsp;node. </p>
+<p>That’s it. The actor is now known throughout the cluster, and can be accessed by calling <a href="/quasar/javadoc/co/paralleluniverse/actors/ActorRegistry.html#getActor(java.lang.String)"><code>ActorRegistry.getActor</code></a> on any&nbsp;node.</p>
 
 <p>An actor doesn’t have to be registered in order to be reachable on the network. Registering it simply makes it <em>discoverable</em>. If we pass an <code>ActorRef</code> of local actor in a message to a remote actor, the remote actor will be able to send messages to the local actor as&nbsp;well.</p>
 
 <h3 id="cluster-configuration">Cluster&nbsp;Configuration</h3>
 
-<p>For instructions on how to configure the Galaxy cluster, please refere to Galaxy’s <a href="http://docs.paralleluniverse.co/galaxy/start/getting-started.html">getting started guide</a>.</p>
+<p>For instructions on how to configure the Galaxy cluster, please refer to Galaxy’s <a href="http://docs.paralleluniverse.co/galaxy/start/getting-started.html">getting started guide</a>.</p>
+
+<h3 id="actor-migration">Actor&nbsp;Migration</h3>
+
+<p>Running actors can migrate from one cluster node to another, while preserving their state. Migration happens in two steps. First an actor <em>migrates</em>, which suspends it and makes its internal state available to the cluster, and then it is <em>hired</em> by another cluster node an&nbsp;resumed.</p>
+
+<p>Actors that support migration, must implement the (empty) marker interface <a href="/quasar/javadoc/co/paralleluniverse/actors/MigratingActor.html"><code>MigratingActor</code></a>. Then, in order to migrate, an actor must call one of two methods: <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#migrateAndRestart()"><code>migrateAndRestart</code></a> or <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#migrate()"><code>migrate</code></a>. <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#migrateAndRestart()"><code>migrateAndRestart</code></a> suspends the actor in such a way that when it is later hired, it will be restarted (i.e., its <code>doRun</code> method will be called again and run from the top), but the current value of the actor’s fields will be preserved, while <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#migrate()"><code>migrate</code></a> suspends the fiber the actor is running in (and is therefore available only for actors running in fibers), so that when the actor is hired, it will continue execution from the point the <code>migrate</code> method was called. The <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#hire(co.paralleluniverse.actors.ActorRef)"><code>hire</code> method</a> hires and resumes the&nbsp;actor.</p>
 
 <h2 id="examples">Examples</h2>
 
@@ -1023,7 +1093,7 @@ will remain there and be skipped, until it is selcted by a subsequent call to <c
 <h3 id="distributed-examples">Distributed&nbsp;Examples</h3>
 
 <p>There are a few examples of distributed actors in the <a href="https://github.com/puniverse/quasar/tree/master/quasar-galaxy/src/main/java/co/paralleluniverse/galaxy/example">example package</a>.
-You can run them after cloning the&nbsp;repository. </p>
+You can run them after cloning the&nbsp;repository.</p>
 
 <p>In order to run the ping pong example, start the Pong actor&nbsp;by:</p>
 
@@ -1033,12 +1103,11 @@ You can run them after cloning the&nbsp;repository. </p>
 
 <pre><code>./gradlew :quasar-galaxy:run -PmainClass=co.paralleluniverse.galaxy.example.pingpong.Ping
 </code></pre>
-<p>To run the actors on different computers, change the following lines in the build.gradle file to the apropriate network&nbsp;configuration:</p>
+<p>To run the actors on different computers, change the following lines in the build.gradle file to the appropriate network&nbsp;configuration:</p>
 
 <div class="highlight"><pre><code><span id="line-1"><span class="n">systemProperty</span> <span class="s2">&quot;jgroups.bind_addr&quot;</span><span class="o">,</span> <span class="s2">&quot;127.0.0.1&quot;</span>
 </span><span id="line-2"><span class="n">systemProperty</span> <span class="s2">&quot;galaxy.multicast.address&quot;</span><span class="o">,</span> <span class="s2">&quot;225.0.0.1&quot;</span>
 </span></code></pre></div>
-
 					</div>
 				</div><!--main-->
 			</div><!--docs-cont-->
