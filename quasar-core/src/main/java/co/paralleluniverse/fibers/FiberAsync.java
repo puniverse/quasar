@@ -37,7 +37,7 @@ import java.util.concurrent.TimeoutException;
  * We then define the following subclass:
  *
  * ```java
- * class FooAsync extends FiberAsync<String, Void, FooException> implements FooCompletion {
+ * class FooAsync extends FiberAsync<String, FooException> implements FooCompletion {
  *     {@literal @}Override
  *     public void success(String result) {
  *         asyncCompleted(result);
@@ -55,7 +55,7 @@ import java.util.concurrent.TimeoutException;
  * ```java
  * String op() {
  *     return new FooAsync() {
- *         protected Void requestAsync() {
+ *         protected void requestAsync() {
  *             Foo.asyncOp(this);
  *         }
  *     }.run();
@@ -63,7 +63,6 @@ import java.util.concurrent.TimeoutException;
  * ```
  *
  * @param <V> The value returned by the async request
- * @param <A> The type of the (optional) attachment object associated with this `FiberAsyc`.
  * @param <E> An exception class that could be thrown by the async request
  *
  * @author pron
