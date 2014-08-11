@@ -293,7 +293,7 @@ interface FooCompletion {
 We then define the following subclass of `FiberAsync`:
 
 ~~~ java
-class FooAsync extends FiberAsync<String, Void, FooException> implements FooCompletion {
+class FooAsync extends FiberAsync<String, FooException> implements FooCompletion {
   @Override
   public void success(String result) {
     asyncCompleted(result);
@@ -311,7 +311,7 @@ Then, to transform the operation to a fiber-blocking one, we can define:
 ~~~ java
 String op() {
   new FooAsync() {
-    protected Void requestAsync() {
+    protected void requestAsync() {
        Foo.asyncOp(this);
     }
   }.run();
