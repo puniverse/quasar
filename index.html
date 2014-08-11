@@ -403,7 +403,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 </span></code></pre></div>
 <p>We then define the following subclass of&nbsp;<code>FiberAsync</code>:</p>
 
-<div class="highlight"><pre><code><span id="line-1"><span class="kd">class</span> <span class="nc">FooAsync</span> <span class="kd">extends</span> <span class="n">FiberAsync</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">Void</span><span class="o">,</span> <span class="n">FooException</span><span class="o">&gt;</span> <span class="kd">implements</span> <span class="n">FooCompletion</span> <span class="o">{</span>
+<div class="highlight"><pre><code><span id="line-1"><span class="kd">class</span> <span class="nc">FooAsync</span> <span class="kd">extends</span> <span class="n">FiberAsync</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">FooException</span><span class="o">&gt;</span> <span class="kd">implements</span> <span class="n">FooCompletion</span> <span class="o">{</span>
 </span><span id="line-2">  <span class="nd">@Override</span>
 </span><span id="line-3">  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">success</span><span class="o">(</span><span class="n">String</span> <span class="n">result</span><span class="o">)</span> <span class="o">{</span>
 </span><span id="line-4">    <span class="n">asyncCompleted</span><span class="o">(</span><span class="n">result</span><span class="o">);</span>
@@ -419,7 +419,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <div class="highlight"><pre><code><span id="line-1"><span class="n">String</span> <span class="nf">op</span><span class="o">()</span> <span class="o">{</span>
 </span><span id="line-2">  <span class="k">new</span> <span class="nf">FooAsync</span><span class="o">()</span> <span class="o">{</span>
-</span><span id="line-3">    <span class="kd">protected</span> <span class="n">Void</span> <span class="nf">requestAsync</span><span class="o">()</span> <span class="o">{</span>
+</span><span id="line-3">    <span class="kd">protected</span> <span class="kt">void</span> <span class="nf">requestAsync</span><span class="o">()</span> <span class="o">{</span>
 </span><span id="line-4">       <span class="n">Foo</span><span class="o">.</span><span class="na">asyncOp</span><span class="o">(</span><span class="k">this</span><span class="o">);</span>
 </span><span id="line-5">    <span class="o">}</span>
 </span><span id="line-6">  <span class="o">}.</span><span class="na">run</span><span class="o">();</span>
