@@ -74,6 +74,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.verifyInstrumentation", "false"));
     private static final ClassContext classContext = verifyInstrumentation ? new ClassContext() : null;
     private static final boolean traceInterrupt = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.traceInterrupt", "false"));
+    private static final boolean disableAgentWarning = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.disableAgentWarning", "false"));
     public static final int DEFAULT_STACK_SIZE = 32;
     private static final Object SERIALIZER_BLOCKER = new Object();
     private static final boolean MAINTAIN_ACCESS_CONTROL_CONTEXT = (System.getSecurityManager() != null);
@@ -87,7 +88,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             System.err.println("QUASAR WARNING: Debug mode enabled. This may harm performance.");
         if (Debug.isAssertionsEnabled())
             System.err.println("QUASAR WARNING: Assertions enabled. This may harm performance.");
-        if (!SuspendableHelper.isJavaAgentActive())
+        if (!SuspendableHelper.isJavaAgentActive() && !disableAgentWarning)
             System.err.println("QUASAR WARNING: Quasar Java Agent isn't running. If you're using another instrumentation method you can ignore this message; "
                     + "otherwise, please refer to the Getting Started section in the Quasar documentation.");
         assert printVerifyInstrumentationWarning();
