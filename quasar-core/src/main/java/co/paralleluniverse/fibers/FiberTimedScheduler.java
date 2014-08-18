@@ -431,14 +431,15 @@ public class FiberTimedScheduler {
         for (Fiber f : fs) {
             Thread t = f.getRunningThread();
             StackTraceElement[] stackTrace = f.getStackTrace();
-            
-            for (StackTraceElement ste : stackTrace) { // don't report on classloading
-                if ("defineClass".equals(ste.getMethodName()) && "java.lang.ClassLoader".equals(ste.getClassName()))
-                    continue loop;
-                if ("loadClass".equals(ste.getMethodName()) && "java.lang.ClassLoader".equals(ste.getClassName()))
-                    continue loop;
-                if ("forName".equals(ste.getMethodName()) && "java.lang.Class".equals(ste.getClassName()))
-                    continue loop;
+            if (stackTrace != null) {
+                for (StackTraceElement ste : stackTrace) { // don't report on classloading
+                    if ("defineClass".equals(ste.getMethodName()) && "java.lang.ClassLoader".equals(ste.getClassName()))
+                        continue loop;
+                    if ("loadClass".equals(ste.getMethodName()) && "java.lang.ClassLoader".equals(ste.getClassName()))
+                        continue loop;
+                    if ("forName".equals(ste.getMethodName()) && "java.lang.Class".equals(ste.getClassName()))
+                        continue loop;
+                }
             }
 
             if (t == null || t.getState() == Thread.State.RUNNABLE)
