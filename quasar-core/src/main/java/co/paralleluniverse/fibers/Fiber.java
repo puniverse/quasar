@@ -403,7 +403,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
     public Fiber(String name, SuspendableCallable<V> target) {
-        this(null, -1, target);
+        this(name, -1, target);
     }
 
     /**
