@@ -16,9 +16,9 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.WorkListEntry;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -59,7 +59,7 @@ public final class QuasarInstrumentor {
         return aot;
     }
 
-    boolean shouldInstrument(String className) {
+    public boolean shouldInstrument(String className) {
         className = className.replace('.', '/');
         if (className.startsWith("co/paralleluniverse/fibers/instrument/") && !Debug.isUnitTest())
             return false;
@@ -81,9 +81,9 @@ public final class QuasarInstrumentor {
         return shouldInstrument(className) ? instrumentClass(className, new ClassReader(data)) : data;
     }
 
-    byte[] instrumentClass(String className, FileInputStream fis) throws IOException {
+    public byte[] instrumentClass(String className, InputStream is) throws IOException {
         className = className.replace('.', '/');
-        return instrumentClass(className, new ClassReader(fis));
+        return instrumentClass(className, new ClassReader(is));
     }
 
     private byte[] instrumentClass(String className, ClassReader r) {
