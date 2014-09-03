@@ -56,7 +56,7 @@ subprojects {
         resolutionStrategy {
             failOnVersionConflict()
 
-            force "com.google.guava:guava:17.0"
+            force "com.google.guava:guava:18.0"
             force "org.slf4j:slf4j-api:1.7.7"
             force "org.apache.logging.log4j:log4j-slf4j-impl:2.0.2"
             force "org.apache.logging.log4j:log4j-api:2.0.2"
@@ -78,7 +78,7 @@ subprojects {
     dependencies {
         compile "com.codahale.metrics:metrics-core:3.0.2" 
         compile "org.apache.ant:ant:1.9.4"
-        compile "com.google.guava:guava:17.0"
+        compile "com.google.guava:guava:18.0"
         testCompile 'junit:junit:4.11'
         testCompile 'org.truth0:truth:0.23'
         testCompile 'org.hamcrest:hamcrest-all:1.3'
@@ -178,7 +178,7 @@ subprojects {
             // stylesheetFile = rootProject.file('./baselib/javadoc.css')
             links = [    
         "http://docs.oracle.com/javase/7/docs/api/",
-        "http://docs.guava-libraries.googlecode.com/git-history/v17.0/javadoc/"
+        "http://docs.guava-libraries.googlecode.com/git-history/v18.0/javadoc/"
             ]
         }
         excludes = [
@@ -312,10 +312,10 @@ project (':quasar-core') {
                 fileset(dir: sourceSets.main.output.classesDir)
             }
             
-//            ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.OldSuspendablesScanner', classpath: "build/classes/main:" + configurations.compile.asPath)
-//            ant.scanSuspendables(outputFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
-//                fileset(dir: sourceSets.main.output.classesDir)
-//            }
+            //            ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.OldSuspendablesScanner', classpath: "build/classes/main:" + configurations.compile.asPath)
+            //            ant.scanSuspendables(outputFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
+            //                fileset(dir: sourceSets.main.output.classesDir)
+            //            }
             //            ant.concat(destfile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers", append: 'true', fixlastline: 'yes') {
             //                fileset(file: "${sourceSets.main.resources.srcDirs.iterator().next()}/META-INF/suspendable-supers")
             //            }
@@ -450,7 +450,7 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
         // stylesheetFile = rootProject.file('./baselib/javadoc.css')
         links = [    
         "http://docs.oracle.com/javase/7/docs/api/",
-        "http://docs.guava-libraries.googlecode.com/git-history/v17.0/javadoc/"
+        "http://docs.guava-libraries.googlecode.com/git-history/v18.0/javadoc/"
         ]
     }
     excludes = [

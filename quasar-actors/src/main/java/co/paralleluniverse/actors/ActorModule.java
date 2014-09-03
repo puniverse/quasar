@@ -19,7 +19,6 @@ import co.paralleluniverse.common.reflection.ClassLoaderUtil;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToResource;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.isClassFile;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.io.ByteStreams;
 import com.google.common.io.Resources;
 import java.io.File;
 import java.io.IOException;
@@ -203,7 +202,7 @@ class ActorModule extends URLClassLoader {
 
     private static boolean equalContent(URL url1, URL url2) {
         try {
-            return ByteStreams.equal(Resources.asByteSource(url1), Resources.asByteSource(url2));
+            return Resources.asByteSource(url1).contentEquals(Resources.asByteSource(url2));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
