@@ -156,6 +156,11 @@ subprojects {
         }
     }
 
+//    tasks.withType(JavaCompile) {
+//        // options.compilerArgs << "-Xlint:unchecked"
+//        // options.compilerArgs << "-Xlint:deprecation"
+//    }
+    
     tasks.withType(JavaExec) { 
         classpath += sourceSets.test.runtimeClasspath   
     }
