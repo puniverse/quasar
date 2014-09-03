@@ -25,7 +25,7 @@ import org.objectweb.asm.Type;
  */
 public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
     private static final String DYNAMIC_GENERATED_RECORD_TYPE = Type.getInternalName(DynamicGeneratedRecord.class);
-    private static ClassValue<MyClassLoader> myClassLoader = new ClassValue<MyClassLoader>() {
+    private static final ClassValue<MyClassLoader> myClassLoader = new ClassValue<MyClassLoader>() {
         @Override
         protected MyClassLoader computeValue(Class<?> type) {
             return new MyClassLoader(type.getClassLoader());
@@ -94,7 +94,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitMethodInsn(INVOKESPECIAL, superName, "<init>", "()V");
+        mv.visitMethodInsn(INVOKESPECIAL, superName, "<init>", "()V", false);
         mv.visitInsn(RETURN);
         mv.visitMaxs(1, 1);
         mv.visitEnd();
@@ -139,7 +139,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
         if (Modifier.isFinal(f.getModifiers())) {
             mv.visitTypeInsn(NEW, "co/paralleluniverse/data/record/ReadOnlyFieldException");
             mv.visitInsn(DUP);
-            mv.visitMethodInsn(INVOKESPECIAL, "co/paralleluniverse/data/record/ReadOnlyFieldException", "<init>", "()V");
+            mv.visitMethodInsn(INVOKESPECIAL, "co/paralleluniverse/data/record/ReadOnlyFieldException", "<init>", "()V", false);
             mv.visitInsn(ATHROW);
         } else {
             mv.visitVarInsn(ALOAD, 1);
@@ -170,7 +170,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 1);
         mv.visitTypeInsn(CHECKCAST, typeName);
-        mv.visitMethodInsn(INVOKEVIRTUAL, typeName, getter.getName(), Type.getMethodDescriptor(getter));
+        mv.visitMethodInsn(INVOKEVIRTUAL, typeName, getter.getName(), Type.getMethodDescriptor(getter), false);
         mv.visitInsn(returnOpcode(field));
         mv.visitEnd();
 
@@ -183,14 +183,14 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
             mv.visitVarInsn(loadOpcode(field), 2);
             if (field instanceof Field.ObjectField)
                 mv.visitTypeInsn(CHECKCAST, fieldTypeName);
-            mv.visitMethodInsn(INVOKEVIRTUAL, typeName, setter.getName(), Type.getMethodDescriptor(setter));
+            mv.visitMethodInsn(INVOKEVIRTUAL, typeName, setter.getName(), Type.getMethodDescriptor(setter), false);
             mv.visitInsn(RETURN);
         } else {
             mv.visitTypeInsn(NEW, Type.getInternalName(ReadOnlyFieldException.class));
             mv.visitInsn(DUP);
             mv.visitLdcInsn(field.name);
             mv.visitVarInsn(ALOAD, 1);
-            mv.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ReadOnlyFieldException.class), "<init>", "(Ljava/lang/String;Ljava/lang/Object;)V");
+            mv.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ReadOnlyFieldException.class), "<init>", "(Ljava/lang/String;Ljava/lang/Object;)V", false);
             mv.visitInsn(ATHROW);
         }
         mv.visitEnd();
@@ -235,7 +235,7 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
         mv.visitVarInsn(ALOAD, 1);
         mv.visitTypeInsn(CHECKCAST, typeName);
         mv.visitVarInsn(ILOAD, 2);
-        mv.visitMethodInsn(INVOKEVIRTUAL, typeName, getter.getName(), Type.getMethodDescriptor(getter));
+        mv.visitMethodInsn(INVOKEVIRTUAL, typeName, getter.getName(), Type.getMethodDescriptor(getter), false);
         mv.visitInsn(returnOpcode(field));
         mv.visitEnd();
 
@@ -248,14 +248,14 @@ public class DynamicGeneratedRecord<R> extends DynamicRecord<R> {
             mv.visitVarInsn(loadOpcode(field), 3);
             if (field instanceof Field.ObjectArrayField)
                 mv.visitTypeInsn(CHECKCAST, fieldComponentTypeName);
-            mv.visitMethodInsn(INVOKEVIRTUAL, typeName, setter.getName(), Type.getMethodDescriptor(setter));
+            mv.visitMethodInsn(INVOKEVIRTUAL, typeName, setter.getName(), Type.getMethodDescriptor(setter), false);
             mv.visitInsn(RETURN);
         } else {
             mv.visitTypeInsn(NEW, Type.getInternalName(ReadOnlyFieldException.class));
             mv.visitInsn(DUP);
             mv.visitLdcInsn(field.name);
             mv.visitVarInsn(ALOAD, 1);
-            mv.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ReadOnlyFieldException.class), "<init>", "(Ljava/lang/String;Ljava/lang/Object;)V");
+            mv.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ReadOnlyFieldException.class), "<init>", "(Ljava/lang/String;Ljava/lang/Object;)V", false);
             mv.visitInsn(ATHROW);
         }
         mv.visitEnd();
