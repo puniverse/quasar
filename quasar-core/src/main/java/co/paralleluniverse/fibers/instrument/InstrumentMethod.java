@@ -53,6 +53,7 @@ import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isInvocationHandlerInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isMethodHandleInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isReflectInvocation;
+import static co.paralleluniverse.fibers.instrument.MethodDatabase.isSyntheticAccess;
 import java.util.List;
 import java.util.Map;
 import org.objectweb.asm.Label;
@@ -137,7 +138,9 @@ class InstrumentMethod {
                         final MethodInsnNode min = (MethodInsnNode) in;
                         int opcode = min.getOpcode();
 
-                        if (isReflectInvocation(min.owner, min.name))
+                        if (isSyntheticAccess(min.owner, min.name))
+                            db.log(LogLevel.DEBUG, "Synthetic accessor method call at instruction %d is assumed suspendable", i);
+                        else if (isReflectInvocation(min.owner, min.name))
                             db.log(LogLevel.DEBUG, "Reflective method call at instruction %d is assumed suspendable", i);
                         else if (isMethodHandleInvocation(min.owner, min.name))
                             db.log(LogLevel.DEBUG, "MethodHandle invocation at instruction %d is assumed suspendable", i);
