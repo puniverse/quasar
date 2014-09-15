@@ -31,7 +31,7 @@ import sun.misc.Unsafe;
 public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
     public static final boolean CAPTURE_UNPARK_STACK = Debug.isDebug() || Boolean.getBoolean("co.paralleluniverse.fibers.captureUnparkStackTrace");
-    //public static final Object EMERGENCY_UNBLOCKER = new Object();
+    public static final Object EMERGENCY_UNBLOCKER = new Object();
     public static final Park PARK = new Park();
     public static final int RUNNABLE = 0;
     public static final int LEASED = 1;
@@ -230,7 +230,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
                     newState = LEASED;
                     break;
                 case PARKED:
-                    if (parkExclusive && blocker != unblocker)
+                    if (parkExclusive & unblocker != blocker & unblocker != EMERGENCY_UNBLOCKER)
                         return;
                     newState = RUNNABLE;
                     break;

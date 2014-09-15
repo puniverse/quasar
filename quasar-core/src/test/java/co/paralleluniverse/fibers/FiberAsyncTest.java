@@ -76,6 +76,23 @@ public class FiberAsyncTest {
 
         }
     };
+    final Service longAsyncService = new Service() {
+        @Override
+        public void registerCallback(final MyCallback callback) {
+            executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Thread.sleep(2000);
+                        callback.call("async result!");
+                    } catch (InterruptedException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                }
+            });
+
+        }
+    };
     final Service badAsyncService = new Service() {
         @Override
         public void registerCallback(final MyCallback callback) {
@@ -202,7 +219,7 @@ public class FiberAsyncTest {
                         protected void requestAsync() {
                             throw new RuntimeException("requestAsync exception!");
                         }
-                        
+
                     }.run();
                     fail();
                 } catch (Exception e) {
@@ -244,6 +261,41 @@ public class FiberAsyncTest {
             }
         }).start();
 
+        fiber.join();
+    }
+
+    @Test
+    public void testInterrupt1() throws Exception {
+        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution {
+                try {
+                    callService(longAsyncService);
+                    fail();
+                } catch (InterruptedException e) {
+                }
+            }
+        }).start();
+
+        fiber.interrupt();
+        fiber.join();
+    }
+
+    @Test
+    public void testInterrupt2() throws Exception {
+        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution {
+                try {
+                    callService(longAsyncService);
+                    fail();
+                } catch (InterruptedException e) {
+                }
+            }
+        }).start();
+
+        Thread.sleep(100);
+        fiber.interrupt();
         fiber.join();
     }
 

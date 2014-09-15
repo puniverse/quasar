@@ -259,6 +259,11 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         }
 
         @Override
+        public void unpark(Object unblocker) {
+            super.unpark(unblocker == FiberTask.EMERGENCY_UNBLOCKER ? ParkableForkJoinTask.EMERGENCY_UNBLOCKER : unblocker);
+        }
+
+        @Override
         @DontInstrument
         public boolean park(Object blocker, boolean exclusive) throws SuspendExecution {
             try {
@@ -334,7 +339,7 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         public void setState(int state) {
             super.setState(state);
         }
-        
+
         @Override
         public boolean tryUnpark(Object unblocker) {
             return super.tryUnpark(unblocker);

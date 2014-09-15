@@ -23,6 +23,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 interface FiberTask<V> extends Future<V> {
+    public static final Object EMERGENCY_UNBLOCKER = new Object();
     public static final int RUNNABLE = 0;
     public static final int LEASED = 1;
     public static final int PARKED = -1;

@@ -1095,7 +1095,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (traceInterrupt)
             interruptStack = new InterruptedException();
         interrupted = true;
-        unpark((Object) null);
+        unpark(FiberTask.EMERGENCY_UNBLOCKER);
     }
 
     @Override

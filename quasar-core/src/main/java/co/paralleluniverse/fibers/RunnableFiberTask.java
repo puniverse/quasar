@@ -218,7 +218,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
                     newState = LEASED;
                     break;
                 case PARKED:
-                    if (parkExclusive && blocker != unblocker)
+                    if (parkExclusive & unblocker != blocker & unblocker != EMERGENCY_UNBLOCKER)
                         return;
                     newState = RUNNABLE;
                     break;
