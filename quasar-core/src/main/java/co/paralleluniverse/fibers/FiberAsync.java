@@ -30,23 +30,23 @@ import java.util.concurrent.TimeoutException;
  *
  * ```java
  * interface FooCompletion {
- * void success(String result);
- * void failure(FooException exception);
+ *     void success(String result);
+ *     void failure(FooException exception);
  * }
  * ```
  * We then define the following subclass:
  *
  * ```java
  * class FooAsync extends FiberAsync<String, FooException> implements FooCompletion {
- * {@literal @}Override
- * public void success(String result) {
- * asyncCompleted(result);
- * }
+ *     {@literal @}Override
+ *     public void success(String result) {
+ *         asyncCompleted(result);
+ *     }
  *
- * {@literal @}Override
- * public void failure(FooException exception) {
- * asyncFailed(exception);
- * }
+ *     {@literal @}Override
+ *     public void failure(FooException exception) {
+ *         asyncFailed(exception);
+ *     }
  * }
  * ```
  *
@@ -54,11 +54,11 @@ import java.util.concurrent.TimeoutException;
  *
  * ```java
  * String op() {
- * return new FooAsync() {
- * protected void requestAsync() {
- * Foo.asyncOp(this);
- * }
- * }.run();
+ *     return new FooAsync() {
+ *         protected void requestAsync() {
+ *             Foo.asyncOp(this);
+ *         }
+ *     }.run();
  * }
  * ```
  *
