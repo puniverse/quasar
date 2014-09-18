@@ -43,6 +43,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class FiberTimedScheduler {
     private static final boolean USE_LOCKFREE_DELAY_QUEUE = Boolean.getBoolean("co.paralleluniverse.fibers.useLockFreeDelayQueue");
+    private static final boolean DETECT_RUNAWAY_FIBERS = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.detectRunawayFibers", "true"));
+
     /**
      * The duration of a single fiber run that is considered a problem
      */
@@ -131,10 +133,12 @@ public class FiberTimedScheduler {
                         run(task);
                     }
 
-                    final long now = System.nanoTime();
-                    if (now - lastRanFindProblemFibers >= MAX_RUN_DURATION >>> 1) {
-                        reportProblemFibers(findProblemFibers(now, MAX_RUN_DURATION));
-                        lastRanFindProblemFibers = now;
+                    if (DETECT_RUNAWAY_FIBERS) {
+                        final long now = System.nanoTime();
+                        if (now - lastRanFindProblemFibers >= MAX_RUN_DURATION >>> 1) {
+                            reportProblemFibers(findProblemFibers(now, MAX_RUN_DURATION));
+                            lastRanFindProblemFibers = now;
+                        }
                     }
                 } catch (InterruptedException e) {
                     if (state != RUNNING) {
