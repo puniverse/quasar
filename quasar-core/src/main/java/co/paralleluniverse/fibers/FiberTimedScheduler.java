@@ -69,6 +69,7 @@ public class FiberTimedScheduler {
     private final FibersMonitor monitor;
     private Map<Thread, FiberInfo> fibersInfo = new IdentityHashMap<Thread, FiberInfo>();
 
+    @SuppressWarnings("CallToThreadStartDuringObjectConstruction")
     public FiberTimedScheduler(FiberScheduler scheduler, ThreadFactory threadFactory, FibersMonitor monitor) {
         this.scheduler = scheduler;
         this.worker = threadFactory.newThread(new Runnable() {
@@ -108,6 +109,7 @@ public class FiberTimedScheduler {
         return t;
     }
 
+    @SuppressWarnings("CallToPrintStackTrace")
     private void work() {
         try {
             int counter = 0;
