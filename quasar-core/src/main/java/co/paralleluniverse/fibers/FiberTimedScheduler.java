@@ -20,6 +20,7 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.concurrent.util.SingleConsumerNonblockingProducerDelayQueue;
 import co.paralleluniverse.strands.Strand;
 import java.util.ArrayList;
@@ -42,8 +43,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class FiberTimedScheduler {
-    private static final boolean USE_LOCKFREE_DELAY_QUEUE = Boolean.getBoolean("co.paralleluniverse.fibers.useLockFreeDelayQueue");
-    private static final boolean DETECT_RUNAWAY_FIBERS = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.detectRunawayFibers", "true"));
+    private static final boolean USE_LOCKFREE_DELAY_QUEUE = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.useLockFreeDelayQueue");
+    private static final boolean DETECT_RUNAWAY_FIBERS = SystemProperties.isNotFalse("co.paralleluniverse.fibers.detectRunawayFibers");
 
     /**
      * The duration of a single fiber run that is considered a problem

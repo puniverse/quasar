@@ -24,9 +24,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author pron
  */
 public class Debug {
-    private static final boolean debugMode = Boolean.getBoolean("co.paralleluniverse.debugMode");
+    private static final boolean debugMode = SystemProperties.isEmptyOrTrue("co.paralleluniverse.debugMode");
     private static final String FLIGHT_RECORDER_DUMP_FILE = System.getProperty("co.paralleluniverse.flightRecorderDumpFile");
-    private static final FlightRecorder flightRecorder = (debugMode && Boolean.getBoolean("co.paralleluniverse.globalFlightRecorder") ? new FlightRecorder("PUNIVERSE-FLIGHT-RECORDER") : null);
+    private static final FlightRecorder flightRecorder = (debugMode && SystemProperties.isEmptyOrTrue("co.paralleluniverse.globalFlightRecorder") ? new FlightRecorder("PUNIVERSE-FLIGHT-RECORDER") : null);
     private static boolean recordStackTraces = false;
     private static final boolean assertionsEnabled;
     private static final boolean unitTest;

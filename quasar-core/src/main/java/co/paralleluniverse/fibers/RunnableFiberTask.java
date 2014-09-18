@@ -15,6 +15,7 @@ package co.paralleluniverse.fibers;
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
+import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.common.util.UtilUnsafe;
 import static co.paralleluniverse.fibers.FiberTask.*;
 import co.paralleluniverse.fibers.instrument.DontInstrument;
@@ -31,7 +32,7 @@ import sun.misc.Unsafe;
  */
 class RunnableFiberTask<V> implements Runnable, FiberTask {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
-    public static final boolean CAPTURE_UNPARK_STACK = Debug.isDebug() || Boolean.getBoolean("co.paralleluniverse.fibers.captureUnparkStackTrace");
+    public static final boolean CAPTURE_UNPARK_STACK = Debug.isDebug() || SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.captureUnparkStackTrace");
     //public static final Object EMERGENCY_UNBLOCKER = new Object();
     //
 //    private final DummyRunnable taskRef = new DummyRunnable(this);

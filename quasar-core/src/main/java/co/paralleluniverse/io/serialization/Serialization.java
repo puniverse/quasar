@@ -12,6 +12,7 @@
  */
 package co.paralleluniverse.io.serialization;
 
+import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.io.serialization.kryo.KryoSerializer;
 import com.esotericsoftware.kryo.Kryo;
 import java.io.IOException;
@@ -23,7 +24,7 @@ import java.io.OutputStream;
  * @author pron
  */
 public final class Serialization {
-    private static final boolean useJDKSerialization = Boolean.getBoolean("co.paralleluniverse.io.useJDKSerialization");
+    private static final boolean useJDKSerialization = SystemProperties.isEmptyOrTrue("co.paralleluniverse.io.useJDKSerialization");
     private static final Serialization instance = useJDKSerialization ? new Serialization(new JDKSerializer()) : null;
     private static final ThreadLocal<Serialization> tlInstance = new ThreadLocal<Serialization>() {
         @Override

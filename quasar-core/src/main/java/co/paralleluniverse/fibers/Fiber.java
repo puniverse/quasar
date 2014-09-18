@@ -18,6 +18,7 @@ import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.Objects;
+import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
@@ -71,14 +72,14 @@ import com.esotericsoftware.kryo.serializers.FieldSerializer;
  */
 public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
     static final boolean USE_VAL_FOR_RESULT = true;
-    private static final boolean verifyInstrumentation = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.verifyInstrumentation", "false"));
+    private static final boolean verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
     private static final ClassContext classContext = verifyInstrumentation ? new ClassContext() : null;
-    private static final boolean traceInterrupt = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.traceInterrupt", "false"));
-    private static final boolean disableAgentWarning = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.disableAgentWarning", "false"));
+    private static final boolean traceInterrupt = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.traceInterrupt");
+    private static final boolean disableAgentWarning = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.disableAgentWarning");
     public static final int DEFAULT_STACK_SIZE = 32;
     private static final Object SERIALIZER_BLOCKER = new Object();
     private static final boolean MAINTAIN_ACCESS_CONTROL_CONTEXT = (System.getSecurityManager() != null);
-//    private static final boolean PREEMPTION = Boolean.parseBoolean(System.getProperty("co.paralleluniverse.fibers.enablePreemption", "false"));
+//    private static final boolean PREEMPTION = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.enablePreemption");
 //    private static final int PREEMPTION_CREDITS = 3000;
     private static final long serialVersionUID = 2783452871536981L;
     protected static final FlightRecorder flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;

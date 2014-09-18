@@ -16,6 +16,7 @@ import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.fibers.Fiber;
@@ -30,7 +31,7 @@ import sun.misc.Unsafe;
  */
 public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
-    public static final boolean CAPTURE_UNPARK_STACK = Debug.isDebug() || Boolean.getBoolean("co.paralleluniverse.fibers.captureUnparkStackTrace");
+    public static final boolean CAPTURE_UNPARK_STACK = Debug.isDebug() || SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.captureUnparkStackTrace");
     public static final Object EMERGENCY_UNBLOCKER = new Object();
     public static final Park PARK = new Park();
     public static final int RUNNABLE = 0;
