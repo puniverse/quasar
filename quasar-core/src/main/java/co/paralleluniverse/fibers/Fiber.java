@@ -107,7 +107,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             System.err.print("Exception in Fiber \"" + s.getName() + "\" ");
             if (e instanceof NullPointerException || e instanceof ClassCastException
                     || Exceptions.unwrap(e) instanceof NullPointerException || Exceptions.unwrap(e) instanceof ClassCastException)
-                System.err.println("If this exception looks strange, perhaps you've forgotten to instrument a blocking method. Run your program with -Dco.paralleluniverse.fibers.verifyInstrumentation=true to catch the culprit!");
+                System.err.println("If this exception looks strange, perhaps you've forgotten to instrument a blocking method. Run your program with -Dco.paralleluniverse.fibers.verifyInstrumentation to catch the culprit!");
             System.err.println(e);
             Strand.printStackTrace(threadToFiberStack(e.getStackTrace()), System.err);
         }
