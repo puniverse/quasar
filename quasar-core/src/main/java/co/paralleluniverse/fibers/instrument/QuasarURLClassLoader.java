@@ -104,7 +104,7 @@ public class QuasarURLClassLoader extends URLClassLoader {
     @Override
     public InputStream getResourceAsStream(String name) {
         InputStream is = super.getResourceAsStream(name);
-        if (name.endsWith(".class")) {
+        if (is != null && name.endsWith(".class")) {
             try {
                 byte[] bytes = ByteStreams.toByteArray(is);
                 byte[] instrumented = instrumentor.instrumentClass(name.substring(0, name.length() - ".class".length()), bytes);

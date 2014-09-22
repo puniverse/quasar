@@ -94,7 +94,7 @@ public final class QuasarURLClassLoaderHelper {
     }
 
     public InputStream instrumentResourceStream(String resourceName, InputStream is) {
-        if (resourceName.endsWith(".class")) {
+        if (is != null && resourceName.endsWith(".class")) {
             try {
                 byte[] bytes = ByteStreams.toByteArray(is);
                 byte[] instrumented = instrumentor.instrumentClass(resourceName.substring(0, resourceName.length() - ".class".length()), bytes);
