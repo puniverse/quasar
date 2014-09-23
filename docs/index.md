@@ -267,6 +267,10 @@ The `run` method in `Fiber`, `SuspendableRunnable` and `SuspendableCallable` dec
 {:.alert .alert-warning}
 **Note**: Other than a few methods in the `Fiber` class that are usually only used internally, whenever you encounter a method that declares to throw `SuspendExecution`, it is safe to call to use by fibers as well as regular threads. If used in a thread, it will never actually throw a `SuspendExecution` exception, so it is best to declare a `catch(SuspendExecution e)` block when called on a regular thread, and just throw an `AssertionError`, as it should never happen.
 
+#### Synchronized Methods/Blocks in Fibers
+
+Because `synchronized` blocks or methods block the kernel threads, by default they are not allowed in fibers. Suspendable methods that are marked `synchronized` or contain `synchronized` blocks will cause Quasar instrumentation to fail. However, Quasar can gracefully handle the occasional blocked thread, so `syncrhonized` methods/blocks can be allowed by passing the `m` argument to the Quasar Java agent, or by setting the `allowMonitors` property on the instrumentation Ant task.
+
 ### Strands
 
 A *strand* (represented by the [`Strand`]({{javadoc}}/strands/Strand.html) class) is an abstraction for both fibers and threads; in short – a strand is either a fiber or a thread. The `Strand` class provides many useful methods. `Strand.currentStrand()` returns the current running strand (be it a fiber or a thread); `Strand.sleep()` suspends the current strand for the given number of milliseconds; `getStackTrace` returns the current stack trace of the strand. To learn more about what operations you can perform on strands, please consult the [Javadoc]({{javadoc}}/strands/Strand.html).
