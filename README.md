@@ -1,5 +1,5 @@
 # *Quasar*<br/>Lightweight threads and actors for the JVM
-[![Build Status](http://img.shields.io/travis/puniverse/quasar.svg?style=flat)](https://travis-ci.org/puniverse/quasar) [![Dependency Status](https://www.versioneye.com/user/projects/52b019baec1375ace70000de/badge.png?style=flat)](https://www.versioneye.com/user/projects/52b019baec1375ace70000de) [![Version](http://img.shields.io/badge/version-0.6.0-blue.svg?style=flat)](https://github.com/puniverse/quasar/releases) [![License](http://img.shields.io/badge/license-EPL-blue.svg?style=flat)](https://www.eclipse.org/legal/epl-v10.html) [![License](http://img.shields.io/badge/license-LGPL-blue.svg?style=flat)](https://www.gnu.org/licenses/lgpl.html)
+[![Build Status](http://img.shields.io/travis/puniverse/quasar.svg?style=flat)](https://travis-ci.org/puniverse/quasar) [![Dependency Status](https://www.versioneye.com/user/projects/52b019baec1375ace70000de/badge.png?style=flat)](https://www.versioneye.com/user/projects/52b019baec1375ace70000de) [![Version](http://img.shields.io/badge/version-0.6.1-blue.svg?style=flat)](https://github.com/puniverse/quasar/releases) [![License](http://img.shields.io/badge/license-EPL-blue.svg?style=flat)](https://www.eclipse.org/legal/epl-v10.html) [![License](http://img.shields.io/badge/license-LGPL-blue.svg?style=flat)](https://www.gnu.org/licenses/lgpl.html)
 
 
 ## Getting started
@@ -10,7 +10,7 @@ In Maven:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-core</artifactId>
-    <version>0.6.0</version>
+    <version>0.6.1</version>
 </dependency>
 ```
 
@@ -20,7 +20,7 @@ or, for JDK8:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-core</artifactId>
-    <version>0.6.0</version>
+    <version>0.6.1</version>
     <classifier>jdk8</classifier>
 </dependency>
 ~~~
@@ -31,7 +31,7 @@ To use actors, add
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-actors</artifactId>
-    <version>0.6.0</version>
+    <version>0.6.1</version>
 </dependency>
 ```
 
@@ -41,7 +41,7 @@ For clustering support add:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-galaxy</artifactId>
-    <version>0.6.0</version>
+    <version>0.6.1</version>
 </dependency>
 ```
 
@@ -75,7 +75,7 @@ When running code that uses Quasar, the instrumentation agent must be run by add
 
 Questions and suggestions are welcome at this [forum/mailing list](https://groups.google.com/forum/?fromgroups#!forum/quasar-pulsar-user).
 
-## License 
+## License
 
 Quasar is free software published under the following license:
 
@@ -85,9 +85,9 @@ Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
 This program and the accompanying materials are dual-licensed under
 either the terms of the Eclipse Public License v1.0 as published by
 the Eclipse Foundation
- 
+
   or (per the licensee's choosing)
- 
+
 under the terms of the GNU Lesser General Public License version 3.0
 as published by the Free Software Foundation.
 ```
