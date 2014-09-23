@@ -260,6 +260,8 @@ A fiber that is stuck in a loop without blocking, or is blocking the thread its 
 
 Note that this condition might happen when classes are encountered for the first time and need to be loaded from disk. This is alright because this happens only sporadically, but you may notice reports about problematic fibers during startup, as this when most class loading usually occurs.
 
+If you wish to turn off runaway fiber detection, set the `co.paralleluniverse.fibers.detectRunawayFibers` system property to `"false"`.
+
 #### Thread Locals
 
 Using `ThreadLocal`s in a fiber works as you'd expect – the values are local to the fiber. An `InheritableThreadLocal` inherits its value from the fiber's parent, i.e. the thread or the fiber that spawned it.
