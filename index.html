@@ -89,6 +89,7 @@
 </ul></li>
 <li>
 <a href="#news" class="cat-link">News</a><ul>
+<li><a href="#september-23-2014">September 23, 2014</a></li>
 <li><a href="#july-23-2014">July 23, 2014</a></li>
 <li><a href="#march-26-2014">March 26, 2014</a></li>
 <li><a href="#january-22-2014">January 22, 2014</a></li>
@@ -174,6 +175,10 @@
 
 <h2 id="news">News</h2>
 
+<h3 id="september-23-2014">September 23,&nbsp;2014</h3>
+
+<p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.6.1"><span class="caps">0.6.1</span></a> has been&nbsp;released.</p>
+
 <h3 id="july-23-2014">July 23,&nbsp;2014</h3>
 
 <p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.6.0"><span class="caps">0.6.0</span></a> has been&nbsp;released.</p>
@@ -213,7 +218,7 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-core<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.6.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.6.1<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <p>or, for&nbsp;<span class="caps">JDK8</span>:</p>
@@ -221,7 +226,7 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-core<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.6.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.6.1<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5">    <span class="nt">&lt;classifier&gt;</span>jdk8<span class="nt">&lt;/classifier&gt;</span>
 </span><span id="line-6"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
@@ -230,7 +235,7 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-actors<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.6.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.6.1<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <p>For clustering support,&nbsp;add:</p>
@@ -238,7 +243,7 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-galaxy<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.6.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.6.1<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <h3 id="instrumentation">Instrumenting Your&nbsp;Code</h3>
@@ -291,7 +296,7 @@
 
 <div class="highlight"><pre><code><span id="line-1"><span class="n">dependencies</span> <span class="o">{</span>
 </span><span id="line-2">    <span class="c1">// ....</span>
-</span><span id="line-3">    <span class="n">quasar</span>  <span class="s2">&quot;co.paralleluniverse:quasar-core:0.6.0&quot;</span>
+</span><span id="line-3">    <span class="n">quasar</span>  <span class="s2">&quot;co.paralleluniverse:quasar-core:0.6.1&quot;</span>
 </span><span id="line-4"><span class="o">}</span>
 </span></code></pre></div>
 <p>Finally, in your <code>run</code> task (or any task of type <code>JavaExec</code> or <code>Test</code>), add the system&nbsp;property:</p>
@@ -370,6 +375,8 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>Note that this condition might happen when classes are encountered for the first time and need to be loaded from disk. This is alright because this happens only sporadically, but you may notice reports about problematic fibers during startup, as this when most class loading usually&nbsp;occurs.</p>
 
+<p>If you wish to turn off runaway fiber detection, set the <code>co.paralleluniverse.fibers.detectRunawayFibers</code> system property to&nbsp;<code>"false"</code>.</p>
+
 <h4 id="thread-locals">Thread&nbsp;Locals</h4>
 
 <p>Using <code>ThreadLocal</code>s in a fiber works as you’d expect – the values are local to the fiber. An <code>InheritableThreadLocal</code> inherits its value from the fiber’s parent, i.e. the thread or the fiber that spawned&nbsp;it.</p>
@@ -379,6 +386,10 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 <p>The <code>run</code> method in <code>Fiber</code>, <code>SuspendableRunnable</code> and <code>SuspendableCallable</code> declares that it may throw a <code>SuspendExecution</code> exception. This is not a real exception, but part of the inner working of fibers. Any method that may run in a fiber and may block, declares to throw this exception or is annotated with the <code>@Suspendable</code> annotation. Such a method is called a <em>suspendable method</em>. When a method you write calls a suspendable method, it, too, is a suspendable method, and must therefore declare to throw <code>SuspendExecution</code> (if you cannot add this exception to your method’s <code>throws</code> clause, say, because you’re implementing an interface that does not throw it, you can annotate your method with the <code>@Suspendable</code> annotation, but this requires extra consideration; please see the <a href="#advanced-fibers">Advanced Fiber Usage</a> section). Adding <code>SuspendExecution</code> to the <code>throws</code> clause is convenient because it makes the compiler force you to add the exception to any method that calls your method, which you&nbsp;should.</p>
 
 <p class="alert alert-warning"><strong>Note</strong>: Other than a few methods in the <code>Fiber</code> class that are usually only used internally, whenever you encounter a method that declares to throw <code>SuspendExecution</code>, it is safe to call to use by fibers as well as regular threads. If used in a thread, it will never actually throw a <code>SuspendExecution</code> exception, so it is best to declare a <code>catch(SuspendExecution e)</code> block when called on a regular thread, and just throw an <code>AssertionError</code>, as it should never&nbsp;happen.</p>
+
+<h4 id="synchronized-methodsblocks-in-fibers">Synchronized Methods/Blocks in&nbsp;Fibers</h4>
+
+<p>Because <code>synchronized</code> blocks or methods block the kernel threads, by default they are not allowed in fibers. Suspendable methods that are marked <code>synchronized</code> or contain <code>synchronized</code> blocks will cause Quasar instrumentation to fail. However, Quasar can gracefully handle the occasional blocked thread, so <code>syncrhonized</code> methods/blocks can be allowed by passing the <code>m</code> argument to the Quasar Java agent, or by setting the <code>allowMonitors</code> property on the instrumentation Ant&nbsp;task.</p>
 
 <h3 id="strands">Strands</h3>
 
