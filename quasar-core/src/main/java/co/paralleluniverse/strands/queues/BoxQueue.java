@@ -55,11 +55,14 @@ public class BoxQueue<E> implements BasicQueue<E> {
         E v;
         if (singleConsumer) {
             v = value;
-            value = null;
+            if (replaceOnWrite)
+                casValue(v, null); // we don't care about the result
+            else
+                value = null;
         } else {
             do {
                 v = value;
-            } while(v != null && !casValue(v, null));
+            } while (v != null && !casValue(v, null));
         }
         return v;
     }
