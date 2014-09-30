@@ -85,8 +85,8 @@ subprojects {
         testCompile("org.mockito:mockito-all:1.9.5") {
             exclude group: "org.ow2.asm", module: '*'
         }
-        testCompile 'org.openjdk.jmh:jmh-core:1.1'
-        testCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.1'
+        testCompile 'org.openjdk.jmh:jmh-core:1.1.1'
+        testCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.1.1'
         compileOnly 'org.kohsuke.metainf-services:metainf-services:1.5'
         // compileOnly 'com.google.auto.service:auto-service:1.0-rc1' // same as metainf-services
         markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
