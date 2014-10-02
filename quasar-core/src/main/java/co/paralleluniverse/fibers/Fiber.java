@@ -241,7 +241,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             return;
 
         if (verifyInstrumentation && !isInstrumented(t.getClass()))
-            throw new IllegalArgumentException("Target class " + t.getClass() + " has not been instrumented.");
+            throw new VerifyInstrumentationException("Target class " + t.getClass() + " has not been instrumented.");
     }
 
     private Future<V> future() {
@@ -1627,7 +1627,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 if (notInstrumented) {
                     final String str = "Uninstrumented methods on the call stack (marked with **): " + stackTrace;
                     if (Debug.isUnitTest())
-                        throw new IllegalStateException(str);
+                        throw new VerifyInstrumentationException(str);
                     System.err.println("WARNING: " + str);
                 }
                 return !notInstrumented;
