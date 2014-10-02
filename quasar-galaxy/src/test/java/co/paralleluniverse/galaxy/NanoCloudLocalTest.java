@@ -1,3 +1,16 @@
+/*
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * 
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *  
+ *   or (per the licensee's choosing)
+ *  
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
+ */
 package co.paralleluniverse.galaxy;
 
 import co.paralleluniverse.common.util.Debug;
@@ -10,7 +23,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
-import org.gridkit.vicluster.ViManager;
+import org.gridkit.nanocloud.Cloud;
 import org.gridkit.vicluster.telecontrol.jvm.JvmProps;
 import org.junit.After;
 import static org.junit.Assert.*;
@@ -67,7 +80,7 @@ public class NanoCloudLocalTest extends BaseCloudTest {
         ping.get();
     }
 
-    private static void setJvmArgs(final ViManager cloud) {
+    private static void setJvmArgs(final Cloud cloud) {
         System.setProperty("co.paralleluniverse.galaxy.configFile", pathToResource(CFG.peerCfg));
         System.setProperty("galaxy.zkServers", "127.0.0.1:2181");
         String[] copyEnv = {

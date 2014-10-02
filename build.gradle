@@ -405,7 +405,7 @@ project (':quasar-galaxy') {
             exclude group: 'de.javakaffee', module: 'kryo-serializers'
         }
 
-        testCompile ('org.gridkit.lab:telecontrol-ssh:0.7.22'){
+        testCompile ('org.gridkit.lab:telecontrol-ssh:0.7.24'){
             exclude group: "org.ow2.asm", module: '*'
         }
         testCompile group: 'junit', name: 'junit', version: '4.11'
