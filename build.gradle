@@ -101,8 +101,50 @@ subprojects {
         test.runtimeClasspath = test.runtimeClasspath + configurations.provided
     }
 
+    //    tasks.withType(JavaCompile) {
+    //        // options.compilerArgs << "-Xlint:unchecked"
+    //        // options.compilerArgs << "-Xlint:deprecation"
+    //    }
+    
+    compileJava.dependsOn processResources
+    compileJava {
+        doLast {
+            ant.taskdef(
+                name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
+                classpath: "build/classes/main:build/resources/main:" + configurations.compile.asPath)
+            ant.scanSuspendables(
+                auto: false,
+                supersFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers",
+                append: false) {
+                fileset(dir: sourceSets.main.output.classesDir)
+            }
+
+            ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/resources/main:" + "build/classes/main:" + configurations.compile.asPath)
+            ant.instrumentation(verbose:'true', check:'true', debug:'true') {
+                fileset(dir: sourceSets.main.output.classesDir) {
+                    exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
+                }
+            }
+        }
+    }
+    
     test.dependsOn jar
 
+    test {
+        beforeTest { desc ->
+            logger.quiet("Running test: " + desc)
+        }
+
+        afterTest { desc, result ->
+            if(result.resultType == TestResult.ResultType.FAILURE) {
+                logger.quiet("Failed test ${desc.name} [${desc.className}] with exception: ${result.exception}")
+                if(result.exception != null) {
+                    result.exception.printStackTrace()
+                }
+            }
+        }
+    }
+    
     tasks.withType(Test) {
         useJUnit()
         // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
@@ -140,26 +182,6 @@ subprojects {
         // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
         jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
     }
-
-    test {
-        beforeTest { desc ->
-            logger.quiet("Running test: " + desc)
-        }
-
-        afterTest { desc, result ->
-            if(result.resultType == TestResult.ResultType.FAILURE) {
-                logger.quiet("Failed test ${desc.name} [${desc.className}] with exception: ${result.exception}")
-                if(result.exception != null) {
-                    result.exception.printStackTrace()
-                }
-            }
-        }
-    }
-
-//    tasks.withType(JavaCompile) {
-//        // options.compilerArgs << "-Xlint:unchecked"
-//        // options.compilerArgs << "-Xlint:deprecation"
-//    }
 
     tasks.withType(JavaExec) {
         classpath += sourceSets.test.runtimeClasspath
@@ -296,36 +318,6 @@ project (':quasar-core') {
         }
         compile("de.javakaffee:kryo-serializers:0.27") {
             exclude group: "com.esotericsoftware.kryo", module: '*'
-        }
-    }
-
-    compileJava.dependsOn processResources
-    compileJava {
-        doLast {
-            ant.taskdef(
-                name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
-                classpath: "build/classes/main:build/resources/main:" + configurations.compile.asPath)
-            ant.scanSuspendables(
-                auto: false,
-                supersFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers",
-                append: false) {
-                fileset(dir: sourceSets.main.output.classesDir)
-            }
-
-            //            ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.OldSuspendablesScanner', classpath: "build/classes/main:" + configurations.compile.asPath)
-            //            ant.scanSuspendables(outputFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
-            //                fileset(dir: sourceSets.main.output.classesDir)
-            //            }
-            //            ant.concat(destfile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers", append: 'true', fixlastline: 'yes') {
-            //                fileset(file: "${sourceSets.main.resources.srcDirs.iterator().next()}/META-INF/suspendable-supers")
-            //            }
-
-            ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/resources/main:" + "build/classes/main:" + configurations.compile.asPath)
-            ant.instrumentation(verbose:'true', check:'true', debug:'true') {
-                fileset(dir: sourceSets.main.output.classesDir) {
-                    exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
-                }
-            }
         }
     }
 
@@ -495,3 +487,4 @@ task clean(dependsOn: subprojects.clean) << {
 task wrapper(type: Wrapper) {
     gradleVersion = '2.1'
 }
+
