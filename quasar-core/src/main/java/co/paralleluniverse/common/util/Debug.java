@@ -16,6 +16,10 @@ import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.strands.Strand;
 import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
+import java.net.URI;
+import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -102,6 +106,7 @@ public class Debug {
         return flightRecorder;
     }
 
+    @SuppressWarnings("CallToThreadDumpStack")
     public static void exit(int code) {
         final Strand currentStrand = Strand.currentStrand();
         if (flightRecorder != null) {
@@ -245,6 +250,49 @@ public class Debug {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public static String getPackageVersion(String packageName) {
+        try {
+            Package aPackage = Package.getPackage(packageName);
+            if (aPackage != null) {
+                return aPackage.getImplementationVersion();
+            }
+        } catch (Exception e) {
+        }
+        return null;
+    }
+
+    public static Path getJarOfClass(String className) {
+        return getJarOfClass(findClass(className));
+    }
+
+    public static Path getJarOfClass(Class<?> clazz) {
+        try {
+            if (clazz != null) {
+                final URL resource = clazz.getClassLoader().getResource(clazz.getName().replace('.', '/') + ".class");
+                if (resource != null) {
+                    String p = resource.toString();
+                    int idx = p.lastIndexOf('!');
+                    if (idx > 0)
+                        return Paths.get(new URI(p.substring(0, idx)));
+                }
+            }
+        } catch (Exception e) {
+        }
+        return null;
+    }
+
+    private static Class findClass(String className) {
+        try {
+            return Thread.currentThread().getContextClassLoader().loadClass(className);
+        } catch (ClassNotFoundException e) {
+        }
+        try {
+            return Class.forName(className);
+        } catch (ClassNotFoundException e) {
+        }
+        return null;
     }
 
     private Debug() {
