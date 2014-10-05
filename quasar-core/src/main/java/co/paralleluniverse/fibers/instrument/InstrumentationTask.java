@@ -53,15 +53,19 @@ import org.apache.tools.ant.Task;
 import org.apache.tools.ant.types.FileSet;
 
 /**
- * <p>Instrumentation ANT task</p>
+ * <p>
+ * Instrumentation ANT task</p>
  *
- * <p>It requires one or more FileSet elements pointing to class files that should
+ * <p>
+ * It requires one or more FileSet elements pointing to class files that should
  * be instrumented.</p>
- * <p>Classes that are referenced from the instrumented classes are searched in
+ * <p>
+ * Classes that are referenced from the instrumented classes are searched in
  * the classpath of the task. If a referenced class is not found a warning is
  * generated and the instrumentation will result in less efficent code.</p>
  *
- * <p>The following options can be set:<ul>
+ * <p>
+ * The following options can be set:<ul>
  * <li>check - default: false<br/>The resulting code is run through a verifier.</li>
  * <li>verbose - default: false<br/>The name of each processed class and all suspendable method calles is displayed.</li>
  * <li>debug - default: false<br/>Prints internal debugging information.</li>
