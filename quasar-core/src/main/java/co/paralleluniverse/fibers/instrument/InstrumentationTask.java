@@ -73,7 +73,7 @@ import org.apache.tools.ant.types.FileSet;
  * @author Matthias Mann
  */
 public class InstrumentationTask extends Task {
-    private ArrayList<FileSet> filesets = new ArrayList<FileSet>();
+    private final ArrayList<FileSet> filesets = new ArrayList<FileSet>();
     private boolean check;
     private boolean verbose;
     private boolean allowMonitors;

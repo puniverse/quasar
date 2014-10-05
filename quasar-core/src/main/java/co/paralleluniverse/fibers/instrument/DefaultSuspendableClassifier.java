@@ -21,7 +21,7 @@ import java.util.ServiceLoader;
  *
  * @author pron
  */
-class DefaultSuspendableClassifier implements SuspendableClassifier {
+public class DefaultSuspendableClassifier implements SuspendableClassifier {
     private final ServiceLoader<SuspendableClassifier> loader;
     private final SuspendableClassifier simpleClassifier;
 
@@ -30,6 +30,7 @@ class DefaultSuspendableClassifier implements SuspendableClassifier {
         this.simpleClassifier = new SimpleSuspendableClassifier(classLoader);
     }
 
+    @SuppressWarnings("CallToPrintStackTrace")
     @Override
     public SuspendableType isSuspendable(MethodDatabase db, String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
         SuspendableType st;
