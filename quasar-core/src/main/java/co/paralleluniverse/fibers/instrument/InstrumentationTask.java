@@ -45,7 +45,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.List;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.DirectoryScanner;
 import org.apache.tools.ant.Project;
@@ -115,41 +118,44 @@ public class InstrumentationTask extends Task {
 
     @Override
     public void execute() throws BuildException {
-        final ClassLoader cl = getClass().getClassLoader();
-        final QuasarInstrumentor instrumentor = new QuasarInstrumentor(true, cl, new DefaultSuspendableClassifier(cl));
-
-        instrumentor.setCheck(check);
-        instrumentor.setVerbose(verbose);
-        instrumentor.setDebug(debug);
-        instrumentor.setAllowMonitors(allowMonitors);
-        instrumentor.setAllowBlocking(allowBlocking);
-        instrumentor.setLog(new Log() {
-            @Override
-            public void log(LogLevel level, String msg, Object... args) {
-                final int msgLevel;
-                switch (level) {
-                    case DEBUG:
-                        msgLevel = Project.MSG_DEBUG;
-                        break;
-                    case INFO:
-                        msgLevel = Project.MSG_INFO;
-                        break;
-                    case WARNING:
-                        msgLevel = Project.MSG_WARN;
-                        break;
-                    default:
-                        throw new AssertionError("Unhandled log level: " + level);
-                }
-                InstrumentationTask.this.log(level + ": " + String.format(msg, args), msgLevel);
-            }
-
-            @Override
-            public void error(String msg, Exception ex) {
-                InstrumentationTask.this.log("ERROR: " + msg, ex, Project.MSG_ERR);
-            }
-        });
-
         try {
+            final List<URL> urls = new ArrayList<>();
+            for (FileSet fs : filesets)
+                urls.add(fs.getDir().toURI().toURL());
+            final ClassLoader cl = new URLClassLoader(urls.toArray(new URL[0]), getClass().getClassLoader());
+            final QuasarInstrumentor instrumentor = new QuasarInstrumentor(true, cl, new DefaultSuspendableClassifier(cl));
+
+            instrumentor.setCheck(check);
+            instrumentor.setVerbose(verbose);
+            instrumentor.setDebug(debug);
+            instrumentor.setAllowMonitors(allowMonitors);
+            instrumentor.setAllowBlocking(allowBlocking);
+            instrumentor.setLog(new Log() {
+                @Override
+                public void log(LogLevel level, String msg, Object... args) {
+                    final int msgLevel;
+                    switch (level) {
+                        case DEBUG:
+                            msgLevel = Project.MSG_DEBUG;
+                            break;
+                        case INFO:
+                            msgLevel = Project.MSG_INFO;
+                            break;
+                        case WARNING:
+                            msgLevel = Project.MSG_WARN;
+                            break;
+                        default:
+                            throw new AssertionError("Unhandled log level: " + level);
+                    }
+                    InstrumentationTask.this.log(level + ": " + String.format(msg, args), msgLevel);
+                }
+
+                @Override
+                public void error(String msg, Exception ex) {
+                    InstrumentationTask.this.log("ERROR: " + msg, ex, Project.MSG_ERR);
+                }
+            });
+
             for (FileSet fs : filesets) {
                 final DirectoryScanner ds = fs.getDirectoryScanner(getProject());
                 final String[] includedFiles = ds.getIncludedFiles();
@@ -170,7 +176,7 @@ public class InstrumentationTask extends Task {
             for (MethodDatabase.WorkListEntry f : instrumentor.getWorkList())
                 instrumentClass(instrumentor, f);
 
-        } catch (UnableToInstrumentException ex) {
+        } catch (Exception ex) {
             log(ex.getMessage());
             throw new BuildException(ex.getMessage(), ex);
         }
