@@ -156,7 +156,7 @@ public class SuspendablesScanner extends Task {
 
             if (ant) {
 //              for (FileSet fs : filesets)
-//                  urls.add(fs.getDir().toURI().toURL());
+//                  us.add(fs.getDir().toURI().toURL());
                 final AntClassLoader acl = (AntClassLoader) getClass().getClassLoader();
                 classpathToUrls(acl.getClasspath().split(":"), us);
             } else {
