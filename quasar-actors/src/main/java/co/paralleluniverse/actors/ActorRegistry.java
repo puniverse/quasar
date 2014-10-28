@@ -47,7 +47,7 @@ public class ActorRegistry {
         LOG.info("Registering {}: {}", name, actor);
 
         actor.preRegister(name);
-        final Object res = registry.register(actor.ref, globalId);
+        final Object res = registry.register(actor.ref0(), globalId);
         
         actor.monitor();
         return res;

@@ -330,6 +330,10 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     public ActorRef<Message> ref() {
         if (!isStarted())
             throw new IllegalStateException("Actor has not been started");
+        return ref0();
+    }
+    
+    ActorRef<Message> ref0() {
         if (wrapperRef == null)
             this.wrapperRef = makeRef(ref);
         return wrapperRef;
@@ -1137,7 +1141,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         newInstance.setStrand(null);
 
         newInstance.setMonitor(getMonitor());
-        if (getName() != null && ActorRegistry.tryGetActor(getName()) == ref)
+        if (getName() != null && ref0() == ActorRegistry.tryGetActor(getName()))
             newInstance.register();
         return newInstance;
     }
