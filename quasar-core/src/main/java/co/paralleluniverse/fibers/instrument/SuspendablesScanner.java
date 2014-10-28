@@ -689,6 +689,7 @@ public class SuspendablesScanner extends Task {
             numCallers++;
         }
 
+        @SuppressWarnings("override")
         public Collection<MethodNode> getCallers() {
             if (callers == null)
                 return Collections.emptyList();

@@ -29,16 +29,10 @@ subprojects {
         ext.sonatypePassword = ""
     }
 
-    // NetBeans will automatically add "run" and "debug" tasks relying on the
-    // "mainClass" property. You may however define the property prior executing
-    // tasks by passing a "-PmainClass=<QUALIFIED_CLASS_NAME>" argument.
-    //
-    // Note however, that you may define your own "run" and "debug" task if you
-    // prefer. In this case NetBeans will not add these tasks but you may rely on
-    // your own implementation.
     if (!project.hasProperty('mainClass')) { // must use project.hasProperty() rather than hasProperty in subprojects (gradle bug)
         ext.mainClass = ''
     }
+    
     repositories {
         flatDir {
             dirs baselib
