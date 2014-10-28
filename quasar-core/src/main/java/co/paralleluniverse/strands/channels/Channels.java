@@ -89,8 +89,8 @@ public final class Channels {
     private static final boolean defaultSingleConsumer = true;
     private static final FiberFactory defaultFiberFactory = new FiberFactory() {
         @Override
-        public Fiber newFiber(SuspendableCallable<?> target) {
-            return new Fiber(target);
+        public <T> Fiber<T> newFiber(SuspendableCallable<T> target) {
+            return new Fiber<T>(target);
         }
     };
 

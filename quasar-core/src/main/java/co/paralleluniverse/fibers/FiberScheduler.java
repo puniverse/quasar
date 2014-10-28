@@ -59,8 +59,8 @@ public abstract class FiberScheduler implements FiberFactory {
     }
 
     @Override
-    public Fiber newFiber(SuspendableCallable<?> target) {
-        return new Fiber(this, target);
+    public <T> Fiber<T> newFiber(SuspendableCallable<T> target) {
+        return new Fiber<T>(this, target);
     }
 
     abstract Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit);
