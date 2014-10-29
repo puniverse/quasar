@@ -42,13 +42,13 @@ public class SingleConsumerArrayObjectQueue<E> extends SingleConsumerArrayQueue<
         final long i = preEnq();
         if (i < 0)
             return false;
-        orderedSet((int) i & mask, item); // volatile set
+        volatileSet((int) i & mask, item);
         return true;
     }
 
     @Override
     boolean hasNext(long lind, int iind) {
-        return array[iind] != null;
+        return get(iind) != null;
     }
 
     @SuppressWarnings("empty-statement")
