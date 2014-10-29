@@ -66,9 +66,9 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
         super(name, null, 0L, null, strand, mailboxConfig);
         this.callOnVoidMethods = callOnVoidMethods;
         this.target = ActorLoader.getReplacementFor(target != null ? target : this);
-        this.interfaces = interfaces != null ? Arrays.copyOf(interfaces, interfaces.length) : target.getClass().getInterfaces();
+        this.interfaces = interfaces != null ? Arrays.copyOf(interfaces, interfaces.length) : this.target.getClass().getInterfaces();
         if (this.interfaces == null)
-            throw new IllegalArgumentException("No interfaces provided, and target of class " + target.getClass().getName() + " implements no interfaces");
+            throw new IllegalArgumentException("No interfaces provided, and target of class " + this.target.getClass().getName() + " implements no interfaces");
     }
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
@@ -263,7 +263,7 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
     //</editor-fold>
 
     @Override
-    protected Server<Invocation, Object, Invocation> makeRef(ActorRef<Object> ref) {
+    protected final Server<Invocation, Object, Invocation> makeRef(ActorRef<Object> ref) {
         return (Server<Invocation, Object, Invocation>) makeProxyRef(super.makeRef(ref));
     }
 
