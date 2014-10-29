@@ -19,6 +19,7 @@ package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.ActorSpec;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.LifecycleMessage;
@@ -150,7 +151,7 @@ public class SupervisorTest {
 //        return a;
 //    }
     private <Message> ActorRef<Message> getChild(Supervisor sup, String name, long timeout) throws InterruptedException, SuspendExecution {
-        return (ActorRef<Message>)sup.getChild(name);
+        return (ActorRef<Message>) sup.getChild(name);
 //        Actor<Message, V> a;
 //        final long start = System.nanoTime();
 //        while ((a = sup.getChild(name)) == null || a.isDone()) {
@@ -239,7 +240,6 @@ public class SupervisorTest {
         a.send(new ShutdownMessage(null));
         assertThat(LocalActor.<Integer>get(a), is(3));
 
-
         a = getChild(sup, "actor1", 200);
         assertThat(a, nullValue());
 
@@ -307,7 +307,6 @@ public class SupervisorTest {
             fail();
         } catch (ExecutionException e) {
         }
-
 
         ActorRef<Object> b = getChild(sup, "actor1", 200);
         assertThat(b, not(nullValue()));
@@ -379,6 +378,19 @@ public class SupervisorTest {
 
         sup.shutdown();
         LocalActor.join(sup);
+    }
+
+    @Test
+    public void testRegistration() throws Exception {
+        Supervisor s = new SupervisorActor(RestartStrategy.ONE_FOR_ONE) {
+            @Override
+            protected void init() throws SuspendExecution, InterruptedException {
+                // Strand.sleep(1000);
+                register("test1");
+            }
+        }.spawn();
+
+        assertTrue(s == (Supervisor) ActorRegistry.getActor("test1"));
     }
 
     ///////////////// Complex example ///////////////////////////////////////////

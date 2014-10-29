@@ -47,7 +47,7 @@ import net.sf.cglib.proxy.NoOp;
  *
  * @author pron
  */
-public final class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, Object, ProxyServerActor.Invocation> {
+public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, Object, ProxyServerActor.Invocation> {
     private final Class<?>[] interfaces;
     private Object target;
     private final boolean callOnVoidMethods;

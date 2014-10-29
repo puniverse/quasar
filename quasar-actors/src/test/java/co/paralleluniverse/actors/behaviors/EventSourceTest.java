@@ -18,13 +18,16 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
+import static org.junit.Assert.assertTrue;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -155,5 +158,18 @@ public class EventSourceTest {
         verify(init).terminate(myException);
 
         LocalActor.join(es, 100, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
+    public void testRegistration() throws Exception {
+        EventSource<String> es = new EventSourceActor<String>() {
+            @Override
+            protected void init() throws SuspendExecution, InterruptedException {
+                // Strand.sleep(1000);
+                register("test1");
+            }
+        }.spawn();
+
+        assertTrue(es == (EventSource) ActorRegistry.getActor("test1"));
     }
 }

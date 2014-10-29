@@ -59,6 +59,8 @@ class LocalActorRegistry implements co.paralleluniverse.actors.spi.ActorRegistry
 
             if (registeredActors.putIfAbsent(name, actor) != null)
                 throw new RegistrationException("Concurrent registration under the name " + name);
+            
+            cond.signalAll();
         } finally {
             lock.unlock();
         }

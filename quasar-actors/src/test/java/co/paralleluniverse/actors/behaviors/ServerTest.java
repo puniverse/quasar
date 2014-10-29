@@ -20,6 +20,7 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.common.util.Debug;
@@ -514,6 +515,19 @@ public class ServerTest {
         }
 
         verify(server).terminate(myException);
+    }
+
+    @Test
+    public void testRegistration() throws Exception {
+        Server<Message, Integer, Message> s = new ServerActor<Message, Integer, Message>() {
+            @Override
+            protected void init() throws SuspendExecution, InterruptedException {
+                // Strand.sleep(1000);
+                register("my-server");
+            }
+        }.spawn();
+
+        assertTrue(s == (Server)ActorRegistry.getActor("my-server"));
     }
 
     static class Message {

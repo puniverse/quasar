@@ -16,6 +16,7 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.actors.Actor;
+import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.common.util.Debug;
@@ -341,5 +342,27 @@ public class ProxyServerTest {
 
         a.shutdown();
         LocalActor.join(a, 500, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
+    public void testRegistration() throws Exception {
+        final Server<?, ?, ?> a = new ProxyServerActor("test1", false, new A() {
+            public int foo(String str, int x) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Suspendable
+            public void bar(int x) {
+            }
+        }) {
+
+            @Override
+            protected void init() throws InterruptedException, SuspendExecution {
+                register();
+            }
+
+        }.spawn();
+
+        assertTrue((A)a == (A) ActorRegistry.getActor("test1"));
     }
 }
