@@ -142,6 +142,13 @@ class LocalActorRegistry implements co.paralleluniverse.actors.spi.ActorRegistry
         }
         return (ActorRef<Message>) actor;
     }
+    
+    /**
+     * Use only in tests!
+     */
+    void clear() {
+        registeredActors.clear();
+    }
 
     @Override
     public void shutdown() {

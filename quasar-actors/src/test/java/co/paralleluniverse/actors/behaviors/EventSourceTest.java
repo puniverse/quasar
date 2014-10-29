@@ -27,6 +27,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
+import org.junit.After;
 import static org.junit.Assert.assertTrue;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -71,6 +72,12 @@ public class EventSourceTest {
             Debug.record(0, "DONE TEST " + desc.getMethodName());
         }
     };
+
+    @After
+    public void tearDown() {
+        ActorRegistry.clear();
+    }
+
     static final int mailboxSize = 10;
 
     public EventSourceTest() {

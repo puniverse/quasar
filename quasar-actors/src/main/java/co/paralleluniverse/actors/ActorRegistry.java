@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.ServiceUtil;
 import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
@@ -48,7 +49,7 @@ public class ActorRegistry {
 
         actor.preRegister(name);
         final Object res = registry.register(actor.ref0(), globalId);
-        
+
         actor.monitor();
         return res;
     }
@@ -138,7 +139,22 @@ public class ActorRegistry {
         return !(registry instanceof LocalActorRegistry);
     }
 
+    /**
+     * Shuts down the registry.
+     */
     public static void shutdown() {
         registry.shutdown();
+    }
+
+    /**
+     * Clears the registry (use only in tests!).
+     */
+    public static void clear() {
+        if (!Debug.isUnitTest())
+            throw new IllegalStateException("Must only be called in unit tests");
+        if (registry instanceof LocalActorRegistry)
+            ((LocalActorRegistry) registry).clear();
+        else
+            throw new UnsupportedOperationException();
     }
 }

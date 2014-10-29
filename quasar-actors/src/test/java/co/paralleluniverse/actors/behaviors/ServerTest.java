@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.CoreMatchers.*;
+import org.junit.After;
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.Test;
@@ -82,6 +83,12 @@ public class ServerTest {
             Debug.record(0, "DONE TEST " + desc.getMethodName());
         }
     };
+
+    @After
+    public void tearDown() {
+        ActorRegistry.clear();
+    }
+
     static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channels.OverflowPolicy.THROW);
     private FiberScheduler scheduler;
 
@@ -527,7 +534,7 @@ public class ServerTest {
             }
         }.spawn();
 
-        assertTrue(s == (Server)ActorRegistry.getActor("my-server"));
+        assertTrue(s == (Server) ActorRegistry.getActor("my-server"));
     }
 
     static class Message {

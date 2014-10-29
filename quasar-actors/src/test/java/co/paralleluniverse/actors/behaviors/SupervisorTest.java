@@ -38,6 +38,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.CoreMatchers.*;
+import org.junit.After;
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.Test;
@@ -81,6 +82,12 @@ public class SupervisorTest {
             Debug.record(0, "DONE TEST " + desc.getMethodName());
         }
     };
+    
+    @After
+    public void tearDown() {
+        ActorRegistry.clear();
+    }
+    
     private static final Logger LOG = LoggerFactory.getLogger(SupervisorActor.class);
     static final int mailboxSize = 10;
     private static FiberScheduler scheduler;

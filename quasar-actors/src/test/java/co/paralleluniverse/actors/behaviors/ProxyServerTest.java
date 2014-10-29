@@ -36,6 +36,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.CoreMatchers.*;
+import org.junit.After;
 import static org.junit.Assert.*;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -82,6 +83,12 @@ public class ProxyServerTest {
             Debug.record(0, "DONE TEST " + desc.getMethodName());
         }
     };
+
+    @After
+    public void tearDown() {
+        ActorRegistry.clear();
+    }
+    
     static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channels.OverflowPolicy.THROW);
     private FiberScheduler scheduler;
 
@@ -363,6 +370,6 @@ public class ProxyServerTest {
 
         }.spawn();
 
-        assertTrue((A)a == (A) ActorRegistry.getActor("test1"));
+        assertTrue((A) a == (A) ActorRegistry.getActor("test1"));
     }
 }
