@@ -147,13 +147,8 @@ public final class RequestReplyHelper {
         if (m.getFrom() == null || LocalActor.isInstance(m.getFrom(), TempActor.class))
             m.setFrom(from());
 
-        final Actor currentActor;
         final boolean tmpActor = m.getFrom() instanceof TempActorRef;
-        if (tmpActor)
-            currentActor = (Actor) ((TempActorRef) m.getFrom()).getImpl();
-        else
-            currentActor = Actor.currentActor();
-
+        final Actor currentActor = tmpActor ? (Actor) ((TempActorRef) m.getFrom()).getImpl() : Actor.currentActor();
         assert currentActor != null;
 
         final Object watch = currentActor.watch(actor);
