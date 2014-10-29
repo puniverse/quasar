@@ -43,6 +43,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 /**
  * An actor is a self-contained execution unit - an object running in its own strand and communicating with other actors via messages.
@@ -83,7 +84,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     private static final Throwable NATURAL = new Throwable();
     private static final Object DEFUNCT = new Object();
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
-    private transient ActorRef<Message> wrapperRef;
+    private transient volatile ActorRef<Message> wrapperRef;
     private transient /*final*/ AtomicReference<Class<?>> classRef;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(MapUtil.<LifecycleListener, Boolean>newConcurrentHashMap());
     private final Set<ActorImpl> observed = Collections.newSetFromMap(MapUtil.<ActorImpl, Boolean>newConcurrentHashMap());
@@ -99,6 +100,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     private Object aux;
     private /*final*/ ActorRunner<V> runner;
     private boolean migrating;
+    private static final AtomicReferenceFieldUpdater<Actor, ActorRef> wrapperRefUpdater = AtomicReferenceFieldUpdater.newUpdater(Actor.class, ActorRef.class, "wrapperRef");
 
     /**
      * Creates a new actor.
@@ -332,10 +334,10 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             throw new IllegalStateException("Actor has not been started");
         return ref0();
     }
-    
+
     ActorRef<Message> ref0() {
         if (wrapperRef == null)
-            this.wrapperRef = makeRef(ref);
+            wrapperRefUpdater.compareAndSet(this, null, makeRef(ref));
         return wrapperRef;
     }
 
