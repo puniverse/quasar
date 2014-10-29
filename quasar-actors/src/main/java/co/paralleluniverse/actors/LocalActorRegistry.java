@@ -14,7 +14,6 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.concurrent.util.MapUtil;
-import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.concurrent.ReentrantLock;
 import com.google.common.base.Objects;

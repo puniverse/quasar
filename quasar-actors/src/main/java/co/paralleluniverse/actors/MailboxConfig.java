@@ -49,4 +49,9 @@ public class MailboxConfig implements java.io.Serializable {
     public OverflowPolicy getPolicy() {
         return policy;
     }
+
+    @Override
+    public String toString() {
+        return "MailboxConfig{" + "mailboxSize: " + mailboxSize + ", policy: " + policy + '}';
+    }
 }
