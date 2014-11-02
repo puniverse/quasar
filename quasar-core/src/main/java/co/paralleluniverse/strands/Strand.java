@@ -34,8 +34,8 @@ public abstract class Strand {
     public static Strand of(Object owner) {
         if (owner instanceof Strand)
             return (Strand) owner;
-        if (owner instanceof Fiber)
-            return (Fiber) owner;
+//        if (owner instanceof Fiber)
+//            return (Fiber) owner;
         else
             return of((Thread) owner);
     }
@@ -704,7 +704,7 @@ public abstract class Strand {
      * @param strand the strand to unpark, or {@code null}, in which case this operation has no effect
      */
     public static void unpark(Thread strand) {
-        LockSupport.unpark((Thread) strand);
+        LockSupport.unpark(strand);
     }
 
     /**
@@ -858,7 +858,7 @@ public abstract class Strand {
      */
     public static String toString(StackTraceElement[] trace) {
         if (trace == null)
-            return "null stack trace";
+            return "null";
         StringBuilder sb = new StringBuilder();
         for (StackTraceElement traceElement : trace)
             sb.append("\tat ").append(traceElement).append('\n');
@@ -874,8 +874,10 @@ public abstract class Strand {
     public static void printStackTrace(StackTraceElement[] trace, java.io.PrintStream out) {
         if (trace == null)
             out.println("No stack trace");
-        else for (StackTraceElement traceElement : trace)
-            out.println("\tat " + traceElement);
+        else {
+            for (StackTraceElement traceElement : trace)
+                out.println("\tat " + traceElement);
+        }
     }
 
     /**
@@ -887,8 +889,10 @@ public abstract class Strand {
     public static void printStackTrace(StackTraceElement[] trace, java.io.PrintWriter out) {
         if (trace == null)
             out.println("No stack trace");
-        else for (StackTraceElement traceElement : trace)
-            out.println("\tat " + traceElement);
+        else {
+            for (StackTraceElement traceElement : trace)
+                out.println("\tat " + traceElement);
+        }
     }
 
     /**
@@ -918,7 +922,7 @@ public abstract class Strand {
     protected static ThreadLocal<Strand> currentStrand = new ThreadLocal<Strand>();
 
     private static final class ThreadStrand extends Strand {
-        private static ConcurrentMap<Long, Strand> threadStrands = new com.google.common.collect.MapMaker().weakValues().makeMap();
+        private static final ConcurrentMap<Long, Strand> threadStrands = new com.google.common.collect.MapMaker().weakValues().makeMap();
 
         static Strand get(Thread t) {
             Strand s = threadStrands.get(t.getId());
