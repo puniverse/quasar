@@ -28,6 +28,8 @@ import org.objectweb.asm.Type;
  * @author pron
  */
 public final class AnnotationUtil {
+    public static final int ASMAPI = Opcodes.ASM5;
+    
     public static boolean hasClassAnnotation(Class<? extends Annotation> annotationType, byte[] classData) {
         return hasClassAnnotation(annotationType, new ClassReader(classData));
     }
@@ -40,7 +42,7 @@ public final class AnnotationUtil {
         // annotationName = annotationName.replace('.', '/');
         final String annDesc = Type.getDescriptor(annClass);
         final AtomicBoolean res = new AtomicBoolean(false);
-        r.accept(new ClassVisitor(Opcodes.ASM4) {
+        r.accept(new ClassVisitor(ASMAPI) {
             @Override
             public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
             }

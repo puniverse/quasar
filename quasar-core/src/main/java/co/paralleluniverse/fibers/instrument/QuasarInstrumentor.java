@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
 
@@ -33,6 +34,7 @@ import org.objectweb.asm.util.TraceClassVisitor;
  * @author pron
  */
 public final class QuasarInstrumentor {
+    public static final int ASMAPI = Opcodes.ASM5;
     final static String EXAMINED_CLASS = null; // "co/paralleluniverse/fibers/instrument/ReflectionInvokeTest";
     private final MethodDatabase db;
     private boolean check;

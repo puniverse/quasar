@@ -66,6 +66,7 @@ import org.objectweb.asm.Opcodes;
  * @author pron
  */
 public class MethodDatabase implements Log {
+    private static final int ASMAPI = Opcodes.ASM5;
     private final ClassLoader cl;
     private final SuspendableClassifier classifier;
     private final NavigableMap<String, ClassEntry> classes;
@@ -581,7 +582,7 @@ public class MethodDatabase implements Log {
         String superClass;
 
         public ExtractSuperClass() {
-            super(Opcodes.ASM4);
+            super(ASMAPI);
         }
 
         @Override

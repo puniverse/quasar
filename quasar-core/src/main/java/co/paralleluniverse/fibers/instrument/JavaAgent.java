@@ -74,6 +74,7 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.concurrent.util.MapUtil;
+import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
@@ -204,7 +205,7 @@ public class JavaAgent {
 
         ClassReader cr = new ClassReader(classfileBuffer);
         ClassWriter cw = new ClassWriter(cr, 0);
-        ClassVisitor cv = new ClassVisitor(Opcodes.ASM4, cw) {
+        ClassVisitor cv = new ClassVisitor(ASMAPI, cw) {
 
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {

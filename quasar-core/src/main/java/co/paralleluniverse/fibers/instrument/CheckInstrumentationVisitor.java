@@ -44,6 +44,7 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
+import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import org.objectweb.asm.AnnotationVisitor;
@@ -68,7 +69,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
     private boolean alreadyInstrumented;
 
     public CheckInstrumentationVisitor(MethodDatabase db) {
-        super(Opcodes.ASM4);
+        super(ASMAPI);
         this.db = db;
         this.classifier = db.getClassifier();
     }
@@ -126,7 +127,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
         classEntry.set(name, desc, suspendable);
 
         if (suspendable == null) // look for @Suspendable annotation
-            return new MethodVisitor(Opcodes.ASM4) {
+            return new MethodVisitor(ASMAPI) {
                 private boolean susp = false;
 
                 @Override

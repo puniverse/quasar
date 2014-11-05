@@ -63,7 +63,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 public class SuspendablesScanner extends Task {
-    private static final int API = Opcodes.ASM4;
+    private static final int ASMAPI = Opcodes.ASM5;
     //
     private final Map<String, MethodNode> methods = new HashMap<>();
     private final Map<String, ClassNode> classes = new HashMap<>();
@@ -220,7 +220,7 @@ public class SuspendablesScanner extends Task {
                 if (isClassFile(url.getFile())) {
                     try (InputStream is = cl.getResourceAsStream(resource)) { // cl.getResourceAsStream(resource)
                         new ClassReader(is) // cl.getResourceAsStream(resource)
-                                .accept(new SuspendableClassifier(false, API, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
+                                .accept(new SuspendableClassifier(false, ASMAPI, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
                     }
                 }
             }
@@ -482,10 +482,10 @@ public class SuspendablesScanner extends Task {
     private void createGraph(InputStream classStream) throws IOException {
         final ClassReader cr = new ClassReader(classStream);
         ClassVisitor cv = null;
-        cv = new SuspendableClassifier(true, API, cv);
-        cv = new ClassNodeVisitor(true, API, cv);
+        cv = new SuspendableClassifier(true, ASMAPI, cv);
+        cv = new ClassNodeVisitor(true, ASMAPI, cv);
         if (auto)
-            cv = new CallGraphVisitor(true, API, cv);
+            cv = new CallGraphVisitor(true, ASMAPI, cv);
 
         cr.accept(cv, ClassReader.SKIP_DEBUG | (auto ? 0 : ClassReader.SKIP_CODE));
     }
@@ -605,7 +605,7 @@ public class SuspendablesScanner extends Task {
             if (node.supers == null) {
                 try (InputStream is = cl.getResourceAsStream(classToResource(node.name))) {
                     final ClassReader cr = new ClassReader(is);
-                    cr.accept(new ClassNodeVisitor(false, API, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
+                    cr.accept(new ClassNodeVisitor(false, ASMAPI, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
                     assert node.supers != null;
                 }
             }

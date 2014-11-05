@@ -45,6 +45,7 @@ import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED
 import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_ANNOTATION_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
+import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import java.util.ArrayList;
@@ -78,7 +79,7 @@ public class InstrumentClass extends ClassVisitor {
     private RuntimeException exception;
 
     public InstrumentClass(ClassVisitor cv, MethodDatabase db, boolean forceInstrumentation) {
-        super(Opcodes.ASM4, cv);
+        super(ASMAPI, cv);
         this.db = db;
         this.classifier = db.getClassifier();
         this.forceInstrumentation = forceInstrumentation;
@@ -154,7 +155,7 @@ public class InstrumentClass extends ClassVisitor {
 //                methods.add(mn);
 //                return mn; // this causes the mn to be initialized
 //            } else { // look for @Suspendable or @DontInstrument annotation
-            return new MethodVisitor(Opcodes.ASM4, mn) {
+            return new MethodVisitor(ASMAPI, mn) {
                 private SuspendableType susp = suspendable;
                 private boolean commited = false;
 
@@ -201,7 +202,7 @@ public class InstrumentClass extends ClassVisitor {
                     else {
                         MethodVisitor _mv = makeOutMV(mn);
                         _mv = new JSRInlinerAdapter(_mv, access, name, desc, signature, exceptions);
-                        mn.accept(new MethodVisitor(Opcodes.ASM4, _mv) {
+                        mn.accept(new MethodVisitor(ASMAPI, _mv) {
                             @Override
                             public void visitEnd() {
                                 // don't call visitEnd on MV
