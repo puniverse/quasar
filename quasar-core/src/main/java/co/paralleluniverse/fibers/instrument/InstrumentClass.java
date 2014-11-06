@@ -137,13 +137,6 @@ public class InstrumentClass extends ClassVisitor {
         final SuspendableType suspendable = max(markedSuspendable, setSuspendable, SuspendableType.NON_SUSPENDABLE);
 
         if (checkAccess(access) && !isYieldMethod(className, name)) {
-            if (isSynchronized(access)) {
-                if (!db.isAllowMonitors())
-                    throw new UnableToInstrumentException("synchronization", className, name, desc);
-                else
-                    db.log(LogLevel.WARNING, "Method %s#%s%s is synchronized", className, name, desc);
-            }
-
             if (methods == null)
                 methods = new ArrayList<MethodNode>();
             final MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
@@ -197,9 +190,15 @@ public class InstrumentClass extends ClassVisitor {
                         db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, setSuspendable);
                     classEntry.set(name, desc, susp);
 
-                    if (susp != SuspendableType.NON_SUSPENDABLE)
+                    if (susp != SuspendableType.NON_SUSPENDABLE) {
+                        if (isSynchronized(access)) {
+                            if (!db.isAllowMonitors())
+                                throw new UnableToInstrumentException("synchronization", className, name, desc);
+                            else
+                                db.log(LogLevel.WARNING, "Method %s#%s%s is synchronized", className, name, desc);
+                        }
                         methods.add(mn);
-                    else {
+                    } else {
                         MethodVisitor _mv = makeOutMV(mn);
                         _mv = new JSRInlinerAdapter(_mv, access, name, desc, signature, exceptions);
                         mn.accept(new MethodVisitor(ASMAPI, _mv) {
@@ -298,7 +297,7 @@ public class InstrumentClass extends ClassVisitor {
         final SuspendableType res = max(a, b);
         return res != null ? res : def;
     }
-    
+
     private static SuspendableType max(SuspendableType a, SuspendableType b) {
         if (a == null)
             return b;
