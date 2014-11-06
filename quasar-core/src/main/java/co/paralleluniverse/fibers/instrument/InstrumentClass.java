@@ -141,13 +141,7 @@ public class InstrumentClass extends ClassVisitor {
                 methods = new ArrayList<MethodNode>();
             final MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
 
-//            if (suspendable) {
-//                if (db.isDebug())
-//                    db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, suspendable, markedSuspendable, setSuspendable);
-//
-//                methods.add(mn);
-//                return mn; // this causes the mn to be initialized
-//            } else { // look for @Suspendable or @DontInstrument annotation
+            // look for @Suspendable or @DontInstrument annotation
             return new MethodVisitor(ASMAPI, mn) {
                 private SuspendableType susp = suspendable;
                 private boolean commited = false;
@@ -217,7 +211,7 @@ public class InstrumentClass extends ClassVisitor {
     }
 
     @Override
-    @SuppressWarnings("CallToThreadDumpStack")
+    @SuppressWarnings("CallToPrintStackTrace")
     public void visitEnd() {
         if (exception != null)
             throw exception;
@@ -271,7 +265,7 @@ public class InstrumentClass extends ClassVisitor {
     }
 
     private boolean hasAnnotation(MethodNode mn) {
-        List<AnnotationNode> ans = (List<AnnotationNode>) mn.visibleAnnotations;
+        final List<AnnotationNode> ans = mn.visibleAnnotations;
         if (ans == null)
             return false;
         for (AnnotationNode an : ans) {
@@ -310,7 +304,7 @@ public class InstrumentClass extends ClassVisitor {
         if (l.isEmpty())
             return null;
 
-        return l.toArray(new String[l.size()]);
+        return ((List<String>)l).toArray(new String[l.size()]);
     }
 //    
 //    private static boolean contains(String[] ifaces, String iface) {
