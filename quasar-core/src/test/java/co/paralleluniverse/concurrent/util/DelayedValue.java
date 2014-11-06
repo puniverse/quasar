@@ -25,7 +25,7 @@ public abstract class DelayedValue implements Delayed {
     public static DelayedValue instance(boolean sequenced, int value, long millis) {
         return sequenced ? new DelayedValue1(value, millis) : new DelayedValue2(value, millis);
     }
-    long time;
+    final long time;
     private final int value;
 
     DelayedValue(int value, long millis) {
@@ -40,6 +40,33 @@ public abstract class DelayedValue implements Delayed {
     @Override
     public long getDelay(TimeUnit unit) {
         return unit.convert(time - System.nanoTime(), TimeUnit.NANOSECONDS);
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 13 * hash + (int) (this.time ^ (this.time >>> 32));
+        hash = 13 * hash + this.value;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        final DelayedValue other = (DelayedValue) obj;
+        if (this.time != other.time)
+            return false;
+        if (this.value != other.value)
+            return false;
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "DelayedValue{" + "time=" + time + ", value=" + value + '}';
     }
 
     static class DelayedValue1 extends DelayedValue {

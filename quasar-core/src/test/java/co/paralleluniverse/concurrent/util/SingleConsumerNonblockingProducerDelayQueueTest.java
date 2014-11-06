@@ -59,11 +59,11 @@ public class SingleConsumerNonblockingProducerDelayQueueTest {
         dv = q.poll();
         assertThat(dv.getValue(), is(2));
 
-        Thread.sleep(20);
+        Thread.sleep(15);
         dv = q.poll();
         assertThat(dv, is(nullValue()));
 
-        Thread.sleep(30);
+        Thread.sleep(40);
         dv = q.poll();
         assertThat(dv.getValue(), is(3));
     }
