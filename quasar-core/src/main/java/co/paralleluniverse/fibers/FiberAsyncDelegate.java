@@ -15,15 +15,15 @@ package co.paralleluniverse.fibers;
 
 /**
  * Functional interface representing the concrete operation to be carried out by
- * {@link FiberAsyncWith#requestAsync} of some extension of {@link FiberAsyncWith}
+ * {@link FiberAsync#requestAsync} of some extension of {@link DelegatingFiberAsync}
  * 
  * @param <V>   The async API's result type
  * @param <E>   The async API's exception type
- * @param <FA>  An async API-compatible callback type implementing {@link FyberAsync}
+ * @param <FA>  An async API-compatible callback type
  *
  * @author circlespainter
  */
 // @FunctionalInterface // circlespainter: only available in JDK8+
-public interface FiberAsyncOp <V, E extends Throwable, FA extends FiberAsync<V, E>> {
+public interface FiberAsyncDelegate <V, E extends Throwable, FA> {
     void opAsync(FA fa);
 }

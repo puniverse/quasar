@@ -17,7 +17,7 @@ package co.paralleluniverse.fibers;
 
 /**
  * An extension of {@link FiberAsync} implementing {@link FiberAsync#requestAsync}
- * through a {@link FiberAsyncOp} functional interface instance. It will typically 
+ * through a {@link FiberAsyncDelegate} functional interface instance. It will typically 
  * be extended to implement an integration-specific callback interface as well.
  *
  * This is especially convenient in Java 8+ where lambdas are allowed as a sugar to
@@ -28,11 +28,11 @@ package co.paralleluniverse.fibers;
  * 
  * ```java
  * public class FiberMongoCallback{@literal <}T{@literal >}
- *     extends FiberAsyncWith{@literal <}T, MongoDbException, FiberMongoCallback{@literal <}T{@literal >}{@literal >}
+ *     extends DelegatingFiberAsync{@literal <}T, MongoDbException, FiberMongoCallback{@literal <}T{@literal >}{@literal >}
  *     implements Callback{@literal <}T{@literal >} {
  * 
  *     // It's a shame this can't be compiler-provided
- *     public FiberMongoCallback(FiberAsyncOp{@literal <}T, MongoDbException, FiberMongoCallback{@literal <}T{@literal >}{@literal >} op) {
+ *     public FiberMongoCallback(FiberAsyncDelegate{@literal <}T, MongoDbException, FiberMongoCallback{@literal <}T{@literal >}{@literal >} op) {
  *         super(op);
  *     }
  * 
@@ -57,6 +57,12 @@ package co.paralleluniverse.fibers;
  *     public void exception(Throwable failure) {
  *         asyncFailed(failure);
  *     }
+ * 
+ *     {@literal @]Override
+ *     protected void requestAsync() {
+ *        // Delegate to op
+ *        op.opAsync(this);
+ *    }
  * }
  * ```
  * 
@@ -68,12 +74,12 @@ package co.paralleluniverse.fibers;
  * 
  *```java
  *  private static final class FiberMongoCallbackForDocsIterator extends FiberMongoCallback{@literal <}MongoIterator{@literal <}Document{@literal >}{@literal >} {
- *      public FiberMongoCallbackForDocsIterator(FiberAsyncOp op) {
+ *      public FiberMongoCallbackForDocsIterator(FiberAsyncDelegate op) {
  *          super(op);
  *      }
  *  }
- *  private interface FiberAsyncOpForDocsIterator extends FiberAsyncOp{@literal <}MongoIterator{@literal <}Document{@literal >}, MongoDbException, FiberMongoCallbackForDocsIterator{@literal >} {}
- *  private static MongoIterator{@literal <}Document{@literal {@literal >}} await(FiberAsyncOpForDocsIterator a) { return new FiberMongoCallbackForDocsIterator(a).run(); }
+ *  private interface FiberAsyncDelegateForDocsIterator extends FiberAsyncDelegate{@literal <}MongoIterator{@literal <}Document{@literal >}, MongoDbException, FiberMongoCallbackForDocsIterator{@literal >} {}
+ *  private static MongoIterator{@literal <}Document{@literal {@literal >}} await(FiberAsyncDelegateForDocsIterator a) { return new FiberMongoCallbackForDocsIterator(a).run(); }
  *    
  *  {@literal @}Override
  *  {@literal @}Suspendable
@@ -90,7 +96,7 @@ package co.paralleluniverse.fibers;
  *  public MongoIterator{@literal <}Document> aggregate(final Aggregate command) throws MongoDbException {
  *      return
  *          new FiberMongoCallback{@literal <}{@literal >}{ (
- *              (FiberAsyncOp{@literal <}MongoIterator{@literal <}Document{@literal >}, MongoDbException, FiberMongoCallback{@literal <}MongoIterator{@literal <}Document{@literal >}{@literal >}{@literal >})
+ *              (FiberAsyncDelegate{@literal <}MongoIterator{@literal <}Document{@literal >}, MongoDbException, FiberMongoCallback{@literal <}MongoIterator{@literal <}Document{@literal >}{@literal >}{@literal >})
  *                  callback -> aggregateAsync(callback, command)
  *          ).run();
  *  }
@@ -98,36 +104,30 @@ package co.paralleluniverse.fibers;
  * 
  * @param <V>   The async API's result type
  * @param <E>   The async API's exception type
- * @param <FA>  An async API-compatible callback type implementing {@link FyberAsync} (often it will be the extention of this class itself)
+ * @param <FA>  An async API-compatible callback type (often it will be an extention of this very class)
  * 
  * @see FiberAsync
  * 
  * @author circlespainter
  */
-public class FiberAsyncWith <V, E extends Throwable, FA extends FiberAsync<V, E>> extends FiberAsync<V, E> {
-    private final FiberAsyncOp op;
+public abstract class DelegatingFiberAsync <V, E extends Throwable, FA> extends FiberAsync<V, E> {
+    protected final FiberAsyncDelegate op;
 
     /**
-     * Same as `FiberAsyncWith(op, false)`
+     * Same as `DelegatingFiberAsync(op, false)`
      * 
-     * @param op The {@link FiberAsyncOp} this instance will {@link FiberAsyncOp#run}
+     * @param op The {@link FiberAsyncDelegate} this instance will {@link FiberAsync#run}
      */
-    public FiberAsyncWith(FiberAsyncOp<V, E, FA> op) {
+    public DelegatingFiberAsync(FiberAsyncDelegate<V, E, FA> op) {
         this(op, false);
     }
 
     /**
-     * @param op            The {@link FiberAsyncOp} this instance will {@link FiberAsyncOp#run}
+     * @param op            The {@link FiberAsyncDelegate} for subclasses to call with an appropriate API callback when overriding {@link FiberAsync#requestAsync}
      * @param immediateExec See {@link FiberAsync#FiberAsync(boolean)}
      */
-    public FiberAsyncWith(FiberAsyncOp<V, E, FA> op, boolean immediateExec) {
+    public DelegatingFiberAsync(FiberAsyncDelegate<V, E, FA> op, boolean immediateExec) {
         super(immediateExec);
         this.op = op;
-    }
-
-    @Override
-    protected void requestAsync() {
-        // Delegate to op
-        op.opAsync(this);
     }
 }
