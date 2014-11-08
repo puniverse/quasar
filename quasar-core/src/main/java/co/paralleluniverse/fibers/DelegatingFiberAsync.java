@@ -104,13 +104,13 @@ package co.paralleluniverse.fibers;
  * 
  * @param <V>   The async API's result type
  * @param <E>   The async API's exception type
- * @param <FA>  An async API-compatible callback type (often it will be an extention of this very class)
+ * @param <C>   An async API-compatible callback type (often it will be an extention of this very class)
  * 
  * @see FiberAsync
  * 
  * @author circlespainter
  */
-public abstract class DelegatingFiberAsync <V, E extends Throwable, FA> extends FiberAsync<V, E> {
+public abstract class DelegatingFiberAsync <V, E extends Throwable, C> extends FiberAsync<V, E> {
     protected final FiberAsyncDelegate op;
 
     /**
@@ -118,7 +118,7 @@ public abstract class DelegatingFiberAsync <V, E extends Throwable, FA> extends 
      * 
      * @param op The {@link FiberAsyncDelegate} this instance will {@link FiberAsync#run}
      */
-    public DelegatingFiberAsync(FiberAsyncDelegate<V, E, FA> op) {
+    public DelegatingFiberAsync(FiberAsyncDelegate<V, E, C> op) {
         this(op, false);
     }
 
@@ -126,7 +126,7 @@ public abstract class DelegatingFiberAsync <V, E extends Throwable, FA> extends 
      * @param op            The {@link FiberAsyncDelegate} for subclasses to call with an appropriate API callback when overriding {@link FiberAsync#requestAsync}
      * @param immediateExec See {@link FiberAsync#FiberAsync(boolean)}
      */
-    public DelegatingFiberAsync(FiberAsyncDelegate<V, E, FA> op, boolean immediateExec) {
+    public DelegatingFiberAsync(FiberAsyncDelegate<V, E, C> op, boolean immediateExec) {
         super(immediateExec);
         this.op = op;
     }
