@@ -386,7 +386,8 @@ project (':quasar-galaxy') {
         }
 
         testCompile ('org.gridkit.lab:telecontrol-ssh:0.7.24'){
-            exclude group: "org.ow2.asm", module: '*'
+            exclude group: 'org.ow2.asm', module: '*'
+            exclude group: 'org.slf4j', module: '*'
         }
         testCompile group: 'junit', name: 'junit', version: '4.11'
         testRuntime files(jar.archivePath)
