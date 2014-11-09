@@ -77,6 +77,11 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         }
     }
 
+    // isolate subclasses from FJTask class (JDK7/8)
+    public final void fork1() {
+        fork();
+    }
+
     static void setCurrent(ParkableForkJoinTask<?> task) {
         setTarget(Thread.currentThread(), task != null ? task.taskRef : null);
     }
