@@ -1046,7 +1046,7 @@ For examples of using Quasar, you can take a look at Quasar's test suite.
 
 ### Distributed Examples
 
-There are a few examples of distributed actors in the [example package](https://github.com/puniverse/quasar/tree/master/quasar-galaxy/src/main/java/co/paralleluniverse/galaxy/example).
+There are a few examples of distributed actors in the [example package](https://github.com/puniverse/quasar/tree/master/quasar-galaxy/src/test/java/co/paralleluniverse/galaxy/example).
 You can run them after cloning the repository.
 
 In order to run the ping pong example, start the Pong actor by:
