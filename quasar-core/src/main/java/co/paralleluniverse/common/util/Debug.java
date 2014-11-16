@@ -106,11 +106,33 @@ public class Debug {
         return flightRecorder;
     }
 
-    @SuppressWarnings("CallToThreadDumpStack")
+    public static void exit() {
+        exit(0, null, null);
+    }
+
     public static void exit(int code) {
+        exit(code, null, null);
+    }
+
+    public static void exit(int code, String filename) {
+        exit(code, null, filename);
+    }
+
+    public static void exit(Throwable t, String filename) {
+        exit(1, t, filename);
+    }
+
+    public static void exit(Throwable t) {
+        exit(1, t, null);
+    }
+
+    @SuppressWarnings("CallToThreadDumpStack")
+    public static void exit(int code, Throwable t, String filename) {
         final Strand currentStrand = Strand.currentStrand();
         if (flightRecorder != null) {
             flightRecorder.record(1, "DEBUG EXIT REQUEST ON STRAND " + currentStrand + ": " + Arrays.toString(currentStrand.getStackTrace()));
+            if(t != null)
+                flightRecorder.record(1, "CAUSED BY " + t + ": " + Arrays.toString(currentStrand.getStackTrace()));
             flightRecorder.stop();
         }
 
@@ -119,10 +141,14 @@ public class Debug {
                     + (currentStrand.isFiber() ? " (THREAD " + Thread.currentThread() + ")" : "")
                     + ": SHUTTING DOWN THE JVM.");
             Thread.dumpStack();
+            if(t != null) {
+                System.err.println("CAUSED BY " + t);
+                t.printStackTrace();
+            }
             if (!isUnitTest()) // Calling System.exit() in gradle unit tests breaks gradle
                 System.exit(code);
             else
-                dumpRecorder();
+                dumpRecorder(filename);
         }
     }
 
@@ -154,6 +180,8 @@ public class Debug {
     }
 
     public static void dumpRecorder(String filename) {
+        if (filename == null)
+            dumpRecorder();
         if (flightRecorder != null)
             flightRecorder.dump(filename);
     }
