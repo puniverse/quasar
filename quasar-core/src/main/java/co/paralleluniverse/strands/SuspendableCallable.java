@@ -17,7 +17,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 
 /**
  * This interface can represent any operation that may suspend the currently executing {@link Strand} (i.e. thread or fiber).
- * Unlike {@link SuspendableCallable}, the operation represented by this interface returns a result. 
+ * Unlike {@link SuspendableRunnable}, the operation represented by this interface returns a result.
  * This is just like a {@link java.util.concurrent.Callable}, only suspendable.
  * 
  * @author pron
