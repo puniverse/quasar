@@ -205,7 +205,6 @@ public class InstrumentClass extends ClassVisitor {
                     }
                 }
             };
-//            }
         }
         return super.visitMethod(access, name, desc, signature, exceptions);
     }
