@@ -976,7 +976,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (FiberForkJoinScheduler.isFiberThread(currentThread))
             return FiberForkJoinScheduler.getTargetFiber(currentThread);
         else {
-            Strand s = currentStrand.get();
+            final Strand s = currentStrand.get();
             return s instanceof Fiber ? (Fiber) s : null;
         }
     }
@@ -1571,14 +1571,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private static Fiber verifyCurrent() {
         Fiber current = currentFiber();
         if (current == null) {
-            Stack stack = Stack.getStack();
+            final Stack stack = Stack.getStack();
             if (stack != null) {
                 current = stack.getFiber();
                 if (!current.getStackTrace)
                     throw new AssertionError();
                 return current;
             }
-            throw new IllegalStateException("Not called from withing a Fiber");
+            throw new IllegalStateException("Not called on a fiber (current strand: " + Strand.currentStrand() + ")");
         }
         return current;
     }
