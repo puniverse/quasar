@@ -311,6 +311,14 @@ public class Debug {
         return null;
     }
 
+    public static String whereIs(String className) {
+        return whereIs(findClass(className));
+    }
+
+    public static String whereIs(Class<?> clazz) {
+        return clazz != null ? clazz.getClassLoader().getResource(clazz.getName().replace('.', '/') + ".class").toString() : null;
+    }
+
     private static Class findClass(String className) {
         try {
             return Thread.currentThread().getContextClassLoader().loadClass(className);
