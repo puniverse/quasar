@@ -44,6 +44,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -118,9 +119,13 @@ public class SuspendablesScanner extends Task {
     }
 
     void setURLs(List<URL> urls) {
-        this.urls = urls.toArray(new URL[0]);
+        this.urls = unique(urls).toArray(new URL[0]);
         this.cl = new URLClassLoader(this.urls);
         this.ssc = new SimpleSuspendableClassifier(cl);
+    }
+    
+    private static <T> List<T> unique(List<T> list) {
+        return new ArrayList<T>(new LinkedHashSet<T>(list));
     }
 
     @Override
@@ -185,6 +190,7 @@ public class SuspendablesScanner extends Task {
 
             // scan classes in filesets
             Function<InputStream, Void> fileVisitor = new Function<InputStream, Void>() {
+                @Override
                 public Void apply(InputStream is1) {
                     try (InputStream is = is1) {
                         createGraph(is);
@@ -221,6 +227,9 @@ public class SuspendablesScanner extends Task {
                     try (InputStream is = cl.getResourceAsStream(resource)) { // cl.getResourceAsStream(resource)
                         new ClassReader(is) // cl.getResourceAsStream(resource)
                                 .accept(new SuspendableClassifier(false, ASMAPI, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
+                    } catch(Exception e) {
+                        System.err.println("Exception thrown during processing of " + resource + " at " + url);
+                        throw e;
                     }
                 }
             }
