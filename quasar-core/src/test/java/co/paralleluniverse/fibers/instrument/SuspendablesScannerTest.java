@@ -83,13 +83,6 @@ public class SuspendablesScannerTest {
         assertTrue(suspependableSupers.contains(method));
     }
 
-    @Test
-    public void suspendableFileByAntTaskTest() {
-        String suspFile = SuspendablesScannerTest.class.getClassLoader().getResource("META-INF/testSuspendables").getFile();
-        SimpleSuspendableClassifier ssc = new SimpleSuspendableClassifier(suspFile);
-        assertTrue(ssc.isSuspendable(B.class.getName().replace(".", "/"), "foo", "(I)V"));
-    }
-
     static interface IA {
         // super suspendable
         void foo(int t);
