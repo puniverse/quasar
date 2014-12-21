@@ -215,7 +215,7 @@ public class SuspendablesScanner extends Task {
         ClassLoaderUtil.accept(cl, new ClassLoaderUtil.Visitor() {
             @Override
             public void visit(String resource, URL url, ClassLoader cl) throws IOException {
-                if (resource.startsWith("java/util") || resource.startsWith("java/lang"))
+                if (resource.startsWith("java/util") || resource.startsWith("java/lang") || resource.startsWith("co/paralleluniverse/asm"))
                     return;
                 if (isClassFile(url.getFile())) {
                     try (InputStream is = cl.getResourceAsStream(resource)) { // cl.getResourceAsStream(resource)

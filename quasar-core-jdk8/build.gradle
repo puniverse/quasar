@@ -1,4 +1,5 @@
 apply plugin: 'java'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
@@ -36,11 +37,11 @@ compileJava {
             fileset(dir: sourceSets.main.output.classesDir)
         }
         
-//        ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.OldSuspendablesScanner', classpath: "build/classes/main:" + configurations.compile.asPath)
-//        ant.scanSuspendables(outputFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
-//            fileset(dir: project(':quasar-core').sourceSets.main.output.classesDir)
-//            fileset(dir: sourceSets.main.output.classesDir)
-//        }
+        //        ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.OldSuspendablesScanner', classpath: "build/classes/main:" + configurations.compile.asPath)
+        //        ant.scanSuspendables(outputFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
+        //            fileset(dir: project(':quasar-core').sourceSets.main.output.classesDir)
+        //            fileset(dir: sourceSets.main.output.classesDir)
+        //        }
             
         ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/resources/main:" + "build/classes/main:" + configurations.compile.asPath)
         ant.instrumentation(verbose:'true', check:'true', debug:'true') {
@@ -84,6 +85,42 @@ jar {
     }
 }
 
+shadowJar {
+    outputs.upToDateWhen { false }
+        
+    // artifactAttached = false
+    baseName = 'quasar-core'
+    classifier = 'jdk8-shadow'
+    destinationDir = file("$buildDir/libs")
+
+    from(project(':quasar-core').sourceSets.main.output.classesDir) {
+        exclude fileTree(project.sourceSets.main.output.classesDir).collect { it.path - "${project.sourceSets.main.output.classesDir.path}/" }
+    }
+    from(project(':quasar-core').sourceSets.main.resources.srcDirs) {
+        exclude fileTree(project.sourceSets.main.resources.srcDirs.iterator().next()).collect { it.path - "${project.sourceSets.main.resources.srcDirs.path}/" }
+    }
+    from project.sourceSets.main.output.classesDir
+    from project.sourceSets.main.resources
+    
+    dependencies {
+        include(dependency('org.ow2.asm:.*:.*'))
+        include(dependency(':high-scale-lib'))
+        include(dependency(':HdrHistogram'))
+    }
+
+    relocate 'org.objectweb.asm.', 'co.paralleluniverse.asm.'
+        
+    doLast {
+        logger.info("$buildDir/libs/${project.name}-${project.version}-${classifier}.jar -> $buildDir/libs/${project.name}-${project.version}-${jar.classifier}.jar")
+        file("$buildDir/libs/${project.name}-${version}-${classifier}.jar").renameTo(file("$buildDir/libs/${project.name}-${project.version}-${jar.classifier}.jar"))
+    }
+}
+    
+shadowJar.dependsOn jar
+build.dependsOn shadowJar
+install.dependsOn shadowJar
+signArchives.dependsOn shadowJar
+uploadArchives.dependsOn shadowJar
     
 uploadArchives.enabled = false
 

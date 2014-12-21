@@ -1,3 +1,14 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.0'
+        classpath 'net.saliman:gradle-cobertura-plugin:2.2.4'
+    }
+}
+
 subprojects {
     apply plugin: 'java'
 
@@ -23,6 +34,8 @@ subprojects {
     ext.baselib         = "${rootProject.projectDir}/baselib"
     ext.quasarJar       = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}.jar" // project(':quasar-core').jar.archivePath
 
+    ext.asmVer = '5.0.3'
+    
     if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
         println "sonatype username or password not set"
         ext.sonatypeUsername = ""
@@ -73,6 +86,7 @@ subprojects {
         testCompile("org.mockito:mockito-all:1.10.8") {
             exclude group: "org.ow2.asm", module: '*'
         }
+        testCompile "org.ow2.asm:asm:$asmVer"
         testCompile 'org.openjdk.jmh:jmh-core:1.3'
         testCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.3'
         compileOnly 'org.kohsuke.metainf-services:metainf-services:1.5'
@@ -107,7 +121,7 @@ subprojects {
                 fileset(dir: sourceSets.main.output.classesDir)
             }
 
-            ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/resources/main:" + "build/classes/main:" + configurations.compile.asPath)
+            ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/resources/main:build/classes/main:" + configurations.compile.asPath)
             ant.instrumentation(verbose:'true', check:'true', debug:'true') {
                 fileset(dir: sourceSets.main.output.classesDir) {
                     exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
@@ -291,14 +305,16 @@ subprojects {
 }
 
 project (':quasar-core') {
+    apply plugin: 'com.github.johnrengelman.shadow'
+    
     dependencies {
         compile ":jsr166e"
         compile ":high-scale-lib"
         compile ":HdrHistogram"
-        compile "org.ow2.asm:asm:5.0.3"
-        compile "org.ow2.asm:asm-analysis:5.0.3"
-        compile "org.ow2.asm:asm-commons:5.0.3"
-        compile "org.ow2.asm:asm-util:5.0.3"
+        compile "org.ow2.asm:asm:$asmVer"
+        compile "org.ow2.asm:asm-analysis:$asmVer"
+        compile "org.ow2.asm:asm-commons:$asmVer"
+        compile "org.ow2.asm:asm-util:$asmVer"
         compile "com.lmax:disruptor:3.3.0"
         compile("com.esotericsoftware.kryo:kryo:2.24.0") {
             exclude group: "org.ow2.asm", module: '*'
@@ -342,6 +358,34 @@ project (':quasar-core') {
             )
         }
     }
+    
+    shadowJar {
+        outputs.upToDateWhen { false }
+        
+        // artifactAttached = false
+        classifier = 'shadow'
+        destinationDir = file("$buildDir/libs")
+
+        dependencies {
+            include(dependency('org.ow2.asm:.*:.*'))
+            include(dependency(':jsr166e'))
+            include(dependency(':high-scale-lib'))
+            include(dependency(':HdrHistogram'))
+        }
+
+        relocate 'org.objectweb.asm.', 'co.paralleluniverse.asm.'
+        
+        doLast {
+            logger.info("$buildDir/libs/${project.name}-${project.version}-${classifier}.jar -> $buildDir/libs/${project.name}-${project.version}.jar")
+            file("$buildDir/libs/${project.name}-${version}-${classifier}.jar").renameTo(file("$buildDir/libs/${project.name}-${project.version}.jar"))
+        }
+    }
+    
+    shadowJar.dependsOn jar
+    build.dependsOn shadowJar
+    install.dependsOn shadowJar
+    signArchives.dependsOn shadowJar
+    uploadArchives.dependsOn shadowJar
 
     if (System.properties['java.version'].startsWith('1.8') ) {
         artifacts {

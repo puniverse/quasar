@@ -80,15 +80,20 @@ public final class QuasarInstrumentor {
 
     public byte[] instrumentClass(String className, byte[] data) {
         className = className.replace('.', '/');
-        return shouldInstrument(className) ? instrumentClass(className, new ClassReader(data)) : data;
+        return shouldInstrument(className) ? instrumentClass(className, new ClassReader(data), false) : data;
     }
 
     public byte[] instrumentClass(String className, InputStream is) throws IOException {
         className = className.replace('.', '/');
-        return instrumentClass(className, new ClassReader(is));
+        return instrumentClass(className, new ClassReader(is), false);
     }
 
-    private byte[] instrumentClass(String className, ClassReader r) {
+    byte[] instrumentClass(String className, InputStream is, boolean forceInstrumentation) throws IOException {
+        className = className.replace('.', '/');
+        return instrumentClass(className, new ClassReader(is), forceInstrumentation);
+    }
+
+    private byte[] instrumentClass(String className, ClassReader r, boolean forceInstrumentation) {
         log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
         final ClassWriter cw = new DBClassWriter(db, r);
         ClassVisitor cv = (check && EXAMINED_CLASS == null) ? new CheckClassAdapter(cw) : cw;
@@ -96,7 +101,7 @@ public final class QuasarInstrumentor {
         if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS))
             cv = new TraceClassVisitor(cv, new PrintWriter(System.out));
 
-        final InstrumentClass ic = new InstrumentClass(cv, db, false);
+        final InstrumentClass ic = new InstrumentClass(cv, db, forceInstrumentation);
         byte[] transformed = null;
         try {
             r.accept(ic, ClassReader.SKIP_FRAMES);

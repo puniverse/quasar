@@ -36,12 +36,10 @@ import java.util.HashSet;
 import java.util.Locale;
 import static org.junit.Assert.*;
 import org.junit.Test;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
 
 /**
  * Test to checking blocking call detection
- * 
+ *
  * @author Matthias Mann
  */
 @Instrumented
@@ -51,46 +49,42 @@ public class BlockingTest {
     public void testSuspend() throws IOException {
         final String className = BlockingTest.class.getName().replace('.', '/');
         final HashSet<String> msgs = new HashSet<String>();
-        msgs.add("Method "+className+"#t_wait()V contains potentially blocking call to java/lang/Object#wait()V");
-        msgs.add("Method "+className+"#t_sleep1()V contains potentially blocking call to java/lang/Thread#sleep(J)V");
-        msgs.add("Method "+className+"#t_sleep2()V contains potentially blocking call to java/lang/Thread#sleep(JI)V");
-        msgs.add("Method "+className+"#t_join1(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join()V");
-        msgs.add("Method "+className+"#t_join2(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(J)V");
-        msgs.add("Method "+className+"#t_join3(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(JI)V");
-        
-        MethodDatabase db = new MethodDatabase(BlockingTest.class.getClassLoader(), new DefaultSuspendableClassifier(BlockingTest.class.getClassLoader()));
+        msgs.add("Method " + className + "#t_wait()V contains potentially blocking call to java/lang/Object#wait()V");
+        msgs.add("Method " + className + "#t_sleep1()V contains potentially blocking call to java/lang/Thread#sleep(J)V");
+        msgs.add("Method " + className + "#t_sleep2()V contains potentially blocking call to java/lang/Thread#sleep(JI)V");
+        msgs.add("Method " + className + "#t_join1(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join()V");
+        msgs.add("Method " + className + "#t_join2(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(J)V");
+        msgs.add("Method " + className + "#t_join3(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(JI)V");
+
+        final QuasarInstrumentor instrumentor = new QuasarInstrumentor(BlockingTest.class.getClassLoader());
+        final MethodDatabase db = instrumentor.getMethodDatabase();
         db.setAllowBlocking(true);
         db.setLog(new Log() {
             public void log(LogLevel level, String msg, Object... args) {
-                if(level == LogLevel.WARNING) {
+                if (level == LogLevel.WARNING) {
                     msg = String.format(Locale.ENGLISH, msg, args);
                     assertTrue("Unexpected message: " + msg, msgs.remove(msg));
                 }
             }
+
             public void error(String msg, Exception ex) {
                 throw new Error(msg, ex);
             }
         });
-        
-        InputStream in = BlockingTest.class.getResourceAsStream("BlockingTest.class");
-        try {
-            ClassReader r = new ClassReader(in);
-            ClassWriter cw = new ClassWriter(0);
-            InstrumentClass ic = new InstrumentClass(cw, db, true);
-            r.accept(ic, ClassReader.SKIP_FRAMES);
-        } finally {
-            in.close();
+
+        try (InputStream in = BlockingTest.class.getResourceAsStream("BlockingTest.class")) {
+            instrumentor.instrumentClass(BlockingTest.class.getName(), in, true);
         }
-        
-        assertTrue("Expected messages not generated: "+msgs.toString(), msgs.isEmpty());
+
+        assertTrue("Expected messages not generated: " + msgs.toString(), msgs.isEmpty());
     }
-    
+
     public void t_wait() throws SuspendExecution, InterruptedException {
         synchronized (this) {
             wait();
         }
     }
-    
+
     public void t_notify() throws SuspendExecution {
         synchronized (this) {
             notify();
@@ -116,7 +110,7 @@ public class BlockingTest {
     public void t_join3(Thread t) throws SuspendExecution, InterruptedException {
         t.join(1, 100);
     }
-    
+
     public void t_lock3() throws SuspendExecution {
         lock();
     }
