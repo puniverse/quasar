@@ -95,7 +95,7 @@ import org.objectweb.asm.Opcodes;
  * @author Matthias Mann
  */
 public class JavaAgent {
-    private static volatile boolean active;
+    private static volatile boolean ACTIVE;
     private static final Set<WeakReference<ClassLoader>> classLoaders = Collections.newSetFromMap(MapUtil.<WeakReference<ClassLoader>, Boolean>newConcurrentHashMap());
 
     public static void premain(String agentArguments, Instrumentation instrumentation) {
@@ -104,7 +104,7 @@ public class JavaAgent {
 
         final ClassLoader cl = Thread.currentThread().getContextClassLoader();
         final QuasarInstrumentor instrumentor = new QuasarInstrumentor(false, cl, new DefaultSuspendableClassifier(cl));
-        active = true;
+        ACTIVE = true;
         SuspendableHelper.javaAgent = true;
 
         if (agentArguments != null) {
@@ -161,7 +161,7 @@ public class JavaAgent {
     }
 
     public static boolean isActive() {
-        return active;
+        return ACTIVE;
     }
 
     private static class Transformer implements ClassFileTransformer {
