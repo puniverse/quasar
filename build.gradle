@@ -417,7 +417,6 @@ project (':quasar-galaxy') {
             exclude group: 'org.ow2.asm', module: '*'
             exclude group: 'org.slf4j', module: '*'
         }
-        testCompile group: 'junit', name: 'junit', version: '4.11'
         testRuntime files(jar.archivePath)
     }
 
