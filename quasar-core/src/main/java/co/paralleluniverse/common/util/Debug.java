@@ -18,6 +18,7 @@ import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -131,7 +132,7 @@ public class Debug {
         final Strand currentStrand = Strand.currentStrand();
         if (flightRecorder != null) {
             flightRecorder.record(1, "DEBUG EXIT REQUEST ON STRAND " + currentStrand + ": " + Arrays.toString(currentStrand.getStackTrace()));
-            if(t != null)
+            if (t != null)
                 flightRecorder.record(1, "CAUSED BY " + t + ": " + Arrays.toString(currentStrand.getStackTrace()));
             flightRecorder.stop();
         }
@@ -141,7 +142,7 @@ public class Debug {
                     + (currentStrand.isFiber() ? " (THREAD " + Thread.currentThread() + ")" : "")
                     + ": SHUTTING DOWN THE JVM.");
             Thread.dumpStack();
-            if(t != null) {
+            if (t != null) {
                 System.err.println("CAUSED BY " + t);
                 t.printStackTrace();
             }
@@ -329,6 +330,26 @@ public class Debug {
         } catch (ClassNotFoundException e) {
         }
         return null;
+    }
+
+    public static String getClassLoaderInfo(ClassLoader cl) {
+        final StringBuilder sb = new StringBuilder();
+        int indent = 0;
+        while (cl != null) {
+            indent(sb, indent).append(cl.toString()).append('\n');
+            if (cl instanceof URLClassLoader)
+                indent(sb, indent).append("URLS: ").append(Arrays.toString(((URLClassLoader) cl).getURLs())).append('\n');
+            cl = cl.getParent();
+            indent += 4;
+        }
+
+        return sb.toString();
+    }
+
+    private static StringBuilder indent(StringBuilder sb, int indent) {
+        for (int i = 0; i < indent; i++)
+            sb.append(' ');
+        return sb;
     }
 
     private Debug() {
