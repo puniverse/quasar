@@ -104,7 +104,6 @@ public class JavaAgent {
 
         final ClassLoader cl = Thread.currentThread().getContextClassLoader();
         final QuasarInstrumentor instrumentor = new QuasarInstrumentor(false, cl, new DefaultSuspendableClassifier(cl));
-        boolean checkArg = false;
         active = true;
         SuspendableHelper.javaAgent = true;
 
@@ -124,7 +123,7 @@ public class JavaAgent {
                         break;
 
                     case 'c':
-                        checkArg = true;
+                        instrumentor.setCheck(true);
                         break;
 
                     case 'b':
