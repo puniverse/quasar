@@ -338,7 +338,7 @@ public class Debug {
         while (cl != null) {
             indent(sb, indent).append(cl.toString()).append('\n');
             if (cl instanceof URLClassLoader)
-                indent(sb, indent).append("URLS: ").append(Arrays.toString(((URLClassLoader) cl).getURLs())).append('\n');
+                indent(sb, indent).append("URLs: ").append(Arrays.toString(((URLClassLoader) cl).getURLs())).append('\n');
             cl = cl.getParent();
             indent += 4;
         }
