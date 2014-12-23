@@ -111,8 +111,8 @@ shadowJar {
     relocate 'org.objectweb.asm.', 'co.paralleluniverse.asm.'
         
     doLast {
-        logger.info("$buildDir/libs/${project.name}-${project.version}-${classifier}.jar -> $buildDir/libs/${project.name}-${project.version}-${jar.classifier}.jar")
-        file("$buildDir/libs/${project.name}-${version}-${classifier}.jar").renameTo(file("$buildDir/libs/${project.name}-${project.version}-${jar.classifier}.jar"))
+        logger.info("$buildDir/libs/${baseName}-${project.version}-${classifier}.jar -> $buildDir/libs/${baseName}-${project.version}-${jar.classifier}.jar")
+        file("$buildDir/libs/${baseName}-${project.version}-${classifier}.jar").renameTo(file("$buildDir/libs/${baseName}-${project.version}-${jar.classifier}.jar"))
     }
 }
     
