@@ -377,7 +377,6 @@ project (':quasar-core') {
             archives project(':quasar-core-jdk8').jar
             archives sourcesJar
             archives javadocJar
-            //    archives distZip
         }
 
         uploadArchives.dependsOn ':quasar-core-jdk8:jar'
