@@ -262,14 +262,6 @@ subprojects {
                     // User and Password are taken from ~/.gradle/gradle.properties
                     authentication(userName: project.sonatypeUsername, password: project.sonatypePassword)
                 }
-                pom.whenConfigured {
-                    it.dependencies.removeAll { dep ->
-                        dep.artifactId.startsWith('jsr166e') ||
-                        dep.artifactId.startsWith('high-scale-lib') ||
-                        dep.artifactId.startsWith('HdrHistogram') ||
-                        (dep.groupId == 'co.paralleluniverse' && dep.artifactId.startsWith('quasar-core'))
-                    }
-                }
                 pom.project {
                     name project.name
                     packaging 'jar'
@@ -371,6 +363,19 @@ project (':quasar-core') {
     signArchives.dependsOn shadowJar
     uploadArchives.dependsOn shadowJar
 
+    def installer = install.repositories.mavenInstaller
+    def deployer = uploadArchives.repositories.mavenDeployer
+
+    [installer, deployer]*.pom*.whenConfigured {
+        it.dependencies.removeAll { dep ->
+            dep.artifactId.startsWith('jsr166e') ||
+            dep.artifactId.startsWith('high-scale-lib') ||
+            dep.artifactId.startsWith('HdrHistogram') ||
+            dep.groupId == 'org.ow2.asm' ||
+            (dep.groupId == 'co.paralleluniverse' && dep.artifactId.startsWith('quasar-core'))
+        }
+    }
+    
     if (System.properties['java.version'].startsWith('1.8') ) {
         artifacts {
             archives jar
