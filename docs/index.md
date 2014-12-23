@@ -31,6 +31,10 @@ A core component of Quasar, bytecode instrumentation, is a fork of the wonderful
 
 ## News
 
+### December 23, 2014
+
+Quasar [0.6.2](https://github.com/puniverse/quasar/releases/tag/v0.6.2) has been released.
+
 ### September 23, 2014
 
 Quasar [0.6.1](https://github.com/puniverse/quasar/releases/tag/v0.6.1) has been released.
