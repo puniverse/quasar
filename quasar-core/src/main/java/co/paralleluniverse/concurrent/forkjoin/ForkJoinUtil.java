@@ -12,11 +12,11 @@
  */
 package co.paralleluniverse.concurrent.forkjoin;
 
-import jsr166e.ForkJoinPool;
+import java.util.concurrent.ExecutorService;
 import jsr166e.ForkJoinTask;
 
 public final class ForkJoinUtil {
-    public static ForkJoinPool getPool() {
+    public static ExecutorService getPool() {
         return ForkJoinTask.getPool();
     }
 
