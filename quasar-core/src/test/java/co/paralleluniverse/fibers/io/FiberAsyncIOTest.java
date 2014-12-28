@@ -152,7 +152,7 @@ public class FiberAsyncIOTest {
         });
 
         server.start();
-        Thread.sleep(100);
+        Thread.sleep(1000);
         client.start();
 
         client.join();
