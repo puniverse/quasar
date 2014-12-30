@@ -23,6 +23,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  *
@@ -37,8 +40,10 @@ public class Debug {
     private static final boolean unitTest;
     private static final boolean ci;
     private static final boolean debugger;
-    private static final AtomicBoolean requestShutdown = new AtomicBoolean(false);
-    private static final AtomicBoolean fileDumped = new AtomicBoolean(false);
+    private static final AtomicBoolean requestShutdown = new AtomicBoolean();
+    private static final Lock dumpLock = new ReentrantLock();
+    private static final Condition dumpDone = dumpLock.newCondition();
+    private static boolean dumped;
 
     static {
         boolean ea = false;
@@ -62,8 +67,7 @@ public class Debug {
             Runtime.getRuntime().addShutdownHook(new Thread() {
                 @Override
                 public void run() {
-                    if (requestShutdown.get())
-                        dumpRecorder();
+                    dumpRecorder();
                 }
             });
         }
@@ -146,10 +150,9 @@ public class Debug {
                 System.err.println("CAUSED BY " + t);
                 t.printStackTrace();
             }
+            dumpRecorder(filename);
             if (!isUnitTest()) // Calling System.exit() in gradle unit tests breaks gradle
                 System.exit(code);
-            else
-                dumpRecorder(filename);
         }
     }
 
@@ -173,18 +176,33 @@ public class Debug {
         if (isDebug()) {
             final String fileName = getDumpFile();
             if (fileName != null && !fileName.trim().equals("")) {
-                if (fileDumped.compareAndSet(false, true))
-                    dumpRecorder(fileName);
+
+                dumpRecorder(fileName);
             } else
                 System.err.println("NO ERROR LOG FILE SPECIFIED.");
         }
     }
 
     public static void dumpRecorder(String filename) {
-        if (filename == null)
-            dumpRecorder();
-        if (flightRecorder != null)
-            flightRecorder.dump(filename);
+        dumpLock.lock();
+        try {
+            if (!dumped) {
+                if (filename == null)
+                    dumpRecorder();
+                if (flightRecorder != null)
+                    flightRecorder.dump(filename);
+                dumped = true;
+                dumpDone.signalAll();
+            } else {
+                while (!dumped)
+                    dumpDone.await();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            dumpLock.unlock();
+        }
+
     }
 
     public static void dumpAfter(final long millis) {
