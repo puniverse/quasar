@@ -178,8 +178,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
         throw new InterruptedException();
     }
 
-    @Override
-    public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    protected Message receiveInternal(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         if (receiveClosed)
             return null;
 
@@ -193,8 +192,13 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
     }
 
     @Override
+    public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        return receiveInternal(timeout, unit);
+    }
+    
+    @Override
     public Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
-        return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
+        return receiveInternal(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     boolean isSendClosed() {
