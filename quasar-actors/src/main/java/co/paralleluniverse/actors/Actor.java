@@ -1179,7 +1179,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     public final ActorMonitor monitor() {
         if (monitor != null)
             return monitor;
-        final String name = getName().toString().replaceAll(":", "");
+        final String name = getName().replaceAll(":", "");
         this.monitor = new JMXActorMonitor(name);
         monitor.setActor(ref);
         return monitor;
