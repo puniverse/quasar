@@ -17,7 +17,7 @@ package co.paralleluniverse.fibers;
 import co.paralleluniverse.strands.SuspendableCallable;
 
 /**
- * Created new {@link Fiber fibers} on demand.
+ * Creates new {@link Fiber fibers} on demand.
  */
 public interface FiberFactory {
     <T> Fiber<T> newFiber(SuspendableCallable<T> target);
