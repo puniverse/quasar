@@ -53,7 +53,7 @@ class NewValue extends BasicValue {
     String formatInsn() {
         switch (insn.getOpcode()) {
             case Opcodes.NEW:
-                return "NEW " + ((TypeInsnNode)insn).desc;
+                return "NEW " + ((TypeInsnNode) insn).desc;
             case Opcodes.DUP:
                 return "DUP";
             default:
