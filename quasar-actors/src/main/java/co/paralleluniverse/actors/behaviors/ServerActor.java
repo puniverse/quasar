@@ -17,9 +17,11 @@ import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.behaviors.Server.ServerRequest;
+import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.StrandFactory;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,8 +76,13 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
     }
 
     @Override
-    public Server<CallMessage, V, CastMessage> spawn(FiberScheduler scheduler) {
-        return (Server<CallMessage, V, CastMessage>) super.spawn(scheduler);
+    public Server<CallMessage, V, CastMessage> spawn(StrandFactory sf) {
+        return (Server<CallMessage, V, CastMessage>) super.spawn(sf);
+    }
+
+    @Override
+    public Server<CallMessage, V, CastMessage> spawn(FiberFactory ff) {
+        return (Server<CallMessage, V, CastMessage>) super.spawn(ff);
     }
 
     @Override

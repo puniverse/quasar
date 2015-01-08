@@ -30,9 +30,11 @@ import co.paralleluniverse.actors.behaviors.Supervisor.GetChildMessage;
 import co.paralleluniverse.actors.behaviors.Supervisor.RemoveChildMessage;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.StrandFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -127,8 +129,13 @@ public class SupervisorActor extends BehaviorActor {
     }
 
     @Override
-    public Supervisor spawn(FiberScheduler scheduler) {
-        return (Supervisor) super.spawn(scheduler);
+    public Supervisor spawn(StrandFactory sf) {
+        return (Supervisor) super.spawn(sf);
+    }
+
+    @Override
+    public Supervisor spawn(FiberFactory ff) {
+        return (Supervisor) super.spawn(ff);
     }
 
     @Override
@@ -328,7 +335,7 @@ public class SupervisorActor extends BehaviorActor {
                     reply(req, addChild(((AddChildMessage) req).spec));
                 } else if (req instanceof RemoveChildMessage) {
                     final RemoveChildMessage m = (RemoveChildMessage) req;
-                    reply(req, m.name instanceof ActorRef ? removeChild((ActorRef<?>)m.name, m.terminate) : removeChild(m.name, m.terminate));
+                    reply(req, m.name instanceof ActorRef ? removeChild((ActorRef<?>) m.name, m.terminate) : removeChild(m.name, m.terminate));
                 }
             } catch (Exception e) {
                 replyError(req, e);
@@ -395,7 +402,7 @@ public class SupervisorActor extends BehaviorActor {
         final ChildEntry child = addChild1(spec);
 
         ActorRef<?> actor = null;
-        if(spec.builder instanceof Actor) {
+        if (spec.builder instanceof Actor) {
             final Actor a = ((Actor) spec.builder);
             actor = a.isStarted() ? a.ref() : a.spawn();
         }

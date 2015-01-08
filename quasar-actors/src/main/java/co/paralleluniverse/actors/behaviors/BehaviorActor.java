@@ -20,9 +20,11 @@ import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.StrandFactory;
 import org.slf4j.Logger;
 
 /**
@@ -67,8 +69,13 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
     }
 
     @Override
-    public Behavior spawn(FiberScheduler scheduler) {
-        return (Behavior) super.spawn(scheduler);
+    public Behavior spawn(StrandFactory sf) {
+        return (Behavior) super.spawn(sf);
+    }
+
+    @Override
+    public Behavior spawn(FiberFactory ff) {
+        return (Behavior) super.spawn(ff);
     }
 
     @Override
@@ -244,12 +251,12 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
     protected void checkCodeSwap() throws SuspendExecution {
         verifyInActor();
         Initializer _initializer = ActorLoader.getReplacementFor(initializer);
-        if(_initializer != initializer)
+        if (_initializer != initializer)
             log().info("Upgraded behavior implementation: {}", _initializer);
         this.initializer = _initializer;
         super.checkCodeSwap();
     }
-    
+
     public boolean isRunning() {
         return run;
     }
