@@ -21,6 +21,7 @@ import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.FiberWriter;
 import co.paralleluniverse.fibers.Joinable;
@@ -29,6 +30,7 @@ import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.StrandFactory;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.Timeout;
@@ -194,12 +196,29 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * Starts a new fiber using the given scheduler and runs the actor in it.
      * The fiber's name will be set to this actor's name.
      *
-     * @param scheduler The new fiber's scheduler.
+     * @param ff the {@link FiberFactory factory} (or {@link FiberScheduler scheduler}) that will be used to create the actor's fiber.
      * @return This actors' ActorRef
      */
-    public ActorRef<Message> spawn(FiberScheduler scheduler) {
+    public ActorRef<Message> spawn(StrandFactory sf) {
         checkReplacement();
-        new Fiber(getName(), scheduler, runner).start();
+        final Strand s = sf.newStrand(runner);
+        setStrand(s);
+        if (getName() != null)
+            s.setName(getName());
+        s.start();
+        return ref();
+    }
+
+    /**
+     * Starts a new fiber using the given scheduler and runs the actor in it.
+     * The fiber's name will be set to this actor's name.
+     *
+     * @param ff the {@link FiberFactory factory} (or {@link FiberScheduler scheduler}) that will be used to create the actor's fiber.
+     * @return This actors' ActorRef
+     */
+    public ActorRef<Message> spawn(FiberFactory ff) {
+        checkReplacement();
+        ff.newFiber(runner).setName(getName()).start();
         return ref();
     }
 
@@ -211,7 +230,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      */
     public ActorRef<Message> spawn() {
         checkReplacement();
-        new Fiber(getName(), runner).start();
+        final Fiber f = getName() != null ? new Fiber(getName(), runner) : new Fiber(runner);
+        f.start();
         return ref();
     }
 
@@ -1179,7 +1199,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     public final ActorMonitor monitor() {
         if (monitor != null)
             return monitor;
-        final String name = getName().toString().replaceAll(":", "");
+        final String name = getName().replaceAll(":", "");
         this.monitor = new JMXActorMonitor(name);
         monitor.setActor(ref);
         return monitor;

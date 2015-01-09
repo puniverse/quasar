@@ -19,9 +19,11 @@ import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.MailboxConfig;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.replyError;
+import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.StrandFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
@@ -69,8 +71,13 @@ public class EventSourceActor<Event> extends BehaviorActor {
     }
 
     @Override
-    public EventSource<Event> spawn(FiberScheduler scheduler) {
-        return (EventSource<Event>) super.spawn(scheduler);
+    public EventSource<Event> spawn(StrandFactory sf) {
+        return (EventSource<Event>) super.spawn(sf);
+    }
+
+    @Override
+    public EventSource<Event> spawn(FiberFactory ff) {
+        return (EventSource<Event>) super.spawn(ff);
     }
 
     @Override

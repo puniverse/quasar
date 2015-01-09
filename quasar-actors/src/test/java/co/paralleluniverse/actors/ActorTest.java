@@ -20,6 +20,7 @@ import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.StrandFactoryBuilder;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.SendPort;
@@ -419,7 +420,7 @@ public class ActorTest {
     @Test
     public void testWatchGC() throws Exception {
         Assume.assumeFalse(Debug.isDebug());
-        
+
         final Actor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
@@ -473,6 +474,75 @@ public class ActorTest {
         assertTrue(actor.equals(ch1));
         assertTrue(ch2.equals(actor));
         assertTrue(actor.equals(ch2));
+    }
+
+    @Test
+    public void testSpawnWithStrandFactory() throws Exception {
+        final AtomicBoolean run = new AtomicBoolean(false);
+
+        Actor<Message, Integer> actor = new BasicActor<Message, Integer>(mailboxConfig) {
+            @Override
+            protected Integer doRun() throws SuspendExecution, InterruptedException {
+                run.set(true);
+                return 3;
+            }
+        };
+
+        ActorRef a = actor.spawn(new StrandFactoryBuilder().setFiber(null).setNameFormat("my-fiber-%d").build());
+        Strand s = LocalActor.getStrand(a);
+        assertTrue(s.isFiber());
+        assertThat(s.getName(), equalTo("my-fiber-0"));
+        assertThat((Integer) LocalActor.get(a), equalTo(3));
+        assertThat(run.get(), is(true));
+        run.set(false);
+
+        actor = new BasicActor<Message, Integer>(mailboxConfig) {
+            @Override
+            protected Integer doRun() throws SuspendExecution, InterruptedException {
+                run.set(true);
+                return 3;
+            }
+        };
+
+        a = actor.spawn(new StrandFactoryBuilder().setThread(false).setNameFormat("my-thread-%d").build());
+        s = LocalActor.getStrand(a);
+        assertTrue(!s.isFiber());
+        assertThat(s.getName(), equalTo("my-thread-0"));
+        LocalActor.join(a);
+        assertThat(run.get(), is(true));
+        run.set(false);
+
+        Actor<Message, Integer> actor2 = new BasicActor<Message, Integer>("coolactor", mailboxConfig) {
+            @Override
+            protected Integer doRun() throws SuspendExecution, InterruptedException {
+                run.set(true);
+                return 3;
+            }
+        };
+
+        a = actor2.spawn(new StrandFactoryBuilder().setFiber(null).setNameFormat("my-fiber-%d").build());
+        s = LocalActor.getStrand(a);
+        assertTrue(s.isFiber());
+        assertThat(s.getName(), equalTo("coolactor"));
+        assertThat((Integer) LocalActor.get(a), equalTo(3));
+        assertThat(run.get(), is(true));
+        run.set(false);
+
+        actor2 = new BasicActor<Message, Integer>("coolactor", mailboxConfig) {
+            @Override
+            protected Integer doRun() throws SuspendExecution, InterruptedException {
+                run.set(true);
+                return 3;
+            }
+        };
+
+        a = actor2.spawn(new StrandFactoryBuilder().setThread(false).setNameFormat("my-thread-%d").build());
+        s = LocalActor.getStrand(a);
+        assertTrue(!s.isFiber());
+        assertThat(s.getName(), equalTo("coolactor"));
+        LocalActor.join(a);
+        assertThat(run.get(), is(true));
+        run.set(false);
     }
 
     static class Message {

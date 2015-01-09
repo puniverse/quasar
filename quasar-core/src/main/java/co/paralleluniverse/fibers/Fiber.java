@@ -120,7 +120,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     //
     private /*final*/ transient FiberScheduler scheduler;
     private /*final*/ transient FiberTask<V> task;
-    private /*final*/ String name;
+    private String name;
     private /*final*/ int initialStackSize;
     private /*final*/ transient long fid;
     final Stack stack;
@@ -156,15 +156,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      */
     @SuppressWarnings("LeakingThisInConstructor")
     public Fiber(String name, FiberScheduler scheduler, int stackSize, SuspendableCallable<V> target) {
-        this.name = name;
+        this.state = State.NEW;
         this.fid = nextFiberId();
         this.scheduler = scheduler;
+        setName(name);
         Strand parent = Strand.currentStrand(); // retaining the parent as a field is a huge, complex memory leak
         this.target = target;
         this.task = scheduler != null ? scheduler.newFiberTask(this) : new FiberForkJoinScheduler.FiberForkJoinTask(this);
         this.initialStackSize = stackSize;
         this.stack = new Stack(this, stackSize > 0 ? stackSize : DEFAULT_STACK_SIZE);
-        this.state = State.NEW;
 
         if (Debug.isDebug())
             record(1, "Fiber", "<init>", "Creating fiber name: %s, scheduler: %s, parent: %s, target: %s, task: %s, stackSize: %s", name, scheduler, parent, target, task, stackSize);
@@ -264,9 +264,18 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final String getName() {
+        return name;
+    }
+
+    @Override
+    public final Fiber<V> setName(String name) {
+        if (state != State.NEW)
+            throw new IllegalStateException("Fiber name cannot be changed once it has started");
         if (name != null)
-            return name;
-        return "fiber-" + ((scheduler != null && scheduler != DefaultFiberScheduler.getInstance()) ? (scheduler.getName() + '-') : "") + fid;
+            this.name = name;
+        else
+            this.name = "fiber-" + ((scheduler != null && scheduler != DefaultFiberScheduler.getInstance()) ? (scheduler.getName() + '-') : "") + fid;
+        return this;
     }
 
     @Override

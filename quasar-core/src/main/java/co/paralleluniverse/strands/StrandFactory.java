@@ -12,13 +12,11 @@
  * as published by the Free Software Foundation.
  */
 
-package co.paralleluniverse.fibers;
-
-import co.paralleluniverse.strands.SuspendableCallable;
+package co.paralleluniverse.strands;
 
 /**
- * Creates new {@link Fiber fibers} on demand.
+ * Creates new {@link Strand strnads} on demand.
  */
-public interface FiberFactory {
-    <T> Fiber<T> newFiber(SuspendableCallable<T> target);
+public interface StrandFactory {
+    Strand newStrand(SuspendableCallable<?> target);
 }

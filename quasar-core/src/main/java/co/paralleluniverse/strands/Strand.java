@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands;
 
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FibersMonitor;
@@ -103,6 +104,15 @@ public abstract class Strand {
      * @return The strand's name. May be {@code null}.
      */
     public abstract String getName();
+
+    /**
+     * Sets this strand's name.
+     * This method may only be called before the strand is started.
+     *
+     * @param name the new name
+     * @return {@code this}
+     */
+    public abstract Strand setName(String name);
 
     /**
      * Tests whether this strand is alive, namely it has been started but not yet terminated.
@@ -931,6 +941,11 @@ public abstract class Strand {
                 Strand p = threadStrands.putIfAbsent(t.getId(), s);
                 if (p != null)
                     s = p;
+//                else {
+//                    final Runnable target = ThreadAccess.getTarget(t);
+//                    if (target != null && target instanceof Stranded)
+//                        ((Stranded) target).setStrand(s);
+//                }
             }
             return s;
         }
@@ -958,6 +973,12 @@ public abstract class Strand {
         @Override
         public String getName() {
             return thread.getName();
+        }
+
+        @Override
+        public Strand setName(String name) {
+            thread.setName(name);
+            return this;
         }
 
         @Override
@@ -1122,6 +1143,11 @@ public abstract class Strand {
             return fiber.getName();
         }
 
+        @Override
+        public Strand setName(String name) {
+            return fiber.setName(name);
+        }
+        
         @Override
         public long getId() {
             return fiber.getId();

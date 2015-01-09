@@ -548,12 +548,10 @@ class InstrumentMethod {
                                 && isNewValue(thisValue, true)
                                 && isNewValue(frame.getStack(stackIndex - 1), false)) {
                             NewValue newValue = (NewValue) thisValue;
-                            if (newValue.omitted) {
+                            if (newValue.omitted)
                                 emitNewAndDup(mv, frame, stackIndex, min);
-                            }
-                        } else {
+                        } else
                             db.log(LogLevel.WARNING, "Expected to find a NewValue on stack index %d: %s", stackIndex, frame);
-                        }
                     }
                     break;
             }
@@ -574,15 +572,14 @@ class InstrumentMethod {
     }
 
     private static void emitConst(MethodVisitor mv, int value) {
-        if (value >= -1 && value <= 5) {
+        if (value >= -1 && value <= 5)
             mv.visitInsn(Opcodes.ICONST_0 + value);
-        } else if ((byte) value == value) {
+        else if ((byte) value == value)
             mv.visitIntInsn(Opcodes.BIPUSH, value);
-        } else if ((short) value == value) {
+        else if ((short) value == value)
             mv.visitIntInsn(Opcodes.SIPUSH, value);
-        } else {
+        else
             mv.visitLdcInsn(value);
-        }
     }
 
     private void emitNewAndDup(MethodVisitor mv, Frame frame, int stackIndex, MethodInsnNode min) {
@@ -594,9 +591,9 @@ class InstrumentMethod {
             neededLocals += v.getSize();
         }
         db.log(LogLevel.DEBUG, "Inserting NEW & DUP for constructor call %s%s with %d arguments (%d locals)", min.owner, min.desc, arguments, neededLocals);
-        if (additionalLocals < neededLocals) {
+        if (additionalLocals < neededLocals)
             additionalLocals = neededLocals;
-        }
+        
         ((NewValue) frame.getStack(stackIndex - 1)).insn.accept(mv);
         ((NewValue) frame.getStack(stackIndex)).insn.accept(mv);
         for (int i = 1; i <= arguments; i++) {
@@ -667,9 +664,8 @@ class InstrumentMethod {
                     int slotIdx = fi.stackSlotIndices[i];
                     assert slotIdx >= 0 && slotIdx < fi.numSlots;
                     emitRestoreValue(mv, v, lvarStack, slotIdx, -1);
-                } else {
+                } else
                     mv.visitInsn(Opcodes.ACONST_NULL);
-                }
             }
         }
     }
@@ -699,15 +695,13 @@ class InstrumentMethod {
                     int slotIdx = fi.stackSlotIndices[i];
                     assert slotIdx >= 0 && slotIdx < fi.numSlots;
                     emitRestoreValue(mv, v, lvarStack, slotIdx, -1);
-                } else {
+                } else
                     mv.visitInsn(Opcodes.ACONST_NULL);
-                }
             }
         }
 
-        if (fi.lAfter != null) {
+        if (fi.lAfter != null)
             fi.lAfter.accept(mv);
-        }
     }
 
     private void emitPostRestore(MethodVisitor mv) {
@@ -823,16 +817,14 @@ class InstrumentMethod {
     }
 
     static boolean isOmitted(BasicValue v) {
-        if (v instanceof NewValue) {
+        if (v instanceof NewValue)
             return ((NewValue) v).omitted;
-        }
         return false;
     }
 
     static boolean isNewValue(Value v, boolean dupped) {
-        if (v instanceof NewValue) {
+        if (v instanceof NewValue)
             return ((NewValue) v).isDupped == dupped;
-        }
         return false;
     }
 
@@ -917,14 +909,12 @@ class InstrumentMethod {
                 for (int i = firstLocal; i < f.getLocals(); i++) {
                     BasicValue v = (BasicValue) f.getLocal(i);
                     if (!isNullType(v)) {
-                        if (v.isReference()) {
+                        if (v.isReference())
                             localSlotIndices[i] = idxObj++;
-                        } else {
+                        else
                             localSlotIndices[i] = idxPrim++;
-                        }
-                    } else {
+                    } else
                         localSlotIndices[i] = -666; // an invalid index ;)
-                    }
                 }
             } else {
                 stackSlotIndices = null;
@@ -936,16 +926,14 @@ class InstrumentMethod {
         }
 
         public LabelNode createBeforeLabel() {
-            if (lBefore == null) {
+            if (lBefore == null)
                 lBefore = new BlockLabelNode(endInstruction);
-            }
             return lBefore;
         }
 
         public LabelNode createAfterLabel() {
-            if (lAfter == null) {
+            if (lAfter == null)
                 lAfter = new BlockLabelNode(endInstruction);
-            }
             return lAfter;
         }
     }
