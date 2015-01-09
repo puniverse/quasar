@@ -102,7 +102,7 @@ class TypeInterpreter extends BasicInterpreter {
                 Type typeV = v.getType();
                 Type typeW = w.getType();
                 if (typeV.getSort() != typeW.getSort()) {
-                    db.log(LogLevel.DEBUG, "Array and none array type can't be merged: %s %s", v, w);
+                    db.log(LogLevel.DEBUG, "Array and non-array type can't be merged: %s %s", v, w);
                     return BasicValue.UNINITIALIZED_VALUE;
                 }
                 if (typeW.getSort() == Type.ARRAY) {
