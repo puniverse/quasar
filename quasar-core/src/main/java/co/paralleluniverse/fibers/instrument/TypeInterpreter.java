@@ -102,6 +102,15 @@ class TypeInterpreter extends BasicInterpreter {
                 int dimensions = 0;
                 Type typeV = v.getType();
                 Type typeW = w.getType();
+
+                String internalV = typeV.getInternalName();
+                String internalW = typeW.getInternalName();
+
+                if ("null".equals(internalV))
+                    return w;
+                if ("null".equals(internalW))
+                    return v;
+
                 if (typeV.getSort() != typeW.getSort()) {
                     db.log(LogLevel.DEBUG, "Array and non-array type can't be merged: %s %s", v, w);
                     return BasicValue.UNINITIALIZED_VALUE;
@@ -119,13 +128,6 @@ class TypeInterpreter extends BasicInterpreter {
                         return BasicValue.UNINITIALIZED_VALUE;
                     }
                 }
-                String internalV = typeV.getInternalName();
-                String internalW = typeW.getInternalName();
-                if ("null".equals(internalV))
-                    return w;
-
-                if ("null".equals(internalW))
-                    return v;
 
                 String superClass = db.getCommonSuperClass(internalV, internalW);
                 if (superClass == null) {
