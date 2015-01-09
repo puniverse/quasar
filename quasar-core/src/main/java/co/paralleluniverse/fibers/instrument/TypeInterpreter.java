@@ -84,11 +84,11 @@ class TypeInterpreter extends BasicInterpreter {
     @Override
     public BasicValue binaryOperation(AbstractInsnNode insn, BasicValue value1, BasicValue value2) throws AnalyzerException {
         if (insn.getOpcode() == Opcodes.AALOAD) {
-            Type t1 = value1.getType();
+            final Type t1 = value1.getType();
             if (t1 == null || t1.getSort() != Type.ARRAY)
                 throw new AnalyzerException(insn, "AALOAD needs an array as first parameter");
 
-            Type resultType = Type.getType(t1.getDescriptor().substring(1));
+            final Type resultType = Type.getType(t1.getDescriptor().substring(1));
             return new BasicValue(resultType);
         }
         return super.binaryOperation(insn, value1, value2);
@@ -103,8 +103,8 @@ class TypeInterpreter extends BasicInterpreter {
                 Type typeV = v.getType();
                 Type typeW = w.getType();
 
-                String internalV = typeV.getInternalName();
-                String internalW = typeW.getInternalName();
+                final String internalV = typeV.getInternalName();
+                final String internalW = typeW.getInternalName();
 
                 if ("null".equals(internalV))
                     return w;
@@ -152,8 +152,8 @@ class TypeInterpreter extends BasicInterpreter {
     }
 
     private static String makeTypeDescriptor(String className, int dimensions) {
-        int len = className.length();
-        char[] tmp = new char[len + 2 + dimensions];
+        final int len = className.length();
+        final char[] tmp = new char[len + 2 + dimensions];
         for (int i = 0; i < dimensions; i++)
             tmp[i] = '[';
 
