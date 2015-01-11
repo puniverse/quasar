@@ -82,7 +82,7 @@ class TapReceivePort<Message> extends ReceivePortTransformer<Message, Message> i
     @Override
     protected Message transform(final Message m) {
         final SendPort<Message> actualForwardTo = (selector != null ? selector.apply(m) : forwardTo);
-        if (!forwardTo.trySend(m))
+        if (actualForwardTo != null && !actualForwardTo.trySend(m))
             strandFactory.newStrand(SuspendableUtils.runnableToCallable(new SuspendableRunnable() {
                 @Override
                 public void run() throws SuspendExecution, InterruptedException {
