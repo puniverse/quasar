@@ -27,23 +27,48 @@ import co.paralleluniverse.strands.SuspendableUtils;
 class TapReceivePort<Message> extends ReceivePortTransformer<Message, Message> implements ReceivePort<Message> {
     private static final StrandFactory strandFactoryDefault = DefaultFiberFactory.instance();
     
+    private final Selector<Message> selector;
     private final SendPort<Message> forwardTo;
     private final StrandFactory strandFactory;
+
+    /**
+     * Functional interface of selectors of forward target depending on the actual {@code Message} instance being forwarded.
+     */
+    // @Functional
+    public static interface Selector<Message> {
+        public SendPort<Message> choose(Message m);
+    }
+
+    private TapReceivePort(final ReceivePort<Message> target, final Selector<Message> selector, final SendPort<Message> forwardTo, final StrandFactory strandFactory) {
+        super(target);
+        this.selector = selector;
+        this.forwardTo = forwardTo;
+        this.strandFactory = strandFactory;
+    }
 
     /**
      * Creates a new {@code TapReceiverPort} that will tap into {@code target} and forward its messages to {@code forwardTo}.
      * It will not block if immediate forwarding is not possible but will rather create a new strand from {@code strandFactory}.
      * <p/>
      * @param target        The transformed receive port.
-     * @param forwardTo     The additional {@link SendPort} that will receive messages.
+     * @param selector      The {@link Selector} that will choose the {@link SendPort} the message will be forwarded to.
      * @param strandFactory The {@link StrandFactory} that will create forwarding strands when immediate forwarding is not possible.
      */
-    public TapReceivePort(final ReceivePort<Message> target, final SendPort<Message> forwardTo, final StrandFactory strandFactory) {
-        super(target);
-        this.forwardTo = forwardTo;
-        this.strandFactory = strandFactory;
+    public TapReceivePort(final ReceivePort<Message> target, final Selector<Message> selector, final StrandFactory strandFactory) {
+        this(target, selector, null, strandFactory);
     }
 
+    /**
+     * Creates a new {@code TapReceiverPort} that will tap into {@code target} and forward its messages to {@code forwardTo}.
+     * It will not block if immediate forwarding is not possible but will rather create a new fiber from the {@link DefaultFiberFactory}.
+     * <p/>
+     * @param target        The transformed receive port.
+     * @param selector      The {@link Selector} that will choose the {@link SendPort} the message will be forwarded to.
+     */
+    public TapReceivePort(final ReceivePort<Message> target, final Selector<Message> selector) {
+        this(target, selector, strandFactoryDefault);
+    }
+    
     /**
      * Creates a new {@code TapReceiverPort} that will tap into {@code target} and forward its messages to {@code forwardTo}.
      * It will not block if immediate forwarding is not possible but will rather create a new fiber from the {@link DefaultFiberFactory}.
@@ -52,16 +77,17 @@ class TapReceivePort<Message> extends ReceivePortTransformer<Message, Message> i
      * @param forwardTo     The additional {@link SendPort} that will receive messages.
      */
     public TapReceivePort(final ReceivePort<Message> target, final SendPort<Message> forwardTo) {
-        this(target, forwardTo, strandFactoryDefault);
+        this(target, null, forwardTo, strandFactoryDefault);
     }
-    
+
     @Override
     protected Message transform(final Message m) {
+        final SendPort<Message> actualForwardTo = (selector != null ? selector.choose(m) : forwardTo);
         if (!forwardTo.trySend(m))
             strandFactory.newStrand(SuspendableUtils.runnableToCallable(new SuspendableRunnable() {
                 @Override
                 public void run() throws SuspendExecution, InterruptedException {
-                    forwardTo.send(m);
+                    actualForwardTo.send(m);
                 }
             }));
         return m;
