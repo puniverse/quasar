@@ -71,6 +71,13 @@ public class Topic<Message> implements SendPort<Message> {
         subscribers.remove(sub);
     }
 
+    /**
+     * Unsubscribe all channels from this topic.
+     */
+    public void unsubscribeAll() {
+        subscribers.clear();
+    }
+    
     @Override
     public void send(Message message) throws SuspendExecution, InterruptedException {
         if (sendClosed)
