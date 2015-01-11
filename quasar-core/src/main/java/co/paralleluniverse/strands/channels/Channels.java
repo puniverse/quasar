@@ -17,6 +17,7 @@ import co.paralleluniverse.common.util.Function2;
 import co.paralleluniverse.common.util.Function3;
 import co.paralleluniverse.common.util.Function4;
 import co.paralleluniverse.common.util.Function5;
+import co.paralleluniverse.fibers.DefaultFiberFactory;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -59,6 +60,7 @@ import java.util.concurrent.TimeUnit;
  * @author pron
  */
 public final class Channels {
+
     /**
      * Determines how a channel behaves when its internal buffer (if it has one) overflows.
      */
@@ -87,12 +89,7 @@ public final class Channels {
     private static final OverflowPolicy defaultPolicy = OverflowPolicy.BLOCK;
     private static final boolean defaultSingleProducer = false;
     private static final boolean defaultSingleConsumer = true;
-    private static final FiberFactory defaultFiberFactory = new FiberFactory() {
-        @Override
-        public <T> Fiber<T> newFiber(SuspendableCallable<T> target) {
-            return new Fiber<T>(target);
-        }
-    };
+    private static final FiberFactory defaultFiberFactory = DefaultFiberFactory.instance();
 
     /**
      * Creates a new channel with the given properties.
