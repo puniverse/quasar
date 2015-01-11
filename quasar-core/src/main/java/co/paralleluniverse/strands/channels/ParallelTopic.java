@@ -13,83 +13,71 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.fibers.DefaultFiberFactory;
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Timeout;
-import java.util.Collection;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.TimeUnit;
+import co.paralleluniverse.strands.SuspendableCallable;
+import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 
 /**
- * A channel that forwards all messages to subscriber channels.
- * @author pron
+ * A topic that will spawn fibers from a factory and distribute messages to subscribers in parallel
+ * using fibers, optionally waiting for them to complete receive before delivering the next one.
+ * 
+ * @author circlespainter
  */
-public class Topic<Message> implements SendPort<Message> {
-    private final Collection<SendPort<? super Message>> subscribers;
-    private volatile boolean sendClosed;
-
-    public Topic() {
-        this.subscribers = new CopyOnWriteArraySet<>();
+public class ParallelTopic<Message> extends Topic<Message> {
+    final private FiberFactory fiberFactory;
+    private final boolean staged;
+    
+    /**
+     * @param fiberFactory
+     * @param staged        Will join all fibers delivering a message before initiating delivery of the next one.
+     */
+    public ParallelTopic(FiberFactory fiberFactory, boolean staged) {
+        this.fiberFactory = fiberFactory;
+        this.staged = staged;
     }
 
-    /**
-     * Subscribe a channel to receive messages sent to this topic.
-     * <p>
-     * @param sub the channel to subscribe
-     */
-    public <T extends SendPort<? super Message>> T subscribe(T sub) {
-        if (sendClosed) {
-            sub.close();
-            return sub;
-        }
-        subscribers.add(sub);
-        if (sendClosed)
-            sub.close();
-        return sub;
+    public ParallelTopic(FiberFactory fiberFactory) {
+        this(fiberFactory, true);
     }
 
-    /**
-     * Unsubscribe a channel from this topic.
-     * <p>
-     * @param sub the channel to subscribe
-     */
-    public void unsubscribe(SendPort<? super Message> sub) {
-        subscribers.remove(sub);
+    public ParallelTopic(boolean staged) {
+        this(DefaultFiberFactory.instance());
+    }
+    
+    public ParallelTopic() {
+        this(true);
     }
 
     @Override
-    public void send(Message message) throws SuspendExecution, InterruptedException {
-        if (sendClosed)
+    public void send(final Message message) throws SuspendExecution, InterruptedException {
+        if (isSendClosed())
             return;
-        for (SendPort<? super Message> sub : subscribers)
-            sub.send(message);
-    }
-
-    @Override
-    public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean trySend(Message message) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void close() {
-        sendClosed = true;
-        for (SendPort<?> sub : subscribers)
-            sub.close();
-    }
-
-    @Override
-    public void close(Throwable t) {
-        sendClosed = true;
-        for (SendPort<?> sub : subscribers)
-            sub.close(t);
+        final ArrayList<Fiber> stage = new ArrayList<>(getSubscribers().size());
+        for (final SendPort<? super Message> sub : getSubscribers()) {
+            final Fiber f = fiberFactory.newFiber(new SuspendableCallable() {
+                @Override
+                public Object run() throws SuspendExecution, InterruptedException {
+                    sub.send(message);
+                    return null;
+                }
+            });
+            if (staged) {
+                stage.add(f);
+            }
+        }
+        if (staged) {
+            for(final Fiber f : stage) {
+                try {
+                    f.join();
+                } catch (final ExecutionException ee) {
+                    // This should never happen
+                    throw new AssertionError(ee);
+                }
+            }
+        }
     }
 }

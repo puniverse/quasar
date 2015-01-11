@@ -32,6 +32,21 @@ public class Topic<Message> implements SendPort<Message> {
     }
 
     /**
+     * Provides read-only access to volatile `sendClosed` field for extensions.
+     */
+    protected boolean isSendClosed() {
+        return sendClosed;
+    }
+
+    /**
+     * Provides read-only access to subscribers for extentions.
+     */
+    // Avoiding defensive copy for sake of efficiency.
+    protected Collection<SendPort<? super Message>> getSubscribers() {
+        return subscribers;
+    }
+    
+    /**
      * Subscribe a channel to receive messages sent to this topic.
      * <p>
      * @param sub the channel to subscribe
