@@ -34,6 +34,13 @@ public class DelegatingChannel<Message> implements Channel<Message> {
         this.delegateReceivePort = receivePort;
     }
 
+    /**
+     * Convenience constructor when the delegate send and receive ports belong to the same channel.
+     */
+    public DelegatingChannel(Channel<Message> channel) {
+        this(channel, channel);
+    }
+    
     @Override
     public void send(Message message) throws SuspendExecution, InterruptedException {
         delegateSendPort.send(message);
@@ -56,12 +63,14 @@ public class DelegatingChannel<Message> implements Channel<Message> {
 
     @Override
     public void close() {
+        // TODO check the closing order and that double-closing doesn't cause trouble when the send and receive ports belong to the same channel.
         delegateSendPort.close();
         delegateReceivePort.close();
     }
 
     @Override
     public void close(Throwable t) {
+        // TODO check the closing order and that double-closing doesn't cause trouble when the send and receive ports belong to the same channel.
         delegateSendPort.close(t);
         delegateReceivePort.close();
     }
