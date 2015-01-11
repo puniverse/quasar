@@ -13,6 +13,8 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.StrandFactory;
 import co.paralleluniverse.strands.SuspendableCallable;
 
 /**
@@ -20,12 +22,17 @@ import co.paralleluniverse.strands.SuspendableCallable;
  *
  * @author circlespainter
  */
-public final class DefaultFiberFactory implements FiberFactory {
+public final class DefaultFiberFactory implements FiberFactory, StrandFactory {
     private DefaultFiberFactory() {}
 
     @Override
     public <T> Fiber<T> newFiber(SuspendableCallable<T> target) {
        return new Fiber<>(target);
+    }
+
+    @Override
+    public Strand newStrand(SuspendableCallable<?> target) {
+        return Strand.of(newFiber(target));
     }
 
     private static DefaultFiberFactory instance;
@@ -35,4 +42,5 @@ public final class DefaultFiberFactory implements FiberFactory {
             return (instance = new DefaultFiberFactory());
         } else return instance;
     }
+
 }

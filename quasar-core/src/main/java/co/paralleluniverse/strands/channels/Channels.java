@@ -18,7 +18,6 @@ import co.paralleluniverse.common.util.Function3;
 import co.paralleluniverse.common.util.Function4;
 import co.paralleluniverse.common.util.Function5;
 import co.paralleluniverse.fibers.DefaultFiberFactory;
-import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableAction1;

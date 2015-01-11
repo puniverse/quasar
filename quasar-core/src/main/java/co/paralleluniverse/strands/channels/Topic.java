@@ -39,10 +39,10 @@ public class Topic<Message> implements SendPort<Message> {
     }
 
     /**
-     * Provides read-only access to subscribers for extentions.
+     * Provides read-only access to subscribers for extentions. Not meant to be altered.
      */
-    // Avoiding defensive copy for sake of efficiency.
     protected Collection<SendPort<? super Message>> getSubscribers() {
+        // Avoiding defensive copy for the sake of efficiency.
         return subscribers;
     }
     

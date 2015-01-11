@@ -14,34 +14,34 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.DefaultFiberFactory;
-import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.strands.StrandFactory;
 import co.paralleluniverse.strands.SuspendableCallable;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 
 /**
  * A topic that will spawn fibers from a factory and distribute messages to subscribers in parallel
- * using fibers, optionally waiting for them to complete receive before delivering the next one.
+ * using strands, optionally waiting for them to complete receive before delivering the next one.
  * 
  * @author circlespainter
  */
 public class ParallelTopic<Message> extends Topic<Message> {
-    final private FiberFactory fiberFactory;
+    final ArrayList<Strand> stage = new ArrayList<>(getSubscribers().size());
+    final private StrandFactory strandFactory;
     private final boolean staged;
     
     /**
-     * @param fiberFactory
      * @param staged        Will join all fibers delivering a message before initiating delivery of the next one.
      */
-    public ParallelTopic(FiberFactory fiberFactory, boolean staged) {
-        this.fiberFactory = fiberFactory;
+    public ParallelTopic(StrandFactory strandFactory, boolean staged) {
+        this.strandFactory = strandFactory;
         this.staged = staged;
     }
 
-    public ParallelTopic(FiberFactory fiberFactory) {
-        this(fiberFactory, true);
+    public ParallelTopic(StrandFactory strandFactory) {
+        this(strandFactory, true);
     }
 
     public ParallelTopic(boolean staged) {
@@ -56,9 +56,10 @@ public class ParallelTopic<Message> extends Topic<Message> {
     public void send(final Message message) throws SuspendExecution, InterruptedException {
         if (isSendClosed())
             return;
-        final ArrayList<Fiber> stage = new ArrayList<>(getSubscribers().size());
+        if (staged)
+            stage.clear();
         for (final SendPort<? super Message> sub : getSubscribers()) {
-            final Fiber f = fiberFactory.newFiber(new SuspendableCallable() {
+            final Strand f = strandFactory.newStrand(new SuspendableCallable() {
                 @Override
                 public Object run() throws SuspendExecution, InterruptedException {
                     sub.send(message);
@@ -70,9 +71,9 @@ public class ParallelTopic<Message> extends Topic<Message> {
             }
         }
         if (staged) {
-            for(final Fiber f : stage) {
+            for(final Strand s : stage) {
                 try {
-                    f.join();
+                    s.join();
                 } catch (final ExecutionException ee) {
                     // This should never happen
                     throw new AssertionError(ee);
