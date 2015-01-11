@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.util.DelegatingEquals;
 import co.paralleluniverse.common.util.Function2;
 import co.paralleluniverse.common.util.Function3;
 import co.paralleluniverse.common.util.Function4;
@@ -972,4 +973,20 @@ public final class Channels {
             return true;
         }
     };
+    
+    // Package-access utilities
+    
+    static boolean delegatingEquals(final Object target, final Object obj) {
+        if (obj instanceof DelegatingEquals)
+            return obj.equals(target);
+        else
+            return target.equals(obj);
+    }
+    
+    static String delegatingToString(final Object self, final Object target) {
+        if (self != null)
+            return self.getClass().getSimpleName() + "@" + Integer.toHexString(System.identityHashCode(self)) + "{" + target + "}";
+        else
+            return null;
+    }
 }

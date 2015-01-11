@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight strands and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -25,53 +25,37 @@ import java.util.concurrent.TimeUnit;
  *
  * @author circlespainter
  */
-public class DelegatingChannel<Message> implements Channel<Message> {
-    private final SendPort<Message> delegateSendPort;
-    private final ReceivePort<Message> delegateReceivePort;
-    
-    public DelegatingChannel(SendPort<Message> sendPort, ReceivePort<Message> receivePort) {
-        this.delegateSendPort = sendPort;
-        this.delegateReceivePort = receivePort;
+public class DelegatingChannel<Message> extends DelegatingSendPort<Message> implements Channel<Message> {
+    private final DelegatingReceivePort<Message> delegateReceivePort;
+    private final Port<Message> equalsTarget;
+
+    /**
+     * @param equalsTarget  When delegating to potentially distinct send port and receive port, the equals behaviour must be explicitly specified.
+     */
+    public DelegatingChannel(final SendPort<Message> sendPort, final ReceivePort<Message> receivePort, final Port<Message> equalsTarget) {
+        super(sendPort);
+        this.delegateReceivePort = new DelegatingReceivePort<>(receivePort);
+        this.equalsTarget = equalsTarget;
     }
 
     /**
      * Convenience constructor when the delegate send and receive ports belong to the same channel.
      */
-    public DelegatingChannel(Channel<Message> channel) {
-        this(channel, channel);
+    public DelegatingChannel(final Channel<Message> channel) {
+        this(channel, channel, channel);
     }
     
     @Override
-    public void send(Message message) throws SuspendExecution, InterruptedException {
-        delegateSendPort.send(message);
-    }
-
-    @Override
-    public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        return delegateSendPort.send(message, timeout, unit);
-    }
-
-    @Override
-    public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
-        return delegateSendPort.send(message, timeout);
-    }
-
-    @Override
-    public boolean trySend(Message message) {
-        return delegateSendPort.trySend(message);
-    }
-
-    @Override
     public void close() {
         // TODO check the closing order and that double-closing doesn't cause trouble when the send and receive ports belong to the same channel.
-        delegateSendPort.close();
+        super.close();
         delegateReceivePort.close();
     }
 
     @Override
-    public void close(Throwable t) {
+    public void close(final Throwable t) {
         // TODO check the closing order and that double-closing doesn't cause trouble when the send and receive ports belong to the same channel.
-        delegateSendPort.close(t);
+        super.close(t);
         delegateReceivePort.close();
     }
 
@@ -81,12 +65,12 @@ public class DelegatingChannel<Message> implements Channel<Message> {
     }
 
     @Override
-    public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public Message receive(final long timeout, final TimeUnit unit) throws SuspendExecution, InterruptedException {
         return delegateReceivePort.receive();
     }
 
     @Override
-    public Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+    public Message receive(final Timeout timeout) throws SuspendExecution, InterruptedException {
         return delegateReceivePort.receive(timeout);
     }
 
@@ -98,5 +82,21 @@ public class DelegatingChannel<Message> implements Channel<Message> {
     @Override
     public boolean isClosed() {
         return delegateReceivePort.isClosed();
+    }
+    
+    @Override
+    public boolean equals(final Object o) {
+        if (equalsTarget == super.target)
+            return super.equals(o);
+        else
+            return Channels.delegatingEquals(o, equalsTarget);
+    }
+
+    @Override
+    public int hashCode() {
+        if (equalsTarget == super.target)
+            return super.hashCode();
+        else
+            return equalsTarget.hashCode();
     }
 }

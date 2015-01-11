@@ -45,14 +45,11 @@ abstract class DelegatingReceivePort1<S, T> implements ReceivePort<T>, Delegatin
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof DelegatingEquals)
-            return obj.equals(target);
-        else
-            return target.equals(obj);
+        return Channels.delegatingEquals(target, obj);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "@" + Integer.toHexString(System.identityHashCode(this)) + "{" + target + "}";
+        return Channels.delegatingToString(this, target);
     }
 }
