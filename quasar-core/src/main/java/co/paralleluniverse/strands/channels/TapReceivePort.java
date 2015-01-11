@@ -18,6 +18,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.StrandFactory;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.SuspendableUtils;
+import com.google.common.base.Function;
 
 /**
  * Receive transformer that will forward messages it receive to a target {@link SendPort}.
@@ -32,12 +33,10 @@ class TapReceivePort<Message> extends ReceivePortTransformer<Message, Message> i
     private final StrandFactory strandFactory;
 
     /**
-     * Functional interface of selectors of forward target depending on the actual {@code Message} instance being forwarded.
+     * Selector of forward target based on the actual {@code Message} instance being forwarded.
      */
     // @Functional
-    public static interface Selector<Message> {
-        public SendPort<Message> choose(Message m);
-    }
+    public static interface Selector<Message> extends Function<Message, SendPort<Message>> {}
 
     private TapReceivePort(final ReceivePort<Message> target, final Selector<Message> selector, final SendPort<Message> forwardTo, final StrandFactory strandFactory) {
         super(target);
@@ -82,7 +81,7 @@ class TapReceivePort<Message> extends ReceivePortTransformer<Message, Message> i
 
     @Override
     protected Message transform(final Message m) {
-        final SendPort<Message> actualForwardTo = (selector != null ? selector.choose(m) : forwardTo);
+        final SendPort<Message> actualForwardTo = (selector != null ? selector.apply(m) : forwardTo);
         if (!forwardTo.trySend(m))
             strandFactory.newStrand(SuspendableUtils.runnableToCallable(new SuspendableRunnable() {
                 @Override
