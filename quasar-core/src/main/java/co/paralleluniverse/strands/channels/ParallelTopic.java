@@ -17,7 +17,8 @@ import co.paralleluniverse.fibers.DefaultFiberFactory;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.StrandFactory;
-import co.paralleluniverse.strands.SuspendableCallable;
+import co.paralleluniverse.strands.SuspendableRunnable;
+import co.paralleluniverse.strands.SuspendableUtils;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 
@@ -28,57 +29,124 @@ import java.util.concurrent.ExecutionException;
  * @author circlespainter
  */
 public class ParallelTopic<Message> extends Topic<Message> {
-    final ArrayList<Strand> stage = new ArrayList<>(getSubscribers().size());
-    final private StrandFactory strandFactory;
-    private final boolean staged;
+    private static final boolean stagedDefault = true;
+    private static final StrandFactory strandFactoryDefault = DefaultFiberFactory.instance();
+    
+    private final StrandFactory strandFactory;
+    private final Channel<Message> internalChannel;
+    
+    private ParallelTopic(Channel<Message> internalChannel, StrandFactory strandFactory, boolean staged) {
+        this.internalChannel = internalChannel;
+        this.strandFactory = strandFactory;
+        
+        startDistributionLoop(staged);
+    }
     
     /**
-     * @param staged        Will join all fibers delivering a message before initiating delivery of the next one.
+     * Creates a new ParallelTopic message distributor ({@link PubSub}) with the given buffer parameters, {@link StrandFactory} and staging behavior.
+     * <p/>
+     * @param bufferSize    The buffer size of this topic.
+     * @param policy        The buffer policy of this topic.
+     * @param strandFactory The {@llink StrandFactory} instance that will build the strands performing send operations to subscribers as well as the looping
+     *                      receive strand.
+     * @param staged        Whether all send operations to subscribers for a given message must be completed before initiating the subsequent one.
      */
-    public ParallelTopic(StrandFactory strandFactory, boolean staged) {
-        this.strandFactory = strandFactory;
-        this.staged = staged;
+    public ParallelTopic(int bufferSize, Channels.OverflowPolicy policy, StrandFactory strandFactory, boolean staged) {
+        this(Channels.<Message>newChannel(bufferSize, policy), strandFactory, staged);
     }
 
-    public ParallelTopic(StrandFactory strandFactory) {
-        this(strandFactory, true);
+    /**
+     * Creates a new ParallelTopic staged message distributor ({@link PubSub}) with the given buffer parameters and {@link StrandFactory}.
+     * <p/>
+     * @param bufferSize    The buffer size of this topic.
+     * @param policy        The buffer policy of this topic.
+     * @param strandFactory The {@llink StrandFactory} instance that will build the strands performing send operations to subscribers as well as the looping
+     *                      receive strand.
+     */
+    public ParallelTopic(int bufferSize, Channels.OverflowPolicy policy, StrandFactory strandFactory) {
+        this(bufferSize, policy, strandFactory, stagedDefault);
     }
 
-    public ParallelTopic(boolean staged) {
-        this(DefaultFiberFactory.instance());
+    /**
+     * Creates a new ParallelTopic message distributor ({@link PubSub}) using a fiber-creating {@link StrandFactory} and with the given buffer parameters and staging behavior.
+     * <p/>
+     * @param bufferSize    The buffer size of this topic.
+     * @param policy        The buffer policy of this topic.
+     * @param staged        Whether all send operations to subscribers for a given message must be completed before initiating the subsequent one.
+     */
+    public ParallelTopic(int bufferSize, Channels.OverflowPolicy policy, boolean staged) {
+        this(bufferSize, policy, strandFactoryDefault);
     }
-    
-    public ParallelTopic() {
-        this(true);
+
+    /**
+     * Creates a new staged ParallelTopic message distributor ({@link PubSub}) using a fiber-creating {@link StrandFactory} and with the given buffer parameters.
+     * <p/>
+     * @param bufferSize    The buffer size of this topic.
+     * @param policy        The buffer policy of this topic.
+     */
+    public ParallelTopic(int bufferSize, Channels.OverflowPolicy policy) {
+        this(bufferSize, policy, stagedDefault);
+    }
+
+    /**
+     * Creates a new ParallelTopic message distributor ({@link PubSub}) using a fiber-creating {@link StrandFactory} and with the given buffer parameters and staging behavior.
+     * <p/>
+     * @param bufferSize    The buffer size of this topic.
+     * @param staged        Whether all send operations to subscribers for a given message must be completed before initiating the subsequent one.
+     */
+    public ParallelTopic(int bufferSize, boolean staged) {
+        this(Channels.<Message>newChannel(bufferSize), strandFactoryDefault, staged);
+    }
+
+    /**
+     * Creates a new staged ParallelTopic message distributor ({@link PubSub}) using a fiber-creating {@link StrandFactory} and with the given buffer parameters.
+     * <p/>
+     * @param bufferSize    The buffer size of this topic.
+     */
+    public ParallelTopic(int bufferSize) {
+        this(Channels.<Message>newChannel(bufferSize), strandFactoryDefault, stagedDefault);
     }
 
     @Override
     public void send(final Message message) throws SuspendExecution, InterruptedException {
-        if (isSendClosed())
-            return;
-        if (staged)
-            stage.clear();
-        for (final SendPort<? super Message> sub : getSubscribers()) {
-            final Strand f = strandFactory.newStrand(new SuspendableCallable() {
-                @Override
-                public Object run() throws SuspendExecution, InterruptedException {
-                    sub.send(message);
-                    return null;
+        internalChannel.send(message);
+    }
+
+    private void startDistributionLoop(final boolean staged) {
+        strandFactory.newStrand(SuspendableUtils.runnableToCallable(new SuspendableRunnable() {
+            // TODO check if there are more efficient alternatives
+            private final ArrayList<Strand> stage = new ArrayList<>();
+
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                for(;;) {
+                    final Message m = internalChannel.receive();
+                    if (isSendClosed())
+                        return;
+                    if (staged)
+                        stage.clear();
+                    for (final SendPort<? super Message> sub : ParallelTopic.this.getSubscribers()) {
+                        final Strand f = strandFactory.newStrand(SuspendableUtils.runnableToCallable(new SuspendableRunnable() {
+                            @Override
+                            public void run() throws SuspendExecution, InterruptedException {
+                                sub.send(m);
+                            }
+                        }));
+                        if (staged)
+                            stage.add(f);
+                    }
+                    if (staged) {
+                        for(final Strand s : stage) {
+                            try {
+                                s.join();
+                            } catch (final ExecutionException ee) {
+                                // This should never happen
+                                throw new AssertionError(ee);
+                            }
+                        }
+                    }
                 }
-            });
-            if (staged) {
-                stage.add(f);
             }
-        }
-        if (staged) {
-            for(final Strand s : stage) {
-                try {
-                    s.join();
-                } catch (final ExecutionException ee) {
-                    // This should never happen
-                    throw new AssertionError(ee);
-                }
-            }
-        }
+        }));
     }
 }

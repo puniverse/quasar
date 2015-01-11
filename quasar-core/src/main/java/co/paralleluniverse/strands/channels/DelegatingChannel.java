@@ -20,9 +20,9 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A channel delegating send operations to a {@link SendPort} and receive operations to a {@link ReceivePort}.
- * 
+ * <p/>
  * @param <Message>
- *
+ * <p/>
  * @author circlespainter
  */
 public class DelegatingChannel<Message> extends DelegatingSendPort<Message> implements Channel<Message> {

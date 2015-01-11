@@ -14,11 +14,11 @@
 package co.paralleluniverse.strands.channels;
 
 /**
- * Common interface for channel subscription operations.
- *
+ * Common interface for topics.
+ * <p/>
  * @author circlespainter
  */
-interface PubSub<Message> {
+interface PubSub<Message> extends SendPort<Message> {
     /**
      * Subscribe a channel to receive messages sent to this topic.
      * <p>
