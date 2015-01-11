@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
  * A channel that forwards all messages to subscriber channels.
  * @author pron
  */
-public class Topic<Message> implements SendPort<Message> {
+public class Topic<Message> implements SendPort<Message>, PubSub<Message> {
     private final Collection<SendPort<? super Message>> subscribers;
     private volatile boolean sendClosed;
 
@@ -46,11 +46,7 @@ public class Topic<Message> implements SendPort<Message> {
         return subscribers;
     }
     
-    /**
-     * Subscribe a channel to receive messages sent to this topic.
-     * <p>
-     * @param sub the channel to subscribe
-     */
+    @Override
     public <T extends SendPort<? super Message>> T subscribe(T sub) {
         if (sendClosed) {
             sub.close();
@@ -62,18 +58,12 @@ public class Topic<Message> implements SendPort<Message> {
         return sub;
     }
 
-    /**
-     * Unsubscribe a channel from this topic.
-     * <p>
-     * @param sub the channel to subscribe
-     */
+    @Override
     public void unsubscribe(SendPort<? super Message> sub) {
         subscribers.remove(sub);
     }
 
-    /**
-     * Unsubscribe all channels from this topic.
-     */
+    @Override
     public void unsubscribeAll() {
         subscribers.clear();
     }
