@@ -20,7 +20,7 @@ import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.SuspendableUtils;
 
 /**
- * Receive transformer that will forward messages it receive to a target {@link SendPort}. oncrete subclasses will need to implement {@code select} yielding
+ * Receive transformer that will forward messages it sends to a target {@link SendPort}. Concrete subclasses will need to implement {@code select} yielding
  * {@link SendPort} to forward the message to.
  * <p/>
  * @author circlespainter

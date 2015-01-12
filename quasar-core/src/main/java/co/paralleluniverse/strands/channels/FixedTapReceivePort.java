@@ -23,7 +23,7 @@ import co.paralleluniverse.strands.StrandFactory;
 public class FixedTapReceivePort<Message> extends TapReceivePort<Message> {
     private final SendPort<? super Message> forwardTo;
 
-    public FixedTapReceivePort(final ReceivePort<Message> target, final StrandFactory strandFactory, final SendPort<? super Message> forwardTo) {
+    public FixedTapReceivePort(final ReceivePort<Message> target, final SendPort<? super Message> forwardTo, final StrandFactory strandFactory) {
         super(target, strandFactory);
         this.forwardTo = forwardTo;
     }
