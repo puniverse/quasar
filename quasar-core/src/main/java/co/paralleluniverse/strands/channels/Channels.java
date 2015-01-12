@@ -118,24 +118,24 @@ public final class Channels {
         if (bufferSize == 0) {
             if (policy != OverflowPolicy.BLOCK)
                 throw new IllegalArgumentException("Cannot use policy " + policy + " for channel with size 0 (only BLOCK supported");
-            return new TransferChannel<Message>();
+            return new TransferChannel<>();
         }
 
         final BasicQueue<Message> queue;
         if (bufferSize < 0) {
             if (!singleConsumer)
                 throw new IllegalArgumentException("Unbounded queue with multiple consumers is unsupported");
-            queue = new SingleConsumerLinkedArrayObjectQueue<Message>();
+            queue = new SingleConsumerLinkedArrayObjectQueue<>();
         } else if (bufferSize == 1 && policy != OverflowPolicy.DISPLACE) // for now we'll use CircularObjectBuffer for displace channels of size 1
-            queue = new BoxQueue<Message>(policy == OverflowPolicy.DISPLACE, singleConsumer);
+            queue = new BoxQueue<>(policy == OverflowPolicy.DISPLACE, singleConsumer);
         else if (policy == OverflowPolicy.DISPLACE) {
             if (!singleConsumer)
                 throw new IllegalArgumentException("Channel with DISPLACE policy configuration is not supported for multiple consumers");
-            queue = new CircularObjectBuffer<Message>(bufferSize, singleProducer);
+            queue = new CircularObjectBuffer<>(bufferSize, singleProducer);
         } else if (singleConsumer)
-            queue = new SingleConsumerArrayObjectQueue<Message>(bufferSize);
+            queue = new SingleConsumerArrayObjectQueue<>(bufferSize);
         else
-            queue = new ArrayQueue<Message>(bufferSize);
+            queue = new ArrayQueue<>(bufferSize);
 
         return new QueueObjectChannel(queue, policy, singleConsumer);
     }
@@ -638,6 +638,22 @@ public final class Channels {
     }
 
     /**
+     * Returns a {@link ReceivePort} from which receiving messages that are transformed from a given channel by a given reduction function.
+     * <p/>
+     * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     *
+     * @param <S>     The message type of the source (given) channel.
+     * @param <T>     The message type of the target (returned) channel.
+     * @param channel The channel to transform.
+     * @param f       The reduction function.
+     * @param init    The initial input to the reduction function.
+     * @return a {@link ReceivePort} that returns messages that are the result of applying the reduction function to the messages received on the given channel.
+     */
+    public static <S, T> ReceivePort<T> reduce(ReceivePort<S> channel, Function2<T, S, T> f, T init) {
+        return new ReducingReceivePort<>(channel, f, init);
+    }
+    
+    /**
      * Returns a {@link ReceivePort} that maps exceptions thrown by the underlying channel
      * (by channel transformations, or as a result of {@link SendPort#close(Throwable)} )
      * into messages.
@@ -834,6 +850,22 @@ public final class Channels {
         return new MappingSendPort<>(channel, f);
     }
 
+    /**
+     * Returns a {@link SendPort} to which sending messages that are transformed towards a channel by a reduction function.
+     * <p/>
+     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     *
+     * @param <S>     The message type of the source (returned) channel.
+     * @param <T>     The message type of the target (given) channel.
+     * @param channel The channel to transform.
+     * @param f       The reduction function.
+     * @param init    The initial input to the reduction function.
+     * @return a {@link ReceivePort} that returns messages that are the result of applying the reduction function to the messages received on the given channel.
+     */
+    public static <S, T> SendPort<S> reduceSend(SendPort<T> channel, Function2<T, S, T> f, T init) {
+        return new ReducingSendPort<>(channel, f, init);
+    }
+    
     /**
      * Returns a {@link SendPort} that sends messages that are transformed by a given flat-mapping function into a given channel.
      * Unlike {@link #mapSend(SendPort, Function) map}, the mapping function does not returns a single output message for every input message, but

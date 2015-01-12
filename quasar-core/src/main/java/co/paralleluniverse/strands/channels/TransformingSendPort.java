@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.util.Function2;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.strands.StrandFactory;
 import co.paralleluniverse.strands.SuspendableAction2;
@@ -79,6 +80,19 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
      */
     public <S> TransformingSendPort<S> map(Function<S, T> f) {
         return Channels.transformSend(Channels.mapSend(this, f));
+    }
+
+    /**
+     * Returns a {@link SendPort} to which sending messages that are transformed towards a channel by a reduction function.
+     * <p/>
+     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     *
+     * @param f       The reduction function.
+     * @param init    The initial input to the reduction function.
+     * @return a {@link ReceivePort} that returns messages that are the result of applying the reduction function to the messages received on the given channel.
+     */
+    public <S> TransformingSendPort<S> reduceSend(Function2<T, S, T> f, T init) {
+        return Channels.transformSend(Channels.reduceSend(this, f, init));
     }
 
     /**
