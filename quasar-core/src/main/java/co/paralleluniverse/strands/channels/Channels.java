@@ -533,7 +533,7 @@ public final class Channels {
                     out.close();
                 } catch (ProducerException e) {
                     out.close(e.getCause());
-                } catch (SuspendExecution | InterruptedException t) {
+                } catch (Throwable t) {
                     out.close(t);
                 }
                 return null;
