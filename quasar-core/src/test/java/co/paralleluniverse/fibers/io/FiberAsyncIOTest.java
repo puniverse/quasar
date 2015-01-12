@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -18,6 +18,8 @@ import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import co.paralleluniverse.strands.channels.Channels;
+import co.paralleluniverse.strands.channels.IntChannel;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -42,7 +44,7 @@ public class FiberAsyncIOTest {
     private static final Charset charset = Charset.forName("UTF-8");
     private static final CharsetEncoder encoder = charset.newEncoder();
     private static final CharsetDecoder decoder = charset.newDecoder();
-    private FiberScheduler scheduler;
+    private final FiberScheduler scheduler;
 
     public FiberAsyncIOTest() {
         scheduler = new FiberForkJoinScheduler("test", 4, null, false);
@@ -58,54 +60,65 @@ public class FiberAsyncIOTest {
 
     @Test
     public void testFiberAsyncSocket() throws Exception {
+        final IntChannel sync = Channels.newIntChannel(0);
+        
         final Fiber server = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
-            public void run() throws SuspendExecution {
-                try (FiberServerSocketChannel socket = FiberServerSocketChannel.open().bind(new InetSocketAddress(PORT));
-                        FiberSocketChannel ch = socket.accept()) {
+            public void run() throws SuspendExecution, InterruptedException {
+                try (FiberServerSocketChannel socket = FiberServerSocketChannel.open().bind(new InetSocketAddress(PORT))) {
+                    sync.send(0); // Start client
 
-                    ByteBuffer buf = ByteBuffer.allocateDirect(1024);
+                    try (FiberSocketChannel ch = socket.accept()) {
 
-                    // long-typed reqeust/response
-                    int n = ch.read(buf);
+                        ByteBuffer buf = ByteBuffer.allocateDirect(1024);
 
-                    assertThat(n, is(8)); // we assume the message is sent in a single packet
+                        // long-typed reqeust/response
+                        int n = ch.read(buf);
 
-                    buf.flip();
-                    long req = buf.getLong();
+                        assertThat(n, is(8)); // we assume the message is sent in a single packet
 
-                    assertThat(req, is(12345678L));
+                        buf.flip();
+                        long req = buf.getLong();
 
-                    buf.clear();
-                    long res = 87654321L;
-                    buf.putLong(res);
-                    buf.flip();
+                        assertThat(req, is(12345678L));
 
-                    n = ch.write(buf);
+                        buf.clear();
+                        long res = 87654321L;
+                        buf.putLong(res);
+                        buf.flip();
 
-                    assertThat(n, is(8));
+                        n = ch.write(buf);
 
-                    // String reqeust/response
-                    buf.clear();
-                    n = ch.read(buf); // we assume the message is sent in a single packet
+                        assertThat(n, is(8));
 
-                    buf.flip();
-                    String req2 = decoder.decode(buf).toString();
+                        // String reqeust/response
+                        buf.clear();
+                        ch.read(buf); // we assume the message is sent in a single packet
 
-                    assertThat(req2, is("my request"));
+                        buf.flip();
+                        String req2 = decoder.decode(buf).toString();
 
-                    String res2 = "my response";
-                    n = ch.write(encoder.encode(CharBuffer.wrap(res2)));
+                        assertThat(req2, is("my request"));
+
+                        String res2 = "my response";
+                        ch.write(encoder.encode(CharBuffer.wrap(res2)));
+                    }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-
             }
-        });
+        }).start();
 
         final Fiber client = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
+                try {
+                    sync.receive(); // Wait that the server is ready
+                } catch (InterruptedException ex) {
+                    // This should never happen
+                    throw new AssertionError(ex);
+                }
+
                 try (FiberSocketChannel ch = FiberSocketChannel.open(new InetSocketAddress(PORT))) {
                     ByteBuffer buf = ByteBuffer.allocateDirect(1024);
 
@@ -130,10 +143,10 @@ public class FiberAsyncIOTest {
 
                     // String reqeust/response
                     String req2 = "my request";
-                    n = ch.write(encoder.encode(CharBuffer.wrap(req2)));
+                    ch.write(encoder.encode(CharBuffer.wrap(req2)));
 
                     buf.clear();
-                    n = ch.read(buf); // we assume the message is sent in a single packet
+                    ch.read(buf); // we assume the message is sent in a single packet
 
                     buf.flip();
                     String res2 = decoder.decode(buf).toString();
@@ -149,11 +162,7 @@ public class FiberAsyncIOTest {
                     throw new RuntimeException(e);
                 }
             }
-        });
-
-        server.start();
-        Thread.sleep(1000);
-        client.start();
+        }).start();
 
         client.join();
         server.join();
