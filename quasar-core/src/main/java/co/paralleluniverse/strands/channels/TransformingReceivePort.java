@@ -35,25 +35,23 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
     /**
      * Returns a {@link FixedTapReceivePort} that will always forward to a single {@link SendPort}.
      *
-     * @param target        The tapped {@link ReceivePort}.
      * @param forwardTo     The additional {@link SendPort} that will receive messages.
      * @param strandFactory The {@link StrandFactory} that will build send strands when the {@link SendPort} would block.
      * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
      */
-    public static <M> TransformingReceivePort<M> tap(final ReceivePort<M> target, final SendPort<? super M> forwardTo, final StrandFactory strandFactory) {
-        return Channels.transform(Channels.tap(target, forwardTo, strandFactory));
+    public TransformingReceivePort<T> tap(final SendPort<? super T> forwardTo, final StrandFactory strandFactory) {
+        return Channels.transform(Channels.tap(this, forwardTo, strandFactory));
     }
 
     /**
      * Returns a {@link FixedTapReceivePort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
      * send strands when the {@link SendPort} would block.
      *
-     * @param target        The tapped {@link ReceivePort}.
      * @param forwardTo     The additional {@link SendPort} that will receive messages.
      * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
      */
-    public static <M> TransformingReceivePort<M> tap(final ReceivePort<M> target, final SendPort<? super M> forwardTo) {
-        return Channels.transform(Channels.tap(target, forwardTo));
+    public TransformingReceivePort<T> tap(final SendPort<? super T> forwardTo) {
+        return Channels.transform(Channels.tap(this, forwardTo));
     }
     
     /**
