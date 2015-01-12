@@ -19,8 +19,10 @@ import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.StrandFactory;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.SuspendableUtils;
+import co.paralleluniverse.strands.Timeout;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A topic that will spawn fibers from a factory and distribute messages to subscribers in parallel
@@ -110,6 +112,21 @@ public class ParallelTopic<Message> extends Topic<Message> {
     @Override
     public void send(final Message message) throws SuspendExecution, InterruptedException {
         internalChannel.send(message);
+    }
+
+    @Override
+    public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
+        return internalChannel.send(message, timeout);
+    }
+
+    @Override
+    public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        return internalChannel.send(message, timeout, unit);
+    }
+
+    @Override
+    public boolean trySend(Message message) {
+        return internalChannel.trySend(message);
     }
 
     private void startDistributionLoop(final boolean staged) {
