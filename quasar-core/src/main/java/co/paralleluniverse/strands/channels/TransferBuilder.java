@@ -35,8 +35,8 @@ public class TransferBuilder<ReceivedMessage, SentMessage> implements Suspendabl
     private static final int countDefault = 1;
     private static final StrandFactory strandFactoryDefault = DefaultFiberFactory.instance();
 
-    private final ReceivePort<ReceivedMessage> from;
-    private final SendPort<SentMessage> to;
+    private final ReceivePort<? extends ReceivedMessage> from;
+    private final SendPort<? super SentMessage> to;
 
     private int parallelism = parallelismDefault;
     private boolean parallelismSet = false;
@@ -48,13 +48,13 @@ public class TransferBuilder<ReceivedMessage, SentMessage> implements Suspendabl
 
     private boolean closeTo = closeToDefault;
 
-    private final Function<ReceivedMessage, SentMessage> transformer;
+    private final Function<? super ReceivedMessage, ? extends SentMessage> transformer;
 
     /**
      * Mandatory information to start a transfer are the source and destination ports as well as the message transformation.
      * Other parameters are set to defaults (1 transfer, no parallelism, the target channel will be closed, strand factory is {@code DefaultFiberFactory}).
      */
-    public TransferBuilder(final ReceivePort<ReceivedMessage> from, final SendPort<SentMessage> to, final Function<ReceivedMessage, SentMessage> transformer) {
+    public TransferBuilder(final ReceivePort<? extends ReceivedMessage> from, final SendPort<? super SentMessage> to, final Function<? super ReceivedMessage, ? extends SentMessage> transformer) {
         this.from = from;
         this.to = to;
         this.transformer = transformer;
@@ -174,7 +174,7 @@ public class TransferBuilder<ReceivedMessage, SentMessage> implements Suspendabl
         }
     }
 
-    private boolean transfer(final ReceivePort<ReceivedMessage> from, final SendPort<SentMessage> to) throws SuspendExecution, InterruptedException {
+    private boolean transfer(final ReceivePort<? extends ReceivedMessage> from, final SendPort<? super SentMessage> to) throws SuspendExecution, InterruptedException {
         if (!from.isClosed()) {
             to.send(transformer.apply(from.receive()));
             return true;

@@ -26,13 +26,13 @@ import java.util.concurrent.TimeUnit;
  * @author circlespainter
  */
 public class DelegatingChannel<Message> extends DelegatingSendPort<Message> implements Channel<Message> {
-    private final DelegatingReceivePort<Message> delegateReceivePort;
-    private final Port<Message> equalsTarget;
+    private final DelegatingReceivePort<? extends Message> delegateReceivePort;
+    private final Port<?> equalsTarget;
 
     /**
      * @param equalsTarget  When delegating to potentially distinct send port and receive port, the equals behaviour must be explicitly specified.
      */
-    public DelegatingChannel(final SendPort<Message> sendPort, final ReceivePort<Message> receivePort, final Port<Message> equalsTarget) {
+    public DelegatingChannel(final SendPort<Message> sendPort, final ReceivePort<? extends Message> receivePort, final Port<?> equalsTarget) {
         super(sendPort);
         this.delegateReceivePort = new DelegatingReceivePort<>(receivePort);
         this.equalsTarget = equalsTarget;

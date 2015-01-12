@@ -31,7 +31,7 @@ public class ChannelBasicOps {
      * <p/>
      * @return The collection of the received elements.
      */
-    public static <Message> List<Message> receive(final ReceivePort<Message> from, int n) throws SuspendExecution, InterruptedException {
+    public static <Message> List<Message> receive(final ReceivePort<? extends Message> from, int n) throws SuspendExecution, InterruptedException {
         final List<Message> ret = new ArrayList<>();
         for(int i = 0 ; i < n ; i++) {
             final Message val = from.receive();
@@ -48,7 +48,7 @@ public class ChannelBasicOps {
      * <p/>
      * @return The number of sent elements.
      */
-    public static <Message> int send(Iterator<Message> it, final SendPort<Message> to) throws SuspendExecution, InterruptedException {
+    public static <Message> int send(Iterator<Message> it, final SendPort<? super Message> to) throws SuspendExecution, InterruptedException {
         int sent = 0;
         while(it.hasNext()) {
             to.send(it.next());
