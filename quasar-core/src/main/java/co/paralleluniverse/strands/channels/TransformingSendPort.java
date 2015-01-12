@@ -32,26 +32,26 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
     }
 
     /**
-     * Returns a {@link FixedTapSendPort} that will always forward to a single {@link SendPort}.
+     * Returns a {@link TransformingSendPort} that will always forward to a single {@link SendPort}.
      * <p/>
      * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
      *
      * @param forwardTo     The additional {@link SendPort} that will receive messages.
      * @param strandFactory The {@link StrandFactory} that will build send strands when the {@link SendPort} would block.
-     * @return a {@link FixedTapSendPort} that will always forward to a single {@code forwardTo}.
+     * @return a {@link TransformingSendPort} that will always forward to a single {@code forwardTo}.
      */
     public TransformingSendPort<T> tap(final SendPort<? super T> forwardTo, final StrandFactory strandFactory) {
         return Channels.transformSend(Channels.tapSend(this, forwardTo, strandFactory));
     }
 
     /**
-     * Returns a {@link FixedTapSendPort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
+     * Returns a {@link TransformingSendPort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
      * send strands when the {@link SendPort} would block.
      * <p/>
      * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
      *
      * @param forwardTo     The additional {@link SendPort} that will receive messages.
-     * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
+     * @return a {@link TransformingSendPort} that will always forward to a single {@code forwardTo}.
      */
     public TransformingSendPort<T> tap(final SendPort<? super T> forwardTo) {
         return Channels.transformSend(Channels.tapSend(this, forwardTo));
@@ -83,9 +83,9 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
     }
 
     /**
-     * Returns a {@link SendPort} to which sending messages that are transformed towards a channel by a reduction function.
+     * Returns a {@link TransformingSendPort} to which sending messages that are transformed towards a channel by a reduction function.
      * <p/>
-     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     * The returned {@code TransformingSendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
      *
      * @param f       The reduction function.
      * @param init    The initial input to the reduction function.

@@ -34,22 +34,22 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
     }
 
     /**
-     * Returns a {@link FixedTapReceivePort} that will always forward to a single {@link SendPort}.
+     * Returns a {@link TransformingReceivePort} that will always forward to a single {@link SendPort}.
      *
      * @param forwardTo     The additional {@link SendPort} that will receive messages.
      * @param strandFactory The {@link StrandFactory} that will build send strands when the {@link SendPort} would block.
-     * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
+     * @return a {@link TransformingReceivePort} that will always forward to a single {@code forwardTo}.
      */
     public TransformingReceivePort<T> tap(final SendPort<? super T> forwardTo, final StrandFactory strandFactory) {
         return Channels.transform(Channels.tap(this, forwardTo, strandFactory));
     }
 
     /**
-     * Returns a {@link FixedTapReceivePort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
+     * Returns a {@link TransformingReceivePort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
      * send strands when the {@link SendPort} would block.
      *
      * @param forwardTo     The additional {@link SendPort} that will receive messages.
-     * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
+     * @return a {@link TransformingReceivePort} that will always forward to a single {@code forwardTo}.
      */
     public TransformingReceivePort<T> tap(final SendPort<? super T> forwardTo) {
         return Channels.transform(Channels.tap(this, forwardTo));
@@ -81,9 +81,9 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
     }
 
      /**
-     * Returns a {@link ReceivePort} from which receiving messages that are transformed from a given channel by a given reduction function.
+     * Returns a {@link TransformingReceivePort} from which receiving messages that are transformed from a given channel by a given reduction function.
      * <p/>
-     * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     * The returned {@code TransformingReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
      *
      * @param f       The reduction function.
      * @param init    The initial input to the reduction function.
