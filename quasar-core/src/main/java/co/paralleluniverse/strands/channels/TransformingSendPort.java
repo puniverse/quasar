@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.FiberFactory;
+import co.paralleluniverse.strands.StrandFactory;
 import co.paralleluniverse.strands.SuspendableAction2;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -27,6 +28,30 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
 
     TransformingSendPort(SendPort<T> target) {
         super(target);
+    }
+
+    /**
+     * Returns a {@link FixedTapSendPort} that will always forward to a single {@link SendPort}.
+     *
+     * @param target        The tapped {@link SendPort}.
+     * @param forwardTo     The additional {@link SendPort} that will receive messages.
+     * @param strandFactory The {@link StrandFactory} that will build send strands when the {@link SendPort} would block.
+     * @return a {@link FixedTapSendPort} that will always forward to a single {@code forwardTo}.
+     */
+    public static <M> TransformingSendPort<M> fixedTap(final SendPort<M> target, final SendPort<? super M> forwardTo, final StrandFactory strandFactory) {
+        return Channels.transformSend(Channels.fixedSendTap(target, forwardTo, strandFactory));
+    }
+
+    /**
+     * Returns a {@link FixedTapSendPort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
+     * send strands when the {@link SendPort} would block.
+     *
+     * @param target        The tapped {@link SendPort}.
+     * @param forwardTo     The additional {@link SendPort} that will receive messages.
+     * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
+     */
+    public static <M> TransformingSendPort<M> fixedTap(final SendPort<M> target, final SendPort<? super M> forwardTo) {
+        return Channels.transformSend(Channels.fixedSendTap(target, forwardTo));
     }
 
     /**

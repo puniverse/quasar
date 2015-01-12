@@ -533,7 +533,7 @@ public final class Channels {
                     out.close();
                 } catch (ProducerException e) {
                     out.close(e.getCause());
-                } catch (Throwable t) {
+                } catch (SuspendExecution | InterruptedException t) {
                     out.close(t);
                 }
                 return null;
@@ -556,6 +556,30 @@ public final class Channels {
     }
 
     /**
+     * Returns a {@link FixedTapSendPort} that will always forward to a single {@link SendPort}.
+     *
+     * @param target        The tapped {@link SendPort}.
+     * @param strandFactory The {@link StrandFactory} that will build send strands when the {@link SendPort} would block.
+     * @param forwardTo     The additional {@link SendPort} that will receive messages.
+     * @return a {@link FixedTapSendPort} that will always forward to a single {@code forwardTo}.
+     */
+    public static <M> SendPort<M> fixedSendTap(final SendPort<M> target, final SendPort<? super M> forwardTo, final StrandFactory strandFactory) {
+        return new FixedTapSendPort<>(target, forwardTo, strandFactory);
+    }
+
+    /**
+     * Returns a {@link FixedTapSendPort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
+     * send strands when the {@link SendPort} would block.
+     *
+     * @param target        The tapped {@link SendPort}.
+     * @param forwardTo     The additional {@link SendPort} that will receive messages.
+     * @return a {@link FixedTapSendPort} that will always forward to a single {@code forwardTo}.
+     */
+    public static <M> SendPort<M> fixedSendTap(final SendPort<M> target, final SendPort<? super M> forwardTo) {
+        return new FixedTapSendPort<>(target, forwardTo);
+    }
+
+    /**
      * Returns a {@link FixedTapReceivePort} that will always forward to a single {@link SendPort}.
      *
      * @param target        The tapped {@link ReceivePort}.
@@ -563,8 +587,8 @@ public final class Channels {
      * @param forwardTo     The additional {@link SendPort} that will receive messages.
      * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
      */
-    public static <M> ReceivePort<M> fixedTap(final ReceivePort<M> target, final StrandFactory strandFactory, final SendPort<? super M> forwardTo) {
-        return new FixedTapReceivePort<>(target, strandFactory, forwardTo);
+    public static <M> ReceivePort<M> fixedReceiveTap(final ReceivePort<M> target, final SendPort<? super M> forwardTo, final StrandFactory strandFactory) {
+        return new FixedTapReceivePort<>(target, forwardTo, strandFactory);
     }
 
     /**
@@ -575,7 +599,7 @@ public final class Channels {
      * @param forwardTo     The additional {@link SendPort} that will receive messages.
      * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
      */
-    public static <M> ReceivePort<M> fixedTap(final ReceivePort<M> target, final SendPort<? super M> forwardTo) {
+    public static <M> ReceivePort<M> fixedReceiveTap(final ReceivePort<M> target, final SendPort<? super M> forwardTo) {
         return new FixedTapReceivePort<>(target, forwardTo);
     }
 
@@ -588,7 +612,7 @@ public final class Channels {
      * @return a {@link ReceivePort} that receives messages from {@code channels}.
      */
     public static <M> ReceivePort<M> group(ReceivePort<? extends M>... channels) {
-        return new ReceivePortGroup<M>(channels);
+        return new ReceivePortGroup<>(channels);
     }
 
     /**
@@ -600,7 +624,7 @@ public final class Channels {
      * @return a {@link ReceivePort} that receives messages from {@code channels}.
      */
     public static <M> ReceivePort<M> group(Collection<? extends ReceivePort<? extends M>> channels) {
-        return new ReceivePortGroup<M>(channels);
+        return new ReceivePortGroup<>(channels);
     }
 
     /**
@@ -615,7 +639,7 @@ public final class Channels {
      * @return A {@link ReceivePort} that will receive all those messages from the original channel which satisfy the predicate (i.e. the predicate returns {@code true}).
      */
     public static <M> ReceivePort<M> filter(ReceivePort<M> channel, Predicate<M> pred) {
-        return new FilteringReceivePort<M>(channel, pred);
+        return new FilteringReceivePort<>(channel, pred);
     }
 
     /**
@@ -630,7 +654,7 @@ public final class Channels {
      * @return a {@link ReceivePort} that returns messages that are the result of applying the mapping function to the messages received on the given channel.
      */
     public static <S, T> ReceivePort<T> map(ReceivePort<S> channel, Function<S, T> f) {
-        return new MappingReceivePort<S, T>(channel, f);
+        return new MappingReceivePort<>(channel, f);
     }
 
     /**
@@ -645,7 +669,7 @@ public final class Channels {
      * @param f       the exception mapping function
      */
     public static <T> ReceivePort<T> mapErrors(ReceivePort<T> channel, Function<Exception, T> f) {
-        return new ErrorMappingReceivePort<T>(channel, f);
+        return new ErrorMappingReceivePort<>(channel, f);
     }
 
     /**
@@ -669,7 +693,7 @@ public final class Channels {
      * @return a {@link ReceivePort} that returns messages that are the result of applying the mapping function to the messages received on the given channel.
      */
     public static <S, T> ReceivePort<T> flatMap(ReceivePort<S> channel, Function<S, ReceivePort<T>> f) {
-        return new FlatMappingReceivePort<S, T>(channel, f);
+        return new FlatMappingReceivePort<>(channel, f);
     }
 
     /**
@@ -695,7 +719,7 @@ public final class Channels {
      * @return A zipping {@link ReceivePort}
      */
     public static <M> ReceivePort<M> zip(List<? extends ReceivePort<?>> cs, Function<Object[], M> f) {
-        return new ZippingReceivePort<M>(f, cs);
+        return new ZippingReceivePort<>(f, cs);
     }
 
     /**
@@ -769,7 +793,7 @@ public final class Channels {
      * transformations.
      */
     public static <M> TransformingReceivePort<M> transform(ReceivePort<M> channel) {
-        return new TransformingReceivePort<M>(channel);
+        return new TransformingReceivePort<>(channel);
     }
 
     /**
@@ -784,7 +808,7 @@ public final class Channels {
      * @return A {@link SendPort} that will send only those messages which satisfy the predicate (i.e. the predicate returns {@code true}) to the given channel.
      */
     public static <M> SendPort<M> filterSend(SendPort<M> channel, Predicate<M> pred) {
-        return new FilteringSendPort<M>(channel, pred);
+        return new FilteringSendPort<>(channel, pred);
     }
 
     /**
@@ -799,21 +823,21 @@ public final class Channels {
      * @return a {@link SendPort} that passes messages to the given channel after transforming them by applying the mapping function.
      */
     public static <S, T> SendPort<S> mapSend(SendPort<T> channel, Function<S, T> f) {
-        return new MappingSendPort<S, T>(channel, f);
+        return new MappingSendPort<>(channel, f);
     }
 
     /**
      * Returns a {@link SendPort} that sends messages that are transformed by a given flat-mapping function into a given channel.
      * Unlike {@link #mapSend(SendPort, Function) map}, the mapping function does not returns a single output message for every input message, but
      * a new {@code ReceivePort}. All the returned ports are concatenated and sent to the channel.
-     * <p>
+     * <p/>
      * To return a single value the mapping function can make use of {@link #singletonReceivePort(Object) singletonReceivePort}. To return a collection,
      * it can make use of {@link #toReceivePort(Iterable) toReceivePort(Iterable)}. To emit no values, the function can return {@link #emptyReceivePort()}
      * or {@code null}.
-     * <p>
+     * <p/>
      * If multiple producers send messages into the channel, the messages from the {@code ReceivePort}s returned by the mapping function
      * may be interleaved with other messages.
-     * <p>
+     * <p/>
      * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
      *
      * @param <S>     the message type of the source (given) channel.
@@ -839,7 +863,7 @@ public final class Channels {
                 }
             }
         });
-        return new PipeChannel<S>(pipe, channel);
+        return new PipeChannel<>(pipe, channel);
     }
 
     public static <S, T> SendPort<S> flatMapSend(Channel<S> pipe, SendPort<T> channel, final Function<S, ReceivePort<T>> f) {
