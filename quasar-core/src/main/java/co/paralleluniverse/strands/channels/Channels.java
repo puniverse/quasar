@@ -557,26 +557,30 @@ public final class Channels {
 
     /**
      * Returns a {@link FixedTapReceivePort} that will always forward to a single {@link SendPort}.
+     * <p/>
+     * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code target} and is {@link Object#equals(Object) equal} to it.
      *
-     * @param target        The tapped {@link ReceivePort}.
+     * @param channel       The tapped {@link ReceivePort}.
      * @param strandFactory The {@link StrandFactory} that will build send strands when the {@link SendPort} would block.
      * @param forwardTo     The additional {@link SendPort} that will receive messages.
      * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
      */
-    public static <M> ReceivePort<M> tap(final ReceivePort<M> target, final SendPort<? super M> forwardTo, final StrandFactory strandFactory) {
-        return new FixedTapReceivePort<>(target, forwardTo, strandFactory);
+    public static <M> ReceivePort<M> tap(final ReceivePort<M> channel, final SendPort<? super M> forwardTo, final StrandFactory strandFactory) {
+        return new FixedTapReceivePort<>(channel, forwardTo, strandFactory);
     }
 
     /**
      * Returns a {@link FixedTapReceivePort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
      * send strands when the {@link SendPort} would block.
-     *
-     * @param target        The tapped {@link ReceivePort}.
+     * <p/>
+     * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code target} and is {@link Object#equals(Object) equal} to it.
+     * 
+     * @param channel       The tapped {@link ReceivePort}.
      * @param forwardTo     The additional {@link SendPort} that will receive messages.
      * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
      */
-    public static <M> ReceivePort<M> tap(final ReceivePort<M> target, final SendPort<? super M> forwardTo) {
-        return new FixedTapReceivePort<>(target, forwardTo);
+    public static <M> ReceivePort<M> tap(final ReceivePort<M> channel, final SendPort<? super M> forwardTo) {
+        return new FixedTapReceivePort<>(channel, forwardTo);
     }
 
     /**
@@ -774,26 +778,30 @@ public final class Channels {
 
     /**
      * Returns a {@link FixedTapSendPort} that will always forward to a single {@link SendPort}.
+     * <p/>
+     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code target} and is {@link Object#equals(Object) equal} to it.
      *
-     * @param target        The tapped {@link SendPort}.
+     * @param channel       The tapped {@link SendPort}.
      * @param strandFactory The {@link StrandFactory} that will build send strands when the {@link SendPort} would block.
      * @param forwardTo     The additional {@link SendPort} that will receive messages.
      * @return a {@link FixedTapSendPort} that will always forward to a single {@code forwardTo}.
      */
-    public static <M> SendPort<M> tapSend(final SendPort<M> target, final SendPort<? super M> forwardTo, final StrandFactory strandFactory) {
-        return new FixedTapSendPort<>(target, forwardTo, strandFactory);
+    public static <M> SendPort<M> tapSend(final SendPort<M> channel, final SendPort<? super M> forwardTo, final StrandFactory strandFactory) {
+        return new FixedTapSendPort<>(channel, forwardTo, strandFactory);
     }
 
     /**
      * Returns a {@link FixedTapSendPort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
      * send strands when the {@link SendPort} would block.
+     * <p/>
+     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code target} and is {@link Object#equals(Object) equal} to it.
      *
-     * @param target        The tapped {@link SendPort}.
+     * @param channel       The tapped {@link SendPort}.
      * @param forwardTo     The additional {@link SendPort} that will receive messages.
      * @return a {@link FixedTapSendPort} that will always forward to a single {@code forwardTo}.
      */
-    public static <M> SendPort<M> tapSend(final SendPort<M> target, final SendPort<? super M> forwardTo) {
-        return new FixedTapSendPort<>(target, forwardTo);
+    public static <M> SendPort<M> tapSend(final SendPort<M> channel, final SendPort<? super M> forwardTo) {
+        return new FixedTapSendPort<>(channel, forwardTo);
     }
 
     /**
