@@ -39,7 +39,7 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
      * @param strandFactory The {@link StrandFactory} that will build send strands when the {@link SendPort} would block.
      * @return a {@link FixedTapSendPort} that will always forward to a single {@code forwardTo}.
      */
-    public TransformingSendPort<T> fixedTap(final SendPort<? super T> forwardTo, final StrandFactory strandFactory) {
+    public TransformingSendPort<T> tap(final SendPort<? super T> forwardTo, final StrandFactory strandFactory) {
         return Channels.transformSend(Channels.tapSend(this, forwardTo, strandFactory));
     }
 
@@ -52,7 +52,7 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
      * @param forwardTo     The additional {@link SendPort} that will receive messages.
      * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
      */
-    public TransformingSendPort<T> fixedTap(final SendPort<? super T> forwardTo) {
+    public TransformingSendPort<T> tap(final SendPort<? super T> forwardTo) {
         return Channels.transformSend(Channels.tapSend(this, forwardTo));
     }
 
