@@ -21,6 +21,7 @@ import co.paralleluniverse.common.util.Function5;
 import co.paralleluniverse.fibers.DefaultFiberFactory;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.StrandFactory;
 import co.paralleluniverse.strands.SuspendableAction1;
 import co.paralleluniverse.strands.SuspendableAction2;
 import co.paralleluniverse.strands.SuspendableCallable;
@@ -552,6 +553,30 @@ public final class Channels {
      */
     public static <S, T> void fiberTransform(final ReceivePort<S> in, final SendPort<T> out, final SuspendableAction2<? extends ReceivePort<? super S>, ? extends SendPort<? extends T>> transformer) {
         fiberTransform(defaultFiberFactory, in, out, transformer);
+    }
+
+    /**
+     * Returns a {@link FixedTapReceivePort} that will always forward to a single {@link SendPort}.
+     *
+     * @param target        The tapped {@link ReceivePort}.
+     * @param strandFactory The {@link StrandFactory} that will build send strands when the {@link SendPort} would block.
+     * @param forwardTo     The additional {@link SendPort} that will receive messages.
+     * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
+     */
+    public static <M> ReceivePort<M> fixedTap(final ReceivePort<M> target, final StrandFactory strandFactory, final SendPort<? super M> forwardTo) {
+        return new FixedTapReceivePort<>(target, strandFactory, forwardTo);
+    }
+
+    /**
+     * Returns a {@link FixedTapReceivePort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
+     * send strands when the {@link SendPort} would block.
+     *
+     * @param target        The tapped {@link ReceivePort}.
+     * @param forwardTo     The additional {@link SendPort} that will receive messages.
+     * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
+     */
+    public static <M> ReceivePort<M> fixedTap(final ReceivePort<M> target, final SendPort<? super M> forwardTo) {
+        return new FixedTapReceivePort<>(target, forwardTo);
     }
 
     /**

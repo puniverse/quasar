@@ -15,6 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.StrandFactory;
 import co.paralleluniverse.strands.SuspendableAction1;
 import co.paralleluniverse.strands.SuspendableAction2;
 import com.google.common.base.Function;
@@ -31,6 +32,30 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
         super(target);
     }
 
+    /**
+     * Returns a {@link FixedTapReceivePort} that will always forward to a single {@link SendPort}.
+     *
+     * @param target        The tapped {@link ReceivePort}.
+     * @param strandFactory The {@link StrandFactory} that will build send strands when the {@link SendPort} would block.
+     * @param forwardTo     The additional {@link SendPort} that will receive messages.
+     * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
+     */
+    public static <M> TransformingReceivePort<M> fixedTap(final ReceivePort<M> target, final StrandFactory strandFactory, final SendPort<? super M> forwardTo) {
+        return Channels.transform(Channels.fixedTap(target, strandFactory, forwardTo));
+    }
+
+    /**
+     * Returns a {@link FixedTapReceivePort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
+     * send strands when the {@link SendPort} would block.
+     *
+     * @param target        The tapped {@link ReceivePort}.
+     * @param forwardTo     The additional {@link SendPort} that will receive messages.
+     * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
+     */
+    public static <M> TransformingReceivePort<M> fixedTap(final ReceivePort<M> target, final SendPort<? super M> forwardTo) {
+        return Channels.transform(Channels.fixedTap(target, forwardTo));
+    }
+    
     /**
      * Returns a {@link TransformingReceivePort} that filters messages that satisfy a predicate from this given channel.
      * All messages (even those not satisfying the predicate) will be consumed from the original channel; those that don't satisfy the predicate will be silently discarded.
