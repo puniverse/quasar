@@ -88,7 +88,7 @@ class TapReceivePort<Message> extends ReceivePortTransformer<Message, Message> i
                 public void run() throws SuspendExecution, InterruptedException {
                     actualForwardTo.send(m);
                 }
-            }));
+            })).start();
         return m;
     }
 }

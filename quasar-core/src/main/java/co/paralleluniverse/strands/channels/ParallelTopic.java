@@ -131,7 +131,7 @@ public class ParallelTopic<Message> extends Topic<Message> {
                             public void run() throws SuspendExecution, InterruptedException {
                                 sub.send(m);
                             }
-                        }));
+                        })).start();
                         if (staged)
                             stage.add(f);
                     }
@@ -147,6 +147,6 @@ public class ParallelTopic<Message> extends Topic<Message> {
                     }
                 }
             }
-        }));
+        })).start();
     }
 }
