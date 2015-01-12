@@ -556,30 +556,6 @@ public final class Channels {
     }
 
     /**
-     * Returns a {@link FixedTapSendPort} that will always forward to a single {@link SendPort}.
-     *
-     * @param target        The tapped {@link SendPort}.
-     * @param strandFactory The {@link StrandFactory} that will build send strands when the {@link SendPort} would block.
-     * @param forwardTo     The additional {@link SendPort} that will receive messages.
-     * @return a {@link FixedTapSendPort} that will always forward to a single {@code forwardTo}.
-     */
-    public static <M> SendPort<M> fixedSendTap(final SendPort<M> target, final SendPort<? super M> forwardTo, final StrandFactory strandFactory) {
-        return new FixedTapSendPort<>(target, forwardTo, strandFactory);
-    }
-
-    /**
-     * Returns a {@link FixedTapSendPort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
-     * send strands when the {@link SendPort} would block.
-     *
-     * @param target        The tapped {@link SendPort}.
-     * @param forwardTo     The additional {@link SendPort} that will receive messages.
-     * @return a {@link FixedTapSendPort} that will always forward to a single {@code forwardTo}.
-     */
-    public static <M> SendPort<M> fixedSendTap(final SendPort<M> target, final SendPort<? super M> forwardTo) {
-        return new FixedTapSendPort<>(target, forwardTo);
-    }
-
-    /**
      * Returns a {@link FixedTapReceivePort} that will always forward to a single {@link SendPort}.
      *
      * @param target        The tapped {@link ReceivePort}.
@@ -587,7 +563,7 @@ public final class Channels {
      * @param forwardTo     The additional {@link SendPort} that will receive messages.
      * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
      */
-    public static <M> ReceivePort<M> fixedReceiveTap(final ReceivePort<M> target, final SendPort<? super M> forwardTo, final StrandFactory strandFactory) {
+    public static <M> ReceivePort<M> tap(final ReceivePort<M> target, final SendPort<? super M> forwardTo, final StrandFactory strandFactory) {
         return new FixedTapReceivePort<>(target, forwardTo, strandFactory);
     }
 
@@ -599,8 +575,32 @@ public final class Channels {
      * @param forwardTo     The additional {@link SendPort} that will receive messages.
      * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
      */
-    public static <M> ReceivePort<M> fixedReceiveTap(final ReceivePort<M> target, final SendPort<? super M> forwardTo) {
+    public static <M> ReceivePort<M> tap(final ReceivePort<M> target, final SendPort<? super M> forwardTo) {
         return new FixedTapReceivePort<>(target, forwardTo);
+    }
+
+    /**
+     * Returns a {@link FixedTapSendPort} that will always forward to a single {@link SendPort}.
+     *
+     * @param target        The tapped {@link SendPort}.
+     * @param strandFactory The {@link StrandFactory} that will build send strands when the {@link SendPort} would block.
+     * @param forwardTo     The additional {@link SendPort} that will receive messages.
+     * @return a {@link FixedTapSendPort} that will always forward to a single {@code forwardTo}.
+     */
+    public static <M> SendPort<M> tapSend(final SendPort<M> target, final SendPort<? super M> forwardTo, final StrandFactory strandFactory) {
+        return new FixedTapSendPort<>(target, forwardTo, strandFactory);
+    }
+
+    /**
+     * Returns a {@link FixedTapSendPort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
+     * send strands when the {@link SendPort} would block.
+     *
+     * @param target        The tapped {@link SendPort}.
+     * @param forwardTo     The additional {@link SendPort} that will receive messages.
+     * @return a {@link FixedTapSendPort} that will always forward to a single {@code forwardTo}.
+     */
+    public static <M> SendPort<M> tapSend(final SendPort<M> target, final SendPort<? super M> forwardTo) {
+        return new FixedTapSendPort<>(target, forwardTo);
     }
 
     /**
@@ -875,7 +875,7 @@ public final class Channels {
      * transformations.
      */
     public static <M> TransformingSendPort<M> transformSend(SendPort<M> channel) {
-        return new TransformingSendPort<M>(channel);
+        return new TransformingSendPort<>(channel);
     }
 
     /**

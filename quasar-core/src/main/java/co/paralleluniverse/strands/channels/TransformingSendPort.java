@@ -39,7 +39,7 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
      * @return a {@link FixedTapSendPort} that will always forward to a single {@code forwardTo}.
      */
     public static <M> TransformingSendPort<M> fixedTap(final SendPort<M> target, final SendPort<? super M> forwardTo, final StrandFactory strandFactory) {
-        return Channels.transformSend(Channels.fixedSendTap(target, forwardTo, strandFactory));
+        return Channels.transformSend(Channels.tapSend(target, forwardTo, strandFactory));
     }
 
     /**
@@ -51,7 +51,7 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
      * @return a {@link FixedTapReceivePort} that will always forward to a single {@code forwardTo}.
      */
     public static <M> TransformingSendPort<M> fixedTap(final SendPort<M> target, final SendPort<? super M> forwardTo) {
-        return Channels.transformSend(Channels.fixedSendTap(target, forwardTo));
+        return Channels.transformSend(Channels.tapSend(target, forwardTo));
     }
 
     /**
