@@ -20,6 +20,7 @@ import co.paralleluniverse.strands.StrandFactory;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.SuspendableUtils;
+import com.google.common.base.Function;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -28,14 +29,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p/>
  * @author circlespainter
  */
-public class TransferBuilder<Message> implements SuspendableCallable<Integer> {
+public class TransferBuilder<ReceivedMessage, SentMessage> implements SuspendableCallable<Integer> {
     private static final boolean closeToDefault = true;
     private static final int parallelismDefault = 0;
     private static final int countDefault = 1;
     private static final StrandFactory strandFactoryDefault = DefaultFiberFactory.instance();
 
-    private final ReceivePort<Message> from;
-    private final SendPort<Message> to;
+    private final ReceivePort<ReceivedMessage> from;
+    private final SendPort<SentMessage> to;
 
     private int parallelism = parallelismDefault;
     private boolean parallelismSet = false;
@@ -47,12 +48,16 @@ public class TransferBuilder<Message> implements SuspendableCallable<Integer> {
 
     private boolean closeTo = closeToDefault;
 
+    private final Function<ReceivedMessage, SentMessage> transformer;
+
     /**
-     * Mandatory information to start a transfer are the source and destination ports. Other parameters are set to defaults (1 transfer, )
+     * Mandatory information to start a transfer are the source and destination ports as well as the message transformation.
+     * Other parameters are set to defaults (1 transfer, no parallelism, the target channel will be closed, strand factory is {@code DefaultFiberFactory}).
      */
-    public TransferBuilder(final ReceivePort<Message> from, final SendPort<Message> to) {
+    public TransferBuilder(final ReceivePort<ReceivedMessage> from, final SendPort<SentMessage> to, final Function<ReceivedMessage, SentMessage> transformer) {
         this.from = from;
         this.to = to;
+        this.transformer = transformer;
     }
 
     /**
@@ -169,9 +174,9 @@ public class TransferBuilder<Message> implements SuspendableCallable<Integer> {
         }
     }
 
-    private boolean transfer(final ReceivePort<Message> from, final SendPort<Message> to) throws SuspendExecution, InterruptedException {
+    private boolean transfer(final ReceivePort<ReceivedMessage> from, final SendPort<SentMessage> to) throws SuspendExecution, InterruptedException {
         if (!from.isClosed()) {
-            to.send(from.receive());
+            to.send(transformer.apply(from.receive()));
             return true;
         } else {
             if (closeTo)
