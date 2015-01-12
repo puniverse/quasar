@@ -580,30 +580,6 @@ public final class Channels {
     }
 
     /**
-     * Returns a {@link FixedTapSendPort} that will always forward to a single {@link SendPort}.
-     *
-     * @param target        The tapped {@link SendPort}.
-     * @param strandFactory The {@link StrandFactory} that will build send strands when the {@link SendPort} would block.
-     * @param forwardTo     The additional {@link SendPort} that will receive messages.
-     * @return a {@link FixedTapSendPort} that will always forward to a single {@code forwardTo}.
-     */
-    public static <M> SendPort<M> tapSend(final SendPort<M> target, final SendPort<? super M> forwardTo, final StrandFactory strandFactory) {
-        return new FixedTapSendPort<>(target, forwardTo, strandFactory);
-    }
-
-    /**
-     * Returns a {@link FixedTapSendPort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
-     * send strands when the {@link SendPort} would block.
-     *
-     * @param target        The tapped {@link SendPort}.
-     * @param forwardTo     The additional {@link SendPort} that will receive messages.
-     * @return a {@link FixedTapSendPort} that will always forward to a single {@code forwardTo}.
-     */
-    public static <M> SendPort<M> tapSend(final SendPort<M> target, final SendPort<? super M> forwardTo) {
-        return new FixedTapSendPort<>(target, forwardTo);
-    }
-
-    /**
      * Returns a {@link ReceivePort} that receives messages from a set of channels. Messages from all given channels are funneled into
      * the returned channel.
      *
@@ -794,6 +770,30 @@ public final class Channels {
      */
     public static <M> TransformingReceivePort<M> transform(ReceivePort<M> channel) {
         return new TransformingReceivePort<>(channel);
+    }
+
+    /**
+     * Returns a {@link FixedTapSendPort} that will always forward to a single {@link SendPort}.
+     *
+     * @param target        The tapped {@link SendPort}.
+     * @param strandFactory The {@link StrandFactory} that will build send strands when the {@link SendPort} would block.
+     * @param forwardTo     The additional {@link SendPort} that will receive messages.
+     * @return a {@link FixedTapSendPort} that will always forward to a single {@code forwardTo}.
+     */
+    public static <M> SendPort<M> tapSend(final SendPort<M> target, final SendPort<? super M> forwardTo, final StrandFactory strandFactory) {
+        return new FixedTapSendPort<>(target, forwardTo, strandFactory);
+    }
+
+    /**
+     * Returns a {@link FixedTapSendPort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
+     * send strands when the {@link SendPort} would block.
+     *
+     * @param target        The tapped {@link SendPort}.
+     * @param forwardTo     The additional {@link SendPort} that will receive messages.
+     * @return a {@link FixedTapSendPort} that will always forward to a single {@code forwardTo}.
+     */
+    public static <M> SendPort<M> tapSend(final SendPort<M> target, final SendPort<? super M> forwardTo) {
+        return new FixedTapSendPort<>(target, forwardTo);
     }
 
     /**
