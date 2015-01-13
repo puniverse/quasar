@@ -608,6 +608,30 @@ public final class Channels {
     }
 
     /**
+     * Returns a {@link ReceivePort} that receives messages from a set of channels. Messages from all given channels are funneled into
+     * the returned channel. The returned {@link ReceivePort} supports atomic {@link Mix} operations.
+     *
+     * @param <M>
+     * @param channels
+     * @return a {@link ReceivePort} that receives messages from {@code channels}.
+     */
+    public static <M> ReceivePort<M> mix(ReceivePort<? extends M>... channels) {
+        return new ReceivePortMix<>(channels);
+    }
+
+    /**
+     * Returns a {@link ReceivePort} that receives messages from a set of channels. Messages from all given channels are funneled into
+     * the returned channel.
+     *
+     * @param <M>
+     * @param channels
+     * @return a {@link ReceivePort} that receives messages from {@code channels}.
+     */
+    public static <M> ReceivePort<M> mix(Collection<? extends ReceivePort<? extends M>> channels) {
+        return new ReceivePortMix<>(channels);
+    }
+
+    /**
      * Returns a {@link ReceivePort} that filters messages that satisfy a predicate from a given channel.
      * All messages (even those not satisfying the predicate) will be consumed from the original channel; those that don't satisfy the predicate will be silently discarded.
      * <p/>
