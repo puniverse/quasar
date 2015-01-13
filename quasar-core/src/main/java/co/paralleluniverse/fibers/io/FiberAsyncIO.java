@@ -17,6 +17,7 @@ import co.paralleluniverse.common.util.CheckedCallable;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberAsync;
 import co.paralleluniverse.fibers.FiberScheduler;
+import co.paralleluniverse.fibers.SchedulerLocal;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import java.io.IOException;
@@ -38,31 +39,27 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 abstract class FiberAsyncIO<V> extends FiberAsync<V, IOException> {
+    private static final SchedulerLocal<AsynchronousChannelGroup> defaultGroup = new SchedulerLocal<AsynchronousChannelGroup>() {
+
+        @Override
+        protected AsynchronousChannelGroup initialValue(FiberScheduler scheduler) {
+            try {
+                return AsynchronousChannelGroup.withThreadPool(protectScheduler(scheduler));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    };
+    
 //    private static final ThreadFactory NIO_THREAD_FACTORY = new ThreadFactoryBuilder().setDaemon(true).setNameFormat("fiber-nio-%d").build();
 //
 //    public static AsynchronousChannelGroup newDefaultGroup() throws IOException {
 //        return AsynchronousChannelGroup.withFixedThreadPool(1, NIO_THREAD_FACTORY);
 //    }
 
-    public static ExecutorService ioExecutor(FiberScheduler scheduler) {
-        return protectScheduler(scheduler);
-    }
-
-    public static ExecutorService ioExecutor() {
-        Fiber currentFiber = Fiber.currentFiber();
-        if (currentFiber == null)
-            throw new IllegalStateException("Method called not within a fiber");
-        return ioExecutor(currentFiber.getScheduler());
-    }
-
     public static AsynchronousChannelGroup defaultGroup() throws IOException {
         // return null; // the default group
-        return AsynchronousChannelGroup.withThreadPool(ioExecutor());
-    }
-
-    public static AsynchronousChannelGroup defaultGroup(FiberScheduler scheduler) throws IOException {
-        // return null; // the default group
-        return AsynchronousChannelGroup.withThreadPool(ioExecutor(scheduler));
+        return defaultGroup.get();
     }
 
     protected CompletionHandler<V, Fiber> makeCallback() {
