@@ -47,7 +47,7 @@ public class SuspendablesScannerTest {
 //                        .getResource(AutoSuspendablesScannerTest.class.getName().replace('.', '/') + ".class").toURI()));
         scanner.setAuto(true);
         scanner.run();
-        scanner.getSuspenablesAndSupers(suspependables, suspependableSupers);
+        scanner.getSuspendablesAndSupers(suspependables, suspependableSupers);
         
         System.out.println("SUSPENDABLES: " + suspependables);
         System.out.println("SUPERS: " + suspependableSupers);

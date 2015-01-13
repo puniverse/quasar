@@ -122,7 +122,7 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
     }
 
     @Override
-    public SuspendableType isSuspendable(MethodDatabase db, String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
+    public SuspendableType isSuspendable(MethodDatabase db, String sourceName, String sourceDebugInfo, boolean isInterface, String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
         final String fullMethodName = className + '.' + methodName;
         if (suspendables.contains(fullMethodName + methodDesc))
             return SuspendableType.SUSPENDABLE;
@@ -139,14 +139,14 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
 
         if (superClassName != null) {
             MethodDatabase.ClassEntry ce = db.getOrLoadClassEntry(superClassName);
-            if (ce != null && isSuspendable(db, superClassName, ce.getSuperName(), ce.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions) == SuspendableType.SUSPENDABLE)
+            if (ce != null && isSuspendable(db, sourceName, sourceDebugInfo, isInterface, superClassName, ce.getSuperName(), ce.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions) == SuspendableType.SUSPENDABLE)
                 return SuspendableType.SUSPENDABLE;
         }
 
         if (interfaces != null) {
             for (String iface : interfaces) {
                 MethodDatabase.ClassEntry ce = db.getOrLoadClassEntry(iface);
-                if (ce != null && isSuspendable(db, iface, ce.getSuperName(), ce.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions) == SuspendableType.SUSPENDABLE)
+                if (ce != null && isSuspendable(db, ce.getSourceName(), ce.getSourceDebugInfo(), ce.isIsInterface(), iface, ce.getSuperName(), ce.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions) == SuspendableType.SUSPENDABLE)
                     return SuspendableType.SUSPENDABLE;
             }
         }

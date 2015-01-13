@@ -70,6 +70,8 @@ public class InstrumentClass extends ClassVisitor {
     private final MethodDatabase db;
     private boolean forceInstrumentation;
     private String className;
+    private String sourceDebugInfo;
+    private String sourceName;
     private boolean isInterface;
     private boolean suspendableInterface;
     private ClassEntry classEntry;
@@ -108,6 +110,15 @@ public class InstrumentClass extends ClassVisitor {
         super.visit(version, access, name, signature, superName, interfaces);
     }
 
+    @Override
+    public void visitSource(String source, String debug) {
+        this.sourceName = source;
+        this.sourceDebugInfo = debug;
+        super.visitSource(source, debug);
+        classEntry.setSourceName(sourceName);
+        classEntry.setSourceDebugInfo(sourceDebugInfo);
+    }
+
     public boolean hasSuspendableMethods() {
         return methods != null && !methods.isEmpty();
     }
@@ -128,7 +139,7 @@ public class InstrumentClass extends ClassVisitor {
         if (suspendableInterface)
             markedSuspendable = SuspendableType.SUSPENDABLE_SUPER;
         if (markedSuspendable == null)
-            markedSuspendable = classifier.isSuspendable(db, className, classEntry.getSuperName(), classEntry.getInterfaces(), name, desc, signature, exceptions);
+            markedSuspendable = classifier.isSuspendable(db, sourceName, sourceDebugInfo, isInterface, className, classEntry.getSuperName(), classEntry.getInterfaces(), name, desc, signature, exceptions);
         final SuspendableType setSuspendable = classEntry.check(name, desc);
 
         if (setSuspendable == null)

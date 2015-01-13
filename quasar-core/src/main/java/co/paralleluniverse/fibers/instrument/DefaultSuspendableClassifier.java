@@ -32,19 +32,19 @@ public class DefaultSuspendableClassifier implements SuspendableClassifier {
 
     @SuppressWarnings("CallToPrintStackTrace")
     @Override
-    public SuspendableType isSuspendable(MethodDatabase db, String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
+    public SuspendableType isSuspendable(MethodDatabase db, String sourceName, String sourceDebugInfo, boolean isInterface, String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
         SuspendableType st;
 
         try {
             // classifier service
             for (SuspendableClassifier sc : loader) {
-                st = sc.isSuspendable(db, className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions);
+                st = sc.isSuspendable(db, sourceName, sourceDebugInfo, isInterface, className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions);
                 if (st != null)
                     return st;
             }
 
             // simple classifier (files in META-INF)
-            st = simpleClassifier.isSuspendable(db, className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions);
+            st = simpleClassifier.isSuspendable(db, sourceName, sourceDebugInfo, isInterface, className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions);
             if (st != null)
                 return st;
 
