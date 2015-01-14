@@ -39,8 +39,7 @@ public class SchedulerLocal<T> {
     /**
      * Returns the scheduler-local value of this {@code SchedulerLocal}.
      */
-    @Suspendable
-    public final T get() {
+    public final T get() throws SuspendExecution {
         final FiberScheduler scheduler = currentScheduler();
         final ConcurrentMap<SchedulerLocal, Entry<?>> map = scheduler.schedLocals;
         Entry<T> entry = (Entry<T>) map.get(this);

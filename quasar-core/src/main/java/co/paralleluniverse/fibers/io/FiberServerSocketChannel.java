@@ -44,7 +44,7 @@ public class FiberServerSocketChannel implements NetworkChannel {
      * @return A new server socket channel
      * @throws IOException If an I/O error occurs
      */
-    public static FiberServerSocketChannel open() throws IOException {
+    public static FiberServerSocketChannel open() throws IOException, SuspendExecution {
         return new FiberServerSocketChannel(AsynchronousServerSocketChannel.open(FiberAsyncIO.defaultGroup()));
     }
 
@@ -66,7 +66,7 @@ public class FiberServerSocketChannel implements NetworkChannel {
      * @throws ShutdownChannelGroupException If the channel group is shutdown
      * @throws IOException                   If an I/O error occurs
      */
-    public static FiberServerSocketChannel open(AsynchronousChannelGroup group) throws IOException {
+    public static FiberServerSocketChannel open(AsynchronousChannelGroup group) throws IOException, SuspendExecution {
         return new FiberServerSocketChannel(AsynchronousServerSocketChannel.open(group != null ? group : FiberAsyncIO.defaultGroup()));
     }
 

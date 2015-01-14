@@ -57,7 +57,7 @@ abstract class FiberAsyncIO<V> extends FiberAsync<V, IOException> {
 //        return AsynchronousChannelGroup.withFixedThreadPool(1, NIO_THREAD_FACTORY);
 //    }
 
-    public static AsynchronousChannelGroup defaultGroup() throws IOException {
+    public static AsynchronousChannelGroup defaultGroup() throws IOException, SuspendExecution {
         // return null; // the default group
         return defaultGroup.get();
     }
