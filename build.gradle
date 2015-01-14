@@ -417,6 +417,7 @@ project (':quasar-galaxy') {
             exclude group: 'com.lmax', module: 'disruptor'
             exclude group: 'de.javakaffee', module: 'kryo-serializers'
             exclude group: 'com.google.guava', module: 'guava'
+            exclude group: "org.slf4j", module: '*'
         }
 
         testCompile ('org.gridkit.lab:telecontrol-ssh:0.7.24'){
