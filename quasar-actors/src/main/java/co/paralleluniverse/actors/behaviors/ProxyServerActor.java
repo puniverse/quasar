@@ -28,13 +28,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import net.sf.cglib.proxy.Callback;
-import net.sf.cglib.proxy.CallbackFilter;
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.instrumentation.InvocationHandlerAdapter;
 //import java.lang.reflect.Proxy;
-//import java.lang.reflect.InvocationHandler;
-import net.sf.cglib.proxy.Enhancer;
-import net.sf.cglib.proxy.InvocationHandler;
-import net.sf.cglib.proxy.NoOp;
+import java.lang.reflect.InvocationHandler;
+import net.bytebuddy.dynamic.ClassLoadingStrategy;
+import net.bytebuddy.instrumentation.MethodDelegation;
+import static net.bytebuddy.matcher.ElementMatchers.anyOf;
+import static net.bytebuddy.matcher.ElementMatchers.isDeclaredBy;
 
 /**
  * Wraps a Java object in a {@link ServerActor} that exposes the object's methods as an interface and processes them in an actor
@@ -264,36 +265,23 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
 
     @Override
     protected final Server<Invocation, Object, Invocation> makeRef(ActorRef<Object> ref) {
-        return (Server<Invocation, Object, Invocation>) makeProxyRef(super.makeRef(ref));
+        return makeProxyRef(super.makeRef(ref));
     }
 
-    private Object makeProxyRef(Server<Invocation, Object, Invocation> ref) {
-        Enhancer enhancer = new Enhancer();
-        enhancer.setSuperclass(Server.class);
-        enhancer.setInterfaces(combine(interfaces, standardInterfaces));
-        enhancer.setCallbacks(new Callback[]{new ObjectProxyServerImpl(ref, callOnVoidMethods), NoOp.INSTANCE});
-        enhancer.setCallbackFilter(new CallbackFilter() {
-
-            @Override
-            public int accept(Method method) {
-                final Class<?> cls = method.getDeclaringClass();
-                if (cls.isAssignableFrom(ActorRefDelegate.class))
-                    return 1; // call super
-                return 0;
-            }
-        });
-        return enhancer.create(new Class[]{ActorRef.class}, new Object[]{ref});
-//        return Enhancer.create(Server.class,
-//                combine(interfaces, standardInterfaces),
-//                new ObjectProxyServerImpl(ref, callOnVoidMethods));
-
-//        return Proxy.newProxyInstance(this.getClass().getClassLoader(),
-//                combine(interfaces, standardInterfaces),
-//                new ObjectProxyServerImpl(ref, callOnVoidMethods));
+    private Server<Invocation, Object, Invocation> makeProxyRef(Server<Invocation, Object, Invocation> ref) {
+        final Class<? extends Server> clazz = new ByteBuddy() // http://bytebuddy.net/
+                .subclass(Server.class)
+                .implement(interfaces)
+                .method(isDeclaredBy(Server.class).or(isDeclaredBy(SendPort.class))).intercept(MethodDelegation.to(ref))
+                .method(isDeclaredBy(anyOf(interfaces))).intercept(InvocationHandlerAdapter.of(new ObjectProxyServerImpl(ref, callOnVoidMethods)).withMethodCache())
+                .make()
+                .load(getClass().getClassLoader(), ClassLoadingStrategy.Default.WRAPPER).getLoaded();
+        try {
+            return clazz.getConstructor(ActorRef.class).newInstance(ref);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
-
-    private static Class<?>[] standardInterfaces = new Class[]{
-        SendPort.class,};
 
     private static class ObjectProxyServerImpl implements InvocationHandler, java.io.Serializable {
         private final boolean callOnVoidMethods;
@@ -310,15 +298,17 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            final Class<?> cls = method.getDeclaringClass();
-            assert !cls.isAssignableFrom(ActorRefDelegate.class);
-            if (cls.isAssignableFrom(Server.class) || Arrays.asList(standardInterfaces).contains(cls)) {
-                try {
-                    return method.invoke(ref, args);
-                } catch (InvocationTargetException e) {
-                    throw e.getCause();
-                }
-            }
+            assert !method.getDeclaringClass().isAssignableFrom(ActorRefDelegate.class);
+            
+            assert !method.getDeclaringClass().isAssignableFrom(Server.class);
+//            final Class<?> cls = method.getDeclaringClass();
+//            if (cls.isAssignableFrom(Server.class) || cls.isAssignableFrom(SendPort.class)) {
+//                try {
+//                    return method.invoke(ref, args);
+//                } catch (InvocationTargetException e) {
+//                    throw e.getCause();
+//                }
+//            }
 
             try {
                 if (isInActor()) {
