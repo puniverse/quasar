@@ -133,7 +133,7 @@ public class JavaAgent {
                         break;
 
                     default:
-                        throw new IllegalStateException("Usage: vdmc (verbose, debug, allow monitors, check class)");
+                        throw new IllegalStateException("Usage: vdmcbx (verbose, debug, allow monitors, check class, allow blocking, read debug info)");
                 }
             }
         }
