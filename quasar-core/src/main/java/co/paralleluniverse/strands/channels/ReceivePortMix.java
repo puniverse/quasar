@@ -26,26 +26,27 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Atomic {@link ReceivePort} similar to {@link ReceiveGroup} but supporting atomic {@link Mix} operations.
+ * {@link ReceivePort} similar to {@link ReceiveGroup} but supporting atomic {@link Mix} operations.
  *
  * @author circlespainter
  */
 public class ReceivePortMix<Message, Port extends ReceivePort<? extends Message>> implements ReceivePort<Message>, Mix<Port> {
+    private final static Mode modeDefault = Mode.NORMAL;
     private final static boolean soloDefault = false;
     private final static SoloEffect soloEffectDefault = SoloEffect.PAUSE_OTHERS;
+    private final SwapAtomicReference<SoloEffect> soloEffect = new SwapAtomicReference<>();
 
     private SwapAtomicReference<Selector<Message>> selector;
-    private SwapAtomicReference<HashMap<Port, ExtendedState>> states;
-    private SwapAtomicReference<SoloEffect> soloEffect = new SwapAtomicReference<SoloEffect>();
+    private SwapAtomicReference<HashMap<Port, State>> states;
 
     public ReceivePortMix(Collection<Port> ports) {
         soloEffect.set(soloEffectDefault);
         final Port[] snapshot = (Port[]) ports.toArray();
-        final HashMap<Port, ExtendedState> newStates = new HashMap<>();
-        ArrayList<SelectAction<Message>> actions = new ArrayList<>(ports.size());
-        for (final Port port : ports) {
+        final HashMap<Port, State> newStates = new HashMap<>();
+        ArrayList<SelectAction<Message>> actions = new ArrayList<>(snapshot.length);
+        for (final Port port : snapshot) {
             actions.add(Selector.receive(port));
-            newStates.put(port, new ExtendedState(State.NORMAL, soloDefault));
+            newStates.put(port, new State(modeDefault, soloDefault));
         }
         this.selector.set(new Selector(false, actions));
     }
@@ -99,84 +100,91 @@ public class ReceivePortMix<Message, Port extends ReceivePort<? extends Message>
     }
 
     @Override
-    public Collection<Port> get() {
-        return states.get().keySet();
-    }
-
-    @Override
     public void add(final Port... ports) {
-        states.swap(new Function<HashMap<Port, ExtendedState>, HashMap<Port, ExtendedState>>() {
-            @Override
-            public HashMap<Port, ExtendedState> apply(HashMap<Port, ExtendedState> currStates) {
-                final HashMap<Port, ExtendedState> newStates = new HashMap<>(currStates);
-                for (final Port port : ports)
-                    newStates.put(port, new ExtendedState(State.NORMAL, false));
-                return newStates;
-            }
-        });
+        if (ports != null && ports.length > 0)
+            states.swap(new Function<HashMap<Port, State>, HashMap<Port, State>>() {
+                @Override
+                public HashMap<Port, State> apply(HashMap<Port, State> currStates) {
+                    final HashMap<Port, State> newStates = new HashMap<>(currStates);
+                    for (final Port port : ports)
+                        newStates.put(port, new State(Mode.NORMAL, false));
+                    return newStates;
+                }
+            });
     }
 
     @Override
     public void remove(final Port... ports) {
-        states.swap(new Function<HashMap<Port, ExtendedState>, HashMap<Port, ExtendedState>>() {
-            @Override
-            public HashMap<Port, ExtendedState> apply(HashMap<Port, ExtendedState> currStates) {
-                final HashMap<Port, ExtendedState> newStates = new HashMap<>(currStates);
-                for (final Port port : ports)
-                    newStates.remove(port);
-                return newStates;
-            }
-        });
-    }
-
-    @Override
-    public void removeAll() {
-        states.set(new HashMap<Port, ExtendedState>());
+        if (ports == null || ports.length == 0)
+            states.set(new HashMap<Port, State>());
+        else
+            states.swap(new Function<HashMap<Port, State>, HashMap<Port, State>>() {
+                @Override
+                public HashMap<Port, State> apply(HashMap<Port, State> currStates) {
+                    final HashMap<Port, State> newStates = new HashMap<>(currStates);
+                    for (final Port port : ports)
+                        newStates.remove(port);
+                    return newStates;
+                }
+            });
     }
 
     @Override
     public Map<Port, State> getState(final Port... ports) {
-        final HashMap<Port, ExtendedState> currStates = states.get();
+        if (ports == null || ports.length == 0)
+            return new HashMap<>(states.get());
+
+        final HashMap<Port, State> currStates = states.get();
         final Map<Port, State> ret = new HashMap<>(ports.length);
         for (final Port p : ports)
-            ret.put(p, currStates.get(p).state);
+            ret.put(p, currStates.get(p));
         return ret;
     }
 
     @Override
     public void setState(final State state, final Port... ports) {
-        states.swap(new Function<HashMap<Port, ExtendedState>, HashMap<Port, ExtendedState>>() {
+        states.swap(new Function<HashMap<Port, State>, HashMap<Port, State>>() {
             @Override
-            public HashMap<Port, ExtendedState> apply(HashMap<Port, ExtendedState> currStates) {
-                final HashMap<Port, ExtendedState> newStates = new HashMap<>(currStates);
-                for (final Port port : ports)
+            public HashMap<Port, State> apply(HashMap<Port, State> currStates) {
+                final HashMap<Port, State> newStates = new HashMap<>(currStates);
+                for (final Port port : (ports != null && ports.length > 0) ? Arrays.asList(ports) : new ArrayList<>(states.get().keySet()))
                     if (newStates.containsKey(port))
-                        newStates.put(port, new ExtendedState(state, newStates.get(port).solo));
+                        newStates.put (
+                            port,
+                            new State (
+                                state.mode != null ? state.mode : currStates.get(port).mode,
+                                state.solo != null ? state.solo : currStates.get(port).solo
+                            )
+                        );
                 return newStates;
             }
         });
     }
 
     @Override
-    public Map<Port, State> getStateAll() {
-        final HashMap<Port, ExtendedState> currStates = states.get();
-        final Map<Port, State> ret = new HashMap<>(currStates.size());
-        for (final Port p : currStates.keySet())
-            ret.put(p, currStates.get(p).state);
-        return ret;
-    }
-
-    @Override
-    public void setStateAll(final State state) {
-        states.swap(new Function<HashMap<Port, ExtendedState>, HashMap<Port, ExtendedState>>() {
-            @Override
-            public HashMap<Port, ExtendedState> apply(HashMap<Port, ExtendedState> currStates) {
-                final HashMap<Port, ExtendedState> newStates = new HashMap<>();
-                for (final Port port : currStates.keySet())
-                    newStates.put(port, new ExtendedState(state, soloDefault));
-                return newStates;
-            }
-        });
+    public void setState(final Map<Port, State> newStates) {
+        if (newStates != null)
+            states.swap(new Function<HashMap<Port, State>, HashMap<Port, State>>() {
+                @Override
+                public HashMap<Port, State> apply(HashMap<Port, State> currStates) {
+                    final HashMap<Port, State> newStates = new HashMap<>(currStates);
+                    for (final Map.Entry<Port, State> e : newStates.entrySet()) {
+                        final Port p = e.getKey();
+                        final State newS = e.getValue();
+                        if (newStates.containsKey(e.getKey()))
+                            newStates.put (
+                                e.getKey(),
+                                newS != null ?
+                                    new State (
+                                        newS.mode != null ? newS.mode : currStates.get(p).mode,
+                                        newS.solo != null ? newS.solo : currStates.get(p).solo
+                                    ) :
+                                    new State(modeDefault, soloDefault)
+                            );
+                    }
+                    return newStates;
+                }
+            });
     }
 
     @Override
@@ -189,51 +197,6 @@ public class ReceivePortMix<Message, Port extends ReceivePort<? extends Message>
         soloEffect.set(effect);
     }
 
-    @Override
-    public Map<Port, Boolean> getSolo(final Port... ports) {
-        final HashMap<Port, ExtendedState> currStates = states.get();
-        final Map<Port, Boolean> ret = new HashMap<>(ports.length);
-        for (final Port p : ports)
-            ret.put(p, currStates.get(p).solo);
-        return ret;
-    }
-
-    @Override
-    public void setSolo(final boolean solo, final Port... ports) {
-        states.swap(new Function<HashMap<Port, ExtendedState>, HashMap<Port, ExtendedState>>() {
-            @Override
-            public HashMap<Port, ExtendedState> apply(HashMap<Port, ExtendedState> currStates) {
-                final HashMap<Port, ExtendedState> newStates = new HashMap<>();
-                for (final Port port : ports)
-                    if (newStates.containsKey(port))
-                        newStates.put(port, new ExtendedState(newStates.get(port).state, solo));
-                return newStates;
-            }
-        });
-    }
-
-    @Override
-    public Map<Port, Boolean> getSoloAll() {
-        final HashMap<Port, ExtendedState> currStates = states.get();
-        final Map<Port, Boolean> ret = new HashMap<>(currStates.size());
-        for (final Port p : currStates.keySet())
-            ret.put(p, currStates.get(p).solo);
-        return ret;
-    }
-
-    @Override
-    public void setSoloAll(final boolean solo) {
-        states.swap(new Function<HashMap<Port, ExtendedState>, HashMap<Port, ExtendedState>>() {
-            @Override
-            public HashMap<Port, ExtendedState> apply(HashMap<Port, ExtendedState> currStates) {
-                final HashMap<Port, ExtendedState> newStates = new HashMap<>();
-                for (final Port port : currStates.keySet())
-                    newStates.put(port, new ExtendedState(newStates.get(port).state, solo));
-                return newStates;
-            }
-        });
-    }
-
     private void setupSelector() {
         if (selector.get() != null) {
             selector.get().reset();
@@ -242,17 +205,7 @@ public class ReceivePortMix<Message, Port extends ReceivePort<? extends Message>
             final ArrayList<SelectAction<Message>> actions = new ArrayList<>(currStates.size());
             for (final Port port : currStates)
                 actions.add(Selector.receive(port));
-            selector.set(new Selector<Message>(false, actions));
-        }
-    }
-
-    private static class ExtendedState {
-        public final boolean solo;
-        public final State state;
-
-        public ExtendedState(final State state, final boolean solo) {
-            this.state = state;
-            this.solo = solo;
+            selector.set(new Selector<>(false, actions));
         }
     }
 }
