@@ -21,9 +21,10 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A channel that forwards all messages to subscriber channels.
+ * 
  * @author pron
  */
-public class Topic<Message> implements SendPort<Message>, PubSub<Message> {
+public class Topic<Message> implements PubSub<Message> {
     private final Collection<SendPort<? super Message>> subscribers;
     private volatile boolean sendClosed;
 
