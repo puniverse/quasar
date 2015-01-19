@@ -16,6 +16,7 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.ServiceUtil;
 import co.paralleluniverse.fibers.DefaultFiberScheduler;
+import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.concurrent.Callable;
@@ -109,7 +110,8 @@ public class ActorRegistry {
             public ActorRef<Message> call() throws Exception {
                 Actor actor = actorFactory.call();
                 actor.preRegister(name);
-                return scheduler != null ? actor.spawn(scheduler) : actor.spawnThread();
+                final FiberFactory ff = scheduler;
+                return scheduler != null ? actor.spawn(ff) : actor.spawnThread();
             }
         };
         ActorRef<Message> actor = registry.getOrRegisterActor(name, factory);

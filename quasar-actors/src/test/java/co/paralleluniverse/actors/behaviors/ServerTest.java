@@ -26,6 +26,7 @@ import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -91,13 +92,14 @@ public class ServerTest {
 
     static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channels.OverflowPolicy.THROW);
     private FiberScheduler scheduler;
+    private FiberFactory factory;
 
     public ServerTest() {
-        scheduler = new FiberForkJoinScheduler("test", 4, null, false);
+        factory = scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 
     private Server<Message, Integer, Message> spawnServer(ServerHandler<Message, Integer, Message> server) {
-        return new ServerActor<>("server", server).spawn(scheduler);
+        return new ServerActor<>("server", server).spawn(factory);
     }
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
