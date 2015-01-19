@@ -16,7 +16,6 @@ package co.paralleluniverse.strands.channels;
 import co.paralleluniverse.common.util.Function2;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.StrandFactory;
 import co.paralleluniverse.strands.SuspendableAction1;
 import co.paralleluniverse.strands.SuspendableAction2;
 import com.google.common.base.Function;
@@ -105,6 +104,17 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
         return Channels.transform(Channels.flatMap(this, f));
     }
 
+    /**
+     * Returns a {@link TakeReceivePort} that can provide at most {@code count} messages from the underlying channel.
+     * <p>
+     * The returned {@code TransformingReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     *
+     * @param count The maximum number of messages extracted from the underlying channel.
+     */
+    public TransformingReceivePort<T> take(final long count) {
+        return Channels.transform(Channels.take(this, count));
+    }
+    
     /**
      * Spawns a fiber that transforms values read from this channel and writes values to the {@code out} channel.
      * <p>

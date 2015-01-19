@@ -18,10 +18,9 @@ import co.paralleluniverse.common.util.Function2;
 import co.paralleluniverse.common.util.Function3;
 import co.paralleluniverse.common.util.Function4;
 import co.paralleluniverse.common.util.Function5;
-import co.paralleluniverse.fibers.DefaultFiberFactory;
+import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.StrandFactory;
 import co.paralleluniverse.strands.SuspendableAction1;
 import co.paralleluniverse.strands.SuspendableAction2;
 import co.paralleluniverse.strands.SuspendableCallable;
@@ -90,7 +89,7 @@ public final class Channels {
     private static final OverflowPolicy defaultPolicy = OverflowPolicy.BLOCK;
     private static final boolean defaultSingleProducer = false;
     private static final boolean defaultSingleConsumer = true;
-    private static final FiberFactory defaultFiberFactory = DefaultFiberFactory.instance();
+    private static final FiberFactory defaultFiberFactory = DefaultFiberScheduler.getInstance();
 
     /**
      * Creates a new channel with the given properties.
@@ -580,27 +579,27 @@ public final class Channels {
     }
 
     /**
-     * Returns a {@link ReceivePort} that receives messages from a set of channels. Messages from all given channels are funneled into
-     * the returned channel. The returned {@link ReceivePort} supports atomic {@link Mix} operations.
-     *
-     * @param <M>
-     * @param channels
-     * @return a {@link ReceivePort} that receives messages from {@code channels}.
-     */
-    public static <M> ReceivePort<M> mix(ReceivePort<? extends M>... channels) {
-        return new ReceivePortMix<>(channels);
-    }
-
-    /**
-     * Returns a {@link ReceivePort} that receives messages from a set of channels. Messages from all given channels are funneled into
+     * Returns a {@link Mix} that receives messages from a set of channels. Messages from all given channels are funneled into
      * the returned channel.
      *
      * @param <M>
      * @param channels
      * @return a {@link ReceivePort} that receives messages from {@code channels}.
      */
-    public static <M> ReceivePort<M> mix(Collection<? extends ReceivePort<? extends M>> channels) {
-        return new ReceivePortMix<>(channels);
+    public static <M> Mix<? extends M> mix(final ReceivePort<? extends M>... channels) {
+        return new ReceivePortGroup<>(channels);
+    }
+
+    /**
+     * Returns a {@link Mix} that receives messages from a set of channels. Messages from all given channels are funneled into
+     * the returned channel.
+     *
+     * @param <M>
+     * @param channels
+     * @return a {@link ReceivePort} that receives messages from {@code channels}.
+     */
+    public static <M> Mix<? extends M> mix(final Collection<? extends ReceivePort<? extends M>> channels) {
+        return new ReceivePortGroup<>(channels);
     }
 
     /**
@@ -700,6 +699,17 @@ public final class Channels {
         while ((m = channel.receive()) != null) {
             action.call(m);
         }
+    }
+
+    /**
+     * Returns a {@link TakeReceivePort} that can provide at most {@code count} messages from {@code channel}.
+     *
+     * @param channel   The channel.
+     * @param count     The maximum number of messages extracted from the underlying channel.
+     * @return a {@link TakeReceivePort} that can provide at most {@code count} messages from {@code channel}.
+     */
+    public static <T> TakeReceivePort<T> take(final ReceivePort<T> channel, final long count) {
+        return new TakeReceivePort<>(channel, count);
     }
 
     /**
@@ -942,7 +952,7 @@ public final class Channels {
 
     /**
      * Returns a newly created {@link ReceivePort} that receives all the elements iterated by the iterator.
-     * <p>
+     * <p/>
      * @param <T>
      * @param iterator the iterator to transform into a {@code ReceivePort}.
      */
