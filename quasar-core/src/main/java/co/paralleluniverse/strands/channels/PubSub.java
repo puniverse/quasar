@@ -15,7 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 /**
  * Common interface for topics.
- * <p/>
+ *
  * @author circlespainter
  */
 interface PubSub<Message> extends SendPort<Message> {
