@@ -17,12 +17,13 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Mix operations.
+ * {@link ReceivePort} with Mix operations.
  *
  * @author circlespainter
  */
-interface Mix<P extends Port<?>> {
-    public static enum SoloEffect { PAUSE_OTHERS, MUTE_OTHERS };    
+public interface Mix<M> extends ReceivePort<M> {
+
+    public static enum SoloEffect { PAUSE_OTHERS, MUTE_OTHERS };
 
     public static enum Mode { NORMAL, PAUSE, MUTE };
 
@@ -32,7 +33,7 @@ interface Mix<P extends Port<?>> {
 
         public State(final Mode mode, final Boolean solo) {
             this.mode = mode;
-            this.solo = solo;            
+            this.solo = solo;
         }
 
         // Null has meaning only on write operations and it means "don't set"
@@ -42,6 +43,14 @@ interface Mix<P extends Port<?>> {
 
         public State(final boolean solo) {
             this(null, solo);
+        }
+
+        public Mode getMode() {
+            return mode;
+        }
+
+        public Boolean getSolo() {
+            return solo;
         }
 
         @Override
@@ -72,23 +81,24 @@ interface Mix<P extends Port<?>> {
         }
     }
 
-    public void add(final P... ports);
+    public <T extends ReceivePort<? extends M>> void add(final T... items);
 
     /**
-     * @param ports If {@code null} or empty, all ports will be removed.
+     * @param items If {@code null} or empty, all items will be removed.
      */
-    public void remove(final P... ports);
+    public <T extends ReceivePort<? extends M>> void remove(final T... items);
 
     /**
-     * @param ports If {@code null} or empty, all ports will be removed.
+     * @param items If {@code null} or empty, all items will be removed.
      */
-    public Map<P, State> getState(final P... ports);
+    public <T extends ReceivePort<? extends M>> Map<T, State> getState(final T... items);
 
     /**
-     * @param ports If {@code null} or empty, all ports' state will be set to {@code state}.
+     * @param items If {@code null} or empty, all items state will be set to {@code state}.
      */
-    public void setState(final State state, final P... ports);
-    public void setState(final Map<P, State> states);
+    public <T extends ReceivePort<? extends M>> void setState(final State state, final T... items);
+
+    public <T extends ReceivePort<? extends M>> void setState(final Map<T, State> states);
 
     public SoloEffect getSoloEffect();
     public void setSoloEffect(final SoloEffect effect);   

@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -13,65 +13,120 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.concurrent.util.SwapAtomicReference;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
- *
  * @author pron
+ * @author circlespainter
  */
-public class ReceivePortGroup<Message> implements ReceivePort<Message> {
-    private final Collection<? extends ReceivePort<? extends Message>> ports;
-    private final Selector<Message> selector;
+public class ReceivePortGroup<M> implements Mix<M> {
+    private static final Predicate<Mix.State> soloP =
+        new Predicate<Mix.State>() {
+            @Override
+            public boolean apply(Mix.State s) {
+                return (s != null && s.solo);
+            }
+        };
 
-    public ReceivePortGroup(Collection<? extends ReceivePort<? extends Message>> ports) {
-        this.ports = ports;
-        ArrayList<SelectAction<Message>> actions = new ArrayList<>(ports.size());
-        for (ReceivePort<? extends Message> port : ports)
+    private final static Mode modeDefault = Mode.NORMAL;
+    private final static boolean soloDefault = false;
+    private final static SoloEffect soloEffectDefault = SoloEffect.PAUSE_OTHERS;
+
+    private final SwapAtomicReference<SoloEffect> soloEffect = new SwapAtomicReference<>();
+    private final SwapAtomicReference<Map<? extends ReceivePort<? extends M>, State>> states = new SwapAtomicReference<>();;
+    private final SwapAtomicReference<Selector<M>> selector = new SwapAtomicReference<>();
+
+    public ReceivePortGroup(final Collection<? extends ReceivePort<? extends M>> ports) {
+        soloEffect.set(soloEffectDefault);
+        final Map<ReceivePort<? extends M>, State> newStates = new HashMap<>();
+        final ArrayList<SelectAction<? extends M>> actions = new ArrayList<>(ports.size());
+        for (final ReceivePort<? extends M> port : ImmutableList.copyOf(ports)) {
+            newStates.put(port, new State(modeDefault, soloDefault));
             actions.add(Selector.receive(port));
-        this.selector = new Selector(false, actions);
+        }
+        states.set(newStates);
+        selector.set(new Selector(false, actions));
     }
 
-    public ReceivePortGroup(ReceivePort<? extends Message>... ports) {
-        this(Arrays.asList(ports));
+    public ReceivePortGroup(final ReceivePort<? extends M>... ports) {
+        this(ImmutableList.copyOf(ports));
     }
 
     @Override
-    public Message tryReceive() {
-        for (ReceivePort<? extends Message> port : ports) {
-            Message m = port.tryReceive();
-            if (m != null)
-                return m;
+    public M tryReceive() {
+        for (final ReceivePort<? extends M> port : states.get().keySet()) {
+            M m = null;
+            while (m == null) {
+                if (!isPaused(port))
+                    m = port.tryReceive();
+
+                if (m != null && !isMuted(port))
+                    return m;
+                else
+                    m = null;
+            }
         }
         return null;
     }
 
     @Override
-    public Message receive() throws SuspendExecution, InterruptedException {
-        selector.reset();
-        return selector.select().message();
+    public M receive() throws SuspendExecution, InterruptedException {
+        setupSelector();
+        M m = null;
+        while (m == null) {
+            final SelectAction<? extends M> sa = selector.get().select();
+            if (isMuted(sa.port())) {
+                m = sa.message();
+            } else {
+                return null;
+            }
+        }
+        return m;
     }
 
     @Override
-    public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        selector.reset();
-        SelectAction<? extends Message> sa = selector.select(timeout, unit);
-        if (sa != null)
-            return sa.message();
-        return null;
+    public M receive(final long timeout, final TimeUnit unit) throws SuspendExecution, InterruptedException {
+        setupSelector();
+
+        M m = null;
+        while (m == null) {
+            final SelectAction<? extends M> sa = selector.get().select(timeout, unit);
+            if (sa != null && !isMuted(sa.port())) {
+                m = sa.message();
+            } else {
+                return null;
+            }
+        }
+        return m;
     }
 
     @Override
-    public Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
-        selector.reset();
-        SelectAction<? extends Message> sa = selector.select(timeout);
-        if (sa != null)
-            return sa.message();
-        return null;
+    public M receive(final Timeout timeout) throws SuspendExecution, InterruptedException {
+        setupSelector();
+
+        M m = null;
+        while (m == null) {
+            final SelectAction<? extends M> sa = selector.get().select(timeout);
+            if (sa != null && !isMuted(sa.port())) {
+                m = sa.message();
+            } else {
+                return null;
+            }
+        }
+        return m;
     }
 
     @Override
@@ -82,5 +137,142 @@ public class ReceivePortGroup<Message> implements ReceivePort<Message> {
     @Override
     public boolean isClosed() {
         return false;
+    }
+
+    private void setupSelector() {
+        if (selector.get() != null) {
+            selector.get().reset();
+        } else {
+            final Set<? extends ReceivePort<? extends M>> currStates = states.get().keySet();
+            final ArrayList<SelectAction<M>> actions = new ArrayList<>(currStates.size());
+            for (final ReceivePort<? extends M> port : currStates) {
+                if (!isPaused(port))
+                    actions.add(Selector.receive(port));
+            }
+            selector.set(new Selector<>(false, actions));
+        }
+    }
+
+    @SuppressWarnings("element-type-mismatch")
+    private boolean isMuted(final Port<? extends M> port) {
+        final Map<? extends ReceivePort<? extends M>, State> s = states.get();
+        return
+            s.get(port).mode.equals(Mix.Mode.MUTE)
+            || (soloEffect.get().equals(Mix.SoloEffect.MUTE_OTHERS)
+                && exists(s.values().iterator(), soloP));
+    }
+
+    private boolean isPaused(ReceivePort<? extends M> port) {
+        final Map<? extends ReceivePort<? extends M>, Mix.State> s = states.get();
+        return
+            s.get(port).mode.equals(Mix.Mode.PAUSE)
+            || (soloEffect.get().equals(Mix.SoloEffect.PAUSE_OTHERS)
+                && exists(s.values().iterator(), soloP));
+    }
+
+        @Override
+    public <T extends ReceivePort<? extends M>> void add(final T... items) {
+        if (items != null && items.length > 0)
+            states.swap(new Function<Map<? extends ReceivePort<? extends M>, State>, Map<? extends ReceivePort<? extends M>, State>>() {
+                @Override
+                public Map<? extends ReceivePort<? extends M>, State> apply(final Map<? extends ReceivePort<? extends M>, State> currStates) {
+                    final Map<ReceivePort<? extends M>, State> newStates = new HashMap<>(currStates);
+                    for (final ReceivePort<? extends M> port : ImmutableList.copyOf(items))
+                        newStates.put(port, new State(Mode.NORMAL, false));
+                    return newStates;
+                }
+            });
+    }
+
+    @Override
+    public <T extends ReceivePort<? extends M>> void remove(final T... items) {
+        if (items == null || items.length == 0)
+            states.set(new HashMap<T, State>());
+        else
+            states.swap(new Function<Map<? extends ReceivePort<? extends M>, State>, Map<? extends ReceivePort<? extends M>, State>>() {
+                @Override
+                public Map<? extends ReceivePort<? extends M>, State> apply(final Map<? extends ReceivePort<? extends M>, State> currStates) {
+                    final Map<ReceivePort<? extends M>, State> newStates = new HashMap<>(currStates);
+                    for (final ReceivePort<? extends M> port : ImmutableList.copyOf(items))
+                        newStates.remove(port);
+                    return newStates;
+                }
+            });
+    }
+
+    @Override
+    public <T extends ReceivePort<? extends M>> Map<T, State> getState(final T... items) {
+        if (items == null || items.length == 0)
+            ImmutableMap.copyOf(states.get());
+
+        final Map<? extends ReceivePort<? extends M>, State> currStates = states.get();
+        final Map<T, State> ret = new HashMap<>(items.length);
+        for (final T p : ImmutableList.copyOf(items))
+            ret.put(p, currStates.get(p));
+        return ret;
+    }
+
+    @Override
+    public <T extends ReceivePort<? extends M>> void setState(final State state, final T... items) {
+        states.swap(new Function<Map<? extends ReceivePort<? extends M>, State>, Map<? extends ReceivePort<? extends M>, State>>() {
+            @Override
+            public Map<? extends ReceivePort<? extends M>, State> apply(final Map<? extends ReceivePort<? extends M>, State> currStates) {
+                final Map<ReceivePort<? extends M>, State> newStates = new HashMap<>(currStates);
+                for (final ReceivePort<? extends M> port : (items != null && items.length > 0) ? ImmutableList.copyOf(items) : ImmutableList.copyOf(states.get().keySet()))
+                    if (newStates.containsKey(port))
+                        newStates.put (
+                            port,
+                            new State (
+                                state.mode != null ? state.mode : currStates.get(port).mode,
+                                state.solo != null ? state.solo : currStates.get(port).solo
+                            )
+                        );
+                return newStates;
+            }
+        });
+    }
+
+    @Override
+    public <T extends ReceivePort<? extends M>> void setState(final Map<T, State> newStates) {
+        if (newStates != null)
+            states.swap(new Function<Map<? extends ReceivePort<? extends M>, State>, Map<? extends ReceivePort<? extends M>, State>>() {
+                @Override
+                public Map<? extends ReceivePort<? extends M>, State> apply(final Map<? extends ReceivePort<? extends M>, State> currStates) {
+                    final Map<ReceivePort<? extends M>, State> updatedStates = new HashMap<>(currStates);
+                    final Map<T, State> newStatesSnapshot = ImmutableMap.copyOf(newStates);
+                    for (final Map.Entry<T, State> e : newStatesSnapshot.entrySet()) {
+                        final T p = e.getKey();
+                        final State newS = e.getValue();
+                        if (newStatesSnapshot.containsKey(e.getKey()))
+                            updatedStates.put (
+                                e.getKey(),
+                                newS != null ?
+                                    new State (
+                                        newS.mode != null ? newS.mode : currStates.get(p).mode,
+                                        newS.solo != null ? newS.solo : currStates.get(p).solo
+                                    ) :
+                                    new State(modeDefault, soloDefault)
+                            );
+                    }
+                    return updatedStates;
+                }
+            });
+    }
+
+    @Override
+    public SoloEffect getSoloEffect() {
+        return soloEffect.get();
+    }
+
+    @Override
+    public void setSoloEffect(final SoloEffect effect) {
+        soloEffect.set(effect);
+    }
+
+    private static boolean exists(final Iterator<Mix.State> it, final Predicate<Mix.State> soloP) {
+        boolean found = false;
+        while (it.hasNext() && !found)
+            found = soloP.apply(it.next());
+        return found;
     }
 }
