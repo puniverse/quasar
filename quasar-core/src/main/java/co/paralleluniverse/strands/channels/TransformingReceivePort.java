@@ -32,28 +32,6 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
     TransformingReceivePort(ReceivePort<T> target) {
         super(target);
     }
-
-    /**
-     * Returns a {@link TransformingReceivePort} that will always forward to a single {@link SendPort}.
-     *
-     * @param forwardTo     The additional {@link SendPort} that will receive messages.
-     * @param strandFactory The {@link StrandFactory} that will build send strands when the {@link SendPort} would block.
-     * @return a {@link TransformingReceivePort} that will always forward to a single {@code forwardTo}.
-     */
-    public TransformingReceivePort<T> tap(final SendPort<? super T> forwardTo, final StrandFactory strandFactory) {
-        return Channels.transform(Channels.tap(this, forwardTo, strandFactory));
-    }
-
-    /**
-     * Returns a {@link TransformingReceivePort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
-     * send strands when the {@link SendPort} would block.
-     *
-     * @param forwardTo     The additional {@link SendPort} that will receive messages.
-     * @return a {@link TransformingReceivePort} that will always forward to a single {@code forwardTo}.
-     */
-    public TransformingReceivePort<T> tap(final SendPort<? super T> forwardTo) {
-        return Channels.transform(Channels.tap(this, forwardTo));
-    }
     
     /**
      * Returns a {@link TransformingReceivePort} that filters messages that satisfy a predicate from this given channel.

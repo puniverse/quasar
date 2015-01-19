@@ -32,32 +32,6 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
     }
 
     /**
-     * Returns a {@link TransformingSendPort} that will always forward to a single {@link SendPort}.
-     * <p/>
-     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
-     *
-     * @param forwardTo     The additional {@link SendPort} that will receive messages.
-     * @param strandFactory The {@link StrandFactory} that will build send strands when the {@link SendPort} would block.
-     * @return a {@link TransformingSendPort} that will always forward to a single {@code forwardTo}.
-     */
-    public TransformingSendPort<T> tap(final SendPort<? super T> forwardTo, final StrandFactory strandFactory) {
-        return Channels.transformSend(Channels.tapSend(this, forwardTo, strandFactory));
-    }
-
-    /**
-     * Returns a {@link TransformingSendPort} that will always forward to a single {@link SendPort}. {@link DefaultFiberFactory} will build
-     * send strands when the {@link SendPort} would block.
-     * <p/>
-     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
-     *
-     * @param forwardTo     The additional {@link SendPort} that will receive messages.
-     * @return a {@link TransformingSendPort} that will always forward to a single {@code forwardTo}.
-     */
-    public TransformingSendPort<T> tap(final SendPort<? super T> forwardTo) {
-        return Channels.transformSend(Channels.tapSend(this, forwardTo));
-    }
-
-    /**
      * Returns a {@link TransformingSendPort} that filters messages that satisfy a predicate before sending to this channel.
      * Messages that don't satisfy the predicate will be silently discarded when sent.
      * <p/>
