@@ -21,18 +21,18 @@ import java.util.Map;
  *
  * @author circlespainter
  */
-interface Mix<Message, Port extends ReceivePort<? extends Message>> {
-    public Collection<Port> get();
-    public void add(final Port... ports);
-    public void remove(final Port... ports);
+interface Mix<P extends Port<?>> {
+    public Collection<P> get();
+    public void add(final P... ports);
+    public void remove(final P... ports);
     public void removeAll();
 
     public static enum State { NORMAL, PAUSE, MUTE };
 
-    public Map<Port, State> getState(final Port... ports);
-    public void setState(final State s, final Port... ports);
+    public Map<P, State> getState(final P... ports);
+    public void setState(final State s, final P... ports);
 
-    public Map<Port, State> getStateAll();
+    public Map<P, State> getStateAll();
     public void setStateAll(final State s);
 
     public static enum SoloEffect { PAUSE_OTHERS, MUTE_OTHERS };
@@ -40,9 +40,9 @@ interface Mix<Message, Port extends ReceivePort<? extends Message>> {
     public SoloEffect getSoloEffect();
     public void setSoloEffect(final SoloEffect effect);
     
-    public Map<Port, Boolean> getSolo(final Port... ports);
-    public void setSolo(final boolean solo, final Port... ports);
+    public Map<P, Boolean> getSolo(final P... ports);
+    public void setSolo(final boolean solo, final P... ports);
 
-    public Map<Port, Boolean> getSoloAll();
+    public Map<P, Boolean> getSoloAll();
     public void setSoloAll(final boolean solo);
 }

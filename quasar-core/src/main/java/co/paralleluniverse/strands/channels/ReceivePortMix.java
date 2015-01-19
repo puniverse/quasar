@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author circlespainter
  */
-public class ReceivePortMix<Message, Port extends ReceivePort<? extends Message>> implements ReceivePort<Message>, Mix<Message, Port> {
+public class ReceivePortMix<Message, Port extends ReceivePort<? extends Message>> implements ReceivePort<Message>, Mix<Port> {
     private final static boolean soloDefault = false;
     private final static SoloEffect soloEffectDefault = SoloEffect.PAUSE_OTHERS;
 
