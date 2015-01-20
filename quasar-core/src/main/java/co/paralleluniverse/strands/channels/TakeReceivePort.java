@@ -32,7 +32,7 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
     private final AtomicLong lease = new AtomicLong();
     private final AtomicLong countDown = new AtomicLong();
     private final AtomicBoolean closed = new AtomicBoolean();
-    private final Condition sem = new SimpleConditionSynchronizer(null);
+    private final Condition monitor = new SimpleConditionSynchronizer(null);
 
     public TakeReceivePort(final ReceivePort<M> target, final long count) {
         super(target);
@@ -86,17 +86,17 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
 
     private M suspendableStagedCountingReceive(final SuspendableSupplier<M> op) throws SuspendExecution, InterruptedException {
         M ret = null;
-        final Object ticket = sem.register();
+        final Object ticket = monitor.register();
         try {
             int iter = 0;
             while (ret == null) {
                 if (isClosed()) {
-                    sem.signalAll();
+                    monitor.signalAll();
                     return null;
                 }
 
                 if (lease.decrementAndGet() <= 0)
-                    sem.await(iter);
+                    monitor.await(iter);
                 else {
                     ret = op.get();
                     if (ret != null) {
@@ -104,13 +104,13 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
                         return ret;
                     } else {
                         lease.incrementAndGet();
-                        sem.signal();
+                        monitor.signal();
                     }
                 }
                 iter++;
             }
         } finally {
-            sem.unregister(ticket);
+            monitor.unregister(ticket);
         }
 
         return ret;
