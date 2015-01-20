@@ -90,8 +90,10 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
         try {
             int iter = 0;
             while (ret == null) {
-                if (isClosed())
+                if (isClosed()) {
+                    sem.signalAll();
                     return null;
+                }
 
                 if (lease.decrementAndGet() <= 0)
                     sem.await(iter);
@@ -102,7 +104,7 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
                         return ret;
                     } else {
                         lease.incrementAndGet();
-                        sem.signalAll();
+                        sem.signal();
                     }
                 }
                 iter++;
