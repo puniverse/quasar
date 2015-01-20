@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -15,36 +15,38 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.common.util.SuspendableSupplier;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Condition;
+import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Timeout;
 import com.google.common.base.Supplier;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
  *
+ * @author pron
  * @author circlespainter
  */
 class TakeReceivePort<M> extends TransformingReceivePort<M> {
-    private final AtomicLong missing = new AtomicLong();
-
-    private volatile boolean closed = false;
+    private final AtomicLong lease = new AtomicLong();
+    private final AtomicLong countDown = new AtomicLong();
+    private final AtomicBoolean closed = new AtomicBoolean();
+    private final Condition sem = new SimpleConditionSynchronizer(null);
 
     public TakeReceivePort(final ReceivePort<M> target, final long count) {
         super(target);
 
-        this.missing.set(count <= 0 ? 0 : count);
-        
-        if (count <= 0)
-            closed = true;
-    }
+        final long start = count <= 0 ? 0 : count;
+        this.lease.set(start);
+        this.countDown.set(start);
 
-    public long getMissing() {
-        return missing.get();
+        this.closed.set(false);
     }
 
     @Override
     public M tryReceive() {
-        return countingReceive(new Supplier<M>() {
+        return stagedCountingReceive(new Supplier<M>() {
             @Override
             public M get() {
                 return TakeReceivePort.super.tryReceive();
@@ -54,7 +56,7 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
 
     @Override
     public M receive() throws SuspendExecution, InterruptedException {
-        return suspendableCountingReceive(new SuspendableSupplier<M>() {
+        return suspendableStagedCountingReceive(new SuspendableSupplier<M>() {
             @Override
             public M get() throws SuspendExecution, InterruptedException {
                return TakeReceivePort.super.receive();
@@ -64,7 +66,7 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
 
     @Override
     public M receive(final Timeout timeout) throws SuspendExecution, InterruptedException {
-        return suspendableCountingReceive(new SuspendableSupplier<M>() {
+        return suspendableStagedCountingReceive(new SuspendableSupplier<M>() {
             @Override
             public M get() throws SuspendExecution, InterruptedException {
                return TakeReceivePort.super.receive(timeout);
@@ -74,7 +76,7 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
 
     @Override
     public M receive(final long timeout, final TimeUnit unit) throws SuspendExecution, InterruptedException {
-        return suspendableCountingReceive(new SuspendableSupplier<M>() {
+        return suspendableStagedCountingReceive(new SuspendableSupplier<M>() {
             @Override
             public M get() throws SuspendExecution, InterruptedException {
                return TakeReceivePort.super.receive(timeout, unit);
@@ -82,20 +84,39 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
         });
     }
 
-    private M suspendableCountingReceive(final SuspendableSupplier<M> op) throws SuspendExecution, InterruptedException {
-        if (isClosed())
-            return null;
+    private M suspendableStagedCountingReceive(final SuspendableSupplier<M> op) throws SuspendExecution, InterruptedException {
+        M ret = null;
+        final Object ticket = sem.register();
+        try {
+            int iter = 0;
+            while (ret == null) {
+                if (isClosed())
+                    return null;
 
-        missing.decrementAndGet();
-        final M ret = op.get();
-        if (ret == null)
-            missing.incrementAndGet();
+                if (lease.decrementAndGet() <= 0)
+                    sem.await(iter);
+                else {
+                    ret = op.get();
+                    if (ret != null) {
+                        countDown.decrementAndGet();
+                        return ret;
+                    } else {
+                        lease.incrementAndGet();
+                        sem.signalAll();
+                    }
+                }
+                iter++;
+            }
+        } finally {
+            sem.unregister(ticket);
+        }
+
         return ret;
     }
 
-    private M countingReceive(final Supplier<M> op) {
+    private M stagedCountingReceive(final Supplier<M> op) {
         try {
-            return suspendableCountingReceive(new SuspendableSupplier<M>() {
+            return suspendableStagedCountingReceive(new SuspendableSupplier<M>() {
                 @Override
                 public M get() throws SuspendExecution, InterruptedException {
                     return op.get();
@@ -108,11 +129,11 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
 
     @Override
     public boolean isClosed() {
-        return closed || missing.get() == 0;
+        return closed.get() || countDown.get() <= 0;
     }
 
     @Override
     public void close() {
-        this.closed = true;
+        closed.set(true);
     }
 }
