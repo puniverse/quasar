@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
+ *
  * @author pron
  * @author circlespainter
  */
@@ -46,19 +47,19 @@ public class ReceivePortGroup<M> implements Mix<M> {
     private final static SoloEffect soloEffectDefault = SoloEffect.PAUSE_OTHERS;
 
     private final SwapAtomicReference<SoloEffect> soloEffect = new SwapAtomicReference<>();
-    private final SwapAtomicReference<Map<? extends ReceivePort<? extends M>, State>> states = new SwapAtomicReference<>();;
+    private final SwapAtomicReference<Map<? extends ReceivePort<? extends M>, State>> states = new SwapAtomicReference<>();
     private final SwapAtomicReference<Selector<M>> selector = new SwapAtomicReference<>();
+
+    private volatile Map<? extends ReceivePort<? extends M>, State> selectorStates = null;
 
     public ReceivePortGroup(final Collection<? extends ReceivePort<? extends M>> ports) {
         soloEffect.set(soloEffectDefault);
         final Map<ReceivePort<? extends M>, State> newStates = new HashMap<>();
-        final ArrayList<SelectAction<? extends M>> actions = new ArrayList<>(ports.size());
         for (final ReceivePort<? extends M> port : ImmutableList.copyOf(ports)) {
             newStates.put(port, new State(modeDefault, soloDefault));
-            actions.add(Selector.receive(port));
         }
         states.set(newStates);
-        selector.set(new Selector(false, actions));
+        setupSelector();
     }
 
     public ReceivePortGroup(final ReceivePort<? extends M>... ports) {
@@ -68,12 +69,13 @@ public class ReceivePortGroup<M> implements Mix<M> {
     @Override
     public M tryReceive() {
         for (final ReceivePort<? extends M> port : states.get().keySet()) {
+            final Map<? extends ReceivePort<? extends M>, State> s = states.get();
             M m = null;
             while (m == null) {
-                if (!isPaused(port))
+                if (!isPaused(port, s))
                     m = port.tryReceive();
 
-                if (m != null && !isMuted(port))
+                if (m != null && !isMuted(port, s))
                     return m;
                 else
                     m = null;
@@ -88,10 +90,8 @@ public class ReceivePortGroup<M> implements Mix<M> {
         M m = null;
         while (m == null) {
             final SelectAction<? extends M> sa = selector.get().select();
-            if (isMuted(sa.port())) {
+            if (!isMuted(sa.port(), states.get())) {
                 m = sa.message();
-            } else {
-                return null;
             }
         }
         return m;
@@ -100,12 +100,12 @@ public class ReceivePortGroup<M> implements Mix<M> {
     @Override
     public M receive(final long timeout, final TimeUnit unit) throws SuspendExecution, InterruptedException {
         setupSelector();
-
         M m = null;
         while (m == null) {
             final SelectAction<? extends M> sa = selector.get().select(timeout, unit);
-            if (sa != null && !isMuted(sa.port())) {
-                m = sa.message();
+            if (sa != null) {
+                if (!isMuted(sa.port(), states.get()))
+                    m = sa.message();
             } else {
                 return null;
             }
@@ -116,12 +116,12 @@ public class ReceivePortGroup<M> implements Mix<M> {
     @Override
     public M receive(final Timeout timeout) throws SuspendExecution, InterruptedException {
         setupSelector();
-
         M m = null;
         while (m == null) {
             final SelectAction<? extends M> sa = selector.get().select(timeout);
-            if (sa != null && !isMuted(sa.port())) {
-                m = sa.message();
+            if (sa != null) {
+                if (!isMuted(sa.port(), states.get()))
+                    m = sa.message();
             } else {
                 return null;
             }
@@ -140,13 +140,14 @@ public class ReceivePortGroup<M> implements Mix<M> {
     }
 
     private void setupSelector() {
-        if (selector.get() != null) {
+        if (selector.get() != null && selectorStates == states.get()) {
             selector.get().reset();
         } else {
-            final Set<? extends ReceivePort<? extends M>> currStates = states.get().keySet();
+            selectorStates = states.get();
+            final Set<? extends ReceivePort<? extends M>> currStates = selectorStates.keySet();
             final ArrayList<SelectAction<M>> actions = new ArrayList<>(currStates.size());
             for (final ReceivePort<? extends M> port : currStates) {
-                if (!isPaused(port))
+                if (!isPaused(port, selectorStates))
                     actions.add(Selector.receive(port));
             }
             selector.set(new Selector<>(false, actions));
@@ -154,16 +155,14 @@ public class ReceivePortGroup<M> implements Mix<M> {
     }
 
     @SuppressWarnings("element-type-mismatch")
-    private boolean isMuted(final Port<? extends M> port) {
-        final Map<? extends ReceivePort<? extends M>, State> s = states.get();
+    private boolean isMuted(final Port<? extends M> port, final Map<? extends ReceivePort<? extends M>, State> s) {
         return
             s.get(port).mode.equals(Mix.Mode.MUTE)
             || (soloEffect.get().equals(Mix.SoloEffect.MUTE_OTHERS)
                 && exists(s.values().iterator(), soloP));
     }
 
-    private boolean isPaused(ReceivePort<? extends M> port) {
-        final Map<? extends ReceivePort<? extends M>, Mix.State> s = states.get();
+    private boolean isPaused(ReceivePort<? extends M> port, final Map<? extends ReceivePort<? extends M>, State> s) {
         return
             s.get(port).mode.equals(Mix.Mode.PAUSE)
             || (soloEffect.get().equals(Mix.SoloEffect.PAUSE_OTHERS)
@@ -271,7 +270,7 @@ public class ReceivePortGroup<M> implements Mix<M> {
 
     private static boolean exists(final Iterator<Mix.State> it, final Predicate<Mix.State> soloP) {
         boolean found = false;
-        while (it.hasNext() && !found)
+        while (!found && it.hasNext())
             found = soloP.apply(it.next());
         return found;
     }
