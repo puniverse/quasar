@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.util.SuspendableSupplier;
 import co.paralleluniverse.concurrent.util.SwapAtomicReference;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
@@ -86,39 +87,36 @@ public class ReceivePortGroup<M> implements Mix<M> {
 
     @Override
     public M receive() throws SuspendExecution, InterruptedException {
-        setupSelector();
-        M m = null;
-        while (m == null) {
-            final SelectAction<? extends M> sa = selector.get().select();
-            if (!isMuted(sa.port(), states.get())) {
-                m = sa.message();
+        return mixReceive(new SuspendableSupplier<SelectAction<M>>() {
+            public SelectAction<M> get() throws SuspendExecution, InterruptedException {
+                return selector.get().select();
             }
-        }
-        return m;
+        });
     }
 
     @Override
     public M receive(final long timeout, final TimeUnit unit) throws SuspendExecution, InterruptedException {
-        setupSelector();
-        M m = null;
-        while (m == null) {
-            final SelectAction<? extends M> sa = selector.get().select(timeout, unit);
-            if (sa != null) {
-                if (!isMuted(sa.port(), states.get()))
-                    m = sa.message();
-            } else {
-                return null;
+        return mixReceive(new SuspendableSupplier<SelectAction<M>>() {
+            public SelectAction<M> get() throws SuspendExecution, InterruptedException {
+                return selector.get().select(timeout, unit);
             }
-        }
-        return m;
+        });
     }
 
     @Override
     public M receive(final Timeout timeout) throws SuspendExecution, InterruptedException {
+        return mixReceive(new SuspendableSupplier<SelectAction<M>>() {
+            public SelectAction<M> get() throws SuspendExecution, InterruptedException {
+                return selector.get().select(timeout);
+            }
+        });
+    }
+
+    private M mixReceive(final SuspendableSupplier<SelectAction<M>> op) throws InterruptedException, SuspendExecution {
         setupSelector();
         M m = null;
         while (m == null) {
-            final SelectAction<? extends M> sa = selector.get().select(timeout);
+            final SelectAction<? extends M> sa = op.get();
             if (sa != null) {
                 if (!isMuted(sa.port(), states.get()))
                     m = sa.message();
