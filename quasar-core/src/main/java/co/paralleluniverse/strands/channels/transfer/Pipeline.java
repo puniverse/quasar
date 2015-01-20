@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
+ *
  * @author circlespainter
  */
 public abstract class Pipeline<S, T> implements SuspendableCallable<Long> {
