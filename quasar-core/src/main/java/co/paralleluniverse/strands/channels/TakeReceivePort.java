@@ -29,7 +29,7 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
 
     private volatile boolean closed = false;
 
-    public TakeReceivePort(final ReceivePort<M> target, long count) {
+    public TakeReceivePort(final ReceivePort<M> target, final long count) {
         super(target);
 
         this.missing.set(count <= 0 ? 0 : count);
