@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.strands.channels.connect;
+package co.paralleluniverse.strands.channels.transfer;
 
 import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
