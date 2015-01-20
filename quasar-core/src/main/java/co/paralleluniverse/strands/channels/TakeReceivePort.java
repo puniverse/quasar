@@ -13,8 +13,10 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.util.SuspendableSupplier;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
+import com.google.common.base.Supplier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -23,21 +25,13 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author circlespainter
  */
 class TakeReceivePort<M> extends TransformingReceivePort<M> {
-    private final ReceivePort<M> realTarget;
-    private final Channel<M> internalCh;
-
     private final AtomicLong missing = new AtomicLong();
-    private final long count;
 
     private volatile boolean closed = false;
 
     public TakeReceivePort(final ReceivePort<M> target, long count) {
-        super(new TransferChannel<M>());
+        super(target);
 
-        this.realTarget = target;
-        this.internalCh = (Channel<M>) this.target;
-
-        this.count = count;
         this.missing.set(count <= 0 ? 0 : count);
         
         if (count <= 0)
@@ -50,32 +44,66 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
 
     @Override
     public M tryReceive() {
+        return countingReceive(new Supplier<M>() {
+            @Override
+            public M get() {
+                return TakeReceivePort.super.tryReceive();
+            }
+        });
+    }
+
+    @Override
+    public M receive() throws SuspendExecution, InterruptedException {
+        return suspendableCountingReceive(new SuspendableSupplier<M>() {
+            @Override
+            public M get() throws SuspendExecution, InterruptedException {
+               return TakeReceivePort.super.receive();
+            }
+        });
+    }
+
+    @Override
+    public M receive(final Timeout timeout) throws SuspendExecution, InterruptedException {
+        return suspendableCountingReceive(new SuspendableSupplier<M>() {
+            @Override
+            public M get() throws SuspendExecution, InterruptedException {
+               return TakeReceivePort.super.receive(timeout);
+            }
+        });
+    }
+
+    @Override
+    public M receive(final long timeout, final TimeUnit unit) throws SuspendExecution, InterruptedException {
+        return suspendableCountingReceive(new SuspendableSupplier<M>() {
+            @Override
+            public M get() throws SuspendExecution, InterruptedException {
+               return TakeReceivePort.super.receive(timeout, unit);
+            }
+        });
+    }
+
+    private M suspendableCountingReceive(final SuspendableSupplier<M> op) throws SuspendExecution, InterruptedException {
         if (isClosed())
             return null;
 
         missing.decrementAndGet();
-        final M ret = super.tryReceive();
+        final M ret = op.get();
         if (ret == null)
             missing.incrementAndGet();
         return ret;
     }
 
-    @Override
-    public M receive(Timeout timeout) throws SuspendExecution, InterruptedException {
-        if (isClosed())
-            return null;
-
-        missing.decrementAndGet();
-        return super.receive(timeout);
-    }
-
-    @Override
-    public M receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        if (isClosed())
-            return null;
-
-        missing.decrementAndGet();
-        return super.receive(timeout, unit);
+    private M countingReceive(final Supplier<M> op) {
+        try {
+            return suspendableCountingReceive(new SuspendableSupplier<M>() {
+                @Override
+                public M get() throws SuspendExecution, InterruptedException {
+                    return op.get();
+                }
+            });
+        } catch (Throwable t) {
+            throw new AssertionError(t);
+        }
     }
 
     @Override
