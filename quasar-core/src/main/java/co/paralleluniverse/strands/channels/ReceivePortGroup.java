@@ -14,7 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.common.util.SuspendableSupplier;
-import co.paralleluniverse.concurrent.util.SwapAtomicReference;
+import co.paralleluniverse.concurrent.util.EnhancedAtomicReference;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import com.google.common.base.Function;
@@ -47,9 +47,9 @@ public class ReceivePortGroup<M> implements Mix<M> {
     private final static boolean soloDefault = false;
     private final static SoloEffect soloEffectDefault = SoloEffect.PAUSE_OTHERS;
 
-    private final SwapAtomicReference<SoloEffect> soloEffect = new SwapAtomicReference<>();
-    private final SwapAtomicReference<Map<? extends ReceivePort<? extends M>, State>> states = new SwapAtomicReference<>();
-    private final SwapAtomicReference<Selector<M>> selector = new SwapAtomicReference<>();
+    private final EnhancedAtomicReference<SoloEffect> soloEffect = new EnhancedAtomicReference<>();
+    private final EnhancedAtomicReference<Map<? extends ReceivePort<? extends M>, State>> states = new EnhancedAtomicReference<>();
+    private final EnhancedAtomicReference<Selector<M>> selector = new EnhancedAtomicReference<>();
 
     private volatile Map<? extends ReceivePort<? extends M>, State> selectorStates = null;
 
