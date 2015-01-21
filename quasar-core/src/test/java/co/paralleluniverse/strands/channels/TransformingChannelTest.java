@@ -15,8 +15,10 @@ package co.paralleluniverse.strands.channels;
 
 import static co.paralleluniverse.common.test.Matchers.*;
 import co.paralleluniverse.common.util.Action2;
+import co.paralleluniverse.common.util.Box;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Function2;
+import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
@@ -26,6 +28,7 @@ import co.paralleluniverse.strands.SuspendableAction1;
 import co.paralleluniverse.strands.SuspendableAction2;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import com.google.common.base.Function;
@@ -690,6 +693,146 @@ public class TransformingChannelTest {
         fib.join();
     }
 
+    @Test
+    @SuppressWarnings("null")
+    public void testTakeThreadToFibers() throws Exception {
+        final Channel<Object> takeSourceCh = Channels.newChannel(10, OverflowPolicy.THROW, true, false);
+
+        // Test 2 fibers failing immediately on take 0 of 1
+        final ReceivePort<Object> take0RP = Channels.take((ReceivePort<Object>) takeSourceCh, 0);
+        final SuspendableRunnable take0SR = new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                assertThat(take0RP.receive(), is(nullValue()));
+                assertThat(take0RP.tryReceive(), is(nullValue()));
+                long start = System.nanoTime();
+                assertThat(take0RP.receive(10, TimeUnit.SECONDS), is(nullValue()));
+                long end = System.nanoTime();
+                assertThat(end - start, lessThan(new Long(5 * 1000 * 1000 * 1000))); // Should be immediate
+                start = System.nanoTime();
+                assertThat(take0RP.receive(new Timeout(10, TimeUnit.SECONDS)), is(nullValue()));
+                end = System.nanoTime();
+                assertThat(end - start, lessThan(new Long(5 * 1000 * 1000 * 1000))); // Should be immediate
+            }
+        };
+        takeSourceCh.send(new Object());
+        final Fiber take0Of1Fiber1 = new Fiber("take-0-of-1_fiber1", scheduler, take0SR).start();
+        final Fiber take0Of1Fiber2 = new Fiber("take-0-of-1_fiber2", scheduler, take0SR).start();
+        take0Of1Fiber1.join();
+        take0Of1Fiber2.join();
+        assertThat(takeSourceCh.receive(), is(notNullValue())); // 1 left in source, check and cleanup
+
+        // Test tryReceive failing immediately when fiber blocked in receive on take 1 of 2
+        final ReceivePort<Object> take1Of2RP = Channels.take((ReceivePort<Object>) takeSourceCh, 1);
+        final Fiber timeoutSucceedingTake1Of2 = new Fiber("take-1-of-2_timeout_success", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                final long start = System.nanoTime();
+                assertThat(take1Of2RP.receive(1, TimeUnit.SECONDS), is(notNullValue()));
+                final long end = System.nanoTime();
+                assertThat(end - start, lessThan(new Long(500 * 1000 * 1000)));
+            }
+        }).start();
+        Thread.sleep(100); // Let the fiber blocks in receive before starting the try
+        final Fiber tryFailingTake1Of2 = new Fiber("take-1-of-2_try_fail", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                final long start = System.nanoTime();
+                assertThat(take1Of2RP.tryReceive(), is(nullValue()));
+                final long end = System.nanoTime();
+                assertThat(end - start, lessThan(new Long(500 * 1000 * 1000))); // Should be immediate
+            }
+        }).start();
+        Thread.sleep(100);
+        // Make messages available
+        takeSourceCh.send(new Object());
+        takeSourceCh.send(new Object());
+        timeoutSucceedingTake1Of2.join();
+        tryFailingTake1Of2.join();
+        assertThat(takeSourceCh.receive(), is(notNullValue())); // 1 left in source, check and cleanup
+
+        // Comprehensive take + contention test:
+        //
+        // - 1 message available immediately, 2 messages available in a burst on the source after 1s
+        // - take 2
+        // - 5 fibers competing on the take source (1 in front)
+        //
+        // - one front fiber receiving with 200ms timeout => immediate success
+        // - one more front fiber receiving with 200ms timeout => fail
+        // - 3rd fiber taking over, receiving with 200ms timeout => fail
+        // - 4th fiber taking over, receiving with 1s timeout => success
+        // - 5th fiber asking untimed receive, waiting in monitor, will bail out because of take threshold
+
+        final  ReceivePort<Object> take2Of3RPComprehensive = Channels.take((ReceivePort<Object>) takeSourceCh, 2);
+        final Function2<Long, Integer, Fiber> take1SRFun = new Function2<Long, Integer, Fiber>() {
+            @Override
+            public Fiber apply(final Long timeoutMS, final Integer position) {
+                return new Fiber("take-1-of-2_comprehensive_receiver_" + (timeoutMS >= 0 ? timeoutMS : "unlimited") + "ms-" + position, scheduler, new SuspendableRunnable() {
+                    @Override
+                    public void run() throws SuspendExecution, InterruptedException {
+                        final long start = System.nanoTime();
+                        final Object res =
+                            (timeoutMS >= 0 ? 
+                                take2Of3RPComprehensive.receive(timeoutMS, TimeUnit.MILLISECONDS) :
+                                take2Of3RPComprehensive.receive());
+                        final long end = System.nanoTime();
+                        switch (position) {
+                            case 1:
+                                assertThat(res, is(notNullValue()));
+                                assertThat(end - start, lessThan(new Long(300 * 1000 * 1000)));
+                                break;
+                            case 2:
+                                assertThat(res, is(nullValue()));
+                                assertThat(end - start, greaterThan(new Long(300 * 1000 * 1000)));
+                                break;
+                            case 3:
+                                assertThat(res, is(nullValue()));
+                                assertThat(end - start, greaterThan(new Long(200 * 1000 * 1000)));
+                                break;
+                            case 4:
+                                assertThat(res, is(notNullValue()));
+                                assertThat(end - start, lessThan(new Long(1000 * 1000 * 1000)));
+                                break;
+                            case 5:
+                                assertThat(res, is(nullValue()));
+                                assertThat(end - start, lessThan(new Long(1000 * 1000 * 1000))); // Should be almost instantaneous
+                                break;
+                            default:
+                                fail();
+                                break;
+                        }
+                    }
+                });
+            }
+        };
+        final Fiber[] competing = new Fiber[5];
+        // First front fiber winning first message
+        competing[0] = take1SRFun.apply(300l, 1).start();
+        // Make 1 message available immediately for the first front fiber to consume
+        takeSourceCh.send(new Object());
+        Thread.sleep(100);
+        // Second front fiber losing (waiting too little for second message)
+        competing[1] = take1SRFun.apply(300l, 2).start();
+        Thread.sleep(100);
+        // First waiter, will fail (not waiting enough)
+        competing[2] = take1SRFun.apply(200l, 3).start();
+        Thread.sleep(300); // First waiter takeover
+        // Second waiter, will win second message (waiting enough)
+        competing[3] = take1SRFun.apply(1000l, 4).start();
+        Thread.sleep(300); // Second waiter takeover
+        // Third waiter, will try after take threshold and will bail out
+        competing[4] = take1SRFun.apply(-1l, 5).start();
+        // Make 2 more messages available
+        takeSourceCh.send(new Object());
+        takeSourceCh.send(new Object());
+        // Wait fibers to finsh
+        for (final Fiber f : competing)
+            f.join();
+        assertThat(takeSourceCh.receive(), is(notNullValue())); // 1 left in source, check and cleanup
+
+        // TODO Fix and test explicit (and uncoupled from source's) closing of TakeSP
+    }
+    
     @Test
     public void testSendReduceThreadToFiber() throws Exception {
         final Channel<Integer> ch = newChannel();
