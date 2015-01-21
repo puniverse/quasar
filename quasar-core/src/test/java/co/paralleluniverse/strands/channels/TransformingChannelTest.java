@@ -146,13 +146,19 @@ public class TransformingChannelTest {
                 return input + 10;
             }
         });
-
         ReceivePort<Integer> ch3 = Channels.flatMap((ReceivePort<Integer>) ch, new Function<Integer, ReceivePort<Integer>>() {
             @Override
             public ReceivePort<Integer> apply(Integer input) {
                 return Channels.toReceivePort(Arrays.asList(new Integer[]{input * 10, input * 100, input * 1000}));
             }
         });
+        ReceivePort<Integer> ch4 = Channels.reduce((ReceivePort<Integer>) ch, new Function2<Integer, Integer, Integer>() {
+            @Override
+            public Integer apply(Integer accum, Integer input) {
+                return (accum += input);
+            }
+        }, 0);
+        ReceivePort<Integer> ch5 = Channels.take((ReceivePort<Integer>) ch, 1);
 
         assertTrue(ch1.equals(ch));
         assertTrue(ch.equals(ch1));
@@ -160,16 +166,36 @@ public class TransformingChannelTest {
         assertTrue(ch.equals(ch2));
         assertTrue(ch3.equals(ch));
         assertTrue(ch.equals(ch3));
+        assertTrue(ch4.equals(ch));
+        assertTrue(ch.equals(ch4));
+        assertTrue(ch5.equals(ch));
+        assertTrue(ch.equals(ch5));
 
         assertTrue(ch1.equals(ch1));
         assertTrue(ch1.equals(ch2));
         assertTrue(ch1.equals(ch3));
+        assertTrue(ch1.equals(ch4));
+        assertTrue(ch1.equals(ch5));
         assertTrue(ch2.equals(ch1));
         assertTrue(ch2.equals(ch2));
         assertTrue(ch2.equals(ch3));
+        assertTrue(ch2.equals(ch4));
+        assertTrue(ch2.equals(ch5));
         assertTrue(ch3.equals(ch1));
         assertTrue(ch3.equals(ch2));
         assertTrue(ch3.equals(ch3));
+        assertTrue(ch3.equals(ch4));
+        assertTrue(ch3.equals(ch5));
+        assertTrue(ch4.equals(ch1));
+        assertTrue(ch4.equals(ch2));
+        assertTrue(ch4.equals(ch3));
+        assertTrue(ch4.equals(ch4));
+        assertTrue(ch4.equals(ch5));
+        assertTrue(ch5.equals(ch1));
+        assertTrue(ch5.equals(ch2));
+        assertTrue(ch5.equals(ch3));
+        assertTrue(ch5.equals(ch4));
+        assertTrue(ch5.equals(ch5));
     }
 
     @Test
@@ -196,22 +222,38 @@ public class TransformingChannelTest {
             }
         });
 
+        SendPort<Integer> ch4 = Channels.reduceSend((SendPort<Integer>) ch, new Function2<Integer, Integer, Integer>() {
+            @Override
+            public Integer apply(Integer accum, Integer input) {
+                return (accum += input);
+            }
+        }, 0);
+
         assertTrue(ch1.equals(ch));
         assertTrue(ch.equals(ch1));
         assertTrue(ch2.equals(ch));
         assertTrue(ch.equals(ch2));
         assertTrue(ch3.equals(ch));
         assertTrue(ch.equals(ch3));
+        assertTrue(ch4.equals(ch));
+        assertTrue(ch.equals(ch4));
 
         assertTrue(ch1.equals(ch1));
         assertTrue(ch1.equals(ch2));
         assertTrue(ch1.equals(ch3));
+        assertTrue(ch1.equals(ch4));
         assertTrue(ch2.equals(ch1));
         assertTrue(ch2.equals(ch2));
         assertTrue(ch2.equals(ch3));
+        assertTrue(ch2.equals(ch4));
         assertTrue(ch3.equals(ch1));
         assertTrue(ch3.equals(ch2));
         assertTrue(ch3.equals(ch3));
+        assertTrue(ch3.equals(ch4));
+        assertTrue(ch4.equals(ch1));
+        assertTrue(ch4.equals(ch2));
+        assertTrue(ch4.equals(ch3));
+        assertTrue(ch4.equals(ch4));
     }
 
     @Test
@@ -593,6 +635,90 @@ public class TransformingChannelTest {
                 return input + 10;
             }
         });
+
+        Strand.sleep(50);
+        ch1.send(1);
+        ch1.send(2);
+        Strand.sleep(50);
+        ch1.send(3);
+        ch1.send(4);
+        ch1.send(5);
+        ch1.close();
+
+        fib.join();
+    }
+
+    @Test
+    public void testReduceThreadToFiber() throws Exception {
+        final Channel<Integer> ch = newChannel();
+
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                ReceivePort<Integer> ch1 = Channels.reduce((ReceivePort<Integer>) ch, new Function2<Integer, Integer, Integer>() {
+                    @Override
+                    public Integer apply(Integer accum, Integer input) {
+                        return accum + input;
+                    }
+                }, 0);
+
+                Integer m1 = ch1.receive();
+                Integer m2 = ch1.receive();
+                Integer m3 = ch1.receive();
+                Integer m4 = ch1.receive();
+                Integer m5 = ch1.receive();
+                Integer m6 = ch1.receive();
+
+                assertThat(m1, equalTo(1));
+                assertThat(m2, equalTo(3));
+                assertThat(m3, equalTo(6));
+                assertThat(m4, equalTo(10));
+                assertThat(m5, equalTo(15));
+                assertThat(m6, is(nullValue()));
+            }
+        }).start();
+
+        Strand.sleep(50);
+        ch.send(1);
+        ch.send(2);
+        Strand.sleep(50);
+        ch.send(3);
+        ch.send(4);
+        ch.send(5);
+        ch.close();
+
+        fib.join();
+    }
+
+    @Test
+    public void testSendReduceThreadToFiber() throws Exception {
+        final Channel<Integer> ch = newChannel();
+
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                Integer m1 = ch.receive();
+                Integer m2 = ch.receive();
+                Integer m3 = ch.receive();
+                Integer m4 = ch.receive();
+                Integer m5 = ch.receive();
+                Integer m6 = ch.receive();
+
+                assertThat(m1, equalTo(1));
+                assertThat(m2, equalTo(3));
+                assertThat(m3, equalTo(6));
+                assertThat(m4, equalTo(10));
+                assertThat(m5, equalTo(15));
+                assertThat(m6, is(nullValue()));
+            }
+        }).start();
+
+        SendPort<Integer> ch1 = Channels.reduceSend((SendPort<Integer>) ch, new Function2<Integer, Integer, Integer>() {
+            @Override
+            public Integer apply(Integer accum, Integer input) {
+                return accum + input;
+            }
+        }, 0);
 
         Strand.sleep(50);
         ch1.send(1);
