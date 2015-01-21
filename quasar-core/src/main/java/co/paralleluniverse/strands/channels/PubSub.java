@@ -21,14 +21,14 @@ package co.paralleluniverse.strands.channels;
 interface PubSub<Message> extends SendPort<Message> {
     /**
      * Subscribe a channel to receive messages sent to this topic.
-     * <p>
+     *
      * @param sub the channel to subscribe
      */
     public <T extends SendPort<? super Message>> T subscribe(T sub);
 
     /**
      * Unsubscribe a channel from this topic.
-     * <p>
+     *
      * @param sub the channel to subscribe
      */
     public void unsubscribe(SendPort<? super Message> sub);

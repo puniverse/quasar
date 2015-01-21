@@ -60,7 +60,6 @@ import java.util.concurrent.TimeUnit;
  * @author pron
  */
 public final class Channels {
-
     /**
      * Determines how a channel behaves when its internal buffer (if it has one) overflows.
      */
@@ -633,7 +632,7 @@ public final class Channels {
     }
 
     /**
-     * Returns a {@link ReceivePort} from which receiving messages that are transformed from a given channel by a given reduction function.
+     * Returns a {@link ReceivePort} providing messages that are transformed from a given channel by a given reduction function.
      * <p/>
      * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
      *
@@ -702,13 +701,13 @@ public final class Channels {
     }
 
     /**
-     * Returns a {@link TakeReceivePort} that can provide at most {@code count} messages from {@code channel}.
+     * Returns a {@link ReceivePort} that can provide at most {@code count} messages from {@code channel}.
      *
      * @param channel   The channel.
      * @param count     The maximum number of messages extracted from the underlying channel.
-     * @return a {@link TakeReceivePort} that can provide at most {@code count} messages from {@code channel}.
+     * @return a {@link ReceivePort} that can provide at most {@code count} messages from {@code channel}.
      */
-    public static <T> TakeReceivePort<T> take(final ReceivePort<T> channel, final long count) {
+    public static <T> ReceivePort<T> take(final ReceivePort<T> channel, final long count) {
         return new TakeReceivePort<>(channel, count);
     }
 
@@ -829,7 +828,7 @@ public final class Channels {
     }
 
     /**
-     * Returns a {@link SendPort} to which sending messages that are transformed towards a channel by a reduction function.
+     * Returns a {@link SendPort} accepting messages that are transformed by a reduction function.
      * <p/>
      * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
      *
@@ -905,7 +904,7 @@ public final class Channels {
 
     /**
      * Returns a newly created {@link ReceivePort} that receives a single message: the object given to the function.
-     * <p>
+     *
      * @param <T>
      * @param object the single object that will be returned by the {@code ReceivePort}.
      */
@@ -952,7 +951,7 @@ public final class Channels {
 
     /**
      * Returns a newly created {@link ReceivePort} that receives all the elements iterated by the iterator.
-     * <p/>
+     *
      * @param <T>
      * @param iterator the iterator to transform into a {@code ReceivePort}.
      */
@@ -996,7 +995,7 @@ public final class Channels {
 
     /**
      * Returns a newly created {@link ReceivePort} that receives all the elements iterated by the iterable.
-     * <p>
+     *
      * @param <T>
      * @param iterable the iterable to transform into a {@code ReceivePort}.
      */
