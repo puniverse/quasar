@@ -122,7 +122,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
             if (res)
                 action.setItem(null);
         } else {
-            Message m = tryReceiveInternal();
+            Message m = tryReceive();
             action.setItem(m);
             if (m == null)
                 res = isClosed();
@@ -307,7 +307,8 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         return null;
     }
 
-    protected Message tryReceiveInternal() {
+    @Override
+    public Message tryReceive() {
         if (receiveClosed)
             return closeValue();
         boolean closed = isSendClosed();
@@ -322,11 +323,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     }
 
     @Override
-    public Message tryReceive() {
-        return tryReceiveInternal();
-    }
-    
-    protected Message receiveInternal() throws SuspendExecution, InterruptedException {
+    public Message receive() throws SuspendExecution, InterruptedException {
         if (receiveClosed)
             return closeValue();
 
@@ -352,18 +349,13 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
     }
 
     @Override
-    public Message receive() throws SuspendExecution, InterruptedException {
-        return receiveInternal();
-    }
-    
-    @Override
     public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         if (receiveClosed)
             return closeValue();
         if (unit == null)
-            return receiveInternal();
+            return receive();
         if (timeout <= 0)
-            return tryReceiveInternal();
+            return tryReceive();
 
         long left = unit.toNanos(timeout);
         final long deadline = System.nanoTime() + left;
