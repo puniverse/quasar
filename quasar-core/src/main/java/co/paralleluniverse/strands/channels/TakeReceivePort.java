@@ -13,15 +13,15 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.common.util.SuspendableSupplier;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Condition;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Timeout;
-import com.google.common.base.Supplier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import co.paralleluniverse.concurrent.util.EnhancedAtomicLong;
+import static co.paralleluniverse.concurrent.util.EnhancedAtomicLong.*;
 
 /**
  *
@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author circlespainter
  */
 class TakeReceivePort<M> extends TransformingReceivePort<M> {
-    private final AtomicLong lease = new AtomicLong();
+    private final EnhancedAtomicLong lease = new EnhancedAtomicLong();
     private final AtomicLong countDown = new AtomicLong();
     private final AtomicBoolean closed = new AtomicBoolean();
     private final Condition monitor = new SimpleConditionSynchronizer(null);
@@ -46,86 +46,93 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
 
     @Override
     public M tryReceive() {
-        return stagedCountingReceive(new Supplier<M>() {
-            @Override
-            public M get() {
-                return TakeReceivePort.super.tryReceive();
-            }
-        });
+        try {
+            return timedReceive(0, TimeUnit.NANOSECONDS);
+        } catch (Throwable t) {
+            // It should never happen
+            throw new AssertionError(t);
+        }
     }
 
     @Override
     public M receive() throws SuspendExecution, InterruptedException {
-        return suspendableStagedCountingReceive(new SuspendableSupplier<M>() {
-            @Override
-            public M get() throws SuspendExecution, InterruptedException {
-               return TakeReceivePort.super.receive();
-            }
-        });
+        return timedReceive(-1, null);
     }
 
     @Override
     public M receive(final Timeout timeout) throws SuspendExecution, InterruptedException {
-        return suspendableStagedCountingReceive(new SuspendableSupplier<M>() {
-            @Override
-            public M get() throws SuspendExecution, InterruptedException {
-               return TakeReceivePort.super.receive(timeout);
-            }
-        });
+        return timedReceive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     @Override
     public M receive(final long timeout, final TimeUnit unit) throws SuspendExecution, InterruptedException {
-        return suspendableStagedCountingReceive(new SuspendableSupplier<M>() {
-            @Override
-            public M get() throws SuspendExecution, InterruptedException {
-               return TakeReceivePort.super.receive(timeout, unit);
-            }
-        });
+        return timedReceive(timeout, unit);
     }
 
-    private M suspendableStagedCountingReceive(final SuspendableSupplier<M> op) throws SuspendExecution, InterruptedException {
-        M ret = null;
+    private M timedReceive(final long timeout, final TimeUnit unit) throws SuspendExecution, InterruptedException {
+        // Register in order to receive wakeup signals when waiting in the monitor
         final Object ticket = monitor.register();
-        try {
-            int iter = 0;
-            while (ret == null) {
-                if (isClosed()) {
-                    monitor.signalAll();
-                    return null;
-                }
 
-                if (lease.decrementAndGet() <= 0)
-                    monitor.await(iter);
-                else {
-                    ret = op.get();
-                    if (ret != null) {
-                        countDown.decrementAndGet();
-                        return ret;
-                    } else {
-                        lease.incrementAndGet();
-                        monitor.signal();
-                    }
-                }
-                iter++;
+        // Initialise time bookkeeping in case we have to wait when performing a timed receive
+        final long start = timeout > 0 ? System.nanoTime() : 0;
+        long left = unit != null ? unit.toNanos(timeout) : 0;
+        final long deadline = start + left;
+        long now;
+
+        try {
+            // Wait loop
+            for (int i = 0;; i++) {
+                if (isClosed())
+                    // Fail
+                    return null;
+
+                if (!lease.evalAndUpdate(gt(0), DEC)) { // Front line is busy, wait
+                    if (unit == null) // Untimed receive
+                        // => Untimed wait
+                        monitor.await(i);
+                    else if (timeout > 0) { // Timed receive
+                        // => Timed wait with time bookkeeping
+                        monitor.await(i, left, TimeUnit.NANOSECONDS);
+                        now = System.nanoTime();
+                        left = deadline - now;
+                        if (left <= 0)
+                            // Timed receive expired without making it to the front line
+                            return null;
+                    } else // tryReceive
+                        // Front line busy => channel is surely blocking (or closed) => fail try
+                        return null;
+                } else
+                    // Front line has available seats, try receive
+                    break;
+            }
+
+            // Try receive
+            M ret;
+            if (unit == null)
+                // Untimed receive
+                ret = target.receive();
+            else if (timeout > 0)
+                // Timed receive
+                ret = target.receive(timeout, unit);
+            else
+                // tryReceive
+                ret = target.tryReceive();
+
+            if (ret != null) {
+                // Successful receive
+                if (countDown.decrementAndGet() <= 0)
+                    // Last message consumed, wake up all waiters and return
+                    monitor.signalAll();
+                return ret;
+            } else {
+                // Failed receive, let a waiter in
+                lease.incrementAndGet();
+                monitor.signal();
+                return null;
             }
         } finally {
+            // No matter what happens, release our ticket in the monitor
             monitor.unregister(ticket);
-        }
-
-        return ret;
-    }
-
-    private M stagedCountingReceive(final Supplier<M> op) {
-        try {
-            return suspendableStagedCountingReceive(new SuspendableSupplier<M>() {
-                @Override
-                public M get() throws SuspendExecution, InterruptedException {
-                    return op.get();
-                }
-            });
-        } catch (Throwable t) {
-            throw new AssertionError(t);
         }
     }
 
@@ -137,5 +144,7 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
     @Override
     public void close() {
         closed.set(true);
+        // Stop all waiters
+        monitor.signalAll();
     }
 }
