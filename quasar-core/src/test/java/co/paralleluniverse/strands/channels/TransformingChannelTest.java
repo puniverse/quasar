@@ -15,7 +15,6 @@ package co.paralleluniverse.strands.channels;
 
 import static co.paralleluniverse.common.test.Matchers.*;
 import co.paralleluniverse.common.util.Action2;
-import co.paralleluniverse.common.util.Box;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Function2;
 import co.paralleluniverse.common.util.Pair;
