@@ -69,7 +69,6 @@ jar {
     from project.sourceSets.main.resources
 
     from zipTree("${baselib}/high-scale-lib.jar")  // include non-Maven jars
-    from zipTree("${baselib}/HdrHistogram.jar")  // include non-Maven jars
 
     manifest { 
         attributes(
@@ -105,7 +104,6 @@ shadowJar {
     dependencies {
         include(dependency('org.ow2.asm:.*:.*'))
         include(dependency(':high-scale-lib'))
-        include(dependency(':HdrHistogram'))
     }
 
     relocate 'org.objectweb.asm.', 'co.paralleluniverse.asm.'
