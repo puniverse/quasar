@@ -22,6 +22,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import co.paralleluniverse.concurrent.util.EnhancedAtomicLong;
 import static co.paralleluniverse.concurrent.util.EnhancedAtomicLong.*;
+import static co.paralleluniverse.strands.channels.Selector.*;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 
 /**
  *
@@ -31,8 +34,10 @@ import static co.paralleluniverse.concurrent.util.EnhancedAtomicLong.*;
 class TakeReceivePort<M> extends TransformingReceivePort<M> {
     private final EnhancedAtomicLong lease = new EnhancedAtomicLong();
     private final AtomicLong countDown = new AtomicLong();
-    private final AtomicBoolean closed = new AtomicBoolean();
     private final Condition monitor = new SimpleConditionSynchronizer(null);
+
+    private final AtomicBoolean closed = new AtomicBoolean();
+    private final Channel<M> closeSignal = new TransferChannel<>();
 
     public TakeReceivePort(final ReceivePort<M> target, final long count) {
         super(target);
@@ -107,25 +112,29 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
             }
 
             // Try receive
-            M ret;
+            final SelectAction<M> sa;
+            final List<SelectAction<M>> ops = ImmutableList.of(Selector.receive(closeSignal), Selector.receive(target));
             if (unit == null)
                 // Untimed receive
-                ret = target.receive();
+                sa = select(true, ops);
             else if (timeout > 0)
                 // Timed receive
-                ret = target.receive(timeout, unit);
+                sa = select(true, timeout, unit, ops);
             else
                 // tryReceive
-                ret = target.tryReceive();
+                sa = trySelect(true, ops);
 
-            if (ret != null) {
+            if (sa != null) {
+                // Explicit close => fail
+                if (sa.port().equals(closeSignal))
+                    return null;
                 // Successful receive
                 if (countDown.decrementAndGet() <= 0)
                     // Last message consumed, wake up all waiters and return
                     monitor.signalAll();
-                return ret;
+                return sa.message();
             } else {
-                // Failed receive, let a waiter in
+                // Failed receive, let a waiter in and return null
                 lease.incrementAndGet();
                 monitor.signal();
                 return null;
@@ -146,5 +155,7 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
         closed.set(true);
         // Stop all waiters
         monitor.signalAll();
+        // Stop all receivers
+        closeSignal.close();
     }
 }
