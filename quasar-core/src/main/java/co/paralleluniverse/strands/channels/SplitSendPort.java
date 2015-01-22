@@ -20,11 +20,11 @@ import java.util.concurrent.TimeUnit;
 /**
  * {@link SendPort} that will send messages it receives to a target {@link SendPort}. Concrete subclasses will need to implement {@code select} yielding
  * {@link SendPort} to send the message to.
- * <p/>
+ *
  * @author circlespainter
  */
 abstract class SplitSendPort<Message> implements SendPort<Message> {
-    private boolean closed = false;
+    private volatile boolean closed = false;
     
     /**
      * Subclasses will implement this method to select the target {@link SendPort}.
@@ -43,31 +43,39 @@ abstract class SplitSendPort<Message> implements SendPort<Message> {
 
     @Override
     public boolean trySend(Message message) {
-        if (!closed)
-            return select(message).trySend(message);
-
-        return true;
-    }
-
-    @Override
-    public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
-        if (!closed)
-            return select(message).send(message, timeout);
-
-        return true;
-    }
-
-    @Override
-    public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        if (!closed)
-            return select(message).send(message, timeout, unit);
-
-        return true;
+        try {
+            return send(message, -1, TimeUnit.NANOSECONDS);
+        } catch (Throwable t) {
+            // This should never happen
+            throw new AssertionError(t);
+        }
     }
 
     @Override
     public void send(Message message) throws SuspendExecution, InterruptedException {
-        if (!closed)
-            select(message).send(message);
+        send(message, -1, null);
+    }
+
+    @Override
+    public boolean send(final Message message, final Timeout timeout) throws SuspendExecution, InterruptedException {
+        return send(message, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
+    }
+
+    @Override
+    public boolean send(final Message message, final long timeout, final TimeUnit unit) throws SuspendExecution, InterruptedException {
+        if (!closed) {
+            final SendPort<? super Message> target = select(message);
+            if (unit == null)
+                // Untimed send
+                target.send(message);
+            else if (timeout > 0)
+                // Timed send
+                return target.send(message, timeout, unit);
+            else
+                // trySend
+                return target.trySend(message);
+        }
+
+        return false;
     }
 }
