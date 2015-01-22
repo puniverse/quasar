@@ -36,17 +36,12 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
     private final AtomicLong countDown = new AtomicLong();
     private final Condition monitor = new SimpleConditionSynchronizer(null);
 
-    private final AtomicBoolean closed = new AtomicBoolean();
-    private final Channel<M> closeSignal = new TransferChannel<>();
-
     public TakeReceivePort(final ReceivePort<M> target, final long count) {
         super(target);
 
         final long start = count <= 0 ? 0 : count;
         this.lease.set(start);
         this.countDown.set(start);
-
-        this.closed.set(false);
     }
 
     @Override
@@ -112,27 +107,23 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
             }
 
             // Try receive
-            final SelectAction<M> sa;
-            final List<SelectAction<M>> ops = ImmutableList.of(Selector.receive(closeSignal), Selector.receive(target));
+            final M ret;
             if (unit == null)
                 // Untimed receive
-                sa = select(true, ops);
+                ret = target.receive();
             else if (timeout > 0)
                 // Timed receive
-                sa = select(true, timeout, unit, ops);
+                ret = target.receive(timeout, unit);
             else
                 // tryReceive
-                sa = trySelect(true, ops);
+                ret = target.tryReceive();
 
-            if (sa != null) {
-                // Explicit close => fail
-                if (sa.port().equals(closeSignal))
-                    return null;
+            if (ret != null) {
                 // Successful receive
                 if (countDown.decrementAndGet() <= 0)
                     // Last message consumed, wake up all waiters and return
                     monitor.signalAll();
-                return sa.message();
+                return ret;
             } else {
                 // Failed receive, let a waiter in and return null
                 lease.incrementAndGet();
@@ -147,15 +138,6 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
 
     @Override
     public boolean isClosed() {
-        return closed.get() || countDown.get() <= 0;
-    }
-
-    @Override
-    public void close() {
-        closed.set(true);
-        // Stop all waiters
-        monitor.signalAll();
-        // Stop all receivers
-        closeSignal.close();
+        return countDown.get() <= 0 || super.isClosed();
     }
 }
