@@ -762,7 +762,7 @@ public class TransformingChannelTest {
         // - 4th fiber taking over, receiving with 1s timeout => success
         // - 5th fiber asking untimed receive, waiting in monitor, will bail out because of take threshold
 
-        final  ReceivePort<Object> take2Of3RPComprehensive = Channels.take((ReceivePort<Object>) takeSourceCh, 2);
+        final ReceivePort<Object> take2Of3RPComprehensive = Channels.take((ReceivePort<Object>) takeSourceCh, 2);
         final Function2<Long, Integer, Fiber> take1SRFun = new Function2<Long, Integer, Fiber>() {
             @Override
             public Fiber apply(final Long timeoutMS, final Integer position) {
@@ -829,7 +829,24 @@ public class TransformingChannelTest {
             f.join();
         assertThat(takeSourceCh.receive(), is(notNullValue())); // 1 left in source, check and cleanup
 
-        // TODO Fix and test explicit (and uncoupled from source's) closing of TakeSP
+        // Explicit (and uncoupled from source's) closing of TakeSP
+        final ReceivePort<Object> take1Of0ExplicitClose = Channels.take((ReceivePort<Object>) takeSourceCh, 1);
+        final SuspendableRunnable explicitCloseSR = new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                final long start = System.nanoTime();
+                final Object ret = take1Of0ExplicitClose.receive();
+                final long end = System.nanoTime();
+                assertThat(ret, is(nullValue()));
+                assertTrue(take1Of0ExplicitClose.isClosed());
+                assertFalse(takeSourceCh.isClosed());
+                assertThat(end - start, lessThan(new Long(500 * 1000 * 1000)));
+            }
+        };
+        final Fiber explicitCloseF1 = new Fiber("take-explicit-close-1", scheduler, explicitCloseSR);
+        final Fiber explicitCloseF2 = new Fiber("take-explicit-close-2", scheduler, explicitCloseSR);
+        Thread.sleep(100);
+        take1Of0ExplicitClose.close();
     }
     
     @Test
