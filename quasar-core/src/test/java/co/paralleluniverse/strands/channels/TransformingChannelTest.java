@@ -1247,13 +1247,12 @@ public class TransformingChannelTest {
     public void testForEach() throws Exception {
         final Channel<Integer> ch = newChannel();
 
-        Fiber<List<Integer>> fib = new Fiber<>("fiber", scheduler, new SuspendableCallable() {
+        Fiber<List<Integer>> fib = new Fiber<List<Integer>>("fiber", scheduler, new SuspendableCallable() {
             @Override
             public List<Integer> run() throws SuspendExecution, InterruptedException {
                 final List<Integer> list = new ArrayList<>();
                 
                 Channels.transform(ch).forEach(new SuspendableAction1<Integer>() {
-
                     @Override
                     public void call(Integer x) throws SuspendExecution, InterruptedException {
                         list.add(x);
