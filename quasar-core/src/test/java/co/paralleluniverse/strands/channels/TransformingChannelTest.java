@@ -695,7 +695,9 @@ public class TransformingChannelTest {
     @Test
     @SuppressWarnings("null")
     public void testTakeThreadToFibers() throws Exception {
-        final Channel<Object> takeSourceCh = Channels.newChannel(10, OverflowPolicy.THROW, true, false);
+        assumeThat(mailboxSize, greaterThan(0)); // TODO Reorg to try with blocking channel at least meaningful parts
+
+        final Channel<Object> takeSourceCh = newChannel();
 
         // Test 2 fibers failing immediately on take 0 of 1
         final ReceivePort<Object> take0RP = Channels.take((ReceivePort<Object>) takeSourceCh, 0);
@@ -714,9 +716,9 @@ public class TransformingChannelTest {
                 assertThat(end - start, lessThan(new Long(5 * 1000 * 1000 * 1000))); // Should be immediate
             }
         };
-        takeSourceCh.send(new Object());
         final Fiber take0Of1Fiber1 = new Fiber("take-0-of-1_fiber1", scheduler, take0SR).start();
         final Fiber take0Of1Fiber2 = new Fiber("take-0-of-1_fiber2", scheduler, take0SR).start();
+        takeSourceCh.send(new Object());
         take0Of1Fiber1.join();
         take0Of1Fiber2.join();
         assertThat(takeSourceCh.receive(), is(notNullValue())); // 1 left in source, check and cleanup
@@ -853,7 +855,7 @@ public class TransformingChannelTest {
     public void testSendReduceThreadToFiber() throws Exception {
         final Channel<Integer> ch = newChannel();
 
-        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+        final Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 Integer m1 = ch.receive();
@@ -872,7 +874,7 @@ public class TransformingChannelTest {
             }
         }).start();
 
-        SendPort<Integer> ch1 = Channels.reduceSend((SendPort<Integer>) ch, new Function2<Integer, Integer, Integer>() {
+        final SendPort<Integer> ch1 = Channels.reduceSend((SendPort<Integer>) ch, new Function2<Integer, Integer, Integer>() {
             @Override
             public Integer apply(Integer accum, Integer input) {
                 return accum + input;
@@ -1196,8 +1198,8 @@ public class TransformingChannelTest {
 
     @Test
     public void testSendSplitThreadToFiber() throws Exception {
-        final Channel<String> chF1 = Channels.newChannel(1, OverflowPolicy.BLOCK, true, true);
-        final Channel<String> chF2 = Channels.newChannel(1, OverflowPolicy.BLOCK, true, true);
+        final Channel<String> chF1 = newChannel();
+        final Channel<String> chF2 = newChannel();
         final SendPort<String> splitSP = new SplitSendPort<String>() {
             @Override
             protected SendPort select(final String m) {
@@ -1207,13 +1209,10 @@ public class TransformingChannelTest {
                     return chF2;
             }
         };
-        splitSP.send("f1");
-        splitSP.send("f2");
-
         final Fiber f1 = new Fiber("split-send-1", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                assertThat(chF1.tryReceive(), is("f1"));
+                assertThat(chF1.receive(), is("f1"));
                 assertThat(chF1.receive(100, TimeUnit.NANOSECONDS), is(nullValue()));
                 assertThat(chF1.receive(new Timeout(100, TimeUnit.NANOSECONDS)), is(nullValue()));
                 assertThat(chF1.receive(), is(nullValue()));
@@ -1223,13 +1222,16 @@ public class TransformingChannelTest {
         final Fiber f2 = new Fiber("split-send-2", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                assertThat(chF2.tryReceive(), is(not("f1")));
+                assertThat(chF2.receive(), is(not("f1")));
                 assertThat(chF2.receive(100, TimeUnit.NANOSECONDS), is(nullValue()));
                 assertThat(chF2.receive(new Timeout(100, TimeUnit.NANOSECONDS)), is(nullValue()));
                 assertThat(chF2.receive(), is(nullValue()));
                 assertTrue(chF2.isClosed());
             }
         }).start();
+
+        splitSP.send("f1");
+        splitSP.send("f2");
 
         splitSP.close();
         assertFalse(chF1.isClosed());
@@ -1245,7 +1247,7 @@ public class TransformingChannelTest {
     public void testForEach() throws Exception {
         final Channel<Integer> ch = newChannel();
 
-        Fiber<List<Integer>> fib = new Fiber<List<Integer>>("fiber", scheduler, new SuspendableCallable() {
+        Fiber<List<Integer>> fib = new Fiber<>("fiber", scheduler, new SuspendableCallable() {
             @Override
             public List<Integer> run() throws SuspendExecution, InterruptedException {
                 final List<Integer> list = new ArrayList<>();
