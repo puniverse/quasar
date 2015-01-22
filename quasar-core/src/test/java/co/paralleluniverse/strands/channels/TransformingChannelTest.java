@@ -829,7 +829,7 @@ public class TransformingChannelTest {
             f.join();
         assertThat(takeSourceCh.receive(), is(notNullValue())); // 1 left in source, check and cleanup
 
-        // Explicit (and uncoupled from source's) closing of TakeSP
+        // Explicit (and uncoupled from source) closing of TakeSP
         final ReceivePort<Object> take1Of0ExplicitClose = Channels.take((ReceivePort<Object>) takeSourceCh, 1);
         final SuspendableRunnable explicitCloseSR = new SuspendableRunnable() {
             @Override
@@ -1192,6 +1192,53 @@ public class TransformingChannelTest {
         ch1.send(5);
         ch1.close();
         fib.join();
+    }
+
+    @Test
+    public void testSendSplitThreadToFiber() throws Exception {
+        final Channel<String> chF1 = Channels.newChannel(1, OverflowPolicy.BLOCK, true, true);
+        final Channel<String> chF2 = Channels.newChannel(1, OverflowPolicy.BLOCK, true, true);
+        final SendPort<String> splitSP = new SplitSendPort<String>() {
+            @Override
+            protected SendPort select(final String m) {
+                if (m.equals("f1"))
+                    return chF1;
+                else
+                    return chF2;
+            }
+        };
+        splitSP.send("f1");
+        splitSP.send("f2");
+
+        final Fiber f1 = new Fiber("split-send-1", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                assertThat(chF1.tryReceive(), is("f1"));
+                assertThat(chF1.receive(100, TimeUnit.NANOSECONDS), is(nullValue()));
+                assertThat(chF1.receive(new Timeout(100, TimeUnit.NANOSECONDS)), is(nullValue()));
+                assertThat(chF1.receive(), is(nullValue()));
+                assertTrue(chF1.isClosed());
+            }
+        }).start();
+        final Fiber f2 = new Fiber("split-send-2", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                assertThat(chF2.tryReceive(), is(not("f1")));
+                assertThat(chF2.receive(100, TimeUnit.NANOSECONDS), is(nullValue()));
+                assertThat(chF2.receive(new Timeout(100, TimeUnit.NANOSECONDS)), is(nullValue()));
+                assertThat(chF2.receive(), is(nullValue()));
+                assertTrue(chF2.isClosed());
+            }
+        }).start();
+
+        splitSP.close();
+        assertFalse(chF1.isClosed());
+        assertFalse(chF2.isClosed());
+        Thread.sleep(100);
+        chF1.close();
+        chF2.close();
+        f1.join();
+        f2.join();
     }
 
     @Test
