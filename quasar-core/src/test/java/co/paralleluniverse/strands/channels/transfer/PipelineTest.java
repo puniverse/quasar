@@ -13,6 +13,8 @@
  */
 package co.paralleluniverse.strands.channels.transfer;
 
+import co.paralleluniverse.common.test.Matchers;
+import co.paralleluniverse.common.util.ConcurrentSet;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
@@ -25,6 +27,9 @@ import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import org.junit.Rule;
@@ -105,7 +110,8 @@ public class PipelineTest {
             {1, OverflowPolicy.BLOCK, false, false, 2},
             {-1, OverflowPolicy.THROW, true, false, 2},
             {5, OverflowPolicy.DISPLACE, true, false, 2},
-            {0, OverflowPolicy.BLOCK, false, false, 2},});
+            {0, OverflowPolicy.BLOCK, false, false, 2},
+        });
     }
 
     private <Message> Channel<Message> newChannel() {
@@ -113,23 +119,32 @@ public class PipelineTest {
     }
 
     @Test
-    public void testPipelineSequential() throws Exception {
+    public void testPipeline() throws Exception {
         final Channel<Integer> i = newChannel();
         final Channel<Integer> o = newChannel();
-        final Fiber<Long> p = new Fiber("pipeline", scheduler, new Pipeline<Integer, Integer>(i, o, parallelism) {
+        final Set<Fiber> transformers = new ConcurrentSet<>(new ConcurrentHashMap<Fiber, Object>());
+        final Pipeline<Integer, Integer> p = new Pipeline<Integer, Integer>(i, o, parallelism) {
             @Override
             public Integer transform(Integer input) throws SuspendExecution, InterruptedException {
+                transformers.add(Fiber.currentFiber());
+                assertThat(getRunningParallelWorkers(), Matchers.lessOrEqual(parallelism));
                 return input + 1;
             }
-        }).start();
+        };
+        final Fiber<Long> pf = new Fiber("pipeline", scheduler, p).start();
 
-        final Fiber receiver = new Fiber("f", scheduler, new SuspendableRunnable() {
+        final Fiber receiver = new Fiber("receiver", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                assertThat (
-                    ImmutableSet.of(o.receive(), o.receive(), o.receive(), o.receive()),
-                    equalTo(ImmutableSet.of(2, 3, 4, 5))
-                );
+                final Integer m1 = o.receive();
+                final Integer m2 = o.receive();
+                final Integer m3 = o.receive();
+                final Integer m4 = o.receive();
+                assertThat(m1, notNullValue());
+                assertThat(m2, notNullValue());
+                assertThat(m3, notNullValue());
+                assertThat(m4, notNullValue());
+                assertThat(ImmutableSet.of(m1, m2, m3, m4), equalTo(ImmutableSet.of(2, 3, 4, 5)));
             }
         }).start();
 
@@ -140,7 +155,10 @@ public class PipelineTest {
 
         i.close();
 
-        assertThat(p.get(), equalTo(4l));
+        long transferred = pf.get(); // Join pipeline
+        assertThat(transferred, equalTo(p.getTransferred()));
+        assertThat(transferred, equalTo(4l));
+        assertThat(transformers.size(), equalTo(parallelism == 0 ? 1 : 4));
 
         receiver.join();
     }
