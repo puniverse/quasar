@@ -45,10 +45,13 @@ public abstract class Pipeline<S, T> implements SuspendableCallable<Long> {
     private final StrandFactory strandFactory;
     private final boolean closeTo;
 
+    private final AtomicLong transferred = new AtomicLong(0);
+    private int runningParallelWorkers = 0;
+
     public Pipeline(final ReceivePort<? extends S> from, final SendPort<? super T> to, final int parallelism, boolean closeTo, final StrandFactory strandFactory) {
         this.from = from;
         this.to = to;
-        this.parallelism = parallelism;
+        this.parallelism = parallelism <= 0 ? 0 : parallelism;
         this.closeTo = closeTo;
         this.strandFactory = strandFactory;
     }
@@ -65,41 +68,58 @@ public abstract class Pipeline<S, T> implements SuspendableCallable<Long> {
         this(from, to, parallelismDefault, closeToDefault, strandFactoryDefault);
     }
 
-    public abstract T transform(S input) throws SuspendExecution, InterruptedException;
+    public int getRunningParallelWorkers() {
+        return runningParallelWorkers;
+    }
+    
+    public long getTransferred() {
+        return transferred.get();
+    }
+
+    protected abstract T transform(S input) throws SuspendExecution, InterruptedException;
 
     @Override
     public Long run() throws SuspendExecution, InterruptedException {
         bringInLoopingStrand();
 
-        final long transferred = (parallelism <= 0 ? sequentialTransfer() : parallelTransfer());
+        if (parallelism == 0)
+            sequentialTransfer();
+        else
+            parallelTransfer();
 
         if (closeTo)
             to.close();
 
-        return transferred;
+        return transferred.get();
     }
 
     private long parallelTransfer() throws SuspendExecution, InterruptedException {
         final Channel<Strand> activeWorkers = Channels.newChannel(parallelism);
-        final AtomicLong transferred = new AtomicLong();
-
-        long running = 0;
 
         while (!internalCh.isClosed()) {
-            if (running == parallelism) {
+            if (runningParallelWorkers == parallelism) {
                 // Parallelism threshold reached, wait for completion
-                joinWorker(activeWorkers);
-                // Free slot
-                running--;
+                // TODO in-order join here could hinder parallelism, maybe better using signalling on condition
+                final Strand f = activeWorkers.receive();
+                if (f != null) {
+                    try {
+                        f.join();
+                        // Free slot
+                        runningParallelWorkers--;
+                    } catch (ExecutionException ex) {
+                        // It should never happen
+                        throw new AssertionError(ex);
+                    }
+                }
             } else {
                 // Book slot
-                running++;
+                runningParallelWorkers++;
                 // New transfer worker
                 activeWorkers.send(strandFactory.newStrand(SuspendableUtils.runnableToCallable(new SuspendableRunnable() {
                     @Override
                     public void run() throws SuspendExecution, InterruptedException {
-                        if (transferOne(internalCh, to))
-                            // Transfer successful, increase atomic counter
+                        if (transferOne())
+                            // Transfer successful, increment atomic counter
                             transferred.incrementAndGet();
                     }
                 })).start());
@@ -108,20 +128,27 @@ public abstract class Pipeline<S, T> implements SuspendableCallable<Long> {
 
         // No more workers will be started/added after the input channel has been closed
         activeWorkers.close();
+
         // Wait for all workers
-        while(!activeWorkers.isClosed())
-            joinWorker(activeWorkers);
+        Strand f = activeWorkers.receive();
+        while(f != null) {
+            try {
+                f.join();
+            } catch (ExecutionException ex) {
+                // It should never happen
+                throw new AssertionError(ex);
+            }
+            f = activeWorkers.receive();
+        }
 
         return transferred.get();
     }
 
     private long sequentialTransfer() throws InterruptedException, SuspendExecution {
-        long transferred = 0;
+        while(transferOne())
+            transferred.incrementAndGet();
 
-        while(transferOne(internalCh, to))
-            transferred++;
-
-        return transferred;
+        return transferred.get();
     }
 
     private void bringInLoopingStrand() {
@@ -139,24 +166,13 @@ public abstract class Pipeline<S, T> implements SuspendableCallable<Long> {
         })).start();
     }
 
-    private boolean transferOne(final ReceivePort<? extends S> from, final SendPort<? super T> to) throws SuspendExecution, InterruptedException {
-        final S m = from.receive();
+    private boolean transferOne() throws SuspendExecution, InterruptedException {
+        final S m = internalCh.receive();
         if (m != null) {
             to.send(transform(m));
             return true;
-        } else {
-            if (closeTo)
-                to.close();
-            return false;
         }
-    }
 
-    private void joinWorker(final Channel<Strand> workers) throws SuspendExecution, InterruptedException {
-        try {
-            workers.receive().join();
-        } catch (ExecutionException ex) {
-            // It should never happen
-            throw new AssertionError(ex);
-        }
+        return false;
     }
 }
