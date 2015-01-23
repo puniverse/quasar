@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -23,6 +23,7 @@ import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
+import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
@@ -361,7 +362,7 @@ public class ChannelTest {
         assumeThat(policy, is(OverflowPolicy.BLOCK));
         final Channel<Integer> ch = newChannel();
 
-        Fiber<Integer> receiver = new Fiber<Integer>(scheduler, new SuspendableCallable<Integer>() {
+        Fiber<Integer> receiver = new Fiber<>(scheduler, new SuspendableCallable<Integer>() {
             @Override
             public Integer run() throws SuspendExecution, InterruptedException {
                 int i = 0;
@@ -397,7 +398,7 @@ public class ChannelTest {
         assumeThat(policy, is(OverflowPolicy.BLOCK));
         final Channel<Integer> ch = newChannel();
 
-        Fiber<Integer> fib = new Fiber<Integer>(scheduler, new SuspendableCallable<Integer>() {
+        Fiber<Integer> fib = new Fiber<>(scheduler, new SuspendableCallable<Integer>() {
             @Override
             public Integer run() throws SuspendExecution, InterruptedException {
                 int i = 0;
@@ -708,7 +709,7 @@ public class ChannelTest {
         final Channel<String> channel2 = newChannel();
         final Channel<String> channel3 = newChannel();
 
-        final Topic<String> topic = new Topic<String>();
+        final Topic<String> topic = new Topic<>();
 
         topic.subscribe(channel1);
         topic.subscribe(channel2);
@@ -754,7 +755,7 @@ public class ChannelTest {
         final Channel<String> channel2 = newChannel();
         final Channel<String> channel3 = newChannel();
 
-        final ReceivePortGroup<String> group = new ReceivePortGroup<String>(channel1, channel2, channel3);
+        final ReceivePortGroup<String> group = new ReceivePortGroup<>(channel1, channel2, channel3);
 
         Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
@@ -784,7 +785,7 @@ public class ChannelTest {
         final Channel<String> channel2 = newChannel();
         final Channel<String> channel3 = newChannel();
 
-        final ReceivePortGroup<String> group = new ReceivePortGroup<String>(channel1, channel2, channel3);
+        final ReceivePortGroup<String> group = new ReceivePortGroup<>(channel1, channel2, channel3);
 
         Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
@@ -809,4 +810,89 @@ public class ChannelTest {
         channel1.send("foo");
         fib.join();
     }
+
+    /*
+    @Test
+    public void testChannelGroupMix() throws Exception {
+        final Channel<String> channel1 = newChannel();
+        final Channel<String> channel2 = newChannel();
+        final Channel<String> channel3 = newChannel();
+
+        final ReceivePortGroup<String> group = new ReceivePortGroup<>();
+        group.add(channel3);
+
+        final Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                final String m1 = group.receive();
+                final String m2 = channel2.receive();
+                Fiber.sleep(100);
+                final String m3 = group.receive(10, TimeUnit.MILLISECONDS);
+                final String m4 = group.receive(200, TimeUnit.MILLISECONDS);
+                Fiber.sleep(100);
+                final String m5 = group.receive(10, TimeUnit.MILLISECONDS);
+                final String m6 = group.receive(200, TimeUnit.MILLISECONDS);
+
+                assertThat(m1, equalTo("hello"));
+                assertThat(m2, equalTo("world!"));
+                assertThat(m3, nullValue());
+                assertThat(m4, equalTo("foo"));
+                assertThat(m5, nullValue());
+                assertThat(m6, equalTo("bar"));
+
+                final String m7 = group.receive();
+                assertThat(m7, equalTo("2-solo-sings"));
+                final String m8 = group.receive();
+                final String m9 = group.receive();
+                assertThat(ImmutableSet.of(m8, m9), equalTo(ImmutableSet.of("1-paused-by-2-solo", "3-paused-by-2-solo")));
+
+                final String m10 = group.receive();
+                assertThat(m10, equalTo("1-normal"));
+
+                final String m11 = group.receive();
+                assertThat(m11, equalTo("2-solo-sings-again"));
+                final String m12 = group.receive();
+                assertThat(m12, nullValue());
+            }
+        }).start();
+
+        Thread.sleep(100);
+        channel3.send("hello");
+        Thread.sleep(100);
+        channel2.send("world!");
+        
+        group.remove(channel3);
+        group.add(channel1);
+        
+        Thread.sleep(300);
+        channel1.send("foo");
+        
+        group.remove(channel1);
+        group.add(channel2);
+        
+        Thread.sleep(100);
+        channel2.send("bar");
+
+        // Solo and mute, solo wins and others are paused (default)
+        group.setState(new Mix.State(Mix.Mode.MUTE, true), channel2);
+        channel1.send("1-paused-by-2-solo-waits");
+        channel3.send("3-paused-by-2-solo-waits");
+        channel2.send("2-solo-sings");
+        // Remove solo
+        group.setState(new Mix.State(false), channel2);
+        channel2.send("2-muted-leaks");
+        channel1.send("1-normal");
+        // Restore normal state and solo and change solo effect on other channels to MUTE
+        group.setState(new Mix.State(Mix.Mode.NORMAL, true), channel2);
+        group.setSoloEffect(Mix.SoloEffect.MUTE_OTHERS);
+        channel1.send("1-muted-by-2-solo-leaks");
+        channel3.send("3-muted-by-2-solo-leaks");
+        channel2.send("2-solo-sings-again");
+
+        channel1.close();
+        channel2.close();
+        channel3.close();
+        fib.join();
+    }
+    */
 }
