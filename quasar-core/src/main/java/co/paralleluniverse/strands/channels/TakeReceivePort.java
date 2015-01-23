@@ -18,13 +18,9 @@ import co.paralleluniverse.strands.Condition;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import co.paralleluniverse.concurrent.util.EnhancedAtomicLong;
 import static co.paralleluniverse.concurrent.util.EnhancedAtomicLong.*;
-import static co.paralleluniverse.strands.channels.Selector.*;
-import com.google.common.collect.ImmutableList;
-import java.util.List;
 
 /**
  *
@@ -73,7 +69,7 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
         // Register in order to receive wakeup signals when waiting in the monitor
         final Object ticket = monitor.register();
 
-        // Initialise time bookkeeping in case we have to wait when performing a timed receive
+        // Init time bookkeeping in case we have to wait when performing a timed receive
         final long start = timeout > 0 ? System.nanoTime() : 0;
         long left = unit != null ? unit.toNanos(timeout) : 0;
         final long deadline = start + left;
