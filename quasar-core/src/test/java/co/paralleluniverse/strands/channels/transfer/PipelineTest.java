@@ -145,6 +145,14 @@ public class PipelineTest {
                 assertThat(m3, notNullValue());
                 assertThat(m4, notNullValue());
                 assertThat(ImmutableSet.of(m1, m2, m3, m4), equalTo(ImmutableSet.of(2, 3, 4, 5)));
+                try {
+                    pf.join();
+                } catch (ExecutionException ex) {
+                    // It should never happen
+                    throw new AssertionError(ex);
+                }
+                assertNull(o.tryReceive()); // This is needed, else `isClosed` could return false
+                assertTrue(o.isClosed()); // Can be used reliably only in owner (receiver)
             }
         }).start();
 
