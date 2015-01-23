@@ -72,7 +72,7 @@ public abstract class Pipeline<S, T> implements SuspendableCallable<Long> {
         bringInLoopingStrand();
 
         final long transferred = (parallelism <= 0 ? sequentialTransfer() : parallelTransfer());
-        
+
         if (closeTo)
             to.close();
 
@@ -128,19 +128,21 @@ public abstract class Pipeline<S, T> implements SuspendableCallable<Long> {
         strandFactory.newStrand(SuspendableUtils.runnableToCallable(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                final S msg = from.receive();
+                S msg = from.receive();
                 while(msg != null) {
                     internalCh.send(msg);
+                    msg = from.receive();
                 }
                 internalCh.close();
                 // End of job, join
             }
-        }));
+        })).start();
     }
 
     private boolean transferOne(final ReceivePort<? extends S> from, final SendPort<? super T> to) throws SuspendExecution, InterruptedException {
-        if (!from.isClosed()) {
-            to.send(transform(from.receive()));
+        final S m = from.receive();
+        if (m != null) {
+            to.send(transform(m));
             return true;
         } else {
             if (closeTo)
