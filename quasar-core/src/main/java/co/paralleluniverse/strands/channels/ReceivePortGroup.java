@@ -19,9 +19,11 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -59,7 +61,7 @@ public class ReceivePortGroup<M> implements Mix<M> {
             newStates.put(port, new State(modeDefault, soloDefault));
         }
         states.set(ImmutableMap.copyOf(newStates)); // RO
-        setupSelector();
+//        setupSelector();
     }
 
     public ReceivePortGroup(final ReceivePort<? extends M>... ports) {
@@ -88,6 +90,9 @@ public class ReceivePortGroup<M> implements Mix<M> {
 
     @Override
     public M receive(final long timeout, final TimeUnit unit) throws InterruptedException, SuspendExecution {
+        // Setup the selector first
+        setupSelector();
+
         // Freeze selector and states for this call
         final Pair<Selector<M>, Map<? extends ReceivePort<? extends M>, State>> curr = selector.get();
         final Selector currSelector = curr.getFirst();
@@ -99,7 +104,6 @@ public class ReceivePortGroup<M> implements Mix<M> {
         final long deadline = start + left;
         long now;
 
-        setupSelector();
         SelectAction<M> sa;
         M ret = null;
         while (ret == null) {
@@ -126,6 +130,9 @@ public class ReceivePortGroup<M> implements Mix<M> {
                     if (prevLeft > 0 && left <= 0)
                         // It was a timed select but it has expired, stop trying
                         return null;
+                    else
+                        // Reset selector and retry
+                        currSelector.reset();
                 }
             } else {
                 // Timeout or none ready during trySelect
@@ -150,38 +157,53 @@ public class ReceivePortGroup<M> implements Mix<M> {
         final Pair<Selector<M>, Map<? extends ReceivePort<? extends M>, State>> curr = selector.get();
         final Map<? extends ReceivePort<? extends M>, State> currStates =
             curr != null ? curr.getSecond() : states.get();
+        final Map<? extends ReceivePort<? extends M>, State> newStates = states.get();
 
-        if (currStates == states.get() && curr != null && curr.getFirst() != null) {
+        if (currStates == newStates && curr != null && curr.getFirst() != null) {
             // State has not changed, just reset the selector
             curr.getFirst().reset();
         } else {
-            final Set<? extends ReceivePort<? extends M>> currPorts = currStates.keySet();
+            // State has chnaged, update the selector
+            final Set<? extends ReceivePort<? extends M>> newPorts = newStates.keySet();
             // Build a new selector containing receive actions for all non-paused ports
-            final ArrayList<SelectAction<M>> actions = new ArrayList<>(currPorts.size());
-            for (final ReceivePort<? extends M> port : currPorts) {
-                if (!isPaused(port, currStates))
-                    actions.add(Selector.receive(port));
+            final List<SelectAction<M>> mutedActions = new ArrayList<>(newPorts.size());
+            final List<SelectAction<M>> enabledActions = new ArrayList<>(newPorts.size());
+            for (final ReceivePort<? extends M> port : newPorts) {
+                if (!isPaused(port, newStates)) {
+                    if (isMuted(port, newStates))
+                        mutedActions.add(Selector.receive(port));
+                    else
+                        enabledActions.add(Selector.receive(port));
+                }
             }
-            selector.set(new Pair(new Selector<>(false, actions), currStates));
+            final List<SelectAction<M>> actions = new ArrayList<>(newPorts.size());
+            actions.addAll(mutedActions);
+            actions.addAll(enabledActions);
+            // TODO priority to muted so they get elimintated first
+            selector.set(new Pair(new Selector<>(false, actions), newStates));
         }
     }
 
     @SuppressWarnings("element-type-mismatch")
     private boolean isMuted(final Port<? extends M> port, final Map<? extends ReceivePort<? extends M>, State> s) {
         return
-            s.get(port).mode.equals(Mix.Mode.MUTE)
-            || (soloEffect.get().equals(Mix.SoloEffect.MUTE_OTHERS)
-                && Iterables.any(s.values(), soloP));
+            !s.get(port).solo
+             &&
+                (s.get(port).mode.equals(Mix.Mode.MUTE)
+                 || (soloEffect.get().equals(Mix.SoloEffect.MUTE_OTHERS)
+                     && Iterables.any(s.values(), soloP)));
     }
 
     private boolean isPaused(ReceivePort<? extends M> port, final Map<? extends ReceivePort<? extends M>, State> s) {
         return
-            s.get(port).mode.equals(Mix.Mode.PAUSE)
-            || (soloEffect.get().equals(Mix.SoloEffect.PAUSE_OTHERS)
-                && Iterables.any(s.values(), soloP));
+            !s.get(port).solo
+             &&
+                (s.get(port).mode.equals(Mix.Mode.PAUSE)
+                 || (soloEffect.get().equals(Mix.SoloEffect.PAUSE_OTHERS)
+                     && Iterables.any(s.values(), soloP)));
     }
 
-        @Override
+    @Override
     public <T extends ReceivePort<? extends M>> void add(final T... items) {
         if (items != null && items.length > 0) {
             final List<T> itemsCopy = ImmutableList.copyOf(items); // Freeze for this call
