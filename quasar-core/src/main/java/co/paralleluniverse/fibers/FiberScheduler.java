@@ -17,7 +17,9 @@ import co.paralleluniverse.common.monitoring.MonitorType;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.StrandFactory;
 import co.paralleluniverse.strands.SuspendableCallable;
+import com.google.common.collect.MapMaker;
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +33,7 @@ public abstract class FiberScheduler implements FiberFactory, StrandFactory {
     static final FibersMonitor NOOP_FIBERS_MONITOR = new NoopFibersMonitor();
     private final String name;
     private final FibersMonitor fibersMonitor;
+    final ConcurrentMap<SchedulerLocal, SchedulerLocal.Entry<?>> schedLocals = new MapMaker().weakKeys().makeMap();
 
     FiberScheduler(String name, MonitorType monitorType, boolean detailedInfo) {
         this.name = name;

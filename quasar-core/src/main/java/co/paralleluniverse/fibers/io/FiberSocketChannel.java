@@ -51,7 +51,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * @return A new socket channel
      * @throws IOException If an I/O error occurs
      */
-    public static FiberSocketChannel open() throws IOException {
+    public static FiberSocketChannel open() throws IOException, SuspendExecution {
         return new FiberSocketChannel(AsynchronousSocketChannel.open(FiberAsyncIO.defaultGroup()));
     }
 
@@ -70,7 +70,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * @throws ShutdownChannelGroupException If the channel group is shutdown
      * @throws IOException                   If an I/O error occurs
      */
-    public static FiberSocketChannel open(AsynchronousChannelGroup group) throws IOException {
+    public static FiberSocketChannel open(AsynchronousChannelGroup group) throws IOException, SuspendExecution {
         return new FiberSocketChannel(AsynchronousSocketChannel.open(group != null ? group : FiberAsyncIO.defaultGroup()));
     }
 

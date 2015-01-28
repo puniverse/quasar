@@ -14,7 +14,6 @@ package co.paralleluniverse.common.benchmark;
 
 import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.Histogram;
-import org.HdrHistogram.HistogramData;
 
 /**
  *
@@ -130,17 +129,6 @@ public class StripedHistogram {
     }
 
     /**
-     * Provide access to the histogram's data set.
-     *
-     * @return a {@link HistogramData} that can be used to query stats and iterate through the default (corrected)
-     * data set.
-     */
-    public HistogramData getHistogramData() {
-        combine();
-        return mainHistogram.getHistogramData();
-    }
-
-    /**
      * Provide access to the histogram's data set, corrected for coordinated omission.
      *
      * Note: This is a post-correction method, as opposed to the at-recording correction method provided
@@ -151,27 +139,11 @@ public class StripedHistogram {
      * @return a {@link HistogramData} that can be used to query stats and iterate through the default (corrected)
      * data set.
      */
-    public HistogramData getHistogramDataCorrectedForCoordinatedOmission(long expectedIntervalBetweenValueSamples) {
+    public AbstractHistogram getHistogramDataCorrectedForCoordinatedOmission(long expectedIntervalBetweenValueSamples) {
         combine();
-        return mainHistogram.copyCorrectedForCoordinatedOmission(expectedIntervalBetweenValueSamples).getHistogramData();
+        return mainHistogram.copyCorrectedForCoordinatedOmission(expectedIntervalBetweenValueSamples);
     }
 
-    /**
-     * Determine if this histogram had any of it's value counts overflow.
-     * Since counts are kept in fixed integer form with potentially limited range (e.g. int and short), a
-     * specific value range count could potentially overflow, leading to an inaccurate and misleading histogram
-     * representation. This method accurately determines whether or not an overflow condition has happened in an
-     * IntHistogram or ShortHistogram.
-     *
-     * @return True if this histogram has had a count value overflow.
-     */
-    public boolean hasOverflowed() {
-        for (AbstractHistogram h : hs) {
-            if (h.hasOverflowed())
-                return true;
-        }
-        return false;
-    }
 
     /**
      * get the configured numberOfSignificantValueDigits
