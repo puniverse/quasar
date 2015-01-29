@@ -19,11 +19,9 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -90,13 +88,11 @@ public class ReceivePortGroup<M> implements Mix<M> {
 
     @Override
     public M receive(final long timeout, final TimeUnit unit) throws InterruptedException, SuspendExecution {
+        if (isClosed())
+            return null;
+
         // Setup the selector first
         setupSelector();
-
-        // Freeze selector and states for this call
-        final Pair<Selector<M>, Map<? extends ReceivePort<? extends M>, State>> curr = selector.get();
-        final Selector currSelector = curr.getFirst();
-        final Map<? extends ReceivePort<? extends M>, State> currStates = curr.getSecond();
 
         // Init time bookkeeping in case we have to wait when performing a timed receive
         final long start = timeout > 0 ? System.nanoTime() : 0;
@@ -104,6 +100,10 @@ public class ReceivePortGroup<M> implements Mix<M> {
         final long deadline = start + left;
         long now;
 
+        // Mutable in case of closed ports
+        Pair<Selector<M>, Map<? extends ReceivePort<? extends M>, State>> curr = selector.get();
+        Selector currSelector = curr.getFirst();
+        Map<? extends ReceivePort<? extends M>, State> currStates = curr.getSecond();
         SelectAction<M> sa;
         M ret = null;
         while (ret == null) {
@@ -119,10 +119,24 @@ public class ReceivePortGroup<M> implements Mix<M> {
 
             if (sa != null) {
                 // One port has been selected
-                if (!isMuted(sa.port(), currStates))
+                if (!isMuted(sa.port(), currStates)) {
                     // If it's not muted, return it's value no matter what it is (can be null if closed)
-                    return sa.message();
-                else {
+                    if (sa.message() != null)
+                        // Got a non-null message
+                        return sa.message();
+                    else if (sa.port() != null) {
+                        // Got null message, one port closed; update state and retry if not closed
+                        remove((ReceivePort) sa.port());
+                        setupSelector();
+                        curr = selector.get();
+                        currSelector = curr.getFirst();
+                        currStates = curr.getSecond();
+                        if (isClosed())
+                            // Ports removed and state updated, closed, returning null");
+                            return null;
+                    } else
+                        throw new AssertionError(); // This should never happen
+                } else {
                     // If it's muted throw away the value and retry
                     now = System.nanoTime();
                     final long prevLeft = left;
@@ -134,12 +148,11 @@ public class ReceivePortGroup<M> implements Mix<M> {
                         // Reset selector and retry
                         currSelector.reset();
                 }
-            } else {
+            } else
                 // Timeout or none ready during trySelect
                 return null;
-            }
         }
-        return ret;
+        throw new AssertionError(); // This should never happen
     }
 
     @Override
@@ -149,7 +162,8 @@ public class ReceivePortGroup<M> implements Mix<M> {
 
     @Override
     public boolean isClosed() {
-        return false;
+        removeClosed();
+        return states.get().isEmpty();
     }
 
     private void setupSelector() {
@@ -235,6 +249,20 @@ public class ReceivePortGroup<M> implements Mix<M> {
                 }
             });
         }
+    }
+
+    private void removeClosed() {
+        states.swap(new Function<Map<? extends ReceivePort<? extends M>, State>, Map<? extends ReceivePort<? extends M>, State>>() {
+            @Override
+            public Map<? extends ReceivePort<? extends M>, State> apply(final Map<? extends ReceivePort<? extends M>, State> currStates) {
+                final Map<ReceivePort<? extends M>, State> newStates = new HashMap<>(currStates);
+                for (final ReceivePort<? extends M> port : currStates.keySet()) {
+                    if (port.isClosed())
+                        newStates.remove(port);
+                }
+                return ImmutableMap.copyOf(newStates); // RO
+            }
+        });
     }
 
     @Override
