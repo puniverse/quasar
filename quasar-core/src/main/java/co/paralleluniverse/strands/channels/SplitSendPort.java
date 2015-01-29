@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author circlespainter
  */
-abstract class SplitSendPort<Message> implements SendPort<Message> {
+public abstract class SplitSendPort<Message> implements SendPort<Message> {
     private volatile boolean closed = false;
     
     /**
