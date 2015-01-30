@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.fibers.SuspendExecution;
 import java.util.Map;
 import java.util.Objects;
 
@@ -81,12 +82,12 @@ public interface Mix<M> extends ReceivePort<M> {
         }
     }
 
-    public <T extends ReceivePort<? extends M>> void add(final T... items);
+    public <T extends ReceivePort<? extends M>> void add(final T... items) throws SuspendExecution, InterruptedException;
 
     /**
      * @param items If {@code null} or empty, all items will be removed.
      */
-    public <T extends ReceivePort<? extends M>> void remove(final T... items);
+    public <T extends ReceivePort<? extends M>> void remove(final T... items) throws SuspendExecution, InterruptedException;
 
     /**
      * @param items If {@code null} or empty, all items will be removed.
@@ -96,10 +97,11 @@ public interface Mix<M> extends ReceivePort<M> {
     /**
      * @param items If {@code null} or empty, all items state will be set to {@code state}.
      */
-    public <T extends ReceivePort<? extends M>> void setState(final State state, final T... items);
+    public <T extends ReceivePort<? extends M>> void setState(final State state, final T... items) throws SuspendExecution, InterruptedException;
 
-    public <T extends ReceivePort<? extends M>> void setState(final Map<T, State> states);
+    public <T extends ReceivePort<? extends M>> void setState(final Map<T, State> states) throws SuspendExecution, InterruptedException;
 
     public SoloEffect getSoloEffect();
-    public void setSoloEffect(final SoloEffect effect);   
+
+    public void setSoloEffect(final SoloEffect effect) throws SuspendExecution, InterruptedException;   
  }

@@ -36,6 +36,8 @@ import java.util.concurrent.TimeUnit;
  * @author circlespainter
  */
 public class ReceivePortGroup<M> implements Mix<M> {
+    private static final Object ping = new Object();
+
     private static final Predicate<Mix.State> soloP =
         new Predicate<Mix.State>() {
             @Override
@@ -47,23 +49,38 @@ public class ReceivePortGroup<M> implements Mix<M> {
     private final static Mode modeDefault = Mode.NORMAL;
     private final static boolean soloDefault = false;
     private final static SoloEffect soloEffectDefault = SoloEffect.PAUSE_OTHERS;
+    private final static boolean alwaysOpenDefault = false;
 
+    private final static Channel changedCh = Channels.newChannel(1, Channels.OverflowPolicy.DISPLACE, false, true);
     private final EnhancedAtomicReference<SoloEffect> soloEffect = new EnhancedAtomicReference<>();
     private final EnhancedAtomicReference<Map<? extends ReceivePort<? extends M>, State>> states = new EnhancedAtomicReference<>();
     private final EnhancedAtomicReference<Pair<Selector<M>, Map<? extends ReceivePort<? extends M>, State>>> selector = new EnhancedAtomicReference<>();
+    private final boolean alwaysOpen;
 
-    public ReceivePortGroup(final Collection<? extends ReceivePort<? extends M>> ports) {
+    public ReceivePortGroup(final Collection<? extends ReceivePort<? extends M>> ports, final boolean alwaysOpen) {
+        this.alwaysOpen = alwaysOpen;
         soloEffect.set(soloEffectDefault);
         final Map<ReceivePort<? extends M>, State> newStates = new HashMap<>();
         for (final ReceivePort<? extends M> port : ImmutableList.copyOf(ports)) {
             newStates.put(port, new State(modeDefault, soloDefault));
         }
         states.set(ImmutableMap.copyOf(newStates)); // RO
-//        setupSelector();
+    }
+
+    public ReceivePortGroup(final Collection<? extends ReceivePort<? extends M>> ports) {
+        this(ImmutableList.copyOf(ports), alwaysOpenDefault);
     }
 
     public ReceivePortGroup(final ReceivePort<? extends M>... ports) {
-        this(ImmutableList.copyOf(ports));
+        this(ImmutableList.copyOf(ports), alwaysOpenDefault);
+    }
+
+    public ReceivePortGroup(final boolean alwaysOpen) {
+        this(ImmutableList.<ReceivePort<? extends M>>of(), alwaysOpen);
+    }
+
+    public ReceivePortGroup() {
+        this(ImmutableList.<ReceivePort<? extends M>>of(), alwaysOpenDefault);
     }
 
     @Override
@@ -88,10 +105,9 @@ public class ReceivePortGroup<M> implements Mix<M> {
 
     @Override
     public M receive(final long timeout, final TimeUnit unit) throws InterruptedException, SuspendExecution {
+
         if (isClosed())
             return null;
-
-        // Setup the selector first
         setupSelector();
 
         // Init time bookkeeping in case we have to wait when performing a timed receive
@@ -110,46 +126,44 @@ public class ReceivePortGroup<M> implements Mix<M> {
             if (unit == null)
                 // Untimed select
                 sa = currSelector.select();
-            else if (left > 0)
+            else if (left > 0) {
                 // Timed select
                 sa = currSelector.select(left, TimeUnit.NANOSECONDS);
+            }
             else
                 // trySelect
                 sa = currSelector.trySelect();
 
             if (sa != null) {
-                // One port has been selected
-                if (!isMuted(sa.port(), currStates)) {
-                    // If it's not muted, return it's value no matter what it is (can be null if closed)
-                    if (sa.message() != null)
-                        // Got a non-null message
-                        return sa.message();
-                    else if (sa.port() != null) {
-                        // Got null message, one port closed; update state and retry if not closed
-                        remove((ReceivePort) sa.port());
+                if (sa.port() != null) {
+                    // One port has been selected
+                    if (sa.message() == null || changedCh.equals(sa.port())) {
+                        // Configuration update or port closed, recalculate state
+                        if (isClosed())
+                            return null;
                         setupSelector();
                         curr = selector.get();
                         currSelector = curr.getFirst();
                         currStates = curr.getSecond();
-                        if (isClosed())
-                            // Ports removed and state updated, closed, returning null");
+                    } else if (!isMuted(sa.port(), currStates))
+                        // It's not muted, it's not the special channel and it's not a null message => return it
+                        return sa.message();
+                    else {
+                        // If it's muted throw away the value and retry
+                        now = System.nanoTime();
+                        final long prevLeft = left;
+                        left = deadline - now;
+                        if (prevLeft > 0 && left <= 0)
+                            // It was a timed select but it has expired, stop trying
                             return null;
-                    } else
-                        throw new AssertionError(); // This should never happen
-                } else {
-                    // If it's muted throw away the value and retry
-                    now = System.nanoTime();
-                    final long prevLeft = left;
-                    left = deadline - now;
-                    if (prevLeft > 0 && left <= 0)
-                        // It was a timed select but it has expired, stop trying
-                        return null;
-                    else
-                        // Reset selector and retry
-                        currSelector.reset();
-                }
+                        else
+                            // Reset selector and retry
+                            currSelector.reset();
+                    }
+                } else
+                    throw new AssertionError(); // This should never happen
             } else
-                // Timeout or none ready during trySelect
+                // Either timeout for timed select, or none ready during trySelect
                 return null;
         }
         throw new AssertionError(); // This should never happen
@@ -163,7 +177,7 @@ public class ReceivePortGroup<M> implements Mix<M> {
     @Override
     public boolean isClosed() {
         removeClosed();
-        return states.get().isEmpty();
+        return !alwaysOpen && states.get().isEmpty();
     }
 
     private void setupSelector() {
@@ -191,10 +205,11 @@ public class ReceivePortGroup<M> implements Mix<M> {
                 }
             }
             final List<SelectAction<M>> actions = new ArrayList<>(newPorts.size());
+            actions.add(Selector.receive(changedCh)); // Always receive change pings
             actions.addAll(mutedActions);
             actions.addAll(enabledActions);
-            // TODO priority to muted so they get elimintated first
-            selector.set(new Pair(new Selector<>(false, actions), newStates));
+            // Priority to change signal, then to muted so they get elimintated first, then normal ones
+            selector.set(new Pair(new Selector<>(true, actions), newStates));
         }
     }
 
@@ -218,7 +233,7 @@ public class ReceivePortGroup<M> implements Mix<M> {
     }
 
     @Override
-    public <T extends ReceivePort<? extends M>> void add(final T... items) {
+    public <T extends ReceivePort<? extends M>> void add(final T... items) throws SuspendExecution, InterruptedException {
         if (items != null && items.length > 0) {
             final List<T> itemsCopy = ImmutableList.copyOf(items); // Freeze for this call
             states.swap(new Function<Map<? extends ReceivePort<? extends M>, State>, Map<? extends ReceivePort<? extends M>, State>>() {
@@ -230,11 +245,12 @@ public class ReceivePortGroup<M> implements Mix<M> {
                     return ImmutableMap.copyOf(newStates); // RO
                 }
             });
+            changedCh.send(ping);
         }
     }
 
     @Override
-    public <T extends ReceivePort<? extends M>> void remove(final T... items) {
+    public <T extends ReceivePort<? extends M>> void remove(final T... items) throws SuspendExecution, InterruptedException {
         if (items == null || items.length == 0)
             states.set(ImmutableMap.<T, State>of()); // Reset
         else {
@@ -248,6 +264,7 @@ public class ReceivePortGroup<M> implements Mix<M> {
                     return ImmutableMap.copyOf(newStates); // RO
                 }
             });
+            changedCh.send(ping);
         }
     }
 
@@ -279,7 +296,7 @@ public class ReceivePortGroup<M> implements Mix<M> {
     }
 
     @Override
-    public <T extends ReceivePort<? extends M>> void setState(final State state, final T... items) {
+    public <T extends ReceivePort<? extends M>> void setState(final State state, final T... items) throws SuspendExecution, InterruptedException {
         final ImmutableList<T> itemsCopy = ImmutableList.copyOf(items);
         states.swap(new Function<Map<? extends ReceivePort<? extends M>, State>, Map<? extends ReceivePort<? extends M>, State>>() {
             @Override
@@ -297,10 +314,11 @@ public class ReceivePortGroup<M> implements Mix<M> {
                 return ImmutableMap.copyOf(newStates); // RO
             }
         });
+        changedCh.send(ping);
     }
 
     @Override
-    public <T extends ReceivePort<? extends M>> void setState(final Map<T, State> newStates) {
+    public <T extends ReceivePort<? extends M>> void setState(final Map<T, State> newStates) throws SuspendExecution, InterruptedException {
         if (newStates != null) {
             final Map<T, State> newStatesSnapshot = ImmutableMap.copyOf(newStates); // Freeze
             states.swap(new Function<Map<? extends ReceivePort<? extends M>, State>, Map<? extends ReceivePort<? extends M>, State>>() {
@@ -324,6 +342,7 @@ public class ReceivePortGroup<M> implements Mix<M> {
                     return ImmutableMap.copyOf(updatedStates); // RO
                 }
             });
+            changedCh.send(ping);
         }
     }
 
@@ -333,7 +352,8 @@ public class ReceivePortGroup<M> implements Mix<M> {
     }
 
     @Override
-    public void setSoloEffect(final SoloEffect effect) {
+    public void setSoloEffect(final SoloEffect effect) throws SuspendExecution, InterruptedException {
         soloEffect.set(effect);
+        changedCh.send(ping);
     }
 }
