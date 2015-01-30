@@ -26,17 +26,11 @@ import java.util.concurrent.TimeUnit;
  */
 public class Topic<Message> implements PubSub<Message> {
     private final Collection<SendPort<? super Message>> subscribers;
-    private volatile boolean sendClosed;
+
+    protected volatile boolean sendClosed;
 
     public Topic() {
         this.subscribers = new CopyOnWriteArraySet<>();
-    }
-
-    /**
-     * Provides read-only access to volatile `sendClosed` field for extensions.
-     */
-    protected boolean isSendClosed() {
-        return sendClosed;
     }
 
     /**
