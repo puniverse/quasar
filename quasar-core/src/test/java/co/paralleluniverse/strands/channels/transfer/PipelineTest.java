@@ -20,6 +20,7 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.SuspendableAction2;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
@@ -122,15 +123,17 @@ public class PipelineTest {
     public void testPipeline() throws Exception {
         final Channel<Integer> i = newChannel();
         final Channel<Integer> o = newChannel();
-        final Set<Fiber> transformers = new ConcurrentSet<>(new ConcurrentHashMap<Fiber, Object>());
-        final Pipeline<Integer, Integer> p = new Pipeline<Integer, Integer>(i, o, parallelism) {
-            @Override
-            public Integer transform(Integer input) throws SuspendExecution, InterruptedException {
-                transformers.add(Fiber.currentFiber());
-                assertThat(getRunningParallelWorkers(), Matchers.lessOrEqual(parallelism));
-                return input + 1;
-            }
-        };
+        final Pipeline<Integer, Integer> p =
+            new Pipeline<>(
+                i, o,
+                new SuspendableAction2<Integer, Channel<Integer>>() {
+                    @Override
+                    public void call(final Integer i, final Channel<Integer> out) throws SuspendExecution, InterruptedException {
+                        out.send(i + 1);
+                        out.close();
+                    }
+                },
+                parallelism);
         final Fiber<Long> pf = new Fiber("pipeline", scheduler, p).start();
 
         final Fiber receiver = new Fiber("receiver", scheduler, new SuspendableRunnable() {
@@ -166,7 +169,6 @@ public class PipelineTest {
         long transferred = pf.get(); // Join pipeline
         assertThat(transferred, equalTo(p.getTransferred()));
         assertThat(transferred, equalTo(4l));
-        assertThat(transformers.size(), equalTo(parallelism == 0 ? 1 : 4));
 
         receiver.join();
     }

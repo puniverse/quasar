@@ -13,10 +13,13 @@
  */
 package co.paralleluniverse.strands.channels.transfer;
 
+import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.fibers.DefaultFiberScheduler;
+import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.StrandFactory;
+import co.paralleluniverse.strands.SuspendableAction2;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.SuspendableUtils;
@@ -24,7 +27,6 @@ import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import co.paralleluniverse.strands.channels.SendPort;
-import co.paralleluniverse.strands.channels.TransferChannel;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -32,12 +34,21 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @author circlespainter
  */
-public abstract class Pipeline<S, T> implements SuspendableCallable<Long> {
+public class Pipeline<S, T> implements SuspendableCallable<Long> {
     private static final boolean closeToDefault = true;
     private static final int parallelismDefault = 0;
     private static final StrandFactory strandFactoryDefault = DefaultFiberScheduler.getInstance();
 
-    private final Channel<S> internalCh = new TransferChannel<>();
+    private final SuspendableCallable<Channel<T>> resultChannelBuilderDefault =
+        new SuspendableCallable<Channel<T>>() {
+            @Override
+            public Channel<T> run() throws SuspendExecution, InterruptedException {
+                return Channels.newChannel(1, Channels.OverflowPolicy.BLOCK, true, true);
+            }
+        };
+
+    private final Channel<Pair<S, Channel<Channel<T>>>> jobs;
+    private final Channel<Channel<Channel<T>>> results;
 
     private final ReceivePort<? extends S> from;
     private final SendPort<? super T> to;
@@ -46,42 +57,44 @@ public abstract class Pipeline<S, T> implements SuspendableCallable<Long> {
     private final boolean closeTo;
 
     private final AtomicLong transferred = new AtomicLong(0);
-    private int runningParallelWorkers = 0;
 
-    public Pipeline(final ReceivePort<? extends S> from, final SendPort<? super T> to, final int parallelism, boolean closeTo, final StrandFactory strandFactory) {
+    private final SuspendableCallable<Channel<T>> resultChannelBuilder;
+    private final SuspendableAction2<S, Channel<T>> transformer;
+
+    public Pipeline(final ReceivePort<? extends S> from, final SendPort<? super T> to, final SuspendableAction2<S, Channel<T>> transformer, final int parallelism, boolean closeTo, final SuspendableCallable<Channel<T>> resultChannelBuilder, final StrandFactory strandFactory) {
         this.from = from;
         this.to = to;
+        this.transformer = transformer;
         this.parallelism = parallelism <= 0 ? 0 : parallelism;
+        this.jobs = Channels.newChannel(this.parallelism, Channels.OverflowPolicy.BLOCK, true, false);
+        this.results = Channels.newChannel(this.parallelism, Channels.OverflowPolicy.BLOCK, false, true);
         this.closeTo = closeTo;
+        this.resultChannelBuilder = resultChannelBuilder != null ? resultChannelBuilder : resultChannelBuilderDefault;
         this.strandFactory = strandFactory;
     }
 
-    public Pipeline(final ReceivePort<? extends S> from, final SendPort<? super T> to, final int parallelism, boolean closeTo) {
-        this(from, to, parallelism, closeTo, strandFactoryDefault);
-    }
-
-    public Pipeline(final ReceivePort<? extends S> from, final SendPort<? super T> to, final int parallelism) {
-        this(from, to, parallelism, closeToDefault, strandFactoryDefault);
-    }
-
-    public Pipeline(final ReceivePort<? extends S> from, final SendPort<? super T> to) {
-        this(from, to, parallelismDefault, closeToDefault, strandFactoryDefault);
-    }
-
-    public int getRunningParallelWorkers() {
-        return runningParallelWorkers;
+    public Pipeline(final ReceivePort<? extends S> from, final SendPort<? super T> to, final SuspendableAction2<S, Channel<T>> transformer, final int parallelism, boolean closeTo, final SuspendableCallable<Channel<T>> resultChannelBuilder) {
+            this(from, to, transformer, parallelism, closeTo, resultChannelBuilder, strandFactoryDefault);
     }
     
+    public Pipeline(final ReceivePort<? extends S> from, final SendPort<? super T> to, final SuspendableAction2<S, Channel<T>> transformer, final int parallelism, boolean closeTo) {
+        this(from, to, transformer, parallelism, closeTo, null, strandFactoryDefault);
+    }
+
+    public Pipeline(final ReceivePort<? extends S> from, final SendPort<? super T> to, final SuspendableAction2<S, Channel<T>> transformer, final int parallelism) {
+        this(from, to, transformer, parallelism, closeToDefault, null, strandFactoryDefault);
+    }
+
+    public Pipeline(final ReceivePort<? extends S> from, final SendPort<? super T> to, final SuspendableAction2<S, Channel<T>> transformer) {
+        this(from, to, transformer, parallelismDefault, closeToDefault, null, strandFactoryDefault);
+    }
+
     public long getTransferred() {
         return transferred.get();
     }
 
-    protected abstract T transform(S input) throws SuspendExecution, InterruptedException;
-
     @Override
     public Long run() throws SuspendExecution, InterruptedException {
-        bringInLoopingStrand();
-
         if (parallelism == 0)
             sequentialTransfer();
         else
@@ -93,86 +106,109 @@ public abstract class Pipeline<S, T> implements SuspendableCallable<Long> {
         return transferred.get();
     }
 
-    private long parallelTransfer() throws SuspendExecution, InterruptedException {
-        final Channel<Strand> activeWorkers = Channels.newChannel(parallelism);
+    private void parallelTransfer() throws SuspendExecution, InterruptedException {
 
-        while (!internalCh.isClosed()) {
-            if (runningParallelWorkers == parallelism) {
-                // Parallelism threshold reached, wait for completion
-                // TODO in-order join here could hinder parallelism, maybe better using signalling on condition
-                final Strand f = activeWorkers.receive();
-                if (f != null) {
-                    try {
-                        f.join();
-                        // Free slot
-                        runningParallelWorkers--;
-                    } catch (ExecutionException ex) {
-                        // It should never happen
-                        throw new AssertionError(ex);
+        // 1) Fire workers
+        for(int i = 0 ; i < parallelism ; i++) {
+            strandFactory.newStrand(SuspendableUtils.runnableToCallable(new SuspendableRunnable() {
+                @Override
+                public void run() throws SuspendExecution, InterruptedException {
+                    // Get first job
+                    Pair<S, Channel<Channel<T>>> job = jobs.receive();
+                    while(job != null) {
+                        // Build result channel
+                        final Channel<T> res = resultChannelBuilder.run();
+                        // Process
+                        transformer.call(job.getFirst(), res);
+                        final Channel<Channel<T>> resWrapper = job.getSecond();
+                        // Send result asynchronously
+                        strandFactory.newStrand(SuspendableUtils.runnableToCallable(new SuspendableRunnable() {
+                            @Override
+                            public void run() throws SuspendExecution, InterruptedException {
+                                resWrapper.send(res);
+                            }
+                        })).start();
+                        // Get next job
+                        job = jobs.receive();
                     }
+                    // No more jobs, close results channel and quit worker
+                    results.close();
                 }
-            } else {
-                // Book slot
-                runningParallelWorkers++;
-                // New transfer worker
-                activeWorkers.send(strandFactory.newStrand(SuspendableUtils.runnableToCallable(new SuspendableRunnable() {
-                    @Override
-                    public void run() throws SuspendExecution, InterruptedException {
-                        if (transferOne())
-                            // Transfer successful, increment atomic counter
-                            transferred.incrementAndGet();
-                    }
-                })).start());
-            }
+            })).start();
         }
 
-        // No more workers will be started/added after the input channel has been closed
-        activeWorkers.close();
-
-        // Wait for all workers
-        Strand f = activeWorkers.receive();
-        while(f != null) {
-            try {
-                f.join();
-            } catch (ExecutionException ex) {
-                // It should never happen
-                throw new AssertionError(ex);
-            }
-            f = activeWorkers.receive();
-        }
-
-        return transferred.get();
-    }
-
-    private long sequentialTransfer() throws InterruptedException, SuspendExecution {
-        while(transferOne())
-            transferred.incrementAndGet();
-
-        return transferred.get();
-    }
-
-    private void bringInLoopingStrand() {
+        // 2) Send jobs asynchronously
         strandFactory.newStrand(SuspendableUtils.runnableToCallable(new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                S msg = from.receive();
-                while(msg != null) {
-                    internalCh.send(msg);
-                    msg = from.receive();
+                @Override
+                public void run() throws SuspendExecution, InterruptedException {
+                    // Get first input
+                    S s = from.receive();
+                    while (s != null) {
+                        final Channel<Channel<T>> resultWrapper = Channels.newChannel(1, Channels.OverflowPolicy.BLOCK, true, true);
+                        jobs.send(new Pair<>(s, resultWrapper));
+                        results.send(resultWrapper);
+                        // Get next input
+                        s = from.receive();
+                    }
+                    // No more inputs, close jobs channel and quit
+                    jobs.close();
                 }
-                internalCh.close();
-                // End of job, join
-            }
         })).start();
+
+        // 3) Collect and transfer results asynchronously
+        try {
+            final Strand collector = strandFactory.newStrand(SuspendableUtils.runnableToCallable(new SuspendableRunnable() {
+                @Override
+                public void run() throws SuspendExecution, InterruptedException {
+                    // Get first result
+                    Channel<Channel<T>> resWrapper = results.receive();
+                    while (resWrapper != null) {
+                        // Get wrapper
+                        Channel<T> res = resWrapper.receive();
+                        // Get first actual result
+                        T out = res.receive();
+                        while(out != null) {
+                            // Send to output channel
+                            to.send(out);
+                            // Increment counter
+                            transferred.incrementAndGet();
+                            // Get next result
+                            out = res.receive();
+                        }
+                        resWrapper = results.receive();
+                    }
+                    // No more results, quit
+                }
+            })).start();
+
+            // TODO solve nasty instrumentation problems on Strand.join()
+            if (collector.isFiber()) {
+                Fiber f = (Fiber) collector.getUnderlying();
+                f.join();
+            } else
+                collector.join();
+        } catch (ExecutionException ee) {
+            throw new AssertionError(ee);
+        }
     }
 
-    private boolean transferOne() throws SuspendExecution, InterruptedException {
-        final S m = internalCh.receive();
-        if (m != null) {
-            to.send(transform(m));
-            return true;
+    private void sequentialTransfer() throws InterruptedException, SuspendExecution {
+        S s = from.receive();
+        while (s != null) {
+            // Build result channel
+            final Channel<T> res = resultChannelBuilder.run();
+            // Process
+            transformer.call(s, res);
+            T out = res.receive();
+            while(out != null) {
+                // Send to output channel
+                to.send(out);
+                // Increment counter
+                transferred.incrementAndGet();
+                // Get next result
+                out = res.receive();
+            }
+            s = from.receive();
         }
-
-        return false;
     }
 }
