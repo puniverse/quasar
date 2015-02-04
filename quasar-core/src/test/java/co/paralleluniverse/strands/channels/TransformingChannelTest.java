@@ -5,7 +5,7 @@
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
  *  
  * under the terms of the GNU Lesser General Public License version 3.0
@@ -657,19 +657,19 @@ public class TransformingChannelTest {
         Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                ReceivePort<Integer> ch1 = Channels.reduce((ReceivePort<Integer>) ch, new Function2<Integer, Integer, Integer>() {
+                final ReceivePort<Integer> ch1 = Channels.reduce((ReceivePort<Integer>) ch, new Function2<Integer, Integer, Integer>() {
                     @Override
                     public Integer apply(Integer accum, Integer input) {
                         return accum + input;
                     }
                 }, 0);
 
-                Integer m1 = ch1.receive();
-                Integer m2 = ch1.receive();
-                Integer m3 = ch1.receive();
-                Integer m4 = ch1.receive();
-                Integer m5 = ch1.receive();
-                Integer m6 = ch1.receive();
+                final Integer m1 = ch1.receive();
+                final Integer m2 = ch1.receive();
+                final Integer m3 = ch1.receive();
+                final Integer m4 = ch1.receive();
+                final Integer m5 = ch1.receive();
+                final Integer m6 = ch1.receive();
 
                 assertThat(m1, equalTo(1));
                 assertThat(m2, equalTo(3));
@@ -687,6 +687,34 @@ public class TransformingChannelTest {
         ch.send(3);
         ch.send(4);
         ch.send(5);
+        ch.close();
+
+        fib.join();
+    }
+
+    @Test
+    public void testReduceInitThreadToFiber() throws Exception {
+        final Channel<Integer> ch = newChannel();
+
+        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                final ReceivePort<Integer> ch1 = Channels.reduce((ReceivePort<Integer>) ch, new Function2<Integer, Integer, Integer>() {
+                    @Override
+                    public Integer apply(Integer accum, Integer input) {
+                        return accum + input;
+                    }
+                }, 0);
+
+                final Integer m1 = ch1.receive();
+                final Integer m2 = ch1.receive();
+
+                assertThat(m1, equalTo(0));
+                assertNull(m2);
+            }
+        }).start();
+
+        Strand.sleep(50);
         ch.close();
 
         fib.join();
@@ -888,6 +916,34 @@ public class TransformingChannelTest {
         ch1.send(3);
         ch1.send(4);
         ch1.send(5);
+        ch1.close();
+
+        fib.join();
+    }
+
+    @Test
+    public void testSendReduceInitThreadToFiber() throws Exception {
+        final Channel<Integer> ch = newChannel();
+
+        final Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                Integer m1 = ch.receive();
+                Integer m2 = ch.receive();
+
+                assertThat(m1, equalTo(0));
+                assertNull(m2);
+            }
+        }).start();
+
+        final SendPort<Integer> ch1 = Channels.reduceSend((SendPort<Integer>) ch, new Function2<Integer, Integer, Integer>() {
+            @Override
+            public Integer apply(Integer accum, Integer input) {
+                return accum + input;
+            }
+        }, 0);
+
+        Strand.sleep(50);
         ch1.close();
 
         fib.join();

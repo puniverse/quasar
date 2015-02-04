@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
  * @author pron
  */
 abstract class SendPortTransformer<S, T> implements SendPort<S>, DelegatingEquals {
-    private final SendPort<T> target;
+    protected final SendPort<T> target;
 
     public SendPortTransformer(SendPort<T> target) {
         if (target == null)
