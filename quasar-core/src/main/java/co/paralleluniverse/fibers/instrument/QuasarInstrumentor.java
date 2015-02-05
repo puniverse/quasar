@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.common.util.Debug;
+import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.WorkListEntry;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -35,7 +36,8 @@ import org.objectweb.asm.util.TraceClassVisitor;
  */
 public final class QuasarInstrumentor {
     public static final int ASMAPI = Opcodes.ASM5;
-    final static String EXAMINED_CLASS = null; // "co/paralleluniverse/fibers/instrument/ReflectionInvokeTest";
+    private final static String EXAMINED_CLASS = null; // "co/paralleluniverse/fibers/instrument/ReflectionInvokeTest";
+    private static final boolean allowJdkInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.allowJdkInstrumentation");
     private final MethodDatabase db;
     private boolean check;
     private final boolean aot;
@@ -65,15 +67,15 @@ public final class QuasarInstrumentor {
         className = className.replace('.', '/');
         if (className.startsWith("co/paralleluniverse/fibers/instrument/") && !Debug.isUnitTest())
             return false;
-        if (className.startsWith("org/objectweb/asm/"))
-            return false;
-        if (className.startsWith("org/netbeans/lib/"))
-            return false;
         if (className.equals(Classes.FIBER_CLASS_NAME) || className.startsWith(Classes.FIBER_CLASS_NAME + '$'))
             return false;
         if (className.equals(Classes.STACK_NAME))
             return false;
-        if (MethodDatabase.isJavaCore(className))
+        if (className.startsWith("org/objectweb/asm/"))
+            return false;
+        if (className.startsWith("org/netbeans/lib/"))
+            return false;
+        if (className.startsWith("java/lang/") || (!allowJdkInstrumentation && MethodDatabase.isJavaCore(className)))
             return false;
         return true;
     }
