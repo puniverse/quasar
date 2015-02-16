@@ -697,7 +697,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             return true;
         if (state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
-        
+
         cancelTimeoutTask();
 
         final FibersMonitor monitor = getMonitor();
@@ -814,7 +814,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private StackTraceElement[] execStackTrace1() {
-        if (future().isDone() | state == State.RUNNING)
+        if (future().isDone())
+            return null;
+        if (state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
 
         this.getStackTrace = true;
