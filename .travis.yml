@@ -1,16 +1,19 @@
 language: java
 sudo: false
 install: gradle -q assemble
-script: set -o pipefail; gradle -i check | sed 's/\e\[?.*?[\@-~]//g'
+script: gradle -i check
 jdk:
   - oraclejdk7
   - oraclejdk8
+
 branches:
   except:
     - gh-pages
+
 env:
   global:
     - secure: "NTxp50e11DMSJH1ApQbjlBxY4bcsLAGSw3mYzodOlceybMBh+hbpiAmqBpCZ9878wm5AZcPVq6ULzB47IrdfQG3Xn3SybwWLWpZRI3B0eaqoyhk71J5Uuu9rr+xXoD1C1q/TV1Z0Zf5unR1jz5DmUZ5En8yf4lZ4MI7gft6tDFI="
+    - TERM=dumb
     - DOCS_BRANCH="0.6.2"
     - GEN_APIDOCS="gradle javadoc"
 

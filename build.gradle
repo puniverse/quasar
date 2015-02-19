@@ -72,7 +72,7 @@ subprojects {
     }
 
     dependencies {
-        compile("com.codahale.metrics:metrics-core:3.0.2") {
+        compile("io.dropwizard.metrics:metrics-core:3.1.0") {
             exclude group: 'org.slf4j', module: '*'
         }
         provided "org.apache.ant:ant:1.9.4"
@@ -83,12 +83,12 @@ subprojects {
             exclude group: 'junit', module: 'junit'
         }
         testCompile 'org.hamcrest:hamcrest-all:1.3'
-        testCompile("org.mockito:mockito-all:1.10.17") {
+        testCompile("org.mockito:mockito-all:1.10.19") {
             exclude group: "org.ow2.asm", module: '*'
         }
         testCompile "org.ow2.asm:asm:$asmVer"
-        testCompile 'org.openjdk.jmh:jmh-core:1.4'
-        testCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.4'
+        testCompile 'org.openjdk.jmh:jmh-core:1.4.1'
+        testCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.4.1'
         compileOnly 'org.kohsuke.metainf-services:metainf-services:1.5'
         // compileOnly 'com.google.auto.service:auto-service:1.0-rc1' // same as metainf-services
         markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
@@ -243,8 +243,7 @@ subprojects {
         pom.whenConfigured {
             it.dependencies.removeAll { dep ->
                 dep.artifactId.startsWith('jsr166e') ||
-                dep.artifactId.startsWith('high-scale-lib') ||
-                dep.artifactId.startsWith('HdrHistogram') ||
+                dep.artifactId.startsWith('high-scale-lib')
                 (dep.groupId == 'co.paralleluniverse' && dep.artifactId.startsWith('quasar-core'))
             }
         }
@@ -302,7 +301,10 @@ project (':quasar-core') {
     dependencies {
         compile ":jsr166e"
         compile ":high-scale-lib"
-        compile ":HdrHistogram"
+        compile "org.hdrhistogram:HdrHistogram:2.1.3"
+        compile("org.latencyutils:LatencyUtils:2.0.2") {
+            exclude group: "org.hdrhistogram", module: '*'
+        }
         compile "org.ow2.asm:asm:$asmVer"
         compile "org.ow2.asm:asm-analysis:$asmVer"
         compile "org.ow2.asm:asm-commons:$asmVer"
@@ -319,7 +321,6 @@ project (':quasar-core') {
     jar {
         from zipTree("${baselib}/jsr166e.jar")  // include non-Maven jars
         from zipTree("${baselib}/high-scale-lib.jar")  // include non-Maven jars
-        from zipTree("${baselib}/HdrHistogram.jar")  // include non-Maven jars
         manifest {
             attributes(
 	            "Built-By"                  :   System.getProperty("user.name"),
@@ -346,7 +347,6 @@ project (':quasar-core') {
             include(dependency('org.ow2.asm:.*:.*'))
             include(dependency(':jsr166e'))
             include(dependency(':high-scale-lib'))
-            include(dependency(':HdrHistogram'))
         }
 
         relocate 'org.objectweb.asm.', 'co.paralleluniverse.asm.'
@@ -370,7 +370,6 @@ project (':quasar-core') {
         it.dependencies.removeAll { dep ->
             dep.artifactId.startsWith('jsr166e') ||
             dep.artifactId.startsWith('high-scale-lib') ||
-            dep.artifactId.startsWith('HdrHistogram') ||
             dep.groupId == 'org.ow2.asm' ||
             (dep.groupId == 'co.paralleluniverse' && dep.artifactId.startsWith('quasar-core'))
         }
@@ -394,12 +393,12 @@ project (':quasar-actors') {
     dependencies {
         compile project(':quasar-core')
         // compile 'org.mutabilitydetector:MutabilityDetector:0.9.2'
-        compile "org.slf4j:slf4j-api:1.7.7"
-        compile ("cglib:cglib:3.1") {
-            exclude group: "org.ow2.asm", module: '*'
+        compile "org.slf4j:slf4j-api:1.7.10"
+        compile "net.bytebuddy:byte-buddy:0.5.1"
+        //  runtime "org.slf4j:slf4j-jdk14:1.7.10"
+        testRuntime("org.apache.logging.log4j:log4j-slf4j-impl:2.1") {
+            exclude group: "org.slf4j", module: '*'
         }
-        //  runtime "org.slf4j:slf4j-jdk14:1.7.7"
-        testRuntime "org.apache.logging.log4j:log4j-slf4j-impl:2.1"
         testRuntime "org.apache.logging.log4j:log4j-api:2.1"
         testRuntime "org.apache.logging.log4j:log4j-core:2.1"
         testRuntime "com.lmax:disruptor:3.3.0" // required for log4j
@@ -415,6 +414,7 @@ project (':quasar-galaxy') {
             exclude group: 'com.lmax', module: 'disruptor'
             exclude group: 'de.javakaffee', module: 'kryo-serializers'
             exclude group: 'com.google.guava', module: 'guava'
+            exclude group: "org.slf4j", module: '*'
         }
 
         testCompile ('org.gridkit.lab:telecontrol-ssh:0.7.24'){

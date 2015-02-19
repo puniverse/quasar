@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -18,23 +18,30 @@ import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorRefDelegate;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MailboxConfig;
+import co.paralleluniverse.common.util.Pair;
+import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.RuntimeSuspendExecution;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.SendPort;
+import com.google.common.collect.ImmutableSet;
+import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import net.sf.cglib.proxy.Callback;
-import net.sf.cglib.proxy.CallbackFilter;
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.instrumentation.InvocationHandlerAdapter;
 //import java.lang.reflect.Proxy;
-//import java.lang.reflect.InvocationHandler;
-import net.sf.cglib.proxy.Enhancer;
-import net.sf.cglib.proxy.InvocationHandler;
-import net.sf.cglib.proxy.NoOp;
+import java.lang.reflect.InvocationHandler;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import net.bytebuddy.dynamic.ClassLoadingStrategy;
+import net.bytebuddy.instrumentation.MethodDelegation;
+import static net.bytebuddy.matcher.ElementMatchers.anyOf;
+import static net.bytebuddy.matcher.ElementMatchers.isDeclaredBy;
 
 /**
  * Wraps a Java object in a {@link ServerActor} that exposes the object's methods as an interface and processes them in an actor
@@ -264,64 +271,63 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
 
     @Override
     protected final Server<Invocation, Object, Invocation> makeRef(ActorRef<Object> ref) {
-        return (Server<Invocation, Object, Invocation>) makeProxyRef(super.makeRef(ref));
+        try {
+            return getProxyClass(interfaces, callOnVoidMethods).getConstructor(ActorRef.class).newInstance(ref);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    private Object makeProxyRef(Server<Invocation, Object, Invocation> ref) {
-        Enhancer enhancer = new Enhancer();
-        enhancer.setSuperclass(Server.class);
-        enhancer.setInterfaces(combine(interfaces, standardInterfaces));
-        enhancer.setCallbacks(new Callback[]{new ObjectProxyServerImpl(ref, callOnVoidMethods), NoOp.INSTANCE});
-        enhancer.setCallbackFilter(new CallbackFilter() {
+    private static final ConcurrentMap<Pair<Set<Class<?>>, Boolean>, Class<? extends Server>> classes = MapUtil.newConcurrentHashMap();
+    private static final ObjectProxyServerImpl handler1 = new ObjectProxyServerImpl(true);
+    private static final ObjectProxyServerImpl handler2 = new ObjectProxyServerImpl(false);
 
-            @Override
-            public int accept(Method method) {
-                final Class<?> cls = method.getDeclaringClass();
-                if (cls.isAssignableFrom(ActorRefDelegate.class))
-                    return 1; // call super
-                return 0;
-            }
-        });
-        return enhancer.create(new Class[]{ActorRef.class}, new Object[]{ref});
-//        return Enhancer.create(Server.class,
-//                combine(interfaces, standardInterfaces),
-//                new ObjectProxyServerImpl(ref, callOnVoidMethods));
-
-//        return Proxy.newProxyInstance(this.getClass().getClassLoader(),
-//                combine(interfaces, standardInterfaces),
-//                new ObjectProxyServerImpl(ref, callOnVoidMethods));
+    private static Class<? extends Server> getProxyClass(Class<?>[] interfaces, boolean callOnVoidMethods) {
+        final Pair<Set<Class<?>>, Boolean> key = new Pair(ImmutableSet.copyOf(interfaces), callOnVoidMethods);
+        Class<? extends Server> clazz = classes.get(key);
+        if (clazz == null) {
+            clazz = new ByteBuddy() // http://bytebuddy.net/
+                    .subclass(Server.class)
+                    .implement(interfaces)
+                    .implement(java.io.Serializable.class)
+                    .method(isDeclaredBy(anyOf(interfaces))).intercept(InvocationHandlerAdapter.of(callOnVoidMethods ? handler1 : handler2).withMethodCache())
+                    .make()
+                    .load(ProxyServerActor.class.getClassLoader(), ClassLoadingStrategy.Default.WRAPPER).getLoaded();
+            final Class<? extends Server> old = classes.putIfAbsent(key, clazz);
+            if (old != null)
+                clazz = old;
+        }
+        return clazz;
     }
-
-    private static Class<?>[] standardInterfaces = new Class[]{
-        SendPort.class,};
 
     private static class ObjectProxyServerImpl implements InvocationHandler, java.io.Serializable {
         private final boolean callOnVoidMethods;
-        private final Server<Invocation, Object, Invocation> ref;
 
-        ObjectProxyServerImpl(Server<Invocation, Object, Invocation> ref, boolean callOnVoidMethods) {
-            this.ref = ref;
+        private ObjectProxyServerImpl(boolean callOnVoidMethods) {
             this.callOnVoidMethods = callOnVoidMethods;
         }
 
-        boolean isInActor() {
+        boolean isInActor(Server<Invocation, Object, Invocation> ref) {
             return Objects.equals(ref, LocalActor.self());
         }
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            final Class<?> cls = method.getDeclaringClass();
-            assert !cls.isAssignableFrom(ActorRefDelegate.class);
-            if (cls.isAssignableFrom(Server.class) || Arrays.asList(standardInterfaces).contains(cls)) {
-                try {
-                    return method.invoke(ref, args);
-                } catch (InvocationTargetException e) {
-                    throw e.getCause();
-                }
-            }
+            assert !method.getDeclaringClass().isAssignableFrom(ActorRefDelegate.class);
 
+            assert !method.getDeclaringClass().isAssignableFrom(Server.class);            
+//            final Class<?> cls = method.getDeclaringClass();
+//            if (cls.isAssignableFrom(Server.class) || cls.isAssignableFrom(SendPort.class)) {
+//                try {
+//                    return method.invoke(ref, args);
+//                } catch (InvocationTargetException e) {
+//                    throw e.getCause();
+//                }
+//            }
+
+            final Server<Invocation, Object, Invocation> ref = (Server<Invocation, Object, Invocation>) proxy;
             try {
-                if (isInActor()) {
+                if (isInActor(ref)) {
                     try {
                         return method.invoke(ServerActor.currentServerActor(), args);
                     } catch (InvocationTargetException e) {
@@ -339,6 +345,10 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
             } catch (SuspendExecution e) {
                 throw RuntimeSuspendExecution.of(e);
             }
+        }
+
+        protected Object readResolve() throws java.io.ObjectStreamException {
+            return callOnVoidMethods ? handler1 : handler2;
         }
     }
 
@@ -412,13 +422,6 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
         public String toString() {
             return method.toString() + Arrays.toString(params);
         }
-    }
-
-    private static Class[] combine(Class[] ifaces1, Class[] ifaces2) {
-        final Class[] ifaces = new Class[ifaces1.length + ifaces2.length];
-        System.arraycopy(ifaces1, 0, ifaces, 0, ifaces1.length);
-        System.arraycopy(ifaces2, 0, ifaces, ifaces1.length, ifaces2.length);
-        return ifaces;
     }
 
     private static RuntimeException rethrow(Throwable t) throws Exception {

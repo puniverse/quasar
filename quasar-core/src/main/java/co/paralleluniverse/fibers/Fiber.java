@@ -693,8 +693,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     boolean exec() {
-        if (future().isDone() | state == State.RUNNING)
+        if (future().isDone())
+            return true;
+        if (state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
+
         cancelTimeoutTask();
 
         final FibersMonitor monitor = getMonitor();
@@ -811,7 +814,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private StackTraceElement[] execStackTrace1() {
-        if (future().isDone() | state == State.RUNNING)
+        if (future().isDone())
+            return null;
+        if (state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
 
         this.getStackTrace = true;
@@ -1310,10 +1315,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final boolean cancel(boolean mayInterruptIfRunning) {
-        if (mayInterruptIfRunning && !isDone())
-            interrupt();
-
-        return future().cancel(mayInterruptIfRunning);
+        interrupt();
+        return !isDone();
     }
 
     @Override
