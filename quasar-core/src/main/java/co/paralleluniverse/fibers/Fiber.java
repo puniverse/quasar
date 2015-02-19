@@ -820,11 +820,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             throw new IllegalStateException("Not new or suspended");
 
         this.getStackTrace = true;
-        Stack.getStackTrace.set(stack);
         final Thread currentThread = Thread.currentThread();
         final Object old = getCurrentTarget(currentThread);
-        if (old != null)
-            setCurrentFiber(this, currentThread);
+        setCurrentFiber(this, currentThread);
 
         try {
             try {
@@ -838,12 +836,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             //stack.dump();
             stack.resumeStack();
 
-            if (old != null)
-                setCurrentTarget(old, currentThread);
+            setCurrentTarget(old, currentThread);
 
             this.noPreempt = false;
             this.getStackTrace = false;
-            Stack.getStackTrace.remove();
 
             task.doPark(false); // now we can complete parking
 

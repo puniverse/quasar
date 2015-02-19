@@ -22,7 +22,6 @@ public final class Stack implements Serializable {
     private transient int curMethodSP;
     private transient boolean shouldVerifyInstrumentation;
     private transient boolean pushed;
-    static final ThreadLocal<Stack> getStackTrace = new ThreadLocal<Stack>();
     static final boolean foo = "hello".contains("kkk"); // false
 
     Stack(Fiber fiber, int stackSize) {
@@ -39,36 +38,7 @@ public final class Stack implements Serializable {
 
     public static Stack getStack() {
         final Fiber currentFiber = Fiber.currentFiber();
-        if (currentFiber == null)
-            return getStackDuringStackTrace(); // throw new RuntimeException("Not running in a fiber");
-        return currentFiber.stack;
-    }
-
-    private static Stack getStackDuringStackTrace() {
-        if (foo) { // never true and the block below is junk, but we don't want this method inlined
-            System.out.println("6666: 1");
-            System.out.println("6666: 2");
-            System.out.println("6666: 3");
-            System.out.println("6666: 4");
-            System.out.println("6666: 5");
-            System.out.println("6666: 6");
-            System.out.println("6666: 7");
-            System.out.println("6666: 8");
-            System.out.println("6666: 9");
-            System.out.println("6666: 10");
-            System.out.println("6666: 1");
-            System.out.println("6666: 2");
-            System.out.println("6666: 3");
-            System.out.println("6666: 4");
-            System.out.println("6666: 5");
-            System.out.println("6666: 6");
-            System.out.println("6666: 7");
-            System.out.println("6666: 8");
-            System.out.println("6666: 9");
-            System.out.println("6666: 10");
-        }
-
-        return getStackTrace.get();
+        return currentFiber != null ? currentFiber.stack : null;
     }
 
     Fiber getFiber() {
