@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -106,7 +106,9 @@ public final class QuasarInstrumentor {
         final InstrumentClass ic = new InstrumentClass(cv, db, forceInstrumentation);
         byte[] transformed = null;
         try {
-            r.accept(ic, ClassReader.SKIP_FRAMES);
+            int flags = ClassReader.SKIP_FRAMES;
+            if (!db.isReadDebugInfo()) flags |= ClassReader.SKIP_DEBUG;
+            r.accept(ic, flags);
             transformed = cw.toByteArray();
         } catch (Exception e) {
             if (ic.hasSuspendableMethods()) {
@@ -154,6 +156,11 @@ public final class QuasarInstrumentor {
 
     public QuasarInstrumentor setAllowBlocking(boolean allowBlocking) {
         db.setAllowBlocking(allowBlocking);
+        return this;
+    }
+
+    public QuasarInstrumentor setReadDebugInfo(boolean readDebugInfo) {
+        db.setReadDebugInfo(readDebugInfo);
         return this;
     }
 

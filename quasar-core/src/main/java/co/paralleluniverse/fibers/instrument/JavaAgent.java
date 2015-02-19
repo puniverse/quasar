@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -128,8 +128,12 @@ public class JavaAgent {
                         instrumentor.setAllowBlocking(true);
                         break;
 
+                    case 'x':
+                        instrumentor.setReadDebugInfo(true);
+                        break;
+
                     default:
-                        throw new IllegalStateException("Usage: vdmc (verbose, debug, allow monitors, check class)");
+                        throw new IllegalStateException("Usage: vdmcbx (verbose, debug, allow monitors, check class, allow blocking, read debug info)");
                 }
             }
         }

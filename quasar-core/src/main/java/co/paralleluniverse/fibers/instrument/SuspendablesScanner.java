@@ -139,7 +139,7 @@ public class SuspendablesScanner extends Task {
             // output results
             final ArrayList<String> suspendables = suspendablesFile != null ? new ArrayList<String>() : null;
             final ArrayList<String> suspendableSupers = supersFile != null ? new ArrayList<String>() : null;
-            getSuspenablesAndSupers(suspendables, suspendableSupers);
+            getSuspendablesAndSupers(suspendables, suspendableSupers);
 
             if (suspendablesFile != null) {
                 Collections.sort(suspendables);
@@ -563,7 +563,7 @@ public class SuspendablesScanner extends Task {
         }
     }
 
-    public void getSuspenablesAndSupers(Collection<String> suspendables, Collection<String> suspendableSupers) {
+    public void getSuspendablesAndSupers(Collection<String> suspendables, Collection<String> suspendableSupers) {
         for (MethodNode method : methods.values()) {
             if (!method.known) {
                 if (method.suspendType == SuspendableType.SUSPENDABLE && suspendables != null)
