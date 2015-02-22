@@ -1144,9 +1144,10 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         if (fiber != null)
             Fiber.unparkDeserialized(fiber, scheduler);
         else {
-            if (scheduler != null)
-                actor.spawn(scheduler);
-            else
+            if (scheduler != null) {
+                final FiberFactory ff = scheduler;
+                actor.spawn(ff);
+            } else
                 actor.spawnThread();
         }
         return ref;

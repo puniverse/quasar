@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -21,21 +21,27 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A channel that forwards all messages to subscriber channels.
+ * 
  * @author pron
  */
-public class Topic<Message> implements SendPort<Message> {
+public class Topic<Message> implements PubSub<Message> {
     private final Collection<SendPort<? super Message>> subscribers;
-    private volatile boolean sendClosed;
+
+    protected volatile boolean sendClosed;
 
     public Topic() {
         this.subscribers = new CopyOnWriteArraySet<>();
     }
 
     /**
-     * Subscribe a channel to receive messages sent to this topic.
-     * <p>
-     * @param sub the channel to subscribe
+     * Provides read-only access to subscribers for extentions. Not meant to be altered.
      */
+    protected Collection<SendPort<? super Message>> getSubscribers() {
+        // Avoiding defensive copy for the sake of efficiency.
+        return subscribers;
+    }
+    
+    @Override
     public <T extends SendPort<? super Message>> T subscribe(T sub) {
         if (sendClosed) {
             sub.close();
@@ -47,15 +53,16 @@ public class Topic<Message> implements SendPort<Message> {
         return sub;
     }
 
-    /**
-     * Unsubscribe a channel from this topic.
-     * <p>
-     * @param sub the channel to subscribe
-     */
+    @Override
     public void unsubscribe(SendPort<? super Message> sub) {
         subscribers.remove(sub);
     }
 
+    @Override
+    public void unsubscribeAll() {
+        subscribers.clear();
+    }
+    
     @Override
     public void send(Message message) throws SuspendExecution, InterruptedException {
         if (sendClosed)
