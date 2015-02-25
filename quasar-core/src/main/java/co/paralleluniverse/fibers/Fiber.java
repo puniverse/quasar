@@ -1035,8 +1035,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      */
     @Override
     public final Fiber<V> start() {
-        if (!casState(State.NEW, State.STARTED))
+        if (!casState(State.NEW, State.STARTED)) {
+            if (state == State.TERMINATED && future().isCancelled())
+                return this;
             throw new IllegalThreadStateException("Fiber has already been started or has died");
+        }
         getMonitor().fiberStarted(this);
         task.submit();
         return this;
@@ -1311,7 +1314,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final boolean cancel(boolean mayInterruptIfRunning) {
-        interrupt();
+        if (casState(State.NEW, State.TERMINATED))
+            future().cancel(mayInterruptIfRunning);
+        else
+            interrupt();
         return !isDone();
     }
 

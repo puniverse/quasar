@@ -28,9 +28,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -146,6 +146,60 @@ public class FiberTest implements Serializable {
         Thread.sleep(20);
         fiber.interrupt();
         fiber.join(5, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
+    public void testCancel1() throws Exception {
+        final AtomicBoolean started = new AtomicBoolean();
+        final AtomicBoolean terminated = new AtomicBoolean();
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution {
+                started.set(true);
+                try {
+                    Fiber.sleep(100);
+                    fail("InterruptedException not thrown");
+                } catch (InterruptedException e) {
+                }
+                terminated.set(true);
+            }
+        });
+
+        fiber.start();
+        Thread.sleep(20);
+        fiber.cancel(true);
+        fiber.join(5, TimeUnit.MILLISECONDS);
+        assertThat(started.get(), is(true));
+        assertThat(terminated.get(), is(true));
+    }
+
+    @Test
+    public void testCancel2() throws Exception {
+        final AtomicBoolean started = new AtomicBoolean();
+        final AtomicBoolean terminated = new AtomicBoolean();
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution {
+                started.set(true);
+                try {
+                    Fiber.sleep(100);
+                    fail("InterruptedException not thrown");
+                } catch (InterruptedException e) {
+                }
+                terminated.set(true);
+            }
+        });
+
+        fiber.cancel(true);
+        fiber.start();
+        Thread.sleep(20);
+        try {
+            fiber.join(5, TimeUnit.MILLISECONDS);
+            fail();
+        } catch (CancellationException e) {
+        }
+        assertThat(started.get(), is(false));
+        assertThat(terminated.get(), is(false));
     }
 
     @Test
