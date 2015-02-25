@@ -49,17 +49,17 @@ import org.junit.runners.Parameterized;
  *
  * @author pron
  */
-//@RunWith(Parameterized.class)
+@RunWith(Parameterized.class)
 public class FiberTest implements Serializable {
     private transient FiberScheduler scheduler;
 
-    public FiberTest() {
-//        this.scheduler = new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1)); 
-        this.scheduler = new FiberForkJoinScheduler("test", 4, null, false);
-    }
-//    public FiberTest(FiberScheduler scheduler) {
-//        this.scheduler = scheduler;
+//    public FiberTest() {
+////        this.scheduler = new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1)); 
+//        this.scheduler = new FiberForkJoinScheduler("test", 4, null, false);
 //    }
+    public FiberTest(FiberScheduler scheduler) {
+        this.scheduler = scheduler;
+    }
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -629,7 +629,7 @@ public class FiberTest implements Serializable {
             assertThat(e.getCause().getMessage(), equalTo("foo"));
         }
         final Throwable th = t.get();
-        
+
         assertTrue(th != null);
         assertThat(th.getMessage(), equalTo("foo"));
     }
@@ -843,12 +843,11 @@ public class FiberTest implements Serializable {
             this.buf = buf;
         }
 
-        
         @Override
         public void write(Fiber fiber, ByteArraySerializer ser) {
             buf.set(ser.write(fiber));
         }
-        
+
 //        @Override
 //        public void write(byte[] serFiber) {
 //            buf.set(serFiber);
