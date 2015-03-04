@@ -470,7 +470,7 @@ public class MethodDatabase implements Log {
     }
 
     public static boolean isReflectInvocation(String className, String methodName) {
-        return className.equals("java/lang/reflect/Method") && methodName.equals("invoke");
+        return className != null && className.equals("java/lang/reflect/Method") && methodName != null && methodName.equals("invoke");
     }
 
     public static boolean isSyntheticAccess(String className, String methodName) {

@@ -308,13 +308,24 @@ class InstrumentMethod {
         for (int i = 1; i < numCodeBlocks; i++) {
             FrameInfo fi = codeBlocks[i];
 
-            MethodInsnNode min = (MethodInsnNode) (mn.instructions.get(fi.endInstruction));
-            if (isYieldMethod(min.owner, min.name)) { // special case - call to yield
+            final AbstractInsnNode min = mn.instructions.get(fi.endInstruction);
+            final String owner = (min instanceof MethodInsnNode ? ((MethodInsnNode) min).owner : null);
+            String name = null, desc = null;
+            if (min instanceof MethodInsnNode) {
+                MethodInsnNode mmin = (MethodInsnNode) min;
+                name = mmin.name;
+                desc = mmin.desc;
+            } else if (min instanceof InvokeDynamicInsnNode) {
+                InvokeDynamicInsnNode idmin = (InvokeDynamicInsnNode) min;
+                name = idmin.name;
+                desc = idmin.desc;
+            }
+            if (isYieldMethod(owner, name)) { // special case - call to yield
                 if (min.getOpcode() != Opcodes.INVOKESTATIC)
                     throw new UnableToInstrumentException("invalid call to suspending method.", className, mn.name, mn.desc);
 
-                final int numYieldArgs = TypeAnalyzer.getNumArguments(min.desc);
-                final boolean yieldReturnsValue = (Type.getReturnType(min.desc) != Type.VOID_TYPE);
+                final int numYieldArgs = TypeAnalyzer.getNumArguments(desc);
+                final boolean yieldReturnsValue = (Type.getReturnType(desc) != Type.VOID_TYPE);
 
                 emitStoreState(mv, i, fi, numYieldArgs); // we preserve the arguments for the call to yield on the operand stack
                 emitStoreResumed(mv, false); // we have not been resumed
@@ -354,7 +365,7 @@ class InstrumentMethod {
                 if (DUAL)
                     mv.visitLabel(lbl);
 
-                if (isReflectInvocation(min.owner, min.name)) {
+                if (isReflectInvocation(owner, name)) {
                     // We catch the InvocationTargetException and unwrap it if it wraps a SuspendExecution exception.
                     Label[] ls = refInvokeTryCatch[i - 1];
                     final Label startTry = ls[0];
