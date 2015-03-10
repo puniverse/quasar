@@ -1617,6 +1617,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 continue;
             if (skipSTE(ste)) {
                 k--;
+            } else if (skipCTX(context[k])) {
+                i--;
             } else if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
                     && !ste.getClassName().equals(Stack.class.getName())) {
                 if (!SuspendableHelper.isWaiver(ste.getClassName(), ste.getMethodName())
@@ -1656,7 +1658,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     private static boolean skipSTE(StackTraceElement ste) {
         return (ste.getClassName().startsWith("sun.reflect")
-                || ste.getClassName().equals("java.lang.reflect.Method"));
+                || ste.getClassName().equals("java.lang.reflect.Method")
+                || ste.getClassName().startsWith("java.lang.invoke."));
+    }
+
+    private static boolean skipCTX(Class c) {
+        return c.getName().startsWith("java.lang.invoke.");
     }
 
     private static boolean isNonSuspendable(Class clazz, String methodName) {
