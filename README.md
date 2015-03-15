@@ -91,5 +91,3 @@ the Eclipse Foundation
 under the terms of the GNU Lesser General Public License version 3.0
 as published by the Free Software Foundation.
 ```
-
-[![githalytics.com alpha](https://cruel-carlota.gopagoda.com/d376531837c3513ea73279fdbee7d48b "githalytics.com")](http://githalytics.com/puniverse/quasar)
