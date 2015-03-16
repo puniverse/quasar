@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.util.Function2;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.strands.SuspendableAction2;
 import com.google.common.base.Function;
@@ -55,17 +56,30 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
     }
 
     /**
+     * Returns a {@link TransformingSendPort} to which sending messages that are transformed towards a channel by a reduction function.
+     * <p/>
+     * The returned {@code TransformingSendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     *
+     * @param f       The reduction function.
+     * @param init    The initial input to the reduction function.
+     * @return a {@link ReceivePort} that returns messages that are the result of applying the reduction function to the messages received on the given channel.
+     */
+    public <S> TransformingSendPort<S> reduce(Function2<T, S, T> f, T init) {
+        return Channels.transformSend(Channels.reduceSend(this, f, init));
+    }
+
+    /**
      * Returns a {@link SendPort} that sends messages that are transformed by a given flat-mapping function into this channel.
      * Unlike {@link #map(Function) map}, the mapping function does not returns a single output message for every input message, but
      * a new {@code ReceivePort}. All the returned ports are concatenated and sent to the channel.
-     * <p>
+     * <p/>
      * To return a single value the mapping function can make use of {@link Channels#singletonReceivePort(Object)}. To return a collection,
      * it can make use of {@link Channels#toReceivePort(Iterable)}. To emit no values, the function can return {@link Channels#emptyReceivePort()}
      * or {@code null}.
-     * <p>
+     * <p/>
      * If multiple producers send messages into the channel, the messages from the {@code ReceivePort}s returned by the mapping function
      * may be interleaved with other messages.
-     * <p>
+     * <p/>
      * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
      *
      * @param pipe    an intermediate channel used in the flat-mapping operation. Messages are first sent to this channel before being transformed.
@@ -78,7 +92,7 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
 
     /**
      * Spawns a fiber that transforms values read from the {@code in} channel and writes values to this channel.
-     * <p>
+     * <p/>
      * When the transformation terminates. the output channel is automatically closed. If the transformation terminates abnormally 
      * (throws an exception), this channel is {@link SendPort#close(Throwable) closed with that exception}.
      * 
@@ -92,9 +106,9 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
         return Channels.transformSend(in);
     }
     
-        /**
+    /**
      * Spawns a fiber that transforms values read from the {@code in} channel and writes values to this channel.
-     * <p>
+     * <p/>
      * When the transformation terminates. the output channel is automatically closed. If the transformation terminates abnormally 
      * (throws an exception), this channel is {@link SendPort#close(Throwable) closed with that exception}.
      * 

@@ -820,11 +820,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             throw new IllegalStateException("Not new or suspended");
 
         this.getStackTrace = true;
-        Stack.getStackTrace.set(stack);
         final Thread currentThread = Thread.currentThread();
         final Object old = getCurrentTarget(currentThread);
-        if (old != null)
-            setCurrentFiber(this, currentThread);
+        setCurrentFiber(this, currentThread);
 
         try {
             try {
@@ -838,12 +836,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             //stack.dump();
             stack.resumeStack();
 
-            if (old != null)
-                setCurrentTarget(old, currentThread);
+            setCurrentTarget(old, currentThread);
 
             this.noPreempt = false;
             this.getStackTrace = false;
-            Stack.getStackTrace.remove();
 
             task.doPark(false); // now we can complete parking
 
@@ -1039,8 +1035,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      */
     @Override
     public final Fiber<V> start() {
-        if (!casState(State.NEW, State.STARTED))
+        if (!casState(State.NEW, State.STARTED)) {
+            if (state == State.TERMINATED && future().isCancelled())
+                return this;
             throw new IllegalThreadStateException("Fiber has already been started or has died");
+        }
         getMonitor().fiberStarted(this);
         task.submit();
         return this;
@@ -1315,10 +1314,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final boolean cancel(boolean mayInterruptIfRunning) {
-        if (mayInterruptIfRunning && !isDone())
+        if (casState(State.NEW, State.TERMINATED))
+            future().cancel(mayInterruptIfRunning);
+        else
             interrupt();
-
-        return future().cancel(mayInterruptIfRunning);
+        return !isDone();
     }
 
     @Override
@@ -1617,6 +1617,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 continue;
             if (skipSTE(ste)) {
                 k--;
+            } else if (skipCTX(context[k])) {
+                i--;
             } else if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
                     && !ste.getClassName().equals(Stack.class.getName())) {
                 if (!SuspendableHelper.isWaiver(ste.getClassName(), ste.getMethodName())
@@ -1633,8 +1635,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                     stackTrace.append(" **");
                     // The next probelm happends when some function is in the STE but not in the context
                     // consider fix the skipSTE to fix it
-                    if (!context[k].getName().equals(ste.getClassName()))
-                        stackTrace.append("oops. problem with stacktrace can't be trusted");
+                    if (!context[k].getName().equals(ste.getClassName())) {
+                        stackTrace.append(" WARN: unreliable verification stacktrace");
+                        stackTrace.append(" (context: '");
+                        stackTrace.append(context[k].getName());
+                        stackTrace.append("')");
+                    }
                     notInstrumented = true;
                 }
             } else if (ste.getClassName().equals(Fiber.class.getName()) && ste.getMethodName().equals("run1")) {
@@ -1652,7 +1658,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     private static boolean skipSTE(StackTraceElement ste) {
         return (ste.getClassName().startsWith("sun.reflect")
-                || ste.getClassName().equals("java.lang.reflect.Method"));
+                || ste.getClassName().equals("java.lang.reflect.Method")
+                || ste.getClassName().startsWith("java.lang.invoke."));
+    }
+
+    private static boolean skipCTX(Class c) {
+        return c.getName().startsWith("java.lang.invoke.");
     }
 
     private static boolean isNonSuspendable(Class clazz, String methodName) {

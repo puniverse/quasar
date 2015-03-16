@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -35,14 +35,23 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
     public static final String PREFIX = "META-INF/";
     public static final String SUSPENDABLES_FILE = "suspendables";
     public static final String SUSPENDABLE_SUPERS_FILE = "suspendable-supers";
-    private final Set<String> suspendables = new HashSet<String>();
-    private final Set<String> suspendableClasses = new HashSet<String>();
-    private final Set<String> suspendableSupers = new HashSet<String>();
-    private final Set<String> suspendableSuperInterfaces = new HashSet<String>();
+
+    private final Set<String> suspendables = new HashSet<>();
+    private final Set<String> suspendableClasses = new HashSet<>();
+    private final Set<String> suspendableSupers = new HashSet<>();
+    private final Set<String> suspendableSuperInterfaces = new HashSet<>();
 
     public SimpleSuspendableClassifier(ClassLoader classLoader) {
         readFiles(classLoader, SUSPENDABLES_FILE, suspendables, suspendableClasses);
         readFiles(classLoader, SUSPENDABLE_SUPERS_FILE, suspendableSupers, suspendableSuperInterfaces);
+    }
+
+    // Allows loading and querying custom 'suspendables' and 'suspendable-supers' resources
+    public SimpleSuspendableClassifier(final ClassLoader classLoader, final String[] suspendablesResources, final String[] suspendableSupersResources) {
+        for(final String sus : suspendablesResources)
+            readFiles(classLoader, sus, suspendables, suspendableClasses);
+        for(final String sus : suspendableSupersResources)
+            readFiles(classLoader, sus, suspendableSupers, suspendableSuperInterfaces);
     }
 
     SimpleSuspendableClassifier(String suspendablesFileName) {
@@ -122,7 +131,7 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
     }
 
     @Override
-    public SuspendableType isSuspendable(MethodDatabase db, String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
+    public SuspendableType isSuspendable(MethodDatabase db, String sourceName, String sourceDebugInfo, boolean isInterface, String className, String superClassName, String[] interfaces, String methodName, String methodDesc, String methodSignature, String[] methodExceptions) {
         final String fullMethodName = className + '.' + methodName;
         if (suspendables.contains(fullMethodName + methodDesc))
             return SuspendableType.SUSPENDABLE;
@@ -139,14 +148,14 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
 
         if (superClassName != null) {
             MethodDatabase.ClassEntry ce = db.getOrLoadClassEntry(superClassName);
-            if (ce != null && isSuspendable(db, superClassName, ce.getSuperName(), ce.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions) == SuspendableType.SUSPENDABLE)
+            if (ce != null && isSuspendable(db, sourceName, sourceDebugInfo, isInterface, superClassName, ce.getSuperName(), ce.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions) == SuspendableType.SUSPENDABLE)
                 return SuspendableType.SUSPENDABLE;
         }
 
         if (interfaces != null) {
             for (String iface : interfaces) {
                 MethodDatabase.ClassEntry ce = db.getOrLoadClassEntry(iface);
-                if (ce != null && isSuspendable(db, iface, ce.getSuperName(), ce.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions) == SuspendableType.SUSPENDABLE)
+                if (ce != null && isSuspendable(db, ce.getSourceName(), ce.getSourceDebugInfo(), ce.isIsInterface(), iface, ce.getSuperName(), ce.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions) == SuspendableType.SUSPENDABLE)
                     return SuspendableType.SUSPENDABLE;
             }
         }

@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight strands and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -13,11 +13,12 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.util.DelegatingEquals;
 import co.paralleluniverse.common.util.Function2;
 import co.paralleluniverse.common.util.Function3;
 import co.paralleluniverse.common.util.Function4;
 import co.paralleluniverse.common.util.Function5;
-import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableAction1;
@@ -87,12 +88,7 @@ public final class Channels {
     private static final OverflowPolicy defaultPolicy = OverflowPolicy.BLOCK;
     private static final boolean defaultSingleProducer = false;
     private static final boolean defaultSingleConsumer = true;
-    private static final FiberFactory defaultFiberFactory = new FiberFactory() {
-        @Override
-        public <T> Fiber<T> newFiber(SuspendableCallable<T> target) {
-            return new Fiber<T>(target);
-        }
-    };
+    private static final FiberFactory defaultFiberFactory = DefaultFiberScheduler.getInstance();
 
     /**
      * Creates a new channel with the given properties.
@@ -120,24 +116,24 @@ public final class Channels {
         if (bufferSize == 0) {
             if (policy != OverflowPolicy.BLOCK)
                 throw new IllegalArgumentException("Cannot use policy " + policy + " for channel with size 0 (only BLOCK supported");
-            return new TransferChannel<Message>();
+            return new TransferChannel<>();
         }
 
         final BasicQueue<Message> queue;
         if (bufferSize < 0) {
             if (!singleConsumer)
                 throw new IllegalArgumentException("Unbounded queue with multiple consumers is unsupported");
-            queue = new SingleConsumerLinkedArrayObjectQueue<Message>();
+            queue = new SingleConsumerLinkedArrayObjectQueue<>();
         } else if (bufferSize == 1 && policy != OverflowPolicy.DISPLACE) // for now we'll use CircularObjectBuffer for displace channels of size 1
-            queue = new BoxQueue<Message>(policy == OverflowPolicy.DISPLACE, singleConsumer);
+            queue = new BoxQueue<>(policy == OverflowPolicy.DISPLACE, singleConsumer);
         else if (policy == OverflowPolicy.DISPLACE) {
             if (!singleConsumer)
                 throw new IllegalArgumentException("Channel with DISPLACE policy configuration is not supported for multiple consumers");
-            queue = new CircularObjectBuffer<Message>(bufferSize, singleProducer);
+            queue = new CircularObjectBuffer<>(bufferSize, singleProducer);
         } else if (singleConsumer)
-            queue = new SingleConsumerArrayObjectQueue<Message>(bufferSize);
+            queue = new SingleConsumerArrayObjectQueue<>(bufferSize);
         else
-            queue = new ArrayQueue<Message>(bufferSize);
+            queue = new ArrayQueue<>(bufferSize);
 
         return new QueueObjectChannel(queue, policy, singleConsumer);
     }
@@ -566,7 +562,7 @@ public final class Channels {
      * @return a {@link ReceivePort} that receives messages from {@code channels}.
      */
     public static <M> ReceivePort<M> group(ReceivePort<? extends M>... channels) {
-        return new ReceivePortGroup<M>(channels);
+        return new ReceivePortGroup<>(channels);
     }
 
     /**
@@ -578,7 +574,31 @@ public final class Channels {
      * @return a {@link ReceivePort} that receives messages from {@code channels}.
      */
     public static <M> ReceivePort<M> group(Collection<? extends ReceivePort<? extends M>> channels) {
-        return new ReceivePortGroup<M>(channels);
+        return new ReceivePortGroup<>(channels);
+    }
+
+    /**
+     * Returns a {@link Mix} that receives messages from a set of channels. Messages from all given channels are funneled into
+     * the returned channel.
+     *
+     * @param <M>
+     * @param channels
+     * @return a {@link ReceivePort} that receives messages from {@code channels}.
+     */
+    public static <M> Mix<? extends M> mix(final ReceivePort<? extends M>... channels) {
+        return new ReceivePortGroup<>(channels);
+    }
+
+    /**
+     * Returns a {@link Mix} that receives messages from a set of channels. Messages from all given channels are funneled into
+     * the returned channel.
+     *
+     * @param <M>
+     * @param channels
+     * @return a {@link ReceivePort} that receives messages from {@code channels}.
+     */
+    public static <M> Mix<? extends M> mix(final Collection<? extends ReceivePort<? extends M>> channels) {
+        return new ReceivePortGroup<>(channels);
     }
 
     /**
@@ -593,7 +613,7 @@ public final class Channels {
      * @return A {@link ReceivePort} that will receive all those messages from the original channel which satisfy the predicate (i.e. the predicate returns {@code true}).
      */
     public static <M> ReceivePort<M> filter(ReceivePort<M> channel, Predicate<M> pred) {
-        return new FilteringReceivePort<M>(channel, pred);
+        return new FilteringReceivePort<>(channel, pred);
     }
 
     /**
@@ -608,9 +628,25 @@ public final class Channels {
      * @return a {@link ReceivePort} that returns messages that are the result of applying the mapping function to the messages received on the given channel.
      */
     public static <S, T> ReceivePort<T> map(ReceivePort<S> channel, Function<S, T> f) {
-        return new MappingReceivePort<S, T>(channel, f);
+        return new MappingReceivePort<>(channel, f);
     }
 
+    /**
+     * Returns a {@link ReceivePort} providing messages that are transformed from a given channel by a given reduction function.
+     * <p/>
+     * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     *
+     * @param <S>     The message type of the source (given) channel.
+     * @param <T>     The message type of the target (returned) channel.
+     * @param channel The channel to transform.
+     * @param f       The reduction function.
+     * @param init    The initial input to the reduction function.
+     * @return a {@link ReceivePort} that returns messages that are the result of applying the reduction function to the messages received on the given channel.
+     */
+    public static <S, T> ReceivePort<T> reduce(ReceivePort<S> channel, Function2<T, S, T> f, T init) {
+        return new ReducingReceivePort<>(channel, f, init);
+    }
+    
     /**
      * Returns a {@link ReceivePort} that maps exceptions thrown by the underlying channel
      * (by channel transformations, or as a result of {@link SendPort#close(Throwable)} )
@@ -623,7 +659,7 @@ public final class Channels {
      * @param f       the exception mapping function
      */
     public static <T> ReceivePort<T> mapErrors(ReceivePort<T> channel, Function<Exception, T> f) {
-        return new ErrorMappingReceivePort<T>(channel, f);
+        return new ErrorMappingReceivePort<>(channel, f);
     }
 
     /**
@@ -647,7 +683,7 @@ public final class Channels {
      * @return a {@link ReceivePort} that returns messages that are the result of applying the mapping function to the messages received on the given channel.
      */
     public static <S, T> ReceivePort<T> flatMap(ReceivePort<S> channel, Function<S, ReceivePort<T>> f) {
-        return new FlatMappingReceivePort<S, T>(channel, f);
+        return new FlatMappingReceivePort<>(channel, f);
     }
 
     /**
@@ -665,6 +701,17 @@ public final class Channels {
     }
 
     /**
+     * Returns a {@link ReceivePort} that can provide at most {@code count} messages from {@code channel}.
+     *
+     * @param channel   The channel.
+     * @param count     The maximum number of messages extracted from the underlying channel.
+     * @return a {@link ReceivePort} that can provide at most {@code count} messages from {@code channel}.
+     */
+    public static <T> ReceivePort<T> take(final ReceivePort<T> channel, final long count) {
+        return new TakeReceivePort<>(channel, count);
+    }
+
+    /**
      * Returns a {@link ReceivePort} that combines each vector of messages from a list of channels into a single combined message.
      *
      * @param <M> The type of the combined message
@@ -673,7 +720,7 @@ public final class Channels {
      * @return A zipping {@link ReceivePort}
      */
     public static <M> ReceivePort<M> zip(List<? extends ReceivePort<?>> cs, Function<Object[], M> f) {
-        return new ZippingReceivePort<M>(f, cs);
+        return new ZippingReceivePort<>(f, cs);
     }
 
     /**
@@ -747,7 +794,7 @@ public final class Channels {
      * transformations.
      */
     public static <M> TransformingReceivePort<M> transform(ReceivePort<M> channel) {
-        return new TransformingReceivePort<M>(channel);
+        return new TransformingReceivePort<>(channel);
     }
 
     /**
@@ -762,7 +809,7 @@ public final class Channels {
      * @return A {@link SendPort} that will send only those messages which satisfy the predicate (i.e. the predicate returns {@code true}) to the given channel.
      */
     public static <M> SendPort<M> filterSend(SendPort<M> channel, Predicate<M> pred) {
-        return new FilteringSendPort<M>(channel, pred);
+        return new FilteringSendPort<>(channel, pred);
     }
 
     /**
@@ -777,21 +824,37 @@ public final class Channels {
      * @return a {@link SendPort} that passes messages to the given channel after transforming them by applying the mapping function.
      */
     public static <S, T> SendPort<S> mapSend(SendPort<T> channel, Function<S, T> f) {
-        return new MappingSendPort<S, T>(channel, f);
+        return new MappingSendPort<>(channel, f);
     }
 
+    /**
+     * Returns a {@link SendPort} accepting messages that are transformed by a reduction function.
+     * <p/>
+     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     *
+     * @param <S>     The message type of the source (returned) channel.
+     * @param <T>     The message type of the target (given) channel.
+     * @param channel The channel to transform.
+     * @param f       The reduction function.
+     * @param init    The initial input to the reduction function.
+     * @return a {@link ReceivePort} that returns messages that are the result of applying the reduction function to the messages received on the given channel.
+     */
+    public static <S, T> SendPort<S> reduceSend(SendPort<T> channel, Function2<T, S, T> f, T init) {
+        return new ReducingSendPort<>(channel, f, init);
+    }
+    
     /**
      * Returns a {@link SendPort} that sends messages that are transformed by a given flat-mapping function into a given channel.
      * Unlike {@link #mapSend(SendPort, Function) map}, the mapping function does not returns a single output message for every input message, but
      * a new {@code ReceivePort}. All the returned ports are concatenated and sent to the channel.
-     * <p>
+     * <p/>
      * To return a single value the mapping function can make use of {@link #singletonReceivePort(Object) singletonReceivePort}. To return a collection,
      * it can make use of {@link #toReceivePort(Iterable) toReceivePort(Iterable)}. To emit no values, the function can return {@link #emptyReceivePort()}
      * or {@code null}.
-     * <p>
+     * <p/>
      * If multiple producers send messages into the channel, the messages from the {@code ReceivePort}s returned by the mapping function
      * may be interleaved with other messages.
-     * <p>
+     * <p/>
      * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
      *
      * @param <S>     the message type of the source (given) channel.
@@ -817,7 +880,7 @@ public final class Channels {
                 }
             }
         });
-        return new PipeChannel<S>(pipe, channel);
+        return new PipeChannel<>(pipe, channel);
     }
 
     public static <S, T> SendPort<S> flatMapSend(Channel<S> pipe, SendPort<T> channel, final Function<S, ReceivePort<T>> f) {
@@ -829,7 +892,7 @@ public final class Channels {
      * transformations.
      */
     public static <M> TransformingSendPort<M> transformSend(SendPort<M> channel) {
-        return new TransformingSendPort<M>(channel);
+        return new TransformingSendPort<>(channel);
     }
 
     /**
@@ -841,7 +904,7 @@ public final class Channels {
 
     /**
      * Returns a newly created {@link ReceivePort} that receives a single message: the object given to the function.
-     * <p>
+     *
      * @param <T>
      * @param object the single object that will be returned by the {@code ReceivePort}.
      */
@@ -888,7 +951,7 @@ public final class Channels {
 
     /**
      * Returns a newly created {@link ReceivePort} that receives all the elements iterated by the iterator.
-     * <p>
+     *
      * @param <T>
      * @param iterator the iterator to transform into a {@code ReceivePort}.
      */
@@ -932,7 +995,7 @@ public final class Channels {
 
     /**
      * Returns a newly created {@link ReceivePort} that receives all the elements iterated by the iterable.
-     * <p>
+     *
      * @param <T>
      * @param iterable the iterable to transform into a {@code ReceivePort}.
      */
@@ -976,4 +1039,20 @@ public final class Channels {
             return true;
         }
     };
+    
+    // Package-access utilities
+    
+    static boolean delegatingEquals(final Object target, final Object obj) {
+        if (obj instanceof DelegatingEquals)
+            return obj.equals(target);
+        else
+            return target.equals(obj);
+    }
+    
+    static String delegatingToString(final Object self, final Object target) {
+        if (self != null)
+            return self.getClass().getSimpleName() + "@" + Integer.toHexString(System.identityHashCode(self)) + "{" + target + "}";
+        else
+            return null;
+    }
 }

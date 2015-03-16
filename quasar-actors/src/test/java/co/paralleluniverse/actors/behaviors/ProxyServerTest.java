@@ -22,6 +22,7 @@ import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -90,14 +91,15 @@ public class ProxyServerTest {
     }
     
     static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channels.OverflowPolicy.THROW);
+    private FiberFactory factory;
     private FiberScheduler scheduler;
 
     public ProxyServerTest() {
-        scheduler = new FiberForkJoinScheduler("test", 4, null, false);
+        factory = scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 
     private Server<?, ?, ?> spawnServer(boolean callOnVoidMethods, Object target) {
-        return new ProxyServerActor("server", callOnVoidMethods, target).spawn(scheduler);
+        return new ProxyServerActor("server", callOnVoidMethods, target).spawn(factory);
     }
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {

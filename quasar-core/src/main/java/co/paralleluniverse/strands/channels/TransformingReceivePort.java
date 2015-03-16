@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.util.Function2;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableAction1;
@@ -30,7 +31,7 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
     TransformingReceivePort(ReceivePort<T> target) {
         super(target);
     }
-
+    
     /**
      * Returns a {@link TransformingReceivePort} that filters messages that satisfy a predicate from this given channel.
      * All messages (even those not satisfying the predicate) will be consumed from the original channel; those that don't satisfy the predicate will be silently discarded.
@@ -54,6 +55,19 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
      */
     public <U> TransformingReceivePort<U> map(Function<T, U> f) {
         return Channels.transform(Channels.map(this, f));
+    }
+
+     /**
+     * Returns a {@link TransformingReceivePort} from which receiving messages that are transformed from a given channel by a given reduction function.
+     * <p/>
+     * The returned {@code TransformingReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     *
+     * @param f       The reduction function.
+     * @param init    The initial input to the reduction function.
+     * @return a {@link ReceivePort} that returns messages that are the result of applying the reduction function to the messages received on the given channel.
+     */
+    public <U> TransformingReceivePort<U> reduce(Function2<U, T, U> f, U init) {
+        return Channels.transform(Channels.reduce(this, f, init));
     }
 
     /**
@@ -90,6 +104,17 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
         return Channels.transform(Channels.flatMap(this, f));
     }
 
+    /**
+     * Returns a {@link TakeReceivePort} that can provide at most {@code count} messages from the underlying channel.
+     * <p>
+     * The returned {@code TransformingReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     *
+     * @param count The maximum number of messages extracted from the underlying channel.
+     */
+    public TransformingReceivePort<T> take(final long count) {
+        return Channels.transform(Channels.take(this, count));
+    }
+    
     /**
      * Spawns a fiber that transforms values read from this channel and writes values to the {@code out} channel.
      * <p>

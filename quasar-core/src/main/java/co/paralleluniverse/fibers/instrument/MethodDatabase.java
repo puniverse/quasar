@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -78,6 +78,7 @@ public class MethodDatabase implements Log {
     private boolean allowMonitors;
     private boolean allowBlocking;
     private int logLevelMask;
+    private boolean readDebugInfo = false; // Default
 
     public MethodDatabase(ClassLoader classloader, SuspendableClassifier classifier) {
         if (classloader == null)
@@ -86,9 +87,9 @@ public class MethodDatabase implements Log {
         this.cl = classloader;
         this.classifier = classifier;
 
-        classes = new TreeMap<String, ClassEntry>();
-        superClasses = new HashMap<String, String>();
-        workList = new ArrayList<WorkListEntry>();
+        classes = new TreeMap<>();
+        superClasses = new HashMap<>();
+        workList = new ArrayList<>();
 
         setLogLevelMask();
     }
@@ -137,6 +138,14 @@ public class MethodDatabase implements Log {
     public void setDebug(boolean debug) {
         this.debug = debug;
         setLogLevelMask();
+    }
+
+    public void setReadDebugInfo(boolean readDebugInfo) {
+        this.readDebugInfo = readDebugInfo;
+    }
+    
+    public boolean isReadDebugInfo() {
+        return readDebugInfo;
     }
 
     private void setLogLevelMask() {
@@ -286,7 +295,7 @@ public class MethodDatabase implements Log {
 
     public synchronized Map<String, ClassEntry> getInnerClassesEntries(String className) {
         Map<String, ClassEntry> tailMap = classes.tailMap(className, true);
-        HashMap<String, ClassEntry> map = new HashMap<String, ClassEntry>();
+        HashMap<String, ClassEntry> map = new HashMap<>();
         for (Map.Entry<String, ClassEntry> entry : tailMap.entrySet()) {
             if (entry.getKey().equals(className) || entry.getKey().startsWith(className + '$'))
                 map.put(entry.getKey(), entry.getValue());
@@ -461,7 +470,7 @@ public class MethodDatabase implements Log {
     }
 
     public static boolean isReflectInvocation(String className, String methodName) {
-        return className.equals("java/lang/reflect/Method") && methodName.equals("invoke");
+        return "java/lang/reflect/Method".equals(className) && "invoke".equals(methodName);
     }
 
     public static boolean isSyntheticAccess(String className, String methodName) {
@@ -497,6 +506,9 @@ public class MethodDatabase implements Log {
 
     public static final class ClassEntry {
         private final HashMap<String, SuspendableType> methods;
+        private String sourceName;
+        private String sourceDebugInfo;
+        private boolean isInterface;
         private String[] interfaces;
         private final String superName;
         private boolean instrumented;
@@ -504,12 +516,36 @@ public class MethodDatabase implements Log {
 
         public ClassEntry(String superName) {
             this.superName = superName;
-            this.methods = new HashMap<String, SuspendableType>();
+            this.methods = new HashMap<>();
         }
 
         public void set(String name, String desc, SuspendableType suspendable) {
             String nameAndDesc = key(name, desc);
             methods.put(nameAndDesc, suspendable);
+        }
+
+        public String getSourceName() {
+            return sourceName;
+        }
+
+        public void setSourceName(String sourceName) {
+            this.sourceName = sourceName;
+        }
+
+        public String getSourceDebugInfo() {
+            return sourceDebugInfo;
+        }
+
+        public void setSourceDebugInfo(String sourceDebugInfo) {
+            this.sourceDebugInfo = sourceDebugInfo;
+        }
+
+        public boolean isIsInterface() {
+            return isInterface;
+        }
+
+        public void setIsInterface(boolean isInterface) {
+            this.isInterface = isInterface;
         }
 
         public String getSuperName() {

@@ -184,17 +184,26 @@ public class FiberForkJoinScheduler extends FiberScheduler {
 
     @Override
     void setCurrentFiber(Fiber target, Thread currentThread) {
-        setCurrentTarget(target.fiberRef, currentThread);
+        if (isFiberThread(currentThread))
+            ParkableForkJoinTask.setTarget(currentThread, target.fiberRef);
+        else
+            Fiber.setCurrentStrand(target);
     }
 
     @Override
     void setCurrentTarget(Object target, Thread currentThread) {
-        ParkableForkJoinTask.setTarget(currentThread, target);
+        if (isFiberThread(currentThread))
+            ParkableForkJoinTask.setTarget(currentThread, target);
+        else
+            Fiber.setCurrentStrand((Strand) target);
     }
 
     @Override
     Object getCurrentTarget(Thread currentThread) {
-        return ParkableForkJoinTask.getTarget(currentThread);
+        if (isFiberThread(currentThread))
+            return ParkableForkJoinTask.getTarget(currentThread);
+        else
+            return Fiber.getCurrentStrand();
     }
 
     private class FiberWorkerThread extends ExtendedForkJoinWorkerThread {

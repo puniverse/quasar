@@ -28,9 +28,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -49,17 +49,17 @@ import org.junit.runners.Parameterized;
  *
  * @author pron
  */
-//@RunWith(Parameterized.class)
+@RunWith(Parameterized.class)
 public class FiberTest implements Serializable {
     private transient FiberScheduler scheduler;
 
-    public FiberTest() {
-//        this.scheduler = new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1)); 
-        this.scheduler = new FiberForkJoinScheduler("test", 4, null, false);
-    }
-//    public FiberTest(FiberScheduler scheduler) {
-//        this.scheduler = scheduler;
+//    public FiberTest() {
+////        this.scheduler = new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1)); 
+//        this.scheduler = new FiberForkJoinScheduler("test", 4, null, false);
 //    }
+    public FiberTest(FiberScheduler scheduler) {
+        this.scheduler = scheduler;
+    }
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -146,6 +146,60 @@ public class FiberTest implements Serializable {
         Thread.sleep(20);
         fiber.interrupt();
         fiber.join(5, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
+    public void testCancel1() throws Exception {
+        final AtomicBoolean started = new AtomicBoolean();
+        final AtomicBoolean terminated = new AtomicBoolean();
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution {
+                started.set(true);
+                try {
+                    Fiber.sleep(100);
+                    fail("InterruptedException not thrown");
+                } catch (InterruptedException e) {
+                }
+                terminated.set(true);
+            }
+        });
+
+        fiber.start();
+        Thread.sleep(20);
+        fiber.cancel(true);
+        fiber.join(5, TimeUnit.MILLISECONDS);
+        assertThat(started.get(), is(true));
+        assertThat(terminated.get(), is(true));
+    }
+
+    @Test
+    public void testCancel2() throws Exception {
+        final AtomicBoolean started = new AtomicBoolean();
+        final AtomicBoolean terminated = new AtomicBoolean();
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution {
+                started.set(true);
+                try {
+                    Fiber.sleep(100);
+                    fail("InterruptedException not thrown");
+                } catch (InterruptedException e) {
+                }
+                terminated.set(true);
+            }
+        });
+
+        fiber.cancel(true);
+        fiber.start();
+        Thread.sleep(20);
+        try {
+            fiber.join(5, TimeUnit.MILLISECONDS);
+            fail();
+        } catch (CancellationException e) {
+        }
+        assertThat(started.get(), is(false));
+        assertThat(terminated.get(), is(false));
     }
 
     @Test
@@ -575,7 +629,7 @@ public class FiberTest implements Serializable {
             assertThat(e.getCause().getMessage(), equalTo("foo"));
         }
         final Throwable th = t.get();
-        
+
         assertTrue(th != null);
         assertThat(th.getMessage(), equalTo("foo"));
     }
@@ -789,12 +843,11 @@ public class FiberTest implements Serializable {
             this.buf = buf;
         }
 
-        
         @Override
         public void write(Fiber fiber, ByteArraySerializer ser) {
             buf.set(ser.write(fiber));
         }
-        
+
 //        @Override
 //        public void write(byte[] serFiber) {
 //            buf.set(serFiber);

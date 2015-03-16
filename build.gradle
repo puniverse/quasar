@@ -383,7 +383,8 @@ project (':quasar-core') {
             archives javadocJar
         }
 
-        uploadArchives.dependsOn ':quasar-core-jdk8:jar'
+        install.dependsOn ':quasar-core-jdk8:shadowJar'
+        uploadArchives.dependsOn ':quasar-core-jdk8:shadowJar'
     }
 }
 

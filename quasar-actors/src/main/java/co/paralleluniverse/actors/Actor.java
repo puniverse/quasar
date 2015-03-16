@@ -200,6 +200,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * @return This actors' ActorRef
      */
     public ActorRef<Message> spawn(StrandFactory sf) {
+        if (sf == null)
+            return spawn();
         checkReplacement();
         final Strand s = sf.newStrand(runner);
         setStrand(s);
@@ -217,6 +219,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * @return This actors' ActorRef
      */
     public ActorRef<Message> spawn(FiberFactory ff) {
+        if (ff == null)
+            return spawn();
         checkReplacement();
         ff.newFiber(runner).setName(getName()).start();
         return ref();
@@ -1140,9 +1144,10 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         if (fiber != null)
             Fiber.unparkDeserialized(fiber, scheduler);
         else {
-            if (scheduler != null)
-                actor.spawn(scheduler);
-            else
+            if (scheduler != null) {
+                final FiberFactory ff = scheduler;
+                actor.spawn(ff);
+            } else
                 actor.spawnThread();
         }
         return ref;

@@ -61,8 +61,10 @@ import org.objectweb.asm.Opcodes;
 public class CheckInstrumentationVisitor extends ClassVisitor {
     private final MethodDatabase db;
     private final SuspendableClassifier classifier;
-    private String className;
+    private String sourceName;
+    private String sourceDebugInfo;
     private boolean isInterface;
+    private String className;
     private boolean suspendableInterface;
     private ClassEntry classEntry;
     private boolean hasSuspendable;
@@ -96,6 +98,16 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
         this.isInterface = (access & Opcodes.ACC_INTERFACE) != 0;
         this.classEntry = new ClassEntry(superName);
         classEntry.setInterfaces(interfaces);
+        classEntry.setIsInterface(isInterface);
+    }
+
+    @Override
+    public void visitSource(String source, String debug) {
+        this.sourceName = source;
+        this.sourceDebugInfo = debug;
+        super.visitSource(source, debug);
+        classEntry.setSourceName(sourceName);
+        classEntry.setSourceDebugInfo(sourceDebugInfo);
     }
 
     @Override
@@ -115,7 +127,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
         if (suspendable == null)
             suspendable = classEntry.check(name, desc);
         if (suspendable == null)
-            suspendable = classifier.isSuspendable(db, className, classEntry.getSuperName(), classEntry.getInterfaces(), name, desc, signature, exceptions);
+            suspendable = classifier.isSuspendable(db, sourceName, sourceDebugInfo, isInterface, className, classEntry.getSuperName(), classEntry.getInterfaces(), name, desc, signature, exceptions);
         if (suspendable == SuspendableType.SUSPENDABLE) {
             hasSuspendable = true;
             // synchronized methods can't be made suspendable
