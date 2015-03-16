@@ -16,16 +16,19 @@ import co.paralleluniverse.kotlin.*
 // This example is meant to be a translation of the canonical
 // Erlang [ping-pong example](http://www.erlang.org/doc/getting_started/conc_prog.html#id67347).
 
+data class Msg(val txt: String, val from: ActorRef<Any?>)
+
 class Ping(val n: Int) : Actor<Any, Unit>() {
     Suspendable override fun doRun() {
         val pong = ActorRegistry.getActor<Any>("pong")
         for(i in 1..n) {
-            pong.send(Pair("ping", self()))                             // Fiber-blocking
-            when (receive()) {                                          // Fiber-blocking, always consume the message
-                "pong" -> println("Ping received pong")                 // Else discard the message
+            pong.send(Msg("ping", self()))          // Fiber-blocking
+            when (receive()) {                      // Fiber-blocking, always consume the message
+                "pong" -> println("Ping received pong")
+            // Else discard the message
             }
         }
-        pong.send("finished")                                           // Fiber-blocking
+        pong.send("finished")                       // Fiber-blocking
         println("Ping exiting")
     }
 }
@@ -33,24 +36,25 @@ class Ping(val n: Int) : Actor<Any, Unit>() {
 class Pong() : Actor<Any, Unit>() {
     Suspendable override fun doRun() {
         while (true) {
-            receive(1000, TimeUnit.MILLISECONDS) {                      // Fiber-blocking
+            // snippet Kotlin Actors example
+            receive(1000, TimeUnit.MILLISECONDS) {  // Fiber-blocking
                 when (it) {
-                    is Pair<*, *> -> {
-                        val (msg, from) = it as Pair<String, ActorRef<Any>>
-                        if (msg == "ping")
-                            from.send("pong")                           // Fiber-blocking
+                    is Msg -> {
+                        if (it.txt == "ping")
+                            it.from.send("pong")   // Fiber-blocking
                     }
                     "finished" -> {
                         println("Pong received 'finished', exiting")
-                        return                                          // Non-local return, exit actor
+                        return                      // Non-local return, exit actor
                     }
                     is Timeout -> {
                         println("Pong timeout in 'receive', exiting")
-                        return                                          // Non-local return, exit actor
+                        return                      // Non-local return, exit actor
                     }
-                    else -> defer()                                     // Don't consume the message
+                    else -> defer()                 // Don't consume the message
                 }
             }
+            // end of snippet
         }
     }
 }
