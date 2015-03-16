@@ -41,7 +41,7 @@ class Pong() : Actor<Any, Unit>() {
                 when (it) {
                     is Msg -> {
                         if (it.txt == "ping")
-                            it.from.send("pong")   // Fiber-blocking
+                            it.from.send("pong")    // Fiber-blocking
                     }
                     "finished" -> {
                         println("Pong received 'finished', exiting")
