@@ -1,0 +1,17 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:0.10.1316'
+    }
+}
+
+apply plugin: 'kotlin'
+
+dependencies {
+    compile project(':quasar-core')
+    compile project(':quasar-actors')
+
+    compile "org.jetbrains.kotlin:kotlin-stdlib:0.10.1316"
+}
