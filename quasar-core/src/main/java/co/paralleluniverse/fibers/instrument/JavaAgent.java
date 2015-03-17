@@ -128,12 +128,8 @@ public class JavaAgent {
                         instrumentor.setAllowBlocking(true);
                         break;
 
-                    case 'x':
-                        instrumentor.setReadDebugInfo(true);
-                        break;
-
                     default:
-                        throw new IllegalStateException("Usage: vdmcbx (verbose, debug, allow monitors, check class, allow blocking, read debug info)");
+                        throw new IllegalStateException("Usage: vdmcb (verbose, debug, allow monitors, check class, allow blocking)");
                 }
             }
         }
@@ -183,7 +179,7 @@ public class JavaAgent {
 
             Retransform.beforeTransform(className, classBeingRedefined, classfileBuffer);
 
-            classLoaders.add(new WeakReference<ClassLoader>(loader));
+            classLoaders.add(new WeakReference<>(loader));
 
             try {
                 final byte[] transformed = instrumentor.instrumentClass(className, classfileBuffer);

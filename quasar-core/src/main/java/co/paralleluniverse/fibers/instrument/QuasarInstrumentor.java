@@ -106,9 +106,7 @@ public final class QuasarInstrumentor {
         final InstrumentClass ic = new InstrumentClass(cv, db, forceInstrumentation);
         byte[] transformed = null;
         try {
-            int flags = ClassReader.SKIP_FRAMES;
-            if (!db.isReadDebugInfo()) flags |= ClassReader.SKIP_DEBUG;
-            r.accept(ic, flags);
+            r.accept(ic, ClassReader.SKIP_FRAMES);
             transformed = cw.toByteArray();
         } catch (Exception e) {
             if (ic.hasSuspendableMethods()) {
@@ -156,11 +154,6 @@ public final class QuasarInstrumentor {
 
     public QuasarInstrumentor setAllowBlocking(boolean allowBlocking) {
         db.setAllowBlocking(allowBlocking);
-        return this;
-    }
-
-    public QuasarInstrumentor setReadDebugInfo(boolean readDebugInfo) {
-        db.setReadDebugInfo(readDebugInfo);
         return this;
     }
 
