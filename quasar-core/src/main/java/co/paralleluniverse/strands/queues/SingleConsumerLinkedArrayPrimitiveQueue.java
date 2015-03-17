@@ -67,35 +67,9 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
     }
 
     private long peekRaw() {
-        final int blockSize = blockSize();
-        Node n = head;
-        int i = headIndex;
-        boolean hasVal = false;
-        long val = -1;
-        for (;;) {
-            if (i >= blockSize) {
-                if (tail == n)
-                    throw new NoSuchElementException();
-
-                while (n.next == null); // wait for next
-                n = n.next;
-                i = 0;
-            } else if (hasValue(n, i)) {
-                if (isDeleted(n, i))
-                    i++;
-                else {
-                    hasVal = true;
-                    val = getRaw(n, i);
-                    break;
-                }
-            } else {
-                // assert n == tail; - tail could have changed by now
-                break;
-            }
-        }
-        if (!hasVal)
+        if (!prePeek())
             throw new NoSuchElementException();
-        return val;
+        return getRaw(head, headIndex);
     }
 
     abstract void enqRaw(Node n, int i, long item);

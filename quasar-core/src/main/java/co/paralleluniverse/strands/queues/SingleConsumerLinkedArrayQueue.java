@@ -55,6 +55,61 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E> 
     abstract E value(Node n, int i);
 
     @SuppressWarnings("empty-statement")
+    boolean prePeek() {
+        final int blockSize = blockSize();
+        Node n = head;
+        int i = headIndex;
+        boolean found = false;
+        for (;;) {
+            if (i >= blockSize) {
+                if (tail == n)
+                    return false;
+
+                while (n.next == null); // wait for next
+                Node next = n.next; // can't be null because we're called by the consumer
+                clearNext(n);
+                clearPrev(next);
+
+                n = next;
+                i = 0;
+            } else if (hasValue(n, i)) {
+                if (isDeleted(n, i))
+                    i++;
+                else {
+                    found = true;
+                    break;
+                }
+            } else {
+                // assert n == tail; - tail could have changed by now
+                break;
+            }
+        }
+        orderedSetHead(n); // 
+        headIndex = i;
+        return found;
+    }
+
+    @Override
+    @SuppressWarnings("empty-statement")
+    public E peek() {
+        return prePeek() ? value(head, headIndex) : null;
+    }
+
+    @Override
+    @SuppressWarnings("empty-statement")
+    public E poll() {
+        final E val = peek();
+        if (val != null)
+            deqHead();
+        return val;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return peek() == null;
+    }
+
+    @SuppressWarnings("empty-statement")
     void deq(Node node, int index) {
         final int blockSize = blockSize();
         Node n = head;
@@ -80,52 +135,9 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E> 
         headIndex = index + 1;
     }
 
-    @Override
-    public E peek() {
-        final int blockSize = blockSize();
-        Node n = head;
-        int i = headIndex;
-        E e = null;
-        for (;;) {
-            if (i >= blockSize) {
-                if (tail == n)
-                    return null;
-
-                while (n.next == null); // wait for next
-                n = n.next;
-                i = 0;
-            } else if (hasValue(n, i)) {
-                if (isDeleted(n, i))
-                    i++;
-                else {
-                    e = value(n, i);
-                    break;
-                }
-            } else {
-                // assert n == tail; - tail could have changed by now
-                break;
-            }
-        }
-        orderedSetHead(n); // 
-        headIndex = i;
-        return e;
-    }
-
-    @Override
-    public boolean isEmpty() {
-        return peek() == null;
-    }
-
-    @Override
-    public E poll() {
-        final E val = peek();
-        if (val != null)
-            deqHead();
-        return val;
-    }
-
     void deqHead() {
-        deq(head, headIndex);
+        markDeleted(head, headIndex);
+        headIndex++;
     }
 
     boolean isHead(Node n, int i) {
