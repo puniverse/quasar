@@ -155,7 +155,7 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
         if (interfaces != null) {
             for (String iface : interfaces) {
                 MethodDatabase.ClassEntry ce = db.getOrLoadClassEntry(iface);
-                if (ce != null && isSuspendable(db, ce.getSourceName(), ce.getSourceDebugInfo(), ce.isIsInterface(), iface, ce.getSuperName(), ce.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions) == SuspendableType.SUSPENDABLE)
+                if (ce != null && isSuspendable(db, ce.getSourceName(), ce.getSourceDebugInfo(), ce.isInterface(), iface, ce.getSuperName(), ce.getInterfaces(), methodName, methodDesc, methodSignature, methodExceptions) == SuspendableType.SUSPENDABLE)
                     return SuspendableType.SUSPENDABLE;
             }
         }
