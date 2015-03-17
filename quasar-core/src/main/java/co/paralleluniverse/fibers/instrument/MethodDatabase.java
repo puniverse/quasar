@@ -78,7 +78,6 @@ public class MethodDatabase implements Log {
     private boolean allowMonitors;
     private boolean allowBlocking;
     private int logLevelMask;
-    private boolean readDebugInfo = false; // Default
 
     public MethodDatabase(ClassLoader classloader, SuspendableClassifier classifier) {
         if (classloader == null)
@@ -138,14 +137,6 @@ public class MethodDatabase implements Log {
     public void setDebug(boolean debug) {
         this.debug = debug;
         setLogLevelMask();
-    }
-
-    public void setReadDebugInfo(boolean readDebugInfo) {
-        this.readDebugInfo = readDebugInfo;
-    }
-    
-    public boolean isReadDebugInfo() {
-        return readDebugInfo;
     }
 
     private void setLogLevelMask() {
@@ -540,7 +531,7 @@ public class MethodDatabase implements Log {
             this.sourceDebugInfo = sourceDebugInfo;
         }
 
-        public boolean isIsInterface() {
+        public boolean isInterface() {
             return isInterface;
         }
 

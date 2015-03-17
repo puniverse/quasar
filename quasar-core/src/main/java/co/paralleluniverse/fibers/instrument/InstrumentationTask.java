@@ -80,13 +80,12 @@ import org.apache.tools.ant.types.FileSet;
  * @author Matthias Mann
  */
 public class InstrumentationTask extends Task {
-    private final ArrayList<FileSet> filesets = new ArrayList<FileSet>();
+    private final ArrayList<FileSet> filesets = new ArrayList<>();
     private boolean check;
     private boolean verbose;
     private boolean allowMonitors;
     private boolean allowBlocking;
     private boolean debug;
-    private boolean readDebugInfo;
     private boolean writeClasses = true;
 
     public void addFileSet(FileSet fs) {
@@ -113,14 +112,6 @@ public class InstrumentationTask extends Task {
         this.debug = debug;
     }
 
-    public boolean isReadDebugInfo() {
-        return readDebugInfo;
-    }
-
-    public void setReadDebugInfo(boolean readDebugInfo) {
-        this.readDebugInfo = readDebugInfo;
-    }
-
     public void setWriteClasses(boolean writeClasses) {
         this.writeClasses = writeClasses;
     }
@@ -137,7 +128,6 @@ public class InstrumentationTask extends Task {
             instrumentor.setCheck(check);
             instrumentor.setVerbose(verbose);
             instrumentor.setDebug(debug);
-            instrumentor.setReadDebugInfo(readDebugInfo);
             instrumentor.setAllowMonitors(allowMonitors);
             instrumentor.setAllowBlocking(allowBlocking);
             instrumentor.setLog(new Log() {
