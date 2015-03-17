@@ -28,29 +28,26 @@ import java.util.Queue;
  *
  * @author pron
  */
-public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E> implements Iterable<E>, Queue<E>, BasicSingleConsumerQueue<E> {
+public abstract class SingleConsumerQueue<E> extends AbstractCollection<E> implements Iterable<E>, Queue<E>, BasicSingleConsumerQueue<E> {
     static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
     @Override
     public abstract boolean enq(E element);
 
-    public abstract E value(Node node);
+    @Override
+    public abstract E poll();
 
-    public abstract Node pk();
+    @Override
+    public abstract E peek();
 
-    public abstract Node succ(Node node);
-
-    public abstract void deq(Node node);
-
-    public abstract Node del(Node node);
-
-    public abstract boolean allowRetainPointers();
+    @Override
+    public abstract QueueIterator<E> iterator();
 
     @Override
     public abstract int size();
 
     public abstract List<E> snapshot();
-    
+
     @Override
     public abstract int capacity();
 
@@ -58,11 +55,9 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
     public boolean hasNext() {
         return !isEmpty();
     }
-    
+
     @Override
-    public boolean isEmpty() {
-        return pk() == null;
-    }
+    public abstract boolean isEmpty();
 
     @Override
     public boolean add(E e) {
@@ -71,17 +66,17 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
     }
 
     @Override
-    public boolean removeAll(Collection<?> c) {
+    public final boolean removeAll(Collection<?> c) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean retainAll(Collection<?> c) {
+    public final boolean retainAll(Collection<?> c) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void clear() {
+    public final void clear() {
         throw new UnsupportedOperationException();
     }
 
@@ -99,16 +94,6 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
     }
 
     @Override
-    public E poll() {
-        final Node n = pk();
-        if (n == null)
-            return null;
-        final E val = value(n);
-        deq(n);
-        return val;
-    }
-
-    @Override
     public E element() {
         final E val = peek();
         if (val == null)
@@ -116,51 +101,6 @@ public abstract class SingleConsumerQueue<E, Node> extends AbstractCollection<E>
         return val;
     }
 
-    @Override
-    public E peek() {
-        final Node n = pk();
-        if (n == null)
-            return null;
-        return value(n);
-    }
-
-    @Override
-    public Iterator<E> iterator() {
-        return new QueueIterator();
-    }
-
-    public void resetIterator(Iterator<E> iter) {
-        ((QueueIterator) iter).n = null;
-    }
-
-    private class QueueIterator implements Iterator<E> {
-        private Node n;
-        private boolean hasNextCalled;
-
-        @Override
-        public boolean hasNext() {
-            Node next = succ(n);
-            hasNextCalled = true;
-            if(next != null) {// in case we want to remove the last element, we're not getting rid of the node just yet
-                n = next;
-                return true;
-            } else
-                return false;
-        }
-
-        @Override
-        public E next() {
-            if (!hasNextCalled)
-                n = succ(n);
-            hasNextCalled = false;
-            return value(n);
-        }
-
-        @Override
-        public void remove() {
-            n = del(n);
-        }
-    }
 
     @Override
     public String toString() {

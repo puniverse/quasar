@@ -13,9 +13,8 @@
  */
 package co.paralleluniverse.strands.queues;
 
-/**
- *
- * @author pron
- */
-abstract class SingleConsumerLinkedPrimitiveQueue<E> extends SingleConsumerLinkedQueue<E> {
+public interface IntQueueIterator extends QueueIterator<Integer> {
+    int intValue();
+
+    int intNext();
 }

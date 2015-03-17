@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> implements Stranded {
     private Strand owner;
 
-    public SingleConsumerQueueChannel(SingleConsumerQueue<Message, ?> queue, OverflowPolicy policy) {
+    public SingleConsumerQueueChannel(SingleConsumerQueue<Message> queue, OverflowPolicy policy) {
         super(queue, policy, true);
     }
 
@@ -59,10 +59,6 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
             assert Strand.equals(owner, Strand.currentStrand()) : "This method has been called by a different strand (" + Strand.currentStrand() + ") from that owning this object (" + owner + ")";
     }
 
-    Object tryReceiveNode() {
-        return queue().pk();
-    }
-
     protected void checkClosed() throws EOFException {
         if (isClosed()) {
             if (getCloseException() != null)
@@ -71,63 +67,13 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
         }
     }
 
-    Object receiveNode() throws EOFException, SuspendExecution, InterruptedException {
-        maybeSetCurrentStrandAsOwner();
-        Object n;
-        Object token = sync.register();
-        for (int i = 0; (n = queue().pk()) == null; i++) {
-            if (isSendClosed()) {
-                setReceiveClosed();
-                checkClosed();
-            }
-            sync.await(i);
-        }
-        sync.unregister(token);
-
-        return n;
-    }
-
-    Object receiveNode(long timeout, TimeUnit unit) throws EOFException, SuspendExecution, InterruptedException {
-        if (unit == null)
-            return receiveNode();
-        if (timeout <= 0)
-            return tryReceiveNode();
-
-        maybeSetCurrentStrandAsOwner();
-        Object n;
-
-        long left = unit.toNanos(timeout);
-        final long deadline = System.nanoTime() + left;
-
-        Object token = sync.register();
-        try {
-            for (int i = 0; (n = queue().pk()) == null; i++) {
-                if (isSendClosed()) {
-                    setReceiveClosed();
-                    checkClosed();
-                }
-                sync.await(i, left, TimeUnit.NANOSECONDS);
-
-                left = deadline - System.nanoTime();
-                if (left <= 0)
-                    return null;
-            }
-        } finally {
-            sync.unregister(token);
-        }
-        return n;
-    }
-
     @Override
     public Message tryReceive() {
         if (isClosed())
             return null;
-        final Object n = tryReceiveNode();
-        if (n == null)
-            return null;
-        final Message m = queue().value(n);
-        queue().deq(n);
-        signalSenders();
+        final Message m = queue().poll();
+        if (m != null)
+            signalSenders();
         return m;
     }
 
@@ -136,9 +82,18 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
         if (isClosed())
             return null;
         try {
-            final Object n = receiveNode();
-            final Message m = queue().value(n);
-            queue().deq(n);
+            maybeSetCurrentStrandAsOwner();
+            Message m;
+            Object token = sync.register();
+            for (int i = 0; (m = queue().poll()) == null; i++) {
+                if (isSendClosed()) {
+                    setReceiveClosed();
+                    checkClosed();
+                }
+                sync.await(i);
+            }
+            sync.unregister(token);
+
             signalSenders();
             return m;
         } catch (EOFException e) {
@@ -150,21 +105,44 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
     public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         if (isClosed())
             return null;
+        if (unit == null)
+            return receive();
+        if (timeout <= 0)
+            return tryReceive();
         try {
-            final Object n = receiveNode(timeout, unit);
-            if (n == null)
-                return null; // timeout
-            final Message m = queue().value(n);
-            queue().deq(n);
-            signalSenders();
+            maybeSetCurrentStrandAsOwner();
+            Message m;
+
+            long left = unit.toNanos(timeout);
+            final long deadline = System.nanoTime() + left;
+
+            Object token = sync.register();
+            try {
+                for (int i = 0; (m = queue().poll()) == null; i++) {
+                    if (isSendClosed()) {
+                        setReceiveClosed();
+                        checkClosed();
+                    }
+                    sync.await(i, left, TimeUnit.NANOSECONDS);
+
+                    left = deadline - System.nanoTime();
+                    if (left <= 0)
+                        break;
+                }
+            } finally {
+                sync.unregister(token);
+            }
+
+            if (m != null)
+                signalSenders();
             return m;
         } catch (EOFException e) {
             return null;
         }
     }
 
-    protected SingleConsumerQueue<Message, Object> queue() {
-        return (SingleConsumerQueue<Message, Object>) queue;
+    protected SingleConsumerQueue<Message> queue() {
+        return (SingleConsumerQueue<Message>) queue;
     }
 
     @Override

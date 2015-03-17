@@ -17,8 +17,7 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-public class SingleConsumerLinkedArrayIntQueue extends SingleConsumerLinkedArrayWordQueue<Integer>
-        implements SingleConsumerIntQueue<SingleConsumerLinkedArrayQueue.ElementPointer>, BasicSingleConsumerIntQueue {
+public class SingleConsumerLinkedArrayIntQueue extends SingleConsumerLinkedArrayWordQueue<Integer> implements BasicSingleConsumerIntQueue {
     @Override
     public boolean enq(int element) {
         return enqRaw(element);
@@ -31,23 +30,33 @@ public class SingleConsumerLinkedArrayIntQueue extends SingleConsumerLinkedArray
 
     @Override
     Integer value(Node n, int i) {
-        return intValue(n ,i);
+        return intValue(n, i);
     }
 
-    @Override
-    public int intValue(ElementPointer node) {
-        return intValue(node.n, node.i);
-    }
-
-    private int intValue(Node n, int i) {
+    int intValue(Node n, int i) {
         return rawValue(n, i);
     }
 
     @Override
     public int pollInt() {
-        final ElementPointer n = pk();
-        final int val = intValue(n);
-        deq(n);
-        return val;
+        return (int)pollRaw();
+    }
+
+    @Override
+    public IntQueueIterator iterator() {
+        return new IntLinkedArrayQueueIterator();
+    }
+
+    private class IntLinkedArrayQueueIterator extends LinkedArrayQueueIterator implements IntQueueIterator {
+        @Override
+        public int intValue() {
+            return SingleConsumerLinkedArrayIntQueue.this.intValue(n, i);
+        }
+
+        @Override
+        public int intNext() {
+            preNext();
+            return intValue();
+        }
     }
 }

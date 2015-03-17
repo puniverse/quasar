@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -23,7 +23,7 @@ import sun.misc.Unsafe;
  *
  * @author pron
  */
-abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, SingleConsumerLinkedQueue.Node<E>> {
+abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E> {
     private static final boolean DUMMY_NODE_ALGORITHM = false;
     volatile Node head;
     volatile Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
@@ -37,14 +37,27 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
     }
 
     @Override
-    public boolean allowRetainPointers() {
-        return true;
-    }
-
-    @Override
     public int capacity() {
         return -1;
     }
+
+    @Override
+    public E poll() {
+        final Node<E> n = pk();
+        if (n == null)
+            return null;
+        final E v = value(n);
+        deq(n);
+        return v;
+    }
+
+    @Override
+    public E peek() {
+        final Node<E> n = pk();
+        return n != null ? value(n) : null;
+    }
+
+    abstract E value(Node<E> node);
 
     abstract Node newNode();
 
@@ -62,8 +75,7 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
     }
 
     @SuppressWarnings("empty-statement")
-    @Override
-    public void deq(final Node<E> node) {
+    void deq(final Node<E> node) {
         clearValue(node);
 
         if (DUMMY_NODE_ALGORITHM) {
@@ -87,8 +99,7 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
         }
     }
 
-    @Override
-    public Node<E> pk() {
+    Node<E> pk() {
         if (DUMMY_NODE_ALGORITHM) {
             return succ(head);
         } else {
@@ -111,8 +122,7 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
     }
 
     @SuppressWarnings("empty-statement")
-    @Override
-    public Node<E> succ(final Node<E> node) {
+    Node<E> succ(final Node<E> node) {
         if (node == null)
             return pk();
         if (tail == node)
@@ -124,8 +134,7 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
     }
 
     @SuppressWarnings("empty-statement")
-    @Override
-    public Node<E> del(Node<E> node) {
+    Node<E> del(Node<E> node) {
         if (isHead(node)) {
             deq(node);
             return null;
@@ -146,6 +155,11 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
         clearNext(node);
         clearPrev(node);
         return prev;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return pk() == null;
     }
 
     @Override
@@ -187,7 +201,7 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
 //                count++;
 //        }
     }
-    
+
     @Override
     public List<E> snapshot() {
         final ArrayList<E> list = new ArrayList<E>();
@@ -196,7 +210,7 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
                 if (p.prev == null)
                     break;
             }
-            list.add((E)value(p));
+            list.add((E) value(p));
         }
         return Lists.reverse(list);
     }
@@ -204,6 +218,46 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E, Singl
     public static class Node<E> {
         volatile Node next;
         volatile Node prev;
+    }
+
+    @Override
+    public QueueIterator<E> iterator() {
+        return new LinkedQueueIterator();
+    }
+
+    class LinkedQueueIterator implements QueueIterator<E> {
+        Node<E> n = null;
+
+        @Override
+        public boolean hasNext() {
+            return succ(n) != null;
+        }
+
+        @Override
+        public E value() {
+            return SingleConsumerLinkedQueue.this.value(n);
+        }
+
+        @Override
+        public void deq() {
+            SingleConsumerLinkedQueue.this.deq(n);
+        }
+
+        @Override
+        public void reset() {
+            n = null;
+        }
+
+        @Override
+        public E next() {
+            n = succ(n);
+            return value();
+        }
+
+        @Override
+        public void remove() {
+            n = del(n);
+        }
     }
     ////////////////////////////////////////////////////////////////////////
     static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();

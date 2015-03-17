@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -33,14 +33,14 @@ import org.junit.runners.Parameterized;
  */
 @RunWith(Parameterized.class)
 public class SingleConsumerPrimitiveQueueTest {
-    final SingleConsumerQueue<Integer, ?> wordQueue;
-    final SingleConsumerQueue<Double, ?> dwordQueue;
+    final SingleConsumerQueue<Integer> wordQueue;
+    final SingleConsumerQueue<Double> dwordQueue;
 
 //    public SingleConsumerPrimitiveQueueTest() {
 //        this.wordQueue = new SingleConsumerLinkedArrayIntQueue();
 //        this.dwordQueue = new SingleConsumerLinkedArrayDoubleQueue();
 //    }
-
+    
     public SingleConsumerPrimitiveQueueTest(int queueType) {
         switch (queueType) {
             case 1:
@@ -71,7 +71,7 @@ public class SingleConsumerPrimitiveQueueTest {
         testEmptyQueue(dwordQueue);
     }
 
-    private void testEmptyQueue(SingleConsumerQueue<?, ?> queue) {
+    private void testEmptyQueue(SingleConsumerQueue<?> queue) {
         assertThat(queue.size(), is(0));
         assertTrue(queue.isEmpty());
         assertThat(queue.peek(), is(nullValue()));
@@ -96,6 +96,7 @@ public class SingleConsumerPrimitiveQueueTest {
 
         assertThat(wordQueue.isEmpty(), is(false));
         assertThat(wordQueue.size(), is(3));
+        assertThat(wordQueue.peek(), is(1));
         assertThat(list(wordQueue), is(equalTo(list(1, 2, 3))));
 
         dwordQueue.offer(1.2);
@@ -171,7 +172,6 @@ public class SingleConsumerPrimitiveQueueTest {
         }
 
         assertThat(list(wordQueue), is(equalTo(list(3, 7, 10, 12))));
-
 
         j = 1;
         k = 1;
@@ -265,16 +265,15 @@ public class SingleConsumerPrimitiveQueueTest {
             wordQueue.offer(3);
             wordQueue.offer(4);
 
-            Iterator<Integer> it = wordQueue.iterator();
+            QueueIterator<Integer> it = wordQueue.iterator();
             while (it.hasNext())
                 it.next();
             it.remove();
 
-            wordQueue.resetIterator(it);
+            it.reset();
             while (it.hasNext())
                 it.next();
             it.remove();
-
 
             assertThat(wordQueue.size(), is(2));
             assertThat(list(wordQueue), is(equalTo(list(1, 2))));
@@ -282,12 +281,12 @@ public class SingleConsumerPrimitiveQueueTest {
             wordQueue.offer(5);
             wordQueue.offer(6);
 
-            wordQueue.resetIterator(it);
+            it.reset();
             while (it.hasNext())
                 it.next();
             it.remove();
 
-            wordQueue.resetIterator(it);
+            it.reset();
             while (it.hasNext())
                 it.next();
             it.remove();
@@ -302,16 +301,15 @@ public class SingleConsumerPrimitiveQueueTest {
             dwordQueue.offer(3.4);
             dwordQueue.offer(4.5);
 
-            Iterator<Double> it = dwordQueue.iterator();
+            QueueIterator<Double> it = dwordQueue.iterator();
             while (it.hasNext())
                 it.next();
             it.remove();
 
-            dwordQueue.resetIterator(it);
+            it.reset();
             while (it.hasNext())
                 it.next();
             it.remove();
-
 
             assertThat(dwordQueue.size(), is(2));
             assertThat(list(dwordQueue), is(equalTo(list(1.2, 2.3))));
@@ -319,12 +317,12 @@ public class SingleConsumerPrimitiveQueueTest {
             dwordQueue.offer(5.6);
             dwordQueue.offer(6.7);
 
-            dwordQueue.resetIterator(it);
+            it.reset();
             while (it.hasNext())
                 it.next();
             it.remove();
 
-            dwordQueue.resetIterator(it);
+            it.reset();
             while (it.hasNext())
                 it.next();
             it.remove();

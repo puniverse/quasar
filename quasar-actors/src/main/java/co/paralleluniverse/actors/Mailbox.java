@@ -19,6 +19,7 @@ import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.channels.SingleConsumerQueueChannel;
 import co.paralleluniverse.strands.queues.SingleConsumerArrayObjectQueue;
 import co.paralleluniverse.strands.queues.SingleConsumerLinkedArrayObjectQueue;
+import co.paralleluniverse.strands.queues.SingleConsumerQueue;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -63,16 +64,8 @@ public final class Mailbox<Message> extends SingleConsumerQueueChannel<Message> 
         return false;
     }
 
-    public Object succ(Object n) {
-        return queue().succ(n);
-    }
-
-    public Object del(Object n) {
-        return queue().del(n);
-    }
-
-    public Message value(Object n) {
-        return queue().value(n);
+    protected SingleConsumerQueue<Message> queue() {
+        return super.queue();
     }
 
     @Override
@@ -107,7 +100,7 @@ public final class Mailbox<Message> extends SingleConsumerQueueChannel<Message> 
             return new SerializedMailbox(config);
         if (!actor.isStarted())
             throw new IllegalStateException("Owning actor " + actor + " not started");
-        
+
         return RemoteChannelProxyFactoryService.create(this, actor.getGlobalId());
     }
 

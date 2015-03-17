@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -17,8 +17,7 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-public class SingleConsumerLinkedFloatQueue extends SingleConsumerLinkedWordQueue<Float>
-        implements SingleConsumerFloatQueue<SingleConsumerLinkedQueue.Node<Float>>, BasicSingleConsumerFloatQueue {
+public class SingleConsumerLinkedFloatQueue extends SingleConsumerLinkedWordQueue<Float> implements BasicSingleConsumerFloatQueue {
     @Override
     public boolean enq(float item) {
         return enqRaw(Float.floatToRawIntBits(item));
@@ -31,13 +30,12 @@ public class SingleConsumerLinkedFloatQueue extends SingleConsumerLinkedWordQueu
         return enq(item.floatValue());
     }
 
-    @Override
-    public float floatValue(Node<Float> node) {
+    float floatValue(Node<Float> node) {
         return Float.intBitsToFloat(rawValue(node));
     }
 
     @Override
-    public Float value(Node<Float> node) {
+    Float value(Node<Float> node) {
         return floatValue(node);
     }
 
@@ -47,5 +45,23 @@ public class SingleConsumerLinkedFloatQueue extends SingleConsumerLinkedWordQueu
         final float val = floatValue(n);
         deq(n);
         return val;
+    }
+
+    @Override
+    public FloatQueueIterator iterator() {
+        return new FloatLinkedQueueIterator();
+    }
+
+    private class FloatLinkedQueueIterator extends LinkedQueueIterator implements FloatQueueIterator {
+        @Override
+        public float floatValue() {
+            return SingleConsumerLinkedFloatQueue.this.floatValue(n);
+        }
+
+        @Override
+        public float floatNext() {
+            n = succ(n);
+            return floatValue();
+        }
     }
 }

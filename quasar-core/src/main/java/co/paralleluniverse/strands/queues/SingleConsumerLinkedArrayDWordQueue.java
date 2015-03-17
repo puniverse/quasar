@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -25,11 +25,14 @@ abstract class SingleConsumerLinkedArrayDWordQueue<E> extends SingleConsumerLink
         return BLOCK_SIZE;
     }
 
-    public boolean enqRaw(long item) {
-        ElementPointer ep = preEnq();
-        ((DWordNode) ep.n).array[ep.i] = item;
-        postEnq(ep.n, ep.i);
-        return true;
+    @Override
+    void enqRaw(Node n, int i, long item) {
+        ((DWordNode) n).array[i] = item;
+    }
+
+    @Override
+    long getRaw(Node n, int i) {
+        return rawValue(n, i);
     }
 
     long rawValue(Node n, int i) {

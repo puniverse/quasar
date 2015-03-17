@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -13,20 +13,28 @@
  */
 package co.paralleluniverse.strands.queues;
 
+import java.util.NoSuchElementException;
+
 /**
  *
  * @author pron
  */
 public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleConsumerLinkedArrayQueue<E> {
-    final ElementPointer preEnq() {
+
+    boolean enqRaw(long item) {
+        final Node node;
+        final int index;
         final int blockSize = blockSize();
         for (;;) {
             final PrimitiveNode t = (PrimitiveNode) tail;
             final int i = t.tailIndex;
 
             if (i < blockSize) {
-                if (compareAndSetTailIndex(t, i, i + 1))
-                    return new ElementPointer(t, i);
+                if (compareAndSetTailIndex(t, i, i + 1)) {
+                    node = t;
+                    index = i;
+                    break;
+                }
                 backoff();
             } else {
                 Node n = newNode();
@@ -37,20 +45,62 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
                     backoff();
             }
         }
-    }
 
-    @SuppressWarnings("empty-statement")
-    final void postEnq(Node n1, int i) {
+        enqRaw(node, index, item);
+
         if (true) {
-            final PrimitiveNode n = (PrimitiveNode) n1;
-            while (n.maxReadIndex != i)
+            final PrimitiveNode n = (PrimitiveNode) node;
+            while (n.maxReadIndex != index)
             ;
-            n.maxReadIndex = i + 1;
+            n.maxReadIndex = index + 1;
         } else {
-            while (!compareAndSetMaxReadIndex(n1, i, i + 1))
+            while (!compareAndSetMaxReadIndex(node, index, index + 1))
             ;
         }
+        return true;
     }
+
+    long pollRaw() {
+        final long raw = peekRaw();
+        deqHead();
+        return raw;
+    }
+
+    private long peekRaw() {
+        final int blockSize = blockSize();
+        Node n = head;
+        int i = headIndex;
+        boolean hasVal = false;
+        long val = -1;
+        for (;;) {
+            if (i >= blockSize) {
+                if (tail == n)
+                    throw new NoSuchElementException();
+
+                while (n.next == null); // wait for next
+                n = n.next;
+                i = 0;
+            } else if (hasValue(n, i)) {
+                if (isDeleted(n, i))
+                    i++;
+                else {
+                    hasVal = true;
+                    val = getRaw(n, i);
+                    break;
+                }
+            } else {
+                // assert n == tail; - tail could have changed by now
+                break;
+            }
+        }
+        if (!hasVal)
+            throw new NoSuchElementException();
+        return val;
+    }
+
+    abstract void enqRaw(Node n, int i, long item);
+
+    abstract long getRaw(Node n, int i);
 
     @Override
     boolean hasValue(Node n, int index) {
