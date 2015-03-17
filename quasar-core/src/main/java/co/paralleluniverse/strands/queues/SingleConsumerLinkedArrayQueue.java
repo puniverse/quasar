@@ -218,8 +218,11 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E> 
 
         @Override
         public boolean hasNext() {
-            hasNextCalled = true;
-            return succ();
+            if (succ()) {
+                hasNextCalled = true;
+                return true;
+            }
+            return false;
         }
 
         @Override
