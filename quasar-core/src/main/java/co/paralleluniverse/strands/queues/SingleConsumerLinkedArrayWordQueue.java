@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -19,19 +19,23 @@ package co.paralleluniverse.strands.queues;
  */
 abstract class SingleConsumerLinkedArrayWordQueue<E> extends SingleConsumerLinkedArrayPrimitiveQueue<E> {
     public static final int BLOCK_SIZE = 8;
+    private static final long MASK = 0xFFFFFFFF;
 
     @Override
     int blockSize() {
         return BLOCK_SIZE;
     }
 
-    public boolean enqRaw(int item) {
-       ElementPointer ep = preEnq();
-        ((WordNode) ep.n).array[ep.i] = item;
-        postEnq(ep.n, ep.i);
-        return true;
+    @Override
+    void enqRaw(Node n, int i, long item) {
+        ((WordNode) n).array[i] = (int) item;
     }
-    
+
+    @Override
+    long getRaw(Node n, int i) {
+        return rawValue(n, i) & MASK;
+    }
+
     int rawValue(Node n, int i) {
         return ((WordNode) n).array[i];
     }

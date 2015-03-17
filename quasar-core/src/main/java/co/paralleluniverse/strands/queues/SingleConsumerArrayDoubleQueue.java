@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -17,8 +17,7 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-public class SingleConsumerArrayDoubleQueue extends SingleConsumerArrayDWordQueue<Double>
-        implements SingleConsumerDoubleQueue<Integer>, BasicSingleConsumerDoubleQueue {
+public class SingleConsumerArrayDoubleQueue extends SingleConsumerArrayDWordQueue<Double> implements BasicSingleConsumerDoubleQueue {
     public SingleConsumerArrayDoubleQueue(int capacity) {
         super(capacity);
     }
@@ -35,25 +34,39 @@ public class SingleConsumerArrayDoubleQueue extends SingleConsumerArrayDWordQueu
         return enq(item.doubleValue());
     }
 
-    public double doubleValue(int index) {
+    double doubleValue(int index) {
         return Double.longBitsToDouble(rawValue(index));
     }
 
     @Override
-    public Double value(int index) {
+    Double value(int index) {
         return doubleValue(index);
     }
 
     @Override
-    public double doubleValue(Integer node) {
-        return doubleValue(node.intValue());
-    }
-
-    @Override
     public double pollDouble() {
-        final Integer n = pk();
+        final int n = pk();
         final double val = doubleValue(n);
         deq(n);
         return val;
+    }
+
+    @Override
+    public DoubleQueueIterator iterator() {
+        return new DoubleArrayQueueIterator();
+    }
+
+    private class DoubleArrayQueueIterator extends ArrayQueueIterator implements DoubleQueueIterator {
+
+        @Override
+        public double doubleValue() {
+            return SingleConsumerArrayDoubleQueue.this.doubleValue(n);
+        }
+
+        @Override
+        public double doubleNext() {
+            n = succ(n);
+            return doubleValue();
+        }
     }
 }

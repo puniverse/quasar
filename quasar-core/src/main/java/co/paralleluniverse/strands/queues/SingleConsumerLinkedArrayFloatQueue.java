@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -17,8 +17,7 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-public class SingleConsumerLinkedArrayFloatQueue extends SingleConsumerLinkedArrayWordQueue<Float>
-        implements SingleConsumerFloatQueue<SingleConsumerLinkedArrayQueue.ElementPointer>, BasicSingleConsumerFloatQueue {
+public class SingleConsumerLinkedArrayFloatQueue extends SingleConsumerLinkedArrayWordQueue<Float> implements BasicSingleConsumerFloatQueue {
     @Override
     public boolean enq(float element) {
         return enqRaw(Float.floatToRawIntBits(element));
@@ -34,20 +33,30 @@ public class SingleConsumerLinkedArrayFloatQueue extends SingleConsumerLinkedArr
         return floatValue(n, i);
     }
 
-    @Override
-    public float floatValue(ElementPointer node) {
-        return floatValue(node.n, node.i);
-    }
-
-    private float floatValue(Node n, int i) {
+    float floatValue(Node n, int i) {
         return Float.intBitsToFloat(rawValue(n, i));
     }
 
     @Override
     public float pollFloat() {
-        final ElementPointer n = pk();
-        final float val = floatValue(n);
-        deq(n);
-        return val;
+        return Float.intBitsToFloat((int) pollRaw());
+    }
+
+    @Override
+    public FloatQueueIterator iterator() {
+        return new FloatLinkedArrayQueueIterator();
+    }
+
+    private class FloatLinkedArrayQueueIterator extends LinkedArrayQueueIterator implements FloatQueueIterator {
+        @Override
+        public float floatValue() {
+            return SingleConsumerLinkedArrayFloatQueue.this.floatValue(n, i);
+        }
+
+        @Override
+        public float floatNext() {
+            preNext();
+            return floatValue();
+        }
     }
 }

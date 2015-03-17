@@ -16,7 +16,6 @@ package co.paralleluniverse.strands.queues;
 import co.paralleluniverse.common.util.UtilUnsafe;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import sun.misc.Unsafe;
 
@@ -24,7 +23,7 @@ import sun.misc.Unsafe;
  *
  * @author pron
  */
-abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Integer> {
+abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E> {
     final int capacity;
     final int mask;
     volatile int p001, p002, p003, p004, p005, p006, p007;
@@ -50,17 +49,7 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
         return capacity;
     }
 
-    @Override
-    public boolean allowRetainPointers() {
-        return false;
-    }
-
-    @Override
-    public E value(Integer index) {
-        return value(index.intValue());
-    }
-
-    public abstract E value(int index);
+    abstract E value(int index);
 
     abstract int arrayLength();
 
@@ -89,11 +78,6 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
         return t;
     }
 
-    @Override
-    public void deq(Integer index) {
-        deq(index.intValue());
-    }
-
     public void deq(int index) {
         assert index == (head & mask);
         clearValue(index);
@@ -108,41 +92,42 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
         return hasNext(h, (int) h & mask);
     }
 
-    @Override
-    @SuppressWarnings("empty-statement")
-    public Integer pk() {
+    int pk() {
         final long h = head;
         final int h1 = (int) head & mask;
         if (!hasNext(h, h1))
+            return -1;
+        return h1;
+    }
+
+    @Override
+    public E poll() {
+        final int i = pk();
+        if (i < 0)
             return null;
-        return Integer.valueOf(h1);
+        final E v = value(i);
+        deq(i);
+        return v;
+    }
+
+    @Override
+    public E peek() {
+        final int i = pk();
+        return i >= 0 ? value(i) : null;
     }
 
     @SuppressWarnings("empty-statement")
-    public int succ(int index) {
-        if (index < 0) {
-            final Integer pk = pk();
-            return pk != null ? pk : -1;
-        }
-        int n1 = (int) (index + 1) & mask;
+    int succ(int index) {
+        if (index < 0)
+            return pk();
+        int n1 = (index + 1) & mask;
         long n = intToLongIndex(n1);
         if (!hasNext(n, n1))
             return -1;
         return (int) n & mask;
     }
 
-    @Override
-    public Integer succ(Integer index) {
-        final int s = succ(index != null ? index.intValue() : -1);
-        return s >= 0 ? Integer.valueOf(s) : null;
-    }
-
-    @Override
-    public Integer del(Integer index) {
-        return del(index.intValue());
-    }
-
-    public int del(int index) {
+    int del(int index) {
         if (index == ((int) head & mask)) {
             deq(index);
             return -1;
@@ -172,6 +157,11 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
     @Override
     public int size() {
         return (int) (tail - head);
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return tail == head;
     }
 
     @Override
@@ -206,17 +196,12 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
     }
 
     @Override
-    public Iterator<E> iterator() {
-        return new QueueIterator();
+    public QueueIterator<E> iterator() {
+        return new ArrayQueueIterator();
     }
 
-    @Override
-    public void resetIterator(Iterator<E> iter) {
-        ((QueueIterator) iter).n = -1;
-    }
-
-    private class QueueIterator implements Iterator<E> {
-        private int n = -1;
+    class ArrayQueueIterator implements QueueIterator<E> {
+        int n = -1;
 
         @Override
         public boolean hasNext() {
@@ -224,9 +209,24 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E, Intege
         }
 
         @Override
+        public E value() {
+            return SingleConsumerArrayQueue.this.value(n);
+        }
+
+        @Override
+        public void deq() {
+            SingleConsumerArrayQueue.this.deq(n);
+        }
+
+        @Override
+        public void reset() {
+            n = -1;
+        }
+
+        @Override
         public E next() {
             n = succ(n);
-            return value(n);
+            return value();
         }
 
         @Override

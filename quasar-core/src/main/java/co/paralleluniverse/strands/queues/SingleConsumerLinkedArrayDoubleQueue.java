@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -17,8 +17,7 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-public class SingleConsumerLinkedArrayDoubleQueue extends SingleConsumerLinkedArrayDWordQueue<Double> 
-implements SingleConsumerDoubleQueue<SingleConsumerLinkedArrayQueue.ElementPointer>, BasicSingleConsumerDoubleQueue {
+public class SingleConsumerLinkedArrayDoubleQueue extends SingleConsumerLinkedArrayDWordQueue<Double> implements BasicSingleConsumerDoubleQueue {
 
     @Override
     public boolean enq(double element) {
@@ -35,20 +34,30 @@ implements SingleConsumerDoubleQueue<SingleConsumerLinkedArrayQueue.ElementPoint
         return doubleValue(n, i);
     }
 
-    @Override
-    public double doubleValue(ElementPointer node) {
-        return doubleValue(node.n, node.i);
-    }
-    
-    private double doubleValue(Node n, int i) {
+    double doubleValue(Node n, int i) {
         return Double.longBitsToDouble(rawValue(n, i));
     }
-    
+
     @Override
     public double pollDouble() {
-        final ElementPointer n = pk();
-        final double val = doubleValue(n);
-        deq(n);
-        return val;
+        return Double.longBitsToDouble(pollRaw());
+    }
+
+    @Override
+    public DoubleQueueIterator iterator() {
+        return new DoubleLinkedArrayQueueIterator();
+    }
+
+    private class DoubleLinkedArrayQueueIterator extends LinkedArrayQueueIterator implements DoubleQueueIterator {
+        @Override
+        public double doubleValue() {
+            return SingleConsumerLinkedArrayDoubleQueue.this.doubleValue(n, i);
+        }
+
+        @Override
+        public double doubleNext() {
+            preNext();
+            return doubleValue();
+        }
     }
 }

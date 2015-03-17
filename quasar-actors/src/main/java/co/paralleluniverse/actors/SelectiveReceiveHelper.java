@@ -14,6 +14,7 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
+import co.paralleluniverse.strands.queues.QueueIterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -41,7 +42,7 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
     void setActor(Actor<Message, ?> actor) {
         this.actor = actor;
     }
-    
+
     /**
      * Performs a selective receive. This method blocks until a message that is {@link MessageProcessor#process(java.lang.Object) selected} by
      * the given {@link MessageProcessor} is available in the mailbox, and returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
@@ -92,53 +93,45 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
         final long deadline = start + left;
 
         actor.monitorResetSkippedMessages();
-        Object n = null;
+        QueueIterator<Object> it = mailbox.queue().iterator();
         for (int i = 0;; i++) {
             if (actor.flightRecorder != null)
                 actor.record(1, "SelctiveReceiveHelper", "receive", "%s waiting for a message. %s", this, timeout > 0 ? "millis left: " + TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS) : "");
 
             mailbox.lock();
-            n = mailbox.succ(n);
 
-            if (n != null) {
+            if (it.hasNext()) {
+                final Object m = it.next();
                 mailbox.unlock();
-                final Object m = mailbox.value(n);
                 if (m == currentMessage) {
-                    mailbox.del(n);
+                    it.remove();
                     continue;
                 }
 
                 actor.record(1, "SelctiveReceiveHelper", "receive", "Received %s <- %s", this, m);
                 actor.monitorAddMessage();
-                try {
-                    if (m instanceof LifecycleMessage) {
-                        mailbox.del(n);
-                        handleLifecycleMessage((LifecycleMessage) m);
-                    } else {
-                        final Message msg = (Message) m;
-                        currentMessage = msg;
-                        try {
-                            T res = proc.process(msg);
-                            if (res != null) {
-                                if (mailbox.value(n) == msg) // another call to receive from within the processor may have deleted n
-                                    mailbox.del(n);
-                                return res;
-                            }
-                        } catch (Exception e) {
-                            if (mailbox.value(n) == msg) // another call to receive from within the processor may have deleted n
-                                mailbox.del(n);
-                            throw e;
-                        } finally {
-                            currentMessage = null;
+                if (m instanceof LifecycleMessage) {
+                    it.remove();
+                    handleLifecycleMessage((LifecycleMessage) m);
+                } else {
+                    final Message msg = (Message) m;
+                    currentMessage = msg;
+                    try {
+                        T res = proc.process(msg);
+                        if (res != null) {
+                            if (it.value() == msg) // another call to receive from within the processor may have deleted msg
+                                it.remove();
+                            return res;
                         }
-                        actor.record(1, "SelctiveReceiveHelper", "receive", "%s skipped %s", this, m);
-                        actor.monitorSkippedMessage();
+                    } catch (Exception e) {
+                        if (it.value() == msg) // another call to receive from within the processor may have deleted msg
+                            it.remove();
+                        throw e;
+                    } finally {
+                        currentMessage = null;
                     }
-
-                } catch (Exception e) {
-                    if (mailbox.value(n) == m) // another call to receive from within the processor may have deleted n
-                        mailbox.del(n);
-                    throw e;
+                    actor.record(1, "SelctiveReceiveHelper", "receive", "%s skipped %s", this, m);
+                    actor.monitorSkippedMessage();
                 }
             } else {
                 try {
