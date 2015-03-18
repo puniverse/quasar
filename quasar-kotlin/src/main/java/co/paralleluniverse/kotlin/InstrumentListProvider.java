@@ -17,5 +17,5 @@ package co.paralleluniverse.kotlin;
  * @author circlespainter
  */
 public interface InstrumentListProvider {
-    public InstrumentMatcher[] getMatchList();
+    InstrumentMatcher[] getMatchList();
 }

@@ -1,3 +1,16 @@
+/*
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ *
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *
+ *   or (per the licensee's choosing)
+ *
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
+ */
 package co.paralleluniverse.kotlin
 
 import co.paralleluniverse.actors.KotlinActorSupport
@@ -9,6 +22,7 @@ import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.actors.ActorRef
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.strands.SuspendableCallable
+import co.paralleluniverse.strands.queues.QueueIterator
 
 /**
  * Ported from {@link co.paralleluniverse.actors.SelectiveReceiveHelper}
@@ -16,23 +30,27 @@ import co.paralleluniverse.strands.SuspendableCallable
  * @author circlespainter
  */
 public abstract class Actor<Message, V> : KotlinActorSupport<Message, V>() {
-    public class object {
+    public companion object {
         private object DeferException : Exception()
         public object Timeout
     }
 
-    protected var currentMessage: Message? = null
+    public enum class ReceiveOutcome {
+        DISCARD
+        DEFER
+    }
+
+    protected var currentMessage: Message = null
 
     /**
      * Higher-order selective receive
      */
-    inline protected fun receive(timeout: Long, unit: TimeUnit?, proc: (Any) -> Unit) {
-        assert(JActor.currentActor<Message, V>() == null || JActor.currentActor<Message, V>() == this)
+    inline protected fun receive(timeout: Long, unit: TimeUnit?, proc: (Any) -> ReceiveOutcome) {
+        assert(JActor.currentActor<Message, V>() == null || JActor.currentActor<Message, V>() == this, "Current actor is null or this")
 
         val mailbox = mailbox()
 
         checkThrownIn1()
-
         mailbox.maybeSetCurrentStrandAsOwner()
 
         val start = if (timeout > 0) System.nanoTime() else 0
@@ -41,52 +59,48 @@ public abstract class Actor<Message, V> : KotlinActorSupport<Message, V>() {
         val deadline = start + left
 
         monitorResetSkippedMessages()
-        var n: Any? = null
         var i: Int = 0
+        val it: QueueIterator<Any> = mailboxQueue().iterator()
         while (true) {
             if (flightRecorder != null)
-                record(1, "KotlinActor", "rcv", "%s waiting for a message. %s", this, if (timeout > 0) "millis left: " + TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS) else "")
+                record(1, "KotlinActor", "receive", "%s waiting for a message. %s", this, if (timeout > 0) "millis left: " + TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS) else "")
 
             mailbox.lock()
-            n = mailbox.succ(n)
 
-            if (n != null) {
+            if (it.hasNext()) {
+                val m = it.next()
                 mailbox.unlock()
-                val m = mailbox.value(n)
                 if (m == currentMessage) {
-                    mailbox.del(n)
+                    it.remove()
                     continue
                 }
 
-                record(1, "KotlinActor", "rcv", "Received %s <- %s", this, m)
+                record(1, "KotlinActor", "receive", "Received %s <- %s", this, m)
                 monitorAddMessage()
-                try {
-                    if (m is LifecycleMessage) {
-                        mailbox.del(n)
-                        handleLifecycleMessage(m)
-                    } else {
-                        val msg: Message = m as Message
-                        currentMessage = msg
-                        try {
-                            proc(msg)
-                            if (mailbox.value(n) == msg) // another call to receive from within the processor may have deleted n
-                                mailbox.del(n)
-                        } catch (d: DeferException) {
-                            // Skip
-                        } catch (e: Exception) {
-                            if (mailbox.value(n) == msg) // another call to receive from within the processor may have deleted n
-                                mailbox.del(n)
-                            throw e
-                        } finally {
-                            currentMessage = null
+                if (m is LifecycleMessage) {
+                    it.remove()
+                    handleLifecycleMessage(m)
+                } else {
+                    [suppress("UNCHECKED_CAST")]
+                    val msg: Message = m as Message
+                    currentMessage = msg
+                    try {
+                        when (proc(msg)) {
+                            ReceiveOutcome.DISCARD ->
+                                if (it.value() == msg) // another call to receive from within the processor may have deleted n
+                                    it.remove()
+                            ReceiveOutcome.DEFER -> // Skip
+                                {}
                         }
-                        record(1, "KotlinActor", "rcv", "%s skipped %s", this, m)
-                        monitorSkippedMessage()
+                    } catch (e: Exception) {
+                        if (it.value() == msg) // another call to receive from within the processor may have deleted n
+                            it.remove()
+                        throw e
+                    } finally {
+                        currentMessage = null
                     }
-                } catch (e: Exception) {
-                    if (mailbox.value(n) == m) // another call to receive from within the processor may have deleted n
-                        mailbox.del(n)
-                    throw e
+                    record(1, "KotlinActor", "receive", "%s skipped %s", this, m)
+                    monitorSkippedMessage()
                 }
             } else {
                 try {
@@ -98,7 +112,7 @@ public abstract class Actor<Message, V> : KotlinActorSupport<Message, V>() {
                         now = System.nanoTime()
                         left = deadline - now
                         if (left <= 0) {
-                            record(1, "KotlinActor", "rcv", "%s timed out.", this)
+                            record(1, "KotlinActor", "receive", "%s timed out.", this)
                             proc(Timeout)
                         }
                     }
@@ -108,16 +122,13 @@ public abstract class Actor<Message, V> : KotlinActorSupport<Message, V>() {
             }
         }
     }
-
-    Suspendable protected fun defer() {
-        throw DeferException;
-    }
 }
 
 // A couple of top-level utils
 
 Suspendable public fun spawn(a: JActor<*, *>): ActorRef<*> {
-    Fiber(a as SuspendableCallable<Object>).start()
+    [suppress("UNCHECKED_CAST")]
+    Fiber(a as SuspendableCallable<Any>).start()
     return a.ref()
 }
 

@@ -1,3 +1,16 @@
+/*
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ *
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *
+ *   or (per the licensee's choosing)
+ *
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
+ */
 package co.paralleluniverse.kotlin.fibers.lang
 
 import org.junit.After
@@ -52,6 +65,7 @@ public class OOTest {
         // [Suspendable] { Fiber.sleep(1) }
 
         open Suspendable fun doSleep() {
+            data
             Fiber.sleep(10)
         }
     }
@@ -98,7 +112,7 @@ public class OOTest {
         }
     }
 
-    class object : DerivedDerived2(), BaseTrait1 {
+    companion object : DerivedDerived2(), BaseTrait1 {
         override Suspendable fun doSleep() {
             super<DerivedDerived2>.doSleep()
         }
@@ -118,6 +132,7 @@ public class OOTest {
 
     enum class E(val data: Int?) {
         [Suspendable] open fun enumFun() {
+            data
             Fiber.sleep(10)
         }
 
@@ -230,7 +245,7 @@ public class OOTest {
     Test public fun testOODefObject() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
             Suspendable override fun run(): Boolean {
-                OOTest.Default.doSleep()
+                OOTest.Companion.doSleep()
                 return true
             }
         }).start().get())

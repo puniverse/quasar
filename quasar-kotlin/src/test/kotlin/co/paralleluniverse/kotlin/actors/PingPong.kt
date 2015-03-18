@@ -1,3 +1,16 @@
+/*
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ *
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *
+ *   or (per the licensee's choosing)
+ *
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
+ */
 package actors
 
 import co.paralleluniverse.actors.*
@@ -5,7 +18,8 @@ import co.paralleluniverse.fibers.Suspendable
 import org.junit.Test
 import java.util.concurrent.TimeUnit
 import co.paralleluniverse.kotlin.Actor
-import co.paralleluniverse.kotlin.Actor.Default.Timeout
+import co.paralleluniverse.kotlin.Actor.ReceiveOutcome.*
+import co.paralleluniverse.kotlin.Actor.Companion.Timeout
 import co.paralleluniverse.kotlin.*
 
 /**
@@ -42,6 +56,7 @@ class Pong() : Actor<Any, Unit>() {
                     is Msg -> {
                         if (it.txt == "ping")
                             it.from.send("pong")    // Fiber-blocking
+                        DISCARD
                     }
                     "finished" -> {
                         println("Pong received 'finished', exiting")
@@ -51,7 +66,7 @@ class Pong() : Actor<Any, Unit>() {
                         println("Pong timeout in 'receive', exiting")
                         return                      // Non-local return, exit actor
                     }
-                    else -> defer()                 // Don't consume the message
+                    else -> DEFER
                 }
             }
             // end of snippet
