@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -17,8 +17,7 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-public class SingleConsumerLinkedArrayLongQueue extends SingleConsumerLinkedArrayDWordQueue<Long>
-        implements SingleConsumerLongQueue<SingleConsumerLinkedArrayQueue.ElementPointer>, BasicSingleConsumerLongQueue {
+public class SingleConsumerLinkedArrayLongQueue extends SingleConsumerLinkedArrayDWordQueue<Long> implements BasicSingleConsumerLongQueue {
     @Override
     public boolean enq(long element) {
         return enqRaw(element);
@@ -34,20 +33,30 @@ public class SingleConsumerLinkedArrayLongQueue extends SingleConsumerLinkedArra
         return longValue(n, i);
     }
 
-    @Override
-    public long longValue(ElementPointer node) {
-        return longValue(node.n, node.i);
-    }
-
-    private long longValue(Node n, int i) {
-        return rawValue(n ,i);
+    long longValue(Node n, int i) {
+        return rawValue(n, i);
     }
 
     @Override
     public long pollLong() {
-        final ElementPointer n = pk();
-        final long val = longValue(n);
-        deq(n);
-        return val;
+        return pollRaw();
+    }
+
+    @Override
+    public LongQueueIterator iterator() {
+        return new LongLinkedArrayQueueIterator();
+    }
+
+    private class LongLinkedArrayQueueIterator extends LinkedArrayQueueIterator implements LongQueueIterator {
+        @Override
+        public long longValue() {
+            return SingleConsumerLinkedArrayLongQueue.this.longValue(n, i);
+        }
+
+        @Override
+        public long longNext() {
+            preNext();
+            return longValue();
+        }
     }
 }

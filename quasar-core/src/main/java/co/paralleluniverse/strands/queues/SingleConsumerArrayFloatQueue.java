@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -17,8 +17,7 @@ package co.paralleluniverse.strands.queues;
  *
  * @author pron
  */
-public class SingleConsumerArrayFloatQueue extends SingleConsumerArrayWordQueue<Float>
-        implements SingleConsumerFloatQueue<Integer>, BasicSingleConsumerFloatQueue {
+public class SingleConsumerArrayFloatQueue extends SingleConsumerArrayWordQueue<Float> implements BasicSingleConsumerFloatQueue {
     public SingleConsumerArrayFloatQueue(int capacity) {
         super(capacity);
     }
@@ -35,25 +34,39 @@ public class SingleConsumerArrayFloatQueue extends SingleConsumerArrayWordQueue<
         return enq(item.floatValue());
     }
 
-    public float floatValue(int index) {
+    float floatValue(int index) {
         return Float.intBitsToFloat(rawValue(index));
     }
 
     @Override
-    public Float value(int index) {
+    Float value(int index) {
         return floatValue(index);
     }
 
     @Override
-    public float floatValue(Integer node) {
-        return floatValue(node.intValue());
-    }
-
-    @Override
     public float pollFloat() {
-        final Integer n = pk();
+        final int n = pk();
         final float val = floatValue(n);
         deq(n);
         return val;
+    }
+
+    @Override
+    public FloatQueueIterator iterator() {
+        return new FloatArrayQueueIterator();
+    }
+
+    private class FloatArrayQueueIterator extends ArrayQueueIterator implements FloatQueueIterator {
+
+        @Override
+        public float floatValue() {
+            return SingleConsumerArrayFloatQueue.this.floatValue(n);
+        }
+
+        @Override
+        public float floatNext() {
+            n = succ(n);
+            return floatValue();
+        }
     }
 }

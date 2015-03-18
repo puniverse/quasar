@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -17,13 +17,14 @@ import co.paralleluniverse.common.util.UtilUnsafe;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import sun.misc.Unsafe;
 
 /**
  *
  * @author pron
  */
-abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, SingleConsumerLinkedArrayQueue.ElementPointer> {
+abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E> {
     volatile Node head;
     int headIndex;
     volatile Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
@@ -34,11 +35,6 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
     @SuppressWarnings("OverridableMethodCallInConstructor")
     public SingleConsumerLinkedArrayQueue() {
         tail = head = newNode();
-    }
-
-    @Override
-    public boolean allowRetainPointers() {
-        return true;
     }
 
     @Override
@@ -59,17 +55,71 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
     abstract E value(Node n, int i);
 
     @SuppressWarnings("empty-statement")
-    @Override
-    public void deq(ElementPointer ep) {
+    boolean prePeek() {
         final int blockSize = blockSize();
-        int i = headIndex;
         Node n = head;
+        int i = headIndex;
+        boolean found = false;
         for (;;) {
-            int maxI = (n != ep.n ? blockSize - 1 : ep.i);
+            if (i >= blockSize) {
+                if (tail == n)
+                    return false;
+
+                while (n.next == null); // wait for next
+                Node next = n.next; // can't be null because we're called by the consumer
+                clearNext(n);
+                clearPrev(next);
+
+                n = next;
+                i = 0;
+            } else if (hasValue(n, i)) {
+                if (isDeleted(n, i))
+                    i++;
+                else {
+                    found = true;
+                    break;
+                }
+            } else {
+                // assert n == tail; - tail could have changed by now
+                break;
+            }
+        }
+        orderedSetHead(n); // 
+        headIndex = i;
+        return found;
+    }
+
+    @Override
+    @SuppressWarnings("empty-statement")
+    public E peek() {
+        return prePeek() ? value(head, headIndex) : null;
+    }
+
+    @Override
+    @SuppressWarnings("empty-statement")
+    public E poll() {
+        final E val = peek();
+        if (val != null)
+            deqHead();
+        return val;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return peek() == null;
+    }
+
+    @SuppressWarnings("empty-statement")
+    void deq(Node node, int index) {
+        final int blockSize = blockSize();
+        Node n = head;
+        int i = headIndex;
+        for (;;) {
+            int maxI = (n != node ? blockSize - 1 : index);
             for (; i <= maxI; i++)
                 markDeleted(n, i);
 
-            if (n != ep.n) {
+            if (n != node) {
                 Node next = n.next; // can't be null because we're called by the consumer
                 clearNext(n);
                 clearPrev(next);
@@ -82,75 +132,26 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
 
         // if (head != n) head = n; // save the volatile write
         orderedSetHead(n); // 
-        headIndex = ep.i + 1;
+        headIndex = index + 1;
     }
 
-    @Override
-    public ElementPointer pk() {
-        return current(new ElementPointer(head, headIndex));
+    void deqHead() {
+        markDeleted(head, headIndex);
+        headIndex++;
     }
 
-    @Override
-    public ElementPointer succ(ElementPointer ep) {
-        if (ep == null)
-            return pk();
-
-        ep.i++;
-        if (current(ep) == null) {
-            ep.i--; // restore ep
-            return null;
-        } else
-            return ep;
+    boolean isHead(Node n, int i) {
+        return n == head & i == headIndex;
     }
 
-    @SuppressWarnings("empty-statement")
-    private ElementPointer current(ElementPointer ep) {
-        final int blockSize = blockSize();
-        int i = ep.i;
-        Node n = ep.n;
-        for (;;) {
-            if (i >= blockSize) {
-                if (tail == n)
-                    return null;
-
-                while (n.next == null); // wait for next
-                n = n.next;
-                i = 0;
-            } else if (hasValue(n, i)) {
-                if (isDeleted(n, i))
-                    i++;
-                else {
-                    ep.i = i;
-                    ep.n = n;
-                    return ep;
-                }
-            } else {
-                // assert n == tail; - tail could have changed by now
-                return null;
-            }
-        }
-    }
-
-    boolean isHead(ElementPointer ep) {
-        return ep.n == head & ep.i == headIndex;
-    }
-
-    @Override
-    public final E value(ElementPointer ep) {
-        // called after hasValue so no need for a volatile read
-        return value(ep.n, ep.i);
-    }
-
-    @SuppressWarnings("empty-statement")
-    @Override
-    public ElementPointer del(ElementPointer ep) {
-        if (isHead(ep)) {
-            deq(ep);
-            return null;
+    boolean del(Node n, int i) {
+        if (isHead(n, i)) {
+            deq(n, i);
+            return false;
         }
 
-        markDeleted(ep.n, ep.i);
-        return ep;
+        markDeleted(n, i);
+        return true;
     }
 
     @Override
@@ -208,16 +209,98 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E, 
         volatile Node prev;
     }
 
-    // mutable!
-    public static class ElementPointer {
+    @Override
+    public QueueIterator<E> iterator() {
+        return new LinkedArrayQueueIterator();
+    }
+
+    class LinkedArrayQueueIterator implements QueueIterator<E> {
         Node n;
         int i;
+        private boolean hasNextCalled;
 
-        public ElementPointer(Node n, int i) {
+        LinkedArrayQueueIterator(Node n, int i) {
             this.n = n;
             this.i = i;
         }
+
+        LinkedArrayQueueIterator() {
+            this(null, -1);
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (succ()) {
+                hasNextCalled = true;
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public E next() {
+            preNext();
+            return value();
+        }
+
+        final void preNext() {
+            if (!hasNextCalled)
+                if (!succ())
+                    throw new NoSuchElementException();
+            hasNextCalled = false;
+        }
+
+        @Override
+        public void remove() {
+            del(n, i);
+        }
+
+        @Override
+        public E value() {
+            return SingleConsumerLinkedArrayQueue.this.value(n, i);
+        }
+
+        @Override
+        public void deq() {
+            SingleConsumerLinkedArrayQueue.this.deq(n, i);
+        }
+
+        @Override
+        public void reset() {
+            n = null;
+            i = -1;
+            hasNextCalled = false;
+        }
+
+        @SuppressWarnings("empty-statement")
+        boolean succ() {
+            final int blockSize = blockSize();
+            Node n = this.n != null ? this.n : head;
+            int i = this.i + 1;
+            for (;;) {
+                if (i >= blockSize) {
+                    if (tail == n)
+                        return false;
+
+                    while (n.next == null); // wait for next
+                    n = n.next;
+                    i = 0;
+                } else if (hasValue(n, i)) {
+                    if (isDeleted(n, i))
+                        i++;
+                    else {
+                        this.i = i;
+                        this.n = n;
+                        return true;
+                    }
+                } else {
+                    // assert n == tail; - tail could have changed by now
+                    return false;
+                }
+            }
+        }
     }
+
     ////////////////////////////////////////////////////////////////////////
     static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
     private static final long headOffset;

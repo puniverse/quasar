@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -33,7 +33,7 @@ import org.junit.runners.Parameterized;
  */
 @RunWith(Parameterized.class)
 public class SingleConsumerQueueTest {
-    final SingleConsumerQueue<String, ?> queue;
+    final SingleConsumerQueue<String> queue;
 
 //    public SingleConsumerQueueTest() {
 //        this.queue = new SingleConsumerLinkedArrayObjectQueue<String>();
@@ -156,7 +156,7 @@ public class SingleConsumerQueueTest {
 
         queue.offer("five");
         queue.offer("six");
-        
+
         it.next();
         it.remove();
         it.next();
@@ -173,16 +173,15 @@ public class SingleConsumerQueueTest {
         queue.offer("three");
         queue.offer("four");
 
-        Iterator<String> it = queue.iterator();
+        QueueIterator<String> it = queue.iterator();
         while (it.hasNext())
             it.next();
         it.remove();
 
-        queue.resetIterator(it);
+        it.reset();
         while (it.hasNext())
             it.next();
         it.remove();
-
 
         assertThat(queue.size(), is(2));
         assertThat(list(queue), is(equalTo(list("one", "two"))));
@@ -190,12 +189,12 @@ public class SingleConsumerQueueTest {
         queue.offer("five");
         queue.offer("six");
 
-        queue.resetIterator(it);
+        it.reset();
         while (it.hasNext())
             it.next();
         it.remove();
 
-        queue.resetIterator(it);
+        it.reset();
         while (it.hasNext())
             it.next();
         it.remove();
