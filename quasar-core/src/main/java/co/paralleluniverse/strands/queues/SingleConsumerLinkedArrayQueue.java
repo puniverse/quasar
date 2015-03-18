@@ -56,6 +56,8 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E> 
 
     @SuppressWarnings("empty-statement")
     boolean prePeek() {
+        // postconditions: head,headIndex point to the first element (i.e. empty/deleted slots are discarded)
+        // returns whether an element exists
         final int blockSize = blockSize();
         Node n = head;
         int i = headIndex;

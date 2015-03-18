@@ -58,10 +58,10 @@ public class QueueJMHBenchmark {
     @State(Scope.Group)
     public static class Q {
         Queue<Integer> singleConsumerArrayObjectQueue = new SingleConsumerArrayObjectQueue<Integer>(QUEUE_CAPACITY);
-        Queue<Integer> singleConsumerLinkedObjectQueue = new SingleConsumerLinkedObjectQueue<Integer>();
-        Queue<Integer> singleConsumerLinkedArrayObjectQueue = new SingleConsumerLinkedArrayObjectQueue<Integer>();
         Queue<Integer> singleConsumerArrayIntQueue = new SingleConsumerArrayIntQueue(QUEUE_CAPACITY);
+        Queue<Integer> singleConsumerLinkedObjectQueue = new SingleConsumerLinkedObjectQueue<Integer>();
         Queue<Integer> singleConsumerLinkedIntQueue = new SingleConsumerLinkedIntQueue();
+        Queue<Integer> singleConsumerLinkedArrayObjectQueue = new SingleConsumerLinkedArrayObjectQueue<Integer>();
         Queue<Integer> singleConsumerLinkedArrayIntQueue = new SingleConsumerLinkedArrayIntQueue();
         Queue<Integer> arrayBlockingQueue = new ArrayBlockingQueue<Integer>(QUEUE_CAPACITY);
         Queue<Integer> linkedBlockingQueue = new LinkedBlockingQueue<Integer>(QUEUE_CAPACITY);
@@ -202,3 +202,18 @@ public class QueueJMHBenchmark {
         write(cnt, q.linkedTransferQueue);
     }
 }
+
+
+// Results
+
+//Benchmark                                                               Mode  Samples         Score         Error  Units
+//c.p.s.q.QueueJMHBenchmark.arrayBlockingQueue                           thrpt        5  23398791.242 ± 1376044.568  ops/s
+//c.p.s.q.QueueJMHBenchmark.concurrentLinkedQueue                        thrpt        5  15343361.824 ±  401694.904  ops/s
+//c.p.s.q.QueueJMHBenchmark.linkedBlockingQueue                          thrpt        5  11357839.534 ± 1430754.782  ops/s
+//c.p.s.q.QueueJMHBenchmark.linkedTransferQueue                          thrpt        5  17485561.116 ±  792770.815  ops/s
+//c.p.s.q.QueueJMHBenchmark.singleConsumerArrayObjectQueue               thrpt        5  40558001.629 ± 1754094.068  ops/s
+//c.p.s.q.QueueJMHBenchmark.singleConsumerArrayIntQueue                  thrpt        5  32801828.287 ± 5869817.546  ops/s
+//c.p.s.q.QueueJMHBenchmark.singleConsumerLinkedArrayObjectQueue         thrpt        5  29168006.729 ± 2451717.977  ops/s
+//c.p.s.q.QueueJMHBenchmark.singleConsumerLinkedArrayIntQueue            thrpt        5  25361031.363 ± 1174645.608  ops/s
+//c.p.s.q.QueueJMHBenchmark.singleConsumerLinkedObjectQueue              thrpt        5  17215038.964 ±  914374.252  ops/s
+//c.p.s.q.QueueJMHBenchmark.singleConsumerLinkedIntQueue                 thrpt        5  17077272.828 ±  315402.200  ops/s
