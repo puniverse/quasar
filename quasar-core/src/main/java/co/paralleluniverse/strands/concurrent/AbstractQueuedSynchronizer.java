@@ -66,7 +66,7 @@ import sun.misc.Unsafe;
  * synchronization interface.  Instead it defines methods such as
  * {@link #acquireInterruptibly} that can be invoked as
  * appropriate by concrete locks and related synchronizers to
- * implement their public methods.
+ * implement their public methods.</p>
  *
  * <p>This class supports either or both a default <em>exclusive</em>
  * mode and a <em>shared</em> mode. When acquired in exclusive mode,
@@ -79,7 +79,7 @@ import sun.misc.Unsafe;
  * same FIFO queue. Usually, implementation subclasses support only
  * one of these modes, but both can come into play for example in a
  * {@link ReadWriteLock}. Subclasses that support only exclusive or
- * only shared modes need not define the methods supporting the unused mode.
+ * only shared modes need not define the methods supporting the unused mode.</p>
  *
  * <p>This class defines a nested {@link ConditionObject} class that
  * can be used as a {@link Condition} implementation by subclasses
@@ -92,26 +92,26 @@ import sun.misc.Unsafe;
  * {@code AbstractQueuedSynchronizer} method otherwise creates such a
  * condition, so if this constraint cannot be met, do not use it.  The
  * behavior of {@link ConditionObject} depends of course on the
- * semantics of its synchronizer implementation.
+ * semantics of its synchronizer implementation.</p>
  *
  * <p>This class provides inspection, instrumentation, and monitoring
  * methods for the internal queue, as well as similar methods for
  * condition objects. These can be exported as desired into classes
  * using an {@code AbstractQueuedSynchronizer} for their
- * synchronization mechanics.
+ * synchronization mechanics.</p>
  *
  * <p>Serialization of this class stores only the underlying atomic
  * integer maintaining state, so deserialized objects have empty
  * strand queues. Typical subclasses requiring serializability will
  * define a {@code readObject} method that restores this to a known
- * initial state upon deserialization.
+ * initial state upon deserialization.</p>
  *
  * <h3>Usage</h3>
  *
  * <p>To use this class as the basis of a synchronizer, redefine the
  * following methods, as applicable, by inspecting and/or modifying
  * the synchronization state using {@link #getState}, {@link
- * #setState} and/or {@link #compareAndSetState}:
+ * #setState} and/or {@link #compareAndSetState}:</p>
  *
  * <ul>
  * <li> {@link #tryAcquire}
@@ -132,11 +132,11 @@ import sun.misc.Unsafe;
  * AbstractOwnableSynchronizer} useful to keep track of the strand
  * owning an exclusive synchronizer.  You are encouraged to use them
  * -- this enables monitoring and diagnostic tools to assist users in
- * determining which strands hold locks.
+ * determining which strands hold locks.</p>
  *
  * <p>Even though this class is based on an internal FIFO queue, it
  * does not automatically enforce FIFO acquisition policies.  The core
- * of exclusive synchronization takes the form:
+ * of exclusive synchronization takes the form:</p>
  *
  * <pre>
  * Acquire:
@@ -161,7 +161,7 @@ import sun.misc.Unsafe;
  * In particular, most fair synchronizers can define {@code tryAcquire}
  * to return {@code false} if {@link #hasQueuedPredecessors} (a method
  * specifically designed to be used by fair synchronizers) returns
- * {@code true}.  Other variations are possible.
+ * {@code true}.  Other variations are possible.</p>
  *
  * <p>Throughput and scalability are generally highest for the
  * default barging (also known as <em>greedy</em>,
@@ -178,7 +178,7 @@ import sun.misc.Unsafe;
  * augment this by preceding calls to acquire methods with
  * "fast-path" checks, possibly prechecking {@link #hasContended}
  * and/or {@link #hasQueuedStrands} to only do so if the synchronizer
- * is likely not to be contended.
+ * is likely not to be contended.</p>
  *
  * <p>This class provides an efficient and scalable basis for
  * synchronization in part by specializing its range of use to
@@ -187,7 +187,7 @@ import sun.misc.Unsafe;
  * not suffice, you can build synchronizers from a lower level using
  * {@link java.util.concurrent.atomic atomic} classes, your own custom
  * {@link java.util.Queue} classes, and {@link LockSupport} blocking
- * support.
+ * support.</p>
  *
  * <h3>Usage Examples</h3>
  *
@@ -197,7 +197,7 @@ import sun.misc.Unsafe;
  * does not strictly require recording of the current owner
  * strand, this class does so anyway to make usage easier to monitor.
  * It also supports conditions and exposes
- * one of the instrumentation methods:
+ * one of the instrumentation methods:</p>
  *
  *  <pre> {@code
  * class Mutex implements Lock, java.io.Serializable {
@@ -261,7 +261,7 @@ import sun.misc.Unsafe;
  * {@link java.util.concurrent.CountDownLatch CountDownLatch}
  * except that it only requires a single {@code signal} to
  * fire. Because a latch is non-exclusive, it uses the {@code shared}
- * acquire and release methods.
+ * acquire and release methods.</p>
  *
  *  <pre> {@code
  * class BooleanLatch {
