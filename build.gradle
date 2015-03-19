@@ -72,7 +72,7 @@ subprojects {
     }
 
     dependencies {
-        compile("io.dropwizard.metrics:metrics-core:3.1.0") {
+        compile("io.dropwizard.metrics:metrics-core:3.1.1") {
             exclude group: 'org.slf4j', module: '*'
         }
         provided "org.apache.ant:ant:1.9.4"
@@ -87,8 +87,8 @@ subprojects {
             exclude group: "org.ow2.asm", module: '*'
         }
         testCompile "org.ow2.asm:asm:$asmVer"
-        testCompile 'org.openjdk.jmh:jmh-core:1.4.1'
-        testCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.4.1'
+        testCompile 'org.openjdk.jmh:jmh-core:1.6.2'
+        testCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.6.2'
         compileOnly 'org.kohsuke.metainf-services:metainf-services:1.5'
         // compileOnly 'com.google.auto.service:auto-service:1.0-rc1' // same as metainf-services
         markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
@@ -309,11 +309,11 @@ project (':quasar-core') {
         compile "org.ow2.asm:asm-analysis:$asmVer"
         compile "org.ow2.asm:asm-commons:$asmVer"
         compile "org.ow2.asm:asm-util:$asmVer"
-        compile "com.lmax:disruptor:3.3.0"
+        compile "com.lmax:disruptor:3.3.2"
         compile("com.esotericsoftware.kryo:kryo:2.24.0") {
             exclude group: "org.ow2.asm", module: '*'
         }
-        compile("de.javakaffee:kryo-serializers:0.27") {
+        compile("de.javakaffee:kryo-serializers:0.28") {
             exclude group: "com.esotericsoftware.kryo", module: '*'
         }
     }
@@ -395,14 +395,14 @@ project (':quasar-actors') {
         compile project(':quasar-core')
         // compile 'org.mutabilitydetector:MutabilityDetector:0.9.2'
         compile "org.slf4j:slf4j-api:1.7.10"
-        compile "net.bytebuddy:byte-buddy:0.5.1"
+        compile "net.bytebuddy:byte-buddy:0.5.3"
         //  runtime "org.slf4j:slf4j-jdk14:1.7.10"
-        testRuntime("org.apache.logging.log4j:log4j-slf4j-impl:2.1") {
+        testRuntime("org.apache.logging.log4j:log4j-slf4j-impl:2.2") {
             exclude group: "org.slf4j", module: '*'
         }
-        testRuntime "org.apache.logging.log4j:log4j-api:2.1"
-        testRuntime "org.apache.logging.log4j:log4j-core:2.1"
-        testRuntime "com.lmax:disruptor:3.3.0" // required for log4j
+        testRuntime "org.apache.logging.log4j:log4j-api:2.2"
+        testRuntime "org.apache.logging.log4j:log4j-core:2.2"
+        testRuntime "com.lmax:disruptor:3.3.2" // required for log4j
     }
 }
 
