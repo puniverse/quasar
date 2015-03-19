@@ -18,7 +18,6 @@ import co.paralleluniverse.fibers.Suspendable
 import org.junit.Test
 import java.util.concurrent.TimeUnit
 import co.paralleluniverse.kotlin.Actor
-import co.paralleluniverse.kotlin.Actor.ReceiveOutcome.*
 import co.paralleluniverse.kotlin.Actor.Companion.Timeout
 import co.paralleluniverse.kotlin.*
 
@@ -56,7 +55,6 @@ class Pong() : Actor<Any, Unit>() {
                     is Msg -> {
                         if (it.txt == "ping")
                             it.from.send("pong")    // Fiber-blocking
-                        DISCARD
                     }
                     "finished" -> {
                         println("Pong received 'finished', exiting")
@@ -66,7 +64,7 @@ class Pong() : Actor<Any, Unit>() {
                         println("Pong timeout in 'receive', exiting")
                         return                      // Non-local return, exit actor
                     }
-                    else -> DEFER
+                    else -> defer()
                 }
             }
             // end of snippet

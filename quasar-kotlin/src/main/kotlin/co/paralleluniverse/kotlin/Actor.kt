@@ -35,18 +35,13 @@ public abstract class Actor<Message, V> : KotlinActorSupport<Message, V>() {
         public object Timeout
     }
 
-    public enum class ReceiveOutcome {
-        DISCARD
-        DEFER
-    }
-
-    protected var currentMessage: Message = null
+    protected var currentMessage: Message? = null
 
     /**
      * Higher-order selective receive
      */
-    inline protected fun receive(timeout: Long, unit: TimeUnit?, proc: (Any) -> ReceiveOutcome) {
-        assert(JActor.currentActor<Message, V>() == null || JActor.currentActor<Message, V>() == this, "Current actor is null or this")
+    inline protected fun receive(timeout: Long, unit: TimeUnit?, proc: (Any) -> Unit) {
+        assert(JActor.currentActor<Message, V>() == null || JActor.currentActor<Message, V>() == this)
 
         val mailbox = mailbox()
 
@@ -85,13 +80,11 @@ public abstract class Actor<Message, V> : KotlinActorSupport<Message, V>() {
                     val msg: Message = m as Message
                     currentMessage = msg
                     try {
-                        when (proc(msg)) {
-                            ReceiveOutcome.DISCARD ->
-                                if (it.value() == msg) // another call to receive from within the processor may have deleted n
-                                    it.remove()
-                            ReceiveOutcome.DEFER -> // Skip
-                                {}
-                        }
+                        proc(msg)
+                        if (it.value() == msg) // another call to receive from within the processor may have deleted n
+                            it.remove()
+                    } catch (d: DeferException) {
+                        // Skip
                     } catch (e: Exception) {
                         if (it.value() == msg) // another call to receive from within the processor may have deleted n
                             it.remove()
@@ -121,6 +114,10 @@ public abstract class Actor<Message, V> : KotlinActorSupport<Message, V>() {
                 }
             }
         }
+    }
+
+    Suspendable protected fun defer() {
+        throw DeferException;
     }
 }
 
