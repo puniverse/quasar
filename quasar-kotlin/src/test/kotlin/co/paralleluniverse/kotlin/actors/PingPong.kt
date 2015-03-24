@@ -36,8 +36,11 @@ class Ping(val n: Int) : Actor<Any, Unit>() {
         val pong = ActorRegistry.getActor<Any>("pong")
         for(i in 1..n) {
             pong.send(Msg("ping", self()))          // Fiber-blocking
-            when (receive()) {                      // Fiber-blocking, always consume the message
-                "pong" -> println("Ping received pong")
+            receive {                               // Fiber-blocking, always consume the message
+                when (it) {
+                    "pong" -> println("Ping received pong")
+                    else -> null                    // Discard
+                }
             // Else discard the message
             }
         }
@@ -50,7 +53,7 @@ class Pong() : Actor<Any, Unit>() {
     Suspendable override fun doRun() {
         while (true) {
             // snippet Kotlin Actors example
-            receive {  // Fiber-blocking
+            receive(1000, TimeUnit.MILLISECONDS) {  // Fiber-blocking
                 when (it) {
                     is Msg -> {
                         if (it.txt == "ping")
