@@ -50,7 +50,7 @@ class Pong() : Actor<Any, Unit>() {
     Suspendable override fun doRun() {
         while (true) {
             // snippet Kotlin Actors example
-            receive(1000, TimeUnit.MILLISECONDS) {  // Fiber-blocking
+            receive {  // Fiber-blocking
                 when (it) {
                     is Msg -> {
                         if (it.txt == "ping")
