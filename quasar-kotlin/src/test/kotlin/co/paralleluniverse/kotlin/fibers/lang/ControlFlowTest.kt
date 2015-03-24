@@ -115,7 +115,7 @@ public class ControlFlowTest {
                 }
                 [Suspendable] fun f() {
                     l.forEach @l {
-                        (x: Int): Unit ->
+                        x: Int ->
                             Fiber.park(10, TimeUnit.MILLISECONDS)
                             if (x % 2 == 0)
                                 return@l

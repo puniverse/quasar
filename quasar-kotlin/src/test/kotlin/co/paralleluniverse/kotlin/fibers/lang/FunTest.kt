@@ -128,7 +128,7 @@ public class FunTest {
     Test fun testFunLambda() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
             Suspendable override fun run(): Boolean {
-                ([Suspendable] {(a : Int): Unit -> Fiber.sleep(10) })(1)
+                ([Suspendable] {a : Int -> Fiber.sleep(10) })(1)
                 return true
             }
         }).start().get())
