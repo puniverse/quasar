@@ -41,7 +41,6 @@ class Ping(val n: Int) : Actor<Any, Unit>() {
                     "pong" -> println("Ping received pong")
                     else -> null                    // Discard
                 }
-            // Else discard the message
             }
         }
         pong.send("finished")                       // Fiber-blocking
