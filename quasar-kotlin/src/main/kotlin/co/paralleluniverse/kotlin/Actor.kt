@@ -40,14 +40,14 @@ public abstract class Actor<Message, V> : KotlinActorSupport<Message, V>() {
     /**
      * Higher-order selective receive
      */
-    inline protected fun receive(proc: (Any) -> Any) {
+    inline protected fun receive(proc: (Any) -> Any?) {
         receive(-1, null, proc)
     }
 
     /**
      * Higher-order selective receive
      */
-    inline protected fun receive(timeout: Long, unit: TimeUnit?, proc: (Any) -> Any) {
+    inline protected fun receive(timeout: Long, unit: TimeUnit?, proc: (Any) -> Any?) {
         assert(JActor.currentActor<Message, V>() == null || JActor.currentActor<Message, V>() == this)
 
         val mailbox = mailbox()
