@@ -40,14 +40,21 @@ public abstract class Actor : KotlinActorSupport<Any?, Any?>() {
     /**
      * Higher-order selective receive
      */
-    inline protected fun receive(proc: (Any?) -> Any?) {
+    inline protected fun receive(proc: (Any) -> Any?) {
         receive(-1, null, proc)
+    }
+
+    /**
+     * Let the actor handle lifecycle messages
+     */
+    override protected fun handleLifecycleMessage(lcm: LifecycleMessage): Any? {
+        return lcm
     }
 
     /**
      * Higher-order selective receive
      */
-    inline protected fun receive(timeout: Long, unit: TimeUnit?, proc: (Any?) -> Any?) {
+    inline protected fun receive(timeout: Long, unit: TimeUnit?, proc: (Any) -> Any?) {
         assert(JActor.currentActor<Any?, Any?>() == null || JActor.currentActor<Any?, Any?>() == this)
 
         val mailbox = mailbox()
@@ -79,23 +86,27 @@ public abstract class Actor : KotlinActorSupport<Any?, Any?>() {
 
                 record(1, "KotlinActor", "receive", "Received %s <- %s", this, m)
                 monitorAddMessage()
-
-                currentMessage = m
-                try {
-                    proc(m)
-                    if (it.value() == m) // another call to receive from within the processor may have deleted n
-                        it.remove()
-                } catch (d: DeferException) {
-                    // Skip
-                } catch (e: Exception) {
-                    if (it.value() == m) // another call to receive from within the processor may have deleted n
-                        it.remove()
-                    throw e
-                } finally {
-                    currentMessage = null
+                if (m is LifecycleMessage) {
+                    it.remove()
+                    handleLifecycleMessage(m)
+                } else {
+                    currentMessage = m
+                    try {
+                        proc(m)
+                        if (it.value() == m) // another call to receive from within the processor may have deleted n
+                            it.remove()
+                    } catch (d: DeferException) {
+                        // Skip
+                    } catch (e: Exception) {
+                        if (it.value() == m) // another call to receive from within the processor may have deleted n
+                            it.remove()
+                        throw e
+                    } finally {
+                        currentMessage = null
+                    }
+                    record(1, "KotlinActor", "receive", "%s skipped %s", this, m)
+                    monitorSkippedMessage()
                 }
-                record(1, "KotlinActor", "receive", "%s skipped %s", this, m)
-                monitorSkippedMessage()
             } else {
                 try {
                     if (unit == null)
