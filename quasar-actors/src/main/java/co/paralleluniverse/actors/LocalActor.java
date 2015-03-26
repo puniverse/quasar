@@ -27,8 +27,8 @@ import java.util.concurrent.TimeoutException;
  * With the exception of the {@link #self()} method, application code shouldn't normally use these methods.
  * They are provided mainly for testing, and defining sophisticated behaviors.
  * <p/>
- * These services are provided as static methods rather than return a reference to the actor reference to the actor itself should not
- * leak outside the actor itself.
+ * These services are provided as static methods rather than return a reference to the actor, as references to the actor
+ * should not leak outside the actor itself.
  *
  * @author pron
  */
