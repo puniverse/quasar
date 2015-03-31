@@ -35,7 +35,7 @@ subprojects {
     ext.quasarJar       = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}.jar" // project(':quasar-core').jar.archivePath
 
     ext.asmVer = '5.0.3'
-    
+
     if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
         println "sonatype username or password not set"
         ext.sonatypeUsername = ""
@@ -45,7 +45,7 @@ subprojects {
     if (!project.hasProperty('mainClass')) { // must use project.hasProperty() rather than hasProperty in subprojects (gradle bug)
         ext.mainClass = ''
     }
-    
+
     repositories {
         flatDir {
             dirs baselib
@@ -107,7 +107,7 @@ subprojects {
     //        // options.compilerArgs << "-Xlint:unchecked"
     //        // options.compilerArgs << "-Xlint:deprecation"
     //    }
-    
+
     compileJava.dependsOn processResources
     compileJava {
         doLast {
@@ -129,7 +129,7 @@ subprojects {
             }
         }
     }
-    
+
     test.dependsOn jar
 
     test {
@@ -146,7 +146,7 @@ subprojects {
             }
         }
     }
-    
+
     tasks.withType(Test) {
         useJUnit()
         // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
@@ -297,7 +297,7 @@ subprojects {
 
 project (':quasar-core') {
     apply plugin: 'com.github.johnrengelman.shadow'
-    
+
     dependencies {
         compile ":jsr166e"
         compile ":high-scale-lib"
@@ -335,10 +335,10 @@ project (':quasar-core') {
             )
         }
     }
-    
+
     shadowJar {
         outputs.upToDateWhen { false }
-        
+
         // artifactAttached = false
         classifier = 'shadow'
         destinationDir = file("$buildDir/libs")
@@ -350,13 +350,13 @@ project (':quasar-core') {
         }
 
         relocate 'org.objectweb.asm.', 'co.paralleluniverse.asm.'
-        
+
         doLast {
             logger.info("$buildDir/libs/${project.name}-${project.version}-${classifier}.jar -> $buildDir/libs/${project.name}-${project.version}.jar")
             file("$buildDir/libs/${project.name}-${version}-${classifier}.jar").renameTo(file("$buildDir/libs/${project.name}-${project.version}.jar"))
         }
     }
-    
+
     shadowJar.dependsOn jar
     build.dependsOn shadowJar
     install.dependsOn shadowJar
@@ -374,7 +374,7 @@ project (':quasar-core') {
             (dep.groupId == 'co.paralleluniverse' && dep.artifactId.startsWith('quasar-core'))
         }
     }
-    
+
     if (System.properties['java.version'].startsWith('1.8') ) {
         artifacts {
             archives jar
@@ -508,4 +508,3 @@ task clean(dependsOn: subprojects.clean) << {
 task wrapper(type: Wrapper) {
     gradleVersion = '2.1'
 }
-
