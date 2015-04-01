@@ -313,7 +313,7 @@ project (':quasar-core') {
         compile("com.esotericsoftware.kryo:kryo:2.24.0") {
             exclude group: "org.ow2.asm", module: '*'
         }
-        compile("de.javakaffee:kryo-serializers:0.28") {
+        compile("de.javakaffee:kryo-serializers:0.29") {
             exclude group: "com.esotericsoftware.kryo", module: '*'
         }
     }
@@ -394,9 +394,8 @@ project (':quasar-actors') {
     dependencies {
         compile project(':quasar-core')
         // compile 'org.mutabilitydetector:MutabilityDetector:0.9.2'
-        compile "org.slf4j:slf4j-api:1.7.10"
-        compile "net.bytebuddy:byte-buddy:0.5.3"
-        //  runtime "org.slf4j:slf4j-jdk14:1.7.10"
+        compile "org.slf4j:slf4j-api:1.7.12"
+        compile "net.bytebuddy:byte-buddy:0.5.6"
         testRuntime("org.apache.logging.log4j:log4j-slf4j-impl:2.2") {
             exclude group: "org.slf4j", module: '*'
         }
