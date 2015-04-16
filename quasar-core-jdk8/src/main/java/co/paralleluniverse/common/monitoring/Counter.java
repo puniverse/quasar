@@ -19,37 +19,34 @@ import java.util.concurrent.atomic.LongAdder;
  *
  * @author pron
  */
-public class Counter {
-    private final LongAdder la = new LongAdder();
-    // private final AtomicLong al = new AtomicLong();
+public class Counter extends LongAdder {
+//    private final AtomicLong al = new AtomicLong();
 
-    public void reset() {
-        la.reset();
-        //al.set(0);
-    }
-
+//    public void reset() {
+//        la.reset();
+//    }
+    
     public void inc() {
-        la.increment();
+        increment();
         //al.incrementAndGet();
     }
 
     public void dec() {
-        la.decrement();
+        decrement();
         //al.decrementAndGet();
     }
 
-    public void add(long val) {
-        la.add(val);
-        //al.addAndGet(val);
-    }
-
+//    public void add(long val) {
+//        al.addAndGet(val);
+//    }
+    
     public long get() {
-        return la.sum();
+        return sum();
         //return al.get();
     }
 
     public long getAndReset() {
-        return la.sumThenReset();
+        return sumThenReset();
         //return al.get();
     }
 }
