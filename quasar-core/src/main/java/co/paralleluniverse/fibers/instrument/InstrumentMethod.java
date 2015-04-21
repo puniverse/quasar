@@ -604,7 +604,7 @@ class InstrumentMethod {
         db.log(LogLevel.DEBUG, "Inserting NEW & DUP for constructor call %s%s with %d arguments (%d locals)", min.owner, min.desc, arguments, neededLocals);
         if (additionalLocals < neededLocals)
             additionalLocals = neededLocals;
-        
+
         ((NewValue) frame.getStack(stackIndex - 1)).insn.accept(mv);
         ((NewValue) frame.getStack(stackIndex)).insn.accept(mv);
         for (int i = 1; i <= arguments; i++) {
@@ -906,11 +906,10 @@ class InstrumentMethod {
                         }
                         stackSlotIndices[i] = -666; // an invalid index ;)
                     } else if (!isNullType(v)) {
-                        if (v.isReference()) {
+                        if (v.isReference())
                             stackSlotIndices[i] = idxObj++;
-                        } else {
+                        else
                             stackSlotIndices[i] = idxPrim++;
-                        }
                     } else {
                         stackSlotIndices[i] = -666; // an invalid index ;)
                     }

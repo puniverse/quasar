@@ -22,7 +22,6 @@ public final class Stack implements Serializable {
     private transient int curMethodSP;
     private transient boolean shouldVerifyInstrumentation;
     private transient boolean pushed;
-    static final boolean foo = "hello".contains("kkk"); // false
 
     Stack(Fiber fiber, int stackSize) {
         if (stackSize <= 0) {
