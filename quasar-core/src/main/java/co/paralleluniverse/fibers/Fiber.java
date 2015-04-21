@@ -714,7 +714,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         run++;
         // preemptionCredits = PREEMPTION_CREDITS;
         runningThread = currentThread;
-        state = State.RUNNING;
+        state = State.RUNNING; // TODO: ??? orderedSetState(State.RUNNING);
 
         boolean restored = false;
         try {
@@ -737,7 +737,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             //stack.dump();
             stack.resumeStack();
             runningThread = null;
-            state = timeoutTask != null ? State.TIMED_WAITING : State.WAITING;
+            orderedSetState(timeoutTask != null ? State.TIMED_WAITING : State.WAITING);
 
             final ParkAction ppa = postPark;
             clearRunSettings();
@@ -1724,6 +1724,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     private boolean casState(State expected, State update) {
         return UNSAFE.compareAndSwapObject(this, stateOffset, expected, update);
+    }
+    
+    private void orderedSetState(State value) {
+        UNSAFE.putOrderedObject(this, stateOffset, value);
     }
 
     //<editor-fold defaultstate="collapsed" desc="Recording">
