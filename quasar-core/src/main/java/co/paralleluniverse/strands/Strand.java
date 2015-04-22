@@ -256,8 +256,6 @@ public abstract class Strand {
      */
     public abstract long getId();
 
-    public abstract FibersMonitor getMonitor();
-
     /**
      * Returns the current strand.
      * This method will return a strand representing the fiber calling this method, or the current thread if this method is not
@@ -1082,11 +1080,6 @@ public abstract class Strand {
         }
 
         @Override
-        public FibersMonitor getMonitor() {
-            return NOOP_FIBERS_MONITOR;
-        }
-
-        @Override
         public void setUncaughtExceptionHandler(final UncaughtExceptionHandler uncaughtExceptionHandler) {
             thread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
                 @Override
@@ -1166,11 +1159,6 @@ public abstract class Strand {
         @Override
         public State getState() {
             return fiber.getState();
-        }
-
-        @Override
-        public FibersMonitor getMonitor() {
-            return fiber.getMonitor();
         }
 
         @Override
