@@ -863,7 +863,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         }
     }
 
-    @Override
     public FibersMonitor getMonitor() {
         if (scheduler == null)
             return null;
