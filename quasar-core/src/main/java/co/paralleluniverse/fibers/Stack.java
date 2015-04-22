@@ -12,25 +12,33 @@ import java.util.Arrays;
  * @author Ron Pressler
  */
 public final class Stack implements Serializable {
+    /*
+     * curMethodSP points to the first slot to contain data.
+     * The _previous_ FRAME_RECORD_SIZE slots contain the frame record.
+     * The frame record currently occupies a single long:
+     *   - entry (PC)      : 20 bits
+     *   - prev SP offset  : 20 bits
+     *   - num slots       : 20 bits
+     */
     private static final int INITIAL_METHOD_STACK_DEPTH = 16;
+    private static final int FRAME_RECORD_SIZE = 1;
     private static final long serialVersionUID = 12786283751253L;
     private final Fiber fiber;
-    private int methodTOS;
-    private int[] method;           // holds each method's entry point as well as stack pointer
-    private long[] dataLong;        // holds primitives on stack
+    private int curMethodSP;
+    private long[] dataLong;        // holds primitives on stack as well as each method's entry point as well as stack pointer
     private Object[] dataObject;    // holds refs on stack
-    private transient int curMethodSP;
     private transient boolean shouldVerifyInstrumentation;
     private transient boolean pushed;
+    public static final int MAX_ENTRY = (1 << 16) - 1;
+    public static final int MAX_SLOTS = (1 << 16) - 1;
 
     Stack(Fiber fiber, int stackSize) {
-        if (stackSize <= 0) {
+        if (stackSize <= 0)
             throw new IllegalArgumentException("stackSize");
-        }
+
         this.fiber = fiber;
-        this.method = new int[INITIAL_METHOD_STACK_DEPTH];
-        this.dataLong = new long[stackSize];
-        this.dataObject = new Object[stackSize];
+        this.dataLong = new long[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
+        this.dataObject = new Object[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
 
         resumeStack();
     }
@@ -48,12 +56,11 @@ public final class Stack implements Serializable {
      * called when resuming a stack
      */
     final void resumeStack() {
-        methodTOS = -1;
+        curMethodSP = 0;
     }
 
     // for testing/benchmarking only
     void resetStack() {
-        Arrays.fill(method, 0); // Arrays.fill(method, 0, methodTOS + 1, 0);
         resumeStack();
     }
 
@@ -65,10 +72,16 @@ public final class Stack implements Serializable {
     public final int nextMethodEntry() {
         shouldVerifyInstrumentation = true;
 
-        int idx = methodTOS;
-        curMethodSP = method[++idx];
-        methodTOS = ++idx;
-        int entry = method[idx];
+        int idx = 0;
+        int slots = 0;
+        if (curMethodSP > 0) {
+            slots = getNumSlots(dataLong[curMethodSP - FRAME_RECORD_SIZE]);
+            idx = curMethodSP + slots;
+        }
+        curMethodSP = idx + FRAME_RECORD_SIZE;
+        long record = dataLong[idx];
+        int entry = getEntry(record);
+        dataLong[idx] = setPrevNumSlots(record, slots);
 
         if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "nextMethodEntry", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, curMethodSP /*Arrays.toString(fiber.getStackTrace())*/);
@@ -83,12 +96,11 @@ public final class Stack implements Serializable {
         boolean p = pushed;
         pushed = false;
 
-        if (methodTOS == 1 | p)
+        if (curMethodSP == FRAME_RECORD_SIZE | p)
             return true;
 
         // not first, but nextMethodEntry returned 0: revert changes
-        methodTOS -= 2;
-        curMethodSP = method[methodTOS - 1];
+        curMethodSP -= FRAME_RECORD_SIZE + getPrevNumSlots(dataLong[curMethodSP - FRAME_RECORD_SIZE]);
 
         return false;
     }
@@ -102,20 +114,15 @@ public final class Stack implements Serializable {
     public final void pushMethod(int entry, int numSlots) {
         shouldVerifyInstrumentation = false;
         pushed = true;
+        int idx = curMethodSP - FRAME_RECORD_SIZE;
+        long record = dataLong[idx];
+        record = setEntry(record, entry);
+        record = setNumSlots(record, numSlots);
+        dataLong[idx] = record;
 
-        final int methodIdx = methodTOS;
-
-        if (method.length - methodIdx < 2)
-            growMethodStack();
-
-        curMethodSP = method[methodIdx - 1];
-        final int dataTOS = curMethodSP + numSlots;
-
-        method[methodIdx] = entry;
-        method[methodIdx + 1] = dataTOS;
-
-        if (dataTOS > dataObject.length)
-            growDataStack(dataTOS);
+        int nextMethodSP = curMethodSP + numSlots + FRAME_RECORD_SIZE;
+        if (nextMethodSP > dataObject.length)
+            growDataStack(nextMethodSP);
 
         if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "pushMethod     ", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, curMethodSP /*Arrays.toString(fiber.getStackTrace())*/);
@@ -133,14 +140,17 @@ public final class Stack implements Serializable {
         }
         pushed = false;
 
-        final int idx = methodTOS;
-        method[idx] = 0;
+        final int idx = curMethodSP - FRAME_RECORD_SIZE;
+
         final int oldSP = curMethodSP;
-        final int newSP = method[idx - 1];
-        curMethodSP = newSP;
-        methodTOS = idx - 2;
+        final int newSP = oldSP - getPrevNumSlots(dataLong[idx]) - FRAME_RECORD_SIZE;
+
+        for (int i = 0; i < FRAME_RECORD_SIZE; i++)
+            dataLong[idx + i] = 0L;
         for (int i = newSP; i < oldSP; i++)
             dataObject[i] = null;
+
+        curMethodSP = newSP;
 
         if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "popMethod      ", "%s %s", Thread.currentThread().getStackTrace()[2], curMethodSP /*Arrays.toString(fiber.getStackTrace())*/);
@@ -229,17 +239,49 @@ public final class Stack implements Serializable {
         dataObject = Arrays.copyOf(dataObject, newSize);
     }
 
-    private void growMethodStack() {
-        int newSize = method.length << 1;
-        method = Arrays.copyOf(method, newSize);
+    ///////////////////////////////////////////////////////////////
+    private long setEntry(long record, int entry) {
+        return setBits(record, 0, 20, entry);
     }
 
-    void dump() {
-        int sp = 0;
-        for (int i = 0; i <= methodTOS; i += 2) {
-            System.out.println("i=" + i + " entry=" + method[i] + " sp=" + method[i + 1]);
-            for (; sp < method[i + 3]; sp++)
-                System.out.println("sp=" + sp + " long=" + dataLong[sp] + " obj=" + dataObject[sp]);
-        }
+    private int getEntry(long record) {
+        return (int) getSignedBits(record, 0, 20);
+    }
+
+    private long setNumSlots(long record, int numSlots) {
+        return setBits(record, 20, 20, numSlots);
+    }
+
+    private int getNumSlots(long record) {
+        return (int) getSignedBits(record, 20, 20);
+    }
+
+    private long setPrevNumSlots(long record, int numSlots) {
+        return setBits(record, 40, 20, numSlots);
+    }
+
+    private int getPrevNumSlots(long record) {
+        return (int) getSignedBits(record, 40, 20);
+    }
+    ///////////////////////////////////////////////////////////////
+    private static final long MASK_FULL = 0xffffffffffffffffL;
+
+    private static long getSignedBits(long word, int offset, int length) {
+        long mask = (0xffffffffffffffffL >>> (64 - length));
+        long xx = (word & (mask << (64 - offset - length))) >>> (64 - offset - length);
+        return (xx << (32 - length)) >> (32 - length); // set sign
+    }
+
+    private static long getUnsignedBits(long word, int offset, int length) {
+        long mask = (MASK_FULL >>> (64 - length));
+        return (word & (mask << (64 - offset - length))) >>> (64 - offset - length);
+    }
+
+    private static long setBits(long word, int offset, int length, long value) {
+        long mask = (MASK_FULL >>> (64 - length)); // create an all 1 mask of size length in least significant bits
+        word = word & ~(mask << (64 - offset - length)); // clears bits in our region [offset, offset+length)
+        value = value & mask;
+        word = word | (value << (64 - offset - length));
+        return word;
     }
 }
