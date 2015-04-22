@@ -753,8 +753,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             if (ppa != null)
                 ppa.run(this);
 
-            if (monitor != null)
-                monitor.fiberSuspended();
+//            if (monitor != null)
+//                monitor.fiberSuspended();
             return false;
         } catch (Throwable t) {
             clearRunSettings();
@@ -1182,9 +1182,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private void immediateExecHelper() {
-        final FibersMonitor monitor = getMonitor();
-        if (monitor != null)
-            monitor.fiberResumed();
+//        final FibersMonitor monitor = getMonitor();
+//        if (monitor != null)
+//            monitor.fiberResumed();
 
         this.noPreempt = true;
         //this.inExec = true;

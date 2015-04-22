@@ -243,9 +243,9 @@ public class FiberForkJoinScheduler extends FiberScheduler {
 
         @Override
         public void submit() {
-            final FibersMonitor monitor = fiber.getMonitor();
-            if (monitor != null & fiber.getState() != Strand.State.STARTED)
-                monitor.fiberResumed();
+//            final FibersMonitor monitor = fiber.getMonitor();
+//            if (monitor != null & fiber.getState() != Strand.State.STARTED)
+//                monitor.fiberResumed();
             if (getPool() == fjPool)
                 fork();
             else
