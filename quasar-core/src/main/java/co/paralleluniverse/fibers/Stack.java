@@ -16,9 +16,9 @@ public final class Stack implements Serializable {
      * curMethodSP points to the first slot to contain data.
      * The _previous_ FRAME_RECORD_SIZE slots contain the frame record.
      * The frame record currently occupies a single long:
-     *   - entry (PC)      : 20 bits
-     *   - prev SP offset  : 20 bits
-     *   - num slots       : 20 bits
+     *   - entry (PC)         : 20 bits
+     *   - num slots          : 20 bits
+     *   - prev method slots  : 20 bits
      */
     private static final int INITIAL_METHOD_STACK_DEPTH = 16;
     private static final int FRAME_RECORD_SIZE = 1;
