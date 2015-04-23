@@ -1724,7 +1724,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private boolean casState(State expected, State update) {
         return UNSAFE.compareAndSwapObject(this, stateOffset, expected, update);
     }
-    
+
     private void orderedSetState(State value) {
         UNSAFE.putOrderedObject(this, stateOffset, value);
     }
