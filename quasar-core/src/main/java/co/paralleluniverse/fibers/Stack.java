@@ -20,17 +20,17 @@ public final class Stack implements Serializable {
      *   - num slots          : 20 bits
      *   - prev method slots  : 20 bits
      */
+    public static final int MAX_ENTRY = (1 << 14) - 1;
+    public static final int MAX_SLOTS = (1 << 16) - 1;
     private static final int INITIAL_METHOD_STACK_DEPTH = 16;
     private static final int FRAME_RECORD_SIZE = 1;
     private static final long serialVersionUID = 12786283751253L;
-    private final Fiber fiber;
     private int sp;
-    private long[] dataLong;        // holds primitives on stack as well as each method's entry point as well as stack pointer
-    private Object[] dataObject;    // holds refs on stack
     private transient boolean shouldVerifyInstrumentation;
     private transient boolean pushed;
-    public static final int MAX_ENTRY = (1 << 16) - 1;
-    public static final int MAX_SLOTS = (1 << 16) - 1;
+    private long[] dataLong;        // holds primitives on stack as well as each method's entry point as well as stack pointer
+    private Object[] dataObject;    // holds refs on stack
+    private final Fiber fiber;
 
     Stack(Fiber fiber, int stackSize) {
         if (stackSize <= 0)
@@ -122,7 +122,7 @@ public final class Stack implements Serializable {
 
         int nextMethodSP = sp + numSlots + FRAME_RECORD_SIZE;
         if (nextMethodSP > dataObject.length)
-            growDataStack(nextMethodSP);
+            growStack(nextMethodSP);
 
         if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "pushMethod     ", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
@@ -154,6 +154,37 @@ public final class Stack implements Serializable {
 
         if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "popMethod      ", "%s %s", Thread.currentThread().getStackTrace()[2], sp /*Arrays.toString(fiber.getStackTrace())*/);
+    }
+
+    public final void postRestore() throws SuspendExecution, InterruptedException {
+        fiber.onResume();
+    }
+
+    public final void preemptionPoint(int type) throws SuspendExecution {
+        fiber.preemptionPoint(type);
+    }
+
+    private void growStack(int required) {
+        int newSize = dataObject.length;
+        do {
+            newSize *= 2;
+        } while (newSize < required);
+
+        dataLong = Arrays.copyOf(dataLong, newSize);
+        dataObject = Arrays.copyOf(dataObject, newSize);
+    }
+
+    void dump() {
+        int m = 0;
+        int k = 0;
+        while (k < sp - 1) {
+            final long record = dataLong[k++];
+            final int slots = getNumSlots(record);
+
+            System.err.println("\tm=" + (m++) + " entry=" + getEntry(record) + " sp=" + k + " slots=" + slots + " prevSlots=" + getPrevNumSlots(record));
+            for (int i = 0; i < slots; i++, k++)
+                System.err.println("\t\tsp=" + k + " long=" + dataLong[k] + " obj=" + dataObject[k]);
+        }
     }
 
     public static void push(int value, Stack s, int idx) {
@@ -221,47 +252,29 @@ public final class Stack implements Serializable {
         return value;
     }
 
-    public final void postRestore() throws SuspendExecution, InterruptedException {
-        fiber.onResume();
-    }
-
-    public final void preemptionPoint(int type) throws SuspendExecution {
-        fiber.preemptionPoint(type);
-    }
-
-    private void growDataStack(int required) {
-        int newSize = dataObject.length;
-        do {
-            newSize *= 2;
-        } while (newSize < required);
-
-        dataLong = Arrays.copyOf(dataLong, newSize);
-        dataObject = Arrays.copyOf(dataObject, newSize);
-    }
-
     ///////////////////////////////////////////////////////////////
     private long setEntry(long record, int entry) {
-        return setBits(record, 0, 20, entry);
+        return setBits(record, 0, 14, entry);
     }
 
     private int getEntry(long record) {
-        return (int) getSignedBits(record, 0, 20);
+        return (int) getSignedBits(record, 0, 14);
     }
 
     private long setNumSlots(long record, int numSlots) {
-        return setBits(record, 20, 20, numSlots);
+        return setBits(record, 14, 16, numSlots);
     }
 
     private int getNumSlots(long record) {
-        return (int) getSignedBits(record, 20, 20);
+        return (int) getSignedBits(record, 14, 16);
     }
 
     private long setPrevNumSlots(long record, int numSlots) {
-        return setBits(record, 40, 20, numSlots);
+        return setBits(record, 30, 16, numSlots);
     }
 
     private int getPrevNumSlots(long record) {
-        return (int) getSignedBits(record, 40, 20);
+        return (int) getSignedBits(record, 30, 16);
     }
     ///////////////////////////////////////////////////////////////
     private static final long MASK_FULL = 0xffffffffffffffffL;
@@ -283,5 +296,13 @@ public final class Stack implements Serializable {
         value = value & mask;
         word = word | (value << (64 - offset - length));
         return word;
+    }
+
+    private static boolean getBit(long word, int offset) {
+        return (getUnsignedBits(word, offset, 1) != 0);
+    }
+
+    private static long setBit(long word, int offset, boolean value) {
+        return setBits(word, offset, 1, value ? 1 : 0);
     }
 }
