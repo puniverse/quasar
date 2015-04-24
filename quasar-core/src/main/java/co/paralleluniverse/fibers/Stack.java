@@ -25,12 +25,12 @@ public final class Stack implements Serializable {
     private static final int INITIAL_METHOD_STACK_DEPTH = 16;
     private static final int FRAME_RECORD_SIZE = 1;
     private static final long serialVersionUID = 12786283751253L;
+    private final Fiber fiber;
     private int sp;
     private transient boolean shouldVerifyInstrumentation;
     private transient boolean pushed;
     private long[] dataLong;        // holds primitives on stack as well as each method's entry point as well as stack pointer
     private Object[] dataObject;    // holds refs on stack
-    private final Fiber fiber;
 
     Stack(Fiber fiber, int stackSize) {
         if (stackSize <= 0)
