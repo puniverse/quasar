@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -27,14 +27,15 @@ import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.replyError
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
 import co.paralleluniverse.actors.behaviors.Supervisor.AddChildMessage;
 import co.paralleluniverse.actors.behaviors.Supervisor.GetChildMessage;
+import co.paralleluniverse.actors.behaviors.Supervisor.GetChildrenMessage;
 import co.paralleluniverse.actors.behaviors.Supervisor.RemoveChildMessage;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberFactory;
-import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.StrandFactory;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -331,6 +332,8 @@ public class SupervisorActor extends BehaviorActor {
             try {
                 if (req instanceof GetChildMessage) {
                     reply(req, getChild(((GetChildMessage) req).name));
+                } else if (req instanceof GetChildrenMessage) {
+                    reply(req, getChildren());
                 } else if (req instanceof AddChildMessage) {
                     reply(req, addChild(((AddChildMessage) req).spec));
                 } else if (req instanceof RemoveChildMessage) {
@@ -426,6 +429,20 @@ public class SupervisorActor extends BehaviorActor {
         if (child == null)
             return null;
         return (T) child.actor;
+    }
+
+    /**
+     * Retrieves the children actor references as an immutable list.
+     *
+     * @return the children {@link ActorRef}s.
+     */
+    protected List<ActorRef<?>> getChildren() {
+        verifyInActor();
+        final ImmutableList<ChildEntry> childEntries = ImmutableList.copyOf(children);
+        final ImmutableList.Builder<ActorRef<?>> builder = new ImmutableList.Builder<>();
+        for(final ChildEntry ce : childEntries)
+            builder.add(ce.actor);
+        return builder.build();
     }
 
     /**
