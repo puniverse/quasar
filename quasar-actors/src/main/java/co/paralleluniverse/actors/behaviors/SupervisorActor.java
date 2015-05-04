@@ -66,7 +66,7 @@ public class SupervisorActor extends BehaviorActor {
     private static final Logger LOG = LoggerFactory.getLogger(SupervisorActor.class);
     private final RestartStrategy restartStrategy;
     private List<ChildSpec> childSpec;
-    private final List<ChildEntry> children = new ArrayList<ChildEntry>();
+    private final List<ChildEntry> children = new ArrayList<>();
     private final ConcurrentMap<Object, ChildEntry> childrenById = MapUtil.newConcurrentHashMap();
 
     /**
@@ -436,11 +436,10 @@ public class SupervisorActor extends BehaviorActor {
      *
      * @return the children {@link ActorRef}s.
      */
-    protected List<ActorRef<?>> getChildren() {
+    protected List<? extends ActorRef<?>> getChildren() {
         verifyInActor();
-        final ImmutableList<ChildEntry> childEntries = ImmutableList.copyOf(children);
-        final ImmutableList.Builder<ActorRef<?>> builder = new ImmutableList.Builder<>();
-        for(final ChildEntry ce : childEntries)
+        final ImmutableList.Builder builder = new ImmutableList.Builder();
+        for(final ChildEntry ce : children)
             builder.add(ce.actor);
         return builder.build();
     }

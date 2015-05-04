@@ -18,6 +18,7 @@ import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.LocalActor;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 import co.paralleluniverse.fibers.SuspendExecution;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -78,11 +79,11 @@ public class Supervisor extends Behavior {
      * @throws SuspendExecution
      * @throws InterruptedException
      */
-    public final <T extends ActorRef<M>, M> T getChildren() throws SuspendExecution, InterruptedException {
+    public final List<? extends ActorRef<?>> getChildren() throws SuspendExecution, InterruptedException {
         if (isInActor())
-            return (T) SupervisorActor.currentSupervisor().getChildren();
+            return SupervisorActor.currentSupervisor().getChildren();
 
-        return (T) call(this, new GetChildrenMessage(RequestReplyHelper.from(), null));
+        return (List) call(this, new GetChildrenMessage(RequestReplyHelper.from(), null));
     }
     /**
      * Removes a child actor from the supervisor.
