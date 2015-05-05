@@ -17,6 +17,8 @@ import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.instrument.DontInstrument;
 import java.util.concurrent.Callable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -73,4 +75,22 @@ public class SuspendableUtils {
         };
     }
 
+    public static <V, E extends Exception> SuspendableCallable<V> asSuspendableCallable(final CheckedSuspendableCallable<V, E> callable) {
+        return new SuspendableCallable<V>() {
+
+            @Override
+            @SuppressWarnings("UseSpecificCatch")
+            public V run() throws SuspendExecution, InterruptedException {
+                try {
+                    return callable.call();
+                } catch (final Exception e) {
+                    // SuspendExecution will be handled separately by instrumentation
+                    if (e instanceof InterruptedException)
+                        throw (InterruptedException) e;
+                    else
+                        throw Exceptions.rethrow(e);
+                }
+            }
+        };
+    }
 }
