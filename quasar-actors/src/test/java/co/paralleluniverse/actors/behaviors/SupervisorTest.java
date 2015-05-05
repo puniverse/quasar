@@ -35,6 +35,7 @@ import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -171,6 +172,10 @@ public class SupervisorTest {
 //        return a;
     }
 
+    private <Message> List<ActorRef<Message>> getChildren(final Supervisor sup) throws InterruptedException, SuspendExecution {
+        return (List<ActorRef<Message>>) sup.getChildren();
+    }
+
     @Test
     public void startChild() throws Exception {
         final Supervisor sup = new SupervisorActor(RestartStrategy.ONE_FOR_ONE,
@@ -219,7 +224,7 @@ public class SupervisorTest {
         ActorRef<Object> a, prevA = null;
 
         for (int k = 0; k < 4; k++) {
-            a = getChild(sup, "actor1", 1000);
+            a = getChildren(sup).get(0);
             assertThat(a, not(prevA));
 
             a.send(1);
@@ -251,6 +256,9 @@ public class SupervisorTest {
 
         a = getChild(sup, "actor1", 200);
         assertThat(a, nullValue());
+
+        List<ActorRef<Object>> cs = getChildren(sup);
+        assertEquals(cs.size(), 0);
 
         sup.shutdown();
         LocalActor.join(sup);
@@ -320,6 +328,11 @@ public class SupervisorTest {
         ActorRef<Object> b = getChild(sup, "actor1", 200);
         assertThat(b, not(nullValue()));
         assertThat(b, not(equalTo(a)));
+
+        List<ActorRef<Object>> bcs = getChildren(sup);
+        assertThat(bcs.get(0), not(nullValue()));
+        assertThat(bcs.get(0), not(equalTo(a)));
+        assertEquals(bcs.size(), 1);
 
         sup.shutdown();
         LocalActor.join(sup);
