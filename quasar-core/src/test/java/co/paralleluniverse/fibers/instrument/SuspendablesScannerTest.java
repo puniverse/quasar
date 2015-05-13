@@ -28,8 +28,8 @@ import org.objectweb.asm.Type;
 
 public class SuspendablesScannerTest {
     private static SuspendablesScanner scanner;
-    private static final Set<String> suspependables = new HashSet<>();
-    private static final Set<String> suspependableSupers = new HashSet<>();
+    private static final Set<String> suspendables = new HashSet<>();
+    private static final Set<String> suspendableSupers = new HashSet<>();
     
     @BeforeClass
     public static void buildGraph() throws Exception {
@@ -47,40 +47,40 @@ public class SuspendablesScannerTest {
 //                        .getResource(AutoSuspendablesScannerTest.class.getName().replace('.', '/') + ".class").toURI()));
         scanner.setAuto(true);
         scanner.run();
-        scanner.putSuspendablesAndSupers(suspependables, suspependableSupers);
+        scanner.putSuspendablesAndSupers(suspendables, suspendableSupers);
         
-        System.out.println("SUSPENDABLES: " + suspependables);
-        System.out.println("SUPERS: " + suspependableSupers);
+        System.out.println("SUSPENDABLES: " + suspendables);
+        System.out.println("SUPERS: " + suspendableSupers);
     }
 
     @Test
     public void suspendableCallTest() {
         final String method = B.class.getName() + ".foo(I)V";
-        assertTrue(suspependables.contains(method));
+        assertTrue(suspendables.contains(method));
     }
 
     @Test
     public void superSuspendableCallTest() {
         final String method = A.class.getName() + ".foo" + Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(IA.class));
-        assertTrue(suspependables.contains(method));
+        assertTrue(suspendables.contains(method));
     }
 
     @Test
     public void nonSuperSuspendableCallTest() {
         final String method = A.class.getName() + ".foo()";
-        assertTrue(!suspependables.contains(method));
+        assertTrue(!suspendables.contains(method));
     }
 
     @Test
     public void superNonSuspendableCallTest() {
         final String method = A.class.getName() + ".bar" + Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(IA.class));
-        assertTrue(!suspependables.contains(method));
+        assertTrue(!suspendables.contains(method));
     }
 
     @Test
     public void superSuspendableTest() {
         final String method = IA.class.getName() + ".foo(I)V";
-        assertTrue(suspependableSupers.contains(method));
+        assertTrue(suspendableSupers.contains(method));
     }
 
     static interface IA {
