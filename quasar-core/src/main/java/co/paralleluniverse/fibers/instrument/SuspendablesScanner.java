@@ -71,7 +71,7 @@ public class SuspendablesScanner extends Task {
     private final Set<MethodNode> knownSuspendablesOrSupers = new HashSet<>();
     private final boolean ant;
     private URLClassLoader cl;
-    private final ArrayList<FileSet> filesets = new ArrayList<FileSet>();
+    private final ArrayList<FileSet> filesets = new ArrayList<>();
     private final Path projectDir;
     private URL[] urls;
     private SimpleSuspendableClassifier ssc;
@@ -125,7 +125,7 @@ public class SuspendablesScanner extends Task {
     }
     
     private static <T> List<T> unique(List<T> list) {
-        return new ArrayList<T>(new LinkedHashSet<T>(list));
+        return new ArrayList<>(new LinkedHashSet<>(list));
     }
 
     @Override
@@ -139,7 +139,7 @@ public class SuspendablesScanner extends Task {
             // output results
             final ArrayList<String> suspendables = suspendablesFile != null ? new ArrayList<String>() : null;
             final ArrayList<String> suspendableSupers = supersFile != null ? new ArrayList<String>() : null;
-            getSuspendablesAndSupers(suspendables, suspendableSupers);
+            putSuspendablesAndSupers(suspendables, suspendableSupers);
 
             if (suspendablesFile != null) {
                 Collections.sort(suspendables);
@@ -346,10 +346,14 @@ public class SuspendablesScanner extends Task {
                 public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
                     final AnnotationVisitor av = super.visitAnnotation(desc, visible);
 
-                    if (adesc.equals(ANNOTATION_DESC))
-                        susp = noImpl ? SuspendableType.SUSPENDABLE_SUPER : SuspendableType.SUSPENDABLE;
-                    else if (adesc.equals(DONT_INSTRUMENT_ANNOTATION_DESC))
-                        susp = SuspendableType.NON_SUSPENDABLE;
+                    switch (adesc) {
+                        case ANNOTATION_DESC:
+                            susp = noImpl ? SuspendableType.SUSPENDABLE_SUPER : SuspendableType.SUSPENDABLE;
+                            break;
+                        case DONT_INSTRUMENT_ANNOTATION_DESC:
+                            susp = SuspendableType.NON_SUSPENDABLE;
+                            break;
+                    }
 
                     return av;
                 }
@@ -359,12 +363,12 @@ public class SuspendablesScanner extends Task {
                     super.visitEnd();
 
                     if (susp != null)
-                        markSuspendable(methodname, desc, susp);
+                        markKnownSuspendable(methodname, desc, susp);
                 }
             };
         }
 
-        private void markSuspendable(String methodname, String desc, SuspendableType sus) {
+        private void markKnownSuspendable(String methodname, String desc, SuspendableType sus) {
             final MethodNode method = getOrCreateMethodNode(className + '.' + methodname + desc);
             method.owner = className;
             method.inProject |= inProject;
@@ -399,7 +403,7 @@ public class SuspendablesScanner extends Task {
     private class ClassNodeVisitor extends ClassVisitor {
         private final boolean inProject;
         private String className;
-        private final List<String> methods = new ArrayList<String>();
+        private final List<String> methods = new ArrayList<>();
         private ClassNode cn;
 
         public ClassNodeVisitor(boolean inProject, int api, ClassVisitor cv) {
@@ -507,6 +511,7 @@ public class SuspendablesScanner extends Task {
             final MethodNode m = q.poll();
             if (m.inProject)
                 followSupers(q, getClassNode(m), m);
+            followNonOverriddenSubs(q, getClassNode(m), m);
             followCallers(q, m);
         }
     }
@@ -552,6 +557,30 @@ public class SuspendablesScanner extends Task {
         return res;
     }
 
+    private void followNonOverriddenSubs(Queue<MethodNode> q, ClassNode cls, MethodNode method) {
+        log("followNonOverriddenSubs " + method + " " + cls, Project.MSG_DEBUG);
+        if (cls == null)
+            return;
+
+        if (method.suspendType == SuspendableType.NON_SUSPENDABLE)
+            return;
+
+        if (cls.subs != null) {
+            for (ClassNode s : cls.subs) {
+                if (s != null && !s.hasMethod(method.name) && s.inProject) {
+                    MethodNode sm = getOrCreateMethodNode(s.name + '.' + method.name);
+                    sm.inProject = true;
+                    sm.refersToSuper = true;
+                    if (sm.inProject && sm.suspendType == null) {
+                        sm.suspendType = method.suspendType;
+                        q.add(sm);
+                        followNonOverriddenSubs(q, s, sm);
+                    }
+                }
+            }
+        }
+    }
+
     private void followCallers(Queue<MethodNode> q, MethodNode method) {
         // mark as suspendables methods from the project which are calling of the given bfs node (which is superSuspenable or suspendable)
         for (MethodNode caller : method.getCallers()) {
@@ -563,12 +592,12 @@ public class SuspendablesScanner extends Task {
         }
     }
 
-    public void getSuspendablesAndSupers(Collection<String> suspendables, Collection<String> suspendableSupers) {
+    public void putSuspendablesAndSupers(Collection<String> suspendables, Collection<String> suspendableSupers) {
         for (MethodNode method : methods.values()) {
             if (!method.known) {
-                if (method.suspendType == SuspendableType.SUSPENDABLE && suspendables != null)
+                if (method.suspendType == SuspendableType.SUSPENDABLE && !method.refersToSuper && suspendables != null)
                     suspendables.add(output(method));
-                else if (method.suspendType == SuspendableType.SUSPENDABLE_SUPER && suspendableSupers != null)
+                else if (method.suspendType == SuspendableType.SUSPENDABLE_SUPER && !method.refersToSuper && suspendableSupers != null)
                     suspendableSupers.add(output(method));
             }
         }
@@ -637,7 +666,10 @@ public class SuspendablesScanner extends Task {
         boolean inProject;
         final String name;
         ClassNode[] supers; // super and interfaces classnames
+        private ClassNode[] subs;  // sub classnames
+        private int numSubs;
         private String[] methods;
+
 
         public ClassNode(String name) {
             this.name = name;
@@ -646,11 +678,17 @@ public class SuspendablesScanner extends Task {
         void setSupers(String superName, String[] interfaces) {
             this.supers = new ClassNode[(superName != null ? 1 : 0) + (interfaces != null ? interfaces.length : 0)];
             int i = 0;
-            if (superName != null)
-                supers[i++] = getOrCreateClassNode(superName);
+            if (superName != null) {
+                supers[i] = getOrCreateClassNode(superName);
+                supers[i].addSub(this);
+                i++;
+            }
             if (interfaces != null) {
-                for (String iface : interfaces)
-                    supers[i++] = getOrCreateClassNode(iface);
+                for (String iface : interfaces) {
+                    supers[i] = getOrCreateClassNode(iface);
+                    supers[i].addSub(this);
+                    i++;
+                }
             }
         }
 
@@ -672,6 +710,15 @@ public class SuspendablesScanner extends Task {
         public String toString() {
             return "ClassNode{" + name + " inProject: " + inProject + '}';
         }
+
+        private void addSub(ClassNode cn) {
+            if (subs == null)
+                subs = new ClassNode[4];
+            if (numSubs + 1 >= subs.length)
+                this.subs = Arrays.copyOf(subs, subs.length * 2);
+            subs[numSubs] = cn;
+            numSubs++;
+        }
     }
 
     private static class MethodNode {
@@ -683,6 +730,7 @@ public class SuspendablesScanner extends Task {
         SuspendableType suspendType;
         private MethodNode[] callers;
         private int numCallers;
+        private boolean refersToSuper;
 
         public MethodNode(String owner, String nameAndDesc) {
             this.owner = owner.intern();
