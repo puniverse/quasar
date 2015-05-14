@@ -78,6 +78,18 @@ public class SuspendablesScannerTest {
     }
 
     @Test
+    public void inheritedSuspendableCallTest() {
+        final String method = C.class.getName() + ".bax" + Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(IA.class));
+        assertTrue(suspendables.contains(method));
+    }
+
+    @Test
+    public void inheritedNonSuspendableCallTest() {
+        final String method = C.class.getName() + ".fon()";
+        assertTrue(!suspendables.contains(method));
+    }
+
+    @Test
     public void superSuspendableTest() {
         final String method = IA.class.getName() + ".foo(I)V";
         assertTrue(suspendableSupers.contains(method));
@@ -107,6 +119,11 @@ public class SuspendablesScannerTest {
             a.bar(0);
             foo();
         }
+
+        // suspendable
+        void baz(IA a) {
+            a.foo(0);
+        }
     }
 
     static class B implements IA {
@@ -125,4 +142,16 @@ public class SuspendablesScannerTest {
         public void bar(int t) {
         }
     }
+
+    static class C extends A {
+        // suspendable
+        void bax(IA a) {
+            baz(a);
+        }
+
+        // non suspendable
+        void fon() {
+            foo();
+        }
+}
 }
