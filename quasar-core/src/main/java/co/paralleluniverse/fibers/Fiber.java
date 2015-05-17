@@ -1729,10 +1729,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         UNSAFE.putOrderedObject(this, stateOffset, value);
     }
 
-    private void orderedSetState(State value) {
-        UNSAFE.putOrderedObject(this, stateOffset, value);
-    }
-
     //<editor-fold defaultstate="collapsed" desc="Recording">
     /////////// Recording ///////////////////////////////////
     protected final boolean isRecordingLevel(int level) {
