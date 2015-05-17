@@ -19,6 +19,7 @@
  */
 package co.paralleluniverse.common.reflection;
 
+import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.GenericArrayType;
@@ -36,6 +37,13 @@ public final class ReflectionUtil {
     private ReflectionUtil() {
     }
 
+	private static <T extends AccessibleObject> T accessible(T obj) {
+		if (obj == null)
+			return null;
+		obj.setAccessible(true);
+		return obj;
+	}
+	
     public static Class<?>[] getTypes(Object... vals) {
         Class<?>[] types = new Class[vals.length];
         for (int i = 0; i < vals.length; i++)
