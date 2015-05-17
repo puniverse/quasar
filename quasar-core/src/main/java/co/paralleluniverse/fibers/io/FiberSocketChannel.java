@@ -31,6 +31,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.AsynchronousChannelProvider;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Uses an {@link AsynchronousSocketChannel} to implement a fiber-blocking version of {@link SocketChannel}.
@@ -163,6 +164,43 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
                 ac.connect(remote, null, makeCallback());
             }
         }.run();
+    }
+
+    /**
+     * Connects this channel.
+     *
+     * <p> This method initiates an operation to connect this channel. it blocks
+     * until the connection is successfully established or connection cannot be
+     * established or a timeout occurs while attempting to establish it. If the
+     * connection cannot be established then the channel is closed but not so if
+     * a timeout occurs (see {@link http://stackoverflow.com/questions/20752756/how-to-set-java-nio-asynchronoussocketchannel-connect-timeout}).
+     *
+     * <p> This method performs exactly the same security checks as the {@link
+     * java.net.Socket} class. That is, if a security manager has been
+     * installed then this method verifies that its {@link
+     * java.lang.SecurityManager#checkConnect checkConnect} method permits
+     * connecting to the address and port number of the given remote endpoint.
+     *
+     * @param remote   The remote address to which this channel is to be connected
+     * @param timeout  The timeout for the connection attempt
+     * @param timeUnit The time unit for the connection attempt timeout
+     *
+     * @throws UnresolvedAddressException      If the given remote address is not fully resolved
+     * @throws UnsupportedAddressTypeException If the type of the given remote address is not supported
+     * @throws AlreadyConnectedException       If this channel is already connected
+     * @throws ConnectionPendingException      If a connection operation is already in progress on this channel
+     * @throws ShutdownChannelGroupException   If the channel group has terminated
+     * @throws SecurityException               If a security manager has been installed and it does not permit access to the given remote endpoint
+     *
+     * @see #getRemoteAddress
+     */
+    public void connect(final SocketAddress remote, final long timeout, final TimeUnit timeUnit) throws IOException, SuspendExecution, TimeoutException {
+        new FiberAsyncIO<Void>() {
+            @Override
+            protected void requestAsync() {
+                ac.connect(remote, null, makeCallback());
+            }
+        }.run(timeout, timeUnit);
     }
 
     /**

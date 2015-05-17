@@ -42,7 +42,7 @@ public final class Stack implements Serializable {
     private int sp;
     private transient boolean shouldVerifyInstrumentation;
     private transient boolean pushed;
-    private long[] dataLong;        // holds primitives on stack as well as each method's entry point as well as stack pointer
+    private long[] dataLong;        // holds primitives on stack as well as each method's entry point and the stack pointer
     private Object[] dataObject;    // holds refs on stack
 
     Stack(Fiber fiber, int stackSize) {
