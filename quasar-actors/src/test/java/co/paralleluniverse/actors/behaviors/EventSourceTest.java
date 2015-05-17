@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -10,10 +10,6 @@
  *  
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
- */
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
  */
 package co.paralleluniverse.actors.behaviors;
 
@@ -40,7 +36,6 @@ import org.mockito.InOrder;
 import static org.mockito.Mockito.*;
 
 /**
- * These tests are also good tests for sendSync, as they test sendSync (and receive) from both fibers and threads.
  *
  * @author pron
  */

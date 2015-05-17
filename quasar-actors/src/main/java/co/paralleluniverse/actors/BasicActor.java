@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -151,12 +151,11 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
      * non-selective) retrieves them.
      *
-     * @param <T>  The type of the returned value
      * @param type the type of the messages to select
      * @return The next message of the wanted type.
      * @throws InterruptedException
      */
-    public final <T extends Message> T receive(final Class<T> type) throws SuspendExecution, InterruptedException {
+    public final <M extends Message> M receive(final Class<M> type) throws SuspendExecution, InterruptedException {
         return helper.receive(SelectiveReceiveHelper.ofType(type));
     }
 
@@ -167,7 +166,6 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
      * non-selective) retrieves them.
      *
-     * @param <T>     The type of the returned value
      * @param timeout the duration to wait for a matching message to arrive.
      * @param unit    timeout's time unit.
      * @param type    the type of the messages to select
@@ -175,7 +173,7 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * @throws SuspendExecution
      * @throws InterruptedException
      */
-    public final <T extends Message> T receive(long timeout, TimeUnit unit, final Class<T> type) throws SuspendExecution, InterruptedException, TimeoutException {
+    public final <M extends Message> M receive(long timeout, TimeUnit unit, final Class<M> type) throws SuspendExecution, InterruptedException, TimeoutException {
         return helper.receive(timeout, unit, SelectiveReceiveHelper.ofType(type));
     }
 
@@ -186,14 +184,13 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
      * non-selective) retrieves them.
      *
-     * @param <T>     The type of the returned value
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @param type    the type of the messages to select
      * @return The next message of the wanted type, or {@code null} if the timeout expires.
      * @throws SuspendExecution
      * @throws InterruptedException
      */
-    public final <T extends Message> T receive(Timeout timeout, final Class<T> type) throws SuspendExecution, InterruptedException, TimeoutException {
+    public final <M extends Message> M receive(Timeout timeout, final Class<M> type) throws SuspendExecution, InterruptedException, TimeoutException {
         return helper.receive(timeout, SelectiveReceiveHelper.ofType(type));
     }
 

@@ -41,6 +41,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.fibers.Stack;
 import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.RUNTIME_EXCEPTION_NAME;
@@ -631,6 +632,11 @@ class InstrumentMethod {
     }
 
     private void emitStoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsToPreserve) {
+        if (idx > Stack.MAX_ENTRY)
+            throw new IllegalArgumentException("Entry index (PC) " + idx + " greater than maximum of " + Stack.MAX_ENTRY + " in " + className + "." + mn.name + mn.desc);
+        if (fi.numSlots > Stack.MAX_SLOTS)
+            throw new IllegalArgumentException("Number of slots required " + fi.numSlots + " greater than maximum of " + Stack.MAX_SLOTS + " in " + className + "." + mn.name + mn.desc);
+        
         Frame f = frames[fi.endInstruction];
 
         if (fi.lBefore != null)

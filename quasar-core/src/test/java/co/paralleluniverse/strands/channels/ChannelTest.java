@@ -82,13 +82,13 @@ public class ChannelTest {
     final FiberScheduler scheduler;
 
 //    public ChannelTest() {
-//        fjPool = new ForkJoinPool(4, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
-//        this.mailboxSize = 0;
-//        this.policy = OverflowPolicy.BLOCK;
-//        this.singleConsumer = false;
+//        scheduler = new FiberForkJoinScheduler("test", 4, null, false);
+//        this.mailboxSize = 5;
+//        this.policy = OverflowPolicy.THROW;
+//        this.singleConsumer = true;
 //        this.singleProducer = false;
 //
-//        Debug.dumpAfter(20000, "channels.log");
+//        //Debug.dumpAfter(20000, "channels.log");
 //    }
     public ChannelTest(int mailboxSize, OverflowPolicy policy, boolean singleConsumer, boolean singleProducer) {
         scheduler = new FiberForkJoinScheduler("test", 4, null, false);
@@ -680,7 +680,7 @@ public class ChannelTest {
                     fail("m = " + m);
                 } catch (ProducerException e) {
                     assertThat(e.getCause().getMessage(), equalTo("foo"));
-                } catch(ReceivePort.EOFException e) {
+                } catch (ReceivePort.EOFException e) {
                     fail();
                 }
 
@@ -887,7 +887,7 @@ public class ChannelTest {
         Thread.sleep(100);
         channel2.send("world!", 1, TimeUnit.SECONDS);
         sync.send(ping, 1, TimeUnit.SECONDS); // 1
-        
+
         group.remove(channel3);
         group.add(channel1);
         sync.send(ping, 1, TimeUnit.SECONDS); // 2
@@ -895,11 +895,11 @@ public class ChannelTest {
         Thread.sleep(150);
         channel1.send("foo", 1, TimeUnit.SECONDS);
         sync.send(ping, 1, TimeUnit.SECONDS); // 3
-        
+
         group.remove(channel1);
         group.add(channel2);
         sync.send(ping, 1, TimeUnit.SECONDS); // 4
-        
+
         Thread.sleep(100);
         channel2.send("bar", 1, TimeUnit.SECONDS);
         sync.send(ping, 1, TimeUnit.SECONDS); // 5
