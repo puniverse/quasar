@@ -72,7 +72,7 @@ subprojects {
     }
 
     dependencies {
-        compile("io.dropwizard.metrics:metrics-core:3.1.1") {
+        compile("io.dropwizard.metrics:metrics-core:3.1.2") {
             exclude group: 'org.slf4j', module: '*'
         }
         provided "org.apache.ant:ant:1.9.4"
@@ -113,7 +113,7 @@ subprojects {
         doLast {
             ant.taskdef(
                 name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
-                classpath: "build/classes/main:build/resources/main:" + configurations.compile.asPath)
+                classpath: "build/classes/main:build/resources/main:" + configurations.provided.asPath + configurations.compile.asPath)
             ant.scanSuspendables(
                 auto: false,
                 supersFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers",
@@ -121,7 +121,8 @@ subprojects {
                 fileset(dir: sourceSets.main.output.classesDir)
             }
 
-            ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/resources/main:build/classes/main:" + configurations.compile.asPath)
+            ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', 
+				classpath: "build/resources/main:build/classes/main:" + configurations.provided.asPath + configurations.compile.asPath)
             ant.instrumentation(verbose:'true', check:'true', debug:'true') {
                 fileset(dir: sourceSets.main.output.classesDir) {
                     exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
@@ -195,6 +196,7 @@ subprojects {
     //    }
 
     configure (javadoc) {
+		classpath += configurations.provided 
         options {
             docletpath = configurations.markdownDoclet.files.asType(List)
             doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
@@ -392,7 +394,7 @@ project (':quasar-actors') {
     //project.evaluationDependsOn(':quasar-core')
 
     dependencies {
-        compile project(':quasar-core')
+        provided project(':quasar-core')
         // compile 'org.mutabilitydetector:MutabilityDetector:0.9.2'
         compile "org.slf4j:slf4j-api:1.7.12"
         compile "net.bytebuddy:byte-buddy:0.5.6"
@@ -407,7 +409,7 @@ project (':quasar-actors') {
 
 project (':quasar-galaxy') {
     dependencies {
-        compile project(':quasar-core')
+        provided project(':quasar-core')
         compile project(':quasar-actors')
 
         compile ("co.paralleluniverse:galaxy:1.4")  {
