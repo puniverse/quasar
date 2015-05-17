@@ -11,10 +11,6 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.Actor;
@@ -40,7 +36,6 @@ import org.mockito.InOrder;
 import static org.mockito.Mockito.*;
 
 /**
- * These tests are also good tests for sendSync, as they test sendSync (and receive) from both fibers and threads.
  *
  * @author pron
  */
