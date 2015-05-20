@@ -31,13 +31,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import net.bytebuddy.ByteBuddy;
-import net.bytebuddy.instrumentation.InvocationHandlerAdapter;
 //import java.lang.reflect.Proxy;
 import java.lang.reflect.InvocationHandler;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
-import net.bytebuddy.dynamic.ClassLoadingStrategy;
-import net.bytebuddy.instrumentation.MethodDelegation;
+import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
+import net.bytebuddy.implementation.InvocationHandlerAdapter;
 import static net.bytebuddy.matcher.ElementMatchers.anyOf;
 import static net.bytebuddy.matcher.ElementMatchers.isDeclaredBy;
 
