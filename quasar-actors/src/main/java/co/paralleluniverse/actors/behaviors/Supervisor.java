@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -18,6 +18,7 @@ import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.LocalActor;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 import co.paralleluniverse.fibers.SuspendExecution;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -69,6 +70,21 @@ public class Supervisor extends Behavior {
         return (T) call(this, new GetChildMessage(RequestReplyHelper.from(), null, id));
     }
 
+    /**
+     * Retrieves the children actor references as an immutable list.
+     * This method does not block when called from within the Supervisor's context, so, in particular, it may be called by
+     * an actor constructor, constructed by the supervisor.
+     *
+     * @return the children {@link ActorRef}s.
+     * @throws SuspendExecution
+     * @throws InterruptedException
+     */
+    public final List<? extends ActorRef<?>> getChildren() throws SuspendExecution, InterruptedException {
+        if (isInActor())
+            return SupervisorActor.currentSupervisor().getChildren();
+
+        return (List) call(this, new GetChildrenMessage(RequestReplyHelper.from(), null));
+    }
     /**
      * Removes a child actor from the supervisor.
      * This method does not block when called from within the Supervisor's context, so, in particular, it may be called by
@@ -267,6 +283,17 @@ public class Supervisor extends Behavior {
         @Override
         protected String contentString() {
             return super.contentString() + " name: " + name;
+        }
+    }
+
+    static class GetChildrenMessage extends RequestMessage {
+        public GetChildrenMessage(ActorRef from, Object id) {
+            super(from, id);
+        }
+
+        @Override
+        protected String contentString() {
+            return super.contentString();
         }
     }
 
