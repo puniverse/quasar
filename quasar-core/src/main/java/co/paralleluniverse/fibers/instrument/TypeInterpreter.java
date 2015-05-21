@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2013, Matthias Mann
+ * Copyright (c) 2008-2015, Matthias Mann
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -85,8 +85,10 @@ class TypeInterpreter extends BasicInterpreter {
     public BasicValue binaryOperation(AbstractInsnNode insn, BasicValue value1, BasicValue value2) throws AnalyzerException {
         if (insn.getOpcode() == Opcodes.AALOAD) {
             final Type t1 = value1.getType();
-            if (t1 == null || t1.getSort() != Type.ARRAY)
-                throw new AnalyzerException(insn, "AALOAD needs an array as first parameter");
+            if (t1 == null)
+                // In some cases the frame analysis will return a non-array (typically null) type,
+                // f.e. if the AALOAD array argument is conditionally initialized.
+                throw new AnalyzerException(insn, "AALOAD needs a first parameter");
 
             final Type resultType = Type.getType(t1.getDescriptor().substring(1));
             return new BasicValue(resultType);
