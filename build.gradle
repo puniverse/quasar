@@ -152,7 +152,7 @@ subprojects {
         useJUnit()
         // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
 
-	// systemProperty "java.util.logging.config.file", "jul.properties"
+		// systemProperty "java.util.logging.config.file", "jul.properties"
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
         // systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
 
@@ -238,17 +238,6 @@ subprojects {
     signing {
         required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
         sign configurations.archives
-    }
-
-    // remove embedded jars from pom
-    configure(install.repositories.mavenInstaller) {
-        pom.whenConfigured {
-            it.dependencies.removeAll { dep ->
-                dep.artifactId.startsWith('jsr166e') ||
-                dep.artifactId.startsWith('high-scale-lib')
-                (dep.groupId == 'co.paralleluniverse' && dep.artifactId.startsWith('quasar-core'))
-            }
-        }
     }
 
     uploadArchives {
@@ -373,12 +362,11 @@ project (':quasar-core') {
         it.dependencies.removeAll { dep ->
             dep.artifactId.startsWith('jsr166e') ||
             dep.artifactId.startsWith('high-scale-lib') ||
-            dep.groupId == 'org.ow2.asm' ||
-            (dep.groupId == 'co.paralleluniverse' && dep.artifactId.startsWith('quasar-core'))
+            dep.groupId == 'org.ow2.asm'
         }
     }
 
-    if (System.properties['java.version'].startsWith('1.8') ) {
+	if (System.properties['java.version'].startsWith('1.8') ) {
         artifacts {
             archives jar
             archives project(':quasar-core-jdk8').jar

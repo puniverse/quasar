@@ -7,7 +7,7 @@ targetCompatibility = '1.8'
 ext.quasarJar = "${libsDir}/quasar-core-${version}-jdk8.jar" // project(':quasar-core').jar.archivePath
 
 dependencies {
-    compile(project(':quasar-core')) { // 
+    provided(project(':quasar-core')) { // 
         exclude module: "jsr166e"
     }
 }
@@ -28,7 +28,7 @@ compileJava {
     doLast {
         ant.taskdef(
             name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner', 
-            classpath: "build/classes/main:build/resources/main:" + configurations.compile.asPath)
+            classpath: "build/classes/main:build/resources/main:" + configurations.provided.asPath + configurations.compile.asPath)
         ant.scanSuspendables(
             auto: false,
             supersFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers",
@@ -37,13 +37,7 @@ compileJava {
             fileset(dir: sourceSets.main.output.classesDir)
         }
         
-        //        ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.OldSuspendablesScanner', classpath: "build/classes/main:" + configurations.compile.asPath)
-        //        ant.scanSuspendables(outputFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
-        //            fileset(dir: project(':quasar-core').sourceSets.main.output.classesDir)
-        //            fileset(dir: sourceSets.main.output.classesDir)
-        //        }
-            
-        ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/resources/main:" + "build/classes/main:" + configurations.compile.asPath)
+        ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: "build/resources/main:" + "build/classes/main:" + configurations.provided.asPath + configurations.compile.asPath)
         ant.instrumentation(verbose:'true', check:'true', debug:'true') {
             fileset(dir: sourceSets.main.output.classesDir) {
                 exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
@@ -121,6 +115,7 @@ signArchives.dependsOn shadowJar
 uploadArchives.dependsOn shadowJar
     
 uploadArchives.enabled = false
+install.enabled = false
 
 tasks.withType(Test) { 
     allJvmArgs = []
