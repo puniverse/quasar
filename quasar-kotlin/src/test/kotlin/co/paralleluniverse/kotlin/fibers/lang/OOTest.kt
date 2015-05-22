@@ -34,20 +34,20 @@ import co.paralleluniverse.strands.SuspendableCallable
 public class OOTest {
     val scheduler = FiberForkJoinScheduler("test", 4, null, false)
     val iv = 1
-        [Suspendable] get() { Fiber.sleep(1) ; return $iv }
+        @Suspendable get() { Fiber.sleep(1) ; return $iv }
     var mv = 1
-        [Suspendable] get() { Fiber.sleep(1) ; return $mv }
-        [Suspendable] set(v) { Fiber.sleep(1) ; $mv = v }
+        @Suspendable get() { Fiber.sleep(1) ; return $mv }
+        @Suspendable set(v) { Fiber.sleep(1) ; $mv = v }
     var md by D()
-        [Suspendable] get
-        [Suspendable] set
+        @Suspendable get
+        @Suspendable set
 
     class D {
         Suspendable fun get(thisRef: Any?, prop: PropertyMetadata): String {
             Fiber.sleep(1)
             return "$thisRef, thank you for delegating '${prop.name}' to me!"
         }
-        [suppress("UNUSED_PARAMETER")]
+        @suppress("UNUSED_PARAMETER")
         Suspendable fun set(thisRef: Any?, prop: PropertyMetadata, value: String) {
             Fiber.sleep(1)
         }
@@ -70,14 +70,14 @@ public class OOTest {
         }
     }
 
-    trait BaseTrait1 {
+    interface BaseTrait1 {
         Suspendable fun doSleep() {
             Fiber.sleep(5)
         }
     }
 
-    trait BaseTrait2 : Base {
-        override Suspendable fun doSleep() {
+    interface BaseTrait2 {
+        Suspendable fun doSleep() {
             Fiber.sleep(7)
         }
     }
@@ -131,17 +131,18 @@ public class OOTest {
     class Delegating(bb2: BaseTrait2) : Base(), BaseTrait2 by bb2
 
     enum class E(val data: Int?) {
-        [Suspendable] open fun enumFun() {
+        V1(0),
+        V2(1) {
+            @Suspendable override fun enumFun() {
+                Fiber.sleep(10)
+            }
+        },
+
+        @Suspendable open fun enumFun() {
             data
             Fiber.sleep(10)
         }
 
-        V1 : E(0)
-        V2 : E(1) {
-            [Suspendable] override fun enumFun() {
-                Fiber.sleep(10)
-            }
-        }
     }
 
     Suspendable fun Any?.doFiberSleep() {
@@ -149,11 +150,11 @@ public class OOTest {
     }
 
     var E.mvE: Int
-        [Suspendable] get() { Fiber.sleep(1) ; return 1 }
-        [Suspendable] set(v) { Fiber.sleep(1) }
+        @Suspendable get() { Fiber.sleep(1) ; return 1 }
+        @Suspendable set(v) { Fiber.sleep(1) }
     var E.mdE by D()
-        [Suspendable] get
-        [Suspendable] set
+        @Suspendable get
+        @Suspendable set
 
     object O : DerivedDerived2()
 

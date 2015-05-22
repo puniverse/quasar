@@ -13,10 +13,21 @@
  */
 package actors
 
+import co.paralleluniverse.actors
 import co.paralleluniverse.actors.*
+import co.paralleluniverse.actors.behaviors.BehaviorActor
+import co.paralleluniverse.actors.behaviors.ProxyServerActor
+import co.paralleluniverse.actors.behaviors.Supervisor
+import co.paralleluniverse.actors.behaviors.Supervisor.*
+import co.paralleluniverse.actors.behaviors.Supervisor.ChildMode
+import co.paralleluniverse.actors.behaviors.Supervisor.ChildMode.*
+import co.paralleluniverse.actors.behaviors.SupervisorActor
+import co.paralleluniverse.actors.behaviors.SupervisorActor.*
+import co.paralleluniverse.actors.behaviors.SupervisorActor.RestartStrategy.*
 import co.paralleluniverse.fibers.Suspendable
 import org.junit.Test
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeUnit.*
 import co.paralleluniverse.kotlin.Actor
 import co.paralleluniverse.kotlin.Actor.Companion.Timeout
 import co.paralleluniverse.kotlin.*
@@ -74,9 +85,13 @@ class Pong() : Actor() {
     }
 }
 
+// public ChildSpec(String id, ChildMode mode, int maxRestarts, long duration, TimeUnit unit, long shutdownDeadline, ActorBuilder<?,
+
 public class Tests {
     Test public fun testActors() {
-        spawn(register("pong", Pong()))
-        spawn(Ping(3))
+        val pongCS = ChildSpec("pong", TRANSIENT, 1, 1, MILLISECONDS, 100, ActorBuilder { Pong() })
+        // val pingCS = ChildSpec("pong", TRANSIENT, 1, 1, MILLISECONDS, 100, ActorBuilder { Ping(3) })
+        val refSupervisor = SupervisorActor(ALL_FOR_ONE, pongCS).spawn()
+        refSupervisor.shutdown()
     }
 }

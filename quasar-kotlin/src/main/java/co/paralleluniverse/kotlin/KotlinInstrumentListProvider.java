@@ -39,7 +39,6 @@ public class KotlinInstrumentListProvider implements InstrumentListProvider {
                 mClassAndMeth(startsWithN("kotlin/Function"), eqN("invoke"), SuspendableType.SUSPENDABLE_SUPER, a(ktRT)),
                 mClassAndMeth(startsWithN("kotlin/reflect/KFunction"), eqN("invoke"), SuspendableType.SUSPENDABLE_SUPER, a(ktRT)),
                 mClassAndMeth(startsWithN("kotlin/reflect/KMemberFunction"), eqN("invoke"), SuspendableType.SUSPENDABLE_SUPER, a(ktRT)),
-                mClassAndMeth(startsWithN("kotlin/reflect/KMemberFunction"), eqN("invoke"), SuspendableType.SUSPENDABLE_SUPER, a(ktRT)),
 
                 mClassAndMeth(and(startsWithN("kotlin/reflect/"), endsWithN("Property")), eqN("get"), SuspendableType.SUSPENDABLE_SUPER, a(ktRT)),
                 mClassAndMeth(and(startsWithN("kotlin/reflect/"), endsWithN("Property")), eqN("set"), SuspendableType.SUSPENDABLE_SUPER, a(ktRT)),
@@ -49,7 +48,7 @@ public class KotlinInstrumentListProvider implements InstrumentListProvider {
                 mClassAndMeth(eqN("kotlin/reflect/KTopLevelVariable"), eqN("get"), SuspendableType.SUSPENDABLE_SUPER, a(ktRT)),
 
                 mClassAndMeth(containsN("$"), eqN("invoke"), SuspendableType.SUSPENDABLE, a(ktSynth)),
-                mMeth(endsWithN("$default"), SuspendableType.SUSPENDABLE, a(ktSynth)),
+//                mMeth(endsWithN("$default"), SuspendableType.SUSPENDABLE, a(ktSynth)),
         };
     }
 

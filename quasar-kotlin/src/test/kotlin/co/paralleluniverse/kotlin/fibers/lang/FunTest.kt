@@ -25,18 +25,18 @@ import org.junit.Test
  */
 
 fun seq(f: () -> Unit, g: () -> Unit): () -> Unit {
-    return {f() ; g()}
+    return (@Suspendable {() -> f() ; g()})
 }
 
 Suspendable fun f() {
     Fiber.sleep(10)
-    [Suspendable] fun f1() {
+    @Suspendable fun f1() {
         Fiber.sleep(10)
     }
     f1()
 }
 
-Suspendable fun fDef([suppress("UNUSED_PARAMETER")] def: Boolean = true) {
+Suspendable fun fDef(@suppress("UNUSED_PARAMETER") def: Boolean = true) {
     Fiber.sleep(10)
 }
 
@@ -128,7 +128,7 @@ public class FunTest {
     Test fun testFunLambda() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
             Suspendable override fun run(): Boolean {
-                ([Suspendable] {a : Int -> Fiber.sleep(10) })(1)
+                (@Suspendable { _ : Int -> Fiber.sleep(10) })(1)
                 return true
             }
         }).start().get())

@@ -33,12 +33,12 @@ import org.junit.Ignore
 public class FiberAsyncTest {
     private val scheduler = FiberForkJoinScheduler("test", 4, null, false);
 
-    private trait MyCallback {
+    private interface MyCallback {
         fun call(str: String)
         fun fail(e: RuntimeException)
     }
 
-    private trait Service {
+    private interface Service {
         fun registerCallback(callback: MyCallback)
     }
     private val syncService = object : Service {

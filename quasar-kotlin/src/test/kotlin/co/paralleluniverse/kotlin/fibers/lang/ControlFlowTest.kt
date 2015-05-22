@@ -113,13 +113,11 @@ public class ControlFlowTest {
                     l = l.plus(i)
                     i = ch.receive()
                 }
-                [Suspendable] fun f() {
-                    l.forEach @l {
-                        x: Int ->
+                @Suspendable fun f() {
+                    l.forEach {
+                        x ->
                             Fiber.park(10, TimeUnit.MILLISECONDS)
-                            if (x % 2 == 0)
-                                return@l
-                            else
+                            if (x % 2 != 0)
                                 return@f
                     }
                 }
