@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -26,7 +27,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public class FiberSelect {
     private static final Queue<Registration> registrationQ = new ConcurrentLinkedQueue<>();
-    private static final Queue<SelectionKey> unregistrationQ = new ConcurrentLinkedQueue<>();
 
     private static Selector selector;
     private static Thread selectingThread;
@@ -50,6 +50,8 @@ public class FiberSelect {
                 new Thread() {
                     @Override
                     public void run() {
+                        Iterator<SelectionKey> iterator;
+                        SelectionKey key;
                         while(true) {
                             try {
                                 Registration r = registrationQ.poll();
@@ -57,14 +59,12 @@ public class FiberSelect {
                                     r.sc.register(selector, r.ops, r.callback);
                                     r = registrationQ.poll();
                                 }
-                                if (selector.select() > 0) {
-                                    for(final SelectionKey k : selector.selectedKeys())
-                                        ((SelectorFiberAsync) k.attachment()).complete(k, k.readyOps());
-                                }
-                                SelectionKey k = unregistrationQ.poll();
-                                while(k != null) {
-                                    k.cancel();
-                                    k = unregistrationQ.poll();
+                                selector.select();
+                                iterator = selector.selectedKeys().iterator();
+                                while (iterator.hasNext()) {
+                                    key = iterator.next();
+                                    iterator.remove();
+                                    ((SelectorFiberAsync) key.attachment()).complete(key, key.readyOps());
                                 }
                             } catch (final IOException ioe) {
                                 shutdown();
@@ -118,8 +118,6 @@ public class FiberSelect {
     }
 
     static void unregister(final SelectionKey key) throws IOException {
-        init();
-        unregistrationQ.offer(key);
-        selector.wakeup();
+        key.cancel();
     }
 }

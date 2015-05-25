@@ -52,6 +52,9 @@ public class FiberSelectSocketChannel implements ByteChannel, ScatteringByteChan
         final FiberSelectSocketChannel res = open();
         res.startConnect(sa);
         FiberSelect.forConnect(res.sc);
+        if (res.sc.isConnectionPending())
+            // TOOO if it can block run on pool
+            res.sc.finishConnect();
         return res;
     }
 
@@ -62,73 +65,99 @@ public class FiberSelectSocketChannel implements ByteChannel, ScatteringByteChan
 
     @Override
     public void close() throws IOException {
-        // TODO can block the thread, make more efficient
+        // TOOO if it can block run on pool
         sc.close();
     }
 
     @Override
     @Suspendable
     public int read(final ByteBuffer dst) throws IOException {
-        FiberSelect.forRead(sc);
-        return sc.read(dst);
+        int count = sc.read(dst);
+        if (count == 0) {
+            FiberSelect.forRead(sc);
+            return sc.read(dst);
+        } else
+            return count;
     }
 
     @Override
     @Suspendable
     public long read(final ByteBuffer[] dsts) throws IOException {
-        FiberSelect.forRead(sc);
-        return sc.read(dsts);
+        long count = sc.read(dsts);
+        if (count == 0) {
+            FiberSelect.forRead(sc);
+            return sc.read(dsts);
+        } else
+            return count;
     }
 
     @Override
     @Suspendable
     public long read(final ByteBuffer[] dsts, final int offset, final int length) throws IOException {
-        FiberSelect.forRead(sc);
-        return sc.read(dsts, offset, length);
+        long count = sc.read(dsts, offset, length);
+        if (count == 0) {
+            FiberSelect.forRead(sc);
+            return sc.read(dsts, offset, length);
+        } else
+            return count;
     }
 
     @Override
     @Suspendable
     public int write(final ByteBuffer src) throws IOException {
-        FiberSelect.forWrite(sc);
-        return sc.write(src);
+        int count = sc.write(src);
+        if (count == 0) {
+            FiberSelect.forWrite(sc);
+            return sc.write(src);
+        } else
+            return count;
     }
 
     @Override
     @Suspendable
     public long write(final ByteBuffer[] srcs) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        long count = sc.write(srcs);
+        if (count == 0) {
+            FiberSelect.forWrite(sc);
+            return sc.write(srcs);
+        } else
+            return count;
     }
 
     @Override
     @Suspendable
     public long write(final ByteBuffer[] srcs, int offset, int length) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        long count = sc.write(srcs, offset, length);
+        if (count == 0) {
+            FiberSelect.forWrite(sc);
+            return sc.write(srcs, offset, length);
+        } else
+            return count;
     }
 
     @Override
     public NetworkChannel bind(final SocketAddress local) throws IOException {
-        // TODO can this block the thread? Make it more efficient if it can
+        // TOOO if it can block run on pool
         sc.bind(local);
         return this;
     }
 
     @Override
     public SocketAddress getLocalAddress() throws IOException {
-        // TODO can this block the thread? Make it more efficient if it can
+        // TOOO if it can block run on pool
         return sc.getLocalAddress();
     }
 
     @Override
     public <T> NetworkChannel setOption(final SocketOption<T> name, final T value) throws IOException {
-        // TODO can this block the thread? Make it more efficient if it can
+        // TOOO if it can block run on pool
         sc.setOption(name, value);
         return this;
     }
 
     @Override
     public <T> T getOption(final SocketOption<T> name) throws IOException {
-        // TODO can this block the thread? Make it more efficient if it can
+        // TOOO if it can block run on pool
         return sc.getOption(name);
     }
 
