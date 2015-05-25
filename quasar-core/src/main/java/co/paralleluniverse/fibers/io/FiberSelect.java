@@ -15,6 +15,7 @@ package co.paralleluniverse.fibers.io;
 
 import co.paralleluniverse.fibers.Suspendable;
 import java.io.IOException;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -50,26 +51,36 @@ public class FiberSelect {
                 new Thread() {
                     @Override
                     public void run() {
-                        Iterator<SelectionKey> iterator;
-                        SelectionKey key;
                         while(true) {
                             try {
-                                Registration r = registrationQ.poll();
-                                while(r != null) {
-                                    r.sc.register(selector, r.ops, r.callback);
-                                    r = registrationQ.poll();
-                                }
                                 selector.select();
-                                iterator = selector.selectedKeys().iterator();
-                                while (iterator.hasNext()) {
-                                    key = iterator.next();
-                                    iterator.remove();
-                                    ((SelectorFiberAsync) key.attachment()).complete(key, key.readyOps());
-                                }
+                                processSelected();
+                                selector.selectNow(); // De-register cancelled
+                                // Add new registrations
+                                processRegistrations();
                             } catch (final IOException ioe) {
                                 shutdown();
                                 throw new RuntimeException(ioe);
                             }
+                        }
+                    }
+
+                    private void processRegistrations() throws ClosedChannelException {
+                        Registration r = registrationQ.poll();
+                        while(r != null) {
+                            r.sc.register(selector, r.ops, r.callback);
+                            r = registrationQ.poll();
+                        }
+                    }
+
+                    private void processSelected() {
+                        Iterator<SelectionKey> iterator;
+                        SelectionKey key;
+                        iterator = selector.selectedKeys().iterator();
+                        while (iterator.hasNext()) {
+                            key = iterator.next();
+                            iterator.remove();
+                            ((SelectorFiberAsync) key.attachment()).complete(key, key.readyOps());
                         }
                     }
                 };
