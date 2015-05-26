@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers.io;
 
+import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberAsync;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
@@ -24,21 +25,23 @@ import java.nio.channels.Selector;
 /**
  * @author circlespainter
  */
-public class SelectorFiberAsync extends FiberAsync<Integer, IOException> implements SelectorCallback {
+public class SelectorFiberAsync extends FiberAsync<SelectionKey, IOException> implements SelectorCallback {
     private final SelectableChannel sc;
     private final Selector s;
     private final int ops;
+	private final Fiber fiber;
 
     public SelectorFiberAsync(final SelectableChannel sc, final Selector s, final int ops) {
         this.sc = sc;
         this.s = s;
         this.ops = ops;
+		this.fiber = Fiber.currentFiber();
     }
 
     @Override
     protected void requestAsync() {
         try {
-            FiberSelect.register(sc, ops, this);
+            FiberSelect.register(sc, ops, fiber, this);
         } catch (final IOException ioe) {
             asyncFailed(ioe);
         }
@@ -46,12 +49,7 @@ public class SelectorFiberAsync extends FiberAsync<Integer, IOException> impleme
 
     @Override
     public void complete(final SelectionKey key, final int readyOps) {
-        try {
-            FiberSelect.deregister(key);
-        } catch (final IOException ioe) {
-            asyncFailed(ioe);
-        }
-        asyncCompleted(readyOps);
+        asyncCompleted(key);
     }
 
     @Override
@@ -61,7 +59,7 @@ public class SelectorFiberAsync extends FiberAsync<Integer, IOException> impleme
 
     @Override
     @Suspendable
-    public Integer run() throws IOException {
+    public SelectionKey run() throws IOException {
         try {
             return super.run();
         } catch (final SuspendExecution ex) {

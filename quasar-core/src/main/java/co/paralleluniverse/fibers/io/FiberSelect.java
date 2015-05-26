@@ -13,6 +13,8 @@
  */
 package co.paralleluniverse.fibers.io;
 
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import java.io.IOException;
 import java.nio.channels.CancelledKeyException;
@@ -28,124 +30,108 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * @author circlespainter
  */
 public class FiberSelect {
-    private static final Queue<Registration> registrationQ = new ConcurrentLinkedQueue<>();
-    private static final Queue<SelectionKey> deregistrationQ = new ConcurrentLinkedQueue<>();
+	private static final Queue<Registration> registrationQ = new ConcurrentLinkedQueue<>();
+	private static final Queue<SelectionKey> deregistrationQ = new ConcurrentLinkedQueue<>();
 
-    private static final Selector selector;
-    private static final Thread selectingThread;
+	private static final Selector selector;
+	private static final Thread selectingThread;
 
-    static {
-        try {
-            selector = Selector.open();
-            selectingThread =
-                new Thread() {
-                    @Override
-                    public void run() {
-                        while(true) {
-                            try {
-                                // Add new registrations
-                                processRegistrations();
-                                // Select
-                                selector.select();
-                                // Process selection
-                                processSelected();
-                                // Process requested deregistrations
-                                processDeregistrations();
-                                // Clear deregistered and wakeups
-                                selector.selectNow();
-                            } catch (final Exception e) {
-                                // TODO
-                                e.printStackTrace();
-                            }
-                        }
-                    }
+	static {
+		try {
+			selector = Selector.open();
+			selectingThread
+					= new Thread() {
+						@Override
+						public void run() {
+							while (true) {
+								try {
+									processRegistrations();
+									selector.select();
+									processSelected();
+									processDeregistrations();
+									selector.selectNow();
+								} catch (final Exception e) {
+									// TODO
+									e.printStackTrace();
+								}
+							}
+						}
 
-                    private void processSelected() {
-                        final Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
-                        SelectionKey key;
-                        while (iterator.hasNext()) {
-                            key = iterator.next();
-                            iterator.remove();
-                            if (key.isValid()) {
-                                try {
-                                    ((SelectorFiberAsync) key.attachment()).complete(key, key.readyOps());
-                                } catch (final CancelledKeyException cke) { /* Just ignore the key */ }
-                            }
-                        }
-                    }
+						private void processSelected() {
+							final Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
+							SelectionKey key;
+							while (iterator.hasNext()) {
+								key = iterator.next();
+								iterator.remove();
+								if (key.isValid()) {
+									try {
+										((Fiber) key.attachment()).unpark(key);
+									} catch (final CancelledKeyException cke) { /* Just ignore the key */ }
+								}
+							}
+						}
 
-                    private void processDeregistrations() throws ClosedChannelException {
-                        SelectionKey k = deregistrationQ.poll();
-                        while(k != null) {
-                            k.cancel();
-                            k = deregistrationQ.poll();
-                        }
-                    }
+						private void processDeregistrations() throws ClosedChannelException {
+							SelectionKey k = deregistrationQ.poll();
+							while (k != null) {
+								k.cancel();
+								k = deregistrationQ.poll();
+							}
+						}
 
-                    private void processRegistrations() throws ClosedChannelException {
-                        Registration r = registrationQ.poll();
-                        while(r != null) {
-                            r.sc.register(selector, r.ops, r.callback);
-                            r = registrationQ.poll();
-                        }
-                    }
-                };
-            selectingThread.start();
-        } catch (final IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
-    }
-    
-    private static class Registration {
-        final SelectableChannel sc;
-        final int ops;
+						private void processRegistrations() throws ClosedChannelException {
+							Registration r = registrationQ.poll();
+							while (r != null) {
+								final SelectionKey key = r.sc.register(selector, r.ops, r.fiber);
+								r.callback.complete(key, 0);
+								r = registrationQ.poll();
+							}
+						}
+					};
+			selectingThread.start();
+		} catch (final IOException ioe) {
+			throw new RuntimeException(ioe);
+		}
+	}
+
+	private static class Registration {
+		final SelectableChannel sc;
+		final int ops;
         final SelectorFiberAsync callback;
+		final Fiber fiber;
+		
+		Registration(final SelectableChannel sc, final int ops, final Fiber fiber, SelectorFiberAsync callback) {
+			this.sc = sc;
+			this.ops = ops;
+			this.fiber = fiber;
+			this.callback = callback;
+		}
+	}
 
-        Registration(final SelectableChannel sc, final int ops, final SelectorFiberAsync callback) {
-            this.sc = sc;
-            this.ops = ops;
-            this.callback = callback;
-        }
-    }
+	static void shutdown() {
+		if (selector != null) {
+			for (final SelectionKey k : selector.keys()) {
+				k.cancel();
+			}
+			try {
+				selector.close();
+			} catch (IOException ioe) {
+				throw new RuntimeException(ioe);
+			}
+		}
+	}
 
-    static void shutdown() {
-        if (selector != null) {
-            for(final SelectionKey k : selector.keys()) {
-                k.cancel();
-            }
-            try {
-                selector.close();
-            } catch (IOException ioe) {
-                throw new RuntimeException(ioe);
-            }
-        }
-    }
+	static SelectionKey register(SelectableChannel sc) throws SuspendExecution, IOException {
+		return new SelectorFiberAsync(sc, selector, sc.validOps()).run();
+	}
 
-    @Suspendable
-    static void forRead(final SelectableChannel sc) throws IOException {
-        final Selector s = selector;
-        new SelectorFiberAsync(sc, s, SelectionKey.OP_READ).run();
-    }
+	static void register(final SelectableChannel sc, final int ops, final Fiber fiber, final SelectorFiberAsync callback) throws IOException {
+		registrationQ.offer(new Registration(sc, ops, fiber, callback));
+		selector.wakeup();
+	}
 
-    @Suspendable
-    static void forWrite(final SelectableChannel sc) throws IOException {
-        final Selector s = selector;
-        new SelectorFiberAsync(sc, s, SelectionKey.OP_WRITE).run();
-    }
-
-    @Suspendable
-    static void forConnect(final SelectableChannel sc) throws IOException {
-        final Selector s = selector;
-        new SelectorFiberAsync(sc, s, SelectionKey.OP_CONNECT).run();
-    }
-
-    static void register(final SelectableChannel sc, final int ops, final SelectorFiberAsync callback) throws IOException {
-        registrationQ.offer(new Registration(sc, ops, callback));
-        selector.wakeup();
-    }
-
-    static void deregister(final SelectionKey key) throws IOException {
-        deregistrationQ.offer(key);
-        selector.wakeup();
-    }
+	static void deregister(final SelectionKey key) throws IOException {
+		deregistrationQ.offer(key);
+		selector.wakeup();
+	}
 }
