@@ -37,6 +37,8 @@ public class FiberSelectSocketChannel implements ByteChannel, ScatteringByteChan
 	private final SocketChannel sc;
 	private SelectionKey key;
 
+        public long openTime, registrationTime, connectTime, writeTime, readTime, deregistrationTime, closeTime;
+
 	FiberSelectSocketChannel(final SocketChannel sc) throws IOException {
 		this.sc = sc;
 		this.sc.configureBlocking(false);
@@ -45,8 +47,15 @@ public class FiberSelectSocketChannel implements ByteChannel, ScatteringByteChan
 	@Suspendable
 	public static FiberSelectSocketChannel open() throws IOException, SuspendExecution {
 		// TODO can block the thread, make more efficient
+            long start = System.nanoTime();
 		FiberSelectSocketChannel c = new FiberSelectSocketChannel(SocketChannel.open());
+                long end = System.nanoTime();
+                c.openTime = end - start;
+
+                start = System.nanoTime();
 		c.register();
+                end = System.nanoTime();
+                c.registrationTime = end - start;
 		return c;
 	}
 
@@ -60,10 +69,13 @@ public class FiberSelectSocketChannel implements ByteChannel, ScatteringByteChan
 		this.key = FiberSelect.register(sc);
 	}
 
-	private void connect(SocketAddress sa) throws IOException, SuspendExecution {
+	public void connect(SocketAddress sa) throws IOException, SuspendExecution {
+            long start = System.nanoTime();
 		sc.connect(sa);
 		while (!sc.finishConnect())
 			Fiber.park(key);
+                long end = System.nanoTime();
+                connectTime = end - start;
 	}
 
 	@Override
@@ -73,18 +85,27 @@ public class FiberSelectSocketChannel implements ByteChannel, ScatteringByteChan
 
 	@Override
 	public void close() throws IOException {
+            long start = System.nanoTime();
 		// TOOO if it can block run on pool
 		FiberSelect.deregister(key);
+                long end = System.nanoTime();
+                deregistrationTime = end - start;
+                start = System.nanoTime();
 		sc.close();
+                end = System.nanoTime();
+                closeTime = end - start;
 	}
 
 	@Override
 	@Suspendable
 	public int read(final ByteBuffer dst) throws IOException {
+            long start = System.nanoTime();
 		try {
 			int count;
 			while ((count = sc.read(dst)) == 0)
 				Fiber.park(key);
+                        long end = System.nanoTime();
+                        readTime += end - start;
 			return count;
 		} catch (SuspendExecution e) {
 			throw new AssertionError(e);
@@ -94,10 +115,13 @@ public class FiberSelectSocketChannel implements ByteChannel, ScatteringByteChan
 	@Override
 	@Suspendable
 	public long read(final ByteBuffer[] dsts) throws IOException {
+            long start = System.nanoTime();
 		try {
 			long count;
 			while ((count = sc.read(dsts)) == 0)
 				Fiber.park(key);
+                        long end = System.nanoTime();
+                        readTime += end - start;
 			return count;
 		} catch (SuspendExecution e) {
 			throw new AssertionError(e);
@@ -107,10 +131,13 @@ public class FiberSelectSocketChannel implements ByteChannel, ScatteringByteChan
 	@Override
 	@Suspendable
 	public long read(final ByteBuffer[] dsts, final int offset, final int length) throws IOException {
+            long start = System.nanoTime();
 		try {
 			long count;
 			while ((count = sc.read(dsts, offset, length)) == 0)
 				Fiber.park(key);
+                        long end = System.nanoTime();
+                        readTime += end - start;
 			return count;
 		} catch (SuspendExecution e) {
 			throw new AssertionError(e);
@@ -120,10 +147,13 @@ public class FiberSelectSocketChannel implements ByteChannel, ScatteringByteChan
 	@Override
 	@Suspendable
 	public int write(final ByteBuffer src) throws IOException {
+            long start = System.nanoTime();
 		try {
 			int count;
 			while ((count = sc.write(src)) == 0)
 				Fiber.park(key);
+                        long end = System.nanoTime();
+                        writeTime += end - start;
 			return count;
 		} catch (SuspendExecution e) {
 			throw new AssertionError(e);
@@ -133,10 +163,13 @@ public class FiberSelectSocketChannel implements ByteChannel, ScatteringByteChan
 	@Override
 	@Suspendable
 	public long write(final ByteBuffer[] srcs) throws IOException {
+            long start = System.nanoTime();
 		try {
 			long count;
 			while ((count = sc.write(srcs)) == 0)
 				Fiber.park(key);
+                        long end = System.nanoTime();
+                        writeTime += end - start;
 			return count;
 		} catch (SuspendExecution e) {
 			throw new AssertionError(e);
@@ -146,10 +179,13 @@ public class FiberSelectSocketChannel implements ByteChannel, ScatteringByteChan
 	@Override
 	@Suspendable
 	public long write(final ByteBuffer[] srcs, int offset, int length) throws IOException {
+            long start = System.nanoTime();
 		try {
 			long count;
 			while ((count = sc.write(srcs, offset, length)) == 0)
 				Fiber.park(key);
+                        long end = System.nanoTime();
+                        writeTime += end - start;
 			return count;
 		} catch (SuspendExecution e) {
 			throw new AssertionError(e);
