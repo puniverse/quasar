@@ -47,7 +47,7 @@ public class SelectorFiberAsync extends FiberAsync<Integer, IOException> impleme
     @Override
     public void complete(final SelectionKey key, final int readyOps) {
         try {
-            FiberSelect.unregister(key);
+            FiberSelect.deregister(key);
         } catch (final IOException ioe) {
             asyncFailed(ioe);
         }
