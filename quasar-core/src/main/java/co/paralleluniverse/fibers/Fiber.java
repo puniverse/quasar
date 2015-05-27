@@ -2036,10 +2036,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 	}
 
 	public long getMaxPark() {
-		return maxPark;
+		long res = maxPark;
+		maxPark = 0;
+		return res;
 	}
 
 	public long getMaxSchedLatency() {
-		return maxSchedLatency;
+		long res = maxSchedLatency;
+		maxSchedLatency = 0;
+		return res;
 	}
 }
