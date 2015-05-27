@@ -295,7 +295,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return run;
     }
 
-	//<editor-fold defaultstate="collapsed" desc="Constructors">
+    //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
     /**
      * Creates a new Fiber from the given {@link SuspendableCallable}.
@@ -703,7 +703,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         final FibersMonitor monitor = getMonitor();
         if (Debug.isDebug())
             record(1, "Fiber", "exec", "running %s %s %s", state, this, run);
-		// if (monitor != null && state == State.STARTED)
+        // if (monitor != null && state == State.STARTED)
         //    monitor.fiberStarted(this); - done elsewhere
 
         final Thread currentThread = Thread.currentThread();
@@ -721,7 +721,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             try {
                 measureLatency();
                 final V res = run1(); // we jump into the continuation
-                assert task.getState() == FiberTask.RUNNABLE;
+                if (task.getState() != FiberTask.RUNNABLE)
+                    throw new AssertionError("WHA?!?!?!");
                 runningThread = null;
                 state = State.TERMINATED;
                 record(1, "Fiber", "exec", "finished %s %s res: %s", state, this, this.result);
@@ -1074,7 +1075,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     protected boolean shouldPreempt(int type) {
-		// 0 - backbranch
+        // 0 - backbranch
         // 1 - call
 //        if (PREEMPTION) {
 //            assert type == 1;
@@ -1639,7 +1640,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                         }
                     }
                     stackTrace.append(" **");
-					// The next probelm happends when some function is in the STE but not in the context
+                    // The next probelm happends when some function is in the STE but not in the context
                     // consider fix the skipSTE to fix it
                     if (!context[k].getName().equals(ste.getClassName())) {
                         stackTrace.append(" WARN: unreliable verification stacktrace");
@@ -1736,7 +1737,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         UNSAFE.putOrderedObject(this, stateOffset, value);
     }
 
-	//<editor-fold defaultstate="collapsed" desc="Recording">
+    //<editor-fold defaultstate="collapsed" desc="Recording">
     /////////// Recording ///////////////////////////////////
     protected final boolean isRecordingLevel(int level) {
         if (!Debug.isDebug())
