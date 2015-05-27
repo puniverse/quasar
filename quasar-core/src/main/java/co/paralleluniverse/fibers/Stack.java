@@ -25,349 +25,348 @@ import java.util.Arrays;
  * @author Ron Pressler
  */
 public final class Stack implements Serializable {
-	/*
-	 * sp points to the first slot to contain data.
-	 * The _previous_ FRAME_RECORD_SIZE slots contain the frame record.
-	 * The frame record currently occupies a single long:
-	 *   - entry (PC)         : 14 bits
-	 *   - num slots          : 16 bits
-	 *   - prev method slots  : 16 bits
-	 */
-	public static final int MAX_ENTRY = (1 << 14) - 1;
-	public static final int MAX_SLOTS = (1 << 16) - 1;
-	private static final int INITIAL_METHOD_STACK_DEPTH = 16;
-	private static final int FRAME_RECORD_SIZE = 0; // 1 <--->
-	private static final long serialVersionUID = 12786283751253L;
-	private final Fiber fiber;
-	private int methodTOS; // <---
-	private int sp;
-	private transient boolean shouldVerifyInstrumentation;
-	private transient boolean pushed;
-	private int[] method; // <---
-	private long[] dataLong;        // holds primitives on stack as well as each method's entry point and the stack pointer
-	private Object[] dataObject;    // holds refs on stack
+    /*
+     * sp points to the first slot to contain data.
+     * The _previous_ FRAME_RECORD_SIZE slots contain the frame record.
+     * The frame record currently occupies a single long:
+     *   - entry (PC)         : 14 bits
+     *   - num slots          : 16 bits
+     *   - prev method slots  : 16 bits
+     */
+    public static final int MAX_ENTRY = (1 << 14) - 1;
+    public static final int MAX_SLOTS = (1 << 16) - 1;
+    private static final int INITIAL_METHOD_STACK_DEPTH = 16;
+    private static final int FRAME_RECORD_SIZE = 0; // 1 <--->
+    private static final long serialVersionUID = 12786283751253L;
+    private final Fiber fiber;
+    private int methodTOS; // <---
+    private int sp;
+    private transient boolean shouldVerifyInstrumentation;
+    private transient boolean pushed;
+    private int[] method; // <---
+    private long[] dataLong;        // holds primitives on stack as well as each method's entry point and the stack pointer
+    private Object[] dataObject;    // holds refs on stack
 
-	Stack(Fiber fiber, int stackSize) {
-		if (stackSize <= 0)
-			throw new IllegalArgumentException("stackSize");
+    Stack(Fiber fiber, int stackSize) {
+        if (stackSize <= 0)
+            throw new IllegalArgumentException("stackSize");
 
-		this.fiber = fiber;
-		this.method = new int[INITIAL_METHOD_STACK_DEPTH]; // <---
-		this.dataLong = new long[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
-		this.dataObject = new Object[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
+        this.fiber = fiber;
+        this.method = new int[INITIAL_METHOD_STACK_DEPTH]; // <---
+        this.dataLong = new long[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
+        this.dataObject = new Object[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
 
-		resumeStack();
-	}
+        resumeStack();
+    }
 
-	public static Stack getStack() {
-		final Fiber currentFiber = Fiber.currentFiber();
-		return currentFiber != null ? currentFiber.stack : null;
-	}
+    public static Stack getStack() {
+        final Fiber currentFiber = Fiber.currentFiber();
+        return currentFiber != null ? currentFiber.stack : null;
+    }
 
-	Fiber getFiber() {
-		return fiber;
-	}
+    Fiber getFiber() {
+        return fiber;
+    }
 
-	/**
-	 * called when resuming a stack
-	 */
-	final void resumeStack() {
-		methodTOS = -1; // sp = 0; // <--->
-	}
+    /**
+     * called when resuming a stack
+     */
+    final void resumeStack() {
+        methodTOS = -1; // sp = 0; // <--->
+    }
 
-	// for testing/benchmarking only
-	void resetStack() {
-		Arrays.fill(method, 0); // <---
-		resumeStack();
-	}
+    // for testing/benchmarking only
+    void resetStack() {
+        Arrays.fill(method, 0); // <---
+        resumeStack();
+    }
 
-	/**
-	 * called at the beginning of a method
-	 *
-	 * @return the entry point of this method
-	 */
-	public final int nextMethodEntry() {
-		shouldVerifyInstrumentation = true;
+    /**
+     * called at the beginning of a method
+     *
+     * @return the entry point of this method
+     */
+    public final int nextMethodEntry() {
+        shouldVerifyInstrumentation = true;
 
-		// <--
-		int idx = methodTOS;
-		sp = method[++idx];
-		methodTOS = ++idx;
-		int entry = method[idx];
+        // <--
+        int idx = methodTOS;
+        sp = method[++idx];
+        methodTOS = ++idx;
+        int entry = method[idx];
 
-		// --->
-//		int idx = 0;
-//		int slots = 0;
-//		if (sp > 0) {
-//			slots = getNumSlots(dataLong[sp - FRAME_RECORD_SIZE]);
-//			idx = sp + slots;
-//		}
-//		sp = idx + FRAME_RECORD_SIZE;
-//		long record = dataLong[idx];
-//		int entry = getEntry(record);
-//		dataLong[idx] = setPrevNumSlots(record, slots);
-		
-		if (fiber.isRecordingLevel(2))
-			fiber.record(2, "Stack", "nextMethodEntry", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
+        // --->
+//        int idx = 0;
+//        int slots = 0;
+//        if (sp > 0) {
+//            slots = getNumSlots(dataLong[sp - FRAME_RECORD_SIZE]);
+//            idx = sp + slots;
+//        }
+//        sp = idx + FRAME_RECORD_SIZE;
+//        long record = dataLong[idx];
+//        int entry = getEntry(record);
+//        dataLong[idx] = setPrevNumSlots(record, slots);
+        if (fiber.isRecordingLevel(2))
+            fiber.record(2, "Stack", "nextMethodEntry", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
 
-		return entry;
-	}
+        return entry;
+    }
 
-	/**
-	 * called when nextMethodEntry returns 0
-	 */
-	public final boolean isFirstInStackOrPushed() {
-		boolean p = pushed;
-		pushed = false;
+    /**
+     * called when nextMethodEntry returns 0
+     */
+    public final boolean isFirstInStackOrPushed() {
+        boolean p = pushed;
+        pushed = false;
 
-		if (methodTOS == 1 | p) // (sp == FRAME_RECORD_SIZE | p) // <--->
-			return true;
+        if (methodTOS == 1 | p) // (sp == FRAME_RECORD_SIZE | p) // <--->
+            return true;
 
-		// not first, but nextMethodEntry returned 0: revert changes
-		// <---
-		methodTOS -= 2;
-		sp = method[methodTOS - 1];
-		// --->
-		// sp -= FRAME_RECORD_SIZE + getPrevNumSlots(dataLong[sp - FRAME_RECORD_SIZE]);
+        // not first, but nextMethodEntry returned 0: revert changes
+        // <---
+        methodTOS -= 2;
+        sp = method[methodTOS - 1];
+        // --->
+        // sp -= FRAME_RECORD_SIZE + getPrevNumSlots(dataLong[sp - FRAME_RECORD_SIZE]);
 
-		return false;
-	}
+        return false;
+    }
 
-	/**
-	 * Called before a method is called.
-	 *
-	 * @param entry    the entry point in the method for resume
-	 * @param numSlots the number of required stack slots for storing the state
-	 */
-	public final void pushMethod(int entry, int numSlots) {
-		shouldVerifyInstrumentation = false;
-		pushed = true;
-		// <---
-		final int methodIdx = methodTOS;
-		if (method.length - methodIdx < 2)
-			growMethodStack();
-		sp = method[methodIdx - 1];
-		final int dataTOS = sp + numSlots;
-		method[methodIdx] = entry;
-		method[methodIdx + 1] = dataTOS;
-		if (dataTOS > dataObject.length)
-			growStack(dataTOS);
-		// --->
-//		int idx = sp - FRAME_RECORD_SIZE;
-//		long record = dataLong[idx];
-//		record = setEntry(record, entry);
-//		record = setNumSlots(record, numSlots);
-//		dataLong[idx] = record;
+    /**
+     * Called before a method is called.
+     *
+     * @param entry    the entry point in the method for resume
+     * @param numSlots the number of required stack slots for storing the state
+     */
+    public final void pushMethod(int entry, int numSlots) {
+        shouldVerifyInstrumentation = false;
+        pushed = true;
+        // <---
+        final int methodIdx = methodTOS;
+        if (method.length - methodIdx < 2)
+            growMethodStack();
+        sp = method[methodIdx - 1];
+        final int dataTOS = sp + numSlots;
+        method[methodIdx] = entry;
+        method[methodIdx + 1] = dataTOS;
+        if (dataTOS > dataObject.length)
+            growStack(dataTOS);
+        // --->
+//        int idx = sp - FRAME_RECORD_SIZE;
+//        long record = dataLong[idx];
+//        record = setEntry(record, entry);
+//        record = setNumSlots(record, numSlots);
+//        dataLong[idx] = record;
 //
-//		int nextMethodSP = sp + numSlots + FRAME_RECORD_SIZE;
-//		if (nextMethodSP > dataObject.length)
-//			growStack(nextMethodSP);
+//        int nextMethodSP = sp + numSlots + FRAME_RECORD_SIZE;
+//        if (nextMethodSP > dataObject.length)
+//            growStack(nextMethodSP);
 
-		if (fiber.isRecordingLevel(2))
-			fiber.record(2, "Stack", "pushMethod     ", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
-	}
+        if (fiber.isRecordingLevel(2))
+            fiber.record(2, "Stack", "pushMethod     ", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
+    }
 
-	/**
-	 * Called at the end of a method.
-	 * Undoes the effects of nextMethodEntry() and clears the dataObject[] array
-	 * to allow the values to be GCed.
-	 */
-	public final void popMethod() {
-		if (shouldVerifyInstrumentation) {
-			Fiber.verifySuspend(fiber);
-			shouldVerifyInstrumentation = false;
-		}
-		pushed = false;
+    /**
+     * Called at the end of a method.
+     * Undoes the effects of nextMethodEntry() and clears the dataObject[] array
+     * to allow the values to be GCed.
+     */
+    public final void popMethod() {
+        if (shouldVerifyInstrumentation) {
+            Fiber.verifySuspend(fiber);
+            shouldVerifyInstrumentation = false;
+        }
+        pushed = false;
 
-		// <---
-		final int idx = methodTOS;
-		method[idx] = 0;
-		final int oldSP = sp;
-		final int newSP = method[idx - 1];
-		methodTOS = idx - 2;
-		// --->
-//		final int idx = sp - FRAME_RECORD_SIZE;
+        // <---
+        final int idx = methodTOS;
+        method[idx] = 0;
+        final int oldSP = sp;
+        final int newSP = method[idx - 1];
+        methodTOS = idx - 2;
+        // --->
+//        final int idx = sp - FRAME_RECORD_SIZE;
 //
-//		final int oldSP = sp;
-//		final int newSP = oldSP - getPrevNumSlots(dataLong[idx]) - FRAME_RECORD_SIZE;
+//        final int oldSP = sp;
+//        final int newSP = oldSP - getPrevNumSlots(dataLong[idx]) - FRAME_RECORD_SIZE;
 //
-//		for (int i = 0; i < FRAME_RECORD_SIZE; i++)
-//			dataLong[idx + i] = 0L;
-		for (int i = newSP; i < oldSP; i++)
-			dataObject[i] = null;
+//        for (int i = 0; i < FRAME_RECORD_SIZE; i++)
+//            dataLong[idx + i] = 0L;
+        for (int i = newSP; i < oldSP; i++)
+            dataObject[i] = null;
 
-		sp = newSP;
+        sp = newSP;
 
-		if (fiber.isRecordingLevel(2))
-			fiber.record(2, "Stack", "popMethod      ", "%s %s", Thread.currentThread().getStackTrace()[2], sp /*Arrays.toString(fiber.getStackTrace())*/);
-	}
+        if (fiber.isRecordingLevel(2))
+            fiber.record(2, "Stack", "popMethod      ", "%s %s", Thread.currentThread().getStackTrace()[2], sp /*Arrays.toString(fiber.getStackTrace())*/);
+    }
 
-	public final void postRestore() throws SuspendExecution, InterruptedException {
-		fiber.onResume();
-	}
+    public final void postRestore() throws SuspendExecution, InterruptedException {
+        fiber.onResume();
+    }
 
-	public final void preemptionPoint(int type) throws SuspendExecution {
-		fiber.preemptionPoint(type);
-	}
+    public final void preemptionPoint(int type) throws SuspendExecution {
+        fiber.preemptionPoint(type);
+    }
 
-	private void growStack(int required) {
-		int newSize = dataObject.length;
-		do {
-			newSize *= 2;
-		} while (newSize < required);
+    private void growStack(int required) {
+        int newSize = dataObject.length;
+        do {
+            newSize *= 2;
+        } while (newSize < required);
 
-		dataLong = Arrays.copyOf(dataLong, newSize);
-		dataObject = Arrays.copyOf(dataObject, newSize);
-	}
+        dataLong = Arrays.copyOf(dataLong, newSize);
+        dataObject = Arrays.copyOf(dataObject, newSize);
+    }
 
-	// <---
-	private void growMethodStack() {
-		int newSize = method.length << 1;
-		method = Arrays.copyOf(method, newSize);
-	}
+    // <---
+    private void growMethodStack() {
+        int newSize = method.length << 1;
+        method = Arrays.copyOf(method, newSize);
+    }
 
-	void dump() {
-		// <---
-		int k = 0;
-		for (int m = 0; m <= methodTOS; m += 2) {
-			System.out.println("i=" + m + " entry=" + method[m] + " sp=" + method[m + 1]);
-			for (; k < method[m + 3]; k++)
-				System.out.println("sp=" + k + " long=" + dataLong[k] + " obj=" + dataObject[k]);
-		}
+    void dump() {
+        // <---
+        int k = 0;
+        for (int m = 0; m <= methodTOS; m += 2) {
+            System.out.println("i=" + m + " entry=" + method[m] + " sp=" + method[m + 1]);
+            for (; k < method[m + 3]; k++)
+                System.out.println("sp=" + k + " long=" + dataLong[k] + " obj=" + dataObject[k]);
+        }
 
-		// --->
-//		int m = 0;
-//		int k = 0;
-//		while (k < sp - 1) {
-//			final long record = dataLong[k++];
-//			final int slots = getNumSlots(record);
+        // --->
+//        int m = 0;
+//        int k = 0;
+//        while (k < sp - 1) {
+//            final long record = dataLong[k++];
+//            final int slots = getNumSlots(record);
 //
-//			System.err.println("\tm=" + (m++) + " entry=" + getEntry(record) + " sp=" + k + " slots=" + slots + " prevSlots=" + getPrevNumSlots(record));
-//			for (int i = 0; i < slots; i++, k++)
-//				System.err.println("\t\tsp=" + k + " long=" + dataLong[k] + " obj=" + dataObject[k]);
-//		}
-	}
+//            System.err.println("\tm=" + (m++) + " entry=" + getEntry(record) + " sp=" + k + " slots=" + slots + " prevSlots=" + getPrevNumSlots(record));
+//            for (int i = 0; i < slots; i++, k++)
+//                System.err.println("\t\tsp=" + k + " long=" + dataLong[k] + " obj=" + dataObject[k]);
+//        }
+    }
 
-	public static void push(int value, Stack s, int idx) {
+    public static void push(int value, Stack s, int idx) {
 //        if (s.fiber.isRecordingLevel(3))
 //            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.curMethodSP + idx, value);
-		s.dataLong[s.sp + idx] = value;
-	}
+        s.dataLong[s.sp + idx] = value;
+    }
 
-	public static void push(float value, Stack s, int idx) {
+    public static void push(float value, Stack s, int idx) {
 //        if (s.fiber.isRecordingLevel(3))
 //            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.curMethodSP + idx, value);
-		s.dataLong[s.sp + idx] = Float.floatToRawIntBits(value);
-	}
+        s.dataLong[s.sp + idx] = Float.floatToRawIntBits(value);
+    }
 
-	public static void push(long value, Stack s, int idx) {
+    public static void push(long value, Stack s, int idx) {
 //        if (s.fiber.isRecordingLevel(3))
 //            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.curMethodSP + idx, value);
-		s.dataLong[s.sp + idx] = value;
-	}
+        s.dataLong[s.sp + idx] = value;
+    }
 
-	public static void push(double value, Stack s, int idx) {
+    public static void push(double value, Stack s, int idx) {
 //        if (s.fiber.isRecordingLevel(3))
 //            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.curMethodSP + idx, value);
-		s.dataLong[s.sp + idx] = Double.doubleToRawLongBits(value);
-	}
+        s.dataLong[s.sp + idx] = Double.doubleToRawLongBits(value);
+    }
 
-	public static void push(Object value, Stack s, int idx) {
+    public static void push(Object value, Stack s, int idx) {
 //        if (s.fiber.isRecordingLevel(3))
 //            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.curMethodSP + idx, value);
-		s.dataObject[s.sp + idx] = value;
-	}
+        s.dataObject[s.sp + idx] = value;
+    }
 
-	public final int getInt(int idx) {
-		final int value = (int) dataLong[sp + idx];
+    public final int getInt(int idx) {
+        final int value = (int) dataLong[sp + idx];
 //        if (fiber.isRecordingLevel(3))
 //            fiber.record(3, "Stack", "getInt", "%d (%d) %s", idx, curMethodSP + idx, value);
-		return value;
-	}
+        return value;
+    }
 
-	public final float getFloat(int idx) {
-		final float value = Float.intBitsToFloat((int) dataLong[sp + idx]);
+    public final float getFloat(int idx) {
+        final float value = Float.intBitsToFloat((int) dataLong[sp + idx]);
 //        if (fiber.isRecordingLevel(3))
 //            fiber.record(3, "Stack", "getFloat", "%d (%d) %s", idx, curMethodSP + idx, value);
-		return value;
-	}
+        return value;
+    }
 
-	public final long getLong(int idx) {
-		final long value = dataLong[sp + idx];
+    public final long getLong(int idx) {
+        final long value = dataLong[sp + idx];
 //        if (fiber.isRecordingLevel(3))
 //            fiber.record(3, "Stack", "getLong", "%d (%d) %s", idx, curMethodSP + idx, value);
-		return value;
-	}
+        return value;
+    }
 
-	public final double getDouble(int idx) {
-		final double value = Double.longBitsToDouble(dataLong[sp + idx]);
+    public final double getDouble(int idx) {
+        final double value = Double.longBitsToDouble(dataLong[sp + idx]);
 //        if (fiber.isRecordingLevel(3))
 //            fiber.record(3, "Stack", "getDouble", "%d (%d) %s", idx, curMethodSP + idx, value);
-		return value;
-	}
+        return value;
+    }
 
-	public final Object getObject(int idx) {
-		final Object value = dataObject[sp + idx];
+    public final Object getObject(int idx) {
+        final Object value = dataObject[sp + idx];
 //        if (fiber.isRecordingLevel(3))
 //            fiber.record(3, "Stack", "getObject", "%d (%d) %s", idx, curMethodSP + idx, value);
-		return value;
-	}
+        return value;
+    }
 
-	///////////////////////////////////////////////////////////////
-	private long setEntry(long record, int entry) {
-		return setBits(record, 0, 14, entry);
-	}
+    ///////////////////////////////////////////////////////////////
+    private long setEntry(long record, int entry) {
+        return setBits(record, 0, 14, entry);
+    }
 
-	private int getEntry(long record) {
-		return (int) getUnsignedBits(record, 0, 14);
-	}
+    private int getEntry(long record) {
+        return (int) getUnsignedBits(record, 0, 14);
+    }
 
-	private long setNumSlots(long record, int numSlots) {
-		return setBits(record, 14, 16, numSlots);
-	}
+    private long setNumSlots(long record, int numSlots) {
+        return setBits(record, 14, 16, numSlots);
+    }
 
-	private int getNumSlots(long record) {
-		return (int) getUnsignedBits(record, 14, 16);
-	}
+    private int getNumSlots(long record) {
+        return (int) getUnsignedBits(record, 14, 16);
+    }
 
-	private long setPrevNumSlots(long record, int numSlots) {
-		return setBits(record, 30, 16, numSlots);
-	}
+    private long setPrevNumSlots(long record, int numSlots) {
+        return setBits(record, 30, 16, numSlots);
+    }
 
-	private int getPrevNumSlots(long record) {
-		return (int) getUnsignedBits(record, 30, 16);
-	}
-	///////////////////////////////////////////////////////////////
-	private static final long MASK_FULL = 0xffffffffffffffffL;
+    private int getPrevNumSlots(long record) {
+        return (int) getUnsignedBits(record, 30, 16);
+    }
+    ///////////////////////////////////////////////////////////////
+    private static final long MASK_FULL = 0xffffffffffffffffL;
 
-	private static long getUnsignedBits(long word, int offset, int length) {
-		int a = 64 - length;
-		int b = a - offset;
-		return (word >>> b) & (MASK_FULL >>> a);
-	}
+    private static long getUnsignedBits(long word, int offset, int length) {
+        int a = 64 - length;
+        int b = a - offset;
+        return (word >>> b) & (MASK_FULL >>> a);
+    }
 
-	private static long getSignedBits(long word, int offset, int length) {
-		int a = 64 - length;
-		int b = a - offset;
-		long xx = (word >>> b) & (MASK_FULL >>> a);
-		return (xx << a) >> a; // set sign
-	}
+    private static long getSignedBits(long word, int offset, int length) {
+        int a = 64 - length;
+        int b = a - offset;
+        long xx = (word >>> b) & (MASK_FULL >>> a);
+        return (xx << a) >> a; // set sign
+    }
 
-	private static long setBits(long word, int offset, int length, long value) {
-		int a = 64 - length;
-		int b = a - offset;
-		//long mask = (MASK_FULL >>> a);
-		word = word & ~((MASK_FULL >>> a) << b); // clears bits in our region [offset, offset+length)
-		value = value; //  & mask;
-		word = word | (value << b);
-		return word;
-	}
+    private static long setBits(long word, int offset, int length, long value) {
+        int a = 64 - length;
+        int b = a - offset;
+        //long mask = (MASK_FULL >>> a);
+        word = word & ~((MASK_FULL >>> a) << b); // clears bits in our region [offset, offset+length)
+        value = value; //  & mask;
+        word = word | (value << b);
+        return word;
+    }
 
-	private static boolean getBit(long word, int offset) {
-		return (getUnsignedBits(word, offset, 1) != 0);
-	}
+    private static boolean getBit(long word, int offset) {
+        return (getUnsignedBits(word, offset, 1) != 0);
+    }
 
-	private static long setBit(long word, int offset, boolean value) {
-		return setBits(word, offset, 1, value ? 1 : 0);
-	}
+    private static long setBit(long word, int offset, boolean value) {
+        return setBits(word, offset, 1, value ? 1 : 0);
+    }
 }
