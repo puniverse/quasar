@@ -357,7 +357,7 @@ public final class Stack implements Serializable {
         int b = a - offset;
         //long mask = (MASK_FULL >>> a);
         word = word & ~((MASK_FULL >>> a) << b); // clears bits in our region [offset, offset+length)
-        value = value; //  & mask;
+        // value = value & mask;
         word = word | (value << b);
         return word;
     }
