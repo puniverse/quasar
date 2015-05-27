@@ -173,22 +173,22 @@ public class Debug {
     }
 
     public static void dumpRecorder() {
-        if (isDebug()) {
-            final String fileName = getDumpFile();
-            if (fileName != null && !fileName.trim().equals("")) {
-
-                dumpRecorder(fileName);
-            } else
-                System.err.println("NO ERROR LOG FILE SPECIFIED.");
-        }
+        dumpRecorder(null);
     }
 
     public static void dumpRecorder(String filename) {
         dumpLock.lock();
         try {
             if (!dumped) {
-                if (filename == null)
-                    dumpRecorder();
+                if (filename == null) {
+                    filename = getDumpFile();
+                    if (filename.trim().equals(""))
+                        filename = null;
+                }
+                if (filename == null) {
+                    System.err.println("NO ERROR LOG FILE SPECIFIED.");
+                    return;
+                }
                 if (flightRecorder != null)
                     flightRecorder.dump(filename);
                 dumped = true;
