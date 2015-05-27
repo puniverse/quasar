@@ -21,11 +21,12 @@ import co.paralleluniverse.strands.SuspendableCallable
 import org.junit.Test
 
 /**
- * @author circlespainter.
+ * @author circlespainter
  */
 
 fun seq(f: () -> Unit, g: () -> Unit): () -> Unit {
-    return (@Suspendable {() -> f() ; g()})
+    println("seq")
+    return (@Suspendable {f() ; g()})
 }
 
 Suspendable fun f() {
@@ -40,7 +41,11 @@ Suspendable fun fDef(@suppress("UNUSED_PARAMETER") def: Boolean = true) {
     Fiber.sleep(10)
 }
 
-Suspendable fun fQuick() = Fiber.sleep(10)
+Suspendable fun fQuick() {
+    println("quick pre-sleep")
+    Fiber.sleep(10)
+    println("quick after-sleep")
+}
 
 Suspendable fun fVarArg(vararg ls: Long) {
     for (l in ls) Fiber.sleep(l)

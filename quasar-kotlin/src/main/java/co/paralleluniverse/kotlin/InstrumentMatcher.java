@@ -66,7 +66,7 @@ public class InstrumentMatcher {
                 && (methodDescP == null || methodDescP.apply(methodDesc))
                 && (methodSignatureP == null || methodSignatureP.apply(methodSignature))
                 && (methodExceptionsP == null || methodExceptionsP.apply(methodExceptions))
-            ? new Match<MethodDatabase.SuspendableType>(suspendableType) : null;
+            ? new Match<>(suspendableType) : null;
         action.call(new EvalCriteria(db, sourceName, sourceDebugInfo, isInterface, className, superClassName, interfaces, methodName, methodDesc, methodSignature, methodExceptions), ret);
         return ret;
     }

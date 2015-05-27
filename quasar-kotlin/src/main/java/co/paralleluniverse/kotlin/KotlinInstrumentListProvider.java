@@ -19,8 +19,6 @@ import co.paralleluniverse.fibers.instrument.MethodDatabase;
 import com.google.common.base.Predicate;
 
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
 
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 
@@ -36,7 +34,7 @@ public class KotlinInstrumentListProvider implements InstrumentListProvider {
         return new InstrumentMatcher[] {
                 mClassAndMeth(startsWithN("kotlin/ExtensionFunction"), eqN("invoke"), SuspendableType.SUSPENDABLE_SUPER, a(ktRT)),
                 mClassAndMeth(startsWithN("kotlin/reflect/KExtensionFunction"), eqN("invoke"), SuspendableType.SUSPENDABLE_SUPER, a(ktRT)),
-                mClassAndMeth(startsWithN("kotlin/Function"), eqN("invoke"), SuspendableType.SUSPENDABLE_SUPER, a(ktRT)),
+                mClassAndMeth(startsWithN("kotlin/jvm/functions/Function"), eqN("invoke"), SuspendableType.SUSPENDABLE_SUPER, a(ktRT)),
                 mClassAndMeth(startsWithN("kotlin/reflect/KFunction"), eqN("invoke"), SuspendableType.SUSPENDABLE_SUPER, a(ktRT)),
                 mClassAndMeth(startsWithN("kotlin/reflect/KMemberFunction"), eqN("invoke"), SuspendableType.SUSPENDABLE_SUPER, a(ktRT)),
 
@@ -47,8 +45,7 @@ public class KotlinInstrumentListProvider implements InstrumentListProvider {
 
                 mClassAndMeth(eqN("kotlin/reflect/KTopLevelVariable"), eqN("get"), SuspendableType.SUSPENDABLE_SUPER, a(ktRT)),
 
-                mClassAndMeth(containsN("$"), eqN("invoke"), SuspendableType.SUSPENDABLE, a(ktSynth)),
-//                mMeth(endsWithN("$default"), SuspendableType.SUSPENDABLE, a(ktSynth)),
+                mSrcAndClassAndMeth(endsWithN(".kt"), containsN("$"), eqN("invoke"), SuspendableType.SUSPENDABLE, a(ktSynth))
         };
     }
 
@@ -72,50 +69,15 @@ public class KotlinInstrumentListProvider implements InstrumentListProvider {
         };
     }
 
-    private static InstrumentMatcher mSrcAndIfs(final Predicate<String> sourceP, final Predicate<String[]> interfacesP, final SuspendableType t, final Action2<InstrumentMatcher.EvalCriteria, InstrumentMatcher.Match<SuspendableType>> a) {
-        return new InstrumentMatcher(sourceP, null, null, null, null, interfacesP, null, null, null, null, t, a);
+    private static InstrumentMatcher mSrcAndClassAndMeth(final Predicate<String> sourceP, final Predicate<String> classNameP,
+                                                         final Predicate<String> methodNameP, final SuspendableType t,
+                                                         final Action2<InstrumentMatcher.EvalCriteria, InstrumentMatcher.Match<SuspendableType>> a) {
+        return new InstrumentMatcher(sourceP, null, null, classNameP, null, null, methodNameP, null, null, null, t, a);
     }
 
-    private static InstrumentMatcher mSrcAndClassAndSuperAndMeth(final Predicate<String> sourceP, final Predicate<String> classNameP, final Predicate<String> superClassNameP,
-                                                                 final Predicate<String> methodNameP, final SuspendableType t, final Action2<InstrumentMatcher.EvalCriteria, InstrumentMatcher.Match<SuspendableType>> a) {
-        return new InstrumentMatcher(sourceP, null, null, classNameP, superClassNameP, null, methodNameP, null, null, null, t, a);
-    }
-
-    private static InstrumentMatcher mSrcAndClass(final Predicate<String> sourceP, final Predicate<String> classNameP, final SuspendableType t, final Action2<InstrumentMatcher.EvalCriteria, InstrumentMatcher.Match<SuspendableType>> a) {
-        return new InstrumentMatcher(sourceP, null, null, classNameP, null, null, null, null, null, null, t, a);
-    }
-
-    private static InstrumentMatcher mSrcAndMeth(final Predicate<String> sourceP, final Predicate<String> methodNameP, final SuspendableType t, final Action2<InstrumentMatcher.EvalCriteria, InstrumentMatcher.Match<SuspendableType>> a) {
-        return new InstrumentMatcher(sourceP, null, null, null, null, null, methodNameP, null, null, null, t, a);
-    }
-
-    private static InstrumentMatcher mSrcAndIsIf(final Predicate<String> sourceP, final Predicate<Boolean> isInterfaceP, final SuspendableType t, final Action2<InstrumentMatcher.EvalCriteria, InstrumentMatcher.Match<SuspendableType>> a) {
-        return new InstrumentMatcher(sourceP, null, isInterfaceP, null, null, null, null, null, null, null, t, a);
-    }
-
-    private static InstrumentMatcher mMethAndIfs(final Predicate<String> methodNameP, final Predicate<String[]> interfacesP, final SuspendableType t, final Action2<InstrumentMatcher.EvalCriteria, InstrumentMatcher.Match<SuspendableType>> a) {
-        return new InstrumentMatcher(null, null, null, null, null, interfacesP, methodNameP, null, null, null, t, a);
-    }
-
-    private static InstrumentMatcher mClass(final Predicate<String> classNameP, final SuspendableType t, final Action2<InstrumentMatcher.EvalCriteria, InstrumentMatcher.Match<SuspendableType>> a) {
-        return new InstrumentMatcher(null, null, null, classNameP, null, null, null, null, null, null, t, a);
-    }
-
-    private static InstrumentMatcher mClassAndMeth(final Predicate<String> classNameP, final Predicate<String> methodNameP, final SuspendableType t, final Action2<InstrumentMatcher.EvalCriteria, InstrumentMatcher.Match<SuspendableType>> a) {
+    private static InstrumentMatcher mClassAndMeth(final Predicate<String> classNameP, final Predicate<String> methodNameP, final SuspendableType t,
+                                                   final Action2<InstrumentMatcher.EvalCriteria, InstrumentMatcher.Match<SuspendableType>> a) {
         return new InstrumentMatcher(null, null, null, classNameP, null, null, methodNameP, null, null, null, t, a);
-    }
-
-    private static InstrumentMatcher mMeth(final Predicate<String> methodNameP, final SuspendableType t, final Action2<InstrumentMatcher.EvalCriteria, InstrumentMatcher.Match<SuspendableType>> a) {
-        return new InstrumentMatcher(null, null, null, null, null, null, methodNameP, null, null, null, t, a);
-    }
-
-    private static Predicate<String> or(final Predicate<String> p1, final Predicate<String> p2) {
-        return new Predicate<String>() {
-            @Override
-            public boolean apply(final String v) {
-                return p1.apply(v) || p2.apply(v);
-            }
-        };
     }
 
     private static Predicate<String> and(final Predicate<String> p1, final Predicate<String> p2) {
@@ -123,24 +85,6 @@ public class KotlinInstrumentListProvider implements InstrumentListProvider {
             @Override
             public boolean apply(final String v) {
                 return p1.apply(v) && p2.apply(v);
-            }
-        };
-    }
-
-    private static Predicate<String> countOccurrencesGTN(final String of, final int gt) {
-        return new Predicate<String>() {
-            @Override
-            public boolean apply(final String v) {
-                return of == null || (v != null && countOccurrences(of, v) > gt);
-            }
-        };
-    }
-
-    private static <X> Predicate<X> eq(final X spec) {
-        return new Predicate<X>() {
-            @Override
-            public boolean apply(final X v) {
-                return spec == v || (spec != null && spec.equals(v));
             }
         };
     }
@@ -163,28 +107,6 @@ public class KotlinInstrumentListProvider implements InstrumentListProvider {
         };
     }
 
-    private static Predicate<String> containsCIN(final String spec) {
-        return new Predicate<String>() {
-            @Override
-            public boolean apply(final String v) {
-                return spec == null || (v != null && v.toLowerCase().contains(spec.toLowerCase()));
-            }
-        };
-    }
-
-    private static Predicate<String[]> arrayContainsN(final String spec) {
-        return new Predicate<String[]>() {
-            @Override
-            public boolean apply(final String[] v) {
-                for (final String s : v) {
-                    if (s != null && s.equals(spec))
-                        return true;
-                }
-                return false;
-            }
-        };
-    }
-
     private static Predicate<String> startsWithN(final String spec) {
         return new Predicate<String>() {
             @Override
@@ -201,12 +123,6 @@ public class KotlinInstrumentListProvider implements InstrumentListProvider {
                 return spec == null || (v != null && v.endsWith(spec));
             }
         };
-    }
-
-    private static int countOccurrences(final String of, final String in) {
-        if (of == null) return -1;
-        else if (in == null) return 0;
-        else return (in.length() - in.replace(of, "").length()) / of.length();
     }
 
     private static String nullToEmpty(final String s) {

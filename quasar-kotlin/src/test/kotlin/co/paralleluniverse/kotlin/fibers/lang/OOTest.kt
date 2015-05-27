@@ -136,7 +136,7 @@ public class OOTest {
             @Suspendable override fun enumFun() {
                 Fiber.sleep(10)
             }
-        },
+        };
 
         @Suspendable open fun enumFun() {
             data
