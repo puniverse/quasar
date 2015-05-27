@@ -505,7 +505,7 @@ public class SupervisorTest {
             assertThat(started.get(), is(4));
             assertThat(terminated.get(), is(4));
         } catch (Throwable e) {
-            Debug.exit(e);
+            Debug.exit(e, "complex1.log");
             throw e;
         }
     }
