@@ -603,7 +603,7 @@ public class SupervisorActor extends BehaviorActor {
                 try {
                     joinChild(child);
                 } finally {
-                    if (!beforeRestart)
+                    if (!beforeRestart && child.actor != null)
                         LocalActor.stopMonitor(child.actor);
                 }
             }
