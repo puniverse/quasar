@@ -24,6 +24,7 @@ import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildMode;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
 import co.paralleluniverse.actors.behaviors.SupervisorActor.RestartStrategy;
+import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
@@ -62,6 +63,7 @@ public class SupervisorTest {
             if (Debug.isDebug()) {
                 System.out.println("STARTING TEST " + desc.getMethodName());
                 Debug.record(0, "STARTING TEST " + desc.getMethodName());
+                Debug.getGlobalFlightRecorder().record(1, "STARTING TEST " + desc.getMethodName());
             }
         }
 
@@ -80,12 +82,12 @@ public class SupervisorTest {
             Debug.record(0, "DONE TEST " + desc.getMethodName());
         }
     };
-    
+
     @After
     public void tearDown() {
         ActorRegistry.clear();
     }
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(SupervisorActor.class);
     static final int mailboxSize = 10;
     private static FiberScheduler scheduler;
@@ -464,43 +466,48 @@ public class SupervisorTest {
 
     @Test
     public void testComplex1() throws Exception {
-        AtomicInteger started = new AtomicInteger();
-        AtomicInteger terminated = new AtomicInteger();
-
-        final Supervisor sup = new SupervisorActor(RestartStrategy.ALL_FOR_ONE,
-                new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor3.class, "actor1", started, terminated))).spawn();
-
-        ActorRef<Integer> a;
-
-        a = getChild(sup, "actor1", 1000);
-        a.send(3);
-        a.send(4);
-
-        assertThat(LocalActor.<Integer>get(a), is(7));
-
-        a = getChild(sup, "actor1", 1000);
-        a.send(70);
-        a.send(80);
-
         try {
-            LocalActor.<Integer>get(a);
-            fail();
-        } catch (ExecutionException e) {
+            AtomicInteger started = new AtomicInteger();
+            AtomicInteger terminated = new AtomicInteger();
+
+            final Supervisor sup = new SupervisorActor(RestartStrategy.ALL_FOR_ONE,
+                    new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor3.class, "actor1", started, terminated))).spawn();
+
+            ActorRef<Integer> a;
+
+            a = getChild(sup, "actor1", 1000);
+            a.send(3);
+            a.send(4);
+
+            assertThat(LocalActor.<Integer>get(a), is(7));
+
+            a = getChild(sup, "actor1", 1000);
+            a.send(70);
+            a.send(80);
+
+            try {
+                LocalActor.<Integer>get(a);
+                fail();
+            } catch (ExecutionException e) {
+            }
+
+            a = getChild(sup, "actor1", 1000);
+            a.send(7);
+            a.send(8);
+
+            assertThat(LocalActor.<Integer>get(a), is(15));
+
+            Thread.sleep(100); // give the actor time to start the GenServer
+
+            sup.shutdown();
+            LocalActor.join(sup);
+
+            assertThat(started.get(), is(4));
+            assertThat(terminated.get(), is(4));
+        } catch (Throwable e) {
+            Debug.exit(e);
+            throw e;
         }
-
-        a = getChild(sup, "actor1", 1000);
-        a.send(7);
-        a.send(8);
-
-        assertThat(LocalActor.<Integer>get(a), is(15));
-
-        Thread.sleep(100); // give the actor time to start the GenServer
-
-        sup.shutdown();
-        LocalActor.join(sup);
-
-        assertThat(started.get(), is(4));
-        assertThat(terminated.get(), is(4));
     }
 
     static class Message1 {
