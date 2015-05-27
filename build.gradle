@@ -107,9 +107,9 @@ subprojects {
     //        // options.compilerArgs << "-Xlint:unchecked"
     //        // options.compilerArgs << "-Xlint:deprecation"
     //    }
-    
+
     compileJava.dependsOn processResources
-    compileJava {
+    classes {
         doLast {
             ant.taskdef(
                 name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
