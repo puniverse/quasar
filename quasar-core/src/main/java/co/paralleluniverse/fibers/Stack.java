@@ -319,7 +319,7 @@ public final class Stack implements Serializable {
 	}
 
 	private int getEntry(long record) {
-		return (int) getSignedBits(record, 0, 14);
+		return (int) getUnsignedBits(record, 0, 14);
 	}
 
 	private long setNumSlots(long record, int numSlots) {
@@ -327,7 +327,7 @@ public final class Stack implements Serializable {
 	}
 
 	private int getNumSlots(long record) {
-		return (int) getSignedBits(record, 14, 16);
+		return (int) getUnsignedBits(record, 14, 16);
 	}
 
 	private long setPrevNumSlots(long record, int numSlots) {
@@ -335,27 +335,31 @@ public final class Stack implements Serializable {
 	}
 
 	private int getPrevNumSlots(long record) {
-		return (int) getSignedBits(record, 30, 16);
+		return (int) getUnsignedBits(record, 30, 16);
 	}
 	///////////////////////////////////////////////////////////////
 	private static final long MASK_FULL = 0xffffffffffffffffL;
 
-	private static long getSignedBits(long word, int offset, int length) {
-		long mask = (0xffffffffffffffffL >>> (64 - length));
-		long xx = (word & (mask << (64 - offset - length))) >>> (64 - offset - length);
-		return (xx << (32 - length)) >> (32 - length); // set sign
+	private static long getUnsignedBits(long word, int offset, int length) {
+		int a = 64 - length;
+		int b = a - offset;
+		return (word >>> b) & (MASK_FULL >>> a);
 	}
 
-	private static long getUnsignedBits(long word, int offset, int length) {
-		long mask = (MASK_FULL >>> (64 - length));
-		return (word & (mask << (64 - offset - length))) >>> (64 - offset - length);
+	private static long getSignedBits(long word, int offset, int length) {
+		int a = 64 - length;
+		int b = a - offset;
+		long xx = (word >>> b) & (MASK_FULL >>> a);
+		return (xx << a) >> a; // set sign
 	}
 
 	private static long setBits(long word, int offset, int length, long value) {
-		long mask = (MASK_FULL >>> (64 - length)); // create an all 1 mask of size length in least significant bits
-		word = word & ~(mask << (64 - offset - length)); // clears bits in our region [offset, offset+length)
-		value = value & mask;
-		word = word | (value << (64 - offset - length));
+		int a = 64 - length;
+		int b = a - offset;
+		//long mask = (MASK_FULL >>> a);
+		word = word & ~((MASK_FULL >>> a) << b); // clears bits in our region [offset, offset+length)
+		value = value; //  & mask;
+		word = word | (value << b);
 		return word;
 	}
 
