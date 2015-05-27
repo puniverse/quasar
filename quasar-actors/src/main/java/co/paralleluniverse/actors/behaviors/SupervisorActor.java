@@ -439,7 +439,7 @@ public class SupervisorActor extends BehaviorActor {
     protected List<? extends ActorRef<?>> getChildren() {
         verifyInActor();
         final ImmutableList.Builder builder = new ImmutableList.Builder();
-        for(final ChildEntry ce : children)
+        for (final ChildEntry ce : children)
             builder.add(ce.actor);
         return builder.build();
     }
@@ -626,7 +626,8 @@ public class SupervisorActor extends BehaviorActor {
                 try {
                     joinChild(child);
                 } finally {
-                    LocalActor.stopMonitor(child.actor); // must be done after join to avoid a race with the actor
+                    if (child.actor != null)
+                        LocalActor.stopMonitor(child.actor); // must be done after join to avoid a race with the actor
                 }
             }
             child.actor = null;
