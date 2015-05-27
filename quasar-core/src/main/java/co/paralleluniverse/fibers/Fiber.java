@@ -721,7 +721,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             try {
                 measureLatency();
                 final V res = run1(); // we jump into the continuation
-
+                assert task.getState() == FiberTask.RUNNABLE;
                 runningThread = null;
                 state = State.TERMINATED;
                 record(1, "Fiber", "exec", "finished %s %s res: %s", state, this, this.result);
