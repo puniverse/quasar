@@ -44,13 +44,18 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
     public SimpleSuspendableClassifier(ClassLoader classLoader) {
         readFiles(classLoader, SUSPENDABLES_FILE, suspendables, suspendableClasses);
         readFiles(classLoader, SUSPENDABLE_SUPERS_FILE, suspendableSupers, suspendableSuperInterfaces);
+
+//        System.err.println("CCCC SUSPENDABLE: " + suspendables);
+//        System.err.println("CCCC SUSPENDABLE classes: " + suspendableClasses);
+//        System.err.println("CCCC SUSPENDABLE_SUPER: " + suspendableSupers);
+//        System.err.println("CCCC SUSPENDABLE_SUPER interfaces: " + suspendableSuperInterfaces);
     }
 
     // Allows loading and querying custom 'suspendables' and 'suspendable-supers' resources
     public SimpleSuspendableClassifier(final ClassLoader classLoader, final String[] suspendablesResources, final String[] suspendableSupersResources) {
-        for(final String sus : suspendablesResources)
+        for (final String sus : suspendablesResources)
             readFiles(classLoader, sus, suspendables, suspendableClasses);
-        for(final String sus : suspendableSupersResources)
+        for (final String sus : suspendableSupersResources)
             readFiles(classLoader, sus, suspendableSupers, suspendableSuperInterfaces);
     }
 
@@ -70,6 +75,7 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
         try {
             for (Enumeration<URL> susFiles = classLoader.getResources(PREFIX + fileName); susFiles.hasMoreElements();) {
                 URL file = susFiles.nextElement();
+                // System.err.println("RRRRR: " + file);
                 parse(file, set, classSet);
             }
         } catch (IOException e) {
@@ -87,7 +93,7 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
 
     private static void parse(URL file, Set<String> set, Set<String> classSet) {
         try (InputStream is = file.openStream();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF-8")))) {
+             BufferedReader reader = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF-8")))) {
             String line;
 
             for (int linenum = 1; (line = reader.readLine()) != null; linenum++) {

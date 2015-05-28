@@ -157,6 +157,8 @@ public class SuspendablesScanner extends Task {
 
     public void run() {
         try {
+            // System.err.println("QQQQQQQQ: " + new SimpleSuspendableClassifier(supersFile).getSuspendableClasses());
+
             final List<URL> us = new ArrayList<>();
 
             if (ant) {
@@ -225,7 +227,7 @@ public class SuspendablesScanner extends Task {
                     return;
                 if (isClassFile(url.getFile())) {
                     try (InputStream is = cl.getResourceAsStream(resource)) { // cl.getResourceAsStream(resource)
-                        new ClassReader(is) // cl.getResourceAsStream(resource)
+                        new ClassReader(is)
                                 .accept(new SuspendableClassifier(false, ASMAPI, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
                     } catch (Exception e) {
                         System.err.println("Exception thrown during processing of " + resource + " at " + url);
@@ -771,8 +773,7 @@ public class SuspendablesScanner extends Task {
         }
 
         public void setSuspendType(SuspendableType suspendType) {
-//            if (("jsr166e/ForkJoinTask".equals(owner) || "co/paralleluniverse/fibers/FiberForkJoinScheduler$FiberForkJoinTask".equals(owner))
-//                    && "get()Ljava/lang/Object;".equals(name)) {
+//            if ("co/paralleluniverse/strands/Strand".equals(owner) && "join()V".equals(name)) {
 //                System.err.println("XXXX:" + owner + "." + name + " " + suspendType);
 //                Thread.dumpStack();
 //            }
