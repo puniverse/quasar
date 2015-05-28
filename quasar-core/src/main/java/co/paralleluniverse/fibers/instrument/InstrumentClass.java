@@ -195,7 +195,7 @@ public class InstrumentClass extends ClassVisitor {
                         db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, setSuspendable);
                     classEntry.set(name, desc, susp);
 
-                    if (susp != SuspendableType.NON_SUSPENDABLE) {
+                    if (susp == SuspendableType.SUSPENDABLE) {
                         if (isSynchronized(access)) {
                             if (!db.isAllowMonitors())
                                 throw new UnableToInstrumentException("synchronization", className, name, desc);
