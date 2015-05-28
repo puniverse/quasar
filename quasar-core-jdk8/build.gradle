@@ -13,6 +13,15 @@ dependencies {
 }
 
 sourceSets {
+//    main {
+//        java {
+//            srcDirs += "../quasar-core/src/main/java" // project(":quasar-core").sourceSets.main.java.srcDirs
+//        }
+//        resources {
+//            //srcDirs += "../quasar-core/src/test/resources" // project(":quasar-core").sourceSets.main.resources.srcDirs
+//            runtimeClasspath += files("../quasar-core/build/resources/test") // project(':quasar-core').sourceSets.main.resources
+//        }
+//    }
     test {
         java {
             srcDirs += "../quasar-core/src/test/java" // project(":quasar-core").sourceSets.test.java.srcDirs
@@ -22,9 +31,10 @@ sourceSets {
             runtimeClasspath += files("../quasar-core/build/resources/test") // project(':quasar-core').sourceSets.test.resources
         }
     }
+
 }
 
-compileJava {
+classes {
     doLast {
         ant.taskdef(
             name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner', 
@@ -32,7 +42,7 @@ compileJava {
         ant.scanSuspendables(
             auto: false,
             supersFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers",
-            append: false) {
+            append: true) {
             fileset(dir: project(':quasar-core').sourceSets.main.output.classesDir)
             fileset(dir: sourceSets.main.output.classesDir)
         }
@@ -43,7 +53,6 @@ compileJava {
                 exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
             }
         }
-                
     }
 }
     
@@ -59,8 +68,8 @@ jar {
     from(project(':quasar-core').sourceSets.main.resources.srcDirs) {
         exclude fileTree(project.sourceSets.main.resources.srcDirs.iterator().next()).collect { it.path - "${project.sourceSets.main.resources.srcDirs.path}/" }
     }
-//    from project.sourceSets.main.output.classesDir
-//    from project.sourceSets.main.resources
+    //    from project.sourceSets.main.output.classesDir
+    //    from project.sourceSets.main.resources
 
     from zipTree("${baselib}/high-scale-lib.jar")  // include non-Maven jars
 
@@ -92,8 +101,8 @@ shadowJar {
     from(project(':quasar-core').sourceSets.main.resources.srcDirs) {
         exclude fileTree(project.sourceSets.main.resources.srcDirs.iterator().next()).collect { it.path - "${project.sourceSets.main.resources.srcDirs.path}/" }
     }
-//    from project.sourceSets.main.output.classesDir
-//    from project.sourceSets.main.resources
+    //    from project.sourceSets.main.output.classesDir
+    //    from project.sourceSets.main.resources
     
     dependencies {
         include(dependency('org.ow2.asm:.*:.*'))

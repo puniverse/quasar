@@ -117,7 +117,7 @@ subprojects {
             ant.scanSuspendables(
                 auto: false,
                 supersFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers",
-                append: false) {
+                append: true) {
                 fileset(dir: sourceSets.main.output.classesDir)
             }
 

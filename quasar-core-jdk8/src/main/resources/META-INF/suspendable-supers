@@ -1,0 +1,7 @@
+co.paralleluniverse.fibers.FiberTask.get()Ljava/lang/Object;
+co.paralleluniverse.fibers.FiberTask.get(JLjava/util/concurrent/TimeUnit;)Ljava/lang/Object;
+co.paralleluniverse.strands.Strand.get()Ljava/lang/Object;
+co.paralleluniverse.strands.Strand.get(JLjava/util/concurrent/TimeUnit;)Ljava/lang/Object;
+co.paralleluniverse.strands.Strand.join()V
+co.paralleluniverse.strands.Strand.join(JLjava/util/concurrent/TimeUnit;)V
+# -----
