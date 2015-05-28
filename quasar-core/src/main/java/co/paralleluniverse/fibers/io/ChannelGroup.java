@@ -40,6 +40,13 @@ public class ChannelGroup {
     }
 
     /**
+     * Shutdown the channel group.
+     */
+    public void shutdown() {
+        group.shutdown();
+    }
+
+    /**
      * Creates a channel group with a fixed thread pool.
      *
      * <p>
