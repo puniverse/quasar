@@ -908,6 +908,39 @@ To create an event source actor, simply construct an instance of the [`EventSour
 
 Event handlers are called synchronously on the same strand as the actor's, so they may delay processing by other handlers if they block the strand.
 
+#### FiniteStateMachineActor
+
+The finite-state-machine behavior is an actor that switches among a set of states and behaves differently in each.
+
+To create an event source actor, simply construct an instance of the [`FiniteStateMachineActor`]({{javadoc}}/actors/behaviors/FiniteStateMachineActor.html) class. Each of the actor's states is represented by a `SuspendableCallable` implementation returning the next state, or the special `FiniteStateMachineActor.TERMINATE` state to terminate the actor. You need to override the `initialState` method so that it returns the actor's initial state. This class is best enjoyed using Java 8 lambda syntax, as in the following example:
+
+~~~ Java
+new FiniteStateMachineActor() {
+    @Override
+    protected SuspendableCallable<SuspendableCallable> initialState() {
+        return this::state1;
+    }
+
+    private SuspendableCallable<SuspendableCallable> state1() throws SuspendExecution, InterruptedException {
+        return receive((m) -> {
+            if ("a".equals(m))
+                return this::state2;
+            return null; // don't handle message
+        });
+    }
+
+    private SuspendableCallable<SuspendableCallable> state2() throws SuspendExecution, InterruptedException {
+        return receive((m) -> {
+            if ("b".equals(m)) {
+                System.out.println("Done!");
+                return TERMINATE;
+            }
+            return null; // don't handle message
+        });
+    }
+}.spawn();
+~~~
+
 ### Supervisors
 
 The last behavior actor, the *supervisor* deserves a chapter of its own, as it's at the core of the actor model's error handling philosophy.
