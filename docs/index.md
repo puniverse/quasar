@@ -6,7 +6,7 @@ description: "Quasar is a JVM library that provides true lightweight threads, CS
 
 # Overview
 
-Quasar is a Java library that provides high-performance lightweight threads, Go-like channels, Erlang-like actors, and other asynchronous programming tools.
+Quasar is a library that provides high-performance lightweight threads, Go-like channels, Erlang-like actors, and other asynchronous programming tools for Java and [**Kotlin**](http://kotlinlang.org).
 
 A good introduction to Quasar can be found in the blog post [Erlang (and Go) in Clojure (and Java), Lightweight Threads, Channels and Actors for the JVM](http://blog.paralleluniverse.co/post/49445260575/quasar-pulsar).
 
@@ -30,6 +30,10 @@ Quasar's clustering makes use of [Galaxy](http://docs.paralleluniverse.co/galaxy
 A core component of Quasar, bytecode instrumentation, is a fork of the wonderful [Continuations Library](http://www.matthiasmann.de/content/view/24/26/) by Matthias Mann.
 
 ## News
+
+### TBDD
+
+Quasar [0.7.0](https://github.com/puniverse/quasar/releases/tag/v0.7.0) has been released.
 
 ### December 23, 2014
 
@@ -110,6 +114,16 @@ For clustering support, add:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-galaxy</artifactId>
+    <version>{{site.version}}</version>
+</dependency>
+~~~
+
+For Kotlin support, add:
+
+~~~ xml
+<dependency>
+    <groupId>co.paralleluniverse</groupId>
+    <artifactId>quasar-kotlin</artifactId>
     <version>{{site.version}}</version>
 </dependency>
 ~~~
@@ -389,7 +403,7 @@ public void h(I x) {
 
 First, if we want to run `h` in a fiber, then it must be suspendable because it calls `f` which is suspendable. We could designate `h` as suspendable either by annotating it with `@Suspendable` or by declaring `throws SuspendExecution` (even though `f` is not declared to throw `SuspendExecution`).
 
-When `h` is encountered by the instrumentation module, it will be instrumented because it's marked suspendable, but in order for the instrumentation to work, it needs to know of `h`'s calls to other instrumented methods. `h` calls `f`, which is suspendable, but through its interface `I`, while we've only annotated `f`'s *implementation* in class C. The instrumenter does not know that `I.f` has an implementation that might suspend.
+When `h` is encountered by the instrumentation module, it will be instrumented because it's marked suspendable, but in order for the instrumentation to work, it needs to know of `h`'s calls to other instrumented methods. `h` calls `f`, which is suspendable, but through its interface `I`, while we've only annotated `f`'s *implementation* in class C. The instrumenter doeKotls not know that `I.f` has an implementation that might suspend.
 
 Therefore, if you'd like to use the `@Suspendable` annotation, there's a step you need to add to your build step, after compilation and before creating the jar file: running the `co.paralleluniverse.fibers.instrument.SuspendablesScanner` Ant task. In Gradle it looks like this:
 
@@ -1002,6 +1016,24 @@ Unlike plain actors, behaviors can be swapped in without any early consideration
 #### Example
 
 A complete hot code swapping example can be found in [this GitHub repository](https://github.com/puniverse/quasar-codeswap-example).
+
+### Preview: Quasar-Kotlin Actors
+
+{:.alert .alert-info}
+**Note**: The Kotlin-specific Quasar API is likely to undergo major changes and can't be relied upon at this stage: it is introduced here as a preview of Kotlin-Quasar's joint expressive power.
+
+Kotlin's inline higher-order functions and the `when` construct enable a powerful and natural selective receive syntax:
+
+~~~ kotlin
+{% include_snippet Kotlin Actors example ./quasar-kotlin/src/test/kotlin/co/paralleluniverse/kotlin/actors/PingPong.kt %}
+~~~
+
+This example highlights a few interesting capabilities:
+
+* Straightforward message picking as well as acting upon (even with further communication, if needed).
+* Deferring a message when it's not yet possible (or handy) to extract it from the mailbox for use.
+* Non-local returns, for example to terminate the actor's processing loop.
+* Handling of timeouts in the message-processing closure.
 
 ## Records
 

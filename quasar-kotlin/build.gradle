@@ -1,0 +1,21 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            url "https://oss.sonatype.org/content/repositories/snapshots"
+        }
+    }
+    dependencies {
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:0.1-SNAPSHOT'
+    }
+}
+
+apply plugin: 'kotlin'
+
+dependencies {
+    compile project(':quasar-core')
+    compile project(':quasar-actors')
+
+    compile "org.jetbrains.kotlin:kotlin-stdlib:0.1-SNAPSHOT"
+    compile "org.jetbrains.kotlin:kotlin-reflect:0.1-SNAPSHOT"
+}

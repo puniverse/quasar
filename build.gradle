@@ -109,7 +109,7 @@ subprojects {
     //    }
 
     compileJava.dependsOn processResources
-    compileJava {
+    classes {
         doLast {
             ant.taskdef(
                 name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
@@ -497,5 +497,5 @@ task clean(dependsOn: subprojects.clean) << {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.1'
+    gradleVersion = '2.2.1'
 }
