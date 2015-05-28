@@ -308,6 +308,7 @@ project (':quasar-core') {
             exclude group: "com.esotericsoftware", module: '*'
             exclude group: "com.esotericsoftware.kryo", module: '*'
         }
+        provided 'junit:junit:4.12'
     }
 
     jar {
