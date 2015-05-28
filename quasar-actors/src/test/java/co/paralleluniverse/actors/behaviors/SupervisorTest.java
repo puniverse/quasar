@@ -63,7 +63,6 @@ public class SupervisorTest {
             if (Debug.isDebug()) {
                 System.out.println("STARTING TEST " + desc.getMethodName());
                 Debug.record(0, "STARTING TEST " + desc.getMethodName());
-                Debug.getGlobalFlightRecorder().record(1, "STARTING TEST " + desc.getMethodName());
             }
         }
 
@@ -73,7 +72,7 @@ public class SupervisorTest {
             e.printStackTrace(System.err);
             if (Debug.isDebug() && !(e instanceof OutOfMemoryError)) {
                 Debug.record(0, "EXCEPTION IN THREAD " + Thread.currentThread().getName() + ": " + e + " - " + Arrays.toString(e.getStackTrace()));
-                Debug.dumpRecorder("~/quasar.dump");
+                Debug.dumpRecorder("quasar." + desc.getClassName() + "." + desc.getMethodName() + ".dump");
             }
         }
 
@@ -466,49 +465,43 @@ public class SupervisorTest {
 
     @Test
     public void testComplex1() throws Exception {
+        AtomicInteger started = new AtomicInteger();
+        AtomicInteger terminated = new AtomicInteger();
+
+        final Supervisor sup = new SupervisorActor(RestartStrategy.ALL_FOR_ONE,
+                new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor3.class, "actor1", started, terminated))).spawn();
+
+        ActorRef<Integer> a;
+
+        a = getChild(sup, "actor1", 1000);
+        a.send(3);
+        a.send(4);
+
+        assertThat(LocalActor.<Integer>get(a), is(7));
+
+        a = getChild(sup, "actor1", 1000);
+        a.send(70);
+        a.send(80);
+
         try {
-            AtomicInteger started = new AtomicInteger();
-            AtomicInteger terminated = new AtomicInteger();
-
-            final Supervisor sup = new SupervisorActor(RestartStrategy.ALL_FOR_ONE,
-                    new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor3.class, "actor1", started, terminated))).spawn();
-
-            ActorRef<Integer> a;
-
-            a = getChild(sup, "actor1", 1000);
-            a.send(3);
-            a.send(4);
-
-            assertThat(LocalActor.<Integer>get(a), is(7));
-
-            a = getChild(sup, "actor1", 1000);
-            a.send(70);
-            a.send(80);
-
-            try {
-                LocalActor.<Integer>get(a);
-                fail();
-            } catch (ExecutionException e) {
-            }
-
-            a = getChild(sup, "actor1", 1000);
-            a.send(7);
-            a.send(8);
-
-            assertThat(LocalActor.<Integer>get(a), is(15));
-
-            Thread.sleep(100); // give the actor time to start the GenServer
-
-            sup.shutdown();
-            LocalActor.join(sup);
-
-            assertThat(started.get(), is(4));
-            assertThat(terminated.get(), is(4));
-        } catch (Throwable e) {
-            System.err.println("XXXXXXX " + e);
-            Debug.exit(e, "complex1.log");
-            throw e;
+            LocalActor.<Integer>get(a);
+            fail();
+        } catch (ExecutionException e) {
         }
+
+        a = getChild(sup, "actor1", 1000);
+        a.send(7);
+        a.send(8);
+
+        assertThat(LocalActor.<Integer>get(a), is(15));
+
+        Thread.sleep(100); // give the actor time to start the GenServer
+
+        sup.shutdown();
+        LocalActor.join(sup);
+
+        assertThat(started.get(), is(4));
+        assertThat(terminated.get(), is(4));
     }
 
     static class Message1 {
