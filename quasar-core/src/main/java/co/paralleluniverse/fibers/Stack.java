@@ -133,9 +133,13 @@ public final class Stack implements Serializable {
         record = setNumSlots(record, numSlots);
         dataLong[idx] = record;
 
-        int nextMethodSP = sp + numSlots + FRAME_RECORD_SIZE;
+        int nextMethodIdx = sp + numSlots;
+        int nextMethodSP = nextMethodIdx + FRAME_RECORD_SIZE;
         if (nextMethodSP > dataObject.length)
             growStack(nextMethodSP);
+
+        for (int i = 0; i < FRAME_RECORD_SIZE; i++)
+            dataLong[nextMethodIdx + i] = 0L; // clear next method's frame record
 
         if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "pushMethod     ", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
