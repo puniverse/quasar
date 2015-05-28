@@ -99,7 +99,7 @@ class TypeInterpreter extends BasicInterpreter {
     @Override
     public BasicValue merge(BasicValue v, BasicValue w) {
         if (!v.equals(w)) {
-            db.log(LogLevel.DEBUG, "merge: %s %s", v, w);
+            // db.log(LogLevel.DEBUG, "merge: %s %s", v, w);
             if (v.isReference() && w.isReference()) {
                 int dimensions = 0;
                 Type typeV = v.getType();
