@@ -85,13 +85,9 @@ class Pong() : Actor() {
     }
 }
 
-// public ChildSpec(String id, ChildMode mode, int maxRestarts, long duration, TimeUnit unit, long shutdownDeadline, ActorBuilder<?,
-
 public class Tests {
     Test public fun testActors() {
-        val pongCS = ChildSpec("pong", TRANSIENT, 1, 1, MILLISECONDS, 100, ActorBuilder { Pong() })
-        // val pingCS = ChildSpec("pong", TRANSIENT, 1, 1, MILLISECONDS, 100, ActorBuilder { Ping(3) })
-        val refSupervisor = SupervisorActor(ALL_FOR_ONE, pongCS).spawn()
-        refSupervisor.shutdown()
+        spawn(register("pong", Pong()))
+        spawn(Ping(3))
     }
 }
