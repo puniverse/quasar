@@ -210,68 +210,73 @@ public final class Stack implements Serializable {
     }
 
     public static void push(int value, Stack s, int idx) {
-        if (s.fiber.isRecordingLevel(3))
-            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
+//        if (s.fiber.isRecordingLevel(3))
+//            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
         s.dataLong[s.sp + idx] = value;
     }
 
     public static void push(float value, Stack s, int idx) {
-        if (s.fiber.isRecordingLevel(3))
-            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
+//        if (s.fiber.isRecordingLevel(3))
+//            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
         s.dataLong[s.sp + idx] = Float.floatToRawIntBits(value);
     }
 
     public static void push(long value, Stack s, int idx) {
-        if (s.fiber.isRecordingLevel(3))
-            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
+//        if (s.fiber.isRecordingLevel(3))
+//            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
         s.dataLong[s.sp + idx] = value;
     }
 
     public static void push(double value, Stack s, int idx) {
-        if (s.fiber.isRecordingLevel(3))
-            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
+//        if (s.fiber.isRecordingLevel(3))
+//            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
         s.dataLong[s.sp + idx] = Double.doubleToRawLongBits(value);
     }
 
     public static void push(Object value, Stack s, int idx) {
-        if (s.fiber.isRecordingLevel(3))
-            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
+//        if (s.fiber.isRecordingLevel(3))
+//            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
         s.dataObject[s.sp + idx] = value;
     }
 
     public final int getInt(int idx) {
-        final int value = (int) dataLong[sp + idx];
-        if (fiber.isRecordingLevel(3))
-            fiber.record(3, "Stack", "getInt", "%d (%d) %s", idx, sp + idx, value);
-        return value;
+        return (int) dataLong[sp + idx];
+//        final int value = (int) dataLong[sp + idx];
+//        if (fiber.isRecordingLevel(3))
+//            fiber.record(3, "Stack", "getInt", "%d (%d) %s", idx, sp + idx, value);
+//        return value;
     }
 
     public final float getFloat(int idx) {
-        final float value = Float.intBitsToFloat((int) dataLong[sp + idx]);
-        if (fiber.isRecordingLevel(3))
-            fiber.record(3, "Stack", "getFloat", "%d (%d) %s", idx, sp + idx, value);
-        return value;
+        return Float.intBitsToFloat((int) dataLong[sp + idx]);
+//        final float value = Float.intBitsToFloat((int) dataLong[sp + idx]);
+//        if (fiber.isRecordingLevel(3))
+//            fiber.record(3, "Stack", "getFloat", "%d (%d) %s", idx, sp + idx, value);
+//        return value;
     }
 
     public final long getLong(int idx) {
-        final long value = dataLong[sp + idx];
-        if (fiber.isRecordingLevel(3))
-            fiber.record(3, "Stack", "getLong", "%d (%d) %s", idx, sp + idx, value);
-        return value;
+        return dataLong[sp + idx];
+//        final long value = dataLong[sp + idx];
+//        if (fiber.isRecordingLevel(3))
+//            fiber.record(3, "Stack", "getLong", "%d (%d) %s", idx, sp + idx, value);
+//        return value;
     }
 
     public final double getDouble(int idx) {
-        final double value = Double.longBitsToDouble(dataLong[sp + idx]);
-        if (fiber.isRecordingLevel(3))
-            fiber.record(3, "Stack", "getDouble", "%d (%d) %s", idx, sp + idx, value);
-        return value;
+        return Double.longBitsToDouble(dataLong[sp + idx]);
+//        final double value = Double.longBitsToDouble(dataLong[sp + idx]);
+//        if (fiber.isRecordingLevel(3))
+//            fiber.record(3, "Stack", "getDouble", "%d (%d) %s", idx, sp + idx, value);
+//        return value;
     }
 
     public final Object getObject(int idx) {
-        final Object value = dataObject[sp + idx];
-        if (fiber.isRecordingLevel(3))
-            fiber.record(3, "Stack", "getObject", "%d (%d) %s", idx, sp + idx, value);
-        return value;
+        return dataObject[sp + idx];
+//        final Object value = dataObject[sp + idx];
+//        if (fiber.isRecordingLevel(3))
+//            fiber.record(3, "Stack", "getObject", "%d (%d) %s", idx, sp + idx, value);
+//        return value;
     }
 
     ///////////////////////////////////////////////////////////////
