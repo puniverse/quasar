@@ -26,7 +26,7 @@ import java.util.Arrays;
  */
 public final class Stack implements Serializable {
     /*
-     * curMethodSP points to the first slot to contain data.
+     * sp points to the first slot to contain data.
      * The _previous_ FRAME_RECORD_SIZE slots contain the frame record.
      * The frame record currently occupies a single long:
      *   - entry (PC)         : 14 bits
@@ -95,7 +95,6 @@ public final class Stack implements Serializable {
         long record = dataLong[idx];
         int entry = getEntry(record);
         dataLong[idx] = setPrevNumSlots(record, slots);
-
         if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "nextMethodEntry", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
 
@@ -127,15 +126,22 @@ public final class Stack implements Serializable {
     public final void pushMethod(int entry, int numSlots) {
         shouldVerifyInstrumentation = false;
         pushed = true;
+
         int idx = sp - FRAME_RECORD_SIZE;
         long record = dataLong[idx];
         record = setEntry(record, entry);
         record = setNumSlots(record, numSlots);
         dataLong[idx] = record;
 
-        int nextMethodSP = sp + numSlots + FRAME_RECORD_SIZE;
+        int nextMethodIdx = sp + numSlots;
+        int nextMethodSP = nextMethodIdx + FRAME_RECORD_SIZE;
         if (nextMethodSP > dataObject.length)
             growStack(nextMethodSP);
+
+        // clear next method's frame record
+        dataLong[nextMethodIdx] = 0L;
+//        for (int i = 0; i < FRAME_RECORD_SIZE; i++)
+//            dataLong[nextMethodIdx + i] = 0L;
 
         if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "pushMethod     ", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
@@ -158,8 +164,11 @@ public final class Stack implements Serializable {
         final int oldSP = sp;
         final int newSP = oldSP - getPrevNumSlots(dataLong[idx]) - FRAME_RECORD_SIZE;
 
-        for (int i = 0; i < FRAME_RECORD_SIZE; i++)
-            dataLong[idx + i] = 0L;
+        // clear frame record (probably unnecessary)
+        dataLong[idx] = 0L;
+//        for (int i = 0; i < FRAME_RECORD_SIZE; i++)
+//            dataLong[idx + i] = 0L;
+        // help GC
         for (int i = newSP; i < oldSP; i++)
             dataObject[i] = null;
 
@@ -201,67 +210,67 @@ public final class Stack implements Serializable {
     }
 
     public static void push(int value, Stack s, int idx) {
-//        if (s.fiber.isRecordingLevel(3))
-//            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.curMethodSP + idx, value);
+        if (s.fiber.isRecordingLevel(3))
+            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
         s.dataLong[s.sp + idx] = value;
     }
 
     public static void push(float value, Stack s, int idx) {
-//        if (s.fiber.isRecordingLevel(3))
-//            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.curMethodSP + idx, value);
+        if (s.fiber.isRecordingLevel(3))
+            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
         s.dataLong[s.sp + idx] = Float.floatToRawIntBits(value);
     }
 
     public static void push(long value, Stack s, int idx) {
-//        if (s.fiber.isRecordingLevel(3))
-//            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.curMethodSP + idx, value);
+        if (s.fiber.isRecordingLevel(3))
+            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
         s.dataLong[s.sp + idx] = value;
     }
 
     public static void push(double value, Stack s, int idx) {
-//        if (s.fiber.isRecordingLevel(3))
-//            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.curMethodSP + idx, value);
+        if (s.fiber.isRecordingLevel(3))
+            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
         s.dataLong[s.sp + idx] = Double.doubleToRawLongBits(value);
     }
 
     public static void push(Object value, Stack s, int idx) {
-//        if (s.fiber.isRecordingLevel(3))
-//            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.curMethodSP + idx, value);
+        if (s.fiber.isRecordingLevel(3))
+            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
         s.dataObject[s.sp + idx] = value;
     }
 
     public final int getInt(int idx) {
         final int value = (int) dataLong[sp + idx];
-//        if (fiber.isRecordingLevel(3))
-//            fiber.record(3, "Stack", "getInt", "%d (%d) %s", idx, curMethodSP + idx, value);
+        if (fiber.isRecordingLevel(3))
+            fiber.record(3, "Stack", "getInt", "%d (%d) %s", idx, sp + idx, value);
         return value;
     }
 
     public final float getFloat(int idx) {
         final float value = Float.intBitsToFloat((int) dataLong[sp + idx]);
-//        if (fiber.isRecordingLevel(3))
-//            fiber.record(3, "Stack", "getFloat", "%d (%d) %s", idx, curMethodSP + idx, value);
+        if (fiber.isRecordingLevel(3))
+            fiber.record(3, "Stack", "getFloat", "%d (%d) %s", idx, sp + idx, value);
         return value;
     }
 
     public final long getLong(int idx) {
         final long value = dataLong[sp + idx];
-//        if (fiber.isRecordingLevel(3))
-//            fiber.record(3, "Stack", "getLong", "%d (%d) %s", idx, curMethodSP + idx, value);
+        if (fiber.isRecordingLevel(3))
+            fiber.record(3, "Stack", "getLong", "%d (%d) %s", idx, sp + idx, value);
         return value;
     }
 
     public final double getDouble(int idx) {
         final double value = Double.longBitsToDouble(dataLong[sp + idx]);
-//        if (fiber.isRecordingLevel(3))
-//            fiber.record(3, "Stack", "getDouble", "%d (%d) %s", idx, curMethodSP + idx, value);
+        if (fiber.isRecordingLevel(3))
+            fiber.record(3, "Stack", "getDouble", "%d (%d) %s", idx, sp + idx, value);
         return value;
     }
 
     public final Object getObject(int idx) {
         final Object value = dataObject[sp + idx];
-//        if (fiber.isRecordingLevel(3))
-//            fiber.record(3, "Stack", "getObject", "%d (%d) %s", idx, curMethodSP + idx, value);
+        if (fiber.isRecordingLevel(3))
+            fiber.record(3, "Stack", "getObject", "%d (%d) %s", idx, sp + idx, value);
         return value;
     }
 
@@ -271,7 +280,7 @@ public final class Stack implements Serializable {
     }
 
     private int getEntry(long record) {
-        return (int) getSignedBits(record, 0, 14);
+        return (int) getUnsignedBits(record, 0, 14);
     }
 
     private long setNumSlots(long record, int numSlots) {
@@ -279,7 +288,7 @@ public final class Stack implements Serializable {
     }
 
     private int getNumSlots(long record) {
-        return (int) getSignedBits(record, 14, 16);
+        return (int) getUnsignedBits(record, 14, 16);
     }
 
     private long setPrevNumSlots(long record, int numSlots) {
@@ -287,27 +296,31 @@ public final class Stack implements Serializable {
     }
 
     private int getPrevNumSlots(long record) {
-        return (int) getSignedBits(record, 30, 16);
+        return (int) getUnsignedBits(record, 30, 16);
     }
     ///////////////////////////////////////////////////////////////
     private static final long MASK_FULL = 0xffffffffffffffffL;
 
-    private static long getSignedBits(long word, int offset, int length) {
-        long mask = (0xffffffffffffffffL >>> (64 - length));
-        long xx = (word & (mask << (64 - offset - length))) >>> (64 - offset - length);
-        return (xx << (32 - length)) >> (32 - length); // set sign
+    private static long getUnsignedBits(long word, int offset, int length) {
+        int a = 64 - length;
+        int b = a - offset;
+        return (word >>> b) & (MASK_FULL >>> a);
     }
 
-    private static long getUnsignedBits(long word, int offset, int length) {
-        long mask = (MASK_FULL >>> (64 - length));
-        return (word & (mask << (64 - offset - length))) >>> (64 - offset - length);
+    private static long getSignedBits(long word, int offset, int length) {
+        int a = 64 - length;
+        int b = a - offset;
+        long xx = (word >>> b) & (MASK_FULL >>> a);
+        return (xx << a) >> a; // set sign
     }
 
     private static long setBits(long word, int offset, int length, long value) {
-        long mask = (MASK_FULL >>> (64 - length)); // create an all 1 mask of size length in least significant bits
-        word = word & ~(mask << (64 - offset - length)); // clears bits in our region [offset, offset+length)
-        value = value & mask;
-        word = word | (value << (64 - offset - length));
+        int a = 64 - length;
+        int b = a - offset;
+        //long mask = (MASK_FULL >>> a);
+        word = word & ~((MASK_FULL >>> a) << b); // clears bits in our region [offset, offset+length)
+        // value = value & mask;
+        word = word | (value << b);
         return word;
     }
 
