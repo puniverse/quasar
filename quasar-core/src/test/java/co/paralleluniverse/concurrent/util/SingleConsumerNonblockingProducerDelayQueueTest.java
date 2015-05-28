@@ -13,19 +13,29 @@
  */
 package co.paralleluniverse.concurrent.util;
 
+import co.paralleluniverse.common.test.TestUtil;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
 
 /**
  *
  * @author pron
  */
 public class SingleConsumerNonblockingProducerDelayQueueTest {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = TestUtil.WATCHMAN;
+
     private static final boolean SEQUENCED = false;
+
     public SingleConsumerNonblockingProducerDelayQueueTest() {
     }
     BlockingQueue<DelayedValue> q;

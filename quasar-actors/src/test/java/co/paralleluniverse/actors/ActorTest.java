@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
@@ -39,13 +40,21 @@ import static org.junit.Assert.*;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
 
 /**
  *
  * @author pron
  */
 public class ActorTest {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = TestUtil.WATCHMAN;
+
     @BeforeClass
     public static void beforeClass() {
         Debug.dumpAfter(10000);

@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.queues;
 
+import co.paralleluniverse.common.test.TestUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,7 +23,10 @@ import java.util.NoSuchElementException;
 import java.util.Queue;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -33,6 +37,11 @@ import org.junit.runners.Parameterized;
  */
 @RunWith(Parameterized.class)
 public class SingleConsumerPrimitiveQueueTest {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = TestUtil.WATCHMAN;
+    
     final SingleConsumerQueue<Integer> wordQueue;
     final SingleConsumerQueue<Double> dwordQueue;
 

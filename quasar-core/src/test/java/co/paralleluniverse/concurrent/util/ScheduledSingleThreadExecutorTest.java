@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.concurrent.util;
 
+import co.paralleluniverse.common.test.TestUtil;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
@@ -21,12 +22,20 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.Ignore;
 import static org.hamcrest.CoreMatchers.*;
+import org.junit.Rule;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
 
 /**
  *
  * @author pron
  */
 public class ScheduledSingleThreadExecutorTest {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = TestUtil.WATCHMAN;
+
     private ScheduledSingleThreadExecutor exec;
 
     public ScheduledSingleThreadExecutorTest() {

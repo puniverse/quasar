@@ -13,18 +13,27 @@
  */
 package co.paralleluniverse.concurrent.util;
 
+import co.paralleluniverse.common.test.TestUtil;
 import java.util.concurrent.BlockingQueue;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
 
 /**
  *
  * @author pron
  */
 public class SingleConsumerNonblockingProducerPriorityQueueTest {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = TestUtil.WATCHMAN;
+
     public SingleConsumerNonblockingProducerPriorityQueueTest() {
     }
     BlockingQueue<Foo> q;
@@ -42,7 +51,7 @@ public class SingleConsumerNonblockingProducerPriorityQueueTest {
         q.put(new Foo(3, index++));
         q.put(new Foo(7, index++));
         q.put(new Foo(20, index++));
-        
+
         assertThat(q.size(), is(5));
         assertThat(q.poll().priority, is(3));
         assertThat(q.poll().priority, is(5));
@@ -51,7 +60,7 @@ public class SingleConsumerNonblockingProducerPriorityQueueTest {
         assertThat(q.poll().priority, is(20));
         assertThat(q.isEmpty(), is(true));
     }
-    
+
     static class Foo implements Comparable<Foo> {
         final int priority;
         final int index;

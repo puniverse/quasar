@@ -19,6 +19,7 @@ import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MailboxConfig;
+import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
@@ -44,8 +45,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.eq;
@@ -60,36 +59,13 @@ public class ProxyServerTest {
     @Rule
     public TestName name = new TestName();
     @Rule
-    public TestRule watchman = new TestWatcher() {
-        @Override
-        protected void starting(Description desc) {
-            if (Debug.isDebug()) {
-                System.out.println("STARTING TEST " + desc.getMethodName());
-                Debug.record(0, "STARTING TEST " + desc.getMethodName());
-            }
-        }
-
-        @Override
-        public void failed(Throwable e, Description desc) {
-            System.out.println("FAILED TEST " + desc.getMethodName() + ": " + e.getMessage());
-            e.printStackTrace(System.err);
-            if (Debug.isDebug() && !(e instanceof OutOfMemoryError)) {
-                Debug.record(0, "EXCEPTION IN THREAD " + Thread.currentThread().getName() + ": " + e + " - " + Arrays.toString(e.getStackTrace()));
-                Debug.dumpRecorder("~/quasar.dump");
-            }
-        }
-
-        @Override
-        protected void succeeded(Description desc) {
-            Debug.record(0, "DONE TEST " + desc.getMethodName());
-        }
-    };
+    public TestRule watchman = TestUtil.WATCHMAN;
 
     @After
     public void tearDown() {
         ActorRegistry.clear();
     }
-    
+
     static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channels.OverflowPolicy.THROW);
     private FiberFactory factory;
     private FiberScheduler scheduler;

@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.dataflow;
 
+import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -25,12 +26,19 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
 import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
 
 /**
  *
  * @author pron
  */
 public class ValTest {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = TestUtil.WATCHMAN;
 
     public ValTest() {
     }
@@ -166,7 +174,6 @@ public class ValTest {
             }
         }).start();
 
-
         Thread.sleep(100);
 
         val1.set(8);
@@ -216,14 +223,13 @@ public class ValTest {
             }
         }).start();
 
-
         Thread.sleep(100);
 
         val1.set(1);
 
         int myRes = val4.get();
         assertThat(myRes, is(5));
-        
+
         t1.join();
         f1.join();
         f2.join();

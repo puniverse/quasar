@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.data.record;
 
+import co.paralleluniverse.common.test.TestUtil;
 import org.hamcrest.Matcher;
 import org.junit.After;
 import org.junit.Before;
@@ -27,6 +28,9 @@ import co.paralleluniverse.data.record.Field.*;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Random;
+import org.junit.Rule;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
 import org.junit.runners.Parameterized;
 
 /**
@@ -35,6 +39,11 @@ import org.junit.runners.Parameterized;
  */
 @RunWith(Parameterized.class)
 public class DynamicRecordTest {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = TestUtil.WATCHMAN;
+
     private static final Random rand = new Random();
     private final RecordType.Mode mode;
 
@@ -45,10 +54,10 @@ public class DynamicRecordTest {
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-                    {RecordType.Mode.METHOD_HANDLE},
-                    {RecordType.Mode.REFLECTION},
-                    {RecordType.Mode.UNSAFE},
-                    {RecordType.Mode.GENERATION},});
+            {RecordType.Mode.METHOD_HANDLE},
+            {RecordType.Mode.REFLECTION},
+            {RecordType.Mode.UNSAFE},
+            {RecordType.Mode.GENERATION},});
     }
 
     @Before

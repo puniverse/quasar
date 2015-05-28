@@ -24,6 +24,7 @@ import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildMode;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
 import co.paralleluniverse.actors.behaviors.SupervisorActor.RestartStrategy;
+import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
@@ -42,8 +43,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,30 +55,7 @@ public class SupervisorTest {
     @Rule
     public TestName name = new TestName();
     @Rule
-    public TestRule watchman = new TestWatcher() {
-        @Override
-        protected void starting(Description desc) {
-            if (Debug.isDebug()) {
-                System.out.println("STARTING TEST " + desc.getMethodName());
-                Debug.record(0, "STARTING TEST " + desc.getMethodName());
-            }
-        }
-
-        @Override
-        public void failed(Throwable e, Description desc) {
-            System.out.println("FAILED TEST " + desc.getMethodName() + ": " + e.getMessage());
-            e.printStackTrace(System.err);
-            if (Debug.isDebug() && !(e instanceof OutOfMemoryError)) {
-                Debug.record(0, "EXCEPTION IN THREAD " + Thread.currentThread().getName() + ": " + e + " - " + Arrays.toString(e.getStackTrace()));
-                Debug.dumpRecorder("~/quasar.dump");
-            }
-        }
-
-        @Override
-        protected void succeeded(Description desc) {
-            Debug.record(0, "DONE TEST " + desc.getMethodName());
-        }
-    };
+    public TestRule watchman = TestUtil.WATCHMAN;
     
     @After
     public void tearDown() {

@@ -15,6 +15,7 @@ package co.paralleluniverse.strands.dataflow;
 
 import co.paralleluniverse.common.test.Matchers;
 import static co.paralleluniverse.common.test.Matchers.*;
+import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
@@ -30,12 +31,19 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
 import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
 
 /**
  *
  * @author pron
  */
 public class VarTest {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = TestUtil.WATCHMAN;
 
     public VarTest() {
     }
@@ -198,7 +206,7 @@ public class VarTest {
     @Test
     public void testFunction1() throws Exception {
         final Channel<Integer> ch = Channels.newChannel(-1);
-        
+
         final Var<Integer> a = new Var<Integer>();
         final Var<Integer> b = new Var<Integer>();
 
@@ -219,7 +227,7 @@ public class VarTest {
         assertThat(ch.receive(50, MILLISECONDS), is(3));
 
         assertThat(ch.receive(), is(3));
-        
+
         assertThat(ch.receive(50, MILLISECONDS), is(nullValue()));
 
         a.set(2);

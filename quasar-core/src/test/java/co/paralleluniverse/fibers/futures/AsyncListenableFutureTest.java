@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers.futures;
 
+import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
@@ -25,13 +26,21 @@ import com.google.common.util.concurrent.SettableFuture;
 import java.util.concurrent.ExecutionException;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
 
 /**
  *
  * @author pron
  */
 public class AsyncListenableFutureTest {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = TestUtil.WATCHMAN;
+    
     private FiberScheduler scheduler;
 
     public AsyncListenableFutureTest() {

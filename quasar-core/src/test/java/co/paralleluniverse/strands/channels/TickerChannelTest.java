@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import static co.paralleluniverse.common.test.Matchers.*;
+import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
@@ -29,9 +30,8 @@ import static org.junit.Assume.*;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
 
 /**
  *
@@ -39,22 +39,10 @@ import org.junit.runner.Description;
  */
 public class TickerChannelTest {
     @Rule
-    public TestRule watchman = new TestWatcher() {
-        @Override
-        protected void starting(Description desc) {
-            if (Debug.isDebug())
-                Debug.record(0, "STARTING TEST " + desc.getMethodName());
-        }
-
-        @Override
-        public void failed(Throwable e, Description desc) {
-            e.printStackTrace(System.err);
-            if (Debug.isDebug() && !(e instanceof OutOfMemoryError)) {
-                Debug.record(0, "EXCEPTION IN THREAD " + Thread.currentThread().getName() + ": " + e + " - " + Arrays.toString(e.getStackTrace()));
-                Debug.dumpRecorder("~/quasar-" + desc.getMethodName() + ".dump");
-            }
-        }
-    };
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = TestUtil.WATCHMAN;
+    
     static final int bufferSize = 10;
     private FiberScheduler scheduler;
 

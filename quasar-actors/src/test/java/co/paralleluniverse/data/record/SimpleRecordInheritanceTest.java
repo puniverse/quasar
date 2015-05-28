@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.data.record;
 
+import co.paralleluniverse.common.test.TestUtil;
 import org.hamcrest.Matcher;
 import org.junit.After;
 import org.junit.Before;
@@ -24,6 +25,9 @@ import org.junit.runner.RunWith;
 
 import co.paralleluniverse.data.record.Field.*;
 import java.util.Random;
+import org.junit.Rule;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
 
 /**
  *
@@ -31,6 +35,11 @@ import java.util.Random;
  */
 //@RunWith(org.mockito.runners.MockitoJUnitRunner.class) //VerboseMockitoJUnitRunner.class)
 public class SimpleRecordInheritanceTest {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = TestUtil.WATCHMAN;
+    
     private static final Random rand = new Random();
 
     public SimpleRecordInheritanceTest() {
@@ -82,12 +91,12 @@ public class SimpleRecordInheritanceTest {
         assertThat(b.get(B.$d1), equalTo(42));
         assertThat(b.get(B.$str1), equalTo("bye"));
     }
-    
+
     @Test
     public void testIsInstance() {
         Record<B> b = B.rt.newInstance();
         Record<A> a = A.rt.newInstance();
-        
+
         assertThat(B.rt.isInstance(b), is(true));
         assertThat(A.rt.isInstance(b), is(true));
         assertThat(B.rt.isInstance(a), is(false));

@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers.io;
 
+import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
@@ -33,13 +34,21 @@ import static org.hamcrest.CoreMatchers.*;
 import org.junit.After;
 import static org.junit.Assert.*;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
 
 /**
  *
  * @author pron
  */
 public class FiberAsyncIOTest {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = TestUtil.WATCHMAN;
+    
     private static final int PORT = 1234;
     private static final Charset charset = Charset.forName("UTF-8");
     private static final CharsetEncoder encoder = charset.newEncoder();

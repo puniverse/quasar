@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.galaxy;
 
+import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.galaxy.example.pingpong.Ping;
 import co.paralleluniverse.galaxy.example.pingpong.Pong;
@@ -29,14 +30,22 @@ import org.junit.After;
 import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
 
 public class NanoCloudLocalTest extends BaseCloudTest {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = TestUtil.WATCHMAN;
+
     static final GlxConfig ZK_WITH_SERVER_CFG = new GlxConfig(PEER_WITH_ZK_SERVER_CFG, SERVER_ZK_CFG, true, true);
     static final GlxConfig JG_WITH_SERVER_CFG = new GlxConfig(PEER_WITH_JG_SERVER_CFG, SERVER_JG_CFG, false, true);
     static final GlxConfig JG_NO_SERVER_CFG = new GlxConfig(PEER_NO_SERVER_CFG, null, false, false);
-    static final GlxConfig CFG = 
-            ZK_WITH_SERVER_CFG;
+    static final GlxConfig CFG
+            = ZK_WITH_SERVER_CFG;
 //            JG_WITH_SERVER_CFG;
 //            JG_NO_SERVER_CFG;
     private ServerCnxnFactory zk;
@@ -57,7 +66,7 @@ public class NanoCloudLocalTest extends BaseCloudTest {
     @Test(timeout = 180000)
     public void pingPongTest() throws InterruptedException, ExecutionException {
         assumeTrue(!Debug.isCI());
-        
+
         cloud.nodes(SERVER, "ping", "pong");
         setJvmArgs(cloud);
         if (CFG.hasServer)

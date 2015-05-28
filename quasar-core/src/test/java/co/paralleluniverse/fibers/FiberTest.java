@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import co.paralleluniverse.strands.Condition;
@@ -41,6 +42,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.hamcrest.CoreMatchers.*;
+import org.junit.Rule;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -51,6 +55,11 @@ import org.junit.runners.Parameterized;
  */
 @RunWith(Parameterized.class)
 public class FiberTest implements Serializable {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = TestUtil.WATCHMAN;
+    
     private transient FiberScheduler scheduler;
 
 //    public FiberTest() {

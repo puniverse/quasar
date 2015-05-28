@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.galaxy;
 
+import co.paralleluniverse.common.test.TestUtil;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.Callable;
@@ -20,12 +21,20 @@ import org.gridkit.nanocloud.CloudFactory;
 import org.gridkit.vicluster.telecontrol.Classpath;
 import org.gridkit.vicluster.telecontrol.jvm.JvmProps;
 import org.gridkit.vicluster.telecontrol.ssh.RemoteNodeProps;
+import org.junit.Rule;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
 
 /**
  *
  * @author eitan
  */
 public class NanoCloudRemoteTest extends BaseCloudTest {
+    @Rule
+    public TestName name = new TestName();
+    @Rule
+    public TestRule watchman = TestUtil.WATCHMAN;
+
 //    @Test
     public void test_distributed_hello_world__basic_example() throws InterruptedException {
         cloud = CloudFactory.createSimpleSshCloud();
