@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.net.SocketOption;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.ClosedChannelException;
@@ -46,7 +45,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     }
 
     /**
-     * Opens a socket channel. 
+     * Opens a socket channel.
      * Same as {@link #open(java.nio.channels.AsynchronousChannelGroup) open((AsynchronousChannelGroup) null)}.
      *
      * @return A new socket channel
@@ -59,31 +58,29 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     /**
      * Opens a socket channel.
      *
-     * <p> The new channel is created by invoking the {@link
-     * AsynchronousChannelProvider#openAsynchronousSocketChannel
-     * openAsynchronousSocketChannel} method on the {@link
-     * AsynchronousChannelProvider} that created the group. If the group parameter
-     * is {@code null} then the resulting channel is created by the system-wide
-     * default provider, and bound to the <em>default group</em>.
+     * <p>
+     * If the group parameter is {@code null} then the resulting channel is bound to the <em>default group</em>.
      *
      * @param group The group to which the newly constructed channel should be bound, or {@code null} for the default group
      * @return A new socket channel
      * @throws ShutdownChannelGroupException If the channel group is shutdown
      * @throws IOException                   If an I/O error occurs
      */
-    public static FiberSocketChannel open(AsynchronousChannelGroup group) throws IOException, SuspendExecution {
-        return new FiberSocketChannel(AsynchronousSocketChannel.open(group != null ? group : FiberAsyncIO.defaultGroup()));
+    public static FiberSocketChannel open(ChannelGroup group) throws IOException, SuspendExecution {
+        return new FiberSocketChannel(AsynchronousSocketChannel.open(group != null ? group.getGroup() : FiberAsyncIO.defaultGroup()));
     }
 
     /**
      * Opens a socket channel and connects it to a remote address.
      *
-     * <p> This convenience method works as if by invoking the {@link #open()}
+     * <p>
+     * This convenience method works as if by invoking the {@link #open()}
      * method, invoking the {@link #connect(SocketAddress) connect} method upon
      * the resulting socket channel, passing it <tt>remote</tt>, and then
      * returning that channel. </p>
      *
      * @param remote The remote address to which the new channel is to be connected
+     * @return A new socket channel
      *
      * @throws AsynchronousCloseException      If another thread closes this channel
      *                                         while the connect operation is in progress
@@ -106,13 +103,15 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     /**
      * Opens a socket channel and connects it to a remote address.
      *
-     * <p> This convenience method works as if by invoking the {@link #open()}
+     * <p>
+     * This convenience method works as if by invoking the {@link #open()}
      * method, invoking the {@link #connect(SocketAddress) connect} method upon
      * the resulting socket channel, passing it <tt>remote</tt>, and then
      * returning that channel. </p>
      *
      * @param group  The group to which the newly constructed channel should be bound, or {@code null} for the default group
      * @param remote The remote address to which the new channel is to be connected
+     * @return A new socket channel
      *
      * @throws AsynchronousCloseException      If another thread closes this channel
      *                                         while the connect operation is in progress
@@ -126,7 +125,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      *                                         and it does not permit access to the given remote endpoint
      * @throws IOException                     If some other I/O error occurs
      */
-    public static FiberSocketChannel open(AsynchronousChannelGroup group, SocketAddress remote) throws IOException, SuspendExecution {
+    public static FiberSocketChannel open(ChannelGroup group, SocketAddress remote) throws IOException, SuspendExecution {
         final FiberSocketChannel channel = open(group);
         channel.connect(remote);
         return channel;
@@ -135,12 +134,14 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     /**
      * Connects this channel.
      *
-     * <p> This method initiates an operation to connect this channel. it blocks
+     * <p>
+     * This method initiates an operation to connect this channel. it blocks
      * until the connection is successfully established or connection cannot be
      * established. If the connection cannot be established then the channel is
      * closed.
      *
-     * <p> This method performs exactly the same security checks as the {@link
+     * <p>
+     * This method performs exactly the same security checks as the {@link
      * java.net.Socket} class. That is, if a security manager has been
      * installed then this method verifies that its {@link
      * java.lang.SecurityManager#checkConnect checkConnect} method permits
@@ -169,13 +170,15 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     /**
      * Connects this channel.
      *
-     * <p> This method initiates an operation to connect this channel. it blocks
+     * <p>
+     * This method initiates an operation to connect this channel. it blocks
      * until the connection is successfully established or connection cannot be
      * established or a timeout occurs while attempting to establish it. If the
      * connection cannot be established then the channel is closed but not so if
      * a timeout occurs (see {@link http://stackoverflow.com/questions/20752756/how-to-set-java-nio-asynchronoussocketchannel-connect-timeout}).
      *
-     * <p> This method performs exactly the same security checks as the {@link
+     * <p>
+     * This method performs exactly the same security checks as the {@link
      * java.net.Socket} class. That is, if a security manager has been
      * installed then this method verifies that its {@link
      * java.lang.SecurityManager#checkConnect checkConnect} method permits
@@ -214,7 +217,8 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * {@code -1} if no bytes could be read because the channel has reached
      * end-of-stream.
      *
-     * <p> This method initiates a read of up to <i>r</i> bytes from this channel,
+     * <p>
+     * This method initiates a read of up to <i>r</i> bytes from this channel,
      * where <i>r</i> is the total number of bytes remaining in the specified
      * subsequence of the given buffer array, that is,
      *
@@ -225,7 +229,8 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      *
      * at the moment that the read is attempted.
      *
-     * <p> Suppose that a byte sequence of length <i>n</i> is read, where
+     * <p>
+     * Suppose that a byte sequence of length <i>n</i> is read, where
      * <tt>0</tt>&nbsp;<tt>&lt;</tt>&nbsp;<i>n</i>&nbsp;<tt>&lt;=</tt>&nbsp;<i>r</i>.
      * Up to the first <tt>dsts[offset].remaining()</tt> bytes of this sequence
      * are transferred into buffer <tt>dsts[offset]</tt>, up to the next
@@ -240,7 +245,8 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * I/O operation is performed with the maximum number of buffers allowed by
      * the operating system.
      *
-     * <p> If a timeout is specified and the timeout elapses before the operation
+     * <p>
+     * If a timeout is specified and the timeout elapses before the operation
      * completes then the method throws exception {@link
      * InterruptedByTimeoutException}. Where a timeout occurs, and the
      * implementation cannot guarantee that bytes have not been read, or will not
@@ -277,20 +283,23 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     /**
      * Reads a sequence of bytes from this channel into the given buffer.
      *
-     * <p> This method reads a sequence of bytes from this channel into the given buffer.
+     * <p>
+     * This method reads a sequence of bytes from this channel into the given buffer.
      *
      * The returned result is the number of bytes read or
      * {@code -1} if no bytes could be read because the channel has reached
      * end-of-stream.
      *
-     * <p> If a timeout is specified and the timeout elapses before the method throws {@link
+     * <p>
+     * If a timeout is specified and the timeout elapses before the method throws {@link
      * InterruptedByTimeoutException}. Where a timeout occurs, and the
      * implementation cannot guarantee that bytes have not been read, or will not
      * be read from the channel into the given buffer, then further attempts to
      * read from the channel will cause an unspecific runtime exception to be
      * thrown.
      *
-     * <p> Otherwise this method works in the same manner as the {@link #read(ByteBuffer)}.
+     * <p>
+     * Otherwise this method works in the same manner as the {@link #read(ByteBuffer)}.
      * method.
      *
      * @param dst     The buffer into which bytes are to be transferred
@@ -319,10 +328,11 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * often useful when implementing network protocols that group data into
      * segments consisting of one or more fixed-length headers followed by a
      * variable-length body.
-     * 
+     *
      * The returned result is the number of bytes written.
-     * 
-     * <p> This method writes of up to <i>r</i> bytes to this channel,
+     *
+     * <p>
+     * This method writes of up to <i>r</i> bytes to this channel,
      * where <i>r</i> is the total number of bytes remaining in the specified
      * subsequence of the given buffer array, that is,
      *
@@ -333,7 +343,8 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      *
      * at the moment that the write is attempted.
      *
-     * <p> Suppose that a byte sequence of length <i>n</i> is written, where
+     * <p>
+     * Suppose that a byte sequence of length <i>n</i> is written, where
      * <tt>0</tt>&nbsp;<tt>&lt;</tt>&nbsp;<i>n</i>&nbsp;<tt>&lt;=</tt>&nbsp;<i>r</i>.
      * Up to the first <tt>srcs[offset].remaining()</tt> bytes of this sequence
      * are written from buffer <tt>srcs[offset]</tt>, up to the next
@@ -347,7 +358,8 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * remaining), exceeds this limit, then the I/O operation is performed with
      * the maximum number of buffers allowed by the operating system.
      *
-     * <p> If a timeout is specified and the timeout elapses before the operation
+     * <p>
+     * If a timeout is specified and the timeout elapses before the operation
      * completes then the method throws the exception {@link
      * InterruptedByTimeoutException}. Where a timeout occurs, and the
      * implementation cannot guarantee that bytes have not been written, or will
@@ -380,12 +392,14 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     /**
      * Writes a sequence of bytes to this channel from the given buffer.
      *
-     * <p> This writes a
+     * <p>
+     * This writes a
      * sequence of bytes to this channel from the given buffer.
-     * 
+     *
      * The returned result is the number of bytes written.
      *
-     * <p> If a timeout is specified and the timeout elapses before the operation
+     * <p>
+     * If a timeout is specified and the timeout elapses before the operation
      * completes then the method throws the exception {@link
      * InterruptedByTimeoutException}. Where a timeout occurs, and the
      * implementation cannot guarantee that bytes have not been written, or will
@@ -393,7 +407,8 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * to write to the channel will cause an unspecific runtime exception to be
      * thrown.
      *
-     * <p> Otherwise this method works in the same manner as the {@link #write(ByteBuffer)} method.
+     * <p>
+     * Otherwise this method works in the same manner as the {@link #write(ByteBuffer)} method.
      *
      * @param src     The buffer from which bytes are to be retrieved
      * @param timeout The maximum time for the I/O operation to complete
@@ -496,7 +511,8 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     /**
      * Shutdown the connection for reading without closing the channel.
      *
-     * <p> Once shutdown for reading then further reads on the channel will
+     * <p>
+     * Once shutdown for reading then further reads on the channel will
      * return {@code -1}, the end-of-stream indication. If the input side of the
      * connection is already shutdown then invoking this method has no effect.
      * The effect on an outstanding read operation is system dependent and
@@ -517,7 +533,8 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     /**
      * Shutdown the connection for writing without closing the channel.
      *
-     * <p> Once shutdown for writing then further attempts to write to the
+     * <p>
+     * Once shutdown for writing then further attempts to write to the
      * channel will throw {@link ClosedChannelException}. If the output side of
      * the connection is already shutdown then invoking this method has no
      * effect. The effect on an outstanding write operation is system dependent
@@ -536,7 +553,8 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     /**
      * Returns the remote address to which this channel's socket is connected.
      *
-     * <p> Where the channel is bound and connected to an Internet Protocol
+     * <p>
+     * Where the channel is bound and connected to an Internet Protocol
      * socket address then the return value from this method is of type {@link
      * java.net.InetSocketAddress}.
      *
@@ -595,8 +613,8 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
     public Set<SocketOption<?>> supportedOptions() {
         return ac.supportedOptions();
     }
-    
+
     private int remotePort() throws IOException {
-        return ((java.net.InetSocketAddress)ac.getRemoteAddress()).getPort();
+        return ((java.net.InetSocketAddress) ac.getRemoteAddress()).getPort();
     }
 }

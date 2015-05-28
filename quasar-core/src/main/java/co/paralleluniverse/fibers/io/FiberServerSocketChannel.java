@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -51,40 +51,40 @@ public class FiberServerSocketChannel implements NetworkChannel {
     /**
      * Opens an server-socket channel.
      *
-     * <p> The new channel is created by invoking the {@link
-     * java.nio.channels.spi.AsynchronousChannelProvider#openAsynchronousServerSocketChannel
-     * openAsynchronousServerSocketChannel} method on the {@link
-     * java.nio.channels.spi.AsynchronousChannelProvider} object that created
-     * the given group. If the group parameter is <tt>null</tt> then the
+     * <p>
+     * If the group parameter is <tt>null</tt> then the
      * resulting channel is created by the system-wide default provider, and
      * bound to the <em>default group</em>.
      *
      * @param group The group to which the newly constructed channel should be bound, or <tt>null</tt> for the default group
      *
-     * @return A new asynchronous server socket channel
+     * @return A new server socket channel
      *
      * @throws ShutdownChannelGroupException If the channel group is shutdown
      * @throws IOException                   If an I/O error occurs
      */
-    public static FiberServerSocketChannel open(AsynchronousChannelGroup group) throws IOException, SuspendExecution {
-        return new FiberServerSocketChannel(AsynchronousServerSocketChannel.open(group != null ? group : FiberAsyncIO.defaultGroup()));
+    public static FiberServerSocketChannel open(ChannelGroup group) throws IOException, SuspendExecution {
+        return new FiberServerSocketChannel(AsynchronousServerSocketChannel.open(group != null ? group.getGroup() : FiberAsyncIO.defaultGroup()));
     }
 
     /**
      * Accepts a connection.
      *
-     * <p> This method accepts a
+     * <p>
+     * This method accepts a
      * connection made to this channel's socket. The returned result is
      * the {@link FiberSocketChannel} to the new connection.
      *
-     * <p> When a new connection is accepted then the resulting {@code
+     * <p>
+     * When a new connection is accepted then the resulting {@code
      * FiberSocketChannel} will be bound to the same {@link
      * AsynchronousChannelGroup} as this channel. If the group is {@link
      * AsynchronousChannelGroup#isShutdown shutdown} and a connection is accepted,
      * then the connection is closed, and the method throws an {@code
      * IOException} with cause {@link ShutdownChannelGroupException}.
      *
-     * <p> If a security manager has been installed then it verifies that the
+     * <p>
+     * If a security manager has been installed then it verifies that the
      * address and port number of the connection's remote endpoint are permitted
      * by the security manager's {@link SecurityManager#checkAccept checkAccept}
      * method. The permission check is performed with privileges that are restricted
@@ -93,7 +93,7 @@ public class FiberServerSocketChannel implements NetworkChannel {
      * SecurityException}.
      *
      * @return the {@link FiberSocketChannel} to the new connection.
-     * 
+     *
      * @throws AcceptPendingException        If an accept operation is already in progress on this channel
      * @throws NotYetBoundException          If this channel's socket has not yet been bound
      * @throws ShutdownChannelGroupException If the channel group has terminated
@@ -121,7 +121,8 @@ public class FiberServerSocketChannel implements NetworkChannel {
      * Binds the channel's socket to a local address and configures the socket to
      * listen for connections.
      *
-     * <p> An invocation of this method is equivalent to the following:
+     * <p>
+     * An invocation of this method is equivalent to the following:
      * <blockquote><pre>
      * bind(local, 0);
      * </pre></blockquote>
@@ -147,11 +148,13 @@ public class FiberServerSocketChannel implements NetworkChannel {
      * Binds the channel's socket to a local address and configures the socket to
      * listen for connections.
      *
-     * <p> This method is used to establish an association between the socket and
+     * <p>
+     * This method is used to establish an association between the socket and
      * a local address. Once an association is established then the socket remains
      * bound until the associated channel is closed.
      *
-     * <p> The {@code backlog} parameter is the maximum number of pending
+     * <p>
+     * The {@code backlog} parameter is the maximum number of pending
      * connections on the socket. Its exact semantics are implementation specific.
      * In particular, an implementation may impose a maximum length or may choose
      * to ignore the parameter altogther. If the {@code backlog} parameter has
