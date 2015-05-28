@@ -79,7 +79,7 @@ public class SuspendablesScanner extends Task {
     private boolean append = false;
     private String supersFile;
     private String suspendablesFile;
-    
+
     public SuspendablesScanner() {
         this.ant = getClass().getClassLoader() instanceof AntClassLoader;
         this.projectDir = null;
@@ -123,7 +123,7 @@ public class SuspendablesScanner extends Task {
         this.cl = new URLClassLoader(this.urls);
         this.ssc = new SimpleSuspendableClassifier(cl);
     }
-    
+
     private static <T> List<T> unique(List<T> list) {
         return new ArrayList<>(new LinkedHashSet<>(list));
     }
@@ -205,7 +205,7 @@ public class SuspendablesScanner extends Task {
             else
                 visitProjectDir(fileVisitor);
             scanSuspendablesFile(fileVisitor);
-            
+
             final long tBuildGraph = System.nanoTime();
             log("Built method graph in " + (tBuildGraph - tScanExternal) / 1000000 + " ms", Project.MSG_INFO);
 
@@ -227,7 +227,7 @@ public class SuspendablesScanner extends Task {
                     try (InputStream is = cl.getResourceAsStream(resource)) { // cl.getResourceAsStream(resource)
                         new ClassReader(is) // cl.getResourceAsStream(resource)
                                 .accept(new SuspendableClassifier(false, ASMAPI, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
-                    } catch(Exception e) {
+                    } catch (Exception e) {
                         System.err.println("Exception thrown during processing of " + resource + " at " + url);
                         throw e;
                     }
@@ -276,7 +276,7 @@ public class SuspendablesScanner extends Task {
     }
 
     /**
-     * Visits classes whose methods are found in the suspendables file, as if they were part of the project 
+     * Visits classes whose methods are found in the suspendables file, as if they were part of the project
      */
     private void scanSuspendablesFile(Function<InputStream, Void> classFileVisitor) {
         // scan classes in suspendables file
@@ -372,7 +372,7 @@ public class SuspendablesScanner extends Task {
             final MethodNode method = getOrCreateMethodNode(className + '.' + methodname + desc);
             method.owner = className;
             method.inProject |= inProject;
-            method.suspendType = max(method.suspendType, sus);
+            method.setSuspendType(max(method.suspendType, sus));
             method.known = true;
 
             if (auto || inProject)
@@ -458,7 +458,7 @@ public class SuspendablesScanner extends Task {
         @Override
         public MethodVisitor visitMethod(int access, final String methodname, final String desc, String signature, String[] exceptions) {
             final MethodVisitor mv = super.visitMethod(access, methodname, desc, signature, exceptions);
-            
+
             final MethodNode caller = getOrCreateMethodNode(className + '.' + methodname + desc);
             caller.inProject |= inProject;
             return new MethodVisitor(api, mv) {
@@ -521,7 +521,7 @@ public class SuspendablesScanner extends Task {
         if (cls == null)
             return false;
 
-        if (method.suspendType == SuspendableType.NON_SUSPENDABLE)
+        if (method.suspendType == SuspendableType.NON_SUSPENDABLE || method.setBySuper)
             return false;
 
         boolean foundMethod = false;
@@ -550,7 +550,7 @@ public class SuspendablesScanner extends Task {
         if (res) {
             MethodNode m = getOrCreateMethodNode(cls.name + '.' + method.name);
             if (m.suspendType != SuspendableType.SUSPENDABLE && m.suspendType != SuspendableType.SUSPENDABLE_SUPER) {
-                m.suspendType = SuspendableType.SUSPENDABLE_SUPER;
+                m.setSuspendType(SuspendableType.SUSPENDABLE_SUPER);
                 q.add(m);
             }
         }
@@ -572,7 +572,8 @@ public class SuspendablesScanner extends Task {
                     sm.inProject = true;
                     sm.refersToSuper = true;
                     if (sm.inProject && sm.suspendType == null) {
-                        sm.suspendType = method.suspendType;
+                        sm.setSuspendType(method.suspendType);
+                        sm.setBySuper = true;
                         q.add(sm);
                         followNonOverriddenSubs(q, s, sm);
                     }
@@ -587,7 +588,7 @@ public class SuspendablesScanner extends Task {
             if (caller.suspendType == null) { // not yet visited
                 q.add(caller);
                 log("Marking " + caller + " suspendable because it calls " + method, Project.MSG_VERBOSE);
-                caller.suspendType = SuspendableType.SUSPENDABLE;
+                caller.setSuspendType(SuspendableType.SUSPENDABLE);
             }
         }
     }
@@ -599,6 +600,7 @@ public class SuspendablesScanner extends Task {
                     suspendables.add(output(method));
                 else if (method.suspendType == SuspendableType.SUSPENDABLE_SUPER && !method.refersToSuper && suspendableSupers != null)
                     suspendableSupers.add(output(method));
+                // we don't output refersToSuper methods because the instrumentor's MethodDatabase.isMethodSuspendable0 does that traversal again.
             }
         }
     }
@@ -670,7 +672,6 @@ public class SuspendablesScanner extends Task {
         private int numSubs;
         private String[] methods;
 
-
         public ClassNode(String name) {
             this.name = name;
         }
@@ -728,9 +729,10 @@ public class SuspendablesScanner extends Task {
         boolean inProject;
         boolean known;
         SuspendableType suspendType;
+        boolean refersToSuper;
+        boolean setBySuper;
         private MethodNode[] callers;
         private int numCallers;
-        private boolean refersToSuper;
 
         public MethodNode(String owner, String nameAndDesc) {
             this.owner = owner.intern();
@@ -766,6 +768,16 @@ public class SuspendablesScanner extends Task {
         @Override
         public String toString() {
             return "MethodNode{" + owner + '.' + name + " inProject: " + inProject + " suspendType: " + suspendType + '}';
+        }
+
+        public void setSuspendType(SuspendableType suspendType) {
+//            if (("jsr166e/ForkJoinTask".equals(owner) || "co/paralleluniverse/fibers/FiberForkJoinScheduler$FiberForkJoinTask".equals(owner))
+//                    && "get()Ljava/lang/Object;".equals(name)) {
+//                System.err.println("XXXX:" + owner + "." + name + " " + suspendType);
+//                Thread.dumpStack();
+//            }
+            this.suspendType = suspendType;
+            this.setBySuper = false;
         }
     }
 
