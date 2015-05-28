@@ -42,7 +42,7 @@ public class ChannelGroup {
     /**
      * Shutdown the channel group.
      */
-    public void shutDown() {
+    public void shutdown() {
         group.shutdown();
     }
 
