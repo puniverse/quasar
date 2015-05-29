@@ -3,7 +3,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:0.12.200'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVer"
     }
 }
 
@@ -13,6 +13,6 @@ dependencies {
     compile project(':quasar-core')
     compile project(':quasar-actors')
 
-    compile "org.jetbrains.kotlin:kotlin-stdlib:0.12.200"
-    compile "org.jetbrains.kotlin:kotlin-reflect:0.12.200"
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVer"
+    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVer"
 }

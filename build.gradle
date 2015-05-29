@@ -34,7 +34,8 @@ subprojects {
     ext.baselib         = "${rootProject.projectDir}/baselib"
     ext.quasarJar       = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}.jar" // project(':quasar-core').jar.archivePath
 
-    ext.asmVer = '5.0.4'
+    ext.asmVer    = '5.0.4'
+    ext.kotlinVer = '0.12.200'
 
     if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
         println "sonatype username or password not set"
