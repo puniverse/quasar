@@ -73,4 +73,8 @@ public abstract class ChannelGroup {
      * Shutdown the channel group.
      */
     public abstract void shutdown();
+
+    abstract FiberSocketChannel newFiberSocketChannel() throws IOException;
+
+    abstract FiberServerSocketChannel newFiberServerSocketChannel() throws IOException;
 }

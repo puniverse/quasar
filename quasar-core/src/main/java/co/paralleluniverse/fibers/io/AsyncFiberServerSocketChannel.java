@@ -35,6 +35,7 @@ final class AsyncFiberServerSocketChannel extends FiberServerSocketChannel imple
         this.ac = assc;
     }
 
+    @Override
     public FiberSocketChannel accept() throws IOException, SuspendExecution {
         return new AsyncFiberSocketChannel(new FiberAsyncIO<AsynchronousSocketChannel>() {
             @Override

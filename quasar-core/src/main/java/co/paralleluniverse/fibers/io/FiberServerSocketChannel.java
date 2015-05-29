@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.net.SocketOption;
 import java.nio.channels.AsynchronousChannelGroup;
-import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.NetworkChannel;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.ShutdownChannelGroupException;
@@ -48,9 +47,7 @@ public abstract class FiberServerSocketChannel implements NetworkChannel {
     public static FiberServerSocketChannel open(ChannelGroup group) throws IOException, SuspendExecution {
         if (group == null)
             group = ChannelGroup.defaultGroup();
-        if (group instanceof AsyncChannelGroup)
-            return new AsyncFiberServerSocketChannel(AsynchronousServerSocketChannel.open(((AsyncChannelGroup) group).getGroup()));
-        throw new UnsupportedOperationException("Unsupported group of type " + group.getClass().getName());
+        return group.newFiberServerSocketChannel();
     }
 
     /**

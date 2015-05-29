@@ -18,6 +18,8 @@ import co.paralleluniverse.fibers.SchedulerLocal;
 import co.paralleluniverse.fibers.SuspendExecution;
 import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
+import java.nio.channels.AsynchronousServerSocketChannel;
+import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -40,8 +42,14 @@ final class AsyncChannelGroup extends ChannelGroup {
         this.group = group;
     }
 
-    AsynchronousChannelGroup getGroup() {
-        return group;
+    @Override
+    FiberSocketChannel newFiberSocketChannel() throws IOException {
+        return new AsyncFiberSocketChannel(AsynchronousSocketChannel.open(group));
+    }
+
+    @Override
+    FiberServerSocketChannel newFiberServerSocketChannel() throws IOException {
+        return new AsyncFiberServerSocketChannel(AsynchronousServerSocketChannel.open(group));
     }
 
     @Override

@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.net.SocketOption;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.GatheringByteChannel;
@@ -51,9 +50,7 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
     public static FiberSocketChannel open(ChannelGroup group) throws IOException, SuspendExecution {
         if (group == null)
             group = ChannelGroup.defaultGroup();
-        if (group instanceof AsyncChannelGroup)
-            return new AsyncFiberSocketChannel(AsynchronousSocketChannel.open(((AsyncChannelGroup) group).getGroup()));
-        throw new UnsupportedOperationException("Unsupported group of type " + group.getClass().getName());
+        return group.newFiberSocketChannel();
     }
 
     /**
