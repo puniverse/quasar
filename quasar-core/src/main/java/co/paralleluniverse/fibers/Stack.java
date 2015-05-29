@@ -159,17 +159,18 @@ public final class Stack implements Serializable {
         }
         pushed = false;
 
-        final int idx = sp - FRAME_RECORD_SIZE;
-
         final int oldSP = sp;
-        final int newSP = oldSP - getPrevNumSlots(dataLong[idx]) - FRAME_RECORD_SIZE;
-
+        final int idx = oldSP - FRAME_RECORD_SIZE;
+        final long record = dataLong[idx];
+        final int slots = getNumSlots(record);
+        final int newSP = idx - getPrevNumSlots(record);
+        
         // clear frame record (probably unnecessary)
         dataLong[idx] = 0L;
 //        for (int i = 0; i < FRAME_RECORD_SIZE; i++)
 //            dataLong[idx + i] = 0L;
         // help GC
-        for (int i = newSP; i < oldSP; i++)
+        for (int i = oldSP; i < oldSP + slots; i++)
             dataObject[i] = null;
 
         sp = newSP;
