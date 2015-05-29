@@ -89,6 +89,7 @@
 </ul></li>
 <li>
 <a href="#news" class="cat-link">News</a><ul>
+<li><a href="#may-29-2015">May 29, 2015</a></li>
 <li><a href="#december-23-2014">December 23, 2014</a></li>
 <li><a href="#september-23-2014">September 23, 2014</a></li>
 <li><a href="#july-23-2014">July 23, 2014</a></li>
@@ -130,6 +131,7 @@
 <li><a href="#behaviors">Behaviors</a></li>
 <li><a href="#supervisors">Supervisors</a></li>
 <li><a href="#hot-code-swapping">Hot Code Swapping</a></li>
+<li><a href="#preview-quasar-kotlin-actors">Preview: Quasar-Kotlin Actors</a></li>
 </ul>
 </li>
 <li><a href="#records" class="cat-link">Records</a></li>
@@ -152,7 +154,7 @@
 					<div class="doc-text">
 						<h1 id="overview">Overview</h1>
 
-<p>Quasar is a Java library that provides high-performance lightweight threads, Go-like channels, Erlang-like actors, and other asynchronous programming&nbsp;tools.</p>
+<p>Quasar is a library that provides high-performance lightweight threads, Go-like channels, Erlang-like actors, and other asynchronous programming tools for Java and <a href="http://kotlinlang.org"><strong>Kotlin</strong></a>.</p>
 
 <p>A good introduction to Quasar can be found in the blog post <a href="http://blog.paralleluniverse.co/post/49445260575/quasar-pulsar">Erlang (and Go) in Clojure (and Java), Lightweight Threads, Channels and Actors for the <span class="caps">JVM</span></a>.</p>
 
@@ -175,6 +177,10 @@
 <p>A core component of Quasar, bytecode instrumentation, is a fork of the wonderful <a href="http://www.matthiasmann.de/content/view/24/26/">Continuations Library</a> by Matthias&nbsp;Mann.</p>
 
 <h2 id="news">News</h2>
+
+<h3 id="may-29-2015">May 29,&nbsp;2015</h3>
+
+<p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.7.0"><span class="caps">0.7.0</span></a> has been&nbsp;released.</p>
 
 <h3 id="december-23-2014">December 23,&nbsp;2014</h3>
 
@@ -223,7 +229,7 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-core<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.6.2<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.0<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <p>or, for&nbsp;<span class="caps">JDK8</span>:</p>
@@ -231,7 +237,7 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-core<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.6.2<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.0<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5">    <span class="nt">&lt;classifier&gt;</span>jdk8<span class="nt">&lt;/classifier&gt;</span>
 </span><span id="line-6"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
@@ -240,7 +246,7 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-actors<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.6.2<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.0<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <p>For clustering support,&nbsp;add:</p>
@@ -248,7 +254,15 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-galaxy<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.6.2<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
+</span></code></pre></div>
+<p>For Kotlin support,&nbsp;add:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
+</span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
+</span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-kotlin<span class="nt">&lt;/artifactId&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.0<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <h3 id="instrumentation">Instrumenting Your&nbsp;Code</h3>
@@ -301,7 +315,7 @@
 
 <div class="highlight"><pre><code><span id="line-1"><span class="n">dependencies</span> <span class="o">{</span>
 </span><span id="line-2">    <span class="c1">// ....</span>
-</span><span id="line-3">    <span class="n">quasar</span>  <span class="s2">&quot;co.paralleluniverse:quasar-core:0.6.2&quot;</span>
+</span><span id="line-3">    <span class="n">quasar</span>  <span class="s2">&quot;co.paralleluniverse:quasar-core:0.7.0&quot;</span>
 </span><span id="line-4"><span class="o">}</span>
 </span></code></pre></div>
 <p>Finally, in your <code>run</code> task (or any task of type <code>JavaExec</code> or <code>Test</code>), add the system&nbsp;property:</p>
@@ -494,7 +508,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 </span></code></pre></div>
 <p>First, if we want to run <code>h</code> in a fiber, then it must be suspendable because it calls <code>f</code> which is suspendable. We could designate <code>h</code> as suspendable either by annotating it with <code>@Suspendable</code> or by declaring <code>throws SuspendExecution</code> (even though <code>f</code> is not declared to throw&nbsp;<code>SuspendExecution</code>).</p>
 
-<p>When <code>h</code> is encountered by the instrumentation module, it will be instrumented because it’s marked suspendable, but in order for the instrumentation to work, it needs to know of <code>h</code>’s calls to other instrumented methods. <code>h</code> calls <code>f</code>, which is suspendable, but through its interface <code>I</code>, while we’ve only annotated <code>f</code>’s <em>implementation</em> in class C. The instrumenter does not know that <code>I.f</code> has an implementation that might&nbsp;suspend.</p>
+<p>When <code>h</code> is encountered by the instrumentation module, it will be instrumented because it’s marked suspendable, but in order for the instrumentation to work, it needs to know of <code>h</code>’s calls to other instrumented methods. <code>h</code> calls <code>f</code>, which is suspendable, but through its interface <code>I</code>, while we’ve only annotated <code>f</code>’s <em>implementation</em> in class C. The instrumenter doeKotls not know that <code>I.f</code> has an implementation that might&nbsp;suspend.</p>
 
 <p>Therefore, if you’d like to use the <code>@Suspendable</code> annotation, there’s a step you need to add to your build step, after compilation and before creating the jar file: running the <code>co.paralleluniverse.fibers.instrument.SuspendablesScanner</code> Ant task. In Gradle it looks like&nbsp;this:</p>
 
@@ -598,11 +612,13 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
   <li><code>map</code> - returns a channel that transforms messages by applying a given mapping function. There are two versions of <code>map</code>: <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#map(co.paralleluniverse.strands.channels.ReceivePort, com.google.common.base.Function)">one that operates</a> on <code>ReceivePort</code> and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#mapSend(co.paralleluniverse.strands.channels.SendPort, com.google.common.base.Function)">one that operates</a> on&nbsp;<code>SendPort</code>.</li>
   <li><code>filter</code> - returns a channel that only lets messages that satisfy a predicate through. There are two versions of <code>filter</code>: <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#filter(co.paralleluniverse.strands.channels.ReceivePort, com.google.common.base.Predicate)">one that operates</a> on <code>ReceivePort</code> and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#filterSend(co.paralleluniverse.strands.channels.SendPort, com.google.common.base.Predicate)">one that operates</a> on&nbsp;<code>SendPort</code>.</li>
   <li><code>flatMap</code> - returns a channel that transforms any message into a new channel whose messages are then concatenated into the returned channel. There are two versions of <code>flatMap</code>: <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#flatMap(co.paralleluniverse.strands.channels.ReceivePort, com.google.common.base.Function)">one that operates</a> on <code>ReceivePort</code> and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#flatMapSend(co.paralleluniverse.strands.channels.co.paralleluniverse.strands.channels.Channel, SendPort, com.google.common.base.Function)">one that operates</a> on&nbsp;<code>SendPort</code>.</li>
+  <li><code>reduce</code> - returns a channel that transforms messages by applying a given reducing function. There are two versions of <code>reduce</code>: <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#reduce(co.paralleluniverse.strands.channels.ReceivePort, co.paralleluniverse.common.util.Function2)">one that operates</a> on <code>ReceivePort</code> and <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#reduceSend(co.paralleluniverse.strands.channels.SendPort, co.paralleluniverse.common.util.Function2)">one that operates</a> on&nbsp;<code>SendPort</code>.</li>
   <li><a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#zip(com.google.common.base.Function, co.paralleluniverse.strands.channels.ReceivePort...)"><code>zip</code></a> - returns a channel that combines each vector of messages from a vector of channels into a single combined&nbsp;message.</li>
-  <li><a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#group(co.paralleluniverse.strands.channels.ReceivePort...)"><code>group</code></a> - returns a channel that funnels messages from a set of given&nbsp;channels.</li>
+  <li><a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#take(co.paralleluniverse.strands.channels.ReceivePort, long)"><code>take</code></a> - returns a channel that allows receiving at most N messages from another channel before being automatically&nbsp;closed.</li>
+  <li><a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#group(co.paralleluniverse.strands.channels.ReceivePort...)"><code>group</code></a> - returns a channel that funnels messages from a set of given channels and supports its atomic dynamic reconfiguration as well as setting mute, pause and solo states for a subset of it (similarly to core.async’s&nbsp;<code>mix</code>).</li>
 </ul>
 
-<p>The <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#fiberTransform-co.paralleluniverse.strands.channels.ReceivePort-co.paralleluniverse.strands.channels.SendPort-co.paralleluniverse.strands.SuspendableAction2-"><code>fiberTransform</code></a> method can perform any imperative channel transformation by running transformation code in a new dedicated fiber. The transformation reads messages from an input channels and writes messages to the output channel. When the transformation terminates,  the output channel is automatically&nbsp;closed.</p>
+<p>The <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#fiberTransform-co.paralleluniverse.strands.channels.ReceivePort-co.paralleluniverse.strands.channels.SendPort-co.paralleluniverse.strands.SuspendableAction2-"><code>fiberTransform</code></a> method can perform any imperative channel transformation by running transformation code in a new dedicated fiber. The transformation reads messages from an input channels and writes messages to the output channel. When the transformation terminates, the output channel is automatically&nbsp;closed.</p>
 
 <p>Here’s an example of <code>fiberTransform</code> using Java 8&nbsp;syntax:</p>
 
@@ -971,6 +987,37 @@ will remain there and be skipped, until it is selected by a subsequent call to <
 
 <p>Event handlers are called synchronously on the same strand as the actor’s, so they may delay processing by other handlers if they block the&nbsp;strand.</p>
 
+<h4 id="finitestatemachineactor">FiniteStateMachineActor</h4>
+
+<p>The finite-state-machine behavior is an actor that switches among a set of states and behaves differently in&nbsp;each.</p>
+
+<p>To create an event source actor, simply construct an instance of the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/FiniteStateMachineActor.html"><code>FiniteStateMachineActor</code></a> class. Each of the actor’s states is represented by a <code>SuspendableCallable</code> implementation returning the next state, or the special <code>FiniteStateMachineActor.TERMINATE</code> state to terminate the actor. You need to override the <code>initialState</code> method so that it returns the actor’s initial state. This class is best enjoyed using Java 8 lambda syntax, as in the following&nbsp;example:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="k">new</span> <span class="nf">FiniteStateMachineActor</span><span class="o">()</span> <span class="o">{</span>
+</span><span id="line-2">    <span class="nd">@Override</span>
+</span><span id="line-3">    <span class="kd">protected</span> <span class="n">SuspendableCallable</span><span class="o">&lt;</span><span class="n">SuspendableCallable</span><span class="o">&gt;</span> <span class="nf">initialState</span><span class="o">()</span> <span class="o">{</span>
+</span><span id="line-4">        <span class="k">return</span> <span class="k">this</span><span class="o">::</span><span class="n">state1</span><span class="o">;</span>
+</span><span id="line-5">    <span class="o">}</span>
+</span><span id="line-6">
+</span><span id="line-7">    <span class="kd">private</span> <span class="n">SuspendableCallable</span><span class="o">&lt;</span><span class="n">SuspendableCallable</span><span class="o">&gt;</span> <span class="nf">state1</span><span class="o">()</span> <span class="kd">throws</span> <span class="n">SuspendExecution</span><span class="o">,</span> <span class="n">InterruptedException</span> <span class="o">{</span>
+</span><span id="line-8">        <span class="k">return</span> <span class="nf">receive</span><span class="o">((</span><span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="o">{</span>
+</span><span id="line-9">            <span class="k">if</span> <span class="o">(</span><span class="s">&quot;a&quot;</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">m</span><span class="o">))</span>
+</span><span id="line-10">                <span class="k">return</span> <span class="k">this</span><span class="o">::</span><span class="n">state2</span><span class="o">;</span>
+</span><span id="line-11">            <span class="k">return</span> <span class="kc">null</span><span class="o">;</span> <span class="c1">// don&#39;t handle message</span>
+</span><span id="line-12">        <span class="o">});</span>
+</span><span id="line-13">    <span class="o">}</span>
+</span><span id="line-14">
+</span><span id="line-15">    <span class="kd">private</span> <span class="n">SuspendableCallable</span><span class="o">&lt;</span><span class="n">SuspendableCallable</span><span class="o">&gt;</span> <span class="nf">state2</span><span class="o">()</span> <span class="kd">throws</span> <span class="n">SuspendExecution</span><span class="o">,</span> <span class="n">InterruptedException</span> <span class="o">{</span>
+</span><span id="line-16">        <span class="k">return</span> <span class="nf">receive</span><span class="o">((</span><span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="o">{</span>
+</span><span id="line-17">            <span class="k">if</span> <span class="o">(</span><span class="s">&quot;b&quot;</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">m</span><span class="o">))</span> <span class="o">{</span>
+</span><span id="line-18">                <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;Done!&quot;</span><span class="o">);</span>
+</span><span id="line-19">                <span class="k">return</span> <span class="n">TERMINATE</span><span class="o">;</span>
+</span><span id="line-20">            <span class="o">}</span>
+</span><span id="line-21">            <span class="k">return</span> <span class="kc">null</span><span class="o">;</span> <span class="c1">// don&#39;t handle message</span>
+</span><span id="line-22">        <span class="o">});</span>
+</span><span id="line-23">    <span class="o">}</span>
+</span><span id="line-24"><span class="o">}.</span><span class="na">spawn</span><span class="o">();</span>
+</span></code></pre></div>
 <h3 id="supervisors">Supervisors</h3>
 
 <p>The last behavior actor, the <em>supervisor</em> deserves a chapter of its own, as it’s at the core of the actor model’s error handling&nbsp;philosophy.</p>
@@ -1031,6 +1078,39 @@ will remain there and be skipped, until it is selected by a subsequent call to <
 <h4 id="example">Example</h4>
 
 <p>A complete hot code swapping example can be found in <a href="https://github.com/puniverse/quasar-codeswap-example">this GitHub repository</a>.</p>
+
+<h3 id="preview-quasar-kotlin-actors">Preview: Quasar-Kotlin&nbsp;Actors</h3>
+
+<p class="alert alert-info"><strong>Note</strong>: The Kotlin-specific Quasar <span class="caps">API</span> is likely to undergo major changes and can’t be relied upon at this stage: it is introduced here as a preview of Kotlin-Quasar’s joint expressive&nbsp;power.</p>
+
+<p>Kotlin’s inline higher-order functions and the <code>when</code> construct enable a powerful and natural selective receive&nbsp;syntax:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="n">receive</span><span class="p">(</span><span class="m">1000</span><span class="p">,</span> <span class="n">TimeUnit</span><span class="p">.</span><span class="n">MILLISECONDS</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// Fiber-blocking</span>
+</span><span id="line-2">    <span class="k">when</span> <span class="p">(</span><span class="n">it</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="line-3">        <span class="k">is</span> <span class="n">Msg</span> <span class="p">-&gt;</span> <span class="p">{</span>
+</span><span id="line-4">            <span class="k">if</span> <span class="p">(</span><span class="n">it</span><span class="p">.</span><span class="n">txt</span> <span class="p">==</span> <span class="s">&quot;ping&quot;</span><span class="p">)</span>
+</span><span id="line-5">                <span class="n">it</span><span class="p">.</span><span class="n">from</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="s">&quot;pong&quot;</span><span class="p">)</span>    <span class="c1">// Fiber-blocking</span>
+</span><span id="line-6">        <span class="p">}</span>
+</span><span id="line-7">        <span class="s">&quot;finished&quot;</span> <span class="p">-&gt;</span> <span class="p">{</span>
+</span><span id="line-8">            <span class="n">println</span><span class="p">(</span><span class="s">&quot;Pong received &#39;finished&#39;, exiting&quot;</span><span class="p">)</span>
+</span><span id="line-9">            <span class="k">return</span>                      <span class="c1">// Non-local return, exit actor</span>
+</span><span id="line-10">        <span class="p">}</span>
+</span><span id="line-11">        <span class="k">is</span> <span class="n">Timeout</span> <span class="p">-&gt;</span> <span class="p">{</span>
+</span><span id="line-12">            <span class="n">println</span><span class="p">(</span><span class="s">&quot;Pong timeout in &#39;receive&#39;, exiting&quot;</span><span class="p">)</span>
+</span><span id="line-13">            <span class="k">return</span>                      <span class="c1">// Non-local return, exit actor</span>
+</span><span id="line-14">        <span class="p">}</span>
+</span><span id="line-15">        <span class="k">else</span> <span class="p">-&gt;</span> <span class="n">defer</span><span class="p">()</span>
+</span><span id="line-16">    <span class="p">}</span>
+</span><span id="line-17"><span class="p">}</span>
+</span></code></pre></div>
+<p>This example highlights a few interesting&nbsp;capabilities:</p>
+
+<ul>
+  <li>Straightforward message picking as well as acting upon (even with further communication, if&nbsp;needed).</li>
+  <li>Deferring a message when it’s not yet possible (or handy) to extract it from the mailbox for&nbsp;use.</li>
+  <li>Non-local returns, for example to terminate the actor’s processing&nbsp;loop.</li>
+  <li>Handling of timeouts in the message-processing&nbsp;closure.</li>
+</ul>
 
 <h2 id="records">Records</h2>
 
