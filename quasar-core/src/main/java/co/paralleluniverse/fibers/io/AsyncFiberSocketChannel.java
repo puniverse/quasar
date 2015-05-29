@@ -43,6 +43,11 @@ final class AsyncFiberSocketChannel extends FiberSocketChannel implements ByteCh
     }
 
     @Override
+    public final AsynchronousChannelProvider provider() {
+        return ac.provider();
+    }
+
+    @Override
     public void connect(final SocketAddress remote) throws IOException, SuspendExecution {
         new FiberAsyncIO<Void>() {
             @Override
@@ -179,11 +184,6 @@ final class AsyncFiberSocketChannel extends FiberSocketChannel implements ByteCh
     @Override
     public SocketAddress getRemoteAddress() throws IOException {
         return ac.getRemoteAddress();
-    }
-
-    @Override
-    public final AsynchronousChannelProvider provider() {
-        return ac.provider();
     }
 
     @Override

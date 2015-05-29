@@ -172,4 +172,10 @@ public abstract class FiberServerSocketChannel implements NetworkChannel {
 
     @Override
     public abstract Set<SocketOption<?>> supportedOptions();
+
+    /**
+     * Returns the IO provider that created this channel.
+     * The type of the returned value is implementation dependent, and may be {@code null}.
+     */
+    public abstract Object provider();
 }

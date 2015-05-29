@@ -21,6 +21,7 @@ import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.NetworkChannel;
 import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.spi.AsynchronousChannelProvider;
 import java.util.Set;
 
 /**
@@ -33,6 +34,11 @@ final class AsyncFiberServerSocketChannel extends FiberServerSocketChannel imple
 
     AsyncFiberServerSocketChannel(AsynchronousServerSocketChannel assc) {
         this.ac = assc;
+    }
+
+    @Override
+    public final AsynchronousChannelProvider provider() {
+        return ac.provider();
     }
 
     @Override

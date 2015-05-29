@@ -480,11 +480,6 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
     public abstract SocketAddress getRemoteAddress() throws IOException;
 
     /**
-     * Returns the provider that created this channel.
-     */
-    public abstract Object provider();
-
-    /**
      * @throws ConnectionPendingException
      *                                         If a connection operation is already in progress on this channel
      * @throws AlreadyBoundException           {@inheritDoc}
@@ -511,4 +506,10 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
 
     @Override
     public abstract Set<SocketOption<?>> supportedOptions();
+
+    /**
+     * Returns the IO provider that created this channel.
+     * The type of the returned value is implementation dependent, and may be {@code null}.
+     */
+    public abstract Object provider();
 }
