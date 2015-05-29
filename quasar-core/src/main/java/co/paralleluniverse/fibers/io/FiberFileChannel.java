@@ -39,7 +39,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Uses an {@link AsynchronousFileChannel} to implement a fiber-blocking version of {@link FileChannel}.
+ * A fiber-blocking version of {@link FileChannel}.
  *
  * @author pron
  */

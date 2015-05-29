@@ -27,34 +27,16 @@ import java.nio.channels.InterruptedByTimeoutException;
 import java.nio.channels.NetworkChannel;
 import java.nio.channels.ScatteringByteChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.spi.AsynchronousChannelProvider;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * Uses an {@link AsynchronousSocketChannel} to implement a fiber-blocking version of {@link SocketChannel}.
+ * A fiber-blocking version of {@link SocketChannel}.
  *
  * @author pron
  */
-public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, GatheringByteChannel, NetworkChannel {
-    private final AsynchronousSocketChannel ac;
-
-    FiberSocketChannel(AsynchronousSocketChannel asc) {
-        this.ac = asc;
-    }
-
-    /**
-     * Opens a socket channel.
-     * Same as {@link #open(java.nio.channels.AsynchronousChannelGroup) open((AsynchronousChannelGroup) null)}.
-     *
-     * @return A new socket channel
-     * @throws IOException If an I/O error occurs
-     */
-    public static FiberSocketChannel open() throws IOException, SuspendExecution {
-        return new FiberSocketChannel(AsynchronousSocketChannel.open(FiberAsyncIO.defaultGroup()));
-    }
-
+public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, GatheringByteChannel, NetworkChannel {
     /**
      * Opens a socket channel.
      *
@@ -67,7 +49,22 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * @throws IOException                   If an I/O error occurs
      */
     public static FiberSocketChannel open(ChannelGroup group) throws IOException, SuspendExecution {
-        return new FiberSocketChannel(AsynchronousSocketChannel.open(group != null ? group.getGroup() : FiberAsyncIO.defaultGroup()));
+        if (group == null)
+            group = ChannelGroup.defaultGroup();
+        if (group instanceof AsyncChannelGroup)
+            return new AsyncFiberSocketChannel(AsynchronousSocketChannel.open(((AsyncChannelGroup) group).getGroup()));
+        throw new UnsupportedOperationException("Unsupported group of type " + group.getClass().getName());
+    }
+
+    /**
+     * Opens a socket channel.
+     * Same as {@link #open(java.nio.channels.AsynchronousChannelGroup) open((AsynchronousChannelGroup) null)}.
+     *
+     * @return A new socket channel
+     * @throws IOException If an I/O error occurs
+     */
+    public static FiberSocketChannel open() throws IOException, SuspendExecution {
+        return open((ChannelGroup) null);
     }
 
     /**
@@ -158,14 +155,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      *
      * @see #getRemoteAddress
      */
-    public void connect(final SocketAddress remote) throws IOException, SuspendExecution {
-        new FiberAsyncIO<Void>() {
-            @Override
-            protected void requestAsync() {
-                ac.connect(remote, null, makeCallback());
-            }
-        }.run();
-    }
+    public abstract void connect(final SocketAddress remote) throws IOException, SuspendExecution;
 
     /**
      * Connects this channel.
@@ -197,14 +187,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      *
      * @see #getRemoteAddress
      */
-    public void connect(final SocketAddress remote, final long timeout, final TimeUnit timeUnit) throws IOException, SuspendExecution, TimeoutException {
-        new FiberAsyncIO<Void>() {
-            @Override
-            protected void requestAsync() {
-                ac.connect(remote, null, makeCallback());
-            }
-        }.run(timeout, timeUnit);
-    }
+    public abstract void connect(final SocketAddress remote, final long timeout, final TimeUnit timeUnit) throws IOException, SuspendExecution, TimeoutException;
 
     /**
      * Reads a sequence of bytes from this channel into a subsequence of the
@@ -271,14 +254,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * @throws ShutdownChannelGroupException If the channel group has terminated
      * @throws InterruptedByTimeoutException If a timeout is specified and the timeout elapses before the operation completes
      */
-    public long read(final ByteBuffer[] dsts, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
-        return new FiberAsyncIO<Long>() {
-            @Override
-            protected void requestAsync() {
-                ac.read(dsts, offset, length, timeout, unit, null, makeCallback());
-            }
-        }.run();
-    }
+    public abstract long read(final ByteBuffer[] dsts, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution;
 
     /**
      * Reads a sequence of bytes from this channel into the given buffer.
@@ -313,14 +289,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * @throws ShutdownChannelGroupException If the channel group has terminated
      * @throws InterruptedByTimeoutException If a timeout is specified and the timeout elapses before the operation completes
      */
-    public int read(final ByteBuffer dst, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
-        return new FiberAsyncIO<Integer>() {
-            @Override
-            protected void requestAsync() {
-                ac.read(dst, timeout, unit, null, makeCallback());
-            }
-        }.run();
-    }
+    public abstract int read(final ByteBuffer dst, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution;
 
     /**
      * Writes a sequence of bytes to this channel from a subsequence of the given
@@ -380,14 +349,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * @throws ShutdownChannelGroupException If the channel group has terminated
      * @throws InterruptedByTimeoutException If a timeout is specified and the timeout elapses before the operation completes
      */
-    public long write(final ByteBuffer[] srcs, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
-        return new FiberAsyncIO<Long>() {
-            @Override
-            protected void requestAsync() {
-                ac.write(srcs, offset, length, timeout, unit, null, makeCallback());
-            }
-        }.run();
-    }
+    public abstract long write(final ByteBuffer[] srcs, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution;
 
     /**
      * Writes a sequence of bytes to this channel from the given buffer.
@@ -419,94 +381,55 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * @throws ShutdownChannelGroupException If the channel group has terminated
      * @throws InterruptedByTimeoutException If a timeout is specified and the timeout elapses before the operation completes
      */
-    public int write(final ByteBuffer src, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
-        return new FiberAsyncIO<Integer>() {
-            @Override
-            protected void requestAsync() {
-                ac.write(src, timeout, unit, null, makeCallback());
-            }
-        }.run();
-    }
+    public abstract int write(final ByteBuffer src, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution;
 
     /**
      * @throws NotYetConnectedException If this channel is not yet connected
      */
     @Override
     @Suspendable
-    public long read(ByteBuffer[] dsts, int offset, int length) throws IOException {
-        try {
-            return read(dsts, offset, length, 0L, TimeUnit.MILLISECONDS);
-        } catch (SuspendExecution e) {
-            throw new AssertionError();
-        }
-    }
+    public abstract long read(ByteBuffer[] dsts, int offset, int length) throws IOException;
 
     /**
      * @throws NotYetConnectedException If this channel is not yet connected
      */
     @Override
     @Suspendable
-    public long read(ByteBuffer[] dsts) throws IOException {
-        return read(dsts, 0, dsts.length);
-    }
+    public abstract long read(ByteBuffer[] dsts) throws IOException;
 
     /**
      * @throws NotYetConnectedException If this channel is not yet connected
      */
     @Override
     @Suspendable
-    public int read(ByteBuffer dst) throws IOException {
-        try {
-            return read(dst, 0L, TimeUnit.MILLISECONDS);
-        } catch (SuspendExecution e) {
-            throw new AssertionError();
-        }
-    }
+    public abstract int read(ByteBuffer dst) throws IOException;
 
     /**
      * @throws NotYetConnectedException If this channel is not yet connected
      */
     @Override
     @Suspendable
-    public long write(ByteBuffer[] srcs, int offset, int length) throws IOException {
-        try {
-            return write(srcs, offset, length, 0L, TimeUnit.MILLISECONDS);
-        } catch (SuspendExecution e) {
-            throw new AssertionError();
-        }
-    }
+    public abstract long write(ByteBuffer[] srcs, int offset, int length) throws IOException;
 
     /**
      * @throws NotYetConnectedException If this channel is not yet connected
      */
     @Override
     @Suspendable
-    public long write(ByteBuffer[] srcs) throws IOException {
-        return write(srcs, 0, srcs.length);
-    }
+    public abstract long write(ByteBuffer[] srcs) throws IOException;
 
     /**
      * @throws NotYetConnectedException If this channel is not yet connected
      */
     @Override
     @Suspendable
-    public int write(final ByteBuffer src) throws IOException {
-        try {
-            return write(src, 0L, TimeUnit.MILLISECONDS);
-        } catch (SuspendExecution e) {
-            throw new AssertionError();
-        }
-    }
+    public abstract int write(final ByteBuffer src) throws IOException;
 
     @Override
-    public boolean isOpen() {
-        return ac.isOpen();
-    }
+    public abstract boolean isOpen();
 
     @Override
-    public void close() throws IOException {
-        ac.close();
-    }
+    public abstract void close() throws IOException;
 
     /**
      * Shutdown the connection for reading without closing the channel.
@@ -525,10 +448,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * @throws ClosedChannelException   If this channel is closed
      * @throws IOException              If some other I/O error occurs
      */
-    public FiberSocketChannel shutdownInput() throws IOException {
-        ac.shutdownInput();
-        return this;
-    }
+    public abstract FiberSocketChannel shutdownInput() throws IOException;
 
     /**
      * Shutdown the connection for writing without closing the channel.
@@ -545,10 +465,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * @throws ClosedChannelException   If this channel is closed
      * @throws IOException              If some other I/O error occurs
      */
-    public FiberSocketChannel shutdownOutput() throws IOException {
-        ac.shutdownOutput();
-        return this;
-    }
+    public abstract FiberSocketChannel shutdownOutput() throws IOException;
 
     /**
      * Returns the remote address to which this channel's socket is connected.
@@ -563,16 +480,12 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * @throws ClosedChannelException If the channel is closed
      * @throws IOException            If an I/O error occurs
      */
-    public SocketAddress getRemoteAddress() throws IOException {
-        return ac.getRemoteAddress();
-    }
+    public abstract SocketAddress getRemoteAddress() throws IOException;
 
     /**
      * Returns the provider that created this channel.
      */
-    public final AsynchronousChannelProvider provider() {
-        return ac.provider();
-    }
+    public abstract Object provider();
 
     /**
      * @throws ConnectionPendingException
@@ -583,10 +496,7 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * @throws IOException                     {@inheritDoc}
      */
     @Override
-    public FiberSocketChannel bind(SocketAddress local) throws IOException {
-        ac.bind(local);
-        return this;
-    }
+    public abstract FiberSocketChannel bind(SocketAddress local) throws IOException;
 
     /**
      * @throws IllegalArgumentException {@inheritDoc}
@@ -594,27 +504,14 @@ public class FiberSocketChannel implements ByteChannel, ScatteringByteChannel, G
      * @throws IOException              {@inheritDoc}
      */
     @Override
-    public <T> FiberSocketChannel setOption(SocketOption<T> name, T value) throws IOException {
-        ac.setOption(name, value);
-        return this;
-    }
+    public abstract <T> FiberSocketChannel setOption(SocketOption<T> name, T value) throws IOException;
 
     @Override
-    public SocketAddress getLocalAddress() throws IOException {
-        return ac.getLocalAddress();
-    }
+    public abstract SocketAddress getLocalAddress() throws IOException;
 
     @Override
-    public <T> T getOption(SocketOption<T> name) throws IOException {
-        return ac.getOption(name);
-    }
+    public abstract <T> T getOption(SocketOption<T> name) throws IOException;
 
     @Override
-    public Set<SocketOption<?>> supportedOptions() {
-        return ac.supportedOptions();
-    }
-
-    private int remotePort() throws IOException {
-        return ((java.net.InetSocketAddress) ac.getRemoteAddress()).getPort();
-    }
+    public abstract Set<SocketOption<?>> supportedOptions();
 }

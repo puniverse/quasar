@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers.io;
 
+import co.paralleluniverse.fibers.SuspendExecution;
 import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.util.concurrent.ExecutorService;
@@ -21,31 +22,15 @@ import java.util.concurrent.ThreadFactory;
 /**
  * A grouping of channels for the purpose of resource sharing.
  *
- * <p> A channel group encapsulates the mechanics required to
- * handle the completion of I/O operations initiated by channels that are bound to the group. 
- * 
+ * <p>
+ * A channel group encapsulates the mechanics required to
+ * handle the completion of I/O operations initiated by channels that are bound to the group.
+ *
  * A group has an associated thread pool which polls IO events sent by the OS.
- * 
+ *
  * @author pron
  */
-public class ChannelGroup {
-    private final AsynchronousChannelGroup group;
-
-    private ChannelGroup(AsynchronousChannelGroup group) {
-        this.group = group;
-    }
-
-    AsynchronousChannelGroup getGroup() {
-        return group;
-    }
-
-    /**
-     * Shutdown the channel group.
-     */
-    public void shutdown() {
-        group.shutdown();
-    }
-
+public abstract class ChannelGroup {
     /**
      * Creates a channel group with a fixed thread pool.
      *
@@ -66,7 +51,7 @@ public class ChannelGroup {
      * @throws IOException              If an I/O error occurs
      */
     public static ChannelGroup withFixedThreadPool(int nThreads, ThreadFactory threadFactory) throws IOException {
-        return new ChannelGroup(AsynchronousChannelGroup.withFixedThreadPool(nThreads, threadFactory));
+        return new AsyncChannelGroup(AsynchronousChannelGroup.withFixedThreadPool(nThreads, threadFactory));
     }
 
     /**
@@ -77,6 +62,15 @@ public class ChannelGroup {
      * @return A new asynchronous channel group
      */
     public static ChannelGroup withThreadPool(ExecutorService executor) throws IOException {
-        return new ChannelGroup(AsynchronousChannelGroup.withThreadPool(executor));
+        return new AsyncChannelGroup(AsynchronousChannelGroup.withThreadPool(executor));
     }
+
+    static ChannelGroup defaultGroup() throws IOException, SuspendExecution {
+        return AsyncChannelGroup.getDefaultGroup();
+    }
+
+    /**
+     * Shutdown the channel group.
+     */
+    public abstract void shutdown();
 }

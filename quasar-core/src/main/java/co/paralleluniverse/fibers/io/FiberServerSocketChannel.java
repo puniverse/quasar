@@ -19,35 +19,17 @@ import java.net.SocketAddress;
 import java.net.SocketOption;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
-import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.NetworkChannel;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.ShutdownChannelGroupException;
 import java.util.Set;
 
 /**
- * Uses an {@link AsynchronousServerSocketChannel} to implement a fiber-blocking version of {@link ServerSocketChannel}.
+ * A fiber-blocking version of {@link ServerSocketChannel}.
  *
  * @author pron
  */
-public class FiberServerSocketChannel implements NetworkChannel {
-    private final AsynchronousServerSocketChannel ac;
-
-    FiberServerSocketChannel(AsynchronousServerSocketChannel assc) {
-        this.ac = assc;
-    }
-
-    /**
-     * Opens a server-socket channel.
-     * Same as {@link #open(java.nio.channels.AsynchronousChannelGroup) open((AsynchronousChannelGroup) null)}.
-     *
-     * @return A new server socket channel
-     * @throws IOException If an I/O error occurs
-     */
-    public static FiberServerSocketChannel open() throws IOException, SuspendExecution {
-        return new FiberServerSocketChannel(AsynchronousServerSocketChannel.open(FiberAsyncIO.defaultGroup()));
-    }
-
+public abstract class FiberServerSocketChannel implements NetworkChannel {
     /**
      * Opens an server-socket channel.
      *
@@ -64,7 +46,22 @@ public class FiberServerSocketChannel implements NetworkChannel {
      * @throws IOException                   If an I/O error occurs
      */
     public static FiberServerSocketChannel open(ChannelGroup group) throws IOException, SuspendExecution {
-        return new FiberServerSocketChannel(AsynchronousServerSocketChannel.open(group != null ? group.getGroup() : FiberAsyncIO.defaultGroup()));
+        if (group == null)
+            group = ChannelGroup.defaultGroup();
+        if (group instanceof AsyncChannelGroup)
+            return new AsyncFiberServerSocketChannel(AsynchronousServerSocketChannel.open(((AsyncChannelGroup) group).getGroup()));
+        throw new UnsupportedOperationException("Unsupported group of type " + group.getClass().getName());
+    }
+
+    /**
+     * Opens a server-socket channel.
+     * Same as {@link #open(java.nio.channels.AsynchronousChannelGroup) open((AsynchronousChannelGroup) null)}.
+     *
+     * @return A new server socket channel
+     * @throws IOException If an I/O error occurs
+     */
+    public static FiberServerSocketChannel open() throws IOException, SuspendExecution {
+        return open(null);
     }
 
     /**
@@ -98,24 +95,13 @@ public class FiberServerSocketChannel implements NetworkChannel {
      * @throws NotYetBoundException          If this channel's socket has not yet been bound
      * @throws ShutdownChannelGroupException If the channel group has terminated
      */
-    public FiberSocketChannel accept() throws IOException, SuspendExecution {
-        return new FiberSocketChannel(new FiberAsyncIO<AsynchronousSocketChannel>() {
-            @Override
-            protected void requestAsync() {
-                ac.accept(null, makeCallback());
-            }
-        }.run());
-    }
+    public abstract FiberSocketChannel accept() throws IOException, SuspendExecution;
 
     @Override
-    public boolean isOpen() {
-        return ac.isOpen();
-    }
+    public abstract boolean isOpen();
 
     @Override
-    public void close() throws IOException {
-        ac.close();
-    }
+    public abstract void close() throws IOException;
 
     /**
      * Binds the channel's socket to a local address and configures the socket to
@@ -139,10 +125,7 @@ public class FiberServerSocketChannel implements NetworkChannel {
      * @throws IOException                     {@inheritDoc}
      */
     @Override
-    public FiberServerSocketChannel bind(SocketAddress local) throws IOException {
-        ac.bind(local);
-        return this;
-    }
+    public abstract FiberServerSocketChannel bind(SocketAddress local) throws IOException;
 
     /**
      * Binds the channel's socket to a local address and configures the socket to
@@ -174,10 +157,7 @@ public class FiberServerSocketChannel implements NetworkChannel {
      * @throws ClosedChannelException          If the channel is closed
      * @throws IOException                     If some other I/O error occurs
      */
-    public FiberServerSocketChannel bind(SocketAddress local, int backlog) throws IOException {
-        ac.bind(local, backlog);
-        return this;
-    }
+    public abstract FiberServerSocketChannel bind(SocketAddress local, int backlog) throws IOException;
 
     /**
      * @throws IllegalArgumentException {@inheritDoc}
@@ -185,23 +165,14 @@ public class FiberServerSocketChannel implements NetworkChannel {
      * @throws IOException              {@inheritDoc}
      */
     @Override
-    public <T> FiberServerSocketChannel setOption(SocketOption<T> name, T value) throws IOException {
-        ac.setOption(name, value);
-        return this;
-    }
+    public abstract <T> FiberServerSocketChannel setOption(SocketOption<T> name, T value) throws IOException;
 
     @Override
-    public SocketAddress getLocalAddress() throws IOException {
-        return ac.getLocalAddress();
-    }
+    public abstract SocketAddress getLocalAddress() throws IOException;
 
     @Override
-    public <T> T getOption(SocketOption<T> name) throws IOException {
-        return ac.getOption(name);
-    }
+    public abstract <T> T getOption(SocketOption<T> name) throws IOException;
 
     @Override
-    public Set<SocketOption<?>> supportedOptions() {
-        return ac.supportedOptions();
-    }
+    public abstract Set<SocketOption<?>> supportedOptions();
 }
