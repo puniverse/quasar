@@ -376,6 +376,7 @@ project (':quasar-core') {
             archives javadocJar
         }
 
+        signArchives.dependsOn ':quasar-core-jdk8:shadowJar'
         install.dependsOn ':quasar-core-jdk8:shadowJar'
         uploadArchives.dependsOn ':quasar-core-jdk8:shadowJar'
     }
