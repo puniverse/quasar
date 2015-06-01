@@ -417,7 +417,7 @@ project (':quasar-core') {
         ssets += sourceSets.jdk8
     }
     
-    ssets.forEach { set ->
+    ssets.each { set ->
         configure(project.tasks["${set.name}Classes"]) {
             doLast {
                 rootProject.scanAndInstrument(set, [configurations["${set.name}Runtime"], configurations.provided, configurations.runtime])
