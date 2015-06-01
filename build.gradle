@@ -198,7 +198,9 @@ subprojects {
             // docletpath = configurations.markdownDoclet.files.asType(List)
             // doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
             // addStringOption("parse-timeout", "10")
-            options.addStringOption('Xdoclint:none', '-quiet')
+            if(project.ext.java8) {
+                options.addStringOption('Xdoclint:none', '-quiet')
+            }
             // stylesheetFile = rootProject.file('./baselib/javadoc.css')
             links = [
         "http://docs.oracle.com/javase/7/docs/api/",
