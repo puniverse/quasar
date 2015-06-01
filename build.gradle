@@ -378,19 +378,7 @@ project (':quasar-core') {
     configurations {
         jdk7Archives.extendsFrom runtime
         jdk8Archives.extendsFrom runtime
-        
-        // jdk7TestCompile.extendsFrom testCompile
-        // jdk7TestRuntime.extendsFrom testRuntime
-        // jdk8testCompile sourceSets.jdk8.output
-        // jdk8testCompile.extendsFrom testCompile
-        // jdk8testRuntime.extendsFrom testRuntime
     }
-    
-    //    if (ext.java8) {
-    //        sourceSets {
-    //
-    //        }
-    //    }
     
     dependencies {
         jdk7Compile ":jsr166e"
