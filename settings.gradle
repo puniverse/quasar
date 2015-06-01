@@ -1,4 +1,2 @@
 include 'quasar-core','quasar-actors','quasar-galaxy','quasar-kotlin'
-if (System.properties['java.version'].startsWith('1.8') ) { 
-    include 'quasar-core-jdk8' 
-}
+

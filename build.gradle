@@ -9,6 +9,8 @@ buildscript {
     }
 }
 
+ext.java8 = System.properties['java.version'].startsWith('1.8')
+
 subprojects {
     apply plugin: 'java'
 
@@ -32,10 +34,12 @@ subprojects {
     ext.distDir         = "$buildDir/dist"
     ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
     ext.baselib         = "${rootProject.projectDir}/baselib"
-    ext.quasarJar       = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}.jar" // project(':quasar-core').jar.archivePath
-
+    ext.quasarJar = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}.jar" // project(':quasar-core').jar.archivePath
+    
     ext.asmVer    = '5.0.4'
     ext.kotlinVer = '0.12.200'
+    
+    ext.java8 = rootProject.ext.java8
 
     if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
         println "sonatype username or password not set"
@@ -66,10 +70,14 @@ subprojects {
         }
     }
 
+    sourceSets {
+        jmh
+    }
+    
     configurations {
         compileOnly
         provided
-        markdownDoclet
+        // markdownDoclet
     }
 
     dependencies {
@@ -88,11 +96,14 @@ subprojects {
             exclude group: "org.ow2.asm", module: '*'
         }
         testCompile "org.ow2.asm:asm:$asmVer"
-        testCompile 'org.openjdk.jmh:jmh-core:1.9.3'
-        testCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.9.3'
+        
+        jmhCompile sourceSets.main.output
+        jmhCompile 'org.openjdk.jmh:jmh-core:1.9.3'
+        jmhCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.9.3'
+        
         compileOnly 'org.kohsuke.metainf-services:metainf-services:1.5'
         // compileOnly 'com.google.auto.service:auto-service:1.0-rc1' // same as metainf-services
-        markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
+        // markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
     }
 
     sourceSets {
@@ -112,43 +123,12 @@ subprojects {
     compileJava.dependsOn processResources
     classes {
         doLast {
-            ant.taskdef(
-                name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
-                classpath: "build/classes/main:build/resources/main:" + configurations.provided.asPath + configurations.compile.asPath)
-            ant.scanSuspendables(
-                auto: false,
-                supersFile:"$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers",
-                append: true) {
-                fileset(dir: sourceSets.main.output.classesDir)
-            }
-
-            ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', 
-				classpath: "build/resources/main:build/classes/main:" + configurations.provided.asPath + configurations.compile.asPath)
-            ant.instrumentation(verbose:'true', check:'true', debug:'true') {
-                fileset(dir: sourceSets.main.output.classesDir) {
-                    exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
-                }
-            }
+            scanAndInstrument(sourceSets.main, [configurations.provided, configurations.runtime])
         }
     }
 
     test.dependsOn jar
-
-    test {
-        beforeTest { desc ->
-            logger.quiet("Running test: " + desc)
-        }
-
-        afterTest { desc, result ->
-            if(result.resultType == TestResult.ResultType.FAILURE) {
-                logger.quiet("Failed test ${desc.name} [${desc.className}] with exception: ${result.exception}")
-                if(result.exception != null) {
-                    result.exception.printStackTrace()
-                }
-            }
-        }
-    }
-
+    
     tasks.withType(Test) {
         useJUnit()
         // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
@@ -163,8 +143,24 @@ subprojects {
         systemProperty 'co.paralleluniverse.flightRecorderDumpFile', 'quasar.log'
         systemProperty 'co.paralleluniverse.monitoring.flightRecorderSize', '200000'
 
-        jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
+        if(project.name != 'quasar-core') {
+            jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
+        }
         jvmArgs "-Xmx2048m"
+        
+        beforeTest { desc ->
+            logger.quiet("Running test: " + desc)
+        }
+
+        afterTest { desc, result ->
+            if(result.resultType == TestResult.ResultType.FAILURE) {
+                logger.quiet("Failed test ${desc.name} [${desc.className}] with exception: ${result.exception}")
+                if(result.exception != null) {
+                    result.exception.printStackTrace()
+                }
+            }
+        }
+        
         doLast() {
             println "file://" + getReports().getHtml().getDestination() + "/index.html"
         }
@@ -188,7 +184,7 @@ subprojects {
     }
 
     tasks.withType(JavaExec) {
-        classpath += sourceSets.test.runtimeClasspath
+        classpath += sourceSets.test.runtimeClasspath + sourceSets.test.output + sourceSets.jmh.runtimeClasspath + sourceSets.jmh.output
     }
 
 
@@ -197,22 +193,18 @@ subprojects {
     //    }
 
     configure (javadoc) {
-		classpath += configurations.provided 
+        classpath += configurations.provided 
         options {
-            docletpath = configurations.markdownDoclet.files.asType(List)
-            doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
-            addStringOption("parse-timeout", "10")
+            // docletpath = configurations.markdownDoclet.files.asType(List)
+            // doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
+            // addStringOption("parse-timeout", "10")
+            options.addStringOption('Xdoclint:none', '-quiet')
             // stylesheetFile = rootProject.file('./baselib/javadoc.css')
             links = [
         "http://docs.oracle.com/javase/7/docs/api/",
         "http://docs.guava-libraries.googlecode.com/git-history/v18.0/javadoc/"
             ]
         }
-        excludes = [
-        "co/paralleluniverse/common/logging/**",
-        "co/paralleluniverse/common/monitoring/**",
-        "co/paralleluniverse/common/util/**",
-        ]
     }
 
     defaultTasks 'build'
@@ -287,11 +279,119 @@ subprojects {
     }
 }
 
+
+def scanAndInstrument(sset, configs) {
+    def cp = '' + sset.output.classesDir + ':' + sset.output.resourcesDir + ':' + configs*.asPath.join(':')
+    
+    ant.taskdef(
+        name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
+        classpath: cp)
+    ant.scanSuspendables(
+        auto: false,
+        supersFile:"$sset.output.resourcesDir/META-INF/suspendable-supers",
+        append: true) {
+        fileset(dir: sset.output.classesDir)
+    }
+
+    ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', 
+        classpath: cp)
+    ant.instrumentation(verbose:'true', check:'true', debug:'true') {
+        fileset(dir: sset.output.classesDir) {
+            exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
+        }
+    }
+}
+    
 project (':quasar-core') {
+    /*
+     * see:
+     *   https://docs.gradle.org/current/userguide/java_plugin.html
+     *   http://examples.javacodegeeks.com/core-java/gradle/gradle-sourcesets-example/
+     *   http://stackoverflow.com/questions/15870662/gradle-create-a-new-jar-from-each-sourceset
+     *   http://stackoverflow.com/questions/18190614/compiling-a-project-with-different-java-source-compatibility
+     *   https://softnoise.wordpress.com/2014/09/07/gradle-sub-project-test-dependencies-in-multi-project-builds/
+     */
+    
     apply plugin: 'com.github.johnrengelman.shadow'
 
+    [compileJava, compileTestJava, classes, jar]*.enabled = false
+        
+    sourceSets {
+        main {
+            java {
+                srcDir 'src/main/java'
+                srcDir 'src/jdk7/java'
+            }
+        }
+        
+        jdk7 {
+            java {
+                srcDir 'src/main/java'
+                srcDir 'src/jdk7/java'
+            }
+            
+            compileClasspath += main.compileClasspath // += main.uoutput
+            runtimeClasspath += main.runtimeClasspath // += main.uoutput
+        }
+        
+        jdk7test {
+            java {
+                srcDir 'src/test/java'
+            }
+            
+            compileClasspath += jdk7.output + test.compileClasspath
+            runtimeClasspath += compileClasspath  + test.runtimeClasspath
+        }
+        
+        jdk8 {
+            java {
+                srcDir 'src/main/java'
+                srcDir 'src/jdk8/java'
+            }
+            
+            compileClasspath += main.compileClasspath
+            runtimeClasspath += compileClasspath
+        }
+            
+        jdk8test {
+            java {
+                srcDir 'src/test/java'
+                srcDir 'src/jdk8Test/java'
+            }
+            
+            compileClasspath += jdk8.output + test.compileClasspath
+            runtimeClasspath += compileClasspath + test.runtimeClasspath
+        }
+            
+        jmh {
+            java {
+                srcDir 'src/jmh/java'
+            }
+            
+            compileClasspath += jdk8.output + jdk8test.compileClasspath + jdk8test.output
+            runtimeClasspath += compileClasspath + test.runtimeClasspath
+        }
+    }
+    
+    configurations {
+        jdk7Archives.extendsFrom runtime
+        jdk8Archives.extendsFrom runtime
+        
+        // jdk7TestCompile.extendsFrom testCompile
+        // jdk7TestRuntime.extendsFrom testRuntime
+        // jdk8testCompile sourceSets.jdk8.output
+        // jdk8testCompile.extendsFrom testCompile
+        // jdk8testRuntime.extendsFrom testRuntime
+    }
+    
+    //    if (ext.java8) {
+    //        sourceSets {
+    //
+    //        }
+    //    }
+    
     dependencies {
-        compile ":jsr166e"
+        jdk7Compile ":jsr166e"
         compile ":high-scale-lib"
         compile "org.hdrhistogram:HdrHistogram:2.1.3"
         compile("org.latencyutils:LatencyUtils:2.0.2") {
@@ -312,46 +412,137 @@ project (':quasar-core') {
         provided 'junit:junit:4.12'
     }
 
-    jar {
-        from zipTree("${baselib}/jsr166e.jar")  // include non-Maven jars
-        from zipTree("${baselib}/high-scale-lib.jar")  // include non-Maven jars
-        manifest {
-            attributes(
+    def ssets = [sourceSets.jdk7]
+    if(ext.java8) {
+        ssets += sourceSets.jdk8
+    }
+    
+    ssets.forEach { set ->
+        configure(project.tasks["${set.name}Classes"]) {
+            doLast {
+                rootProject.scanAndInstrument(set, [configurations["${set.name}Runtime"], configurations.provided, configurations.runtime])
+            }
+        }
+
+        def jarTask = task("${set.name}Jar", type: Jar) {
+            from set.output
+            from zipTree("${baselib}/high-scale-lib.jar")  // include non-Maven jars
+            exclude 'META-INF/INDEX.LIST'
+            
+            manifest {
+                attributes(
 	            "Built-By"                  :   System.getProperty("user.name"),
 	            "Implementation-Title"      :   project.name,
 	            "Implementation-Version"    :   version,
 	            "Implementation-Vendor"     :   vendor,
 	            "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
-                   "Agent-Class"               :   "co.paralleluniverse.fibers.instrument.JavaAgent",
+                    "Agent-Class"               :   "co.paralleluniverse.fibers.instrument.JavaAgent",
 	            "Can-Retransform-Classes"   :   "true",
                     "Can-Redefine-Classes"      :   "true",
-                //  "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',')
-            )
+                    //  "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',')
+                )
+            }
         }
+        
+        def shadowJarTask = task("${set.name}ShadowJar", type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar, dependsOn: jarTask) {
+            outputs.upToDateWhen { false }
+
+            classifier = '' // overwrite jar
+            destinationDir = file("$buildDir/libs")
+            
+            from set.output
+
+            configurations = [project.configurations.runtime, project.configurations["${set.name}Runtime"]]
+            dependencies {
+                include(dependency('org.ow2.asm:.*:.*'))
+                include(dependency(':high-scale-lib'))
+            }
+            exclude 'META-INF/INDEX.LIST'
+
+            relocate 'org.objectweb.asm.', 'co.paralleluniverse.asm.'
+            
+            manifest.inheritFrom jarTask.manifest
+        }
+        
+        def testTask = task("${set.name}Test", type: Test, dependsOn: shadowJarTask) {
+            testClassesDir = project.sourceSets["${set.name}test"].output.classesDir
+            classpath = project.sourceSets["${set.name}test"].runtimeClasspath
+            
+            project.afterEvaluate {
+                jvmArgs "-javaagent:${shadowJarTask.archivePath}"
+            }
+        }
+        
+        artifacts {
+            archives shadowJarTask
+        }
+
+        assemble.dependsOn shadowJarTask
+        check.dependsOn testTask
     }
 
-    shadowJar {
-        outputs.upToDateWhen { false }
+        
+    compileJdk7Java {
+        sourceCompatibility = '1.7'
+        targetCompatibility = '1.7'
+    }
+    
+    jdk7Jar {
+        from zipTree("${baselib}/jsr166e.jar")  // include non-Maven jars
+    }
 
-        // artifactAttached = false
-        classifier = 'shadow'
-        destinationDir = file("$buildDir/libs")
-
+    jdk7ShadowJar {
         dependencies {
-            include(dependency('org.ow2.asm:.*:.*'))
             include(dependency(':jsr166e'))
-            include(dependency(':high-scale-lib'))
-        }
-
-        relocate 'org.objectweb.asm.', 'co.paralleluniverse.asm.'
-
-        doLast {
-            logger.info("$buildDir/libs/${project.name}-${project.version}-${classifier}.jar -> $buildDir/libs/${project.name}-${project.version}.jar")
-            file("$buildDir/libs/${project.name}-${version}-${classifier}.jar").renameTo(file("$buildDir/libs/${project.name}-${project.version}.jar"))
         }
     }
+    
+    artifacts {
+        jdk7Archives jdk7ShadowJar
+    }
+        
+    if (ext.java8) {
+        compileJdk8Java {
+            sourceCompatibility = '1.8'
+            targetCompatibility = '1.8'
+        }
+        
+        compileJdk8testJava {
+            sourceCompatibility = '1.8'
+            targetCompatibility = '1.8'
+        }
+        
+        jdk8Jar {
+            classifier = 'jdk8'
+        }
+    
+        jdk8ShadowJar {
+            classifier = 'jdk8' + (classifier.empty ? '' :  '-')
+        }
+        
+        artifacts {
+            jdk8Archives jdk8ShadowJar
+        }
+    }
+    
+    javadoc {
+        if (project.ext.java8) {
+            source = sourceSets.jdk8.allJava
+        } else {
+            source = sourceSets.jdk7.allJava
+        }
+        
+        //        excludes = [
+        //        "co/paralleluniverse/common/logging/**",
+        //        "co/paralleluniverse/common/monitoring/**",
+        //        "co/paralleluniverse/common/util/**",
+        //        ]
+    }
+    
+    task shadowJar(dependsOn: tasks.withType(com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar), overwrite: true) {
+    }
 
-    shadowJar.dependsOn jar
+    assemble.dependsOn shadowJar
     build.dependsOn shadowJar
     install.dependsOn shadowJar
     signArchives.dependsOn shadowJar
@@ -368,17 +559,11 @@ project (':quasar-core') {
         }
     }
 
-	if (System.properties['java.version'].startsWith('1.8') ) {
+    if (ext) {
         artifacts {
-            archives jar
-            archives project(':quasar-core-jdk8').jar
             archives sourcesJar
             archives javadocJar
         }
-
-        signArchives.dependsOn ':quasar-core-jdk8:shadowJar'
-        install.dependsOn ':quasar-core-jdk8:shadowJar'
-        uploadArchives.dependsOn ':quasar-core-jdk8:shadowJar'
     }
 }
 
@@ -386,7 +571,7 @@ project (':quasar-actors') {
     //project.evaluationDependsOn(':quasar-core')
 
     dependencies {
-        provided project(':quasar-core')
+        provided project(path: ':quasar-core', configuration: 'jdk7Archives')
         // compile 'org.mutabilitydetector:MutabilityDetector:0.9.2'
         compile "org.slf4j:slf4j-api:1.7.12"
         compile "net.bytebuddy:byte-buddy:0.6.5"
@@ -401,7 +586,7 @@ project (':quasar-actors') {
 
 project (':quasar-galaxy') {
     dependencies {
-        provided project(':quasar-core')
+        provided project(path: ':quasar-core', configuration: 'jdk7Archives')
         compile project(':quasar-actors')
 
         compile ("co.paralleluniverse:galaxy:1.4")  {
@@ -447,13 +632,21 @@ project (':quasar-galaxy') {
 task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
     title = "Quasar ${project(':quasar-core').version}"
     destinationDir = file("docs/javadoc")
-    source = project(':quasar-core').sourceSets.main.allJava + project(':quasar-actors').sourceSets.main.allJava
+    
+    if (project.ext.java8) {
+        source = project(':quasar-core').sourceSets.jdk8.allJava
+    } else {
+        source = project(':quasar-core').sourceSets.jdk7.allJava
+    }
+    source += project(':quasar-actors').sourceSets.main.allJava
+    
     classpath = files(subprojects.collect { project -> project.sourceSets.main.compileClasspath })
     options {
-        docletpath = project(':quasar-core').configurations.markdownDoclet.files.asType(List)
-        doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
-        addStringOption("parse-timeout", "10")
+        // docletpath = project(':quasar-core').configurations.markdownDoclet.files.asType(List)
+        // doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
+        // addStringOption("parse-timeout", "10")
         // stylesheetFile = rootProject.file('./baselib/javadoc.css')
+        options.addStringOption('Xdoclint:none', '-quiet')
         links = [
         "http://docs.oracle.com/javase/7/docs/api/",
         "http://docs.guava-libraries.googlecode.com/git-history/v18.0/javadoc/"
