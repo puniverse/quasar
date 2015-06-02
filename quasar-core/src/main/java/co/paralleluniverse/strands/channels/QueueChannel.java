@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -97,7 +97,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
     @Override
     public Object register(SelectAction<Message> action) {
-        if (((SelectActionImpl)action).isData()) {
+        if (((SelectActionImpl) action).isData()) {
             if (sendersSync != null)
                 sendersSync.register();
         } else
@@ -279,10 +279,10 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
      */
     @Override
     public boolean isClosed() {
-        if(receiveClosed)
+        if (receiveClosed)
             return true;
         // racy, but that's OK because we don't guarantee anything if we return false
-        if(sendClosed && queue instanceof BasicSingleConsumerQueue && !((BasicSingleConsumerQueue)queue).hasNext()) {
+        if (sendClosed && queue instanceof BasicSingleConsumerQueue && !((BasicSingleConsumerQueue) queue).hasNext()) {
             setReceiveClosed();
             return true;
         }
