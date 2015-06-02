@@ -681,6 +681,3 @@ task clean(dependsOn: subprojects.clean) << {
     delete 'docs/javadoc'
 }
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '2.2.1'
-}
