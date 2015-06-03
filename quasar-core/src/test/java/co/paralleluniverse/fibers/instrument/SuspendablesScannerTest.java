@@ -15,6 +15,7 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.Suspendable;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,7 +31,7 @@ public class SuspendablesScannerTest {
     private static SuspendablesScanner scanner;
     private static final Set<String> suspendables = new HashSet<>();
     private static final Set<String> suspendableSupers = new HashSet<>();
-    
+
     @BeforeClass
     public static void buildGraph() throws Exception {
         // find test classes directory
@@ -40,7 +41,7 @@ public class SuspendablesScannerTest {
         final Path p2 = Paths.get(url.toURI()).toAbsolutePath();
         final Path p = p2.getRoot().resolve(p2.subpath(0, p2.getNameCount() - p1.getNameCount()));
         System.out.println("Test classes: " + p);
-        
+
         scanner = new SuspendablesScanner(p);
 //        scanner = new AutoSuspendablesScanner(
 //                Paths.get(AutoSuspendablesScannerTest.class.getClassLoader()
@@ -48,7 +49,7 @@ public class SuspendablesScannerTest {
         scanner.setAuto(true);
         scanner.run();
         scanner.putSuspendablesAndSupers(suspendables, suspendableSupers);
-        
+
         System.out.println("SUSPENDABLES: " + suspendables);
         System.out.println("SUPERS: " + suspendableSupers);
     }
@@ -93,6 +94,13 @@ public class SuspendablesScannerTest {
     public void superSuspendableTest() {
         final String method = IA.class.getName() + ".foo(I)V";
         assertTrue(suspendableSupers.contains(method));
+    }
+
+    @Test
+    public void bridgeMethodTest() {
+        assertTrue(suspendableSupers.contains(I2.class.getName() + ".foo(I)Ljava/lang/Number;"));
+        assertTrue(suspendableSupers.contains(A2.class.getName() + ".bar(I)Ljava/lang/Object;"));
+        assertTrue(!suspendableSupers.contains(A2.class.getName() + ".baz(I)Ljava/lang/Object;"));
     }
 
     static interface IA {
@@ -153,5 +161,37 @@ public class SuspendablesScannerTest {
         void fon() {
             foo();
         }
-}
+    }
+
+    static interface I2 {
+        Number foo(int x);
+    }
+
+    static class A2 {
+        protected Object bar(int x) {
+            return null;
+        }
+
+        protected Object baz(int x) {
+            return null;
+        }
+    }
+
+    static class C2 extends A2 implements I2 {
+        @Override
+        @Suspendable
+        protected String bar(int x) {
+            return "3";
+        }
+
+        @Override
+        @Suspendable
+        public Integer foo(int x) {
+            return 3;
+        }
+
+        public Integer baz(int x) {
+            return 3;
+        }
+    }
 }
