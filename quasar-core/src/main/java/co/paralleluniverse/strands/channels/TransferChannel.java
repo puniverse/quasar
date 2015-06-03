@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight strands and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -139,7 +139,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
 
     @Override
     public Object register(SelectAction<Message> action) {
-        return xfer0((SelectActionImpl<Message>)action);
+        return xfer0((SelectActionImpl<Message>) action);
     }
 
     @Override
@@ -165,7 +165,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
     @Override
     public Message receive() throws SuspendExecution, InterruptedException {
         if (receiveClosed)
-            return null;
+            return closeValue();
 
         Object m = xfer1(null, false, SYNC, 0);
 
@@ -180,7 +180,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
 
     protected Message receiveInternal(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         if (receiveClosed)
-            return null;
+            return closeValue();
 
         Object m = xfer1(null, false, TIMED, unit.toNanos(timeout));
         if (m != null || !Strand.interrupted()) {
@@ -195,7 +195,7 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
     public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
         return receiveInternal(timeout, unit);
     }
-    
+
     @Override
     public Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
         return receiveInternal(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
@@ -207,7 +207,14 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
 
     @Override
     public boolean isClosed() {
-        return receiveClosed;
+        if (receiveClosed)
+            return true;
+// racy, but that's OK because we don't guarantee anything if we return false
+        if (sendClosed && size() == 0) {
+            setReceiveClosed();
+            return true;
+        }
+        return false;
     }
 
     private void signalWaitersOnClose() {

@@ -28,7 +28,6 @@ import co.paralleluniverse.strands.Synchronization;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.BasicQueue;
-import co.paralleluniverse.strands.queues.BasicSingleConsumerQueue;
 import co.paralleluniverse.strands.queues.CircularBuffer;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.concurrent.TimeUnit;
@@ -282,7 +281,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         if (receiveClosed)
             return true;
         // racy, but that's OK because we don't guarantee anything if we return false
-        if (sendClosed && queue instanceof BasicSingleConsumerQueue && !((BasicSingleConsumerQueue) queue).hasNext()) {
+        if (sendClosed && queue.isEmpty()) {
             setReceiveClosed();
             return true;
         }
