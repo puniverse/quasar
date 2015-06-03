@@ -619,6 +619,24 @@ project (':quasar-galaxy') {
     }
 }
 
+project (':quasar-reactive-streams') {
+    //project.evaluationDependsOn(':quasar-core')
+
+    dependencies {
+        provided project(path: ':quasar-core', configuration: 'jdk7Archives')
+        compile "org.reactivestreams:reactive-streams:1.0.0"
+        testCompile("org.reactivestreams:reactive-streams-tck:1.0.0") {
+            exclude group: "junit", module: "*"
+            exclude group: "org.testng", module: "testng"
+        }
+        testCompile 'org.testng:testng:6.9.4'
+    }
+    
+    test {
+        useTestNG()
+    }
+}
+
 task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
     title = "Quasar ${project(':quasar-core').version}"
     destinationDir = file("docs/javadoc")
