@@ -511,10 +511,31 @@ public class SuspendablesScanner extends Task {
 
         while (!q.isEmpty()) {
             final MethodNode m = q.poll();
-            if (m.inProject)
+            if (m.inProject) {
+                followBridges(q, getClassNode(m), m);
                 followSupers(q, getClassNode(m), m);
+            }
             followNonOverriddenSubs(q, getClassNode(m), m);
             followCallers(q, m);
+        }
+    }
+
+    private void followBridges(Queue<MethodNode> q, ClassNode cls, MethodNode method) {
+        log("followBridges " + method + " " + cls, Project.MSG_DEBUG);
+        if (cls == null)
+            return;
+
+        if (method.suspendType == SuspendableType.NON_SUSPENDABLE)
+            return;
+        final List<String> bridges = cls.getMethodWithDifferentReturn(method.name);
+        for (String m1 : bridges) {
+            if (!method.name.equals(m1)) {
+                MethodNode m = getOrCreateMethodNode(cls.name + '.' + m1);
+                if (m.suspendType != SuspendableType.SUSPENDABLE && m.suspendType != SuspendableType.SUSPENDABLE_SUPER) {
+                    m.setSuspendType(SuspendableType.SUSPENDABLE_SUPER);
+                    q.add(m);
+                }
+            }
         }
     }
 
@@ -709,6 +730,16 @@ public class SuspendablesScanner extends Task {
             return false;
         }
 
+        List<String> getMethodWithDifferentReturn(String method) {
+            method = getMethodWithoutReturn(method);
+            List<String> ms = new ArrayList<>();
+            for (String m : methods) {
+                if (m.startsWith(method))
+                    ms.add(m);
+            }
+            return ms;
+        }
+
         @Override
         public String toString() {
             return "ClassNode{" + name + " inProject: " + inProject + '}';
@@ -728,6 +759,7 @@ public class SuspendablesScanner extends Task {
         String owner;
         ClassNode classNode;
         final String name; // methodname+desc
+        //int acc;
         boolean inProject;
         boolean known;
         SuspendableType suspendType;
@@ -755,13 +787,25 @@ public class SuspendablesScanner extends Task {
             if (callers == null)
                 return Collections.emptyList();
             return new AbstractCollection<MethodNode>() {
-                public int size()                 { return numCallers; }
+                public int size() {
+                    return numCallers;
+                }
+
                 public Iterator<MethodNode> iterator() {
                     return new Iterator<MethodNode>() {
                         private int i;
-                        public boolean hasNext()  { return i < numCallers; }
-                        public MethodNode next()  { return callers[i++]; }
-                        public void remove()      { throw new UnsupportedOperationException("remove"); }
+
+                        public boolean hasNext() {
+                            return i < numCallers;
+                        }
+
+                        public MethodNode next() {
+                            return callers[i++];
+                        }
+
+                        public void remove() {
+                            throw new UnsupportedOperationException("remove");
+                        }
                     };
                 }
             };
@@ -788,6 +832,11 @@ public class SuspendablesScanner extends Task {
 
     private static String getMethodWithDesc(String fullMethodWithDesc) {
         return fullMethodWithDesc.substring(fullMethodWithDesc.lastIndexOf('.') + 1);
+    }
+
+    private static String getMethodWithoutReturn(String fullMethodWithDesc) {
+        String m = getMethodWithDesc(fullMethodWithDesc);
+        return m.substring(0, m.lastIndexOf(')') + 1);
     }
 
     private static boolean isReflectInvocation(String className, String methodName) {
