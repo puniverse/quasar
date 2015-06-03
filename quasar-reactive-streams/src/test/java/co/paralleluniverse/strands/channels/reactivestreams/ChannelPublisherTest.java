@@ -12,13 +12,9 @@
  */
 package co.paralleluniverse.strands.channels.reactivestreams;
 
-import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.SuspendableRunnable;
-import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
+import static co.paralleluniverse.strands.channels.reactivestreams.TestHelper.*;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.tck.PublisherVerification;
 import org.reactivestreams.tck.TestEnvironment;
@@ -41,9 +37,6 @@ public class ChannelPublisherTest extends PublisherVerification<Integer> {
         this.buffer = buffer;
         this.overflowPolicy = overflowPolicy;
         this.delay = delay;
-
-        System.gc();
-        System.gc();
     }
 
     @DataProvider(name = "params")
@@ -76,45 +69,12 @@ public class ChannelPublisherTest extends PublisherVerification<Integer> {
 
     @Override
     public Publisher<Integer> createPublisher(final long elements) {
-        final Channel<Integer> c = Channels.newChannel(buffer, overflowPolicy);
-
-        new Fiber<Void>(new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                if (delay)
-                    Strand.sleep(DELAY_AMOUNT);
-
-                // we only emit up to 100K elements or 100ms, the later of the two (the TCK asks for 2^31-1)
-                long start = elements > 100_000 ? System.nanoTime() : 0L;
-                for (long i = 0; i < elements; i++) {
-                    c.send((int) (i % 10000));
-
-                    if (start > 0) {
-                        long elapsed = (System.nanoTime() - start) / 1_000_000;
-                        if (elapsed > 100)
-                            break;
-                    }
-                }
-                c.close();
-            }
-        }).start();
-
-        return ReactiveStreams.toPublisher(c);
+        return ReactiveStreams.toPublisher(startPublisherFiber(Channels.<Integer>newChannel(buffer, overflowPolicy), delay ? DELAY_AMOUNT : 0, elements));
     }
 
     @Override
     public Publisher<Integer> createFailedPublisher() {
-        final Channel<Integer> c = Channels.newChannel(buffer, overflowPolicy);
-        new Fiber<Void>(new SuspendableRunnable() {
-
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                if (delay)
-                    Strand.sleep(DELAY_AMOUNT);
-                c.close(new Exception("failure"));
-            }
-        }).start();
-        return ReactiveStreams.toPublisher(c);
+        return ReactiveStreams.toPublisher(startFailedPublisherFiber(Channels.<Integer>newChannel(buffer, overflowPolicy), delay ? DELAY_AMOUNT : 0));
     }
 
     @Test

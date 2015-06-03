@@ -12,11 +12,8 @@
  */
 package co.paralleluniverse.strands.channels.reactivestreams;
 
-import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.Topic;
+import static co.paralleluniverse.strands.channels.reactivestreams.TestHelper.*;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.tck.PublisherVerification;
 import org.reactivestreams.tck.TestEnvironment;
@@ -54,55 +51,12 @@ public class TopicPublisherTest extends PublisherVerification<Integer> {
 
     @Override
     public Publisher<Integer> createPublisher(final long elements) {
-        final Topic<Integer> t = new Topic<>();
-
-        new Fiber<Void>(new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                try {
-                    if (delay)
-                        Strand.sleep(DELAY_AMOUNT);
-                    // we only emit up to 100K elements or 100ms, the later of the two (the TCK asks for 2^31-1)
-                    long start = elements > 100_000 ? System.nanoTime() : 0L;
-                    for (long i = 0; i < elements; i++) {
-                        t.send((int) (i % 10000));
-
-                        if (start > 0) {
-                            long elapsed = (System.nanoTime() - start) / 1_000_000;
-                            if (elapsed > 100)
-                                break;
-                        }
-                    }
-                    t.close();
-                } catch (Throwable t) {
-                    t.printStackTrace();
-                    throw t;
-                }
-            }
-        }).start();
-
-        return ReactiveStreams.toPublisher(t);
+        return ReactiveStreams.toPublisher(startPublisherFiber(new Topic<Integer>(), delay ? DELAY_AMOUNT : 0, elements));
     }
 
     @Override
     public Publisher<Integer> createFailedPublisher() {
-        final Topic<Integer> t = new Topic<>();
-
-        new Fiber<Void>(new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                try {
-                    if (delay)
-                        Strand.sleep(DELAY_AMOUNT);
-                    t.close(new Exception("failure"));
-                } catch (Throwable t) {
-                    t.printStackTrace();
-                    throw t;
-                }
-            }
-        }).start();
-
-        return ReactiveStreams.toPublisher(t);
+        return ReactiveStreams.toPublisher(startFailedPublisherFiber(new Topic<Integer>(), delay ? DELAY_AMOUNT : 0));
     }
 
     @Test
