@@ -10,7 +10,7 @@ buildscript {
 apply plugin: 'kotlin'
 
 dependencies {
-    compile project(':quasar-core')
+    provided project(path: ':quasar-core', configuration: 'jdk7Archives')
     compile project(':quasar-actors')
 
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVer"
