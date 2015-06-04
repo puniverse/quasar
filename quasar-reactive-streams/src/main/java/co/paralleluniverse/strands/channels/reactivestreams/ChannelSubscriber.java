@@ -17,7 +17,8 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Timeout;
-import co.paralleluniverse.strands.channels.Channels;
+import co.paralleluniverse.strands.channels.Channel;
+import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.channels.QueueChannel;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import java.util.concurrent.TimeUnit;
@@ -29,16 +30,20 @@ import org.reactivestreams.Subscription;
  * @author pron
  */
 class ChannelSubscriber<T> implements Subscriber<T>, ReceivePort<T> {
-    private final int capacity;
     private final QueueChannel<T> ch;
-    private final long request;
+    private final long capacity;
     private Subscription subscription;
-    private int consumed;
+    private long consumed;
+    private final boolean batch;
 
-    public ChannelSubscriber(int bufferSize, Channels.OverflowPolicy policy) {
-        this.ch = (QueueChannel<T>) Channels.newChannel(bufferSize, policy, true, true);
-        this.capacity = bufferSize;
-        this.request = (bufferSize < 0 || policy == Channels.OverflowPolicy.DISPLACE) ? Long.MAX_VALUE : bufferSize;
+    public ChannelSubscriber(Channel<T> channel, boolean batch) {
+        if (!(channel instanceof QueueChannel))
+            throw new IllegalArgumentException("Channel of type " + channel.getClass().getName() + " is not supported.");
+        if (!((QueueChannel<T>) channel).isSingleConsumer())
+            throw new IllegalArgumentException("Provided channel must be single-consumer."); // #2.7
+        this.ch = (QueueChannel<T>) channel;
+        this.capacity = (ch.capacity() < 0 || ch.getOverflowPolicy() == OverflowPolicy.DISPLACE) ? Long.MAX_VALUE : ch.capacity();
+        this.batch = (capacity > 1 && capacity < Long.MAX_VALUE) ? batch : false;
     }
 
     @Override
@@ -49,7 +54,7 @@ class ChannelSubscriber<T> implements Subscriber<T>, ReceivePort<T> {
             s.cancel();
         else {
             this.subscription = s;
-            subscription.request(request);
+            subscription.request(capacity);
         }
     }
 
@@ -83,14 +88,17 @@ class ChannelSubscriber<T> implements Subscriber<T>, ReceivePort<T> {
     }
 
     private void consumed() {
-        if (request == Long.MAX_VALUE)
+        if (capacity == Long.MAX_VALUE)
             return;
 
-        consumed++;
-        if (consumed < request)
-            return;
-        consumed = 0;
-        subscription.request(request);
+        if (!batch)
+            subscription.request(1);
+        else {
+            if (++consumed >= capacity) {
+                consumed = 0;
+                subscription.request(capacity);
+            }
+        }
     }
 
     @Override

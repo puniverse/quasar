@@ -12,6 +12,7 @@
  */
 package co.paralleluniverse.strands.channels.reactivestreams;
 
+import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -24,31 +25,39 @@ public class ChannelSubscriberWhiteboxTest extends SubscriberWhiteboxVerificatio
 
     private final int buffer;
     private final OverflowPolicy overflowPolicy;
+    private final boolean batch;
 
     @Factory(dataProvider = "params")
-    public ChannelSubscriberWhiteboxTest(int buffer, OverflowPolicy overflowPolicy) {
+    public ChannelSubscriberWhiteboxTest(int buffer, OverflowPolicy overflowPolicy, boolean batch) {
         super(new TestEnvironment());
         // super(new TestEnvironment(DEFAULT_TIMEOUT_MILLIS));
 
         this.buffer = buffer;
         this.overflowPolicy = overflowPolicy;
+        this.batch = batch;
     }
 
     @DataProvider(name = "params")
     public static Object[][] data() {
         return new Object[][]{
-            {5, OverflowPolicy.THROW},
-            {5, OverflowPolicy.BLOCK},
-            {-1, OverflowPolicy.THROW},
-            {5, OverflowPolicy.DISPLACE},
-//            {1, OverflowPolicy.BLOCK}, // TCK bug
-//            {1, OverflowPolicy.THROW} // TCK bug
+            {5, OverflowPolicy.THROW, true},
+            {5, OverflowPolicy.THROW, false},
+            {5, OverflowPolicy.BLOCK, true},
+            {5, OverflowPolicy.BLOCK, false},
+            {-1, OverflowPolicy.THROW, true},
+            {-1, OverflowPolicy.THROW, false},
+            {5, OverflowPolicy.DISPLACE, true},
+            {5, OverflowPolicy.DISPLACE, false},
+//            {1, OverflowPolicy.BLOCK, true},  // TCK bug
+//            {1, OverflowPolicy.BLOCK, false}, // TCK bug
+//            {1, OverflowPolicy.THROW, true},  // TCK bug
+//            {1, OverflowPolicy.THROW, false}  // TCK bug
         };
     }
 
     @Override
     public Subscriber<Integer> createSubscriber(final WhiteboxSubscriberProbe<Integer> probe) {
-        return new ChannelSubscriber<Integer>(buffer, overflowPolicy) {
+        return new ChannelSubscriber<Integer>(Channels.<Integer>newChannel(buffer, overflowPolicy, true, true), batch) {
 
             @Override
             public void onSubscribe(final Subscription s) {

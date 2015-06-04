@@ -12,6 +12,7 @@
  */
 package co.paralleluniverse.strands.channels.reactivestreams;
 
+import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.tck.SubscriberBlackboxVerification;
@@ -23,31 +24,39 @@ public class ChannelSubscriberBlackboxTest extends SubscriberBlackboxVerificatio
 
     private final int buffer;
     private final OverflowPolicy overflowPolicy;
+    private final boolean batch;
 
     @Factory(dataProvider = "params")
-    public ChannelSubscriberBlackboxTest(int buffer, OverflowPolicy overflowPolicy) {
+    public ChannelSubscriberBlackboxTest(int buffer, OverflowPolicy overflowPolicy, boolean batch) {
         super(new TestEnvironment());
         // super(new TestEnvironment(DEFAULT_TIMEOUT_MILLIS));
 
         this.buffer = buffer;
         this.overflowPolicy = overflowPolicy;
+        this.batch = batch;
     }
 
     @DataProvider(name = "params")
     public static Object[][] data() {
         return new Object[][]{
-            {5, OverflowPolicy.THROW},
-            {5, OverflowPolicy.BLOCK},
-//            {-1, OverflowPolicy.THROW},   // TCK bug
-//            {5, OverflowPolicy.DISPLACE}, // TCK bug
-            {1, OverflowPolicy.BLOCK},
-            {1, OverflowPolicy.THROW}
+            {5, OverflowPolicy.THROW, true},
+            {5, OverflowPolicy.THROW, false},
+            {5, OverflowPolicy.BLOCK, true},
+            {5, OverflowPolicy.BLOCK, false},
+//            {-1, OverflowPolicy.THROW, true},   // TCK bug
+//            {-1, OverflowPolicy.THROW, false},   // TCK bug
+//            {5, OverflowPolicy.DISPLACE, true}, // TCK bug
+//            {5, OverflowPolicy.DISPLACE, false}, // TCK bug
+            {1, OverflowPolicy.BLOCK, true},
+            {1, OverflowPolicy.BLOCK, false},
+            {1, OverflowPolicy.THROW, true},
+            {1, OverflowPolicy.THROW, false}
         };
     }
 
     @Override
     public Subscriber<Integer> createSubscriber() {
-        return new ChannelSubscriber<>(buffer, overflowPolicy);
+        return new ChannelSubscriber<>(Channels.<Integer>newChannel(buffer, overflowPolicy, true, true), batch);
     }
 
     @Override

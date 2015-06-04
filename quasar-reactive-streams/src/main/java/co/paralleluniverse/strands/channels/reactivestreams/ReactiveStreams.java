@@ -30,14 +30,17 @@ public class ReactiveStreams {
     /**
      * Subscribes to a given {@link Publisher} and return a {@link ReceivePort} to the subscription.
      * This creates an internal <b>single consumer</b> channel that will receive the published elements.
-     *
+     * 
      * @param bufferSize the size of the buffer of the internal channel; may be {@code -1} for unbounded, but may not be {@code 0})
      * @param policy     the {@link OverflowPolicy} of the internal channel.
+     * @param batch      if the channel has a bounded buffer, whether to request further elements from the publisher in batches
+     *                   whenever the channel's buffer is depleted, or after consuming each element.
      * @param publisher  the subscriber
      * @return A {@link ReceivePort} which emits the elements published by the subscriber
      */
-    public static <T> ReceivePort<T> subscribe(int bufferSize, OverflowPolicy policy, Publisher<T> publisher) {
-        ChannelSubscriber<T> sub = new ChannelSubscriber<>(bufferSize, policy);
+    public static <T> ReceivePort<T> subscribe(int bufferSize, OverflowPolicy policy, boolean batch, Publisher<T> publisher) {
+        final Channel<T> channel = Channels.newChannel(bufferSize, policy, true, true);
+        final ChannelSubscriber<T> sub = new ChannelSubscriber<>(channel, batch);
         publisher.subscribe(sub);
         return sub;
     }
