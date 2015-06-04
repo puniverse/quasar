@@ -20,11 +20,8 @@ import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.channels.ReceivePort;
-import static co.paralleluniverse.strands.channels.reactivestreams.TestHelper.*;
 import java.util.concurrent.ThreadLocalRandom;
 import org.reactivestreams.Publisher;
-import org.reactivestreams.tck.PublisherVerification;
-import org.reactivestreams.tck.TestEnvironment;
 import org.testng.annotations.*;
 
 public class TwoSidedTest {
