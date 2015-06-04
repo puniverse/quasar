@@ -39,7 +39,7 @@ public class ReactiveStreams {
     public static <T> ReceivePort<T> subscribe(int bufferSize, OverflowPolicy policy, Publisher<T> publisher) {
         ChannelSubscriber<T> sub = new ChannelSubscriber<>(bufferSize, policy);
         publisher.subscribe(sub);
-        return new ChannelSubscriber<>(bufferSize, policy);
+        return sub;
     }
 
     /**
