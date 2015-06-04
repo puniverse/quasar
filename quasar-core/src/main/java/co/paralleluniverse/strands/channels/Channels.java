@@ -135,7 +135,7 @@ public final class Channels {
         else
             queue = new ArrayQueue<>(bufferSize);
 
-        return new QueueObjectChannel(queue, policy, singleConsumer);
+        return new QueueObjectChannel(queue, policy, singleProducer, singleConsumer);
     }
 
     /**

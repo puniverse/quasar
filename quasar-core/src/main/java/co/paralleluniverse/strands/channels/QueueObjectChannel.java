@@ -21,7 +21,7 @@ import co.paralleluniverse.strands.queues.BasicQueue;
  * @author pron
  */
 public class QueueObjectChannel<Message> extends QueueChannel<Message> {
-    public QueueObjectChannel(BasicQueue<Message> queue, OverflowPolicy policy, boolean singleConsumer) {
-        super(queue, policy, singleConsumer);
+    public QueueObjectChannel(BasicQueue<Message> queue, OverflowPolicy policy, boolean singleProducer, boolean singleConsumer) {
+        super(queue, policy, singleProducer, singleConsumer);
     }
 }

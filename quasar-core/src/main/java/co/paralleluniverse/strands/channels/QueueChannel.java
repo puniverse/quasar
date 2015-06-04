@@ -39,15 +39,22 @@ import java.util.concurrent.TimeoutException;
  */
 public abstract class QueueChannel<Message> implements Channel<Message>, Selectable<Message>, Synchronization, java.io.Serializable {
     private static final int MAX_SEND_RETRIES = 10;
+    
+    final BasicQueue<Message> queue;
+    private final boolean singleProducer;
+    private final boolean singleConsumer;
     final Condition sync;
     final Condition sendersSync;
-    final BasicQueue<Message> queue;
     final OverflowPolicy overflowPolicy;
     private Throwable closeException;
     private volatile boolean sendClosed;
     private boolean receiveClosed;
 
     protected QueueChannel(BasicQueue<Message> queue, OverflowPolicy overflowPolicy, boolean singleConsumer) {
+        this(queue, overflowPolicy, false, singleConsumer);
+    }
+    
+    protected QueueChannel(BasicQueue<Message> queue, OverflowPolicy overflowPolicy, boolean singleProducer, boolean singleConsumer) {
         this.queue = queue;
         if (!singleConsumer || queue instanceof CircularBuffer)
             this.sync = new SimpleConditionSynchronizer(this);
@@ -56,6 +63,8 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
         this.overflowPolicy = overflowPolicy;
         this.sendersSync = overflowPolicy == OverflowPolicy.BLOCK ? new SimpleConditionSynchronizer(this) : null;
+        this.singleProducer = singleProducer;
+        this.singleConsumer = singleConsumer;
     }
 
     @Override
@@ -67,6 +76,18 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
     public int capacity() {
         return queue.capacity();
+    }
+
+    public boolean isSingleProducer() {
+        return singleProducer;
+    }
+
+    public boolean isSingleConsumer() {
+        return singleConsumer;
+    }
+
+    public OverflowPolicy getOverflowPolicy() {
+        return overflowPolicy;
     }
 
     protected Condition sync() {

@@ -46,6 +46,10 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
     public TransferChannel() {
     }
 
+    public int capacity() {
+        return 0;
+    }
+
     @Override
     public boolean equals(Object other) {
         if (other instanceof DelegatingEquals)
