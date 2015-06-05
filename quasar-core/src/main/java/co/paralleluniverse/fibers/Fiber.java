@@ -72,7 +72,7 @@ import com.esotericsoftware.kryo.serializers.FieldSerializer;
  */
 public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
     static final boolean USE_VAL_FOR_RESULT = true;
-    private static final boolean verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
+    static final boolean verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
     private static final ClassContext classContext = verifyInstrumentation ? new ClassContext() : null;
     private static final boolean traceInterrupt = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.traceInterrupt");
     private static final boolean disableAgentWarning = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.disableAgentWarning");
@@ -1569,15 +1569,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private static Fiber verifySuspend() {
-        final Fiber current = verifyCurrent();
-        if (verifyInstrumentation)
-            checkInstrumentation();
-        return current;
+        return verifySuspend(verifyCurrent());
     }
 
     static Fiber verifySuspend(Fiber current) {
+        return verifySuspend(current, false);
+    }
+
+    static Fiber verifySuspend(Fiber current, boolean exc) {
         if (verifyInstrumentation)
-            checkInstrumentation();
+            checkInstrumentation(exc);
         return current;
     }
 
@@ -1596,8 +1597,19 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return current;
     }
 
-    @SuppressWarnings("null")
     public static boolean checkInstrumentation() {
+        return checkInstrumentation(false);
+    }
+
+    private static String sourceLineToDesc(int sourceLine) {
+        if (sourceLine == -1)
+            return "UNKNOWN";
+        else
+            return Integer.toString(sourceLine);
+    }
+
+    @SuppressWarnings("null")
+    public static boolean checkInstrumentation(boolean exc) {
         assert verifyInstrumentation;
 
         StackTraceElement[] stes = Thread.currentThread().getStackTrace();
@@ -1605,6 +1617,22 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         boolean notInstrumented = false;
         StringBuilder stackTrace = null;
+
+        if (exc) {
+            final Stack fiberStack = Stack.getStack();
+            if (fiberStack != null) {
+                final java.util.Stack<Stack.TraceLine> fiberStackTrace = fiberStack.getTrace();
+                if (fiberStackTrace != null) {
+                    System.err.println("WARNING: instrumentation verification is being called in the context of a catched exception. This is the fiber stack trace as captured by fiber stack's 'pushMethod', check for missing lines in your original exception stacktrace, they'll most probably be uninstrumented call sites! Check all relevant suspendable-supers and SuspendableClassifier services.");
+                    final Stack.TraceLine[] t = fiberStackTrace.toArray(new Stack.TraceLine[]{});
+                    for(int i = t.length - 1; i >= 0; i--) {
+                        final Stack.TraceLine l = t[i];
+                        System.err.println("\t" + l.method + " (line " + sourceLineToDesc(l.line) + ")");
+                    }
+                }
+            }
+        }
+        
 
         for (int i = 0, k = 0; i < stes.length; i++, k++) {
             final StackTraceElement ste = stes[i];

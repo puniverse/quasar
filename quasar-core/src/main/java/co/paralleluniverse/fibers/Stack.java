@@ -45,6 +45,9 @@ public final class Stack implements Serializable {
     private long[] dataLong;        // holds primitives on stack as well as each method's entry point and the stack pointer
     private Object[] dataObject;    // holds refs on stack
 
+    // Used only in Fiber.checkInstrumentation
+    private final java.util.Stack<TraceLine> trace = Fiber.verifyInstrumentation ? new java.util.Stack<TraceLine>() : null;
+
     Stack(Fiber fiber, int stackSize) {
         if (stackSize <= 0)
             throw new IllegalArgumentException("stackSize");
@@ -117,15 +120,25 @@ public final class Stack implements Serializable {
         return false;
     }
 
+    // Compatibility with previously instrumented code
+    public final void pushMethod(int entry, int numSlots) {
+        pushMethod(entry, numSlots, "UNKNOWN", -1);
+    }
+
     /**
      * Called before a method is called.
      *
-     * @param entry    the entry point in the method for resume
-     * @param numSlots the number of required stack slots for storing the state
+     * @param entry      the entry point in the method for resume
+     * @param numSlots   the number of required stack slots for storing the state
+     * @param method     the suspendable call site invoking method name
+     * @param sourceLine the suspendable call site invoking line number
      */
-    public final void pushMethod(int entry, int numSlots) {
+    public final void pushMethod(int entry, int numSlots, String method, int sourceLine) {
         shouldVerifyInstrumentation = false;
         pushed = true;
+
+        if (trace != null)
+            trace.push(new TraceLine(method, sourceLine));
 
         int idx = sp - FRAME_RECORD_SIZE;
         long record = dataLong[idx];
@@ -144,20 +157,18 @@ public final class Stack implements Serializable {
 //            dataLong[nextMethodIdx + i] = 0L;
 
         if (fiber.isRecordingLevel(2))
-            fiber.record(2, "Stack", "pushMethod     ", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
+            fiber.record(2, "Stack", "pushMethod     ", "%s %s %s %s %d", Thread.currentThread().getStackTrace()[2], entry, sp, method, sourceLine /*Arrays.toString(fiber.getStackTrace())*/);
     }
 
-    /**
-     * Called at the end of a method.
-     * Undoes the effects of nextMethodEntry() and clears the dataObject[] array
-     * to allow the values to be GCed.
-     */
-    public final void popMethod() {
+    public final void popMethod(boolean catchAll) {
         if (shouldVerifyInstrumentation) {
-            Fiber.verifySuspend(fiber);
+            Fiber.verifySuspend(fiber, catchAll);
             shouldVerifyInstrumentation = false;
         }
         pushed = false;
+
+        if (trace != null && !trace.empty())
+            trace.pop();
 
         final int oldSP = sp;
         final int idx = oldSP - FRAME_RECORD_SIZE;
@@ -176,7 +187,25 @@ public final class Stack implements Serializable {
         sp = newSP;
 
         if (fiber.isRecordingLevel(2))
-            fiber.record(2, "Stack", "popMethod      ", "%s %s", Thread.currentThread().getStackTrace()[2], sp /*Arrays.toString(fiber.getStackTrace())*/);
+            fiber.record(2, "Stack", "popMethod      ", "%s %s %s", Thread.currentThread().getStackTrace()[2], sp, catchAll ? "true" : "false" /*Arrays.toString(fiber.getStackTrace())*/);        
+    }
+
+    /**
+     * Called at the return points of a method.
+     * Undoes the effects of nextMethodEntry() and clears the dataObject[] array
+     * to allow the values to be GCed.
+     */
+    public final void popMethod() {
+        popMethod(false);
+    }
+
+    /**
+     * Called at the catch-all clause of an instrumented method.
+     * Undoes the effects of nextMethodEntry() and clears the dataObject[] array
+     * to allow the values to be GCed.
+     */
+    public final void popMethodCatchAll() {
+        popMethod(true);
     }
 
     public final void postRestore() throws SuspendExecution, InterruptedException {
@@ -336,5 +365,25 @@ public final class Stack implements Serializable {
 
     private static long setBit(long word, int offset, boolean value) {
         return setBits(word, offset, 1, value ? 1 : 0);
+    }
+
+    static class TraceLine {
+        final String method;
+        final int line;
+        final boolean pushed;
+        
+        TraceLine(String method, int line, boolean pushed) {
+            this.method = method;
+            this.line = line;
+            this.pushed = pushed;
+        }
+
+        TraceLine(String method, int line) {
+            this(method, line, true);
+        }
+    }
+
+    java.util.Stack<TraceLine> getTrace() {
+        return trace;
     }
 }

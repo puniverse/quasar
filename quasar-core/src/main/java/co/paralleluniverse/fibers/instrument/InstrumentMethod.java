@@ -66,6 +66,7 @@ import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LineNumberNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -129,11 +130,15 @@ class InstrumentMethod {
         final int numIns = mn.instructions.size();
 
         codeBlocks[0] = FrameInfo.FIRST;
+        int currSourceLine = -1;
         for (int i = 0; i < numIns; i++) {
             final Frame f = frames[i];
             if (f != null) { // reachable ?
                 AbstractInsnNode in = mn.instructions.get(i);
-                if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
+                if (in.getType() == AbstractInsnNode.LINE) {
+                    final LineNumberNode lnn = (LineNumberNode) in;
+                    currSourceLine = lnn.line;
+                } else if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
                     Boolean susp = true;
                     if (in.getType() == AbstractInsnNode.METHOD_INSN) {
                         final MethodInsnNode min = (MethodInsnNode) in;
@@ -169,7 +174,7 @@ class InstrumentMethod {
                     }
 
                     if (susp) {
-                        FrameInfo fi = addCodeBlock(f, i);
+                        FrameInfo fi = addCodeBlock(f, i, currSourceLine);
                         splitTryCatch(fi);
                     } else {
                         if (in.getType() == AbstractInsnNode.METHOD_INSN) {// not invokedynamic
@@ -192,7 +197,7 @@ class InstrumentMethod {
                 }
             }
         }
-        addCodeBlock(null, numIns);
+        addCodeBlock(null, numIns, currSourceLine);
 
         return numCodeBlocks > 1;
     }
@@ -297,6 +302,12 @@ class InstrumentMethod {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "isFirstInStackOrPushed", "()Z", false);
         mv.visitJumpInsn(Opcodes.IFNE, lMethodStart); // if true
+
+        // This will reset the fiber stack local if isFirstStack returns false.
+        //
+        // WARNING: if the site call is a yield (park etc.), stack calls (e.g. emitStoreState) will trigger an NPE;
+        // Not inserting assert for bytecode size (inlining and instrumentability) and performance reasons but
+        // verification should point it out.
         mv.visitInsn(Opcodes.ACONST_NULL);
         mv.visitVarInsn(Opcodes.ASTORE, lvarStack);
 
@@ -416,7 +427,7 @@ class InstrumentMethod {
         }
 
         mv.visitLabel(lCatchAll);
-        emitPopMethod(mv);
+        emitPopMethod(mv, true);
         mv.visitLabel(lCatchSEE);
 
         // println(mv, "THROW: ");
@@ -435,13 +446,13 @@ class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "dumpStack", "()V", false);
     }
 
-    private FrameInfo addCodeBlock(Frame f, int end) {
+    private FrameInfo addCodeBlock(Frame f, int end, int sourceLine) {
         if (++numCodeBlocks == codeBlocks.length) {
             FrameInfo[] newArray = new FrameInfo[numCodeBlocks * 2];
             System.arraycopy(codeBlocks, 0, newArray, 0, codeBlocks.length);
             codeBlocks = newArray;
         }
-        FrameInfo fi = new FrameInfo(f, firstLocal, end, mn.instructions, db);
+        FrameInfo fi = new FrameInfo(f, firstLocal, end, sourceLine, mn.instructions, db);
         codeBlocks[numCodeBlocks] = fi;
         return fi;
     }
@@ -522,6 +533,8 @@ class InstrumentMethod {
         }
     }
 
+    // Will emit the block leading to the suspendable call, popping the fiber stack
+    // upon return and finally emitting the suspendable call itself
     private void dumpCodeBlock(MethodVisitor mv, int idx, int skip) {
         int start = codeBlocks[idx].endInstruction;
         int end = codeBlocks[idx + 1].endInstruction;
@@ -535,7 +548,7 @@ class InstrumentMethod {
                 case Opcodes.LRETURN:
                 case Opcodes.FRETURN:
                 case Opcodes.DRETURN:
-                    emitPopMethod(mv);
+                    emitPopMethod(mv, false);
                     break;
 
                 case Opcodes.MONITORENTER:
@@ -594,6 +607,10 @@ class InstrumentMethod {
             mv.visitLdcInsn(value);
     }
 
+    private static void emitConst(MethodVisitor mv, String value) {
+        mv.visitLdcInsn(value);
+    }
+
     private void emitNewAndDup(MethodVisitor mv, Frame frame, int stackIndex, MethodInsnNode min) {
         int arguments = frame.getStackSize() - stackIndex - 1;
         int neededLocals = 0;
@@ -615,7 +632,7 @@ class InstrumentMethod {
         }
     }
 
-    private void emitPopMethod(MethodVisitor mv) {
+    private void emitPopMethod(MethodVisitor mv, boolean inCatchAll) {
 //        emitVerifyInstrumentation(mv);
 
         final Label lbl = new Label();
@@ -625,7 +642,10 @@ class InstrumentMethod {
         }
 
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "popMethod", "()V", false);
+        if (inCatchAll)
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "popMethodCatchAll", "()V", false);
+        else
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "popMethod", "()V", false);
 
         if (DUAL)
             mv.visitLabel(lbl);
@@ -645,7 +665,9 @@ class InstrumentMethod {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         emitConst(mv, idx);
         emitConst(mv, fi.numSlots);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "pushMethod", "(II)V", false);
+        emitMethodCoordStringConst(mv);
+        emitConst(mv, fi.sourceLine);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "pushMethod", "(IILjava/lang/String;I)V", false);
 
         // store operand stack
         for (int i = f.getStackSize(); i-- > 0;) {
@@ -685,6 +707,10 @@ class InstrumentMethod {
                     mv.visitInsn(Opcodes.ACONST_NULL);
             }
         }
+    }
+
+    private void emitMethodCoordStringConst(MethodVisitor mv) {
+        emitConst(mv, (className + "#" + mn.name + mn.desc).intern());
     }
 
     private void emitRestoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsPreserved) {
@@ -877,8 +903,9 @@ class InstrumentMethod {
     }
 
     static class FrameInfo {
-        static final FrameInfo FIRST = new FrameInfo(null, 0, 0, null, null);
+        static final FrameInfo FIRST = new FrameInfo(null, 0, 0, -1, null, null);
         final int endInstruction;
+        final int sourceLine;
         final int numSlots;
         final int numObjSlots;
         final int[] localSlotIndices;
@@ -886,8 +913,9 @@ class InstrumentMethod {
         BlockLabelNode lBefore;
         BlockLabelNode lAfter;
 
-        FrameInfo(Frame f, int firstLocal, int endInstruction, InsnList insnList, MethodDatabase db) {
+        FrameInfo(Frame f, int firstLocal, int endInstruction, int sourceLine, InsnList insnList, MethodDatabase db) {
             this.endInstruction = endInstruction;
+            this.sourceLine = sourceLine;
 
             int idxObj = 0;
             int idxPrim = 0;

@@ -149,7 +149,7 @@ public class InstrumentClass extends ClassVisitor {
 
         if (checkAccess(access) && !isYieldMethod(className, name)) {
             if (methods == null)
-                methods = new ArrayList<MethodNode>();
+                methods = new ArrayList<>();
             final MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
 
             // look for @Suspendable or @DontInstrument annotation
