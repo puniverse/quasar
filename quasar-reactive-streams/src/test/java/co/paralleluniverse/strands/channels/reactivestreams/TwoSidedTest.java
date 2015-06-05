@@ -21,8 +21,10 @@ import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import org.reactivestreams.Publisher;
 import org.testng.annotations.*;
+import static org.testng.Assert.*;
 
 public class TwoSidedTest {
     private static final long ELEMENTS = 10_000;
@@ -54,12 +56,11 @@ public class TwoSidedTest {
     }
 
     @Test
-    public void testNothing() throws Exception {
+    public void twoSidedTest() throws Exception {
         final Channel<Integer> publisherChannel = Channels.newChannel(random() ? 0 : 5, OverflowPolicy.BLOCK);
         final Strand publisherStrand = new Fiber<Void>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                // we only emit up to 100K elements or 100ms, the later of the two (the TCK asks for 2^31-1)
                 for (long i = 0; i < ELEMENTS; i++)
                     publisherChannel.send((int) (i % 1000));
                 
@@ -72,25 +73,23 @@ public class TwoSidedTest {
         final Strand subscriberStrand = new Fiber<Void>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                // we only emit up to 100K elements or 100ms, the later of the two (the TCK asks for 2^31-1)
                 long count = 0;
                 for (;;) {
                     Integer x = subscriberChannel.receive();
                     if (x == null)
                         break;
-                    if (x != count % 1000)
-                        throw new AssertionError();
+                    
+                    assertEquals(count % 1000, x.longValue());
                     count++;
                 }
                 subscriberChannel.close();
 
-                if (count != ELEMENTS)
-                    throw new AssertionError();
+                assertEquals(ELEMENTS, count);
             }
         }).start();
 
-        publisherStrand.join();
-        subscriberStrand.join();
+        subscriberStrand.join(5, TimeUnit.SECONDS);
+        publisherStrand.join(5, TimeUnit.SECONDS);
     }
     
     private boolean random() {
