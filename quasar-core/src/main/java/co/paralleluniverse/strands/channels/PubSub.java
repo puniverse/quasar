@@ -32,9 +32,4 @@ interface PubSub<Message> extends SendPort<Message> {
      * @param sub the channel to subscribe
      */
     public void unsubscribe(SendPort<? super Message> sub);
-
-    /**
-     * Unsubscribe all channels from this topic.
-     */
-    public void unsubscribeAll();
 }
