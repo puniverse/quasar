@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
  * @author Doug Lea
  * @author pron
  */
-public class TransferChannel<Message> implements Channel<Message>, Selectable<Message>, Synchronization {
+public class TransferChannel<Message> implements StandardChannel<Message>, Selectable<Message>, Synchronization {
     private Throwable closeException;
     private volatile boolean sendClosed;
     private boolean receiveClosed;
@@ -46,8 +46,19 @@ public class TransferChannel<Message> implements Channel<Message>, Selectable<Me
     public TransferChannel() {
     }
 
-    public int capacity() {
+    @Override
+    public final int capacity() {
         return 0;
+    }
+
+    @Override
+    public boolean isSingleProducer() {
+        return false;
+    }
+
+    @Override
+    public boolean isSingleConsumer() {
+        return false;
     }
 
     @Override

@@ -37,7 +37,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public abstract class QueueChannel<Message> implements Channel<Message>, Selectable<Message>, Synchronization, java.io.Serializable {
+public abstract class QueueChannel<Message> implements StandardChannel<Message>, Selectable<Message>, Synchronization, java.io.Serializable {
     private static final int MAX_SEND_RETRIES = 10;
     
     final BasicQueue<Message> queue;
@@ -74,14 +74,17 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         return super.equals(other);
     }
 
+    @Override
     public int capacity() {
         return queue.capacity();
     }
 
+    @Override
     public boolean isSingleProducer() {
         return singleProducer;
     }
 
+    @Override
     public boolean isSingleConsumer() {
         return singleConsumer;
     }
