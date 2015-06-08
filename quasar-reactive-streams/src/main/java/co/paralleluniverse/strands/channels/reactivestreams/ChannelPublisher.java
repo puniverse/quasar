@@ -43,16 +43,21 @@ class ChannelPublisher<T> implements Publisher<T> {
             throw new NullPointerException(); // #1.9
         try {
             if (subscribed != null && !subscribed.compareAndSet(false, true))
-                s.onError(new RuntimeException("already subscribed"));
+                throw new RuntimeException("already subscribed");
             else
                 ff.newFiber(newChannelSubscription(s, channel)).start();
         } catch (Exception e) {
-            s.onError(e);
+            failedSubscribe(s, e);
         }
     }
 
+    protected void failedSubscribe(Subscriber<? super T> s, Throwable t) {
+        s.onSubscribe(newChannelSubscription(s, channel));
+        s.onError(t);
+    }
+
     protected ChannelSubscription<T> newChannelSubscription(Subscriber<? super T> s, Object channel) {
-        return new ChannelSubscription<>(s, (ReceivePort<T>)channel);
+        return new ChannelSubscription<>(s, (ReceivePort<T>) channel);
     }
 
     private static final FiberFactory defaultFiberFactory = new FiberFactory() {

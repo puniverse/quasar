@@ -51,11 +51,15 @@ class ChannelSubscriber<T> implements Subscriber<T>, ReceivePort<T> {
         if (s == null)
             throw new NullPointerException(); // #2.13
         if (subscription != null)             // #2.5 TODO: concurrency?
-            s.cancel();
+            failedSubscribe(s);
         else {
             this.subscription = s;
             subscription.request(capacity);
         }
+    }
+
+    protected void failedSubscribe(Subscription s) {
+        s.cancel();
     }
 
     @Override

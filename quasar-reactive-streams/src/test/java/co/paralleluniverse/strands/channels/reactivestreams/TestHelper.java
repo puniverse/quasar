@@ -17,6 +17,9 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.SendPort;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 
 public class TestHelper {
     public static <T extends SendPort<Integer>> T startPublisherFiber(final T s, final long delay, final long elements) {
@@ -53,5 +56,23 @@ public class TestHelper {
             }
         }).start();
         return s;
+    }
+    
+    public static <T> Publisher<T> createDummyFailedPublisher() {
+        return new Publisher<T>() {
+            @Override
+            public void subscribe(Subscriber<? super T> s) {
+                s.onSubscribe(new Subscription() {
+                    @Override
+                    public void request(long n) {
+                    }
+
+                    @Override
+                    public void cancel() {
+                    }
+                });
+                s.onError(new RuntimeException("Can't subscribe subscriber: " + s + ", because of reasons."));
+            }
+        };
     }
 }
