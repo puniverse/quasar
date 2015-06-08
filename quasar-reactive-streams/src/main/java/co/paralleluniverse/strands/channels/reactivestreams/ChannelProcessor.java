@@ -96,6 +96,7 @@ class ChannelProcessor<T, R> implements Processor<T, R> {
                 } catch (Throwable t) {
                     out.close(t);
                 }
+                in.close();
                 return null;
             }
         }).start();
