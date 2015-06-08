@@ -57,6 +57,7 @@ import static co.paralleluniverse.fibers.instrument.MethodDatabase.isReflectInvo
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isSyntheticAccess;
 import java.util.List;
 import java.util.Map;
+import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -91,6 +92,7 @@ class InstrumentMethod {
 //  private static final String INTERRUPTED_EXCEPTION_NAME = Type.getInternalName(InterruptedException.class);
     private static final boolean DUAL = true; // true if suspendable methods can be called from regular threads in addition to fibers
     private final MethodDatabase db;
+    private final String sourceName;
     private final String className;
     private final MethodNode mn;
     private final Frame[] frames;
@@ -108,8 +110,9 @@ class InstrumentMethod {
     private int warnedAboutBlocking;
     private boolean hasSuspendableSuperCalls;
 
-    public InstrumentMethod(MethodDatabase db, String className, MethodNode mn) throws AnalyzerException {
+    public InstrumentMethod(MethodDatabase db, String sourceName, String className, MethodNode mn) throws AnalyzerException {
         this.db = db;
+        this.sourceName = sourceName;
         this.className = className;
         this.mn = mn;
 
@@ -139,7 +142,7 @@ class InstrumentMethod {
                     final LineNumberNode lnn = (LineNumberNode) in;
                     currSourceLine = lnn.line;
                 } else if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
-                    Boolean susp = true;
+                    boolean susp = true;
                     if (in.getType() == AbstractInsnNode.METHOD_INSN) {
                         final MethodInsnNode min = (MethodInsnNode) in;
                         int opcode = min.getOpcode();
@@ -205,7 +208,8 @@ class InstrumentMethod {
     public void accept(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
 
-        mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
+        emitInstrumentedAnn(mv);
+
         final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS & hasSuspendableSuperCalls;
         mv.visitCode();
 
@@ -427,7 +431,7 @@ class InstrumentMethod {
         }
 
         mv.visitLabel(lCatchAll);
-        emitPopMethod(mv, true);
+        emitPopMethod(mv);
         mv.visitLabel(lCatchSEE);
 
         // println(mv, "THROW: ");
@@ -440,6 +444,17 @@ class InstrumentMethod {
 
         mv.visitMaxs(mn.maxStack + ADD_OPERANDS, mn.maxLocals + NUM_LOCALS + additionalLocals);
         mv.visitEnd();
+    }
+
+    private void emitInstrumentedAnn(MethodVisitor mv) {
+        final AnnotationVisitor instrumentedAV = mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
+        final AnnotationVisitor linesAV = instrumentedAV.visitArray("suspendableCallsites");
+        // Skip START frameInfo
+        for(int i = 1; i < codeBlocks.length && codeBlocks[i] != null; i++) {
+            linesAV.visit("", codeBlocks[i].sourceLine);
+        }
+        linesAV.visitEnd();
+        instrumentedAV.visitEnd();
     }
 
     private void dumpStack(MethodVisitor mv) {
@@ -548,7 +563,7 @@ class InstrumentMethod {
                 case Opcodes.LRETURN:
                 case Opcodes.FRETURN:
                 case Opcodes.DRETURN:
-                    emitPopMethod(mv, false);
+                    emitPopMethod(mv);
                     break;
 
                 case Opcodes.MONITORENTER:
@@ -632,7 +647,7 @@ class InstrumentMethod {
         }
     }
 
-    private void emitPopMethod(MethodVisitor mv, boolean inCatchAll) {
+    private void emitPopMethod(MethodVisitor mv) {
 //        emitVerifyInstrumentation(mv);
 
         final Label lbl = new Label();
@@ -642,10 +657,7 @@ class InstrumentMethod {
         }
 
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        if (inCatchAll)
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "popMethodCatchAll", "()V", false);
-        else
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "popMethod", "()V", false);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "popMethod", "()V", false);
 
         if (DUAL)
             mv.visitLabel(lbl);
@@ -665,9 +677,7 @@ class InstrumentMethod {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         emitConst(mv, idx);
         emitConst(mv, fi.numSlots);
-        emitMethodCoordStringConst(mv);
-        emitConst(mv, fi.sourceLine);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "pushMethod", "(IILjava/lang/String;I)V", false);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "pushMethod", "(II)V", false);
 
         // store operand stack
         for (int i = f.getStackSize(); i-- > 0;) {
@@ -707,10 +717,6 @@ class InstrumentMethod {
                     mv.visitInsn(Opcodes.ACONST_NULL);
             }
         }
-    }
-
-    private void emitMethodCoordStringConst(MethodVisitor mv) {
-        emitConst(mv, (className + "#" + mn.name + mn.desc).intern());
     }
 
     private void emitRestoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsPreserved) {

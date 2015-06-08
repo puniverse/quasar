@@ -152,13 +152,13 @@ public class InstrumentClass extends ClassVisitor {
                 methods = new ArrayList<>();
             final MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
 
-            // look for @Suspendable or @DontInstrument annotation
             return new MethodVisitor(ASMAPI, mn) {
                 private SuspendableType susp = suspendable;
                 private boolean commited = false;
 
                 @Override
                 public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
+                    // look for @Suspendable or @DontInstrument annotation
                     if (adesc.equals(ANNOTATION_DESC))
                         susp = SuspendableType.SUSPENDABLE;
                     else if (adesc.equals(DONT_INSTRUMENT_ANNOTATION_DESC))
@@ -235,14 +235,14 @@ public class InstrumentClass extends ClassVisitor {
                     mn.accept(makeOutMV(mn));
             } else {
                 if (!alreadyInstrumented) {
-                    super.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
+                    emitInstrumentedAnn();
                     classEntry.setInstrumented(true);
                 }
 
                 for (MethodNode mn : methods) {
                     final MethodVisitor outMV = makeOutMV(mn);
                     try {
-                        InstrumentMethod im = new InstrumentMethod(db, className, mn);
+                        InstrumentMethod im = new InstrumentMethod(db, sourceName, className, mn);
                         if (db.isDebug())
                             db.log(LogLevel.INFO, "About to instrument method %s#%s%s", className, mn.name, mn.desc);
 
@@ -266,12 +266,17 @@ public class InstrumentClass extends ClassVisitor {
             if (!alreadyInstrumented && classEntry.getSuperName() != null) {
                 ClassEntry superClass = db.getClassEntry(classEntry.getSuperName());
                 if (superClass != null && superClass.isInstrumented()) {
-                    super.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
+                    emitInstrumentedAnn();
                     classEntry.setInstrumented(true);
                 }
             }
         }
         super.visitEnd();
+    }
+
+    private void emitInstrumentedAnn() {
+        final AnnotationVisitor instrumentedAV = visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
+        instrumentedAV.visitEnd();
     }
 
     private boolean hasAnnotation(MethodNode mn) {
