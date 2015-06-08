@@ -36,7 +36,7 @@ import org.objectweb.asm.util.TraceClassVisitor;
  */
 public final class QuasarInstrumentor {
     public static final int ASMAPI = Opcodes.ASM5;
-    private final static String EXAMINED_CLASS = null; // "co/paralleluniverse/fibers/instrument/ReflectionInvokeTest";
+    private final static String EXAMINED_CLASS = System.getProperty("co.paralleluniverse.fibers.writeInstrumentedClassesStartingWith");
     private static final boolean allowJdkInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.allowJdkInstrumentation");
     private final MethodDatabase db;
     private boolean check;
