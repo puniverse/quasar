@@ -16,8 +16,6 @@ package co.paralleluniverse.strands.channels.reactivestreams;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.strands.SuspendableCallable;
-import co.paralleluniverse.strands.channels.Channel;
-import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.reactivestreams.Publisher;
@@ -45,49 +43,21 @@ class ChannelPublisher<T> implements Publisher<T> {
             throw new NullPointerException(); // #1.9
         try {
             if (subscribed != null && !subscribed.compareAndSet(false, true))
-                s.onError(new RuntimeException("already subscribed"));
+                throw new RuntimeException("already subscribed");
             else
                 ff.newFiber(newChannelSubscription(s, channel)).start();
         } catch (Exception e) {
-            s.onError(e);
+            failedSubscribe(s, e);
         }
+    }
+
+    protected void failedSubscribe(Subscriber<? super T> s, Throwable t) {
+        s.onSubscribe(newChannelSubscription(s, channel));
+        s.onError(t);
     }
 
     protected ChannelSubscription<T> newChannelSubscription(Subscriber<? super T> s, Object channel) {
-        return new ChannelSubscription<>(s, (ReceivePort<T>)channel);
-    }
-
-    public static <T> Publisher<T> toPublisher(final ReceivePort<T> channel, final FiberFactory ff) {
-        if (Channels.isTickerChannel(channel)) {
-            return new Publisher<T>() {
-                @Override
-                public void subscribe(Subscriber<? super T> s) {
-                    try {
-                        ff.newFiber(new ChannelSubscription<>(s, Channels.newTickerConsumerFor((Channel<T>) channel))).start();
-                    } catch (Exception e) {
-                        s.onError(e);
-                    }
-                }
-            };
-        } else {
-            return new Publisher<T>() {
-                private final AtomicBoolean subscribed = new AtomicBoolean();
-
-                @Override
-                public void subscribe(Subscriber<? super T> s) {
-                    if (s == null)
-                        throw new NullPointerException();
-                    try {
-                        if (!subscribed.compareAndSet(false, true))
-                            s.onError(new RuntimeException("already subscribed"));
-                        else
-                            ff.newFiber(new ChannelSubscription<>(s, channel)).start();
-                    } catch (Exception e) {
-                        s.onError(e);
-                    }
-                }
-            };
-        }
+        return new ChannelSubscription<>(s, (ReceivePort<T>) channel);
     }
 
     private static final FiberFactory defaultFiberFactory = new FiberFactory() {

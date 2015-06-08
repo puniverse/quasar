@@ -68,7 +68,6 @@ public class Topic<Message> implements PubSub<Message> {
         subscribers.remove(sub);
     }
 
-    @Override
     public void unsubscribeAll() {
         subscribers.clear();
     }

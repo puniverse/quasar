@@ -14,11 +14,14 @@
 package co.paralleluniverse.strands.channels.reactivestreams;
 
 import co.paralleluniverse.fibers.FiberFactory;
+import co.paralleluniverse.strands.SuspendableAction2;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.channels.ReceivePort;
+import co.paralleluniverse.strands.channels.SendPort;
 import co.paralleluniverse.strands.channels.Topic;
+import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
@@ -30,7 +33,7 @@ public class ReactiveStreams {
     /**
      * Subscribes to a given {@link Publisher} and return a {@link ReceivePort} to the subscription.
      * This creates an internal <b>single consumer</b> channel that will receive the published elements.
-     * 
+     *
      * @param bufferSize the size of the buffer of the internal channel; may be {@code -1} for unbounded, but may not be {@code 0})
      * @param policy     the {@link OverflowPolicy} of the internal channel.
      * @param batch      if the channel has a bounded buffer, whether to request further elements from the publisher in batches
@@ -144,5 +147,48 @@ public class ReactiveStreams {
      */
     public static <T> Publisher<T> toPublisher(Topic<T> topic) {
         return toPublisher(topic, null);
+    }
+
+    /**
+     * Turns a {@link Channels#fiberTransform(ReceivePort, SendPort, SuspendableAction2) transformer} into a {@link Publisher}.
+     * The transformer will run in its own fiber.
+     *
+     * @param <T>         the type of elements flowing into the transformer
+     * @param <R>         the type of elements flowing out of the transformer
+     * @param ff          the {@link FiberFactory} to create the internal fiber(s); if {@code null} then a default factory is used.
+     * @param bufferSize  the size of the buffer of the internal channel; may be {@code -1} for unbounded, but may not be {@code 0})
+     * @param policy      the {@link OverflowPolicy} of the internal channel.
+     * @param batch       if the channel has a bounded buffer, whether to request further elements from the publisher in batches
+     *                    whenever the channel's buffer is depleted, or after consuming each element.
+     * @param transformer a function that reads from it's input channel and writes to its output channel
+     * @return a {@code Processor} running the given transformer.
+     */
+    public static <T, R> Processor<T, R> toProcessor(FiberFactory ff, int bufferSize, OverflowPolicy policy, boolean batch, SuspendableAction2<? extends ReceivePort<? super T>, ? extends SendPort<? extends R>> transformer) {
+        final Channel<T> in = Channels.newChannel(bufferSize, policy, true, true);
+        final Channel<R> out = Channels.newChannel(bufferSize, policy, true, true);
+        return new ChannelProcessor<T, R>(ff, batch, in, out, transformer);
+    }
+
+    /**
+     * Turns a {@link Channels#fiberTransform(ReceivePort, SendPort, SuspendableAction2) transformer} into a {@link Publisher}.
+     * The transformer will run in its own fiber.
+     * <p>
+     * Same as calling 
+     * {@link #toProcessor(FiberFactory, int, OverflowPolicy, boolean, SuspendableAction2) toProcessor(null, bufferSize, policy, false, transformer)
+     *
+     * @param <T>         the type of elements flowing into the transformer
+     * @param <R>         the type of elements flowing out of the transformer
+     * @param ff          the {@link FiberFactory} to create the internal fiber(s); if {@code null} then a default factory is used.
+     * @param bufferSize  the size of the buffer of the internal channel; may be {@code -1} for unbounded, but may not be {@code 0})
+     * @param policy      the {@link OverflowPolicy} of the internal channel.
+     * @param batch       if the channel has a bounded buffer, whether to request further elements from the publisher in batches
+     *                    whenever the channel's buffer is depleted, or after consuming each element.
+     * @param transformer a function that reads from it's input channel and writes to its output channel
+     * @return a {@code Processor} running the given transformer.
+     */
+    public static <T, R> Processor<T, R> toProcessor(int bufferSize, OverflowPolicy policy, SuspendableAction2<? extends ReceivePort<? super T>, ? extends SendPort<? extends R>> transformer) {
+        final Channel<T> in = Channels.newChannel(bufferSize, policy, true, true);
+        final Channel<R> out = Channels.newChannel(bufferSize, policy, true, true);
+        return new ChannelProcessor<T, R>(null, false, in, out, transformer);
     }
 }
