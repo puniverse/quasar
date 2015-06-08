@@ -13,3 +13,4 @@ private/
 .gradle/
 .nb-gradle-properties
 .bdb/
+log4j.xml
