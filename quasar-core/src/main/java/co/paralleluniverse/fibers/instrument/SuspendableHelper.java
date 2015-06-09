@@ -35,80 +35,47 @@ public final class SuspendableHelper {
     }
 
     public static boolean isInstrumented(Class clazz) {
-        // Easy, we're given the class.
         return clazz.isAnnotationPresent(Instrumented.class);
     }
 
-    public static boolean isInstrumented(Class clazz, String methodName) {
-        if (clazz == null)
-            return false;
+    public static Method lookupMethod(Class clazz, String methodName, int sourceLine) {
+        if (clazz == null || methodName == null)
+            return null;
 
-        // TODO Fix method identification.
-        // TODO Then fix "any match ok" logic.
-
-        if (isInstrumented(clazz.getMethods(), methodName))
-            return true;
-        if (isInstrumented(clazz.getDeclaredMethods(), methodName))
-            return true;
-        return isInstrumented(clazz.getSuperclass(), methodName);
-    }
-
-
-    private static boolean isInstrumented(Method[] methods, String methodName) {
-        // TODO Fix method identification.
-        // TODO Then fix "any match ok" logic.
-
-        for (Method m : methods) {
-            if (methodName.equals(m.getName()) && isInstrumented(m))
-                return true;
+        for(Method m : clazz.getDeclaredMethods()) {
+            if (m.getName().equals(methodName)) {
+                Instrumented i = m.getAnnotation(Instrumented.class);
+                if (isWaiver(m.getDeclaringClass().getName(), m.getName()) || i != null && sourceLine >= i.methodStart() && sourceLine <= i.methodEnd())
+                    return m;
+            }
         }
-        return false;
+        return null;
     }
 
-    public static Pair<Boolean, int[]> isCallSiteInstrumented(StackTraceElement[] stes, int currentSteIdx, Class clazz, String methodName, int lineNumber) {
-        if (clazz == null)
-            return new Pair(false, null);
+    public static Pair<Boolean, int[]> isCallSiteInstrumented(Method m, int sourceLine, StackTraceElement[] stes, int currentSteIdx) {
+        if (m == null)
+            return new Pair<>(false, null);
 
         StackTraceElement ste = stes[currentSteIdx];
         if (currentSteIdx - 1 >= 0
             &&
             ((stes[currentSteIdx - 1].getClassName().equals(Fiber.class.getName()) && stes[currentSteIdx - 1].getMethodName().equals("verifySuspend"))
              || (stes[currentSteIdx - 1].getClassName().equals(Stack.class.getName()) && stes[currentSteIdx - 1].getMethodName().equals("popMethod")))) {
-            //  (f.e.) FiberAsync calls directly "verifySuspend" and calls to "popMethod" (which calls verifySuspend) are checking correctly only call sites
-            // below this frame (because the "popMethod" call at the exit of an instrumented method is not a suspendable call site).
-            return new Pair(true, null);
-        }
-            
-        // TODO Fix method identification.
-        // TODO Then fix "any match ok" logic.
-
-        Pair<Boolean, int[]> methodsRes = isCallSiteInstrumented(clazz.getMethods(), methodName, lineNumber);
-        if (methodsRes.getFirst())
-            return methodsRes;
-        Pair<Boolean, int[]> declaredMethodsRes = isCallSiteInstrumented(clazz.getDeclaredMethods(), methodName, lineNumber);
-        if (declaredMethodsRes.getFirst())
-            return declaredMethodsRes;
-        return isCallSiteInstrumented(stes, currentSteIdx, clazz.getSuperclass(), methodName, lineNumber);
-    }
-    
-    private static Pair<Boolean, int[]>  isCallSiteInstrumented(Method[] methods, String methodName, int lineNumber) {
-        // TODO Fix method identification.
-        // TODO Then fix "any match ok" logic.
-
-        for (Method m : methods) {
-            if (methodName.equals(m.getName())) {
-                Instrumented i = m.getAnnotation(Instrumented.class);
-                if (i != null) {
-                    for(int j : i.suspendableCallsites()) {
-                        if (j == lineNumber)
-                            return new Pair<>(true, i.suspendableCallsites());
-                    }
+            //  "verifySuspend" and "popMethod" calls are not suspendable call sites, not verifying them.
+            return new Pair<>(true, null);
+        } else {
+            Instrumented i = m.getAnnotation(Instrumented.class);
+            if (i != null) {
+                for(int j : i.suspendableCallsites()) {
+                    if (j == sourceLine)
+                        return new Pair<>(true, i.suspendableCallsites());
                 }
             }
         }
+            
         return new Pair<>(false, null);
     }
-
+    
     public static boolean isInstrumented(Method method) {
         return method.getAnnotation(Instrumented.class) != null;
     }

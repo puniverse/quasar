@@ -109,6 +109,9 @@ class InstrumentMethod {
     private boolean warnedAboutMonitors;
     private int warnedAboutBlocking;
     private boolean hasSuspendableSuperCalls;
+    private int startSourceLine = -1;
+    private int endSourceLine = -1;
+
 
     public InstrumentMethod(MethodDatabase db, String sourceName, String className, MethodNode mn) throws AnalyzerException {
         this.db = db;
@@ -140,6 +143,8 @@ class InstrumentMethod {
                 AbstractInsnNode in = mn.instructions.get(i);
                 if (in.getType() == AbstractInsnNode.LINE) {
                     final LineNumberNode lnn = (LineNumberNode) in;
+                    if (startSourceLine == -1)
+                        startSourceLine = lnn.line;
                     currSourceLine = lnn.line;
                 } else if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
                     boolean susp = true;
@@ -200,7 +205,8 @@ class InstrumentMethod {
                 }
             }
         }
-        addCodeBlock(null, numIns, currSourceLine);
+        endSourceLine = currSourceLine;
+        addCodeBlock(null, numIns, null);
 
         return numCodeBlocks > 1;
     }
@@ -451,9 +457,13 @@ class InstrumentMethod {
         final AnnotationVisitor linesAV = instrumentedAV.visitArray("suspendableCallsites");
         // Skip START frameInfo
         for(int i = 1; i < codeBlocks.length && codeBlocks[i] != null; i++) {
-            linesAV.visit("", codeBlocks[i].sourceLine);
+            FrameInfo f = codeBlocks[i];
+            if (f.suspendableCallSourceLine != null)
+                linesAV.visit("", codeBlocks[i].suspendableCallSourceLine);
         }
         linesAV.visitEnd();
+        instrumentedAV.visit("methodStart", startSourceLine);
+        instrumentedAV.visit("methodEnd", endSourceLine);
         instrumentedAV.visitEnd();
     }
 
@@ -461,13 +471,13 @@ class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "dumpStack", "()V", false);
     }
 
-    private FrameInfo addCodeBlock(Frame f, int end, int sourceLine) {
+    private FrameInfo addCodeBlock(Frame f, int end, Integer endSourceLine) {
         if (++numCodeBlocks == codeBlocks.length) {
             FrameInfo[] newArray = new FrameInfo[numCodeBlocks * 2];
             System.arraycopy(codeBlocks, 0, newArray, 0, codeBlocks.length);
             codeBlocks = newArray;
         }
-        FrameInfo fi = new FrameInfo(f, firstLocal, end, sourceLine, mn.instructions, db);
+        FrameInfo fi = new FrameInfo(f, firstLocal, end, endSourceLine, mn.instructions, db);
         codeBlocks[numCodeBlocks] = fi;
         return fi;
     }
@@ -911,17 +921,17 @@ class InstrumentMethod {
     static class FrameInfo {
         static final FrameInfo FIRST = new FrameInfo(null, 0, 0, -1, null, null);
         final int endInstruction;
-        final int sourceLine;
         final int numSlots;
         final int numObjSlots;
         final int[] localSlotIndices;
         final int[] stackSlotIndices;
         BlockLabelNode lBefore;
         BlockLabelNode lAfter;
+        final Integer suspendableCallSourceLine;
 
-        FrameInfo(Frame f, int firstLocal, int endInstruction, int sourceLine, InsnList insnList, MethodDatabase db) {
+        FrameInfo(Frame f, int firstLocal, int endInstruction, Integer suspendableCallSourceLine, InsnList insnList, MethodDatabase db) {
             this.endInstruction = endInstruction;
-            this.sourceLine = sourceLine;
+            this.suspendableCallSourceLine = suspendableCallSourceLine;
 
             int idxObj = 0;
             int idxPrim = 0;

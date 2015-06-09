@@ -10,7 +10,8 @@ import java.lang.annotation.Target;
  * It must never be used in Java source code.
  * 
  * It optionally contains the coordinates within a method of instrumented
- * call sites (for verification during development, if enabled).
+ * call sites and the source position of the method itself (both for
+ * verification, if enabled).
  *
  * @author Matthias Mann
  */
@@ -19,4 +20,6 @@ import java.lang.annotation.Target;
 public @interface Instrumented {
     // Relevant only for methods
     int[] suspendableCallsites() default {};
+    int methodStart() default -1;
+    int methodEnd() default -1;
 }

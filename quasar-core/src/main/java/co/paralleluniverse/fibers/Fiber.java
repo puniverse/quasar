@@ -1626,38 +1626,41 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             } else if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
                     && !ste.getClassName().equals(Stack.class.getName())) {
                 boolean classInstrumented = SuspendableHelper.isInstrumented(context[k]);
-                boolean methodInstrumented = isSuspendable(context[k], ste.getMethodName());
-                Pair<Boolean, int[]> callSiteInstrumented = isCallSiteInstrumented(stes, i, context[k], ste.getMethodName(), ste.getLineNumber());
-                if (!SuspendableHelper.isWaiver(ste.getClassName(), ste.getMethodName())
-                        && (!classInstrumented || !methodInstrumented || !callSiteInstrumented.getFirst())) {
-                    if (ok) { // So far but not now => initialize error string for past frames
-                        stackTrace = new StringBuilder();
-                        for (int j = 0; j <= i; j++) {
-                            final StackTraceElement ste2 = stes[j];
-                            if (ste2.getClassName().equals(Thread.class.getName()) && ste2.getMethodName().equals("getStackTrace"))
-                                continue;
-                            stackTrace.append("\n\tat ").append(ste2);
+                Method m = SuspendableHelper.lookupMethod(context[k], ste.getMethodName(), ste.getLineNumber());
+                if (m != null) {
+                    boolean methodInstrumented = SuspendableHelper.isInstrumented(m);
+                    Pair<Boolean, int[]> callSiteInstrumented = SuspendableHelper.isCallSiteInstrumented(m, ste.getLineNumber(), stes, i);
+                    if (!SuspendableHelper.isWaiver(ste.getClassName(), ste.getMethodName())
+                            && (!classInstrumented || !methodInstrumented || !callSiteInstrumented.getFirst())) {
+                        if (ok) {
+                            stackTrace = initTrace(stackTrace, i, stes);
                         }
+                        if (!classInstrumented || !methodInstrumented)
+                            stackTrace.append(" **");
+                        else if (!callSiteInstrumented.getFirst())
+                            stackTrace.append(" !! (instrumented suspendable calls at: ")
+                                .append(callSiteInstrumented.getSecond() == null ? "[]" : Arrays.toString(callSiteInstrumented.getSecond()))
+                                .append(")");
+                        // The next problem happens when some function is in the STE but not in the context
+                        // consider fix the skipSTE to fix it
+                        if (!context[k].getName().equals(ste.getClassName())) {
+                            stackTrace.append(" WARN: unreliable verification stacktrace");
+                            stackTrace.append(" (context: '");
+                            stackTrace.append(context[k].getName());
+                            stackTrace.append("')");
+                        }
+                        ok = false;
                     }
-                    if (!classInstrumented || !methodInstrumented)
-                        stackTrace.append(" **");
-                    else if (!callSiteInstrumented.getFirst())
-                        stackTrace.append(" !! (call site line numbers: ")
-                            .append(callSiteInstrumented.getSecond() == null ? "[]" : Arrays.toString(callSiteInstrumented.getSecond()))
-                            .append(")");
-                    // The next problem happens when some function is in the STE but not in the context
-                    // consider fix the skipSTE to fix it
-                    if (!context[k].getName().equals(ste.getClassName())) {
-                        stackTrace.append(" WARN: unreliable verification stacktrace");
-                        stackTrace.append(" (context: '");
-                        stackTrace.append(context[k].getName());
-                        stackTrace.append("')");
+                } else {
+                    if (ok) {
+                        stackTrace = initTrace(stackTrace, i, stes);
                     }
+                    stackTrace.append(" **"); // Methods can only be found via source lines in @Instrumented annotations
                     ok = false;
                 }
             } else if (ste.getClassName().equals(Fiber.class.getName()) && ste.getMethodName().equals("run1")) {
                 if (!ok) {
-                    final String str = "Uninstrumented methods and/or call sites on the call stack (marked resp. with ** and !!): " + stackTrace;
+                    final String str = "Uninstrumented calls or whole methods (or both, marked resp. with '!!' and '**') detected on the call stack: " + stackTrace;
                     if (Debug.isUnitTest())
                         throw new VerifyInstrumentationException(str);
                     System.err.println("WARNING: " + str);
@@ -1668,6 +1671,18 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         throw new IllegalStateException("Not run through Fiber.exec(). (trace: " + Arrays.toString(stes) + ")");
     }
 
+    private static StringBuilder initTrace(StringBuilder stackTrace, int i, StackTraceElement[] stes) {
+        // So far but not now => initialize error string for past frames
+        stackTrace = new StringBuilder();
+        for (int j = 0; j <= i; j++) {
+            final StackTraceElement ste2 = stes[j];
+            if (ste2.getClassName().equals(Thread.class.getName()) && ste2.getMethodName().equals("getStackTrace"))
+                continue;
+            stackTrace.append("\n\tat ").append(ste2);
+        }
+        return stackTrace;
+    }
+
     private static boolean skipSTE(StackTraceElement ste) {
         return (ste.getClassName().startsWith("sun.reflect")
                 || ste.getClassName().equals("java.lang.reflect.Method")
@@ -1676,14 +1691,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     private static boolean skipCTX(Class c) {
         return c.getName().startsWith("java.lang.invoke.");
-    }
-
-    private static boolean isSuspendable(Class clazz, String methodName) {
-        return SuspendableHelper.isInstrumented(clazz, methodName);
-    }
-
-    private static Pair<Boolean, int[]> isCallSiteInstrumented(StackTraceElement[] stes, int currentSteIdx, Class clazz, String methodName, int lineNumber) {
-        return SuspendableHelper.isCallSiteInstrumented(stes, currentSteIdx, clazz, methodName, lineNumber);
     }
 
     @SuppressWarnings("unchecked")
