@@ -73,8 +73,6 @@ import com.esotericsoftware.kryo.serializers.FieldSerializer;
  */
 public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
     static final boolean USE_VAL_FOR_RESULT = true;
-    static final boolean verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
-    private static final ClassContext classContext = verifyInstrumentation ? new ClassContext() : null;
     private static final boolean traceInterrupt = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.traceInterrupt");
     private static final boolean disableAgentWarning = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.disableAgentWarning");
     public static final int DEFAULT_STACK_SIZE = 32;
@@ -85,7 +83,17 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private static final long serialVersionUID = 2783452871536981L;
     protected static final FlightRecorder flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
+    static boolean verifyInstrumentation;
+    private static ClassContext classContext;
+
+    @VisibleForTesting
+    public static void initVerifyInstrumentation() {
+        verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
+        classContext = verifyInstrumentation ? new ClassContext() : null;
+    }
+    
     static {
+        initVerifyInstrumentation();
         if (Debug.isDebug())
             System.err.println("QUASAR WARNING: Debug mode enabled. This may harm performance.");
         if (Debug.isAssertionsEnabled())
