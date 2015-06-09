@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
@@ -21,7 +22,7 @@ import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import java.util.concurrent.ExecutionException;
 import static org.junit.Assert.*;
-import org.junit.Before;
+import static org.junit.Assume.*;
 import org.junit.Test;
 
 /**
@@ -60,13 +61,12 @@ public class VerificationTest {
 
     @Test
     public void testVerification() throws ExecutionException, InterruptedException {
+        assumeTrue(SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation"));
+
         final I1 i1 = new C();
         final I2 i2 = (C) i1;
         
         Throwable t = null;
-
-        System.setProperty("co.paralleluniverse.fibers.verifyInstrumentation", "true");
-        Fiber.initVerifyInstrumentation();
 
         Fiber fUninstrumentedMethod1 = new Fiber(new SuspendableRunnable() { @Override public void run() throws SuspendExecution, InterruptedException {
             try {
@@ -111,9 +111,6 @@ public class VerificationTest {
             t = re.getCause();
         }
         assertTrue(t instanceof VerifyInstrumentationException && t.getMessage().contains(" !! ("));
-
-        System.clearProperty("co.paralleluniverse.fibers.verifyInstrumentation");
-        Fiber.initVerifyInstrumentation();
 
         Fiber<Integer> fOk = new Fiber<>(new SuspendableCallable<Integer>() { @Override public Integer run() throws SuspendExecution, InterruptedException {
             Fiber.sleep(10);
