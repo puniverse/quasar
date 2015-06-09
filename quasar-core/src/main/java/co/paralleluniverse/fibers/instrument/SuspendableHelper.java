@@ -43,20 +43,8 @@ public final class SuspendableHelper {
         if (clazz == null)
             return false;
 
-        // The method name alone doesn't identify a method in the class
-        // (current assumption here).
-        //
-        // We could also have the caller's line number and all the
-        // invoked signatures there (by inspecting bytecode or tailor-made
-        // annotations built during instrumentation) but that could be
-        // insufficient too: think of different overloads called in the
-        // same line).
-        //
-        // The best we can do in this latter case is consider them all
-        // and warn the user that we could be issuing a false alarm.
-
         // TODO Fix method identification.
-        // TODO Fix "any match ok" logic.
+        // TODO Then fix "any match ok" logic.
 
         if (isInstrumented(clazz.getMethods(), methodName))
             return true;
