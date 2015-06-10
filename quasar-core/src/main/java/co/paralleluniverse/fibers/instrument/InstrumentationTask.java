@@ -151,7 +151,7 @@ public class InstrumentationTask extends Task {
                 }
 
                 @Override
-                public void error(String msg, Exception ex) {
+                public void error(String msg, Throwable ex) {
                     InstrumentationTask.this.log("ERROR: " + msg, ex, Project.MSG_ERR);
                 }
             });

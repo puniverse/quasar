@@ -67,7 +67,7 @@ public class BlockingTest {
                 }
             }
 
-            public void error(String msg, Exception ex) {
+            public void error(String msg, Throwable ex) {
                 throw new Error(msg, ex);
             }
         });

@@ -156,7 +156,7 @@ public class MethodDatabase implements Log {
     }
 
     @Override
-    public void error(String msg, Exception ex) {
+    public void error(String msg, Throwable ex) {
         if (log != null)
             log.error(msg, ex);
     }
