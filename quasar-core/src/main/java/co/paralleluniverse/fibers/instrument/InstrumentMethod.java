@@ -112,7 +112,6 @@ class InstrumentMethod {
     private int startSourceLine = -1;
     private int endSourceLine = -1;
 
-
     public InstrumentMethod(MethodDatabase db, String sourceName, String className, MethodNode mn) throws AnalyzerException {
         this.db = db;
         this.sourceName = sourceName;
@@ -143,9 +142,11 @@ class InstrumentMethod {
                 AbstractInsnNode in = mn.instructions.get(i);
                 if (in.getType() == AbstractInsnNode.LINE) {
                     final LineNumberNode lnn = (LineNumberNode) in;
-                    if (startSourceLine == -1)
-                        startSourceLine = lnn.line;
                     currSourceLine = lnn.line;
+                    if (startSourceLine == -1 || currSourceLine < startSourceLine)
+                        startSourceLine = currSourceLine;
+                    if (endSourceLine == -1 || currSourceLine > endSourceLine)
+                        endSourceLine = currSourceLine;
                 } else if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
                     boolean susp = true;
                     if (in.getType() == AbstractInsnNode.METHOD_INSN) {
@@ -205,7 +206,6 @@ class InstrumentMethod {
                 }
             }
         }
-        endSourceLine = currSourceLine;
         addCodeBlock(null, numIns, null);
 
         return numCodeBlocks > 1;
@@ -449,6 +449,7 @@ class InstrumentMethod {
         }
 
         mv.visitMaxs(mn.maxStack + ADD_OPERANDS, mn.maxLocals + NUM_LOCALS + additionalLocals);
+
         mv.visitEnd();
     }
 
@@ -559,7 +560,8 @@ class InstrumentMethod {
     }
 
     // Will emit the block leading to the suspendable call, popping the fiber stack
-    // upon return and finally emitting the suspendable call itself
+    // upon return and finally emitting the suspendable call itself. It returns the
+    // highest sourceLine found.
     private void dumpCodeBlock(MethodVisitor mv, int idx, int skip) {
         int start = codeBlocks[idx].endInstruction;
         int end = codeBlocks[idx + 1].endInstruction;

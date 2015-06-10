@@ -19,6 +19,7 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Instrumented;
 import co.paralleluniverse.fibers.Stack;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
 
@@ -27,6 +28,7 @@ import java.util.Set;
  * @author pron
  */
 public final class SuspendableHelper {
+    static private final Method[] EMPTY_METHODS_ARRAY = new Method[0];
     static boolean javaAgent;
     static final Set<Pair<String, String>> waivers = Collections.newSetFromMap(MapUtil.<Pair<String, String>, Boolean>newConcurrentHashMap());
 
@@ -38,23 +40,28 @@ public final class SuspendableHelper {
         return clazz.isAnnotationPresent(Instrumented.class);
     }
 
-    public static Method lookupMethod(Class clazz, String methodName, int sourceLine) {
+    public static Method[] lookupMethod(Class clazz, String methodName, int sourceLine) {
         if (clazz == null || methodName == null)
             return null;
 
+        ArrayList<Method> candidates = new ArrayList<>(8);
         for(Method m : clazz.getDeclaredMethods()) {
             if (m.getName().equals(methodName)) {
+                candidates.add(m);
                 Instrumented i = m.getAnnotation(Instrumented.class);
-                if (isWaiver(m.getDeclaringClass().getName(), m.getName()) || i != null && sourceLine >= i.methodStart() && sourceLine <= i.methodEnd())
-                    return m;
+                if (m.isSynthetic() || isWaiver(m.getDeclaringClass().getName(), m.getName()) || i != null && sourceLine >= i.methodStart() && sourceLine <= i.methodEnd())
+                    return new Method[] { m };
             }
         }
-        return null;
+        return candidates.toArray(EMPTY_METHODS_ARRAY);
     }
 
     public static Pair<Boolean, int[]> isCallSiteInstrumented(Method m, int sourceLine, StackTraceElement[] stes, int currentSteIdx) {
         if (m == null)
             return new Pair<>(false, null);
+
+        if (m.isSynthetic())
+            return new Pair<>(true, null);
 
         StackTraceElement ste = stes[currentSteIdx];
         if (currentSteIdx - 1 >= 0
@@ -77,7 +84,7 @@ public final class SuspendableHelper {
     }
     
     public static boolean isInstrumented(Method method) {
-        return method.getAnnotation(Instrumented.class) != null;
+        return method.isSynthetic() || method.getAnnotation(Instrumented.class) != null;
     }
 
     public static void addWaiver(String className, String methodName) {
@@ -88,6 +95,7 @@ public final class SuspendableHelper {
         if (className.startsWith("java.lang.reflect")
                 || className.startsWith("sun.reflect")
                 || className.startsWith("com.sun.proxy")
+                || className.contains("$ByteBuddy$")
                 || (className.equals("co.paralleluniverse.strands.SuspendableUtils$VoidSuspendableCallable") && methodName.equals("run")))
             return true;
         return waivers.contains(new Pair<>(className, methodName));

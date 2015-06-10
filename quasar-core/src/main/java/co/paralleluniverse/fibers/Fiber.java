@@ -119,6 +119,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private static long nextFiberId() {
         return idGen.incrementAndGet();
     }
+
     //
     private /*final*/ transient FiberScheduler scheduler;
     private /*final*/ transient FiberTask<V> task;
@@ -1627,15 +1628,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             } else if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
                     && !ste.getClassName().equals(Stack.class.getName())) {
                 boolean classInstrumented = SuspendableHelper.isInstrumented(context[k]);
-                Method m = SuspendableHelper.lookupMethod(context[k], ste.getMethodName(), ste.getLineNumber());
+                final Method[] candidates = SuspendableHelper.lookupMethod(context[k], ste.getMethodName(), ste.getLineNumber());
+                final Method m = candidates !=  null && candidates.length == 1 ? candidates[0] : null;
                 if (m != null) {
                     boolean methodInstrumented = SuspendableHelper.isInstrumented(m);
                     Pair<Boolean, int[]> callSiteInstrumented = SuspendableHelper.isCallSiteInstrumented(m, ste.getLineNumber(), stes, i);
                     if (!SuspendableHelper.isWaiver(ste.getClassName(), ste.getMethodName())
                             && (!classInstrumented || !methodInstrumented || !callSiteInstrumented.getFirst())) {
-                        if (ok) {
-                            stackTrace = initTrace(stackTrace, i, stes);
-                        }
+                        if (ok)
+                            stackTrace = initTrace(i, stes);
+
                         if (!classInstrumented || !methodInstrumented)
                             stackTrace.append(" **");
                         else if (!callSiteInstrumented.getFirst())
@@ -1653,10 +1655,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                         ok = false;
                     }
                 } else {
-                    if (ok) {
-                        stackTrace = initTrace(stackTrace, i, stes);
-                    }
+                    if (ok)
+                        stackTrace = initTrace(i, stes);
+
                     stackTrace.append(" **"); // Methods can only be found via source lines in @Instrumented annotations
+                    if (candidates != null)
+                        printCandidates(candidates, stackTrace);
                     ok = false;
                 }
             } else if (ste.getClassName().equals(Fiber.class.getName()) && ste.getMethodName().equals("run1")) {
@@ -1672,9 +1676,24 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         throw new IllegalStateException("Not run through Fiber.exec(). (trace: " + Arrays.toString(stes) + ")");
     }
 
-    private static StringBuilder initTrace(StringBuilder stackTrace, int i, StackTraceElement[] stes) {
-        // So far but not now => initialize error string for past frames
-        stackTrace = new StringBuilder();
+    private static void printCandidates(Method[] candidates, StringBuilder stackTrace) {
+        if (candidates != null && stackTrace != null && candidates.length > 0) {
+            stackTrace.append(" Methods with that name:");
+            for (final Method m : candidates) {
+                stackTrace.append("\n\t\t");
+                final Instrumented i = m.getAnnotation(Instrumented.class);
+                if (i != null)
+                    stackTrace.append("@Instrumented(startLine=").append(i.methodStart())
+                        .append(", endLine=").append(i.methodEnd())
+                        .append(", susCallSites=").append(i.suspendableCallsites() == null ? "[]" : Arrays.toString(i.suspendableCallsites()))
+                        .append(") ");
+                stackTrace.append(m.toGenericString());
+            }
+        }
+    }
+
+    private static StringBuilder initTrace(int i, StackTraceElement[] stes) {
+        final StringBuilder stackTrace = new StringBuilder();
         for (int j = 0; j <= i; j++) {
             final StackTraceElement ste2 = stes[j];
             if (ste2.getClassName().equals(Thread.class.getName()) && ste2.getMethodName().equals("getStackTrace"))
