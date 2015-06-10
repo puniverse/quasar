@@ -61,7 +61,7 @@ public class VerificationTest {
 
     @Test
     public void testVerification() throws ExecutionException, InterruptedException {
-        assumeFalse(SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation"));
+        assumeTrue(SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation"));
 
         final I1 i1 = new C();
         final I2 i2 = (C) i1;

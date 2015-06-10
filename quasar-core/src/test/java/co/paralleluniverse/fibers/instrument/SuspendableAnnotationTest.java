@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import static org.junit.Assert.*;
+import static org.junit.Assume.*;
 import org.junit.Test;
 
 /**
@@ -31,7 +33,7 @@ import org.junit.Test;
  * @author pron
  */
 public class SuspendableAnnotationTest {
-    private List<String> results = new ArrayList<String>();
+    private final List<String> results = new ArrayList<>();
 
     @Suspendable
     private void suspendableMethod() {
@@ -81,6 +83,8 @@ public class SuspendableAnnotationTest {
 
     @Test
     public void testNonAnnotated() {
+        assumeFalse(SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation"));
+
         try {
             Fiber co = new Fiber((String) null, null, (SuspendableCallable) null) {
                 @Override
