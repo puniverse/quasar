@@ -22,4 +22,5 @@ public @interface Instrumented {
     int[] suspendableCallsites() default {};
     int methodStart() default -1;
     int methodEnd() default -1;
+    String methodOptimization() default "";
 }
