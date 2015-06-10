@@ -103,9 +103,9 @@ public class Retransform {
     }
 
     public static void dumpClass(String className, byte[] data) {
-        System.out.println("DUMP OF CLASS: " + className);
+        System.err.println("DUMP OF CLASS: " + className);
         ClassReader cr = new ClassReader(data);
-        ClassVisitor cv = new TraceClassVisitor(null, new Textifier(), new PrintWriter(System.out));
+        ClassVisitor cv = new TraceClassVisitor(null, new Textifier(), new PrintWriter(System.err));
         cr.accept(cv, ClassReader.SKIP_FRAMES);
         System.out.println("=================");
     }

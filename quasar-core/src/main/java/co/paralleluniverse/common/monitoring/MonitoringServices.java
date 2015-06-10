@@ -12,7 +12,6 @@
  */
 package co.paralleluniverse.common.monitoring;
 
-import co.paralleluniverse.concurrent.util.ThreadUtil;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.Date;

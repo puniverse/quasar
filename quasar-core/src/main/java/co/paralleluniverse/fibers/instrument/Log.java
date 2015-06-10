@@ -34,5 +34,5 @@ package co.paralleluniverse.fibers.instrument;
 public interface Log {
     public void log(LogLevel level, String msg, Object ... args);
     
-    public void error(String msg, Exception ex);
+    public void error(String msg, Throwable ex);
 }

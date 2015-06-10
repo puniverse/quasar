@@ -101,7 +101,7 @@ public final class QuasarInstrumentor {
         ClassVisitor cv = (check && EXAMINED_CLASS == null) ? new CheckClassAdapter(cw) : cw;
 
         if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS))
-            cv = new TraceClassVisitor(cv, new PrintWriter(System.out));
+            cv = new TraceClassVisitor(cv, new PrintWriter(System.err));
 
         final InstrumentClass ic = new InstrumentClass(cv, db, forceInstrumentation);
         byte[] transformed = null;
@@ -176,7 +176,7 @@ public final class QuasarInstrumentor {
         db.log(level, msg, args);
     }
 
-    public void error(String msg, Exception ex) {
+    public void error(String msg, Throwable ex) {
         db.error(msg, ex);
     }
 
