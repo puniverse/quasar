@@ -542,9 +542,10 @@ class InstrumentMethod {
     private boolean forwardsToSuspendable(int[] susCallsIndexes) {
         if (susCallsIndexes.length == 1) { // => Exactly one suspendable call
             boolean ret =
-                !containsInvocations(susCallsIndexes, 0) &&
-                !containsBackBranches(susCallsIndexes, 0) &&
-                !containsBackBranchesAtOrBeforeStart(susCallsIndexes, 1) &&
+                !hasCalls(susCallsIndexes, 0) &&
+                !accessesFields(susCallsIndexes, 0) &&
+                !branchesBack(susCallsIndexes, 0) &&
+                !branchesAtOrBeforeStart(susCallsIndexes, 1) &&
                 startsWithSuspCallButNotYield(susCallsIndexes, 1);
 
             return ret;
@@ -552,7 +553,7 @@ class InstrumentMethod {
             return false;
     }
 
-    private boolean containsInvocations(int[] susCallsIndexes, int blockNum) {
+    private boolean hasCalls(int[] susCallsIndexes, int blockNum) {
         final int start = getBlockStartInsnIdxInclusive(blockNum, susCallsIndexes);
         final int end = getBlockEndInsnIdxInclusive(blockNum, susCallsIndexes);
 
@@ -564,7 +565,19 @@ class InstrumentMethod {
         return false;
     }
 
-    private boolean containsBackBranchesAtOrBeforeStart(int[] susCallsIndexes, int blockNum) {
+    private boolean accessesFields(int[] susCallsIndexes, int blockNum) {
+        final int start = getBlockStartInsnIdxInclusive(blockNum, susCallsIndexes);
+        final int end = getBlockEndInsnIdxInclusive(blockNum, susCallsIndexes);
+
+        for (int i = start; i <= end; i++) {
+            final AbstractInsnNode ain = mn.instructions.get(i);
+            if (ain.getType() == AbstractInsnNode.FIELD_INSN)
+                return true;
+        }
+        return false;
+    }
+
+    private boolean branchesAtOrBeforeStart(int[] susCallsIndexes, int blockNum) {
         final int start = getBlockStartInsnIdxInclusive(blockNum, susCallsIndexes);
         final int end = getBlockEndInsnIdxInclusive(blockNum, susCallsIndexes);
 
@@ -582,7 +595,7 @@ class InstrumentMethod {
         return isSuspendableCall(insn) && !isYieldCall(insn);
     }
 
-    private boolean containsBackBranches(int[] susCallsIndexes, int blockNum) {
+    private boolean branchesBack(int[] susCallsIndexes, int blockNum) {
         final int start = getBlockStartInsnIdxInclusive(blockNum, susCallsIndexes);
         final int end = getBlockEndInsnIdxInclusive(blockNum, susCallsIndexes);
 
