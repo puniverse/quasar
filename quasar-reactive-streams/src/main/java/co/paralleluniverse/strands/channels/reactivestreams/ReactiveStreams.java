@@ -36,14 +36,12 @@ public class ReactiveStreams {
      *
      * @param bufferSize the size of the buffer of the internal channel; may be {@code -1} for unbounded, but may not be {@code 0})
      * @param policy     the {@link OverflowPolicy} of the internal channel.
-     * @param batch      if the channel has a bounded buffer, whether to request further elements from the publisher in batches
-     *                   whenever the channel's buffer is depleted, or after consuming each element.
      * @param publisher  the subscriber
      * @return A {@link ReceivePort} which emits the elements published by the subscriber
      */
-    public static <T> ReceivePort<T> subscribe(int bufferSize, OverflowPolicy policy, boolean batch, Publisher<T> publisher) {
+    public static <T> ReceivePort<T> subscribe(int bufferSize, OverflowPolicy policy, Publisher<T> publisher) {
         final Channel<T> channel = Channels.newChannel(bufferSize, policy, true, true);
-        final ChannelSubscriber<T> sub = new ChannelSubscriber<>(channel, batch);
+        final ChannelSubscriber<T> sub = new ChannelSubscriber<>(channel, false);
         publisher.subscribe(sub);
         return sub;
     }
@@ -163,10 +161,10 @@ public class ReactiveStreams {
      * @param transformer a function that reads from it's input channel and writes to its output channel
      * @return a {@code Processor} running the given transformer.
      */
-    public static <T, R> Processor<T, R> toProcessor(FiberFactory ff, int bufferSize, OverflowPolicy policy, boolean batch, SuspendableAction2<? extends ReceivePort<? super T>, ? extends SendPort<? extends R>> transformer) {
+    public static <T, R> Processor<T, R> toProcessor(FiberFactory ff, int bufferSize, OverflowPolicy policy, SuspendableAction2<? extends ReceivePort<? super T>, ? extends SendPort<? extends R>> transformer) {
         final Channel<T> in = Channels.newChannel(bufferSize, policy, true, true);
         final Channel<R> out = Channels.newChannel(bufferSize, policy, true, true);
-        return new ChannelProcessor<T, R>(ff, batch, in, out, transformer);
+        return new ChannelProcessor<T, R>(ff, false, in, out, transformer);
     }
 
     /**
@@ -174,7 +172,7 @@ public class ReactiveStreams {
      * The transformer will run in its own fiber.
      * <p>
      * Same as calling 
-     * {@link #toProcessor(FiberFactory, int, OverflowPolicy, boolean, SuspendableAction2) toProcessor(null, bufferSize, policy, false, transformer)
+     * {@link #toProcessor(FiberFactory, int, OverflowPolicy, boolean, SuspendableAction2) toProcessor(null, bufferSize, policy, transformer)
      *
      * @param <T>         the type of elements flowing into the transformer
      * @param <R>         the type of elements flowing out of the transformer
@@ -187,8 +185,6 @@ public class ReactiveStreams {
      * @return a {@code Processor} running the given transformer.
      */
     public static <T, R> Processor<T, R> toProcessor(int bufferSize, OverflowPolicy policy, SuspendableAction2<? extends ReceivePort<? super T>, ? extends SendPort<? extends R>> transformer) {
-        final Channel<T> in = Channels.newChannel(bufferSize, policy, true, true);
-        final Channel<R> out = Channels.newChannel(bufferSize, policy, true, true);
-        return new ChannelProcessor<T, R>(null, false, in, out, transformer);
+        return toProcessor(null, bufferSize, policy, transformer);
     }
 }
