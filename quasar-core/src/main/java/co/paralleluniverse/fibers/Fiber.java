@@ -1629,7 +1629,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                     && !ste.getClassName().equals(Stack.class.getName())) {
                 boolean classInstrumented = SuspendableHelper.isInstrumented(context[k]);
                 final Method[] candidates = SuspendableHelper.lookupMethod(context[k], ste.getMethodName(), ste.getLineNumber());
-                final Method m = candidates !=  null && candidates.length == 1 ? candidates[0] : null;
+                final Method m = candidates != null && candidates.length == 1 ? candidates[0] : null;
                 if (m != null) {
                     boolean methodInstrumented = SuspendableHelper.isInstrumented(m);
                     Pair<Boolean, int[]> callSiteInstrumented = SuspendableHelper.isCallSiteInstrumented(m, ste.getLineNumber(), stes, i);

@@ -57,6 +57,7 @@ import static co.paralleluniverse.fibers.instrument.MethodDatabase.isMethodHandl
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isReflectInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isSyntheticAccess;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.objectweb.asm.AnnotationVisitor;
@@ -88,6 +89,7 @@ import org.objectweb.asm.tree.analysis.Value;
  * @author pron
  */
 class InstrumentMethod {
+    private static final int[] ZEROLEN_INT_ARRAY = new int[0];
     private static final boolean HANDLE_PROXY_INVOCATIONS = true;
     // private final boolean verifyInstrumentation; // 
     private static final int PREEMPTION_BACKBRANCH = 0;
@@ -114,6 +116,7 @@ class InstrumentMethod {
     private boolean hasSuspendableSuperCalls;
     private int startSourceLine = -1;
     private int endSourceLine = -1;
+    private int[] suspCallsSourceLines = new int[8];
 
     public InstrumentMethod(MethodDatabase db, String sourceName, String className, MethodNode mn) throws AnalyzerException {
         this.db = db;
@@ -134,15 +137,15 @@ class InstrumentMethod {
         }
     }
 
-    public boolean collectCodeBlocks() {
+    public int[] getSuspCallsIndexes() {
         final int numIns = mn.instructions.size();
-
-        codeBlocks[0] = FrameInfo.FIRST;
+        int[] suspCallsIndexes = new int[8];
         int currSourceLine = -1;
+        int count = 0;
         for (int i = 0; i < numIns; i++) {
             final Frame f = frames[i];
             if (f != null) { // reachable ?
-                AbstractInsnNode in = mn.instructions.get(i);
+                final AbstractInsnNode in = mn.instructions.get(i);
                 if (in.getType() == AbstractInsnNode.LINE) {
                     final LineNumberNode lnn = (LineNumberNode) in;
                     currSourceLine = lnn.line;
@@ -151,6 +154,59 @@ class InstrumentMethod {
                     if (endSourceLine == -1 || currSourceLine > endSourceLine)
                         endSourceLine = currSourceLine;
                 } else if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
+                    if (isSuspendableCall(in)) {
+                        if (count >= suspCallsIndexes.length)
+                            suspCallsIndexes = Arrays.copyOf(suspCallsIndexes, suspCallsIndexes.length * 2);
+                        if (count >= suspCallsSourceLines.length)
+                            suspCallsSourceLines = Arrays.copyOf(suspCallsSourceLines, suspCallsSourceLines.length * 2);
+                        suspCallsIndexes[count] = i;
+                        suspCallsSourceLines[count] = currSourceLine;
+                        count++;
+                    }
+                }
+            }
+        }
+
+        if (count < suspCallsSourceLines.length)
+            Arrays.copyOf(suspCallsSourceLines, count);
+            
+        return count < suspCallsIndexes.length ? Arrays.copyOf(suspCallsIndexes, count) : suspCallsIndexes;
+    }
+
+    private boolean isSuspendableCall(AbstractInsnNode in) {
+        boolean susp = true;
+
+        if (in.getType() == AbstractInsnNode.METHOD_INSN) {
+            final MethodInsnNode min = (MethodInsnNode) in;
+
+            if (!isSyntheticAccess(min.owner, min.name)
+                 && !isReflectInvocation(min.owner, min.name)
+                 && !isMethodHandleInvocation(min.owner, min.name)
+                 && !isInvocationHandlerInvocation(min.owner, min.name)) {
+                SuspendableType st = db.isMethodSuspendable(min.owner, min.name, min.desc, min.getOpcode());
+
+                if (st == SuspendableType.NON_SUSPENDABLE)
+                    susp = false;
+            }
+        } else if (in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) { // invoke dynamic
+            final InvokeDynamicInsnNode idin = (InvokeDynamicInsnNode) in;
+            if (idin.bsm.getOwner().equals("java/lang/invoke/LambdaMetafactory")) // lambda
+                susp = false;
+        } else
+            susp = false;
+
+        return susp;
+    }
+
+    private void collectCodeBlocks() {
+        final int numIns = mn.instructions.size();
+
+        codeBlocks[0] = FrameInfo.FIRST;
+        for (int i = 0; i < numIns; i++) {
+            final Frame f = frames[i];
+            if (f != null) { // reachable ?
+                final AbstractInsnNode in = mn.instructions.get(i);
+                if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
                     boolean susp = true;
                     if (in.getType() == AbstractInsnNode.METHOD_INSN) {
                         final MethodInsnNode min = (MethodInsnNode) in;
@@ -188,7 +244,7 @@ class InstrumentMethod {
                     }
 
                     if (susp) {
-                        FrameInfo fi = addCodeBlock(f, i, currSourceLine);
+                        FrameInfo fi = addCodeBlock(f, i);
                         splitTryCatch(fi);
                     } else {
                         if (in.getType() == AbstractInsnNode.METHOD_INSN) {// not invokedynamic
@@ -211,47 +267,15 @@ class InstrumentMethod {
                 }
             }
         }
-        addCodeBlock(null, numIns, null);
-
-        // return containsSuspendables();
-        return false;
+        addCodeBlock(null, numIns);
     }
 
-    private boolean containsSuspendables() {
-        return numCodeBlocks > 1;
-    }
-
-    private boolean isSuspendableCall(AbstractInsnNode in) {
-        boolean susp = true;
-
-        if (in.getType() == AbstractInsnNode.METHOD_INSN) {
-            final MethodInsnNode min = (MethodInsnNode) in;
-
-            if (!isSyntheticAccess(min.owner, min.name)
-                 && !isReflectInvocation(min.owner, min.name)
-                 && !isMethodHandleInvocation(min.owner, min.name)
-                 && !isInvocationHandlerInvocation(min.owner, min.name)) {
-                SuspendableType st = db.isMethodSuspendable(min.owner, min.name, min.desc, min.getOpcode());
-
-                if (st == SuspendableType.NON_SUSPENDABLE)
-                    susp = false;
-            }
-        } else if (in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) { // invoke dynamic
-            final InvokeDynamicInsnNode idin = (InvokeDynamicInsnNode) in;
-            if (idin.bsm.getOwner().equals("java/lang/invoke/LambdaMetafactory")) // lambda
-                susp = false;
-        } else
-            susp = false;
-
-        return susp;
-    }
-
-    public void accept(MethodVisitor mv, boolean hasAnnotation) {
+    public void accept(MethodVisitor mv, boolean hasAnnotation, int[] susCallsIndexes) {
         db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
 
         // Called by InstrumentClass => we need at least to dump the @Instrumented annotation
 
-        final boolean skip = skip();
+        final boolean skip = skip(susCallsIndexes);
 
         emitInstrumentedAnn(mv, skip);
 
@@ -263,6 +287,8 @@ class InstrumentMethod {
 
         // Instrument
         final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS & hasSuspendableSuperCalls;
+
+        collectCodeBlocks();
 
         mv.visitCode();
 
@@ -509,28 +535,28 @@ class InstrumentMethod {
         return new Pair<>(null, null);
     }
 
-    private boolean skip() {
-        return forwardsToSuspendable();
+    private boolean skip(int[] susCallsIndexes) {
+        return forwardsToSuspendable(susCallsIndexes);
     }
 
-    private boolean forwardsToSuspendable() {
-        if (numCodeBlocks == 2) { // => Exactly one suspendable call
+    private boolean forwardsToSuspendable(int[] susCallsIndexes) {
+        if (susCallsIndexes.length == 1) { // => Exactly one suspendable call
             boolean ret =
-                !containsInvocations(codeBlocks, 0) &&
-                !containsBackBranches(codeBlocks, 0) &&
-                startsWithSuspCall(codeBlocks, 1) &&
-                !containsBackBranchesInto(codeBlocks, 1, 0); // TODO check that it doesn't branches back to its own first insn, either
+                !containsInvocations(susCallsIndexes, 0) &&
+                !containsBackBranches(susCallsIndexes, 0) &&
+                !containsBackBranchesAtOrBeforeStart(susCallsIndexes, 1) &&
+                startsWithSuspCallButNotYield(susCallsIndexes, 1);
 
             return ret;
         } else
             return false;
     }
 
-    private boolean containsInvocations(FrameInfo[] codeBlocks, int idx) {
-        final int start = codeBlocks[idx].endInstruction;
-        final int end = codeBlocks[idx+1].endInstruction;
+    private boolean containsInvocations(int[] susCallsIndexes, int blockNum) {
+        final int start = getBlockStartInsnIdxInclusive(blockNum, susCallsIndexes);
+        final int end = getBlockEndInsnIdxInclusive(blockNum, susCallsIndexes);
 
-        for (int i = start; i < end; i++) {
+        for (int i = start; i <= end; i++) {
             final AbstractInsnNode ain = mn.instructions.get(i);
             if (ain.getType() == AbstractInsnNode.METHOD_INSN || ain.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN)
                 return true;
@@ -538,60 +564,56 @@ class InstrumentMethod {
         return false;
     }
 
-    private boolean containsBackBranchesInto(FrameInfo[] codeBlocks, int sourceIdx, int targetIdx) {
-        final int start = codeBlocks[sourceIdx].endInstruction;
-        final int end = codeBlocks[sourceIdx+1].endInstruction;
-        final ArrayList<Label> targetLabels = getLabels(codeBlocks, targetIdx);
+    private boolean containsBackBranchesAtOrBeforeStart(int[] susCallsIndexes, int blockNum) {
+        final int start = getBlockStartInsnIdxInclusive(blockNum, susCallsIndexes);
+        final int end = getBlockEndInsnIdxInclusive(blockNum, susCallsIndexes);
 
-        for (int i = start; i < end; i++) {
+        for (int i = start; i <= end; i++) {
             final AbstractInsnNode ain = mn.instructions.get(i);
-            if (ain instanceof JumpInsnNode) {
-                if (targetLabels.contains(((JumpInsnNode) ain).label.getLabel()))
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean startsWithSuspCall(FrameInfo[] codeBlocks, int idx) {
-        final int insnIdx = codeBlocks[idx].endInstruction;
-        return isSuspendableCall(mn.instructions.get(insnIdx));
-    }
-
-    private boolean containsBackBranches(FrameInfo[] codeBlocks, int idx) {
-        final int start = codeBlocks[idx].endInstruction;
-        final int end = codeBlocks[idx+1].endInstruction;
-
-        for (int i = start; i < end; i++) {
-            final AbstractInsnNode ain = mn.instructions.get(i);
-            if (ain instanceof JumpInsnNode && ((JumpInsnNode) ain).label.getLabel().getOffset() <= 0) {
+            if (ain instanceof JumpInsnNode && mn.instructions.indexOf(((JumpInsnNode) ain).label) <= start)
                 return true;
-            }
         }
         return false;
     }
 
-    private ArrayList<Label> getLabels(FrameInfo[] codeBlocks, int idx) {
-        final int start = codeBlocks[idx].endInstruction;
-        final int end = codeBlocks[idx+1].endInstruction;
-        ArrayList<Label> labels = new ArrayList<>();
+    private boolean startsWithSuspCallButNotYield(int[] susCallsIndexes, int blockNum) {
+        final int start = getBlockStartInsnIdxInclusive(blockNum, susCallsIndexes);
+        final AbstractInsnNode insn = mn.instructions.get(start);
+        return isSuspendableCall(insn) && !isYieldCall(insn);
+    }
 
-        for (int i = start; i < end - 1; i++) {
+    private boolean containsBackBranches(int[] susCallsIndexes, int blockNum) {
+        final int start = getBlockStartInsnIdxInclusive(blockNum, susCallsIndexes);
+        final int end = getBlockEndInsnIdxInclusive(blockNum, susCallsIndexes);
+
+        for (int i = start; i <= end; i++) {
             final AbstractInsnNode ain = mn.instructions.get(i);
-            if (ain instanceof LabelNode)
-                labels.add(((LabelNode) ain).getLabel());
+            if (ain instanceof JumpInsnNode && mn.instructions.indexOf(((JumpInsnNode) ain).label) <= i)
+                return true;
         }
-        return labels;
+        return false;
+    }
+
+    private boolean isYieldCall(AbstractInsnNode insn) {
+        final String owner = (insn instanceof MethodInsnNode ? ((MethodInsnNode) insn).owner : null);
+        final Pair<String, String> nameAndDesc = getCalledMethodNameAndDesc(insn);
+        final String name = nameAndDesc.getFirst(), desc = nameAndDesc.getSecond();
+        return isYieldMethod(owner, name);
+    }
+
+    private int getBlockStartInsnIdxInclusive(int blockNum, int[] susCallsIndexes) {
+        return blockNum == 0 ? 0 : susCallsIndexes[blockNum - 1];
+    }
+
+    private int getBlockEndInsnIdxInclusive(int blockNum, int[] susCallsIndexes) {
+        return blockNum >= susCallsIndexes.length ? mn.instructions.size() - 1 : susCallsIndexes[blockNum] - 1;
     }
 
     private void emitInstrumentedAnn(MethodVisitor mv, boolean skip) {
         final AnnotationVisitor instrumentedAV = mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
         final AnnotationVisitor linesAV = instrumentedAV.visitArray("suspendableCallsites");
-        for(int i = 1 /* Skip START frameInfo */; i < codeBlocks.length && codeBlocks[i] != null; i++) {
-            FrameInfo f = codeBlocks[i];
-            if (f.suspendableCallSourceLine != null)
-                linesAV.visit("", codeBlocks[i].suspendableCallSourceLine);
-        }
+        for(int i = 0; i < suspCallsSourceLines.length; i++)
+            linesAV.visit("", suspCallsSourceLines[i]);
         linesAV.visitEnd();
         instrumentedAV.visit("methodStart", startSourceLine);
         instrumentedAV.visit("methodEnd", endSourceLine);
@@ -603,13 +625,13 @@ class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "dumpStack", "()V", false);
     }
 
-    private FrameInfo addCodeBlock(Frame f, int end, Integer endSourceLine) {
+    private FrameInfo addCodeBlock(Frame f, int end) {
         if (++numCodeBlocks == codeBlocks.length) {
             FrameInfo[] newArray = new FrameInfo[numCodeBlocks * 2];
             System.arraycopy(codeBlocks, 0, newArray, 0, codeBlocks.length);
             codeBlocks = newArray;
         }
-        FrameInfo fi = new FrameInfo(f, firstLocal, end, endSourceLine, mn.instructions, db);
+        FrameInfo fi = new FrameInfo(f, firstLocal, end, mn.instructions, db);
         codeBlocks[numCodeBlocks] = fi;
         return fi;
     }
@@ -1050,7 +1072,7 @@ class InstrumentMethod {
     }
 
     static class FrameInfo {
-        static final FrameInfo FIRST = new FrameInfo(null, 0, 0, -1, null, null);
+        static final FrameInfo FIRST = new FrameInfo(null, 0, 0, null, null);
         final int endInstruction;
         final int numSlots;
         final int numObjSlots;
@@ -1058,11 +1080,9 @@ class InstrumentMethod {
         final int[] stackSlotIndices;
         BlockLabelNode lBefore;
         BlockLabelNode lAfter;
-        final Integer suspendableCallSourceLine;
 
-        FrameInfo(Frame f, int firstLocal, int endInstruction, Integer suspendableCallSourceLine, InsnList insnList, MethodDatabase db) {
+        FrameInfo(Frame f, int firstLocal, int endInstruction, InsnList insnList, MethodDatabase db) {
             this.endInstruction = endInstruction;
-            this.suspendableCallSourceLine = suspendableCallSourceLine;
 
             int idxObj = 0;
             int idxPrim = 0;

@@ -16,7 +16,9 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Instrumented;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.SuspendableRunnable;
 import java.lang.reflect.Method;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -46,8 +48,13 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testSkipForwardsToSuspendableVoid() throws InterruptedException, SuspendExecution {
-        skipForwardsToSuspendableVoid();
+    public void testSkipForwardsToSuspendableVoid() throws InterruptedException, SuspendExecution, ExecutionException {
+        new Fiber(new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                skipForwardsToSuspendableVoid();
+            }
+        }).start().join();
         assertTrue(isOptimized("skipForwardsToSuspendableVoid"));
     }
 
@@ -61,8 +68,13 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testSkipForwardsToSuspendableObject() throws InterruptedException, SuspendExecution {
-        skipForwardsToSuspendableObject();
+    public void testSkipForwardsToSuspendableObject() throws InterruptedException, SuspendExecution, ExecutionException {
+        new Fiber(new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                skipForwardsToSuspendableObject();
+            }
+        }).start().join();
         assertTrue(isOptimized("skipForwardsToSuspendableObject"));
     }
 
@@ -76,8 +88,13 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testSkipForwardsToSuspendableDouble() throws InterruptedException, SuspendExecution {
-        skipForwardsToSuspendableDouble();
+    public void testSkipForwardsToSuspendableDouble() throws InterruptedException, SuspendExecution, ExecutionException {
+        new Fiber(new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                skipForwardsToSuspendableDouble();
+            }
+        }).start().join();
         assertTrue(isOptimized("skipForwardsToSuspendableDouble"));
     }
 
@@ -91,8 +108,13 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testSkipForwardsToSuspendableFloat() throws InterruptedException, SuspendExecution {
-        skipForwardsToSuspendableFloat();
+    public void testSkipForwardsToSuspendableFloat() throws InterruptedException, SuspendExecution, ExecutionException {
+        new Fiber(new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                skipForwardsToSuspendableFloat();
+            }
+        }).start().join();
         assertTrue(isOptimized("skipForwardsToSuspendableFloat"));
     }
 
@@ -106,8 +128,13 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testSkipForwardsToSuspendableInt() throws InterruptedException, SuspendExecution {
-        skipForwardsToSuspendableInt();
+    public void testSkipForwardsToSuspendableInt() throws InterruptedException, SuspendExecution, ExecutionException {
+        new Fiber(new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                skipForwardsToSuspendableInt();
+            }
+        }).start().join();
         assertTrue(isOptimized("skipForwardsToSuspendableInt"));
     }
 
@@ -121,8 +148,13 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testSkipForwardsToSuspendableLong() throws InterruptedException, SuspendExecution {
-        skipForwardsToSuspendableLong();
+    public void testSkipForwardsToSuspendableLong() throws InterruptedException, SuspendExecution, ExecutionException {
+        new Fiber(new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                skipForwardsToSuspendableLong();
+            }
+        }).start().join();
         assertTrue(isOptimized("skipForwardsToSuspendableLong"));
     }
 }

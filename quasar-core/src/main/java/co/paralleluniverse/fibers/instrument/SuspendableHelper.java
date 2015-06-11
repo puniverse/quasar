@@ -79,12 +79,12 @@ public final class SuspendableHelper {
                 }
             }
         }
-            
+
         return new Pair<>(false, null);
     }
     
     public static boolean isInstrumented(Method method) {
-        return method.isSynthetic() || method.getAnnotation(Instrumented.class) != null;
+        return method.isSynthetic() || method.getAnnotation(Instrumented.class) != null /* && !method.getAnnotation(Instrumented.class).methodOptimized() */;
     }
 
     public static void addWaiver(String className, String methodName) {

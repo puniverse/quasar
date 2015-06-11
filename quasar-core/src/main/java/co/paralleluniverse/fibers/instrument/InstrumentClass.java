@@ -231,8 +231,10 @@ public class InstrumentClass extends ClassVisitor {
 
         if (methods != null && !methods.isEmpty()) {
             if (alreadyInstrumented && !forceInstrumentation) {
-                for (MethodNode mn : methods)
+                for (MethodNode mn : methods) {
+                    db.log(LogLevel.INFO, "Alredy instrumented and not forcing, so not touching method %s#%s%s", className, mn.name, mn.desc);
                     mn.accept(makeOutMV(mn));
+                }
             } else {
                 if (!alreadyInstrumented) {
                     emitInstrumentedAnn();
@@ -246,15 +248,17 @@ public class InstrumentClass extends ClassVisitor {
                         if (db.isDebug())
                             db.log(LogLevel.INFO, "About to instrument method %s#%s%s", className, mn.name, mn.desc);
 
-                        if (im.collectCodeBlocks()) {
+                        final int[] suspCallsIndexes = im.getSuspCallsIndexes();
+                        if (suspCallsIndexes.length > 0) {
                             if (mn.name.charAt(0) == '<')
                                 throw new UnableToInstrumentException("special method", className, mn.name, mn.desc);
-                            im.accept(outMV, hasAnnotation(mn));
+
+                            // There are suspendable calls => adding @Instrumented at the very least
+                            im.accept(outMV, hasAnnotation(mn), suspCallsIndexes);
                         } else {
                             db.log(LogLevel.INFO, "Nothing to instrument in method %s#%s%s", className, mn.name, mn.desc);
                             mn.accept(outMV);
                         }
-
                     } catch (AnalyzerException ex) {
                         ex.printStackTrace();
                         throw new InternalError(ex.getMessage());
