@@ -221,7 +221,6 @@ class InstrumentMethod {
         return numCodeBlocks > 1;
     }
 
-
     private boolean isSuspendableCall(AbstractInsnNode in) {
         boolean susp = true;
 
