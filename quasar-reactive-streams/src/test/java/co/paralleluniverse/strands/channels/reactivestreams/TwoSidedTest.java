@@ -46,15 +46,15 @@ public class TwoSidedTest {
     public static Object[][] data() {
         return new Object[][]{
             {5, OverflowPolicy.THROW, false},
-            {5, OverflowPolicy.THROW, true},
+            // {5, OverflowPolicy.THROW, true},
             {5, OverflowPolicy.BLOCK, false},
-            {5, OverflowPolicy.BLOCK, true},
+            // {5, OverflowPolicy.BLOCK, true},
             {-1, OverflowPolicy.THROW, false},
-            {-1, OverflowPolicy.THROW, true},
+            // {-1, OverflowPolicy.THROW, true},
             // {5, OverflowPolicy.DISPLACE, false},
             // {5, OverflowPolicy.DISPLACE, true},
             {1, OverflowPolicy.BLOCK, false},
-            {1, OverflowPolicy.BLOCK, true}
+            // {1, OverflowPolicy.BLOCK, true}
         };
     }
 
@@ -74,7 +74,7 @@ public class TwoSidedTest {
         final Publisher publisher = ReactiveStreams.toPublisher(publisherChannel);
 
         // Subscriber
-        final ReceivePort<Integer> subscriberChannel = ReactiveStreams.subscribe(buffer, overflowPolicy, batch, publisher);
+        final ReceivePort<Integer> subscriberChannel = ReactiveStreams.subscribe(buffer, overflowPolicy, publisher);
         final Strand subscriberStrand = new Fiber<Void>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
@@ -131,7 +131,7 @@ public class TwoSidedTest {
         publisher.subscribe(processor);
 
         // Subscriber
-        final ReceivePort<Integer> subscriberChannel = ReactiveStreams.subscribe(buffer, overflowPolicy, batch, processor);
+        final ReceivePort<Integer> subscriberChannel = ReactiveStreams.subscribe(buffer, overflowPolicy, processor);
         final Strand subscriberStrand = new Fiber<Void>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {

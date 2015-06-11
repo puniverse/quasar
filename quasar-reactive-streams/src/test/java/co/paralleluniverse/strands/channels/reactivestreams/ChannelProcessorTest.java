@@ -55,7 +55,7 @@ public class ChannelProcessorTest extends IdentityProcessorVerification<Integer>
 
     @Override
     public Processor<Integer, Integer> createIdentityProcessor(int bufferSize) {
-        return ReactiveStreams.toProcessor(null, bufferSize, overflowPolicy, batch, new SuspendableAction2<ReceivePort<Integer>, SendPort<Integer>>() {
+        return ReactiveStreams.toProcessor(null, bufferSize, overflowPolicy, new SuspendableAction2<ReceivePort<Integer>, SendPort<Integer>>() {
 
             @Override
             public void call(ReceivePort<Integer> in, SendPort<Integer> out) throws SuspendExecution, InterruptedException {
