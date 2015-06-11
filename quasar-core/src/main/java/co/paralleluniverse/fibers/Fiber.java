@@ -1685,7 +1685,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 if (i != null)
                     stackTrace.append("@Instrumented(startLine=").append(i.methodStart())
                         .append(", endLine=").append(i.methodEnd())
-                        .append(", optimization=").append(i.methodOptimization())
+                        .append(", optimized=").append(i.methodOptimized())
                         .append(", susCallSites=").append(i.suspendableCallsites() == null ? "[]" : Arrays.toString(i.suspendableCallsites()))
                         .append(") ");
                 stackTrace.append(m.toGenericString());

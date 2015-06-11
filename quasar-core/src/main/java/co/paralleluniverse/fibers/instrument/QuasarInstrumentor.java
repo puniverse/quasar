@@ -42,10 +42,6 @@ public final class QuasarInstrumentor {
     private boolean check;
     private final boolean aot;
 
-    // Optimization IDs
-    public static final String OPT_SKIP_SUFFIX = " => skip";
-    public static final String OPT_FORWARDS_TO_SUSPENDABLE_SKIP = "forwards to suspendable" + OPT_SKIP_SUFFIX;
-
     public QuasarInstrumentor(boolean aot, ClassLoader classLoader, SuspendableClassifier classifier) {
         this.db = new MethodDatabase(classLoader, classifier);
         this.aot = aot;

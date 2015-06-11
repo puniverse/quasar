@@ -151,7 +151,43 @@ class InstrumentMethod {
                     if (endSourceLine == -1 || currSourceLine > endSourceLine)
                         endSourceLine = currSourceLine;
                 } else if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
-                    if (isSuspendableCall(in, i, true)) {
+                    boolean susp = true;
+                    if (in.getType() == AbstractInsnNode.METHOD_INSN) {
+                        final MethodInsnNode min = (MethodInsnNode) in;
+                        int opcode = min.getOpcode();
+                        if (isSyntheticAccess(min.owner, min.name)) {
+                            db.log(LogLevel.DEBUG, "Synthetic accessor method call at instruction %d is assumed suspendable", i);
+                        } else if (isReflectInvocation(min.owner, min.name)) {
+                            db.log(LogLevel.DEBUG, "Reflective method call at instruction %d is assumed suspendable", i);
+                        } else if (isMethodHandleInvocation(min.owner, min.name)) {
+                            db.log(LogLevel.DEBUG, "MethodHandle invocation at instruction %d is assumed suspendable", i);
+                        } else if (isInvocationHandlerInvocation(min.owner, min.name)) {
+                            db.log(LogLevel.DEBUG, "InvocationHandler invocation at instruction %d is assumed suspendable", i);
+                        } else {
+                            SuspendableType st = db.isMethodSuspendable(min.owner, min.name, min.desc, opcode);
+                            if (st == SuspendableType.NON_SUSPENDABLE)
+                                susp = false;
+                            else if (st == null) {
+                                db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s (at %s#%s)", min.owner, min.name, min.desc, className, mn.name);
+                                susp = true;
+                            } else if (susp) {
+                                db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is suspendable", i, min.owner, min.name, min.desc);
+                            }
+                            if (st == SuspendableType.SUSPENDABLE_SUPER)
+                                this.hasSuspendableSuperCalls = true;
+                        }
+                    } else if (in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
+                        // invoke dynamic
+                        final InvokeDynamicInsnNode idin = (InvokeDynamicInsnNode) in;
+                        if (idin.bsm.getOwner().equals("java/lang/invoke/LambdaMetafactory")) {
+                            // lambda
+                            db.log(LogLevel.DEBUG, "Lambda at instruction %d", i);
+                            susp = false;
+                        } else
+                            db.log(LogLevel.DEBUG, "InvokeDynamic Method call at instruction %d to is assumed suspendable", i);
+                    }
+
+                    if (susp) {
                         FrameInfo fi = addCodeBlock(f, i, currSourceLine);
                         splitTryCatch(fi);
                     } else {
@@ -177,301 +213,290 @@ class InstrumentMethod {
         }
         addCodeBlock(null, numIns, null);
 
-        return containsSuspendables();
+        // return containsSuspendables();
+        return false;
     }
 
     private boolean containsSuspendables() {
         return numCodeBlocks > 1;
     }
 
-    private boolean isSuspendableCall(AbstractInsnNode in, int i, boolean sideEffects) {
+
+    private boolean isSuspendableCall(AbstractInsnNode in) {
         boolean susp = true;
+
         if (in.getType() == AbstractInsnNode.METHOD_INSN) {
             final MethodInsnNode min = (MethodInsnNode) in;
-            int opcode = min.getOpcode();
-            
-            if (isSyntheticAccess(min.owner, min.name)) {
-                if (sideEffects) db.log(LogLevel.DEBUG, "Synthetic accessor method call at instruction %d is assumed suspendable", i);
-            } else if (isReflectInvocation(min.owner, min.name)) {
-                if (sideEffects) db.log(LogLevel.DEBUG, "Reflective method call at instruction %d is assumed suspendable", i);
-            } else if (isMethodHandleInvocation(min.owner, min.name)) {
-                if (sideEffects) db.log(LogLevel.DEBUG, "MethodHandle invocation at instruction %d is assumed suspendable", i);
-            } else if (isInvocationHandlerInvocation(min.owner, min.name)) {
-                if (sideEffects) db.log(LogLevel.DEBUG, "InvocationHandler invocation at instruction %d is assumed suspendable", i);
-            } else {
-                SuspendableType st = db.isMethodSuspendable(min.owner, min.name, min.desc, opcode);
+
+            if (!isSyntheticAccess(min.owner, min.name)
+                 && !isReflectInvocation(min.owner, min.name)
+                 && !isMethodHandleInvocation(min.owner, min.name)
+                 && !isInvocationHandlerInvocation(min.owner, min.name)) {
+                SuspendableType st = db.isMethodSuspendable(min.owner, min.name, min.desc, min.getOpcode());
+
                 if (st == SuspendableType.NON_SUSPENDABLE)
                     susp = false;
-                else if (st == null) {
-                    if (sideEffects) db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s (at %s#%s)", min.owner, min.name, min.desc, className, mn.name);
-                    susp = true;
-                } else if (susp) {
-                    if (sideEffects) db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is suspendable", i, min.owner, min.name, min.desc);
-                }
-
-                if (sideEffects && st == SuspendableType.SUSPENDABLE_SUPER)
-                    this.hasSuspendableSuperCalls = true;
             }
         } else if (in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) { // invoke dynamic
             final InvokeDynamicInsnNode idin = (InvokeDynamicInsnNode) in;
-            if (idin.bsm.getOwner().equals("java/lang/invoke/LambdaMetafactory")) { // lambda
-                if (sideEffects) db.log(LogLevel.DEBUG, "Lambda at instruction %d", i);
+            if (idin.bsm.getOwner().equals("java/lang/invoke/LambdaMetafactory")) // lambda
                 susp = false;
-            } else {
-                if (sideEffects) db.log(LogLevel.DEBUG, "InvokeDynamic Method call at instruction %d to is assumed suspendable", i);
-            }
         } else
             susp = false;
+
         return susp;
     }
-    
+
     public void accept(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
 
         // Called by InstrumentClass => we need at least to dump the @Instrumented annotation
 
-        final String opt = getOptimization();
-        emitInstrumentedAnn(mv, opt);
-        if (opt != null && opt.endsWith(QuasarInstrumentor.OPT_SKIP_SUFFIX)) {
-            db.log(LogLevel.INFO, "[OPTIMIZE] skipping instrumentation for method %s#%s%s: %s", className, mn.name, mn.desc, opt);
+        final boolean skip = skip();
+
+        emitInstrumentedAnn(mv, skip);
+
+        if (skip) {
+            db.log(LogLevel.INFO, "[OPTIMIZE] skipping instrumentation for method %s#%s%s", className, mn.name, mn.desc);
             mn.accept(mv);
-        } else {
-            // Instrument
-            final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS & hasSuspendableSuperCalls;
+            return;
+        }
 
-            mv.visitCode();
+        // Instrument
+        final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS & hasSuspendableSuperCalls;
 
-            Label lMethodStart = new Label();
-            Label lMethodStart2 = new Label();
-            Label lMethodEnd = new Label();
-            Label lCatchSEE = new Label();
-            Label lCatchUTE = new Label();
-            Label lCatchAll = new Label();
-            Label[] lMethodCalls = new Label[numCodeBlocks - 1];
-            Label[][] refInvokeTryCatch;
+        mv.visitCode();
 
-            for (int i = 1; i < numCodeBlocks; i++)
-                lMethodCalls[i - 1] = new Label();
+        Label lMethodStart = new Label();
+        Label lMethodStart2 = new Label();
+        Label lMethodEnd = new Label();
+        Label lCatchSEE = new Label();
+        Label lCatchUTE = new Label();
+        Label lCatchAll = new Label();
+        Label[] lMethodCalls = new Label[numCodeBlocks - 1];
+        Label[][] refInvokeTryCatch;
 
-            mv.visitInsn(Opcodes.ACONST_NULL);
-            mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationReturnValue);
+        for (int i = 1; i < numCodeBlocks; i++)
+            lMethodCalls[i - 1] = new Label();
 
-    //        if (verifyInstrumentation) {
-    //            mv.visitInsn(Opcodes.ICONST_0);
-    //            mv.visitVarInsn(Opcodes.ISTORE, lvarSuspendableCalled);
-    //        }
-            mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, EXCEPTION_NAME);
-            mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, RUNTIME_EXCEPTION_NAME);
-            if (handleProxyInvocations)
-                mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchUTE, UNDECLARED_THROWABLE_NAME);
+        mv.visitInsn(Opcodes.ACONST_NULL);
+        mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationReturnValue);
 
-            // Prepare visitTryCatchBlocks for InvocationTargetException.
-            // With reflective invocations, the SuspendExecution exception will be wrapped in InvocationTargetException. We need to catch it and unwrap it.
-            // Note that the InvocationTargetException will be regenrated on every park, adding further overhead on top of the reflective call.
-            // This must be done here, before all other visitTryCatchBlock, because the exception's handler
-            // will be matched according to the order of in which visitTryCatchBlock has been called. Earlier calls take precedence.
-            refInvokeTryCatch = new Label[numCodeBlocks - 1][];
-            for (int i = 1; i < numCodeBlocks; i++) {
-                final FrameInfo fi = codeBlocks[i];
-                final AbstractInsnNode in = mn.instructions.get(fi.endInstruction);
-                if (mn.instructions.get(fi.endInstruction) instanceof MethodInsnNode) {
-                    MethodInsnNode min = (MethodInsnNode) in;
-                    if (isReflectInvocation(min.owner, min.name)) {
-                        Label[] ls = new Label[3];
-                        for (int k = 0; k < 3; k++)
-                            ls[k] = new Label();
-                        refInvokeTryCatch[i - 1] = ls;
-                        mv.visitTryCatchBlock(ls[0], ls[1], ls[2], "java/lang/reflect/InvocationTargetException");
-                    }
+//        if (verifyInstrumentation) {
+//            mv.visitInsn(Opcodes.ICONST_0);
+//            mv.visitVarInsn(Opcodes.ISTORE, lvarSuspendableCalled);
+//        }
+        mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, EXCEPTION_NAME);
+        mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, RUNTIME_EXCEPTION_NAME);
+        if (handleProxyInvocations)
+            mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchUTE, UNDECLARED_THROWABLE_NAME);
+
+        // Prepare visitTryCatchBlocks for InvocationTargetException.
+        // With reflective invocations, the SuspendExecution exception will be wrapped in InvocationTargetException. We need to catch it and unwrap it.
+        // Note that the InvocationTargetException will be regenrated on every park, adding further overhead on top of the reflective call.
+        // This must be done here, before all other visitTryCatchBlock, because the exception's handler
+        // will be matched according to the order of in which visitTryCatchBlock has been called. Earlier calls take precedence.
+        refInvokeTryCatch = new Label[numCodeBlocks - 1][];
+        for (int i = 1; i < numCodeBlocks; i++) {
+            final FrameInfo fi = codeBlocks[i];
+            final AbstractInsnNode in = mn.instructions.get(fi.endInstruction);
+            if (mn.instructions.get(fi.endInstruction) instanceof MethodInsnNode) {
+                MethodInsnNode min = (MethodInsnNode) in;
+                if (isReflectInvocation(min.owner, min.name)) {
+                    Label[] ls = new Label[3];
+                    for (int k = 0; k < 3; k++)
+                        ls[k] = new Label();
+                    refInvokeTryCatch[i - 1] = ls;
+                    mv.visitTryCatchBlock(ls[0], ls[1], ls[2], "java/lang/reflect/InvocationTargetException");
                 }
             }
+        }
 
-            // Output try-catch blocks
-            for (Object o : mn.tryCatchBlocks) {
-                final TryCatchBlockNode tcb = (TryCatchBlockNode) o;
+        // Output try-catch blocks
+        for (Object o : mn.tryCatchBlocks) {
+            final TryCatchBlockNode tcb = (TryCatchBlockNode) o;
 
-                if (EXCEPTION_NAME.equals(tcb.type) && !hasAnnotation) // we allow catch of SuspendExecution in method annotated with @Suspendable.
-                    throw new UnableToInstrumentException("catch for SuspendExecution", className, mn.name, mn.desc);
-                if (handleProxyInvocations && UNDECLARED_THROWABLE_NAME.equals(tcb.type)) // we allow catch of SuspendExecution in method annotated with @Suspendable.
-                    throw new UnableToInstrumentException("catch for UndeclaredThrowableException", className, mn.name, mn.desc);
-    //          if (INTERRUPTED_EXCEPTION_NAME.equals(tcb.type))
-    //              throw new UnableToInstrumentException("catch for " + InterruptedException.class.getSimpleName(), className, mn.name, mn.desc);
+            if (EXCEPTION_NAME.equals(tcb.type) && !hasAnnotation) // we allow catch of SuspendExecution in method annotated with @Suspendable.
+                throw new UnableToInstrumentException("catch for SuspendExecution", className, mn.name, mn.desc);
+            if (handleProxyInvocations && UNDECLARED_THROWABLE_NAME.equals(tcb.type)) // we allow catch of SuspendExecution in method annotated with @Suspendable.
+                throw new UnableToInstrumentException("catch for UndeclaredThrowableException", className, mn.name, mn.desc);
+//          if (INTERRUPTED_EXCEPTION_NAME.equals(tcb.type))
+//              throw new UnableToInstrumentException("catch for " + InterruptedException.class.getSimpleName(), className, mn.name, mn.desc);
 
-                tcb.accept(mv);
+            tcb.accept(mv);
+        }
+
+        // Output parameter annotations
+        if (mn.visibleParameterAnnotations != null)
+            dumpParameterAnnotations(mv, mn.visibleParameterAnnotations, true);
+        if (mn.invisibleParameterAnnotations != null)
+            dumpParameterAnnotations(mv, mn.invisibleParameterAnnotations, false);
+
+        // Output method annotations
+        if (mn.visibleAnnotations != null) {
+            for (Object o : mn.visibleAnnotations) {
+                AnnotationNode an = (AnnotationNode) o;
+                an.accept(mv.visitAnnotation(an.desc, true));
             }
+        }
 
-            // Output parameter annotations
-            if (mn.visibleParameterAnnotations != null)
-                dumpParameterAnnotations(mv, mn.visibleParameterAnnotations, true);
-            if (mn.invisibleParameterAnnotations != null)
-                dumpParameterAnnotations(mv, mn.invisibleParameterAnnotations, false);
+        mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchAll, null);
 
-            // Output method annotations
-            if (mn.visibleAnnotations != null) {
-                for (Object o : mn.visibleAnnotations) {
-                    AnnotationNode an = (AnnotationNode) o;
-                    an.accept(mv.visitAnnotation(an.desc, true));
-                }
-            }
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false);
+        mv.visitInsn(Opcodes.DUP);
+        mv.visitVarInsn(Opcodes.ASTORE, lvarStack);
 
-            mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchAll, null);
-
-            mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false);
-            mv.visitInsn(Opcodes.DUP);
-            mv.visitVarInsn(Opcodes.ASTORE, lvarStack);
-
-            // println(mv, "STACK: ", lvarStack);
-            // dumpStack(mv);
-            if (DUAL) {
-                mv.visitJumpInsn(Opcodes.IFNULL, lMethodStart);
-                mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-            }
-
-            emitStoreResumed(mv, true); // we'll assume we have been resumed
-
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "nextMethodEntry", "()I", false);
-            mv.visitTableSwitchInsn(1, numCodeBlocks - 1, lMethodStart2, lMethodCalls);
-
-            mv.visitLabel(lMethodStart2);
-
-            // the following code handles the case of an instrumented method called not as part of a suspendable code path
-            // isFirstInStack will return false in that case.
+        // println(mv, "STACK: ", lvarStack);
+        // dumpStack(mv);
+        if (DUAL) {
+            mv.visitJumpInsn(Opcodes.IFNULL, lMethodStart);
             mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "isFirstInStackOrPushed", "()Z", false);
-            mv.visitJumpInsn(Opcodes.IFNE, lMethodStart); // if true
+        }
 
-            // This will reset the fiber stack local if isFirstStack returns false.
-            mv.visitInsn(Opcodes.ACONST_NULL);
-            mv.visitVarInsn(Opcodes.ASTORE, lvarStack);
+        emitStoreResumed(mv, true); // we'll assume we have been resumed
 
-            mv.visitLabel(lMethodStart);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "nextMethodEntry", "()I", false);
+        mv.visitTableSwitchInsn(1, numCodeBlocks - 1, lMethodStart2, lMethodCalls);
 
-            emitStoreResumed(mv, false); // no, we have not been resumed
+        mv.visitLabel(lMethodStart2);
 
-            dumpCodeBlock(mv, 0, 0);
+        // the following code handles the case of an instrumented method called not as part of a suspendable code path
+        // isFirstInStack will return false in that case.
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "isFirstInStackOrPushed", "()Z", false);
+        mv.visitJumpInsn(Opcodes.IFNE, lMethodStart); // if true
 
-            // Blocks leading to suspendable calls
-            for (int i = 1; i < numCodeBlocks; i++) {
-                FrameInfo fi = codeBlocks[i];
+        // This will reset the fiber stack local if isFirstStack returns false.
+        mv.visitInsn(Opcodes.ACONST_NULL);
+        mv.visitVarInsn(Opcodes.ASTORE, lvarStack);
 
-                // Emit instrumented call
-                final AbstractInsnNode min = mn.instructions.get(fi.endInstruction);
-                final String owner = (min instanceof MethodInsnNode ? ((MethodInsnNode) min).owner : null);
-                Pair<String, String> nameAndDesc = getCalledMethodNameAndDesc(min);
-                String name = nameAndDesc.getFirst(), desc = nameAndDesc.getSecond();
-                if (isYieldMethod(owner, name)) { // special case - call to yield
-                    if (min.getOpcode() != Opcodes.INVOKESTATIC)
-                        throw new UnableToInstrumentException("invalid call to suspending method.", className, mn.name, mn.desc);
+        mv.visitLabel(lMethodStart);
 
-                    final int numYieldArgs = TypeAnalyzer.getNumArguments(desc);
-                    final boolean yieldReturnsValue = (Type.getReturnType(desc) != Type.VOID_TYPE);
+        emitStoreResumed(mv, false); // no, we have not been resumed
 
-                    emitStoreState(mv, i, fi, numYieldArgs); // we preserve the arguments for the call to yield on the operand stack
-                    emitStoreResumed(mv, false); // we have not been resumed
-                    // emitSuspendableCalled(mv);
+        dumpCodeBlock(mv, 0, 0);
 
-                    min.accept(mv);                              // we call the yield method
-                    if (yieldReturnsValue)
-                        mv.visitInsn(Opcodes.POP);               // we ignore the returned value...
-                    mv.visitLabel(lMethodCalls[i - 1]);          // we resume AFTER the call
+        // Blocks leading to suspendable calls
+        for (int i = 1; i < numCodeBlocks; i++) {
+            FrameInfo fi = codeBlocks[i];
 
-                    final Label afterPostRestore = new Label();
-                    mv.visitVarInsn(Opcodes.ILOAD, lvarResumed);
-                    mv.visitJumpInsn(Opcodes.IFEQ, afterPostRestore);
-                    emitPostRestore(mv);
-                    mv.visitLabel(afterPostRestore);
+            // Emit instrumented call
+            final AbstractInsnNode min = mn.instructions.get(fi.endInstruction);
+            final String owner = (min instanceof MethodInsnNode ? ((MethodInsnNode) min).owner : null);
+            Pair<String, String> nameAndDesc = getCalledMethodNameAndDesc(min);
+            String name = nameAndDesc.getFirst(), desc = nameAndDesc.getSecond();
+            if (isYieldMethod(owner, name)) { // special case - call to yield
+                if (min.getOpcode() != Opcodes.INVOKESTATIC)
+                    throw new UnableToInstrumentException("invalid call to suspending method.", className, mn.name, mn.desc);
 
-                    emitRestoreState(mv, i, fi, numYieldArgs);
-                    if (yieldReturnsValue)
-                        mv.visitVarInsn(Opcodes.ILOAD, lvarResumed); // ... and replace the returned value with the value of resumed
+                final int numYieldArgs = TypeAnalyzer.getNumArguments(desc);
+                final boolean yieldReturnsValue = (Type.getReturnType(desc) != Type.VOID_TYPE);
 
+                emitStoreState(mv, i, fi, numYieldArgs); // we preserve the arguments for the call to yield on the operand stack
+                emitStoreResumed(mv, false); // we have not been resumed
+                // emitSuspendableCalled(mv);
+
+                min.accept(mv);                              // we call the yield method
+                if (yieldReturnsValue)
+                    mv.visitInsn(Opcodes.POP);               // we ignore the returned value...
+                mv.visitLabel(lMethodCalls[i - 1]);          // we resume AFTER the call
+
+                final Label afterPostRestore = new Label();
+                mv.visitVarInsn(Opcodes.ILOAD, lvarResumed);
+                mv.visitJumpInsn(Opcodes.IFEQ, afterPostRestore);
+                emitPostRestore(mv);
+                mv.visitLabel(afterPostRestore);
+
+                emitRestoreState(mv, i, fi, numYieldArgs);
+                if (yieldReturnsValue)
+                    mv.visitVarInsn(Opcodes.ILOAD, lvarResumed); // ... and replace the returned value with the value of resumed
+
+                dumpCodeBlock(mv, i, 1 /* skip the call */);
+            } else {
+                final Label lbl = new Label();
+                if (DUAL) {
+                    mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+                    mv.visitJumpInsn(Opcodes.IFNULL, lbl);
+                }
+
+                // normal case - call to a suspendable method - resume before the call
+                emitStoreState(mv, i, fi, 0);
+                emitStoreResumed(mv, false); // we have not been resumed
+                // emitPreemptionPoint(mv, PREEMPTION_CALL);
+
+                mv.visitLabel(lMethodCalls[i - 1]);
+                emitRestoreState(mv, i, fi, 0);
+
+                if (DUAL)
+                    mv.visitLabel(lbl);
+
+                if (isReflectInvocation(owner, name)) {
+                    // We catch the InvocationTargetException and unwrap it if it wraps a SuspendExecution exception.
+                    Label[] ls = refInvokeTryCatch[i - 1];
+                    final Label startTry = ls[0];
+                    final Label endTry = ls[1];
+                    final Label startCatch = ls[2];
+                    final Label endCatch = new Label();
+                    final Label notSuspendExecution = new Label();
+
+                    // mv.visitTryCatchBlock(startTry, endTry, startCatch, "java/lang/reflect/InvocationTargetException");
+                    mv.visitLabel(startTry);   // try {
+                    min.accept(mv);            //   method.invoke()
+                    mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationReturnValue); // save return value
+                    mv.visitLabel(endTry);     // }
+                    mv.visitJumpInsn(Opcodes.GOTO, endCatch);
+                    mv.visitLabel(startCatch); // catch(InvocationTargetException ex) {
+                    mv.visitInsn(Opcodes.DUP);
+                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
+                    mv.visitTypeInsn(Opcodes.INSTANCEOF, EXCEPTION_NAME);
+                    mv.visitJumpInsn(Opcodes.IFEQ, notSuspendExecution);
+                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
+                    mv.visitLabel(notSuspendExecution);
+                    mv.visitInsn(Opcodes.ATHROW);
+                    mv.visitLabel(endCatch);
+
+                    mv.visitVarInsn(Opcodes.ALOAD, lvarInvocationReturnValue); // restore return value
                     dumpCodeBlock(mv, i, 1 /* skip the call */);
                 } else {
-                    final Label lbl = new Label();
-                    if (DUAL) {
-                        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-                        mv.visitJumpInsn(Opcodes.IFNULL, lbl);
-                    }
-
-                    // normal case - call to a suspendable method - resume before the call
-                    emitStoreState(mv, i, fi, 0);
-                    emitStoreResumed(mv, false); // we have not been resumed
-                    // emitPreemptionPoint(mv, PREEMPTION_CALL);
-
-                    mv.visitLabel(lMethodCalls[i - 1]);
-                    emitRestoreState(mv, i, fi, 0);
-
-                    if (DUAL)
-                        mv.visitLabel(lbl);
-
-                    if (isReflectInvocation(owner, name)) {
-                        // We catch the InvocationTargetException and unwrap it if it wraps a SuspendExecution exception.
-                        Label[] ls = refInvokeTryCatch[i - 1];
-                        final Label startTry = ls[0];
-                        final Label endTry = ls[1];
-                        final Label startCatch = ls[2];
-                        final Label endCatch = new Label();
-                        final Label notSuspendExecution = new Label();
-
-                        // mv.visitTryCatchBlock(startTry, endTry, startCatch, "java/lang/reflect/InvocationTargetException");
-                        mv.visitLabel(startTry);   // try {
-                        min.accept(mv);            //   method.invoke()
-                        mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationReturnValue); // save return value
-                        mv.visitLabel(endTry);     // }
-                        mv.visitJumpInsn(Opcodes.GOTO, endCatch);
-                        mv.visitLabel(startCatch); // catch(InvocationTargetException ex) {
-                        mv.visitInsn(Opcodes.DUP);
-                        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
-                        mv.visitTypeInsn(Opcodes.INSTANCEOF, EXCEPTION_NAME);
-                        mv.visitJumpInsn(Opcodes.IFEQ, notSuspendExecution);
-                        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
-                        mv.visitLabel(notSuspendExecution);
-                        mv.visitInsn(Opcodes.ATHROW);
-                        mv.visitLabel(endCatch);
-
-                        mv.visitVarInsn(Opcodes.ALOAD, lvarInvocationReturnValue); // restore return value
-                        dumpCodeBlock(mv, i, 1 /* skip the call */);
-                    } else {
-                        // emitSuspendableCalled(mv);
-                        dumpCodeBlock(mv, i, 0);
-                    }
+                    // emitSuspendableCalled(mv);
+                    dumpCodeBlock(mv, i, 0);
                 }
             }
-
-            // Emit catchall's catch section
-            mv.visitLabel(lMethodEnd);
-
-            if (handleProxyInvocations) {
-                mv.visitLabel(lCatchUTE);
-                mv.visitInsn(Opcodes.DUP);
-
-                // println(mv, "CTCH: ");
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
-                // println(mv, "CAUSE: ");
-                mv.visitTypeInsn(Opcodes.INSTANCEOF, EXCEPTION_NAME);
-                mv.visitJumpInsn(Opcodes.IFEQ, lCatchAll);
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
-                mv.visitJumpInsn(Opcodes.GOTO, lCatchSEE);
-            }
-
-            mv.visitLabel(lCatchAll);
-            emitPopMethod(mv);
-            mv.visitLabel(lCatchSEE);
-
-            // println(mv, "THROW: ");
-            mv.visitInsn(Opcodes.ATHROW);   // rethrow shared between catchAll and catchSSE
-
-            // Output pre-existing locals
-            if (mn.localVariables != null) {
-                for (Object o : mn.localVariables)
-                    ((LocalVariableNode) o).accept(mv);
-            }
-
-            // Needed by ASM analysis
-            mv.visitMaxs(mn.maxStack + ADD_OPERANDS, mn.maxLocals + NUM_LOCALS + additionalLocals);
-
-            mv.visitEnd();
         }
+
+        // Emit catchall's catch section
+        mv.visitLabel(lMethodEnd);
+
+        if (handleProxyInvocations) {
+            mv.visitLabel(lCatchUTE);
+            mv.visitInsn(Opcodes.DUP);
+
+            // println(mv, "CTCH: ");
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
+            // println(mv, "CAUSE: ");
+            mv.visitTypeInsn(Opcodes.INSTANCEOF, EXCEPTION_NAME);
+            mv.visitJumpInsn(Opcodes.IFEQ, lCatchAll);
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
+            mv.visitJumpInsn(Opcodes.GOTO, lCatchSEE);
+        }
+
+        mv.visitLabel(lCatchAll);
+        emitPopMethod(mv);
+        mv.visitLabel(lCatchSEE);
+
+        // println(mv, "THROW: ");
+        mv.visitInsn(Opcodes.ATHROW);   // rethrow shared between catchAll and catchSSE
+
+        // Output pre-existing locals
+        if (mn.localVariables != null) {
+            for (Object o : mn.localVariables)
+                ((LocalVariableNode) o).accept(mv);
+        }
+
+        // Needed by ASM analysis
+        mv.visitMaxs(mn.maxStack + ADD_OPERANDS, mn.maxLocals + NUM_LOCALS + additionalLocals);
+
+        mv.visitEnd();
     }
 
     private Pair<String, String> getCalledMethodNameAndDesc(AbstractInsnNode min) {
@@ -485,10 +510,8 @@ class InstrumentMethod {
         return new Pair<>(null, null);
     }
 
-    private String getOptimization() {
-        if (forwardsToSuspendable())
-            return QuasarInstrumentor.OPT_FORWARDS_TO_SUSPENDABLE_SKIP;
-        return null;
+    private boolean skip() {
+        return forwardsToSuspendable();
     }
 
     private boolean forwardsToSuspendable() {
@@ -533,21 +556,17 @@ class InstrumentMethod {
 
     private boolean startsWithSuspCall(FrameInfo[] codeBlocks, int idx) {
         final int insnIdx = codeBlocks[idx].endInstruction;
-        return isSuspendableCall(mn.instructions.get(insnIdx), insnIdx, false);
+        return isSuspendableCall(mn.instructions.get(insnIdx));
     }
 
     private boolean containsBackBranches(FrameInfo[] codeBlocks, int idx) {
         final int start = codeBlocks[idx].endInstruction;
         final int end = codeBlocks[idx+1].endInstruction;
-        final ArrayList<Label> seenLabels = new ArrayList<>();
 
         for (int i = start; i < end; i++) {
             final AbstractInsnNode ain = mn.instructions.get(i);
-            if (ain instanceof LabelNode)
-                seenLabels.add(((LabelNode) ain).getLabel());
-            else if (ain instanceof JumpInsnNode) {
-                if (seenLabels.contains(((JumpInsnNode) ain).label.getLabel()))
-                    return true;
+            if (ain instanceof JumpInsnNode && ((JumpInsnNode) ain).label.getLabel().getOffset() <= 0) {
+                return true;
             }
         }
         return false;
@@ -566,7 +585,7 @@ class InstrumentMethod {
         return labels;
     }
 
-    private void emitInstrumentedAnn(MethodVisitor mv, String applicableOptimization) {
+    private void emitInstrumentedAnn(MethodVisitor mv, boolean skip) {
         final AnnotationVisitor instrumentedAV = mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
         final AnnotationVisitor linesAV = instrumentedAV.visitArray("suspendableCallsites");
         for(int i = 1 /* Skip START frameInfo */; i < codeBlocks.length && codeBlocks[i] != null; i++) {
@@ -577,8 +596,7 @@ class InstrumentMethod {
         linesAV.visitEnd();
         instrumentedAV.visit("methodStart", startSourceLine);
         instrumentedAV.visit("methodEnd", endSourceLine);
-        if (applicableOptimization != null)
-            instrumentedAV.visit("methodOptimization", applicableOptimization);
+        instrumentedAV.visit("methodOptimized", skip);
         instrumentedAV.visitEnd();
     }
 
