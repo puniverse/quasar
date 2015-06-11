@@ -73,9 +73,9 @@ public final class SuspendableHelper {
         } else {
             Instrumented i = m.getAnnotation(Instrumented.class);
             if (i != null) {
-                for(int j : i.suspendableCallsites()) {
+                for(int j : i.suspendableCallSites()) {
                     if (j == sourceLine)
-                        return new Pair<>(true, i.suspendableCallsites());
+                        return new Pair<>(true, i.suspendableCallSites());
                 }
             }
         }

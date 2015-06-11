@@ -168,7 +168,7 @@ class InstrumentMethod {
         }
 
         if (count < suspCallsSourceLines.length)
-            Arrays.copyOf(suspCallsSourceLines, count);
+            suspCallsSourceLines = Arrays.copyOf(suspCallsSourceLines, count);
             
         return count < suspCallsIndexes.length ? Arrays.copyOf(suspCallsIndexes, count) : suspCallsIndexes;
     }
@@ -280,7 +280,7 @@ class InstrumentMethod {
         emitInstrumentedAnn(mv, skip);
 
         if (skip) {
-            db.log(LogLevel.INFO, "[OPTIMIZE] skipping instrumentation for method %s#%s%s", className, mn.name, mn.desc);
+            db.log(LogLevel.INFO, "[OPTIMIZE] Skipping instrumentation for method %s#%s%s", className, mn.name, mn.desc);
             mn.accept(mv);
             return;
         }
@@ -536,6 +536,7 @@ class InstrumentMethod {
     }
 
     private boolean skip(int[] susCallsIndexes) {
+        db.log(LogLevel.DEBUG, "[OPTIMIZE] Examining method %s#%s%s with susCallsIndexes=%s", className, mn.name, mn.desc, Arrays.toString(susCallsIndexes));
         return forwardsToSuspendable(susCallsIndexes);
     }
 
@@ -623,15 +624,29 @@ class InstrumentMethod {
     }
 
     private void emitInstrumentedAnn(MethodVisitor mv, boolean skip) {
+        final StringBuilder sb = new StringBuilder();
         final AnnotationVisitor instrumentedAV = mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
-        final AnnotationVisitor linesAV = instrumentedAV.visitArray("suspendableCallsites");
-        for(int i = 0; i < suspCallsSourceLines.length; i++)
-            linesAV.visit("", suspCallsSourceLines[i]);
+        sb.append("@Instrumented(");
+        final AnnotationVisitor linesAV = instrumentedAV.visitArray("suspendableCallSites");
+        sb.append("suspendableCallSites=[");
+        for(int i = 0; i < suspCallsSourceLines.length; i++) {
+            if (i != 0)
+                sb.append(", ");
+            final int l = suspCallsSourceLines[i];
+            linesAV.visit("", l);
+            sb.append(l);
+        }
         linesAV.visitEnd();
+        sb.append("],");
         instrumentedAV.visit("methodStart", startSourceLine);
+        sb.append("methodStart=").append(startSourceLine).append(",");
         instrumentedAV.visit("methodEnd", endSourceLine);
+        sb.append("methodEnd=").append(endSourceLine).append(",");
         instrumentedAV.visit("methodOptimized", skip);
+        sb.append("methodOptimized=").append(skip);
         instrumentedAV.visitEnd();
+        sb.append(")");
+        db.log(LogLevel.INFO, "Annotating method %s#%s%s with %s", className, mn.name, mn.desc, sb);
     }
 
     private void dumpStack(MethodVisitor mv) {

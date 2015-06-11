@@ -19,7 +19,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Instrumented {
     // Relevant only for methods
-    int[] suspendableCallsites() default {};
+    int[] suspendableCallSites() default {};
     int methodStart() default -1;
     int methodEnd() default -1;
     boolean methodOptimized() default false;
