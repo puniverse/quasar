@@ -459,7 +459,7 @@ project (':quasar-core') {
             classpath = project.sourceSets["${set.name}test"].runtimeClasspath
             
             project.afterEvaluate {
-                jvmArgs "-javaagent:${shadowJarTask.archivePath}"
+                jvmArgs "-javaagent:${shadowJarTask.archivePath}" // =vdc
             }
         }
         
