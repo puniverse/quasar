@@ -248,13 +248,11 @@ public class InstrumentClass extends ClassVisitor {
                         if (db.isDebug())
                             db.log(LogLevel.INFO, "About to instrument method %s#%s%s", className, mn.name, mn.desc);
 
-                        final int[] suspCallsIndexes = im.getSuspCallsIndexes();
-                        if (suspCallsIndexes.length > 0) {
+                        if (im.callsSuspendables()) {
                             if (mn.name.charAt(0) == '<')
                                 throw new UnableToInstrumentException("special method", className, mn.name, mn.desc);
 
-                            // There are suspendable calls => adding @Instrumented at the very least
-                            im.accept(outMV, hasAnnotation(mn), suspCallsIndexes);
+                            im.accept(outMV, hasAnnotation(mn));
                         } else {
                             db.log(LogLevel.INFO, "Nothing to instrument in method %s#%s%s", className, mn.name, mn.desc);
                             mn.accept(outMV);

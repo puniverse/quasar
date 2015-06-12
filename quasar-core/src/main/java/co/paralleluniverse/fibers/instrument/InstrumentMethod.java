@@ -56,7 +56,6 @@ import static co.paralleluniverse.fibers.instrument.MethodDatabase.isInvocationH
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isMethodHandleInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isReflectInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isSyntheticAccess;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -117,6 +116,7 @@ class InstrumentMethod {
     private int startSourceLine = -1;
     private int endSourceLine = -1;
     private int[] suspCallsSourceLines = new int[8];
+    private int[] suspCallsIndexes = null;
 
     public InstrumentMethod(MethodDatabase db, String sourceName, String className, MethodNode mn) throws AnalyzerException {
         this.db = db;
@@ -137,40 +137,45 @@ class InstrumentMethod {
         }
     }
 
-    public int[] getSuspCallsIndexes() {
-        final int numIns = mn.instructions.size();
-        int[] suspCallsIndexes = new int[8];
-        int currSourceLine = -1;
-        int count = 0;
-        for (int i = 0; i < numIns; i++) {
-            final Frame f = frames[i];
-            if (f != null) { // reachable ?
-                final AbstractInsnNode in = mn.instructions.get(i);
-                if (in.getType() == AbstractInsnNode.LINE) {
-                    final LineNumberNode lnn = (LineNumberNode) in;
-                    currSourceLine = lnn.line;
-                    if (startSourceLine == -1 || currSourceLine < startSourceLine)
-                        startSourceLine = currSourceLine;
-                    if (endSourceLine == -1 || currSourceLine > endSourceLine)
-                        endSourceLine = currSourceLine;
-                } else if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
-                    if (isSuspendableCall(in)) {
-                        if (count >= suspCallsIndexes.length)
-                            suspCallsIndexes = Arrays.copyOf(suspCallsIndexes, suspCallsIndexes.length * 2);
-                        if (count >= suspCallsSourceLines.length)
-                            suspCallsSourceLines = Arrays.copyOf(suspCallsSourceLines, suspCallsSourceLines.length * 2);
-                        suspCallsIndexes[count] = i;
-                        suspCallsSourceLines[count] = currSourceLine;
-                        count++;
+    public boolean callsSuspendables() {
+        if (suspCallsIndexes == null) {
+            suspCallsIndexes = new int[8];
+            final int numIns = mn.instructions.size();
+            int currSourceLine = -1;
+            int count = 0;
+            for (int i = 0; i < numIns; i++) {
+                final Frame f = frames[i];
+                if (f != null) { // reachable ?
+                    final AbstractInsnNode in = mn.instructions.get(i);
+                    if (in.getType() == AbstractInsnNode.LINE) {
+                        final LineNumberNode lnn = (LineNumberNode) in;
+                        currSourceLine = lnn.line;
+                        if (startSourceLine == -1 || currSourceLine < startSourceLine)
+                            startSourceLine = currSourceLine;
+                        if (endSourceLine == -1 || currSourceLine > endSourceLine)
+                            endSourceLine = currSourceLine;
+                    } else if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
+                        if (isSuspendableCall(in)) {
+                            if (count >= suspCallsIndexes.length)
+                                suspCallsIndexes = Arrays.copyOf(suspCallsIndexes, suspCallsIndexes.length * 2);
+                            if (count >= suspCallsSourceLines.length)
+                                suspCallsSourceLines = Arrays.copyOf(suspCallsSourceLines, suspCallsSourceLines.length * 2);
+                            suspCallsIndexes[count] = i;
+                            suspCallsSourceLines[count] = currSourceLine;
+                            count++;
+                        }
                     }
                 }
             }
+
+            if (count < suspCallsSourceLines.length)
+                suspCallsSourceLines = Arrays.copyOf(suspCallsSourceLines, count);
+
+            if (count < suspCallsIndexes.length)
+                suspCallsIndexes = Arrays.copyOf(suspCallsIndexes, count);
         }
 
-        if (count < suspCallsSourceLines.length)
-            suspCallsSourceLines = Arrays.copyOf(suspCallsSourceLines, count);
-            
-        return count < suspCallsIndexes.length ? Arrays.copyOf(suspCallsIndexes, count) : suspCallsIndexes;
+        return suspCallsIndexes.length > 0;
     }
 
     private boolean isSuspendableCall(AbstractInsnNode in) {
@@ -270,22 +275,21 @@ class InstrumentMethod {
         addCodeBlock(null, numIns);
     }
 
-    public void accept(MethodVisitor mv, boolean hasAnnotation, int[] susCallsIndexes) {
+    public void accept(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
 
-        // Called by InstrumentClass => we need at least to dump the @Instrumented annotation
+        final boolean skipInstrumentation = canInstrumentationBeSkipped(suspCallsIndexes);
 
-        final boolean skip = skip(susCallsIndexes);
+        emitInstrumentedAnn(mv, skipInstrumentation);
 
-        emitInstrumentedAnn(mv, skip);
-
-        if (skip) {
+        if (skipInstrumentation) {
             db.log(LogLevel.INFO, "[OPTIMIZE] Skipping instrumentation for method %s#%s%s", className, mn.name, mn.desc);
-            mn.accept(mv);
+            mn.accept(mv); // Dump
             return;
         }
 
         // Instrument
+
         final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS & hasSuspendableSuperCalls;
 
         collectCodeBlocks();
@@ -535,7 +539,7 @@ class InstrumentMethod {
         return new Pair<>(null, null);
     }
 
-    private boolean skip(int[] susCallsIndexes) {
+    private boolean canInstrumentationBeSkipped(int[] susCallsIndexes) {
         db.log(LogLevel.DEBUG, "[OPTIMIZE] Examining method %s#%s%s with susCallsIndexes=%s", className, mn.name, mn.desc, Arrays.toString(susCallsIndexes));
         return forwardsToSuspendable(susCallsIndexes);
     }
