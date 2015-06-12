@@ -17,7 +17,9 @@ import org.objectweb.asm.tree.MethodInsnNode;
  * @author pron
  */
 final class Classes {
-    static final String EXCEPTION_NAME = "co/paralleluniverse/fibers/SuspendExecution";
+    static final String EXCEPTION_NAME = "java/lang/Exception";
+    static final String THROWABLE_NAME = "java/lang/Throwable";
+    static final String SUSPEND_EXECUTION_NAME = "co/paralleluniverse/fibers/SuspendExecution";
     static final String RUNTIME_EXCEPTION_NAME = "co/paralleluniverse/fibers/RuntimeSuspendExecution";
     static final String UNDECLARED_THROWABLE_NAME = "java/lang/reflect/UndeclaredThrowableException";
     static final String ANNOTATION_NAME = "co/paralleluniverse/fibers/Suspendable";
@@ -32,7 +34,7 @@ final class Classes {
         new BlockingMethod("java/lang/Object", "wait", "()V", "(J)V", "(JI)V"),
     };
     // computed
-    static final String EXCEPTION_DESC = "L" + EXCEPTION_NAME + ";";
+    static final String EXCEPTION_DESC = "L" + SUSPEND_EXECUTION_NAME + ";";
     static final String ANNOTATION_DESC = "L" + ANNOTATION_NAME + ";";
     static final String DONT_INSTRUMENT_ANNOTATION_DESC = "L" + DONT_INSTRUMENT_ANNOTATION_NAME + ";";
     static final String ALREADY_INSTRUMENTED_DESC = Type.getDescriptor(Instrumented.class);
@@ -48,7 +50,7 @@ final class Classes {
         return STRAND_NAME.equals(className);
     }
 
-    public static int isBlockingCall(MethodInsnNode ins) {
+    public static int blockingCallIdx(MethodInsnNode ins) {
         for (int i = 0, n = BLOCKING_METHODS.length; i < n; i++) {
             if (BLOCKING_METHODS[i].match(ins))
                 return i;

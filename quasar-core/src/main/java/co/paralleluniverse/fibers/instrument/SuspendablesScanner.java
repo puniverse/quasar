@@ -18,7 +18,7 @@ import static co.paralleluniverse.common.reflection.ClassLoaderUtil.isClassFile;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToResource;
 import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_ANNOTATION_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
+import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import com.google.common.base.Function;
 import java.io.File;
@@ -386,7 +386,7 @@ public class SuspendablesScanner extends Task {
         private boolean checkExceptions(String[] exceptions) {
             if (exceptions != null) {
                 for (String ex : exceptions) {
-                    if (ex.equals(EXCEPTION_NAME))
+                    if (ex.equals(SUSPEND_EXECUTION_NAME))
                         return true;
                 }
             }
