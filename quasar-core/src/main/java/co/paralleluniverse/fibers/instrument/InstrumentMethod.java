@@ -548,6 +548,8 @@ class InstrumentMethod {
         return forwardsToSuspendable(susCallsIndexes);
     }
 
+    //<editor-fold defaultstate="collapsed" desc="forwardsToSuspendable">
+    /////////// forwardsToSuspendable ///////////////////////////////////
     private boolean forwardsToSuspendable(int[] susCallsIndexes) {
         if (susCallsIndexes.length == 1) // => Exactly one suspendable call
             return (db.isAllowMonitors() || !hasMonitors()) && // If not checking we could optimize away and skip collectCodeBlocks' exception/warning
@@ -556,7 +558,7 @@ class InstrumentMethod {
                     !accessesFields(susCallsIndexes, 0) && // They could alter fields
                     !branchesBack(susCallsIndexes, 0) && // We assume instrumenting is cheaper than for-loops recalculating locals
                     (db.isAllowBlocking() || !callsBlocking(susCallsIndexes, 1)) && // If not checking we could optimize away and skip collectCodeBlocks' exception/warning
-                    !branchesAtOrBeforeStart(susCallsIndexes, 1) && // Suspendable is called only ones
+                    !branchesAtOrBeforeStart(susCallsIndexes, 1) && // Suspendable is called only once
                     startsWithSuspCallButNotYield(susCallsIndexes, 1); // Direct yield calls need instrumentation support
 
         return false;
@@ -669,6 +671,7 @@ class InstrumentMethod {
     private int getBlockEndInsnIdxInclusive(int blockNum, int[] susCallsIndexes) {
         return blockNum >= susCallsIndexes.length ? mn.instructions.size() - 1 : susCallsIndexes[blockNum] - 1;
     }
+    //</editor-fold>
 
     private void emitInstrumentedAnn(MethodVisitor mv, boolean skip) {
         final StringBuilder sb = new StringBuilder();
