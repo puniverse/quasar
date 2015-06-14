@@ -555,61 +555,51 @@ class InstrumentMethod {
         if (susCallsBcis.length != 1)
             return false; // we allow exactly one suspendable call
 
-        final int susCallBci = susCallsBcis[0];        
+        final int susCallBci = susCallsBcis[0];
         final AbstractInsnNode susCall = mn.instructions.get(susCallBci);
         assert isSuspendableCall(susCall);
         if (isYieldCall(susCall))
             return false; // yield calls require instrumentation (to skip the call when resuming)
+        if (hasSuspendableTryCatchBlocksAround(susCallBci))
+            return false;
 
         // before suspendable call:
-        {
-            final int start = 0; // method start
-            final int end = susCallBci - 1;
-            if (hasSuspendableTryCatchBlocksStartingBefore(end))
-                return false;
-            for (int i = start; i <= end; i++) {
-                final AbstractInsnNode ins = mn.instructions.get(i);
+        for (int i = 0; i < susCallBci; i++) {
+            final AbstractInsnNode ins = mn.instructions.get(i);
 
-                if (ins.getType() == AbstractInsnNode.METHOD_INSN || ins.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN)
-                    return false; // methods calls might have side effects
-                if (ins.getType() == AbstractInsnNode.FIELD_INSN)
-                    return false; // side effects
-                if (ins instanceof JumpInsnNode && mn.instructions.indexOf(((JumpInsnNode) ins).label) <= i)
-                    return false; // back branches may be costly, so we'd rather capture state
-                if (!db.isAllowMonitors() && (ins.getOpcode() == Opcodes.MONITORENTER || ins.getOpcode() == Opcodes.MONITOREXIT))
-                    return false;  // we need collectCodeBlocks to warn about monitors
-            }
+            if (ins.getType() == AbstractInsnNode.METHOD_INSN || ins.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN)
+                return false; // methods calls might have side effects
+            if (ins.getType() == AbstractInsnNode.FIELD_INSN)
+                return false; // side effects
+            if (ins instanceof JumpInsnNode && mn.instructions.indexOf(((JumpInsnNode) ins).label) <= i)
+                return false; // back branches may be costly, so we'd rather capture state
+            if (!db.isAllowMonitors() && (ins.getOpcode() == Opcodes.MONITORENTER || ins.getOpcode() == Opcodes.MONITOREXIT))
+                return false;  // we need collectCodeBlocks to warn about monitors
         }
-        // after suspendable call
-        {
-            final int start = susCallBci + 1;
-            final int end = mn.instructions.size() - 1; // method end
-            for (int i = start; i <= end; i++) {
-                final AbstractInsnNode ins = mn.instructions.get(i);
 
-                if (ins instanceof JumpInsnNode && mn.instructions.indexOf(((JumpInsnNode) ins).label) < start)
-                    return false; // if we jump before the suspendable call we suspend more than once -- need instrumentation
-                if (!db.isAllowMonitors() && (ins.getOpcode() == Opcodes.MONITORENTER || ins.getOpcode() == Opcodes.MONITOREXIT))
-                    return false;  // we need collectCodeBlocks to warn about monitors
-                if (!db.isAllowBlocking() && (ins instanceof MethodInsnNode && blockingCallIdx((MethodInsnNode) ins) != -1))
-                    return false;  // we need collectCodeBlocks to warn about blocking calls
-            }
+        // after suspendable call
+        for (int i = susCallBci + 1; i <= mn.instructions.size() - 1; i++) {
+            final AbstractInsnNode ins = mn.instructions.get(i);
+
+            if (ins instanceof JumpInsnNode && mn.instructions.indexOf(((JumpInsnNode) ins).label) <= susCallBci)
+                return false; // if we jump before the suspendable call we suspend more than once -- need instrumentation
+            if (!db.isAllowMonitors() && (ins.getOpcode() == Opcodes.MONITORENTER || ins.getOpcode() == Opcodes.MONITOREXIT))
+                return false;  // we need collectCodeBlocks to warn about monitors
+            if (!db.isAllowBlocking() && (ins instanceof MethodInsnNode && blockingCallIdx((MethodInsnNode) ins) != -1))
+                return false;  // we need collectCodeBlocks to warn about blocking calls
         }
         return true;
     }
 
-
-    private boolean hasSuspendableTryCatchBlocksStartingBefore(int end) {
-        for (Object o : mn.tryCatchBlocks) {
-            TryCatchBlockNode tcb = (TryCatchBlockNode) o;
-            if (mn.instructions.indexOf(tcb.start) <= end) {
-                if (THROWABLE_NAME.equals(tcb.type)
-                        || EXCEPTION_NAME.equals(tcb.type)
-                        || RUNTIME_EXCEPTION_NAME.equals(tcb.type)
-                        || RUNTIME_SUSPEND_EXECUTION_NAME.equals(tcb.type)
-                        || SUSPEND_EXECUTION_NAME.equals(tcb.type))
-                    return true;
-            }
+    private boolean hasSuspendableTryCatchBlocksAround(int bci) {
+        for (TryCatchBlockNode tcb : (List<TryCatchBlockNode>) mn.tryCatchBlocks) {
+            if (mn.instructions.indexOf(tcb.start) <= bci && mn.instructions.indexOf(tcb.end) >= bci
+                    && (THROWABLE_NAME.equals(tcb.type)
+                    || EXCEPTION_NAME.equals(tcb.type)
+                    || RUNTIME_EXCEPTION_NAME.equals(tcb.type)
+                    || RUNTIME_SUSPEND_EXECUTION_NAME.equals(tcb.type)
+                    || SUSPEND_EXECUTION_NAME.equals(tcb.type)))
+                return true;
         }
         return false;
     }
