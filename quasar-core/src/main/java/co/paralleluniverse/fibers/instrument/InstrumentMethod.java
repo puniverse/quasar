@@ -585,6 +585,8 @@ class InstrumentMethod {
             if (mn.instructions.indexOf(tcb.start) <= end) {
                 if (THROWABLE_NAME.equals(tcb.type)
                         || EXCEPTION_NAME.equals(tcb.type)
+                        || RUNTIME_EXCEPTION_NAME.equals(tcb.type)
+                        || RUNTIME_SUSPEND_EXECUTION_NAME.equals(tcb.type)
                         || SUSPEND_EXECUTION_NAME.equals(tcb.type))
                     return true;
             }
