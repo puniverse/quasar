@@ -118,7 +118,7 @@ class InstrumentMethod {
     private int startSourceLine = -1;
     private int endSourceLine = -1;
     private int[] suspCallsSourceLines = new int[8];
-    private int[] suspCallsIndexes = null;
+    private int[] suspCallsBcis = null;
 
     public InstrumentMethod(MethodDatabase db, String sourceName, String className, MethodNode mn) throws AnalyzerException {
         this.db = db;
@@ -140,8 +140,8 @@ class InstrumentMethod {
     }
 
     public boolean callsSuspendables() {
-        if (suspCallsIndexes == null) {
-            suspCallsIndexes = new int[8];
+        if (suspCallsBcis == null) {
+            suspCallsBcis = new int[8];
             final int numIns = mn.instructions.size();
             int currSourceLine = -1;
             int count = 0;
@@ -158,11 +158,11 @@ class InstrumentMethod {
                             endSourceLine = currSourceLine;
                     } else if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
                         if (isSuspendableCall(in)) {
-                            if (count >= suspCallsIndexes.length)
-                                suspCallsIndexes = Arrays.copyOf(suspCallsIndexes, suspCallsIndexes.length * 2);
+                            if (count >= suspCallsBcis.length)
+                                suspCallsBcis = Arrays.copyOf(suspCallsBcis, suspCallsBcis.length * 2);
                             if (count >= suspCallsSourceLines.length)
                                 suspCallsSourceLines = Arrays.copyOf(suspCallsSourceLines, suspCallsSourceLines.length * 2);
-                            suspCallsIndexes[count] = i;
+                            suspCallsBcis[count] = i;
                             suspCallsSourceLines[count] = currSourceLine;
                             count++;
                         } else
@@ -174,11 +174,11 @@ class InstrumentMethod {
             if (count < suspCallsSourceLines.length)
                 suspCallsSourceLines = Arrays.copyOf(suspCallsSourceLines, count);
 
-            if (count < suspCallsIndexes.length)
-                suspCallsIndexes = Arrays.copyOf(suspCallsIndexes, count);
+            if (count < suspCallsBcis.length)
+                suspCallsBcis = Arrays.copyOf(suspCallsBcis, count);
         }
 
-        return suspCallsIndexes.length > 0;
+        return suspCallsBcis.length > 0;
     }
 
     private boolean isSuspendableCall(AbstractInsnNode in) {
@@ -188,9 +188,9 @@ class InstrumentMethod {
             final MethodInsnNode min = (MethodInsnNode) in;
 
             if (!isSyntheticAccess(min.owner, min.name)
-                 && !isReflectInvocation(min.owner, min.name)
-                 && !isMethodHandleInvocation(min.owner, min.name)
-                 && !isInvocationHandlerInvocation(min.owner, min.name)) {
+                    && !isReflectInvocation(min.owner, min.name)
+                    && !isMethodHandleInvocation(min.owner, min.name)
+                    && !isInvocationHandlerInvocation(min.owner, min.name)) {
                 SuspendableType st = db.isMethodSuspendable(min.owner, min.name, min.desc, min.getOpcode());
 
                 if (st == SuspendableType.NON_SUSPENDABLE)
@@ -219,15 +219,15 @@ class InstrumentMethod {
                     if (in.getType() == AbstractInsnNode.METHOD_INSN) {
                         final MethodInsnNode min = (MethodInsnNode) in;
                         int opcode = min.getOpcode();
-                        if (isSyntheticAccess(min.owner, min.name)) {
+                        if (isSyntheticAccess(min.owner, min.name))
                             db.log(LogLevel.DEBUG, "Synthetic accessor method call at instruction %d is assumed suspendable", i);
-                        } else if (isReflectInvocation(min.owner, min.name)) {
+                        else if (isReflectInvocation(min.owner, min.name))
                             db.log(LogLevel.DEBUG, "Reflective method call at instruction %d is assumed suspendable", i);
-                        } else if (isMethodHandleInvocation(min.owner, min.name)) {
+                        else if (isMethodHandleInvocation(min.owner, min.name))
                             db.log(LogLevel.DEBUG, "MethodHandle invocation at instruction %d is assumed suspendable", i);
-                        } else if (isInvocationHandlerInvocation(min.owner, min.name)) {
+                        else if (isInvocationHandlerInvocation(min.owner, min.name))
                             db.log(LogLevel.DEBUG, "InvocationHandler invocation at instruction %d is assumed suspendable", i);
-                        } else {
+                        else {
                             SuspendableType st = db.isMethodSuspendable(min.owner, min.name, min.desc, opcode);
                             if (st == SuspendableType.NON_SUSPENDABLE)
                                 susp = false;
@@ -272,12 +272,10 @@ class InstrumentMethod {
         if (blockingId >= 0 && !isAllowedToBlock(className, mn.name)) {
             int mask = 1 << blockingId;
             if (!db.isAllowBlocking()) {
-                throw new UnableToInstrumentException("blocking call to "
-                        + min.owner + "#" + min.name + min.desc, className, mn.name, mn.desc);
+                throw new UnableToInstrumentException("blocking call to " + min.owner + "#" + min.name + min.desc, className, mn.name, mn.desc);
             } else if ((warnedAboutBlocking & mask) == 0) {
                 warnedAboutBlocking |= mask;
-                db.log(LogLevel.WARNING, "Method %s#%s%s contains potentially blocking call to "
-                        + min.owner + "#" + min.name + min.desc, className, mn.name, mn.desc);
+                db.log(LogLevel.WARNING, "Method %s#%s%s contains potentially blocking call to " + min.owner + "#" + min.name + min.desc, className, mn.name, mn.desc);
             }
         }
     }
@@ -285,7 +283,7 @@ class InstrumentMethod {
     public void accept(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
 
-        final boolean skipInstrumentation = canInstrumentationBeSkipped(suspCallsIndexes);
+        final boolean skipInstrumentation = canInstrumentationBeSkipped(suspCallsBcis);
 
         emitInstrumentedAnn(mv, skipInstrumentation);
 
@@ -296,7 +294,6 @@ class InstrumentMethod {
         }
 
         // Instrument
-
         final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS & hasSuspendableSuperCalls;
 
         collectCodeBlocks();
@@ -554,15 +551,14 @@ class InstrumentMethod {
 
     private boolean forwardsToSuspendable(int[] susCallsIndexes) {
         if (susCallsIndexes.length == 1) // => Exactly one suspendable call
-            return
-                (db.isAllowMonitors() || !hasMonitors()) && // If not checking we could optimize away and skip collectCodeBlocks' exception/warning
-                !hasSuspendableTryCatchBlocksStartingIn(susCallsIndexes, 0) &&
-                !hasCalls(susCallsIndexes, 0) && // They could alter fields
-                !accessesFields(susCallsIndexes, 0) && // They could alter fields
-                !branchesBack(susCallsIndexes, 0) && // We assume instrumenting is cheaper than for-loops recalculating locals
-                (db.isAllowBlocking() || !callsBlocking(susCallsIndexes, 1)) && // If not checking we could optimize away and skip collectCodeBlocks' exception/warning
-                !branchesAtOrBeforeStart(susCallsIndexes, 1) && // Suspendable is called only ones
-                startsWithSuspCallButNotYield(susCallsIndexes, 1); // Direct yield calls need instrumentation support
+            return (db.isAllowMonitors() || !hasMonitors()) && // If not checking we could optimize away and skip collectCodeBlocks' exception/warning
+                    !hasSuspendableTryCatchBlocksStartingIn(susCallsIndexes, 0)
+                    && !hasCalls(susCallsIndexes, 0) && // They could alter fields
+                    !accessesFields(susCallsIndexes, 0) && // They could alter fields
+                    !branchesBack(susCallsIndexes, 0) && // We assume instrumenting is cheaper than for-loops recalculating locals
+                    (db.isAllowBlocking() || !callsBlocking(susCallsIndexes, 1)) && // If not checking we could optimize away and skip collectCodeBlocks' exception/warning
+                    !branchesAtOrBeforeStart(susCallsIndexes, 1) && // Suspendable is called only ones
+                    startsWithSuspCallButNotYield(susCallsIndexes, 1); // Direct yield calls need instrumentation support
 
         return false;
     }
@@ -582,13 +578,13 @@ class InstrumentMethod {
 
     private boolean hasSuspendableTryCatchBlocksStartingIn(int[] susCallsIndexes, int blockNum) {
         final int end = getBlockEndInsnIdxInclusive(blockNum, susCallsIndexes);
-        for(Object o : mn.tryCatchBlocks) {
+        for (Object o : mn.tryCatchBlocks) {
             TryCatchBlockNode tcb = (TryCatchBlockNode) o;
             if (mn.instructions.indexOf(tcb.start) <= end) {
                 if (THROWABLE_NAME.equals(tcb.type)
-                    || EXCEPTION_NAME.equals(tcb.type)
-                    || SUSPEND_EXECUTION_NAME.equals(tcb.type))
-                return true;
+                        || EXCEPTION_NAME.equals(tcb.type)
+                        || SUSPEND_EXECUTION_NAME.equals(tcb.type))
+                    return true;
             }
         }
         return false;
@@ -681,7 +677,7 @@ class InstrumentMethod {
         sb.append("@Instrumented(");
         final AnnotationVisitor linesAV = instrumentedAV.visitArray("suspendableCallSites");
         sb.append("suspendableCallSites=[");
-        for(int i = 0; i < suspCallsSourceLines.length; i++) {
+        for (int i = 0; i < suspCallsSourceLines.length; i++) {
             if (i != 0)
                 sb.append(", ");
             final int l = suspCallsSourceLines[i];
@@ -911,7 +907,7 @@ class InstrumentMethod {
             throw new IllegalArgumentException("Entry index (PC) " + idx + " greater than maximum of " + Stack.MAX_ENTRY + " in " + className + "." + mn.name + mn.desc);
         if (fi.numSlots > Stack.MAX_SLOTS)
             throw new IllegalArgumentException("Number of slots required " + fi.numSlots + " greater than maximum of " + Stack.MAX_SLOTS + " in " + className + "." + mn.name + mn.desc);
-        
+
         Frame f = frames[fi.endInstruction];
 
         if (fi.lBefore != null)
