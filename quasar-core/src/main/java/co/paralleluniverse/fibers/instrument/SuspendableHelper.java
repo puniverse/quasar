@@ -15,6 +15,7 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.common.util.ExtendedStackTraceElement;
 import co.paralleluniverse.common.util.Pair;
+// import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Instrumented;
@@ -32,6 +33,8 @@ import java.util.Set;
  * @author pron
  */
 public final class SuspendableHelper {
+    private static final boolean considerOptimizedInstrumented = true; // !SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.considerOptimizedUninstrumented");
+
     static boolean javaAgent;
     static final Set<Pair<String, String>> waivers = Collections.newSetFromMap(MapUtil.<Pair<String, String>, Boolean>newConcurrentHashMap());
 
@@ -84,7 +87,10 @@ public final class SuspendableHelper {
     }
 
     public static boolean isInstrumented(Member method) {
-        return method.isSynthetic() || getAnnotation(method, Instrumented.class) != null /* && !method.getAnnotation(Instrumented.class).methodOptimized() */;
+        return method.isSynthetic()
+                || getAnnotation(method, Instrumented.class) != null
+                        && (considerOptimizedInstrumented
+                                || (method instanceof Method && !((Method) method).getAnnotation(Instrumented.class).methodOptimized()));
     }
     
     private static <T extends Annotation> T getAnnotation(Member m, Class<T> annotationClass) {

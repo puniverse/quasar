@@ -42,6 +42,7 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.common.util.Pair;
+// import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.fibers.Stack;
 import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
@@ -91,7 +92,7 @@ import org.objectweb.asm.tree.analysis.Value;
  * @author pron
  */
 class InstrumentMethod {
-    private static final int[] ZEROLEN_INT_ARRAY = new int[0];
+    private static final boolean optimizationDisabled = false; // SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.disableInstrumentationOptimization");
     private static final boolean HANDLE_PROXY_INVOCATIONS = true;
     // private final boolean verifyInstrumentation; // 
     private static final int PREEMPTION_BACKBRANCH = 0;
@@ -115,7 +116,7 @@ class InstrumentMethod {
     private int additionalLocals;
     private boolean warnedAboutMonitors;
     private int warnedAboutBlocking;
-    private boolean hasSuspendableSuperCalls;
+    private boolean callsSuspendableSupers;
     private int startSourceLine = -1;
     private int endSourceLine = -1;
     private int[] suspCallsSourceLines = new int[8];
@@ -238,8 +239,10 @@ class InstrumentMethod {
                             } else if (susp) {
                                 db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is suspendable", i, min.owner, min.name, min.desc);
                             }
-                            if (st == SuspendableType.SUSPENDABLE_SUPER)
-                                this.hasSuspendableSuperCalls = true;
+                            if (st == SuspendableType.SUSPENDABLE_SUPER) {
+                                db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s to suspendable-super", i, min.owner, min.name, min.desc);
+                                this.callsSuspendableSupers = true;
+                            }
                         }
                     } else if (in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
                         // invoke dynamic
@@ -294,10 +297,11 @@ class InstrumentMethod {
             return;
         }
 
-        // Instrument
-        final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS & hasSuspendableSuperCalls;
+        // Else instrument
 
-        collectCodeBlocks();
+        collectCodeBlocks(); // Must be called first, sets flags & state used below
+
+        final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS && callsSuspendableSupers;
 
         mv.visitCode();
 
@@ -544,6 +548,11 @@ class InstrumentMethod {
     }
 
     private boolean canInstrumentationBeSkipped(int[] susCallsIndexes) {
+        if (optimizationDisabled) {
+            db.log(LogLevel.DEBUG, "[OPTIMIZE] Optimization disabled, not examining method %s#%s%s with susCallsIndexes=%s", className, mn.name, mn.desc, Arrays.toString(susCallsIndexes));
+            return false;
+        }
+
         db.log(LogLevel.DEBUG, "[OPTIMIZE] Examining method %s#%s%s with susCallsIndexes=%s", className, mn.name, mn.desc, Arrays.toString(susCallsIndexes));
         // Fully instrumentation-transparent methods
         return isForwardingToSuspendable(susCallsIndexes);
@@ -558,10 +567,26 @@ class InstrumentMethod {
         final int susCallBci = susCallsBcis[0];
         final AbstractInsnNode susCall = mn.instructions.get(susCallBci);
         assert isSuspendableCall(susCall);
+
+        // Reflective calls must also be instrumented, because the SuspendExecution exception is wrapped in an
+        // `InvocationTargetException`, which is unwrapped by instrumentation code. Such code is currently
+        // generated only around reflective calls.
+        if (susCall.getType() == AbstractInsnNode.METHOD_INSN) {
+            final MethodInsnNode min = (MethodInsnNode) susCall;
+
+            if (isReflectInvocation(min.owner, min.name))
+                return false;
+        }
+
+        // yield calls require instrumentation (to skip the call when resuming)
         if (isYieldCall(susCall))
-            return false; // yield calls require instrumentation (to skip the call when resuming)
+            return false;
+
+        // Catching `SuspendableExecution needs instrumentation in order to propagate it
         if (hasSuspendableTryCatchBlocksAround(susCallBci))
             return false;
+
+        final Pair<String, String> nameAndDesc = getCalledMethodNameAndDesc(susCall);
 
         // before suspendable call:
         for (int i = 0; i < susCallBci; i++) {
@@ -1036,6 +1061,10 @@ class InstrumentMethod {
         if (v instanceof NewValue)
             return ((NewValue) v).isDupped == dupped;
         return false;
+    }
+
+    private boolean isSunProxy() {
+        return className.startsWith("com/sun/proxy");
     }
 
     private static class OmittedInstruction extends AbstractInsnNode {
