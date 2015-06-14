@@ -13,13 +13,14 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.common.util.ExtendedStackTraceElement;
 import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Instrumented;
 import co.paralleluniverse.fibers.Stack;
+import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
 
@@ -28,7 +29,6 @@ import java.util.Set;
  * @author pron
  */
 public final class SuspendableHelper {
-    static private final Method[] EMPTY_METHODS_ARRAY = new Method[0];
     static boolean javaAgent;
     static final Set<Pair<String, String>> waivers = Collections.newSetFromMap(MapUtil.<Pair<String, String>, Boolean>newConcurrentHashMap());
 
@@ -40,40 +40,37 @@ public final class SuspendableHelper {
         return clazz.isAnnotationPresent(Instrumented.class);
     }
 
-    public static Method[] lookupMethod(Class clazz, String methodName, int sourceLine) {
-        if (clazz == null || methodName == null)
+    public static Executable lookupMethod(ExtendedStackTraceElement ste) {
+        if (ste.getDeclaringClass() == null)
             return null;
 
-        ArrayList<Method> candidates = new ArrayList<>(8);
-        for(Method m : clazz.getDeclaredMethods()) {
-            if (m.getName().equals(methodName)) {
-                candidates.add(m);
-                Instrumented i = m.getAnnotation(Instrumented.class);
-                if (m.isSynthetic() || isWaiver(m.getDeclaringClass().getName(), m.getName()) || i != null && sourceLine >= i.methodStart() && sourceLine <= i.methodEnd())
-                    return new Method[] { m };
+        for (Method m : ste.getDeclaringClass().getDeclaredMethods()) {
+            if (m.getName().equals(ste.getMethodName())) {
+                final Instrumented i = m.getAnnotation(Instrumented.class);
+                if (m.isSynthetic() || isWaiver(m.getDeclaringClass().getName(), m.getName()) || i != null && ste.getLineNumber() >= i.methodStart() && ste.getLineNumber() <= i.methodEnd())
+                    return m;
             }
         }
-        return candidates.toArray(EMPTY_METHODS_ARRAY);
+        return ste.getMethod();
     }
 
-    public static Pair<Boolean, int[]> isCallSiteInstrumented(Method m, int sourceLine, StackTraceElement[] stes, int currentSteIdx) {
+    public static Pair<Boolean, int[]> isCallSiteInstrumented(Executable m, int sourceLine, ExtendedStackTraceElement[] stes, int currentSteIdx) {
         if (m == null)
             return new Pair<>(false, null);
 
         if (m.isSynthetic())
             return new Pair<>(true, null);
 
-        StackTraceElement ste = stes[currentSteIdx];
+        ExtendedStackTraceElement ste = stes[currentSteIdx];
         if (currentSteIdx - 1 >= 0
-            &&
-            ((stes[currentSteIdx - 1].getClassName().equals(Fiber.class.getName()) && stes[currentSteIdx - 1].getMethodName().equals("verifySuspend"))
-             || (stes[currentSteIdx - 1].getClassName().equals(Stack.class.getName()) && stes[currentSteIdx - 1].getMethodName().equals("popMethod")))) {
+                && ((stes[currentSteIdx - 1].getClassName().equals(Fiber.class.getName()) && stes[currentSteIdx - 1].getMethodName().equals("verifySuspend"))
+                || (stes[currentSteIdx - 1].getClassName().equals(Stack.class.getName()) && stes[currentSteIdx - 1].getMethodName().equals("popMethod")))) {
             //  "verifySuspend" and "popMethod" calls are not suspendable call sites, not verifying them.
             return new Pair<>(true, null);
         } else {
             Instrumented i = m.getAnnotation(Instrumented.class);
             if (i != null) {
-                for(int j : i.suspendableCallSites()) {
+                for (int j : i.suspendableCallSites()) {
                     if (j == sourceLine)
                         return new Pair<>(true, i.suspendableCallSites());
                 }
@@ -82,8 +79,8 @@ public final class SuspendableHelper {
 
         return new Pair<>(false, null);
     }
-    
-    public static boolean isInstrumented(Method method) {
+
+    public static boolean isInstrumented(Executable method) {
         return method.isSynthetic() || method.getAnnotation(Instrumented.class) != null /* && !method.getAnnotation(Instrumented.class).methodOptimized() */;
     }
 

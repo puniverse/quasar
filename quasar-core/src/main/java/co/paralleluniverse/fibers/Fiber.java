@@ -17,6 +17,8 @@ import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.common.util.ExtendedStackTrace;
+import co.paralleluniverse.common.util.ExtendedStackTraceElement;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.common.util.SystemProperties;
@@ -53,6 +55,7 @@ import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
+import java.lang.reflect.Executable;
 
 /**
  * A lightweight thread.
@@ -84,7 +87,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     protected static final FlightRecorder flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
     private static final boolean verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
-    private static final ClassContext classContext = verifyInstrumentation ? new ClassContext() : null;
 
     static {
         if (Debug.isDebug())
@@ -112,6 +114,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 System.err.println("If this exception looks strange, perhaps you've forgotten to instrument a blocking method. Run your program with -Dco.paralleluniverse.fibers.verifyInstrumentation to catch the culprit!");
             System.err.println(e);
             Strand.printStackTrace(threadToFiberStack(e.getStackTrace()), System.err);
+            checkInstrumentation(ExtendedStackTrace.of(e));
         }
     };
     private static final AtomicLong idGen = new AtomicLong(10000000L);
@@ -1603,33 +1606,34 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             return Integer.toString(sourceLine);
     }
 
-    @SuppressWarnings("null")
-    public static boolean checkInstrumentation() {
-        assert verifyInstrumentation;
+    private static boolean checkInstrumentation() {
+        return checkInstrumentation(ExtendedStackTrace.here());
+    }
 
-        StackTraceElement[] stes = Thread.currentThread().getStackTrace();
-        Class[] context = classContext.getClassContext();
+    @SuppressWarnings("null")
+    private static boolean checkInstrumentation(ExtendedStackTrace st) {
+        assert verifyInstrumentation;
 
         boolean ok = true;
         StringBuilder stackTrace = null;
 
-        for (int i = 0, k = 0; i < stes.length; i++, k++) {
-            final StackTraceElement ste = stes[i];
+        final ExtendedStackTraceElement[] stes = st.get();
+        for (int i = 0; i < stes.length; i++) {
+            final ExtendedStackTraceElement ste = stes[i];
             if (ste.getClassName().equals(Thread.class.getName()) && ste.getMethodName().equals("getStackTrace"))
+                continue;
+            if (ste.getClassName().equals(ExtendedStackTrace.class.getName()))
                 continue;
             if (!ok)
                 stackTrace.append("\n\tat ").append(ste);
             if (ste.getClassName().contains("$$Lambda$"))
                 continue;
-            if (skipSTE(ste))
-                k--;
-            else if (skipCTX(context[k]))
-                i--;
-            else if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
+
+            if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
                     && !ste.getClassName().equals(Stack.class.getName())) {
-                boolean classInstrumented = SuspendableHelper.isInstrumented(context[k]);
-                final Method[] candidates = SuspendableHelper.lookupMethod(context[k], ste.getMethodName(), ste.getLineNumber());
-                final Method m = candidates != null && candidates.length == 1 ? candidates[0] : null;
+                final Class<?> clazz = ste.getDeclaringClass();
+                boolean classInstrumented = SuspendableHelper.isInstrumented(clazz);
+                final Executable m = SuspendableHelper.lookupMethod(ste);
                 if (m != null) {
                     boolean methodInstrumented = SuspendableHelper.isInstrumented(m);
                     Pair<Boolean, int[]> callSiteInstrumented = SuspendableHelper.isCallSiteInstrumented(m, ste.getLineNumber(), stes, i);
@@ -1642,16 +1646,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                             stackTrace.append(" **");
                         else if (!callSiteInstrumented.getFirst())
                             stackTrace.append(" !! (instrumented suspendable calls at: ")
-                                .append(callSiteInstrumented.getSecond() == null ? "[]" : Arrays.toString(callSiteInstrumented.getSecond()))
-                                .append(")");
-                        // The next problem happens when some function is in the STE but not in the context
-                        // consider fix the skipSTE to fix it
-                        if (!context[k].getName().equals(ste.getClassName())) {
-                            stackTrace.append(" WARN: unreliable verification stacktrace");
-                            stackTrace.append(" (context: '");
-                            stackTrace.append(context[k].getName());
-                            stackTrace.append("')");
-                        }
+                                    .append(callSiteInstrumented.getSecond() == null ? "[]" : Arrays.toString(callSiteInstrumented.getSecond()))
+                                    .append(")");
                         ok = false;
                     }
                 } else {
@@ -1659,8 +1655,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                         stackTrace = initTrace(i, stes);
 
                     stackTrace.append(" **"); // Methods can only be found via source lines in @Instrumented annotations
-                    if (candidates != null)
-                        printCandidates(candidates, stackTrace);
                     ok = false;
                 }
             } else if (ste.getClassName().equals(Fiber.class.getName()) && ste.getMethodName().equals("run1")) {
@@ -1676,44 +1670,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         throw new IllegalStateException("Not run through Fiber.exec(). (trace: " + Arrays.toString(stes) + ")");
     }
 
-    private static void printCandidates(Method[] candidates, StringBuilder stackTrace) {
-        if (candidates != null && stackTrace != null && candidates.length > 0) {
-            stackTrace.append(" Methods with that name:");
-            for (final Method m : candidates) {
-                stackTrace.append("\n\t\t");
-                final Instrumented i = m.getAnnotation(Instrumented.class);
-                if (i != null) {
-                    int[] susCallSites = i.suspendableCallSites();
-                    stackTrace.append("@Instrumented(startLine=").append(i.methodStart())
-                        .append(", endLine=").append(i.methodEnd())
-                        .append(", optimized=").append(i.methodOptimized())
-                        .append(", susCallSites=").append(susCallSites == null ? "[]" : Arrays.toString(susCallSites))
-                        .append(") ");
-                }
-                stackTrace.append(m.toGenericString());
-            }
-        }
-    }
-
-    private static StringBuilder initTrace(int i, StackTraceElement[] stes) {
+    private static StringBuilder initTrace(int i, ExtendedStackTraceElement[] stes) {
         final StringBuilder stackTrace = new StringBuilder();
         for (int j = 0; j <= i; j++) {
-            final StackTraceElement ste2 = stes[j];
+            final ExtendedStackTraceElement ste2 = stes[j];
             if (ste2.getClassName().equals(Thread.class.getName()) && ste2.getMethodName().equals("getStackTrace"))
                 continue;
             stackTrace.append("\n\tat ").append(ste2);
         }
         return stackTrace;
-    }
-
-    private static boolean skipSTE(StackTraceElement ste) {
-        return (ste.getClassName().startsWith("sun.reflect")
-                || ste.getClassName().equals("java.lang.reflect.Method")
-                || ste.getClassName().startsWith("java.lang.invoke."));
-    }
-
-    private static boolean skipCTX(Class c) {
-        return c.getName().startsWith("java.lang.invoke.");
     }
 
     @SuppressWarnings("unchecked")
@@ -1771,7 +1736,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private boolean casState(State expected, State update) {
         return UNSAFE.compareAndSwapObject(this, stateOffset, expected, update);
     }
-    
+
     private void orderedSetState(State value) {
         UNSAFE.putOrderedObject(this, stateOffset, value);
     }
@@ -1889,13 +1854,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         final StackTraceElement[] st1 = new StackTraceElement[st.length - skip];
         System.arraycopy(st, skip, st1, 0, st1.length);
         return st1;
-    }
-
-    private static class ClassContext extends SecurityManager {
-        @Override
-        public Class[] getClassContext() {
-            return super.getClassContext();
-        }
     }
 
     /**
