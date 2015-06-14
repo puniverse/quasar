@@ -546,40 +546,60 @@ class InstrumentMethod {
     private boolean canInstrumentationBeSkipped(int[] susCallsIndexes) {
         db.log(LogLevel.DEBUG, "[OPTIMIZE] Examining method %s#%s%s with susCallsIndexes=%s", className, mn.name, mn.desc, Arrays.toString(susCallsIndexes));
         // Fully instrumentation-transparent methods
-        return forwardsToSuspendable(susCallsIndexes);
+        return isForwardingToSuspendable(susCallsIndexes);
     }
 
-    //<editor-fold defaultstate="collapsed" desc="forwardsToSuspendable">
-    /////////// forwardsToSuspendable ///////////////////////////////////
-    private boolean forwardsToSuspendable(int[] susCallsIndexes) {
-        if (susCallsIndexes.length == 1) // => Exactly one suspendable call
-            return (db.isAllowMonitors() || !hasMonitors()) && // If not checking we could optimize away and skip collectCodeBlocks' exception/warning
-                    !hasSuspendableTryCatchBlocksStartingIn(susCallsIndexes, 0)
-                    && !hasCalls(susCallsIndexes, 0) && // They could alter fields
-                    !accessesFields(susCallsIndexes, 0) && // They could alter fields
-                    !branchesBack(susCallsIndexes, 0) && // We assume instrumenting is cheaper than for-loops recalculating locals
-                    (db.isAllowBlocking() || !callsBlocking(susCallsIndexes, 1)) && // If not checking we could optimize away and skip collectCodeBlocks' exception/warning
-                    !branchesAtOrBeforeStart(susCallsIndexes, 1) && // Suspendable is called only once
-                    startsWithSuspCallButNotYield(susCallsIndexes, 1); // Direct yield calls need instrumentation support
+    //<editor-fold defaultstate="collapsed" desc="isForwardingToSuspendable">
+    /////////// isForwardingToSuspendable ///////////////////////////////////
+    private boolean isForwardingToSuspendable(int[] susCallsBcis) {
+        if (susCallsBcis.length != 1)
+            return false; // we allow exactly one suspendable call
 
-        return false;
-    }
+        final int susCallBci = susCallsBcis[0];        
+        final AbstractInsnNode susCall = mn.instructions.get(susCallBci);
+        assert isSuspendableCall(susCall);
+        if (isYieldCall(susCall))
+            return false; // yield calls require instrumentation (to skip the call when resuming)
 
-    private boolean hasMonitors() {
-        for (int i = 0; i < mn.instructions.size() - 1; i++) {
-            AbstractInsnNode ins = mn.instructions.get(i);
+        // before suspendable call:
+        {
+            final int start = 0; // method start
+            final int end = susCallBci - 1;
+            if (hasSuspendableTryCatchBlocksStartingBefore(end))
+                return false;
+            for (int i = start; i <= end; i++) {
+                final AbstractInsnNode ins = mn.instructions.get(i);
 
-            switch (ins.getOpcode()) {
-                case Opcodes.MONITORENTER:
-                case Opcodes.MONITOREXIT:
-                    return true;
+                if (ins.getType() == AbstractInsnNode.METHOD_INSN || ins.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN)
+                    return false; // methods calls might have side effects
+                if (ins.getType() == AbstractInsnNode.FIELD_INSN)
+                    return false; // side effects
+                if (ins instanceof JumpInsnNode && mn.instructions.indexOf(((JumpInsnNode) ins).label) <= i)
+                    return false; // back branches may be costly, so we'd rather capture state
+                if (!db.isAllowMonitors() && (ins.getOpcode() == Opcodes.MONITORENTER || ins.getOpcode() == Opcodes.MONITOREXIT))
+                    return false;  // we need collectCodeBlocks to warn about monitors
             }
         }
-        return false;
+        // after suspendable call
+        {
+            final int start = susCallBci + 1;
+            final int end = mn.instructions.size() - 1; // method end
+            for (int i = start; i <= end; i++) {
+                final AbstractInsnNode ins = mn.instructions.get(i);
+
+                if (ins instanceof JumpInsnNode && mn.instructions.indexOf(((JumpInsnNode) ins).label) < start)
+                    return false; // if we jump before the suspendable call we suspend more than once -- need instrumentation
+                if (!db.isAllowMonitors() && (ins.getOpcode() == Opcodes.MONITORENTER || ins.getOpcode() == Opcodes.MONITOREXIT))
+                    return false;  // we need collectCodeBlocks to warn about monitors
+                if (!db.isAllowBlocking() && (ins instanceof MethodInsnNode && blockingCallIdx((MethodInsnNode) ins) != -1))
+                    return false;  // we need collectCodeBlocks to warn about blocking calls
+            }
+        }
+        return true;
     }
 
-    private boolean hasSuspendableTryCatchBlocksStartingIn(int[] susCallsIndexes, int blockNum) {
-        final int end = getBlockEndInsnIdxInclusive(blockNum, susCallsIndexes);
+
+    private boolean hasSuspendableTryCatchBlocksStartingBefore(int end) {
         for (Object o : mn.tryCatchBlocks) {
             TryCatchBlockNode tcb = (TryCatchBlockNode) o;
             if (mn.instructions.indexOf(tcb.start) <= end) {
@@ -594,85 +614,11 @@ class InstrumentMethod {
         return false;
     }
 
-    private boolean hasCalls(int[] susCallsIndexes, int blockNum) {
-        final int start = getBlockStartInsnIdxInclusive(blockNum, susCallsIndexes);
-        final int end = getBlockEndInsnIdxInclusive(blockNum, susCallsIndexes);
-
-        for (int i = start; i <= end; i++) {
-            final AbstractInsnNode ain = mn.instructions.get(i);
-            if (ain.getType() == AbstractInsnNode.METHOD_INSN || ain.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN)
-                return true;
-        }
-        return false;
-    }
-
-    private boolean callsBlocking(int[] susCallsIndexes, int blockNum) {
-        final int start = getBlockStartInsnIdxInclusive(blockNum, susCallsIndexes);
-        final int end = getBlockEndInsnIdxInclusive(blockNum, susCallsIndexes);
-
-        for (int i = start; i <= end; i++) {
-            final AbstractInsnNode ain = mn.instructions.get(i);
-            if (ain instanceof MethodInsnNode && blockingCallIdx((MethodInsnNode) ain) != -1)
-                return true;
-        }
-        return false;
-    }
-
-    private boolean accessesFields(int[] susCallsIndexes, int blockNum) {
-        final int start = getBlockStartInsnIdxInclusive(blockNum, susCallsIndexes);
-        final int end = getBlockEndInsnIdxInclusive(blockNum, susCallsIndexes);
-
-        for (int i = start; i <= end; i++) {
-            final AbstractInsnNode ain = mn.instructions.get(i);
-            if (ain.getType() == AbstractInsnNode.FIELD_INSN)
-                return true;
-        }
-        return false;
-    }
-
-    private boolean branchesAtOrBeforeStart(int[] susCallsIndexes, int blockNum) {
-        final int start = getBlockStartInsnIdxInclusive(blockNum, susCallsIndexes);
-        final int end = getBlockEndInsnIdxInclusive(blockNum, susCallsIndexes);
-
-        for (int i = start; i <= end; i++) {
-            final AbstractInsnNode ain = mn.instructions.get(i);
-            if (ain instanceof JumpInsnNode && mn.instructions.indexOf(((JumpInsnNode) ain).label) <= start)
-                return true;
-        }
-        return false;
-    }
-
-    private boolean startsWithSuspCallButNotYield(int[] susCallsIndexes, int blockNum) {
-        final int start = getBlockStartInsnIdxInclusive(blockNum, susCallsIndexes);
-        final AbstractInsnNode insn = mn.instructions.get(start);
-        return isSuspendableCall(insn) && !isYieldCall(insn);
-    }
-
-    private boolean branchesBack(int[] susCallsIndexes, int blockNum) {
-        final int start = getBlockStartInsnIdxInclusive(blockNum, susCallsIndexes);
-        final int end = getBlockEndInsnIdxInclusive(blockNum, susCallsIndexes);
-
-        for (int i = start; i <= end; i++) {
-            final AbstractInsnNode ain = mn.instructions.get(i);
-            if (ain instanceof JumpInsnNode && mn.instructions.indexOf(((JumpInsnNode) ain).label) <= i)
-                return true;
-        }
-        return false;
-    }
-
     private boolean isYieldCall(AbstractInsnNode insn) {
         final String owner = (insn instanceof MethodInsnNode ? ((MethodInsnNode) insn).owner : null);
         final Pair<String, String> nameAndDesc = getCalledMethodNameAndDesc(insn);
-        final String name = nameAndDesc.getFirst(), desc = nameAndDesc.getSecond();
+        final String name = nameAndDesc.getFirst();
         return isYieldMethod(owner, name);
-    }
-
-    private int getBlockStartInsnIdxInclusive(int blockNum, int[] susCallsIndexes) {
-        return blockNum == 0 ? 0 : susCallsIndexes[blockNum - 1];
-    }
-
-    private int getBlockEndInsnIdxInclusive(int blockNum, int[] susCallsIndexes) {
-        return blockNum >= susCallsIndexes.length ? mn.instructions.size() - 1 : susCallsIndexes[blockNum] - 1;
     }
     //</editor-fold>
 
@@ -681,15 +627,15 @@ class InstrumentMethod {
         final AnnotationVisitor instrumentedAV = mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
         sb.append("@Instrumented(");
         final AnnotationVisitor linesAV = instrumentedAV.visitArray("suspendableCallSites");
-        
+
         sb.append("suspendableCallSites=[");
         for (int i = 0; i < suspCallsSourceLines.length; i++) {
             if (i != 0)
                 sb.append(", ");
-            
+
             final int l = suspCallsSourceLines[i];
             linesAV.visit("", l);
-            
+
             sb.append(l);
         }
         linesAV.visitEnd();
