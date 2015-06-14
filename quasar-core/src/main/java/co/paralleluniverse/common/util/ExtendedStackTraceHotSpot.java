@@ -161,12 +161,13 @@ class ExtendedStackTraceHotSpot extends ExtendedStackTrace {
         }
     }
 
-    private static int getSlot(/*Executable*/Member method) {
+    private static int getSlot(/*Executable*/Member m) {
         try {
-            if (method instanceof Constructor)
-                return ctorSlot.getInt((Constructor) method);
-            else
-                return methodSlot.getInt((Method) method);
+            if (m instanceof Constructor)
+                return ctorSlot.getInt((Constructor) m);
+            else if (m instanceof Field)
+                return fieldSlot.getInt((Field) m);
+            return methodSlot.getInt((Method) m);
         } catch (IllegalAccessException e) {
             throw new AssertionError(e);
         }
@@ -202,7 +203,7 @@ class ExtendedStackTraceHotSpot extends ExtendedStackTrace {
     }
 
     // array of arrays; each content array contains trace_chunck_size elements. trace_next_offset points to next array of arrays
-    private static final long BACKTRACE_FIELD_OFFSET = 12; // 
+    private static final long BACKTRACE_FIELD_OFFSET; // 
     private static final int TRACE_METHOD_OFFSET = 0;  // shorts -- index into class's methods; should be equal to Method.slot
     private static final int TRACE_BCIS_OFFSET = 1;    // ints 
     private static final int TRACE_CLASSES_OFFSET = 2; // object array containing classes
@@ -215,10 +216,14 @@ class ExtendedStackTraceHotSpot extends ExtendedStackTrace {
     private static final Method getStackTraceElement;
     private static final Field methodSlot;
     private static final Field ctorSlot;
+    private static final Field fieldSlot;
     private static final sun.misc.Unsafe UNSAFE = UtilUnsafe.getUnsafe();
 
     static {
         try {
+            final String javaVersion = System.getProperty("java.version");
+            if (!javaVersion.startsWith("1.8") && !javaVersion.startsWith("8.") && !javaVersion.startsWith("1.9") && !javaVersion.startsWith("9."))
+                throw new IllegalStateException("UnsupportedJavaVersion");
             if (!System.getProperty("java.vm.name").toLowerCase().contains("hotspot"))
                 throw new IllegalStateException("Not HotSpot");
             // the JVM blocks access to Throwable.backtrace via reflection
@@ -227,11 +232,34 @@ class ExtendedStackTraceHotSpot extends ExtendedStackTrace {
             getStackTraceElement = ReflectionUtil.accessible(Throwable.class.getDeclaredMethod("getStackTraceElement", int.class));
             methodSlot = ReflectionUtil.accessible(Method.class.getDeclaredField("slot"));
             ctorSlot = ReflectionUtil.accessible(Constructor.class.getDeclaredField("slot"));
+            fieldSlot = ReflectionUtil.accessible(Field.class.getDeclaredField("slot"));
+
+            BACKTRACE_FIELD_OFFSET = guessBacktraceFieldOffset();
 
             sanityCheck();
         } catch (Exception e) {
             throw new AssertionError(e);
         }
+    }
+
+    private static long guessBacktraceFieldOffset() {
+        Field[] fs = Throwable.class.getDeclaredFields();
+        Field second = null;
+        for (Field f : fs) {
+            if (getSlot(f) == 2) {
+                second = f;
+                break;
+            }
+        }
+        if (second == null)
+            throw new IllegalStateException();
+        long secondOffest = UNSAFE.objectFieldOffset(second);
+        if (secondOffest == 16)
+            return 12; // compressed oops
+        if (secondOffest == 24)
+            return 16; // no compressed oops
+        else
+            throw new IllegalStateException("secondOffset: " + secondOffest); // unfamiliar
     }
 
     private static void sanityCheck() {

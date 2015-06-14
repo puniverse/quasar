@@ -147,6 +147,7 @@ subprojects {
             jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
         }
         jvmArgs "-Xmx2048m"
+        // jvmArgs "-XX:-UseCompressedOops"
         
         beforeTest { desc ->
             logger.quiet("Running test: " + desc)
