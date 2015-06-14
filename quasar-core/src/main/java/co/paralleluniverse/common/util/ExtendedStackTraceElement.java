@@ -138,7 +138,7 @@ public class ExtendedStackTraceElement {
     public Member getMethod() {
         return method;
     }
-    
+
     public StackTraceElement getStackTraceElement() {
         return new StackTraceElement(declaringClassName, methodName, fileName, lineNumber);
     }
@@ -191,22 +191,43 @@ public class ExtendedStackTraceElement {
 
     private static String toString(Member method) {
         final StringBuilder sb = new StringBuilder();
-        sb.append(method.getDeclaringClass().getTypeName())
+        sb.append(getTypeName(method.getDeclaringClass())) // .getTypeName()
                 .append('.')
                 .append(method.getName());
         sb.append('(');
         for (Class<?> type : getParameterTypes(method))
-            sb.append(type.getTypeName()).append(',');
+            sb.append(getTypeName(type)).append(','); //.getTypeName()
         sb.delete(sb.length() - 1, sb.length());
         sb.append(')');
 
         return sb.toString();
     }
-    
+
     private static Class<?>[] getParameterTypes(Member m) {
-        if(m instanceof Constructor)
-            return ((Constructor<?>)m).getParameterTypes();
+        if (m instanceof Constructor)
+            return ((Constructor<?>) m).getParameterTypes();
         else
-            return ((Method)m).getParameterTypes();
+            return ((Method) m).getParameterTypes();
+    }
+
+    // In Java 8, replaced by Class.getTypeName()
+    private static String getTypeName(Class<?> type) {
+        if (type.isArray()) {
+            try {
+                Class<?> cl = type;
+                int dimensions = 0;
+                while (cl.isArray()) {
+                    dimensions++;
+                    cl = cl.getComponentType();
+                }
+                StringBuffer sb = new StringBuffer();
+                sb.append(cl.getName());
+                for (int i = 0; i < dimensions; i++) {
+                    sb.append("[]");
+                }
+                return sb.toString();
+            } catch (Throwable e) { /*FALLTHRU*/ }
+        }
+        return type.getName();
     }
 }

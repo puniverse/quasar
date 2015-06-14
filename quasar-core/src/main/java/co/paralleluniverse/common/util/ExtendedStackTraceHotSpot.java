@@ -60,6 +60,11 @@ class ExtendedStackTraceHotSpot extends ExtendedStackTrace {
             public ExtendedStackTraceElement next() {
                 return getStackTraceElement(getStackTraceElement0(++i), chunk, ++j);
             }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
         };
     }
 
@@ -156,7 +161,7 @@ class ExtendedStackTraceHotSpot extends ExtendedStackTrace {
         }
     }
 
-    private static int getSlot(/*Executable*/ Member method) {
+    private static int getSlot(/*Executable*/Member method) {
         try {
             if (method instanceof Constructor)
                 return ctorSlot.getInt((Constructor) method);
