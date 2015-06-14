@@ -83,7 +83,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private static final long serialVersionUID = 2783452871536981L;
     protected static final FlightRecorder flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
-    static final boolean verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
+    private static final boolean verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
     private static final ClassContext classContext = verifyInstrumentation ? new ClassContext() : null;
 
     static {
@@ -1621,11 +1621,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 stackTrace.append("\n\tat ").append(ste);
             if (ste.getClassName().contains("$$Lambda$"))
                 continue;
-            if (skipSTE(ste)) {
+            if (skipSTE(ste))
                 k--;
-            } else if (skipCTX(context[k])) {
+            else if (skipCTX(context[k]))
                 i--;
-            } else if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
+            else if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
                     && !ste.getClassName().equals(Stack.class.getName())) {
                 boolean classInstrumented = SuspendableHelper.isInstrumented(context[k]);
                 final Method[] candidates = SuspendableHelper.lookupMethod(context[k], ste.getMethodName(), ste.getLineNumber());
