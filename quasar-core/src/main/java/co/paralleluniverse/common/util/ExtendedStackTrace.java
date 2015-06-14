@@ -48,7 +48,7 @@ public class ExtendedStackTrace implements Iterable<ExtendedStackTraceElement> {
 
     protected final Throwable t;
     private ExtendedStackTraceElement[] est;
-    // private transient Map<Class<?>, Executable[]> methods; // cache
+//    private transient Map<Class<?>, Executable[]> methods; // cache
 
     protected ExtendedStackTrace(Throwable t) {
         this.t = t;
@@ -150,21 +150,21 @@ public class ExtendedStackTrace implements Iterable<ExtendedStackTraceElement> {
     }
 
     protected final Executable[] getMethods(Class<?> clazz) {
-        Method[] ms = clazz.getDeclaredMethods();
-        Constructor[] cs = clazz.getDeclaredConstructors();
-        Executable[] es = new Executable[ms.length + cs.length];
-        System.arraycopy(cs, 0, es, 0, cs.length);
-        System.arraycopy(ms, 0, es, cs.length, ms.length);
-        return es;
 //        synchronized (this) {
+        Executable[] es;
 //            if (methods == null)
 //                methods = new HashMap<>();
-//            Method[] ms = methods.get(clazz);
-//            if (ms == null) {
-//                ms = clazz.getDeclaredMethods();
-//                methods.put(clazz, ms);
+//            es = methods.get(clazz);
+//            if (es == null) {
+        Method[] ms = clazz.getDeclaredMethods();
+        Constructor[] cs = clazz.getDeclaredConstructors();
+        es = new Executable[ms.length + cs.length];
+        System.arraycopy(cs, 0, es, 0, cs.length);
+        System.arraycopy(ms, 0, es, cs.length, ms.length);
+
+//                methods.put(clazz, es);
 //            }
-//            return ms;
+        return es;
 //        }
     }
 
