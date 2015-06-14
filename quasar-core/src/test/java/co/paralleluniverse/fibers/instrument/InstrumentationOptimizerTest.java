@@ -16,6 +16,7 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Instrumented;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import java.lang.reflect.Method;
 import java.util.concurrent.ExecutionException;
@@ -30,7 +31,7 @@ import org.junit.Test;
 public class InstrumentationOptimizerTest {
 
     private boolean isOptimized(String method) {
-        for (Method m: getClass().getDeclaredMethods()) {
+        for (Method m : getClass().getDeclaredMethods()) {
             if (method.equals(m.getName())) {
                 Instrumented i = m.getAnnotation(Instrumented.class);
                 return i != null && i.methodOptimized();
@@ -157,4 +158,107 @@ public class InstrumentationOptimizerTest {
         }).start().join();
         assertTrue(isOptimized("skipForwardsToSuspendableLong"));
     }
+
+    @Suspendable
+    private Object skipForwardsWithTryCatch() throws InterruptedException {
+        try {
+            return sleepFiberObject();
+        } catch (SuspendExecution e) {
+            return null;
+        }
+    }
+
+    @Test
+    public void testSkipForwardsWithTryCatch() throws InterruptedException, SuspendExecution, ExecutionException {
+        new Fiber(new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                skipForwardsWithTryCatch();
+            }
+        }).start().join();
+        assertTrue(!isOptimized("skipForwardsWithTryCatch"));
+    }
+
+    private void skipForwardsWithLoop() throws InterruptedException, SuspendExecution {
+        for (int i = 0; i < 3; i++)
+            sleepFiberVoid();
+    }
+
+    @Test
+    public void testSkipForwardsWithLoop() throws InterruptedException, SuspendExecution, ExecutionException {
+        new Fiber(new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                skipForwardsWithLoop();
+            }
+        }).start().join();
+        assertTrue(!isOptimized("skipForwardsWithLoop"));
+    }
+
+    private void skipForwardsWithLoopBefore() throws InterruptedException, SuspendExecution {
+        for (int i = 0; i < 5; i++)
+            i++;
+        sleepFiberVoid();
+    }
+
+    @Test
+    public void testSkipForwardsWithLoopBefore() throws InterruptedException, SuspendExecution, ExecutionException {
+        new Fiber(new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                skipForwardsWithLoopBefore();
+            }
+        }).start().join();
+        assertTrue(!isOptimized("skipForwardsWithLoopBefore"));
+    }
+
+    private void skipForwardsWithLoopAfter() throws InterruptedException, SuspendExecution {
+        sleepFiberVoid();
+        for (int i = 0; i < 3; i++)
+            System.nanoTime();
+    }
+
+    @Test
+    public void testSkipForwardsWithLoopAfter() throws InterruptedException, SuspendExecution, ExecutionException {
+        new Fiber(new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                skipForwardsWithLoopAfter();
+            }
+        }).start().join();
+        assertTrue(isOptimized("skipForwardsWithLoopAfter"));
+    }
+
+    private void skipForwardsWithMethodBefore() throws InterruptedException, SuspendExecution {
+        System.nanoTime();
+        sleepFiberVoid();
+    }
+
+    @Test
+    public void testSkipForwardsWithMethodBefore() throws InterruptedException, SuspendExecution, ExecutionException {
+        new Fiber(new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                skipForwardsWithMethodBefore();
+            }
+        }).start().join();
+        assertTrue(!isOptimized("skipForwardsWithMethodBefore"));
+    }
+
+    private void skipForwardsWithMethodAfter() throws InterruptedException, SuspendExecution {
+        sleepFiberVoid();
+        System.nanoTime();
+    }
+
+    @Test
+    public void testSkipForwardsWithMethodAfter() throws InterruptedException, SuspendExecution, ExecutionException {
+        new Fiber(new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                skipForwardsWithMethodAfter();
+            }
+        }).start().join();
+        assertTrue(isOptimized("skipForwardsWithMethodAfter"));
+    }
+
 }
