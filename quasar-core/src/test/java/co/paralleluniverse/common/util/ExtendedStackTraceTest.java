@@ -12,7 +12,8 @@
  */
 package co.paralleluniverse.common.util;
 
-import java.lang.reflect.Executable;
+// import java.lang.reflect.Executable;
+import java.lang.reflect.Member;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -33,7 +34,7 @@ public class ExtendedStackTraceTest {
             ExtendedStackTrace st = new ExtendedStackTraceHotSpot(e);
 
             for (ExtendedStackTraceElement este : st) {
-                Executable m = este.getMethod();
+                Member m = este.getMethod();
                 assertNotNull(este.getClassName() + "." + este.getMethodName(), m);
             }
         }
@@ -47,7 +48,7 @@ public class ExtendedStackTraceTest {
             ExtendedStackTrace st = new ExtendedStackTrace(e);
 
             for (ExtendedStackTraceElement este : st) {
-                Executable m = este.getMethod();
+                Member m = este.getMethod();
                 if (!skipJunit(este))
                     assertNotNull(este.getClassName() + "." + este.getMethodName(), m);
             }
@@ -59,7 +60,7 @@ public class ExtendedStackTraceTest {
         ExtendedStackTrace st = new ExtendedStackTraceClassContext();
 
         for (ExtendedStackTraceElement este : st) {
-            Executable m = este.getMethod();
+            Member m = este.getMethod();
             if (!ExtendedStackTraceClassContext.skipSTE(este.getStackTraceElement()))
                 assertNotNull(este.getClassName() + "." + este.getMethodName(), m);
         }
@@ -82,7 +83,7 @@ public class ExtendedStackTraceTest {
             if (!skipJunit(plain[i]))
                 assertNotNull(plain[i].getMethodName(), plain[i].getMethodName());
 
-            Executable m = hotspot[i].getMethod();
+            Member m = hotspot[i].getMethod();
             if (!skipJunit(plain[i]))
                 assertEquals("" + i, m, plain[i].getMethod());
             if (!ExtendedStackTraceClassContext.skipSTE(security[i].getStackTraceElement()))

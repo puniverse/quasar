@@ -55,7 +55,8 @@ import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
-import java.lang.reflect.Executable;
+// import java.lang.reflect.Executable;
+import java.lang.reflect.Member;
 
 /**
  * A lightweight thread.
@@ -1633,7 +1634,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                     && !ste.getClassName().equals(Stack.class.getName())) {
                 final Class<?> clazz = ste.getDeclaringClass();
                 boolean classInstrumented = SuspendableHelper.isInstrumented(clazz);
-                final Executable m = SuspendableHelper.lookupMethod(ste);
+                final /*Executable*/ Member m = SuspendableHelper.lookupMethod(ste);
                 if (m != null) {
                     boolean methodInstrumented = SuspendableHelper.isInstrumented(m);
                     Pair<Boolean, int[]> callSiteInstrumented = SuspendableHelper.isCallSiteInstrumented(m, ste.getLineNumber(), stes, i);

@@ -19,7 +19,10 @@ import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Instrumented;
 import co.paralleluniverse.fibers.Stack;
-import java.lang.reflect.Executable;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
+// import java.lang.reflect.Executable;
+import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Set;
@@ -40,13 +43,13 @@ public final class SuspendableHelper {
         return clazz.isAnnotationPresent(Instrumented.class);
     }
 
-    public static Executable lookupMethod(ExtendedStackTraceElement ste) {
+    public static /*Executable*/ Member lookupMethod(ExtendedStackTraceElement ste) {
         if (ste.getDeclaringClass() == null)
             return null;
 
         for (Method m : ste.getDeclaringClass().getDeclaredMethods()) {
             if (m.getName().equals(ste.getMethodName())) {
-                final Instrumented i = m.getAnnotation(Instrumented.class);
+                final Instrumented i = getAnnotation(m, Instrumented.class);
                 if (m.isSynthetic() || isWaiver(m.getDeclaringClass().getName(), m.getName()) || i != null && ste.getLineNumber() >= i.methodStart() && ste.getLineNumber() <= i.methodEnd())
                     return m;
             }
@@ -54,7 +57,7 @@ public final class SuspendableHelper {
         return ste.getMethod();
     }
 
-    public static Pair<Boolean, int[]> isCallSiteInstrumented(Executable m, int sourceLine, ExtendedStackTraceElement[] stes, int currentSteIdx) {
+    public static Pair<Boolean, int[]> isCallSiteInstrumented(/*Executable*/ Member m, int sourceLine, ExtendedStackTraceElement[] stes, int currentSteIdx) {
         if (m == null)
             return new Pair<>(false, null);
 
@@ -68,7 +71,7 @@ public final class SuspendableHelper {
             //  "verifySuspend" and "popMethod" calls are not suspendable call sites, not verifying them.
             return new Pair<>(true, null);
         } else {
-            Instrumented i = m.getAnnotation(Instrumented.class);
+            Instrumented i = getAnnotation(m, Instrumented.class);
             if (i != null) {
                 for (int j : i.suspendableCallSites()) {
                     if (j == sourceLine)
@@ -80,8 +83,15 @@ public final class SuspendableHelper {
         return new Pair<>(false, null);
     }
 
-    public static boolean isInstrumented(Executable method) {
-        return method.isSynthetic() || method.getAnnotation(Instrumented.class) != null /* && !method.getAnnotation(Instrumented.class).methodOptimized() */;
+    public static boolean isInstrumented(Member method) {
+        return method.isSynthetic() || getAnnotation(method, Instrumented.class) != null /* && !method.getAnnotation(Instrumented.class).methodOptimized() */;
+    }
+    
+    private static <T extends Annotation> T getAnnotation(Member m, Class<T> annotationClass) {
+        if(m instanceof Constructor)
+            return ((Constructor<?>)m).getAnnotation(annotationClass);
+        else
+            return ((Method)m).getAnnotation(annotationClass);
     }
 
     public static void addWaiver(String className, String methodName) {

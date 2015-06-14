@@ -14,9 +14,10 @@ package co.paralleluniverse.common.util;
 
 import co.paralleluniverse.common.reflection.ReflectionUtil;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Executable;
+// import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 
@@ -116,10 +117,10 @@ class ExtendedStackTraceHotSpot extends ExtendedStackTrace {
     }
 
     @Override
-    protected Executable getMethod(ExtendedStackTraceElement este) {
+    protected Member getMethod(ExtendedStackTraceElement este) {
         final HotSpotExtendedStackTraceElement heste = (HotSpotExtendedStackTraceElement) este;
-        Executable[] ms = getMethods(heste.getDeclaringClass());
-        for (Executable m : ms) {
+        Member[] ms = getMethods(heste.getDeclaringClass());
+        for (Member m : ms) {
             if (heste.methodSlot == getSlot(m))
                 return m;
         }
@@ -155,12 +156,12 @@ class ExtendedStackTraceHotSpot extends ExtendedStackTrace {
         }
     }
 
-    private static int getSlot(Executable method) {
+    private static int getSlot(/*Executable*/ Member method) {
         try {
             if (method instanceof Constructor)
-                return ctorSlot.getInt(method);
+                return ctorSlot.getInt((Constructor) method);
             else
-                return methodSlot.getInt(method);
+                return methodSlot.getInt((Method) method);
         } catch (IllegalAccessException e) {
             throw new AssertionError(e);
         }

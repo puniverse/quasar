@@ -12,7 +12,9 @@
  */
 package co.paralleluniverse.common.util;
 
-import java.lang.reflect.Executable;
+// import java.lang.reflect.Executable;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.util.Objects;
 
@@ -27,13 +29,13 @@ public class ExtendedStackTraceElement {
     private final int lineNumber;
     private final int bci;
     Class<?> clazz;
-    Executable method;
+    Member /*Executable*/ method;
 
     public ExtendedStackTraceElement(StackTraceElement ste) {
         this(ste, null, null, -1);
     }
 
-    public ExtendedStackTraceElement(StackTraceElement ste, Class<?> clazz, Executable method, int bci) {
+    public ExtendedStackTraceElement(StackTraceElement ste, Class<?> clazz, Member method, int bci) {
         this(ste.getClassName(), ste.getMethodName(), ste.getFileName(), ste.getLineNumber(), clazz, method, bci);
     }
 
@@ -41,7 +43,7 @@ public class ExtendedStackTraceElement {
         this(clazz.getName(), method.getName(), fileName, lineNumber, clazz, method, bci);
     }
 
-    public ExtendedStackTraceElement(String declaringClassName, String methodName, String fileName, int lineNumber, Class<?> clazz, Executable method, int bci) {
+    public ExtendedStackTraceElement(String declaringClassName, String methodName, String fileName, int lineNumber, Class<?> clazz, Member method, int bci) {
         Objects.requireNonNull(declaringClassName, "Declaring class is null");
         Objects.requireNonNull(methodName, "Method name is null");
         if (clazz != null && !declaringClassName.equals(clazz.getName()))
@@ -133,7 +135,7 @@ public class ExtendedStackTraceElement {
         return bci;
     }
 
-    public Executable getMethod() {
+    public Member getMethod() {
         return method;
     }
     
@@ -187,17 +189,24 @@ public class ExtendedStackTraceElement {
         return sb.toString();
     }
 
-    private static String toString(Executable method) {
+    private static String toString(Member method) {
         final StringBuilder sb = new StringBuilder();
         sb.append(method.getDeclaringClass().getTypeName())
                 .append('.')
                 .append(method.getName());
         sb.append('(');
-        for (Class<?> type : method.getParameterTypes())
+        for (Class<?> type : getParameterTypes(method))
             sb.append(type.getTypeName()).append(',');
         sb.delete(sb.length() - 1, sb.length());
         sb.append(')');
 
         return sb.toString();
+    }
+    
+    private static Class<?>[] getParameterTypes(Member m) {
+        if(m instanceof Constructor)
+            return ((Constructor<?>)m).getParameterTypes();
+        else
+            return ((Method)m).getParameterTypes();
     }
 }

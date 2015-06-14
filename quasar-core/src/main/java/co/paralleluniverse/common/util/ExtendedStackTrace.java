@@ -14,7 +14,8 @@ package co.paralleluniverse.common.util;
 
 import co.paralleluniverse.common.reflection.ASMUtil;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Executable;
+//import java.lang.reflect.Executable;
+import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -48,7 +49,7 @@ public class ExtendedStackTrace implements Iterable<ExtendedStackTraceElement> {
 
     protected final Throwable t;
     private ExtendedStackTraceElement[] est;
-//    private transient Map<Class<?>, Executable[]> methods; // cache
+//    private transient Map<Class<?>, Member[]> methods; // cache
 
     protected ExtendedStackTrace(Throwable t) {
         this.t = t;
@@ -73,13 +74,13 @@ public class ExtendedStackTrace implements Iterable<ExtendedStackTraceElement> {
         }
     }
 
-    protected Executable getMethod(final ExtendedStackTraceElement este) {
+    protected /*Executable*/ Member getMethod(final ExtendedStackTraceElement este) {
         if (este.getDeclaringClass() == null)
             return null;
-        Executable[] ms = getMethods(este.getDeclaringClass());
-        Executable method = null;
+        Member[] ms = getMethods(este.getDeclaringClass());
+        Member method = null;
 
-        for (Executable m : ms) {
+        for (Member m : ms) {
             if (este.getMethodName().equals(m.getName())) {
                 if (method == null)
                     method = m;
@@ -122,7 +123,7 @@ public class ExtendedStackTrace implements Iterable<ExtendedStackTraceElement> {
 
                 if (descriptor.get() != null) {
                     final String desc = descriptor.get();
-                    for (Executable m : ms) {
+                    for (Member m : ms) {
                         if (este.getMethodName().equals(getName(m)) && desc.equals(getDescriptor(m))) {
                             method = m;
                             break;
@@ -137,28 +138,28 @@ public class ExtendedStackTrace implements Iterable<ExtendedStackTraceElement> {
         return method;
     }
 
-    protected static final String getName(Executable m) {
+    protected static final String getName(Member m) {
         if (m instanceof Constructor)
             return "<init>";
-        return m.getName();
+        return ((Method)m).getName();
     }
 
-    protected static final String getDescriptor(Executable m) {
+    protected static final String getDescriptor(Member m) {
         if (m instanceof Constructor)
             return Type.getConstructorDescriptor((Constructor) m);
         return Type.getMethodDescriptor((Method) m);
     }
 
-    protected final Executable[] getMethods(Class<?> clazz) {
+    protected final Member[] getMethods(Class<?> clazz) {
 //        synchronized (this) {
-        Executable[] es;
+        Member[] es;
 //            if (methods == null)
 //                methods = new HashMap<>();
 //            es = methods.get(clazz);
 //            if (es == null) {
         Method[] ms = clazz.getDeclaredMethods();
         Constructor[] cs = clazz.getDeclaredConstructors();
-        es = new Executable[ms.length + cs.length];
+        es = new Member[ms.length + cs.length];
         System.arraycopy(cs, 0, es, 0, cs.length);
         System.arraycopy(ms, 0, es, cs.length, ms.length);
 
@@ -182,7 +183,7 @@ public class ExtendedStackTrace implements Iterable<ExtendedStackTraceElement> {
         }
 
         @Override
-        public Executable getMethod() {
+        public Member getMethod() {
             if (method == null) {
                 method = ExtendedStackTrace.this.getMethod(this);
                 if (method != null && !getMethodName().equals(getName(method))) {
