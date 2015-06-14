@@ -717,29 +717,6 @@ class InstrumentMethod {
         mv.visitVarInsn(Opcodes.ISTORE, lvarResumed);
     }
 
-//    private void emitSuspendableCalled(MethodVisitor mv) {
-//        if (verifyInstrumentation) {
-//            mv.visitInsn(Opcodes.ICONST_1);
-//            mv.visitVarInsn(Opcodes.ISTORE, lvarSuspendableCalled);
-//        }
-//    }
-//
-//    private void emitVerifyInstrumentation(MethodVisitor mv) {
-//        if (verifyInstrumentation) {
-//            final Label skipVerify = new Label();
-//            mv.visitVarInsn(Opcodes.ILOAD, lvarSuspendableCalled);
-//            mv.visitJumpInsn(Opcodes.IFNE, skipVerify);
-//
-//            mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-//            if (DUAL) {
-//                mv.visitJumpInsn(Opcodes.IFNULL, skipVerify);
-//                mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-//            }
-//            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "verifyInstrumentation", "()V", false);
-//
-//            mv.visitLabel(skipVerify);
-//        }
-//    }
     private int getLabelIdx(LabelNode l) {
         int idx;
         if (l instanceof BlockLabelNode) {
