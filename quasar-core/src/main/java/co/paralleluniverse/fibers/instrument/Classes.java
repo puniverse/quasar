@@ -18,9 +18,10 @@ import org.objectweb.asm.tree.MethodInsnNode;
  */
 final class Classes {
     static final String EXCEPTION_NAME = "java/lang/Exception";
+    static final String RUNTIME_EXCEPTION_NAME = "java/lang/RuntimeException";
     static final String THROWABLE_NAME = "java/lang/Throwable";
     static final String SUSPEND_EXECUTION_NAME = "co/paralleluniverse/fibers/SuspendExecution";
-    static final String RUNTIME_EXCEPTION_NAME = "co/paralleluniverse/fibers/RuntimeSuspendExecution";
+    static final String RUNTIME_SUSPEND_EXECUTION_NAME = "co/paralleluniverse/fibers/RuntimeSuspendExecution";
     static final String UNDECLARED_THROWABLE_NAME = "java/lang/reflect/UndeclaredThrowableException";
     static final String ANNOTATION_NAME = "co/paralleluniverse/fibers/Suspendable";
     static final String DONT_INSTRUMENT_ANNOTATION_NAME = "co/paralleluniverse/fibers/instrument/DontInstrument";

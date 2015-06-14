@@ -46,8 +46,9 @@ import co.paralleluniverse.fibers.Stack;
 import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.THROWABLE_NAME;
-import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.RUNTIME_EXCEPTION_NAME;
+import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
+import static co.paralleluniverse.fibers.instrument.Classes.RUNTIME_SUSPEND_EXECUTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.STACK_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.UNDECLARED_THROWABLE_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.isAllowedToBlock;
@@ -320,7 +321,7 @@ class InstrumentMethod {
 //            mv.visitVarInsn(Opcodes.ISTORE, lvarSuspendableCalled);
 //        }
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, SUSPEND_EXECUTION_NAME);
-        mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, RUNTIME_EXCEPTION_NAME);
+        mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, RUNTIME_SUSPEND_EXECUTION_NAME);
         if (handleProxyInvocations)
             mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchUTE, UNDECLARED_THROWABLE_NAME);
 
