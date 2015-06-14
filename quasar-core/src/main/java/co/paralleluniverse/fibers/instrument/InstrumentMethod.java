@@ -678,25 +678,30 @@ class InstrumentMethod {
         final AnnotationVisitor instrumentedAV = mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
         sb.append("@Instrumented(");
         final AnnotationVisitor linesAV = instrumentedAV.visitArray("suspendableCallSites");
+        
         sb.append("suspendableCallSites=[");
         for (int i = 0; i < suspCallsSourceLines.length; i++) {
             if (i != 0)
                 sb.append(", ");
+            
             final int l = suspCallsSourceLines[i];
             linesAV.visit("", l);
+            
             sb.append(l);
         }
         linesAV.visitEnd();
         sb.append("],");
+
         instrumentedAV.visit("methodStart", startSourceLine);
-        sb.append("methodStart=").append(startSourceLine).append(",");
         instrumentedAV.visit("methodEnd", endSourceLine);
-        sb.append("methodEnd=").append(endSourceLine).append(",");
         instrumentedAV.visit("methodOptimized", skip);
-        sb.append("methodOptimized=").append(skip);
         instrumentedAV.visitEnd();
+
+        sb.append("methodStart=").append(startSourceLine).append(",");
+        sb.append("methodEnd=").append(endSourceLine).append(",");
+        sb.append("methodOptimized=").append(skip);
         sb.append(")");
-        db.log(LogLevel.INFO, "Annotating method %s#%s%s with %s", className, mn.name, mn.desc, sb);
+        db.log(LogLevel.DEBUG, "Annotating method %s#%s%s with %s", className, mn.name, mn.desc, sb);
     }
 
     private void dumpStack(MethodVisitor mv) {
