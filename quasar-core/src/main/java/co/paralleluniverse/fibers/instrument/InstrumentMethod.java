@@ -96,7 +96,7 @@ class InstrumentMethod {
     private static final int PREEMPTION_BACKBRANCH = 0;
     private static final int PREEMPTION_CALL = 1;
 //  private static final String INTERRUPTED_EXCEPTION_NAME = Type.getInternalName(InterruptedException.class);
-    private static final boolean DUAL = true; // true if suspendable methods can be called from regular threads in addition to fibers
+//  private static final boolean DUAL = true; // true if suspendable methods can be called from regular threads in addition to fibers
     private final MethodDatabase db;
     private final String sourceName;
     private final String className;
@@ -381,10 +381,9 @@ class InstrumentMethod {
 
         // println(mv, "STACK: ", lvarStack);
         // dumpStack(mv);
-        if (DUAL) {
-            mv.visitJumpInsn(Opcodes.IFNULL, lMethodStart);
-            mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        }
+        // DUAL
+        mv.visitJumpInsn(Opcodes.IFNULL, lMethodStart);
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
 
         emitStoreResumed(mv, true); // we'll assume we have been resumed
 
@@ -447,10 +446,10 @@ class InstrumentMethod {
                 dumpCodeBlock(mv, i, 1 /* skip the call */);
             } else {
                 final Label lbl = new Label();
-                if (DUAL) {
-                    mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-                    mv.visitJumpInsn(Opcodes.IFNULL, lbl);
-                }
+
+                // DUAL
+                mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+                mv.visitJumpInsn(Opcodes.IFNULL, lbl);
 
                 // normal case - call to a suspendable method - resume before the call
                 emitStoreState(mv, i, fi, 0);
@@ -460,8 +459,8 @@ class InstrumentMethod {
                 mv.visitLabel(lMethodCalls[i - 1]);
                 emitRestoreState(mv, i, fi, 0);
 
-                if (DUAL)
-                    mv.visitLabel(lbl);
+                // DUAL
+                mv.visitLabel(lbl);
 
                 if (isReflectInvocation(owner, name)) {
                     // We catch the InvocationTargetException and unwrap it if it wraps a SuspendExecution exception.
@@ -867,16 +866,15 @@ class InstrumentMethod {
 //        emitVerifyInstrumentation(mv);
 
         final Label lbl = new Label();
-        if (DUAL) {
-            mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-            mv.visitJumpInsn(Opcodes.IFNULL, lbl);
-        }
+        // DUAL
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+        mv.visitJumpInsn(Opcodes.IFNULL, lbl);
 
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "popMethod", "()V", false);
 
-        if (DUAL)
-            mv.visitLabel(lbl);
+        // DUAL
+        mv.visitLabel(lbl);
     }
 
     private void emitStoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsToPreserve) {
