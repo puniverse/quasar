@@ -220,7 +220,7 @@ public class ExtendedStackTraceElement {
                     dimensions++;
                     cl = cl.getComponentType();
                 }
-                StringBuffer sb = new StringBuffer();
+                StringBuilder sb = new StringBuilder();
                 sb.append(cl.getName());
                 for (int i = 0; i < dimensions; i++) {
                     sb.append("[]");
