@@ -23,6 +23,9 @@ import java.util.Iterator;
 
 /**
  * This classes uses internal HotSpot data to retrieve a more detailed stacktrace from a {@link Throwable}.
+ * 
+ * Works only on HotSpot, versions 8 and 9.
+ * 
  * @author pron
  */
 class ExtendedStackTraceHotSpot extends ExtendedStackTrace {

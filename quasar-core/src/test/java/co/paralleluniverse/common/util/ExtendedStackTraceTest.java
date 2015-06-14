@@ -29,7 +29,7 @@ public class ExtendedStackTraceTest {
 
     private static boolean isHotSpotSupported() {
         try {
-            ExtendedStackTraceHotSpot.class.getFields();
+            new ExtendedStackTraceHotSpot(new Throwable());
             return true;
         } catch (Throwable e) {
             return false;
