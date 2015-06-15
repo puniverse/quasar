@@ -41,7 +41,6 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.common.util.Pair;
 // import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.fibers.Stack;
 import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
@@ -298,7 +297,6 @@ class InstrumentMethod {
         }
 
         // Else instrument
-
         collectCodeBlocks(); // Must be called first, sets flags & state used below
 
         final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS && callsSuspendableSupers;
@@ -419,9 +417,7 @@ class InstrumentMethod {
 
             // Emit instrumented call
             final AbstractInsnNode min = mn.instructions.get(fi.endInstruction);
-            final String owner = (min instanceof MethodInsnNode ? ((MethodInsnNode) min).owner : null);
-            Pair<String, String> nameAndDesc = getCalledMethodNameAndDesc(min);
-            String name = nameAndDesc.getFirst(), desc = nameAndDesc.getSecond();
+            final String owner = getMethodOwner(min), name = getMethodName(min), desc = getMethodDesc(min);
             if (isYieldMethod(owner, name)) { // special case - call to yield
                 if (min.getOpcode() != Opcodes.INVOKESTATIC)
                     throw new UnableToInstrumentException("invalid call to suspending method.", className, mn.name, mn.desc);
@@ -536,17 +532,6 @@ class InstrumentMethod {
         mv.visitEnd();
     }
 
-    private Pair<String, String> getCalledMethodNameAndDesc(AbstractInsnNode min) {
-        if (min instanceof MethodInsnNode) {
-            final MethodInsnNode mmin = (MethodInsnNode) min;
-            return new Pair<>(mmin.name, mmin.desc);
-        } else if (min instanceof InvokeDynamicInsnNode) {
-            final InvokeDynamicInsnNode idmin = (InvokeDynamicInsnNode) min;
-            return new Pair<>(idmin.name, idmin.desc);
-        }
-        return new Pair<>(null, null);
-    }
-
     private boolean canInstrumentationBeSkipped(int[] susCallsIndexes) {
         if (optimizationDisabled) {
             db.log(LogLevel.DEBUG, "[OPTIMIZE] Optimization disabled, not examining method %s#%s%s with susCallsIndexes=%s", className, mn.name, mn.desc, Arrays.toString(susCallsIndexes));
@@ -571,22 +556,16 @@ class InstrumentMethod {
         // Reflective calls must also be instrumented, because the SuspendExecution exception is wrapped in an
         // `InvocationTargetException`, which is unwrapped by instrumentation code. Such code is currently
         // generated only around reflective calls.
-        if (susCall.getType() == AbstractInsnNode.METHOD_INSN) {
-            final MethodInsnNode min = (MethodInsnNode) susCall;
-
-            if (isReflectInvocation(min.owner, min.name))
-                return false;
-        }
+        if (isReflectInvocation(getMethodOwner(susCall), getMethodName(susCall)))
+            return false;
 
         // yield calls require instrumentation (to skip the call when resuming)
-        if (isYieldCall(susCall))
+        if (isYieldMethod(getMethodOwner(susCall), getMethodName(susCall)))
             return false;
 
         // Catching `SuspendableExecution needs instrumentation in order to propagate it
         if (hasSuspendableTryCatchBlocksAround(susCallBci))
             return false;
-
-        final Pair<String, String> nameAndDesc = getCalledMethodNameAndDesc(susCall);
 
         // before suspendable call:
         for (int i = 0; i < susCallBci; i++) {
@@ -627,13 +606,6 @@ class InstrumentMethod {
                 return true;
         }
         return false;
-    }
-
-    private boolean isYieldCall(AbstractInsnNode insn) {
-        final String owner = (insn instanceof MethodInsnNode ? ((MethodInsnNode) insn).owner : null);
-        final Pair<String, String> nameAndDesc = getCalledMethodNameAndDesc(insn);
-        final String name = nameAndDesc.getFirst();
-        return isYieldMethod(owner, name);
     }
     //</editor-fold>
 
@@ -1061,6 +1033,22 @@ class InstrumentMethod {
         if (v instanceof NewValue)
             return ((NewValue) v).isDupped == dupped;
         return false;
+    }
+
+    private static String getMethodOwner(AbstractInsnNode min) {
+        return min instanceof MethodInsnNode ? ((MethodInsnNode) min).owner : null;
+    }
+
+    private static String getMethodName(AbstractInsnNode min) {
+        return min instanceof MethodInsnNode ? ((MethodInsnNode) min).name
+                : min instanceof InvokeDynamicInsnNode ? ((InvokeDynamicInsnNode) min).name
+                        : null;
+    }
+
+    private static String getMethodDesc(AbstractInsnNode min) {
+        return min instanceof MethodInsnNode ? ((MethodInsnNode) min).desc
+                : min instanceof InvokeDynamicInsnNode ? ((InvokeDynamicInsnNode) min).desc
+                        : null;
     }
 
     private boolean isSunProxy() {
