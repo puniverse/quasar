@@ -520,15 +520,11 @@ class InstrumentMethod {
         // println(mv, "THROW: ");
         mv.visitInsn(Opcodes.ATHROW);   // rethrow shared between catchAll and catchSSE
 
-        // Output pre-existing locals
         if (mn.localVariables != null) {
             for (Object o : mn.localVariables)
                 ((LocalVariableNode) o).accept(mv);
         }
-
-        // Needed by ASM analysis
-        mv.visitMaxs(mn.maxStack + ADD_OPERANDS, mn.maxLocals + NUM_LOCALS + additionalLocals);
-
+        mv.visitMaxs(mn.maxStack + ADD_OPERANDS, mn.maxLocals + NUM_LOCALS + additionalLocals); // Needed by ASM analysis
         mv.visitEnd();
     }
 
@@ -539,8 +535,7 @@ class InstrumentMethod {
         }
 
         db.log(LogLevel.DEBUG, "[OPTIMIZE] Examining method %s#%s%s with susCallsIndexes=%s", className, mn.name, mn.desc, Arrays.toString(susCallsIndexes));
-        // Fully instrumentation-transparent methods
-        return isForwardingToSuspendable(susCallsIndexes);
+        return isForwardingToSuspendable(susCallsIndexes); // Fully instrumentation-transparent methods
     }
 
     private boolean isForwardingToSuspendable(int[] susCallsBcis) {
