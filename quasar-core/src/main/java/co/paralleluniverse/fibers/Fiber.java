@@ -1626,7 +1626,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             if (ste.getClassName().equals(ExtendedStackTrace.class.getName()))
                 continue;
             if (!ok)
-                stackTrace.append("\n\tat ").append(ste);
+                printOkTraceLine(stackTrace, ste);
             if (ste.getClassName().contains("$$Lambda$"))
                 continue;
 
@@ -1677,9 +1677,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             final ExtendedStackTraceElement ste2 = stes[j];
             if (ste2.getClassName().equals(Thread.class.getName()) && ste2.getMethodName().equals("getStackTrace"))
                 continue;
-            stackTrace.append("\n\tat ").append(ste2);
+            printOkTraceLine(stackTrace, ste2);
         }
         return stackTrace;
+    }
+
+    private static void printOkTraceLine(StringBuilder stackTrace, ExtendedStackTraceElement ste) {
+        stackTrace.append("\n\tat ").append(ste);
+        final Member m = SuspendableHelper.lookupMethod(ste);
+        if (SuspendableHelper.isOptimized(m))
+            stackTrace.append(" (optimized)");
     }
 
     @SuppressWarnings("unchecked")

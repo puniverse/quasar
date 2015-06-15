@@ -15,7 +15,6 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.common.util.ExtendedStackTraceElement;
 import co.paralleluniverse.common.util.Pair;
-// import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Instrumented;
@@ -33,8 +32,6 @@ import java.util.Set;
  * @author pron
  */
 public final class SuspendableHelper {
-    private static final boolean considerOptimizedInstrumented = true; // !SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.considerOptimizedUninstrumented");
-
     static boolean javaAgent;
     static final Set<Pair<String, String>> waivers = Collections.newSetFromMap(MapUtil.<Pair<String, String>, Boolean>newConcurrentHashMap());
 
@@ -69,9 +66,9 @@ public final class SuspendableHelper {
 
         ExtendedStackTraceElement ste = stes[currentSteIdx];
         if (currentSteIdx - 1 >= 0
+                // `verifySuspend` and `popMethod` calls are not suspendable call sites, not verifying them.
                 && ((stes[currentSteIdx - 1].getClassName().equals(Fiber.class.getName()) && stes[currentSteIdx - 1].getMethodName().equals("verifySuspend"))
                 || (stes[currentSteIdx - 1].getClassName().equals(Stack.class.getName()) && stes[currentSteIdx - 1].getMethodName().equals("popMethod")))) {
-            //  "verifySuspend" and "popMethod" calls are not suspendable call sites, not verifying them.
             return new Pair<>(true, null);
         } else {
             Instrumented i = getAnnotation(m, Instrumented.class);
@@ -86,13 +83,15 @@ public final class SuspendableHelper {
         return new Pair<>(false, null);
     }
 
-    public static boolean isInstrumented(Member method) {
-        return method.isSynthetic()
-                || getAnnotation(method, Instrumented.class) != null
-                        && (considerOptimizedInstrumented
-                                || (method instanceof Method && !((Method) method).getAnnotation(Instrumented.class).methodOptimized()));
+    public static boolean isInstrumented(Member m) {
+        return m.isSynthetic() || getAnnotation(m, Instrumented.class) != null;
     }
     
+    public static boolean isOptimized(Member m) {
+        Instrumented i = getAnnotation(m, Instrumented.class);
+        return (i != null && i.methodOptimized());
+    }
+
     private static <T extends Annotation> T getAnnotation(Member m, Class<T> annotationClass) {
         if(m instanceof Constructor)
             return ((Constructor<?>)m).getAnnotation(annotationClass);

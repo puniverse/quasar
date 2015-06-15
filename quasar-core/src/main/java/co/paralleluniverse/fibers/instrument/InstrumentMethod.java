@@ -1036,10 +1036,6 @@ class InstrumentMethod {
                         : null;
     }
 
-    private boolean isSunProxy() {
-        return className.startsWith("com/sun/proxy");
-    }
-
     private static class OmittedInstruction extends AbstractInsnNode {
         private final AbstractInsnNode orgInsn;
 
