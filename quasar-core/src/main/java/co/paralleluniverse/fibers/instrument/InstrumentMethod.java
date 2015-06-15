@@ -548,9 +548,9 @@ class InstrumentMethod {
             return false; // we allow exactly one suspendable call
 
         final int susCallBci = susCallsBcis[0];
+        
         final AbstractInsnNode susCall = mn.instructions.get(susCallBci);
         assert isSuspendableCall(susCall);
-
         if (isYieldMethod(getMethodOwner(susCall), getMethodName(susCall)))
             return false; // yield calls require instrumentation (to skip the call when resuming)
         if (isReflectInvocation(getMethodOwner(susCall), getMethodName(susCall)))
