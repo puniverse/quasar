@@ -40,7 +40,7 @@ public final class SuspendableHelper {
     }
 
     public static boolean isInstrumented(Class clazz) {
-        return clazz.isAnnotationPresent(Instrumented.class);
+        return clazz != null && clazz.isAnnotationPresent(Instrumented.class);
     }
 
     public static /*Executable*/ Member lookupMethod(ExtendedStackTraceElement ste) {
@@ -84,16 +84,22 @@ public final class SuspendableHelper {
     }
 
     public static boolean isInstrumented(Member m) {
-        return m.isSynthetic() || getAnnotation(m, Instrumented.class) != null;
+        return m != null && (m.isSynthetic() || getAnnotation(m, Instrumented.class) != null);
     }
     
     public static boolean isOptimized(Member m) {
-        Instrumented i = getAnnotation(m, Instrumented.class);
+        if (m == null)
+            return false;
+
+        final Instrumented i = getAnnotation(m, Instrumented.class);
         return (i != null && i.methodOptimized());
     }
 
     private static <T extends Annotation> T getAnnotation(Member m, Class<T> annotationClass) {
-        if(m instanceof Constructor)
+        if (m == null || annotationClass == null)
+            return  null;
+
+        if (m instanceof Constructor)
             return ((Constructor<?>)m).getAnnotation(annotationClass);
         else
             return ((Method)m).getAnnotation(annotationClass);

@@ -1631,15 +1631,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 continue;
 
             if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
-                    && !ste.getClassName().equals(Stack.class.getName())) {
+                    && !ste.getClassName().equals(Stack.class.getName()) && !SuspendableHelper.isWaiver(ste.getClassName(), ste.getMethodName())) {
                 final Class<?> clazz = ste.getDeclaringClass();
                 boolean classInstrumented = SuspendableHelper.isInstrumented(clazz);
                 final /*Executable*/ Member m = SuspendableHelper.lookupMethod(ste);
                 if (m != null) {
                     boolean methodInstrumented = SuspendableHelper.isInstrumented(m);
                     Pair<Boolean, int[]> callSiteInstrumented = SuspendableHelper.isCallSiteInstrumented(m, ste.getLineNumber(), stes, i);
-                    if (!SuspendableHelper.isWaiver(ste.getClassName(), ste.getMethodName())
-                            && (!classInstrumented || !methodInstrumented || !callSiteInstrumented.getFirst())) {
+                    if (!classInstrumented || !methodInstrumented || !callSiteInstrumented.getFirst()) {
                         if (ok)
                             stackTrace = initTrace(i, stes);
 
