@@ -543,8 +543,6 @@ class InstrumentMethod {
         return isForwardingToSuspendable(susCallsIndexes);
     }
 
-    //<editor-fold defaultstate="collapsed" desc="isForwardingToSuspendable">
-    /////////// isForwardingToSuspendable ///////////////////////////////////
     private boolean isForwardingToSuspendable(int[] susCallsBcis) {
         if (susCallsBcis.length != 1)
             return false; // we allow exactly one suspendable call
@@ -553,19 +551,12 @@ class InstrumentMethod {
         final AbstractInsnNode susCall = mn.instructions.get(susCallBci);
         assert isSuspendableCall(susCall);
 
-        // Reflective calls must also be instrumented, because the SuspendExecution exception is wrapped in an
-        // `InvocationTargetException`, which is unwrapped by instrumentation code. Such code is currently
-        // generated only around reflective calls.
-        if (isReflectInvocation(getMethodOwner(susCall), getMethodName(susCall)))
-            return false;
-
-        // yield calls require instrumentation (to skip the call when resuming)
         if (isYieldMethod(getMethodOwner(susCall), getMethodName(susCall)))
-            return false;
-
-        // Catching `SuspendableExecution needs instrumentation in order to propagate it
+            return false; // yield calls require instrumentation (to skip the call when resuming)
+        if (isReflectInvocation(getMethodOwner(susCall), getMethodName(susCall)))
+            return false; // Reflective calls require instrumentation to handle SuspendExecution wrapped in InvocationTargetException
         if (hasSuspendableTryCatchBlocksAround(susCallBci))
-            return false;
+            return false; // Catching `SuspendableExecution needs instrumentation in order to propagate it
 
         // before suspendable call:
         for (int i = 0; i < susCallBci; i++) {
@@ -607,7 +598,6 @@ class InstrumentMethod {
         }
         return false;
     }
-    //</editor-fold>
 
     private void emitInstrumentedAnn(MethodVisitor mv, boolean skip) {
         final StringBuilder sb = new StringBuilder();
