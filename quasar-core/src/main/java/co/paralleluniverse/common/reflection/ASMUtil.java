@@ -16,13 +16,12 @@ package co.paralleluniverse.common.reflection;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToResource;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToSlashed;
 import com.google.common.io.ByteStreams;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Objects;
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
@@ -34,36 +33,68 @@ import org.objectweb.asm.tree.MethodNode;
  * @author pron
  */
 public final class ASMUtil {
+    public static InputStream getClassInputStream(String className, ClassLoader cl) {
+        return cl.getResourceAsStream(classToResource(className));
+    }
+
+    public static InputStream getClassInputStream(Class<?> clazz) {
+        final InputStream is = getClassInputStream(clazz.getName(), clazz.getClassLoader());
+        if (is == null)
+            throw new UnsupportedOperationException("Class file " + clazz.getName() + " could not be loaded by the class's classloader " + clazz.getClassLoader());
+        return is;
+    }
+
     public static byte[] getClass(String className, ClassLoader cl) throws IOException {
-        try (InputStream is = cl.getResourceAsStream(classToResource(className))) {
+        try (InputStream is = getClassInputStream(className, cl)) {
             return ByteStreams.toByteArray(is);
         }
     }
 
-    public static ClassNode getClassNode(String className, boolean skipCode, ClassLoader cl) throws IOException {
-        if (className == null)
-            return null;
-        try (InputStream is = cl.getResourceAsStream(classToResource(className))) {
-            if (is == null)
-                throw new IOException("Resource " + classToResource(className) + " not found.");
-            ClassReader cr = new ClassReader(is);
-            ClassNode cn = new ClassNode();
-            cr.accept(cn, ClassReader.SKIP_DEBUG | (skipCode ? 0 : ClassReader.SKIP_CODE));
-            return cn;
+    public static byte[] getClass(Class<?> klass) throws IOException {
+        try (InputStream is = getClassInputStream(klass)) {
+            return ByteStreams.toByteArray(is);
         }
     }
 
-    public static ClassNode getClassNode(File classFile, boolean skipCode) throws IOException {
-        if (classFile == null)
+    public static <T extends ClassVisitor> T accept(InputStream is, int flags, T visitor) throws IOException {
+        if (is == null)
             return null;
-        if (!classFile.exists())
-            return null;
-        try (InputStream is = new FileInputStream(classFile)) {
-            ClassReader cr = new ClassReader(is);
-            ClassNode cn = new ClassNode();
-            cr.accept(cn, ClassReader.SKIP_DEBUG | (skipCode ? 0 : ClassReader.SKIP_CODE));
-            return cn;
+        try (InputStream is1 = is) {
+            new ClassReader(is1).accept(visitor, flags);
+            return visitor;
         }
+    }
+
+    public static <T extends ClassVisitor> T accept(byte[] buffer, int flags, T visitor) throws IOException {
+        if (buffer == null)
+            throw new NullPointerException("Buffer is null");
+        new ClassReader(buffer).accept(visitor, flags);
+        return visitor;
+    }
+
+    public static <T extends ClassVisitor> T accept(String className, ClassLoader cl, int flags, T visitor) throws IOException {
+        return accept(getClassInputStream(className, cl), flags, visitor);
+    }
+
+    public static <T extends ClassVisitor> T accept(Class<?> clazz, int flags, T visitor) throws IOException {
+        return accept(getClassInputStream(clazz), flags, visitor);
+    }
+
+    public static ClassNode getClassNode(InputStream is, boolean skipCode) throws IOException {
+        return accept(is,
+                ClassReader.SKIP_DEBUG | (skipCode ? 0 : ClassReader.SKIP_CODE),
+                new ClassNode());
+    }
+
+    public static ClassNode getClassNode(String className, ClassLoader cl, boolean skipCode) throws IOException {
+        final ClassNode cn = getClassNode(getClassInputStream(className, cl), skipCode);
+        if (cn == null)
+            throw new IOException("Resource " + classToResource(className) + " not found.");
+        return cn;
+    }
+
+    public static ClassNode getClassNode(Class<?> clazz, boolean skipCode) throws IOException {
+        return getClassNode(getClassInputStream(clazz), skipCode);
     }
 
     public static boolean hasAnnotation(String annDesc, List<AnnotationNode> anns) {
@@ -150,7 +181,7 @@ public final class ASMUtil {
                 return false;
             if (supertypeName.equals(className))
                 return true;
-            ClassNode cn = getClassNode(className, true, cl);
+            ClassNode cn = getClassNode(className, cl, true);
 
             if (supertypeName.equals(cn.superName))
                 return true;

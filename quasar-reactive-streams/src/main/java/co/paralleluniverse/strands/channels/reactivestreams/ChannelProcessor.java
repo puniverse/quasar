@@ -16,6 +16,7 @@ package co.paralleluniverse.strands.channels.reactivestreams;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.SuspendableAction2;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.channels.Channel;
@@ -122,6 +123,7 @@ class ChannelProcessor<T, R> implements Processor<T, R> {
     }
 
     @Override
+    @Suspendable
     public void onNext(T element) {
         subscriber.onNext(element);
     }

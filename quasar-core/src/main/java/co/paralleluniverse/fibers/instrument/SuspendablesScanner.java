@@ -18,7 +18,7 @@ import static co.paralleluniverse.common.reflection.ClassLoaderUtil.isClassFile;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToResource;
 import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_ANNOTATION_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
+import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import com.google.common.base.Function;
 import java.io.File;
@@ -386,7 +386,7 @@ public class SuspendablesScanner extends Task {
         private boolean checkExceptions(String[] exceptions) {
             if (exceptions != null) {
                 for (String ex : exceptions) {
-                    if (ex.equals(EXCEPTION_NAME))
+                    if (ex.equals(SUSPEND_EXECUTION_NAME))
                         return true;
                 }
             }
@@ -551,11 +551,18 @@ public class SuspendablesScanner extends Task {
 
         if (cls.hasMethod(method.name) && method.classNode != cls) {
             final MethodNode m1 = methods.get((cls.name + '.' + method.name).intern());
+
             if (m1 != null && m1.suspendType == SuspendableType.NON_SUSPENDABLE)
                 return false;
+
             if (m1 == null || m1.suspendType == null) {
                 log("Found parent of suspendable method: " + method.owner + '.' + method.name + " in " + cls.name
                         + (cls.inProject ? "" : " NOT IN PROJECT"), cls.inProject ? Project.MSG_VERBOSE : Project.MSG_WARN);
+
+                final MethodNode m = getOrCreateMethodNode(cls.name + '.' + method.name);
+                m.setSuspendType(SuspendableType.SUSPENDABLE_SUPER);
+                q.add(m);
+
                 foundMethod = true;
             }
         }
@@ -569,15 +576,7 @@ public class SuspendablesScanner extends Task {
             log("Found parent of suspendable method in a parent of: " + method.owner + '.' + method.name + " in " + cls.name
                     + (cls.inProject ? "" : " NOT IN PROJECT"), cls.inProject ? Project.MSG_VERBOSE : Project.MSG_WARN);
 
-        final boolean res = foundMethod | methodInParent;
-        if (res) {
-            MethodNode m = getOrCreateMethodNode(cls.name + '.' + method.name);
-            if (m.suspendType != SuspendableType.SUSPENDABLE && m.suspendType != SuspendableType.SUSPENDABLE_SUPER) {
-                m.setSuspendType(SuspendableType.SUSPENDABLE_SUPER);
-                q.add(m);
-            }
-        }
-        return res;
+        return foundMethod || methodInParent;
     }
 
     private void followNonOverriddenSubs(Queue<MethodNode> q, ClassNode cls, MethodNode method) {

@@ -37,13 +37,13 @@ public final class ReflectionUtil {
     private ReflectionUtil() {
     }
 
-	private static <T extends AccessibleObject> T accessible(T obj) {
-		if (obj == null)
-			return null;
-		obj.setAccessible(true);
-		return obj;
-	}
-	
+    public static <T extends AccessibleObject> T accessible(T obj) {
+        if (obj == null)
+            return null;
+        obj.setAccessible(true);
+        return obj;
+    }
+
     public static Class<?>[] getTypes(Object... vals) {
         Class<?>[] types = new Class[vals.length];
         for (int i = 0; i < vals.length; i++)
@@ -265,7 +265,7 @@ public final class ReflectionUtil {
                     else {
                         for (Class<?> iface : cls.getInterfaces()) {
                             final Type res = getGenericParameterType0(iface, genericSuper, paramIndex);
-                            if(res != null)
+                            if (res != null)
                                 return res;
                         }
                     }

@@ -621,6 +621,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     }
 
     @Override
+    @Suspendable
     public final void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
         runner.join(timeout, unit);
     }

@@ -38,7 +38,7 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 /**
- * Test to checking blocking call detection
+ * Test to check blocking call detection
  *
  * @author Matthias Mann
  */
@@ -48,7 +48,7 @@ public class BlockingTest {
     @Test
     public void testSuspend() throws IOException {
         final String className = BlockingTest.class.getName().replace('.', '/');
-        final HashSet<String> msgs = new HashSet<String>();
+        final HashSet<String> msgs = new HashSet<>();
         msgs.add("Method " + className + "#t_wait()V contains potentially blocking call to java/lang/Object#wait()V");
         msgs.add("Method " + className + "#t_sleep1()V contains potentially blocking call to java/lang/Thread#sleep(J)V");
         msgs.add("Method " + className + "#t_sleep2()V contains potentially blocking call to java/lang/Thread#sleep(JI)V");
@@ -60,6 +60,7 @@ public class BlockingTest {
         final MethodDatabase db = instrumentor.getMethodDatabase();
         db.setAllowBlocking(true);
         db.setLog(new Log() {
+            @Override
             public void log(LogLevel level, String msg, Object... args) {
                 if (level == LogLevel.WARNING) {
                     msg = String.format(Locale.ENGLISH, msg, args);
@@ -67,7 +68,8 @@ public class BlockingTest {
                 }
             }
 
-            public void error(String msg, Exception ex) {
+            @Override
+            public void error(String msg, Throwable ex) {
                 throw new Error(msg, ex);
             }
         });
