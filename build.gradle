@@ -376,7 +376,7 @@ project (':quasar-core') {
             }
             
             compileClasspath += jdk8.output + jdk8test.compileClasspath + jdk8test.output
-            runtimeClasspath += compileClasspath + test.runtimeClasspath
+            runtimeClasspath += compileClasspath + jdk8test.runtimeClasspath
         }
     }
     
@@ -518,6 +518,16 @@ project (':quasar-core') {
         artifacts {
             jdk8Archives jdk8ShadowJar
         }
+
+        tasks.withType(JavaExec) {
+            classpath += sourceSets.jdk8test.runtimeClasspath + sourceSets.jdk8test.output
+        }
+        run.dependsOn compileJdk8Java, jdk8testClasses
+    } else {
+        tasks.withType(JavaExec) {
+            classpath += sourceSets.jdk7test.runtimeClasspath + sourceSets.jdk7test.output
+        }
+        run.dependsOn compileJdk7Java, jdk7testClasses
     }
     
     javadoc {
