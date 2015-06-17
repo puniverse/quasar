@@ -42,6 +42,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.hamcrest.CoreMatchers.*;
+import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
@@ -77,15 +78,26 @@ public class FiberTest implements Serializable {
             {new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1, new ThreadFactoryBuilder().setNameFormat("fiber-scheduler-%d").setDaemon(true).build()))},});
     }
 
+     private static Strand.UncaughtExceptionHandler previousUEH;
+
     @BeforeClass
-    public static void setUpClass() {
+    public static void setupClass() {
+        previousUEH = Fiber.getDefaultUncaughtExceptionHandler();
         Fiber.setDefaultUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
+
             @Override
             public void uncaughtException(Strand s, Throwable e) {
                 Exceptions.rethrow(e);
             }
         });
     }
+
+    @AfterClass
+    public static void afterClass() {
+        // Restore
+        Fiber.setDefaultUncaughtExceptionHandler(previousUEH);
+    }
+
 
     @Before
     public void before() {

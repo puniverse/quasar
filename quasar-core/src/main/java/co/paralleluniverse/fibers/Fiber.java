@@ -1106,7 +1106,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             else if ((ueh = defaultUncaughtExceptionHandler) != null)
                 ueh.uncaughtException(this, t);
         } catch (Exception e) {
-            t.addSuppressed(e);
+            if (e != t && t != null)
+                t.addSuppressed(e);
         }
         throw Exceptions.rethrow(t);
     }
