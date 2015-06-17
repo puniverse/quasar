@@ -1106,6 +1106,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             else if ((ueh = defaultUncaughtExceptionHandler) != null)
                 ueh.uncaughtException(this, t);
         } catch (Exception e) {
+            t.addSuppressed(e);
         }
         throw Exceptions.rethrow(t);
     }
@@ -1613,8 +1614,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @SuppressWarnings("null")
     private static boolean checkInstrumentation(ExtendedStackTrace st) {
-        assert verifyInstrumentation;
-
         boolean ok = true;
         StringBuilder stackTrace = null;
 
@@ -1626,7 +1625,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             if (ste.getClassName().equals(ExtendedStackTrace.class.getName()))
                 continue;
             if (!ok)
-                printOkTraceLine(stackTrace, ste);
+                printTraceLine(stackTrace, ste);
             if (ste.getClassName().contains("$$Lambda$"))
                 continue;
 
@@ -1676,12 +1675,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             final ExtendedStackTraceElement ste2 = stes[j];
             if (ste2.getClassName().equals(Thread.class.getName()) && ste2.getMethodName().equals("getStackTrace"))
                 continue;
-            printOkTraceLine(stackTrace, ste2);
+            printTraceLine(stackTrace, ste2);
         }
         return stackTrace;
     }
 
-    private static void printOkTraceLine(StringBuilder stackTrace, ExtendedStackTraceElement ste) {
+    private static void printTraceLine(StringBuilder stackTrace, ExtendedStackTraceElement ste) {
         stackTrace.append("\n\tat ").append(ste);
         final Member m = SuspendableHelper.lookupMethod(ste);
         if (SuspendableHelper.isOptimized(m))
