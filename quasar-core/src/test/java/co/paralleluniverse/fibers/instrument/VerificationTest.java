@@ -20,6 +20,8 @@ import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.fibers.VerifyInstrumentationException;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.concurrent.ExecutionException;
 import static org.junit.Assert.*;
 import static org.junit.Assume.*;
@@ -119,5 +121,45 @@ public class VerificationTest {
             return 4;
         }}).start();
         assertEquals(fOk.get(), new Integer(4));
+    }
+
+    @Suspendable
+    private void doInstrumentedExc() {
+        try {
+            Fiber.sleep(10);
+            throw new NullPointerException("something is broken");
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
+        } catch (SuspendExecution ex) {
+            throw new AssertionError(ex);
+        }
+    }
+
+    private void doUninstrumentedExc() {
+        doInstrumentedExc();
+    }
+
+    @Test
+    public void testVerificationExc() throws ExecutionException, InterruptedException {
+        assumeTrue(!SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation"));
+
+        final VerificationTest.I1 i1 = new VerificationTest.C();
+        final VerificationTest.I2 i2 = (VerificationTest.C) i1;
+        
+        Throwable t = null;
+
+        final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
+        System.setErr(new PrintStream(errContent));
+        Fiber fUninstrumentedMethod1 = new Fiber(new SuspendableRunnable() { @Override public void run() throws SuspendExecution, InterruptedException {
+            doUninstrumentedExc(); // **
+            Fiber.sleep(10);
+        }}).start();
+        try {
+            fUninstrumentedMethod1.join();
+        } catch (ExecutionException re) {
+            assertTrue(re.getCause().getSuppressed()[0].getMessage().contains(" **"));
+        } finally {
+            System.setErr(null);
+        }
     }
 }
