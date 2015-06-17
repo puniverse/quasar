@@ -143,23 +143,14 @@ public class VerificationTest {
     public void testVerificationExc() throws ExecutionException, InterruptedException {
         assumeTrue(!SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation"));
 
-        final VerificationTest.I1 i1 = new VerificationTest.C();
-        final VerificationTest.I2 i2 = (VerificationTest.C) i1;
-        
-        Throwable t = null;
-
-        final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
-        System.setErr(new PrintStream(errContent));
-        Fiber fUninstrumentedMethod1 = new Fiber(new SuspendableRunnable() { @Override public void run() throws SuspendExecution, InterruptedException {
+        Fiber f = new Fiber(new SuspendableRunnable() { @Override public void run() throws SuspendExecution, InterruptedException {
             doUninstrumentedExc(); // **
             Fiber.sleep(10);
         }}).start();
         try {
-            fUninstrumentedMethod1.join();
+            f.join();
         } catch (ExecutionException re) {
             assertTrue(re.getCause().getSuppressed()[0].getMessage().contains(" **"));
-        } finally {
-            System.setErr(null);
         }
     }
 }
