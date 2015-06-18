@@ -533,6 +533,7 @@ public class SuspendablesScanner extends Task {
                 MethodNode m = getOrCreateMethodNode(cls.name + '.' + m1);
                 if (m.suspendType != SuspendableType.SUSPENDABLE && m.suspendType != SuspendableType.SUSPENDABLE_SUPER) {
                     m.setSuspendType(SuspendableType.SUSPENDABLE_SUPER);
+                    m.inProject = method.inProject;
                     q.add(m);
                 }
             }
