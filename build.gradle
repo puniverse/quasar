@@ -225,6 +225,19 @@ subprojects {
         from javadoc.destinationDir
     }
 
+    task artifacts {
+        group = "Help"
+        description = "Displays the artifacts associated with each configuration of " + project
+        doFirst {
+            configurations.findAll().each { config ->
+                println "${config}:"
+                // config.allArtifacts.each { file -> println "--- " + file }
+                config.allArtifacts.getFiles().each { file -> println "" + file }
+                println ' '
+            }
+        }
+    }
+
     ///////// Publish Artifacts
     apply plugin: 'maven'
     apply plugin: 'signing'
