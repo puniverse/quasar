@@ -21,7 +21,6 @@ public abstract class ThreadlessPublisher<T> implements Publisher<T> {
 
     protected abstract class ThreadlessSubscription implements Subscription {
         private final Subscriber<? super T> sr;
-        private boolean recursive; // @akarnokd: not really required
         private long pending;
         private boolean done;
 
@@ -41,7 +40,7 @@ public abstract class ThreadlessPublisher<T> implements Publisher<T> {
                 return;
             }
             
-            // boolean recursive = pending == 0; // @akarnokd: if (pending == n)
+            final boolean recursive = pending == 0;
             pending += n;
             if (pending < 0)
                 pending = Long.MAX_VALUE;
@@ -77,17 +76,13 @@ public abstract class ThreadlessPublisher<T> implements Publisher<T> {
 
             @Override
             public void onSubscribe(Subscription s) {
-                recursive = true;
                 sr.onSubscribe(s);
-                recursive = false;
             }
 
             @Override
             public void onNext(R element) {
-                recursive = true;
                 if (!done)
                     sr.onNext(element);
-                recursive = false;
             }
 
             @Override
