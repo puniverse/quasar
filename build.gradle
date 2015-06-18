@@ -334,6 +334,13 @@ project (':quasar-core') {
     
     apply plugin: 'com.github.johnrengelman.shadow'
 
+    // remove default artifact
+    configurations.runtime.artifacts.with { archives ->
+        archives.each {
+            archives.remove(it)
+        }
+    }
+    
     [compileJava, compileTestJava, classes, jar]*.enabled = false
         
     sourceSets {
