@@ -1,4 +1,4 @@
-# *Quasar*<br/>Lightweight threads and actors for the JVM
+# *Quasar*<br/>Fibers, Channels and Actors for the JVM
 [![Build Status](https://travis-ci.org/puniverse/quasar.svg?branch=master)](https://travis-ci.org/puniverse/quasar) [![Dependency Status](https://www.versioneye.com/user/projects/52b019baec1375ace70000de/badge.png?style=flat)](https://www.versioneye.com/user/projects/52b019baec1375ace70000de) [![Version](http://img.shields.io/badge/version-0.7.0-blue.svg?style=flat)](https://github.com/puniverse/quasar/releases) [![License](http://img.shields.io/badge/license-EPL-blue.svg?style=flat)](https://www.eclipse.org/legal/epl-v10.html) [![License](http://img.shields.io/badge/license-LGPL-blue.svg?style=flat)](https://www.gnu.org/licenses/lgpl.html)
 
 
