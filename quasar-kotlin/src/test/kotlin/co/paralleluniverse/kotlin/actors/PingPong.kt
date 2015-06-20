@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -85,9 +85,11 @@ class Pong() : Actor() {
     }
 }
 
-public class Tests {
+public class KotlinPingPongActorTest {
     Test public fun testActors() {
-        spawn(register("pong", Pong()))
-        spawn(Ping(3))
+        val pong = spawn(register("pong", Pong()))
+        val ping = spawn(Ping(3))
+        LocalActor.join(pong)
+        LocalActor.join(ping)
     }
 }
