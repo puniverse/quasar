@@ -274,7 +274,8 @@ class ExtendedStackTraceHotSpot extends ExtendedStackTrace {
             throw new IllegalStateException();
         if (((int[]) chunk[TRACE_BCIS_OFFSET]).length != TRACE_CHUNK_SIZE)
             throw new IllegalStateException();
-        if (((Object[]) getNext(chunk)).length != chunk.length)
+        final Object[] nextChunk = (Object[]) getNext(chunk);
+        if (nextChunk != null && nextChunk.length != chunk.length)
             throw new IllegalStateException();
     }
 }
