@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -31,8 +31,6 @@
  */
 package co.paralleluniverse.common.reflection;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -56,7 +54,6 @@ public final class ClassLoaderUtil {
         void visit(String resource, URL url, ClassLoader cl) throws IOException;
     }
 
-    private static final Splitter CLASS_PATH_ATTRIBUTE_SEPARATOR = Splitter.on(" ").omitEmptyStrings();
     private static final String CLASS_FILE_NAME_EXTENSION = ".class";
 
     public static boolean isClassFile(String resourceName) {
@@ -122,10 +119,10 @@ public final class ClassLoaderUtil {
     }
 
     private static void scanDirectory(File directory, ClassLoader classloader, Visitor visitor) throws IOException {
-        scanDirectory(directory, classloader, "", ImmutableSet.<File>of(), visitor);
+        scanDirectory(directory, classloader, "", new HashSet<File>(), visitor);
     }
 
-    private static void scanDirectory(File directory, ClassLoader classloader, String packagePrefix, ImmutableSet<File> ancestors, Visitor visitor) throws IOException {
+    private static void scanDirectory(File directory, ClassLoader classloader, String packagePrefix, Set<File> ancestors, Visitor visitor) throws IOException {
         File canonical = directory.getCanonicalFile();
         if (ancestors.contains(canonical)) {
             // A cycle in the filesystem, for example due to a symbolic link.
@@ -137,7 +134,9 @@ public final class ClassLoaderUtil {
             // IO error, just skip the directory
             return;
         }
-        ImmutableSet<File> newAncestors = ImmutableSet.<File>builder().addAll(ancestors).add(canonical).build();
+        Set<File> newAncestors = new HashSet<>();
+        newAncestors.addAll(ancestors);
+        newAncestors.add(canonical);
         for (File f : files) {
             String name = f.getName();
             if (f.isDirectory()) {
@@ -182,26 +181,28 @@ public final class ClassLoaderUtil {
      * JAR File Specification</a>. If {@code manifest} is null, it means the jar file has no
      * manifest, and an empty set will be returned.
      */
-    private static ImmutableSet<URI> getClassPathFromManifest(File jarFile, Manifest manifest) {
+    private static Set<URI> getClassPathFromManifest(File jarFile, Manifest manifest) {
         if (manifest == null)
-            return ImmutableSet.of();
+            return new HashSet<>();
 
-        ImmutableSet.Builder<URI> builder = ImmutableSet.builder();
+        HashSet<URI> s = new HashSet<>();
         String classpathAttribute = manifest.getMainAttributes().getValue(Attributes.Name.CLASS_PATH.toString());
         if (classpathAttribute != null) {
-            for (String path : CLASS_PATH_ATTRIBUTE_SEPARATOR.split(classpathAttribute)) {
-                URI uri;
-                try {
-                    uri = getClassPathEntry(jarFile, path);
-                } catch (URISyntaxException e) {
-                    // Ignore bad entry
-                    // logger.warning("Invalid Class-Path entry: " + path);
-                    continue;
+            for (String path : classpathAttribute.split("\\s")) {
+                if (path != null && path.trim().length() > 0) {
+                    URI uri;
+                    try {
+                        uri = getClassPathEntry(jarFile, path.trim());
+                    } catch (URISyntaxException e) {
+                        // Ignore bad entry
+                        // logger.warning("Invalid Class-Path entry: " + path);
+                        continue;
+                    }
+                    s.add(uri);
                 }
-                builder.add(uri);
             }
         }
-        return builder.build();
+        return s;
     }
 
     /**
