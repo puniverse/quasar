@@ -1122,13 +1122,13 @@ You can run them after cloning the repository.
 In order to run the ping pong example, start the Pong actor by:
 
 ~~~ sh
-./gradlew :quasar-galaxy:run -PmainClass=co.paralleluniverse.galaxy.example.pingpong.Pong
+gradle :quasar-galaxy:run -PmainClass=co.paralleluniverse.galaxy.example.pingpong.Pong
 ~~~
 
 Start the Ping actor in a different terminal by:
 
 ~~~
-./gradlew :quasar-galaxy:run -PmainClass=co.paralleluniverse.galaxy.example.pingpong.Ping
+gradle :quasar-galaxy:run -PmainClass=co.paralleluniverse.galaxy.example.pingpong.Ping
 ~~~
 
 To run the actors on different computers, change the following lines in the build.gradle file to the appropriate network configuration:

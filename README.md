@@ -48,7 +48,7 @@ For clustering support add:
 Or, build from sources by running:
 
 ```
-./gradlew
+gradle install
 ```
 
 ## Usage
