@@ -22,7 +22,7 @@ subprojects {
     group               = "co.paralleluniverse"
     version             = "0.7.1-SNAPSHOT"
     status              = "integration"
-    description         = "lightweight threads and actors for the JVM."
+    description         = "Fibers, Channels and Actors for the JVM"
     ext.url             = "http://puniverse.github.com/quasar"
     ext.vendor          = "Parallel Universe Software Co."
     ext.licenseName1    = "The GNU Lesser General Public License, version 3"
