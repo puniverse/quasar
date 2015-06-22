@@ -77,6 +77,7 @@ subprojects {
     configurations {
         compileOnly
         provided
+        timewarp
         // markdownDoclet
     }
 
@@ -86,6 +87,8 @@ subprojects {
         }
         provided "org.apache.ant:ant:1.9.5"
         compile "com.google.guava:guava:18.0"
+        timewarp 'co.paralleluniverse:timewarp:0.1.0-SNAPSHOT'
+        testCompile 'co.paralleluniverse:timewarp:0.1.0-SNAPSHOT'
         testCompile 'junit:junit:4.12'
         testCompile('org.truth0:truth:0.23') {
             exclude group: 'com.google.guava', module: 'guava'
@@ -146,6 +149,10 @@ subprojects {
         if(project.name != 'quasar-core') {
             jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
         }
+        
+        jvmArgs "-Xbootclasspath/a:${configurations.timewarp.singleFile}"
+        jvmArgs "-javaagent:${configurations.timewarp.singleFile}"
+        
         jvmArgs "-Xmx2048m"
         // jvmArgs "-XX:-UseCompressedOops"
         

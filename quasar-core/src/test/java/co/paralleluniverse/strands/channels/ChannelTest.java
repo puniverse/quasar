@@ -24,15 +24,20 @@ import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
+import co.paralleluniverse.vtime.ScaledClock;
+import co.paralleluniverse.vtime.SystemClock;
+import co.paralleluniverse.vtime.VirtualClock;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import static org.hamcrest.CoreMatchers.*;
 import org.junit.After;
+import org.junit.AfterClass;
 import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -51,7 +56,7 @@ public class ChannelTest {
     public TestName name = new TestName();
     @Rule
     public TestRule watchman = TestUtil.WATCHMAN;
-    
+
     final int mailboxSize;
     final OverflowPolicy policy;
     final boolean singleConsumer;
@@ -90,6 +95,17 @@ public class ChannelTest {
 
     private <Message> Channel<Message> newChannel() {
         return Channels.newChannel(mailboxSize, policy, singleProducer, singleConsumer);
+    }
+
+    @BeforeClass
+    public static void beforeClass() {
+        VirtualClock.setForCurrentThreadAndChildren(Debug.isCI() ? new ScaledClock(0.3) : SystemClock.instance());
+        System.out.println("Using clock: " + VirtualClock.get());
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        VirtualClock.setGlobal(SystemClock.instance());
     }
 
     @Before
