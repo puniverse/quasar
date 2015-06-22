@@ -147,7 +147,7 @@ public class InstrumentClass extends ClassVisitor {
 
         final SuspendableType suspendable = max(markedSuspendable, setSuspendable, SuspendableType.NON_SUSPENDABLE);
 
-        if (checkAccess(access) && !isYieldMethod(className, name)) {
+        if (checkAccessForMethodVisitor(access) && !isYieldMethod(className, name)) {
             if (methods == null)
                 methods = new ArrayList<>();
             final MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
@@ -195,7 +195,7 @@ public class InstrumentClass extends ClassVisitor {
                         db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, setSuspendable);
                     classEntry.set(name, desc, susp);
 
-                    if (susp == SuspendableType.SUSPENDABLE) {
+                    if (susp == SuspendableType.SUSPENDABLE && checkAccessForMethodInstrumentation(access)) {
                         if (isSynchronized(access)) {
                             if (!db.isAllowMonitors())
                                 throw new UnableToInstrumentException("synchronization", className, name, desc);
@@ -300,8 +300,12 @@ public class InstrumentClass extends ClassVisitor {
         return (access & Opcodes.ACC_SYNCHRONIZED) != 0;
     }
 
-    private static boolean checkAccess(int access) {
-        return (access & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE)) == 0;
+    private static boolean checkAccessForMethodVisitor(int access) {
+        return (access & Opcodes.ACC_NATIVE) == 0;
+    }
+
+    private static boolean checkAccessForMethodInstrumentation(int access) {
+        return (access & Opcodes.ACC_ABSTRACT) == 0;
     }
 
     private static SuspendableType max(SuspendableType a, SuspendableType b, SuspendableType def) {
