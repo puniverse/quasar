@@ -1099,6 +1099,12 @@ Running actors can migrate from one cluster node to another, while preserving th
 
 Actors that support migration, must implement the (empty) marker interface [`MigratingActor`]({{javadoc}}/actors/MigratingActor.html). Then, in order to migrate, an actor must call one of two methods: [`migrateAndRestart`]({{javadoc}}/actors/Actor.html#migrateAndRestart()) or [`migrate`]({{javadoc}}/actors/Actor.html#migrate()). [`migrateAndRestart`]({{javadoc}}/actors/Actor.html#migrateAndRestart()) suspends the actor in such a way that when it is later hired, it will be restarted (i.e., its `doRun` method will be called again and run from the top), but the current value of the actor's fields will be preserved, while [`migrate`]({{javadoc}}/actors/Actor.html#migrate()) suspends the fiber the actor is running in (and is therefore available only for actors running in fibers), so that when the actor is hired, it will continue execution from the point the `migrate` method was called. The [`hire` method]({{javadoc}}/actors/Actor.html#hire(co.paralleluniverse.actors.ActorRef)) hires and resumes the actor.
 
+## Quasar and Reactive Streams
+
+[Reactive Streams](https://github.com/reactive-streams/reactive-streams-jvm/blob/v1.0.0/README.md) are a new JVM non-JCP standard for an API that facilitates interoperation among various libraries for asynchronous IO streams, including RxJava, Akka Streams, Pivotal Reactor and Quasar. The standard allows code using any of the compliant libraries to interoperate with code written using any of the other.
+
+Quasar's `quasar-reactive-streams` artifact contains a full, TCK-compliant implementation of Reactive Streams, which converts streams to Quasar channels and vice versa. The implementation contains a single public class, `co.paralleluniverse.strands.channels.reactivestreams.ReactiveStreams`, with a set of static methods that perform the conversion. The [`ReactiveStreams` class Javadoc]({{javadoc}}/strands/channels/reactivestreams/ReactiveStreams.html)) has all the details.
+
 ## Examples
 
 For examples of using Quasar, you can take a look at Quasar's test suite.

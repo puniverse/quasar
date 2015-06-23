@@ -689,6 +689,7 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
         source = project(':quasar-core').sourceSets.jdk7.allJava
     }
     source += project(':quasar-actors').sourceSets.main.allJava
+    source += project(':quasar-reactive-streams').sourceSets.main.allJava
 
     classpath = files(subprojects.collect { project -> project.sourceSets.main.compileClasspath })
     options {
