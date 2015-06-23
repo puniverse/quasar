@@ -86,9 +86,6 @@ public class FiberTest implements Serializable {
 
     @BeforeClass
     public static void setupClass() {
-        VirtualClock.setForCurrentThreadAndChildren(Debug.isCI() ? new ScaledClock(0.3) : SystemClock.instance());
-        System.out.println("Using clock: " + VirtualClock.get());
-
         previousUEH = Fiber.getDefaultUncaughtExceptionHandler();
         Fiber.setDefaultUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
 
@@ -102,7 +99,6 @@ public class FiberTest implements Serializable {
     @AfterClass
     public static void afterClass() {
         // Restore
-        VirtualClock.setGlobal(SystemClock.instance());
         Fiber.setDefaultUncaughtExceptionHandler(previousUEH);
     }
 
@@ -114,20 +110,27 @@ public class FiberTest implements Serializable {
 
     @Test
     public void testTimeout() throws Exception {
-        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution {
-                Fiber.park(100, TimeUnit.MILLISECONDS);
-            }
-        }).start();
+        VirtualClock.setGlobal(Debug.isCI() ? new ScaledClock(0.3) : SystemClock.instance());
+        System.out.println("Using clock: " + VirtualClock.get());
 
         try {
-            fiber.join(50, TimeUnit.MILLISECONDS);
-            fail();
-        } catch (java.util.concurrent.TimeoutException e) {
-        }
+            Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+                @Override
+                public void run() throws SuspendExecution {
+                    Fiber.park(100, TimeUnit.MILLISECONDS);
+                }
+            }).start();
 
-        fiber.join(200, TimeUnit.MILLISECONDS);
+            try {
+                fiber.join(50, TimeUnit.MILLISECONDS);
+                fail();
+            } catch (java.util.concurrent.TimeoutException e) {
+            }
+
+            fiber.join(200, TimeUnit.MILLISECONDS);
+        } finally {
+            VirtualClock.setGlobal(SystemClock.instance());
+        }
     }
 
     @Test
