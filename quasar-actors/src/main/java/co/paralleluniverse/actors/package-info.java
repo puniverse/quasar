@@ -11,13 +11,13 @@
  * as published by the Free Software Foundation.
  */
 /**
- * ## Quasar Actors
+ * <h2>Quasar Actors</h2>
  *
  * An actor implementation extends the {@link co.paralleluniverse.actors.Actor Actor} or {@link co.paralleluniverse.actors.BasicActor BasicActor} class, and is spawned like so:
  *
- * ```java
+ * <pre>{@code 
  * ActorRef actor = new MyActor().spawn();
- * ```
+ * }</pre>
  * 
  * You interact with actors through the {@link co.paralleluniverse.actors.ActorRef ActorRef} class.
  */
