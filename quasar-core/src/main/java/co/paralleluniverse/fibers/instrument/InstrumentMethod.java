@@ -167,7 +167,7 @@ class InstrumentMethod {
                             suspCallsSourceLines[count] = currSourceLine;
                             count++;
                         } else
-                            possiblyWarnAboutBlocking((MethodInsnNode) in);
+                            possiblyWarnAboutBlocking(in);
                     }
                 }
             }
@@ -270,15 +270,18 @@ class InstrumentMethod {
         addCodeBlock(null, numIns);
     }
 
-    private void possiblyWarnAboutBlocking(final MethodInsnNode min) throws UnableToInstrumentException {
-        int blockingId = blockingCallIdx(min);
-        if (blockingId >= 0 && !isAllowedToBlock(className, mn.name)) {
-            int mask = 1 << blockingId;
-            if (!db.isAllowBlocking()) {
-                throw new UnableToInstrumentException("blocking call to " + min.owner + "#" + min.name + min.desc, className, mn.name, mn.desc);
-            } else if ((warnedAboutBlocking & mask) == 0) {
-                warnedAboutBlocking |= mask;
-                db.log(LogLevel.WARNING, "Method %s#%s%s contains potentially blocking call to " + min.owner + "#" + min.name + min.desc, className, mn.name, mn.desc);
+    private void possiblyWarnAboutBlocking(final AbstractInsnNode ain) throws UnableToInstrumentException {
+        if (ain instanceof MethodInsnNode) {
+            final MethodInsnNode min = (MethodInsnNode) ain;
+            int blockingId = blockingCallIdx(min);
+            if (blockingId >= 0 && !isAllowedToBlock(className, mn.name)) {
+                int mask = 1 << blockingId;
+                if (!db.isAllowBlocking()) {
+                    throw new UnableToInstrumentException("blocking call to " + min.owner + "#" + min.name + min.desc, className, mn.name, mn.desc);
+                } else if ((warnedAboutBlocking & mask) == 0) {
+                    warnedAboutBlocking |= mask;
+                    db.log(LogLevel.WARNING, "Method %s#%s%s contains potentially blocking call to " + min.owner + "#" + min.name + min.desc, className, mn.name, mn.desc);
+                }
             }
         }
     }
