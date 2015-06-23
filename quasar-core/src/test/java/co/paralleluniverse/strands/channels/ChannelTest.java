@@ -57,6 +57,17 @@ public class ChannelTest {
     @Rule
     public TestRule watchman = TestUtil.WATCHMAN;
 
+    @BeforeClass
+    public static void setupClass() {
+        VirtualClock.setForCurrentThreadAndChildren(Debug.isCI() ? new ScaledClock(0.3) : SystemClock.instance());
+        System.out.println("Using clock: " + VirtualClock.get());
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        VirtualClock.setGlobal(SystemClock.instance());
+    }
+    
     final int mailboxSize;
     final OverflowPolicy policy;
     final boolean singleConsumer;
@@ -95,17 +106,6 @@ public class ChannelTest {
 
     private <Message> Channel<Message> newChannel() {
         return Channels.newChannel(mailboxSize, policy, singleProducer, singleConsumer);
-    }
-
-    @BeforeClass
-    public static void setupClass() {
-        VirtualClock.setForCurrentThreadAndChildren(Debug.isCI() ? new ScaledClock(0.3) : SystemClock.instance());
-        System.out.println("Using clock: " + VirtualClock.get());
-    }
-
-    @AfterClass
-    public static void afterClass() {
-        VirtualClock.setGlobal(SystemClock.instance());
     }
 
     @Before
