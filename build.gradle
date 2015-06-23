@@ -127,7 +127,7 @@ subprojects {
     //    }
 
     compileJava.dependsOn processResources
-    classes {
+    compileJava {
         doLast {
             scanAndInstrument(sourceSets.main, [configurations.provided, configurations.runtime])
         }
@@ -442,35 +442,33 @@ project (':quasar-core') {
     }
 
     ssets.each { set ->
-        configure(project.tasks["${set.name}Classes"]) {
+        configure(project.tasks["compile${capitalize(set.name)}Java"]) {
             doLast {
                 rootProject.scanAndInstrument(set, [configurations["${set.name}Runtime"], configurations.provided, configurations.runtime])
             }
         }
 
-        def jarTask = task("${set.name}Jar", type: Jar) {
-            from set.output
-            from zipTree("${baselib}/high-scale-lib.jar")  // include non-Maven jars
-            exclude 'META-INF/INDEX.LIST'
+//        def jarTask = task("${set.name}Jar", type: Jar) {
+//            from set.output
+//            from zipTree("${baselib}/high-scale-lib.jar")  // include non-Maven jars
+//            exclude 'META-INF/INDEX.LIST'
+//
+//            manifest {
+//                attributes(
+//	            "Built-By"                  :   System.getProperty("user.name"),
+//	            "Implementation-Title"      :   project.name,
+//	            "Implementation-Version"    :   version,
+//	            "Implementation-Vendor"     :   vendor,
+//	            "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
+//                    "Agent-Class"               :   "co.paralleluniverse.fibers.instrument.JavaAgent",
+//	            "Can-Retransform-Classes"   :   "true",
+//                    "Can-Redefine-Classes"      :   "true",
+//                    //  "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',')
+//                )
+//            }
+//        }
 
-            manifest {
-                attributes(
-	            "Built-By"                  :   System.getProperty("user.name"),
-	            "Implementation-Title"      :   project.name,
-	            "Implementation-Version"    :   version,
-	            "Implementation-Vendor"     :   vendor,
-	            "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
-                    "Agent-Class"               :   "co.paralleluniverse.fibers.instrument.JavaAgent",
-	            "Can-Retransform-Classes"   :   "true",
-                    "Can-Redefine-Classes"      :   "true",
-                    //  "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',')
-                )
-            }
-        }
-
-        def shadowJarTask = task("${set.name}ShadowJar", type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar, dependsOn: jarTask) {
-            outputs.upToDateWhen { false }
-
+        def shadowJarTask = task("${set.name}ShadowJar", type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar, dependsOn: classes) {
             classifier = '' // overwrite jar
             destinationDir = file("$buildDir/libs")
 
@@ -485,7 +483,19 @@ project (':quasar-core') {
 
             relocate 'org.objectweb.asm.', 'co.paralleluniverse.asm.'
 
-            manifest.inheritFrom jarTask.manifest
+            manifest {
+                attributes(
+	            "Built-By"                  :   System.getProperty("user.name"),
+	            "Implementation-Title"      :   project.name,
+	            "Implementation-Version"    :   version,
+	            "Implementation-Vendor"     :   vendor,
+	            "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
+                    "Agent-Class"               :   "co.paralleluniverse.fibers.instrument.JavaAgent",
+	            "Can-Retransform-Classes"   :   "true",
+                    "Can-Redefine-Classes"      :   "true",
+                    //  "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',')
+                )
+            }
         }
 
         def testTask = task("${set.name}Test", type: Test, dependsOn: shadowJarTask) {
@@ -510,9 +520,9 @@ project (':quasar-core') {
         targetCompatibility = '1.7'
     }
 
-    jdk7Jar {
-        from zipTree("${baselib}/jsr166e.jar")  // include non-Maven jars
-    }
+//    jdk7Jar {
+//        from zipTree("${baselib}/jsr166e.jar")  // include non-Maven jars
+//    }
 
     jdk7ShadowJar {
         dependencies {
@@ -535,12 +545,12 @@ project (':quasar-core') {
             targetCompatibility = '1.8'
         }
 
-        jdk8Jar {
-            classifier = 'jdk8'
-        }
+//        jdk8Jar {
+//            classifier = 'jdk8'
+//        }
 
         jdk8ShadowJar {
-            classifier = 'jdk8' + (classifier.empty ? '' :  '-')
+            classifier = 'jdk8'
         }
 
         artifacts {
@@ -741,3 +751,5 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
 task clean(dependsOn: subprojects.clean) << {
     delete 'docs/javadoc'
 }
+
+def capitalize(s) { s[0].toUpperCase() + s[1..-1].toLowerCase() }
