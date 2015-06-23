@@ -98,7 +98,7 @@ public class ChannelTest {
     }
 
     @BeforeClass
-    public static void beforeClass() {
+    public static void setupClass() {
         VirtualClock.setForCurrentThreadAndChildren(Debug.isCI() ? new ScaledClock(0.3) : SystemClock.instance());
         System.out.println("Using clock: " + VirtualClock.get());
     }
