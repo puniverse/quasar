@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.test.TestUtil;
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import co.paralleluniverse.strands.Condition;
@@ -22,6 +23,9 @@ import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import co.paralleluniverse.vtime.ScaledClock;
+import co.paralleluniverse.vtime.SystemClock;
+import co.paralleluniverse.vtime.VirtualClock;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.Serializable;
 
@@ -60,7 +64,7 @@ public class FiberTest implements Serializable {
     public TestName name = new TestName();
     @Rule
     public TestRule watchman = TestUtil.WATCHMAN;
-    
+
     private transient FiberScheduler scheduler;
 
 //    public FiberTest() {
@@ -78,10 +82,13 @@ public class FiberTest implements Serializable {
             {new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1, new ThreadFactoryBuilder().setNameFormat("fiber-scheduler-%d").setDaemon(true).build()))},});
     }
 
-     private static Strand.UncaughtExceptionHandler previousUEH;
+    private static Strand.UncaughtExceptionHandler previousUEH;
 
     @BeforeClass
     public static void setupClass() {
+        VirtualClock.setForCurrentThreadAndChildren(Debug.isCI() ? new ScaledClock(0.3) : SystemClock.instance());
+        System.out.println("Using clock: " + VirtualClock.get());
+
         previousUEH = Fiber.getDefaultUncaughtExceptionHandler();
         Fiber.setDefaultUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
 
@@ -95,9 +102,9 @@ public class FiberTest implements Serializable {
     @AfterClass
     public static void afterClass() {
         // Restore
+        VirtualClock.setGlobal(SystemClock.instance());
         Fiber.setDefaultUncaughtExceptionHandler(previousUEH);
     }
-
 
     @Before
     public void before() {
