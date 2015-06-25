@@ -167,13 +167,53 @@ Later on, use the property it sets [as documented here](http://maven.apache.org/
 groupId:artifactId:type:[classifier]
 ~~~
 
-like so
+For example, if you want to configure a maven exec task you could add the following in your `build` / `plugins` subsection:
 
 ~~~ xml
-<argument>-javaagent:${co.paralleluniverse:quasar-core:jar}</argument>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId> <!-- Run with "mvn compile maven-dependency-plugin:properties exec:exec" -->
+        <version>1.3.2</version>
+        <configuration>
+          <mainClass>testgrp.QuasarHelloWorld</mainClass>
+          <workingDirectory>target/classes</workingDirectory>
+          <executable>java</executable>
+          <arguments>
+            <!-- Turn off before production -->
+            <argument>-Dco.paralleluniverse.fibers.verifyInstrumentation=true</argument>
+
+            <!-- Quasar Agent -->
+            <argument>-javaagent:${co.paralleluniverse:quasar-core:jar}</argument>
+
+            <!-- Classpath -->
+            <argument>-classpath</argument> <classpath/>
+
+            <!-- Main class -->
+            <argument>testgrp.QuasarIncreasingEchoApp</argument>
+          </arguments>
+        </configuration>
+      </plugin>
 ~~~
 
-##### Specifying the Java Agent with Gradle
+To have the agent running during tests you could also add:
+
+~~~ xml
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.9</version>
+        <configuration>
+          <argLine>-Dco.paralleluniverse.fibers.verifyInstrumentation=true</argLine>
+
+          <!-- Quasar Agent -->
+          <argLine>-javaagent:${co.paralleluniverse:quasar-core:jar}</argLine>
+        </configuration>
+      </plugin>
+~~~
+
+A [Quasar Maven archetype](https://github.com/puniverse/quasar-mvn-archetype) is also available.
+
+#### Specifying the Java Agent with Gradle
 
 The way to do this with Gradle is as follows. Add a `quasar` configuration to your `build.gradle` file:
 
@@ -198,6 +238,8 @@ Finally, in your `run` task (or any task of type `JavaExec` or `Test`), add the 
 ~~~ groovy
 jvmArgs "-javaagent:${configurations.quasar.iterator().next()}"
 ~~~
+
+A [Quasar Gradle template project](https://github.com/puniverse/quasar-gradle-template) is also available.
 
 #### Ahead-of-Time (AOT) Instrumentation {#aot}
 
