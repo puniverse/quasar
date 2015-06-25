@@ -574,12 +574,6 @@ project (':quasar-core') {
         } else {
             source = sourceSets.jdk7.allJava
         }
-        
-        //        excludes = [
-        //        "co/paralleluniverse/common/logging/**",
-        //        "co/paralleluniverse/common/monitoring/**",
-        //        "co/paralleluniverse/common/util/**",
-        //        ]
     }
 
     task shadowJar(dependsOn: tasks.withType(com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar), overwrite: true) {
@@ -729,6 +723,7 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
         "co/paralleluniverse/common/logging/**",
         "co/paralleluniverse/common/monitoring/**",
         "co/paralleluniverse/common/reflection/**",
+        "co/paralleluniverse/common/test/**",
         "co/paralleluniverse/common/util/**",
         "co/paralleluniverse/concurrent/forkjoin/**",
         "co/paralleluniverse/concurrent/util/**",
