@@ -298,11 +298,49 @@
 
 <pre><code>groupId:artifactId:type:[classifier]
 </code></pre>
-<p>like&nbsp;so</p>
+<p>For example, if you want to configure a maven exec task you could add the following in your <code>build</code> / <code>plugins</code>&nbsp;subsection:</p>
 
-<div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;argument&gt;</span>-javaagent:${co.paralleluniverse:quasar-core:jar}<span class="nt">&lt;/argument&gt;</span>
+<div class="highlight"><pre><code><span id="line-1">      <span class="nt">&lt;plugin&gt;</span>
+</span><span id="line-2">        <span class="nt">&lt;groupId&gt;</span>org.codehaus.mojo<span class="nt">&lt;/groupId&gt;</span>
+</span><span id="line-3">        <span class="nt">&lt;artifactId&gt;</span>exec-maven-plugin<span class="nt">&lt;/artifactId&gt;</span> <span class="c">&lt;!-- Run with &quot;mvn compile maven-dependency-plugin:properties exec:exec&quot; --&gt;</span>
+</span><span id="line-4">        <span class="nt">&lt;version&gt;</span>1.3.2<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-5">        <span class="nt">&lt;configuration&gt;</span>
+</span><span id="line-6">          <span class="nt">&lt;mainClass&gt;</span>testgrp.QuasarHelloWorld<span class="nt">&lt;/mainClass&gt;</span>
+</span><span id="line-7">          <span class="nt">&lt;workingDirectory&gt;</span>target/classes<span class="nt">&lt;/workingDirectory&gt;</span>
+</span><span id="line-8">          <span class="nt">&lt;executable&gt;</span>java<span class="nt">&lt;/executable&gt;</span>
+</span><span id="line-9">          <span class="nt">&lt;arguments&gt;</span>
+</span><span id="line-10">            <span class="c">&lt;!-- Turn off before production --&gt;</span>
+</span><span id="line-11">            <span class="nt">&lt;argument&gt;</span>-Dco.paralleluniverse.fibers.verifyInstrumentation=true<span class="nt">&lt;/argument&gt;</span>
+</span><span id="line-12">
+</span><span id="line-13">            <span class="c">&lt;!-- Quasar Agent --&gt;</span>
+</span><span id="line-14">            <span class="nt">&lt;argument&gt;</span>-javaagent:${co.paralleluniverse:quasar-core:jar}<span class="nt">&lt;/argument&gt;</span>
+</span><span id="line-15">
+</span><span id="line-16">            <span class="c">&lt;!-- Classpath --&gt;</span>
+</span><span id="line-17">            <span class="nt">&lt;argument&gt;</span>-classpath<span class="nt">&lt;/argument&gt;</span> <span class="nt">&lt;classpath/&gt;</span>
+</span><span id="line-18">
+</span><span id="line-19">            <span class="c">&lt;!-- Main class --&gt;</span>
+</span><span id="line-20">            <span class="nt">&lt;argument&gt;</span>testgrp.QuasarIncreasingEchoApp<span class="nt">&lt;/argument&gt;</span>
+</span><span id="line-21">          <span class="nt">&lt;/arguments&gt;</span>
+</span><span id="line-22">        <span class="nt">&lt;/configuration&gt;</span>
+</span><span id="line-23">      <span class="nt">&lt;/plugin&gt;</span>
 </span></code></pre></div>
-<h5 id="specifying-the-java-agent-with-gradle">Specifying the Java Agent with&nbsp;Gradle</h5>
+<p>To have the agent running during tests you could also&nbsp;add:</p>
+
+<div class="highlight"><pre><code><span id="line-1">      <span class="nt">&lt;plugin&gt;</span>
+</span><span id="line-2">        <span class="nt">&lt;groupId&gt;</span>org.apache.maven.plugins<span class="nt">&lt;/groupId&gt;</span>
+</span><span id="line-3">        <span class="nt">&lt;artifactId&gt;</span>maven-surefire-plugin<span class="nt">&lt;/artifactId&gt;</span>
+</span><span id="line-4">        <span class="nt">&lt;version&gt;</span>2.9<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-5">        <span class="nt">&lt;configuration&gt;</span>
+</span><span id="line-6">          <span class="nt">&lt;argLine&gt;</span>-Dco.paralleluniverse.fibers.verifyInstrumentation=true<span class="nt">&lt;/argLine&gt;</span>
+</span><span id="line-7">
+</span><span id="line-8">          <span class="c">&lt;!-- Quasar Agent --&gt;</span>
+</span><span id="line-9">          <span class="nt">&lt;argLine&gt;</span>-javaagent:${co.paralleluniverse:quasar-core:jar}<span class="nt">&lt;/argLine&gt;</span>
+</span><span id="line-10">        <span class="nt">&lt;/configuration&gt;</span>
+</span><span id="line-11">      <span class="nt">&lt;/plugin&gt;</span>
+</span></code></pre></div>
+<p>A <a href="https://github.com/puniverse/quasar-mvn-archetype">Quasar Maven archetype</a> is also&nbsp;available.</p>
+
+<h4 id="specifying-the-java-agent-with-gradle">Specifying the Java Agent with&nbsp;Gradle</h4>
 
 <p>The way to do this with Gradle is as follows. Add a <code>quasar</code> configuration to your <code>build.gradle</code>&nbsp;file:</p>
 
@@ -322,6 +360,8 @@
 
 <div class="highlight"><pre><code><span id="line-1"><span class="n">jvmArgs</span> <span class="s2">&quot;-javaagent:${configurations.quasar.iterator().next()}&quot;</span>
 </span></code></pre></div>
+<p>A <a href="https://github.com/puniverse/quasar-gradle-template">Quasar Gradle template project</a> is also&nbsp;available.</p>
+
 <h4 id="aot">Ahead-of-Time (<span class="caps">AOT</span>)&nbsp;Instrumentation</h4>
 
 <p>The easy and preferable way to instrument programs using Quasar is with the Java agent, which instruments code at runtime. Sometimes, however, running a Java agent is not an&nbsp;option.</p>
