@@ -1,5 +1,5 @@
 # *Quasar*<br/>Fibers, Channels and Actors for the JVM
-[![Build Status](https://travis-ci.org/puniverse/quasar.svg?branch=master)](https://travis-ci.org/puniverse/quasar) [![Dependency Status](https://www.versioneye.com/user/projects/52b019baec1375ace70000de/badge.png?style=flat)](https://www.versioneye.com/user/projects/52b019baec1375ace70000de) [![Version](http://img.shields.io/badge/version-0.7.1-blue.svg?style=flat)](https://github.com/puniverse/quasar/releases) [![License](http://img.shields.io/badge/license-EPL-blue.svg?style=flat)](https://www.eclipse.org/legal/epl-v10.html) [![License](http://img.shields.io/badge/license-LGPL-blue.svg?style=flat)](https://www.gnu.org/licenses/lgpl.html)
+[![Build Status](https://travis-ci.org/puniverse/quasar.svg?branch=master)](https://travis-ci.org/puniverse/quasar) [![Dependency Status](https://www.versioneye.com/user/projects/52b019baec1375ace70000de/badge.png?style=flat)](https://www.versioneye.com/user/projects/52b019baec1375ace70000de) [![Version](http://img.shields.io/badge/version-0.7.2-blue.svg?style=flat)](https://github.com/puniverse/quasar/releases) [![License](http://img.shields.io/badge/license-EPL-blue.svg?style=flat)](https://www.eclipse.org/legal/epl-v10.html) [![License](http://img.shields.io/badge/license-LGPL-blue.svg?style=flat)](https://www.gnu.org/licenses/lgpl.html)
 
 
 ## Getting started
@@ -10,7 +10,7 @@ In Maven:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-core</artifactId>
-    <version>0.7.1</version>
+    <version>0.7.2</version>
 </dependency>
 ```
 
@@ -20,7 +20,7 @@ or, for JDK8:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-core</artifactId>
-    <version>0.7.1</version>
+    <version>0.7.2</version>
     <classifier>jdk8</classifier>
 </dependency>
 ~~~
@@ -31,7 +31,7 @@ To use actors, add
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-actors</artifactId>
-    <version>0.7.1</version>
+    <version>0.7.2</version>
 </dependency>
 ```
 
@@ -41,7 +41,7 @@ For clustering support add:
 <dependency>
     <groupId>co.paralleluniverse</groupId>
     <artifactId>quasar-galaxy</artifactId>
-    <version>0.7.1</version>
+    <version>0.7.2</version>
 </dependency>
 ```
 
