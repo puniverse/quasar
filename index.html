@@ -89,6 +89,7 @@
 </ul></li>
 <li>
 <a href="#news" class="cat-link">News</a><ul>
+<li><a href="#june-25-2015">June 25, 2015</a></li>
 <li><a href="#may-29-2015">May 29, 2015</a></li>
 <li><a href="#december-23-2014">December 23, 2014</a></li>
 <li><a href="#september-23-2014">September 23, 2014</a></li>
@@ -142,6 +143,7 @@
 <li><a href="#actor-migration">Actor Migration</a></li>
 </ul>
 </li>
+<li><a href="#quasar-and-reactive-streams" class="cat-link">Quasar and Reactive Streams</a></li>
 <li>
 <a href="#examples" class="cat-link">Examples</a><ul><li><a href="#distributed-examples">Distributed Examples</a></li></ul>
 </li>
@@ -177,6 +179,10 @@
 <p>A core component of Quasar, bytecode instrumentation, is a fork of the wonderful <a href="http://www.matthiasmann.de/content/view/24/26/">Continuations Library</a> by Matthias&nbsp;Mann.</p>
 
 <h2 id="news">News</h2>
+
+<h3 id="june-25-2015">June 25,&nbsp;2015</h3>
+
+<p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.7.1"><span class="caps">0.7.1</span></a> has been&nbsp;released.</p>
 
 <h3 id="may-29-2015">May 29,&nbsp;2015</h3>
 
@@ -229,7 +235,7 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-core<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.1<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <p>or, for&nbsp;<span class="caps">JDK8</span>:</p>
@@ -237,7 +243,7 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-core<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.1<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5">    <span class="nt">&lt;classifier&gt;</span>jdk8<span class="nt">&lt;/classifier&gt;</span>
 </span><span id="line-6"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
@@ -246,7 +252,7 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-actors<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.1<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <p>For clustering support,&nbsp;add:</p>
@@ -254,7 +260,7 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-galaxy<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.1<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <p>For Kotlin support,&nbsp;add:</p>
@@ -262,7 +268,7 @@
 <div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
 </span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
 </span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-kotlin<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.0<span class="nt">&lt;/version&gt;</span>
+</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.1<span class="nt">&lt;/version&gt;</span>
 </span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
 </span></code></pre></div>
 <h3 id="instrumentation">Instrumenting Your&nbsp;Code</h3>
@@ -353,7 +359,7 @@
 
 <div class="highlight"><pre><code><span id="line-1"><span class="n">dependencies</span> <span class="o">{</span>
 </span><span id="line-2">    <span class="c1">// ....</span>
-</span><span id="line-3">    <span class="n">quasar</span>  <span class="s2">&quot;co.paralleluniverse:quasar-core:0.7.0&quot;</span>
+</span><span id="line-3">    <span class="n">quasar</span>  <span class="s2">&quot;co.paralleluniverse:quasar-core:0.7.1&quot;</span>
 </span><span id="line-4"><span class="o">}</span>
 </span></code></pre></div>
 <p>Finally, in your <code>run</code> task (or any task of type <code>JavaExec</code> or <code>Test</code>), add the system&nbsp;property:</p>
@@ -1210,6 +1216,12 @@ will remain there and be skipped, until it is selected by a subsequent call to <
 
 <p>Actors that support migration, must implement the (empty) marker interface <a href="/quasar/javadoc/co/paralleluniverse/actors/MigratingActor.html"><code>MigratingActor</code></a>. Then, in order to migrate, an actor must call one of two methods: <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#migrateAndRestart()"><code>migrateAndRestart</code></a> or <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#migrate()"><code>migrate</code></a>. <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#migrateAndRestart()"><code>migrateAndRestart</code></a> suspends the actor in such a way that when it is later hired, it will be restarted (i.e., its <code>doRun</code> method will be called again and run from the top), but the current value of the actor’s fields will be preserved, while <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#migrate()"><code>migrate</code></a> suspends the fiber the actor is running in (and is therefore available only for actors running in fibers), so that when the actor is hired, it will continue execution from the point the <code>migrate</code> method was called. The <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#hire(co.paralleluniverse.actors.ActorRef)"><code>hire</code> method</a> hires and resumes the&nbsp;actor.</p>
 
+<h2 id="quasar-and-reactive-streams">Quasar and Reactive&nbsp;Streams</h2>
+
+<p><a href="https://github.com/reactive-streams/reactive-streams-jvm/blob/v1.0.0/README.md">Reactive Streams</a> are a new <span class="caps">JVM</span> non-<span class="caps">JCP</span> standard for an <span class="caps">API</span> that facilitates interoperation among various libraries for asynchronous <span class="caps">IO</span> streams, including RxJava, Akka Streams, Pivotal Reactor and Quasar. The standard allows code using any of the compliant libraries to interoperate with code written using any of the&nbsp;other.</p>
+
+<p>Quasar’s <code>quasar-reactive-streams</code> artifact contains a full, <span class="caps">TCK</span>-compliant implementation of Reactive Streams, which converts streams to Quasar channels and vice versa. The implementation contains a single public class, <code>co.paralleluniverse.strands.channels.reactivestreams.ReactiveStreams</code>, with a set of static methods that perform the conversion. The <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/reactivestreams/ReactiveStreams.html"><code>ReactiveStreams</code> class Javadoc</a>) has all the&nbsp;details.</p>
+
 <h2 id="examples">Examples</h2>
 
 <p>For examples of using Quasar, you can take a look at Quasar’s test&nbsp;suite.</p>
@@ -1224,6 +1236,7 @@ will remain there and be skipped, until it is selected by a subsequent call to <
   <li><a href="https://github.com/puniverse/quasar/blob/master/quasar-actors/src/test/java/co/paralleluniverse/actors/behaviors/ProxyServerTest.java">Proxy server&nbsp;test</a></li>
   <li><a href="https://github.com/puniverse/quasar/blob/master/quasar-actors/src/test/java/co/paralleluniverse/actors/behaviors/EventSourceTest.java">EventSource&nbsp;tests</a></li>
   <li><a href="https://github.com/puniverse/quasar/blob/master/quasar-actors/src/test/java/co/paralleluniverse/actors/behaviors/SupervisorTest.java">Supervisor&nbsp;tests</a></li>
+  <li><a href="https://github.com/puniverse/quasar/blob/master/quasar-reactive-streams/src/test/java/co/paralleluniverse/strands/channels/reactivestreams/TwoSidedTest.java">Reactive Streams&nbsp;tests</a></li>
 </ul>
 
 <h3 id="distributed-examples">Distributed&nbsp;Examples</h3>
@@ -1233,11 +1246,11 @@ You can run them after cloning the&nbsp;repository.</p>
 
 <p>In order to run the ping pong example, start the Pong actor&nbsp;by:</p>
 
-<div class="highlight"><pre><code><span id="line-1">./gradlew :quasar-galaxy:run -PmainClass<span class="o">=</span>co.paralleluniverse.galaxy.example.pingpong.Pong
+<div class="highlight"><pre><code><span id="line-1">gradle :quasar-galaxy:run -PmainClass<span class="o">=</span>co.paralleluniverse.galaxy.example.pingpong.Pong
 </span></code></pre></div>
 <p>Start the Ping actor in a different terminal&nbsp;by:</p>
 
-<pre><code>./gradlew :quasar-galaxy:run -PmainClass=co.paralleluniverse.galaxy.example.pingpong.Ping
+<pre><code>gradle :quasar-galaxy:run -PmainClass=co.paralleluniverse.galaxy.example.pingpong.Ping
 </code></pre>
 <p>To run the actors on different computers, change the following lines in the build.gradle file to the appropriate network&nbsp;configuration:</p>
 
