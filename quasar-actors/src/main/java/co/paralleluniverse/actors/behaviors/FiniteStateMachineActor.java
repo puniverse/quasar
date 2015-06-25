@@ -42,9 +42,9 @@ public class FiniteStateMachineActor extends BehaviorActor {
     protected static Object NULL_RETURN_VALUE = new Object();
     private static final Logger LOG = LoggerFactory.getLogger(FiniteStateMachineActor.class);
     /**
-     *
+     * The termination state for the FSM
      */
-    protected static final SuspendableCallable<SuspendableCallable> TERMINATE = new SuspendableCallable<SuspendableCallable>() {
+    public static final SuspendableCallable<SuspendableCallable> TERMINATE = new SuspendableCallable<SuspendableCallable>() {
         @Override
         public SuspendableCallable run() throws SuspendExecution, InterruptedException {
             throw new AssertionError();
@@ -61,9 +61,26 @@ public class FiniteStateMachineActor extends BehaviorActor {
      * @param strand        this actor's strand.
      * @param mailboxConfig this actor's mailbox settings.
      */
+    @SuppressWarnings("OverridableMethodCallInConstructor")
     public FiniteStateMachineActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
         super(name, initializer, strand, mailboxConfig);
         state = initialState();
+        if (state == null)
+            throw new NullPointerException();
+    }
+
+    /**
+     * Creates a new FSM actor
+     *
+     * @param name          the actor name (may be {@code null}).
+     * @param initializer   an optional delegate object that will be run upon actor initialization and termination. May be {@code null}.
+     * @param strand        this actor's strand.
+     * @param mailboxConfig this actor's mailbox settings.
+     * @param initialState  the initial state; will be used instead of calling {@link #initialState() initialState()}.
+     */
+    public FiniteStateMachineActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig, SuspendableCallable<SuspendableCallable> initialState) {
+        super(name, initializer, strand, mailboxConfig);
+        state = initialState;
         if (state == null)
             throw new NullPointerException();
     }

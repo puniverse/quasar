@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
+import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import java.util.ServiceLoader;
 
@@ -61,7 +61,7 @@ public class DefaultSuspendableClassifier implements SuspendableClassifier {
     private static boolean checkExceptions(String[] exceptions) {
         if (exceptions != null) {
             for (String ex : exceptions) {
-                if (ex.equals(EXCEPTION_NAME))
+                if (ex.equals(SUSPEND_EXECUTION_NAME))
                     return true;
             }
         }

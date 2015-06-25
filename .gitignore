@@ -8,7 +8,9 @@ _site/
 /nbproject/private/
 /.nb-gradle
 build/
+private/
 .DS_Store
 .gradle/
 .nb-gradle-properties
 .bdb/
+log4j.xml

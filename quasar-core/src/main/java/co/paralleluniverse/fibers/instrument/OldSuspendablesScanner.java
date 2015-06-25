@@ -17,6 +17,7 @@ import co.paralleluniverse.common.reflection.ASMUtil;
 import co.paralleluniverse.fibers.Suspendable;
 import static co.paralleluniverse.common.reflection.ASMUtil.*;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -147,7 +148,7 @@ public class OldSuspendablesScanner extends Task {
                 classes.add(susMethod.substring(0, susMethod.indexOf('.')));
             for (String className : classes) {
                 log("scanning suspendable class:" + className, Project.MSG_VERBOSE);
-                scanClass(getClassNode(className, true, cl));
+                scanClass(getClassNode(className, cl, true));
             }
         }
     }
@@ -188,7 +189,7 @@ public class OldSuspendablesScanner extends Task {
             if (USE_REFLECTION)
                 scanClass(Class.forName(extractClassName(file)));
             else
-                scanClass(getClassNode(file, true));
+                scanClass(getClassNode(new FileInputStream(file), true));
         }
     }
 
@@ -251,9 +252,9 @@ public class OldSuspendablesScanner extends Task {
 
         // recursively look in superclass and interfaces
         boolean methodInParent = false;
-        methodInParent |= findSuperDeclarations(getClassNode(cls.superName, true, cl), declaringClass, method);
+        methodInParent |= findSuperDeclarations(getClassNode(cls.superName, cl, true), declaringClass, method);
         for (String iface : (List<String>) cls.interfaces)
-            methodInParent |= findSuperDeclarations(getClassNode(iface, true, cl), declaringClass, method);
+            methodInParent |= findSuperDeclarations(getClassNode(iface, cl, true), declaringClass, method);
         if (!foundMethod && methodInParent) {
             log("Found parent of annotated method in a parent of: " + declaringClass.name + "." + method.name + method.signature + " in " + cls.name, Project.MSG_VERBOSE);
             results.add(cls.name.replace('/', '.') + '.' + method.name);

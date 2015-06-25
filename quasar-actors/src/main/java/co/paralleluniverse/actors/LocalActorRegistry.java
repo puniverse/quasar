@@ -15,6 +15,7 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.concurrent.ReentrantLock;
 import com.google.common.base.Objects;
 import java.util.concurrent.Callable;
@@ -36,6 +37,7 @@ class LocalActorRegistry implements co.paralleluniverse.actors.spi.ActorRegistry
     private final Condition cond = lock.newCondition();
 
     @Override
+    @Suspendable
     public Object register(ActorRef<?> actor, Object globalId) {
         final String name = actor.getName();
         if (name == null)

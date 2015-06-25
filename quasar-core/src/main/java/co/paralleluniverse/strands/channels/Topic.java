@@ -21,13 +21,14 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A channel that forwards all messages to subscriber channels.
- * 
+ *
  * @author pron
  */
 public class Topic<Message> implements PubSub<Message> {
     private final Collection<SendPort<? super Message>> subscribers;
 
     protected volatile boolean sendClosed;
+    private Throwable closeException;
 
     public Topic() {
         this.subscribers = new CopyOnWriteArraySet<>();
@@ -40,17 +41,26 @@ public class Topic<Message> implements PubSub<Message> {
         // Avoiding defensive copy for the sake of efficiency.
         return subscribers;
     }
-    
+
     @Override
     public <T extends SendPort<? super Message>> T subscribe(T sub) {
-        if (sendClosed) {
-            sub.close();
+        if (closeChannelIfClosed(sub))
             return sub;
-        }
         subscribers.add(sub);
-        if (sendClosed)
-            sub.close();
+        if (closeChannelIfClosed(sub))
+            unsubscribe(sub);
         return sub;
+    }
+
+    private boolean closeChannelIfClosed(SendPort<?> port) {
+        if (sendClosed) {
+            if (closeException != null)
+                port.close(closeException);
+            else
+                port.close();
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -58,11 +68,10 @@ public class Topic<Message> implements PubSub<Message> {
         subscribers.remove(sub);
     }
 
-    @Override
     public void unsubscribeAll() {
         subscribers.clear();
     }
-    
+
     @Override
     public void send(Message message) throws SuspendExecution, InterruptedException {
         if (sendClosed)
@@ -88,15 +97,23 @@ public class Topic<Message> implements PubSub<Message> {
 
     @Override
     public void close() {
+        if (sendClosed == true)
+            return;
+
         sendClosed = true;
         for (SendPort<?> sub : subscribers)
             sub.close();
+        unsubscribeAll();
     }
 
     @Override
     public void close(Throwable t) {
+        if (sendClosed == true)
+            return;
+        closeException = t;
         sendClosed = true;
         for (SendPort<?> sub : subscribers)
             sub.close(t);
+        unsubscribeAll();
     }
 }

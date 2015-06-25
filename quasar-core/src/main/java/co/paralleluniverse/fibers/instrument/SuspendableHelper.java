@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -13,9 +13,16 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.common.util.ExtendedStackTraceElement;
 import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.concurrent.util.MapUtil;
+import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Instrumented;
+import co.paralleluniverse.fibers.Stack;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
+// import java.lang.reflect.Executable;
+import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Set;
@@ -33,43 +40,83 @@ public final class SuspendableHelper {
     }
 
     public static boolean isInstrumented(Class clazz) {
-        return clazz.isAnnotationPresent(Instrumented.class);
+        return clazz != null && clazz.isAnnotationPresent(Instrumented.class);
     }
 
-    public static boolean isInstrumented(Class clazz, String methodName) {
-        if (clazz == null)
+    public static /*Executable*/ Member lookupMethod(ExtendedStackTraceElement ste) {
+        if (ste.getDeclaringClass() == null)
+            return null;
+
+        for (Method m : ste.getDeclaringClass().getDeclaredMethods()) {
+            if (m.getName().equals(ste.getMethodName())) {
+                final Instrumented i = getAnnotation(m, Instrumented.class);
+                if (m.isSynthetic() || isWaiver(m.getDeclaringClass().getName(), m.getName()) || i != null && ste.getLineNumber() >= i.methodStart() && ste.getLineNumber() <= i.methodEnd())
+                    return m;
+            }
+        }
+        return ste.getMethod();
+    }
+
+    public static Pair<Boolean, int[]> isCallSiteInstrumented(/*Executable*/ Member m, int sourceLine, ExtendedStackTraceElement[] stes, int currentSteIdx) {
+        if (m == null)
+            return new Pair<>(false, null);
+
+        if (m.isSynthetic())
+            return new Pair<>(true, null);
+
+        ExtendedStackTraceElement ste = stes[currentSteIdx];
+        if (currentSteIdx - 1 >= 0
+                // `verifySuspend` and `popMethod` calls are not suspendable call sites, not verifying them.
+                && ((stes[currentSteIdx - 1].getClassName().equals(Fiber.class.getName()) && stes[currentSteIdx - 1].getMethodName().equals("verifySuspend"))
+                || (stes[currentSteIdx - 1].getClassName().equals(Stack.class.getName()) && stes[currentSteIdx - 1].getMethodName().equals("popMethod")))) {
+            return new Pair<>(true, null);
+        } else {
+            Instrumented i = getAnnotation(m, Instrumented.class);
+            if (i != null) {
+                for (int j : i.suspendableCallSites()) {
+                    if (j == sourceLine)
+                        return new Pair<>(true, i.suspendableCallSites());
+                }
+            }
+        }
+
+        return new Pair<>(false, null);
+    }
+
+    public static boolean isInstrumented(Member m) {
+        return m != null && (m.isSynthetic() || getAnnotation(m, Instrumented.class) != null);
+    }
+    
+    public static boolean isOptimized(Member m) {
+        if (m == null)
             return false;
 
-        if (isInstrumented(clazz.getMethods(), methodName))
-            return true;
-        if (isInstrumented(clazz.getDeclaredMethods(), methodName))
-            return true;
-        return isInstrumented(clazz.getSuperclass(), methodName);
+        final Instrumented i = getAnnotation(m, Instrumented.class);
+        return (i != null && i.methodOptimized());
     }
 
-    private static boolean isInstrumented(Method[] methods, String methodName) {
-        for (Method m : methods) {
-            if (methodName.equals(m.getName()) && isInstrumented(m))
-                return true;
-        }
-        return false;
-    }
+    private static <T extends Annotation> T getAnnotation(Member m, Class<T> annotationClass) {
+        if (m == null || annotationClass == null)
+            return  null;
 
-    public static boolean isInstrumented(Method method) {
-        return method.getAnnotation(Instrumented.class) != null;
+        if (m instanceof Constructor)
+            return ((Constructor<?>)m).getAnnotation(annotationClass);
+        else
+            return ((Method)m).getAnnotation(annotationClass);
     }
 
     public static void addWaiver(String className, String methodName) {
-        waivers.add(new Pair<String, String>(className, methodName));
+        waivers.add(new Pair<>(className, methodName));
     }
 
     public static boolean isWaiver(String className, String methodName) {
         if (className.startsWith("java.lang.reflect")
                 || className.startsWith("sun.reflect")
                 || className.startsWith("com.sun.proxy")
+                || className.contains("$ByteBuddy$")
                 || (className.equals("co.paralleluniverse.strands.SuspendableUtils$VoidSuspendableCallable") && methodName.equals("run")))
             return true;
-        return waivers.contains(new Pair<String, String>(className, methodName));
+        return waivers.contains(new Pair<>(className, methodName));
     }
 
     private SuspendableHelper() {

@@ -18,7 +18,7 @@ import static co.paralleluniverse.common.reflection.ClassLoaderUtil.isClassFile;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToResource;
 import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_ANNOTATION_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
+import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import com.google.common.base.Function;
 import java.io.File;
@@ -386,7 +386,7 @@ public class SuspendablesScanner extends Task {
         private boolean checkExceptions(String[] exceptions) {
             if (exceptions != null) {
                 for (String ex : exceptions) {
-                    if (ex.equals(EXCEPTION_NAME))
+                    if (ex.equals(SUSPEND_EXECUTION_NAME))
                         return true;
                 }
             }
@@ -511,10 +511,32 @@ public class SuspendablesScanner extends Task {
 
         while (!q.isEmpty()) {
             final MethodNode m = q.poll();
-            if (m.inProject)
+            if (m.inProject) {
+                followBridges(q, getClassNode(m), m);
                 followSupers(q, getClassNode(m), m);
+            }
             followNonOverriddenSubs(q, getClassNode(m), m);
             followCallers(q, m);
+        }
+    }
+
+    private void followBridges(Queue<MethodNode> q, ClassNode cls, MethodNode method) {
+        log("followBridges " + method + " " + cls, Project.MSG_DEBUG);
+        if (cls == null)
+            return;
+
+        if (method.suspendType == SuspendableType.NON_SUSPENDABLE)
+            return;
+        final List<String> bridges = cls.getMethodWithDifferentReturn(method.name);
+        for (String m1 : bridges) {
+            if (!method.name.equals(m1)) {
+                MethodNode m = getOrCreateMethodNode(cls.name + '.' + m1);
+                if (m.suspendType != SuspendableType.SUSPENDABLE && m.suspendType != SuspendableType.SUSPENDABLE_SUPER) {
+                    m.setSuspendType(SuspendableType.SUSPENDABLE_SUPER);
+                    m.inProject = method.inProject;
+                    q.add(m);
+                }
+            }
         }
     }
 
@@ -530,11 +552,18 @@ public class SuspendablesScanner extends Task {
 
         if (cls.hasMethod(method.name) && method.classNode != cls) {
             final MethodNode m1 = methods.get((cls.name + '.' + method.name).intern());
+
             if (m1 != null && m1.suspendType == SuspendableType.NON_SUSPENDABLE)
                 return false;
+
             if (m1 == null || m1.suspendType == null) {
                 log("Found parent of suspendable method: " + method.owner + '.' + method.name + " in " + cls.name
                         + (cls.inProject ? "" : " NOT IN PROJECT"), cls.inProject ? Project.MSG_VERBOSE : Project.MSG_WARN);
+
+                final MethodNode m = getOrCreateMethodNode(cls.name + '.' + method.name);
+                m.setSuspendType(SuspendableType.SUSPENDABLE_SUPER);
+                q.add(m);
+
                 foundMethod = true;
             }
         }
@@ -548,15 +577,7 @@ public class SuspendablesScanner extends Task {
             log("Found parent of suspendable method in a parent of: " + method.owner + '.' + method.name + " in " + cls.name
                     + (cls.inProject ? "" : " NOT IN PROJECT"), cls.inProject ? Project.MSG_VERBOSE : Project.MSG_WARN);
 
-        final boolean res = foundMethod | methodInParent;
-        if (res) {
-            MethodNode m = getOrCreateMethodNode(cls.name + '.' + method.name);
-            if (m.suspendType != SuspendableType.SUSPENDABLE && m.suspendType != SuspendableType.SUSPENDABLE_SUPER) {
-                m.setSuspendType(SuspendableType.SUSPENDABLE_SUPER);
-                q.add(m);
-            }
-        }
-        return res;
+        return foundMethod || methodInParent;
     }
 
     private void followNonOverriddenSubs(Queue<MethodNode> q, ClassNode cls, MethodNode method) {
@@ -709,6 +730,16 @@ public class SuspendablesScanner extends Task {
             return false;
         }
 
+        List<String> getMethodWithDifferentReturn(String method) {
+            method = getMethodWithoutReturn(method);
+            List<String> ms = new ArrayList<>();
+            for (String m : methods) {
+                if (m.startsWith(method))
+                    ms.add(m);
+            }
+            return ms;
+        }
+
         @Override
         public String toString() {
             return "ClassNode{" + name + " inProject: " + inProject + '}';
@@ -728,6 +759,7 @@ public class SuspendablesScanner extends Task {
         String owner;
         ClassNode classNode;
         final String name; // methodname+desc
+        //int acc;
         boolean inProject;
         boolean known;
         SuspendableType suspendType;
@@ -755,13 +787,25 @@ public class SuspendablesScanner extends Task {
             if (callers == null)
                 return Collections.emptyList();
             return new AbstractCollection<MethodNode>() {
-                public int size()                 { return numCallers; }
+                public int size() {
+                    return numCallers;
+                }
+
                 public Iterator<MethodNode> iterator() {
                     return new Iterator<MethodNode>() {
                         private int i;
-                        public boolean hasNext()  { return i < numCallers; }
-                        public MethodNode next()  { return callers[i++]; }
-                        public void remove()      { throw new UnsupportedOperationException("remove"); }
+
+                        public boolean hasNext() {
+                            return i < numCallers;
+                        }
+
+                        public MethodNode next() {
+                            return callers[i++];
+                        }
+
+                        public void remove() {
+                            throw new UnsupportedOperationException("remove");
+                        }
                     };
                 }
             };
@@ -788,6 +832,11 @@ public class SuspendablesScanner extends Task {
 
     private static String getMethodWithDesc(String fullMethodWithDesc) {
         return fullMethodWithDesc.substring(fullMethodWithDesc.lastIndexOf('.') + 1);
+    }
+
+    private static String getMethodWithoutReturn(String fullMethodWithDesc) {
+        String m = getMethodWithDesc(fullMethodWithDesc);
+        return m.substring(0, m.lastIndexOf(')') + 1);
     }
 
     private static boolean isReflectInvocation(String className, String methodName) {

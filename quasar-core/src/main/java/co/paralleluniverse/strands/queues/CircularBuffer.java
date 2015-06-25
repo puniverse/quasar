@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -95,6 +95,11 @@ public abstract class CircularBuffer<E> implements BasicQueue<E> {
         return consumer.size();
     }
 
+    @Override
+    public boolean isEmpty() {
+        return consumer.isEmpty();
+    }
+
     public boolean hasNext() {
         return consumer.hasNext();
     }
@@ -156,6 +161,10 @@ public abstract class CircularBuffer<E> implements BasicQueue<E> {
 
         public int size() {
             return (int) (tail - head);
+        }
+
+        public boolean isEmpty() {
+            return tail == head;
         }
 
         protected abstract void grabValue(int index);

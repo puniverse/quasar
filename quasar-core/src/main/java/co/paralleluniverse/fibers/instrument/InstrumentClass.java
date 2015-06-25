@@ -147,18 +147,18 @@ public class InstrumentClass extends ClassVisitor {
 
         final SuspendableType suspendable = max(markedSuspendable, setSuspendable, SuspendableType.NON_SUSPENDABLE);
 
-        if (checkAccess(access) && !isYieldMethod(className, name)) {
+        if (checkAccessForMethodVisitor(access) && !isYieldMethod(className, name)) {
             if (methods == null)
-                methods = new ArrayList<MethodNode>();
+                methods = new ArrayList<>();
             final MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
 
-            // look for @Suspendable or @DontInstrument annotation
             return new MethodVisitor(ASMAPI, mn) {
                 private SuspendableType susp = suspendable;
                 private boolean commited = false;
 
                 @Override
                 public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
+                    // look for @Suspendable or @DontInstrument annotation
                     if (adesc.equals(ANNOTATION_DESC))
                         susp = SuspendableType.SUSPENDABLE;
                     else if (adesc.equals(DONT_INSTRUMENT_ANNOTATION_DESC))
@@ -195,7 +195,7 @@ public class InstrumentClass extends ClassVisitor {
                         db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, setSuspendable);
                     classEntry.set(name, desc, susp);
 
-                    if (susp == SuspendableType.SUSPENDABLE) {
+                    if (susp == SuspendableType.SUSPENDABLE && checkAccessForMethodInstrumentation(access)) {
                         if (isSynchronized(access)) {
                             if (!db.isAllowMonitors())
                                 throw new UnableToInstrumentException("synchronization", className, name, desc);
@@ -231,30 +231,32 @@ public class InstrumentClass extends ClassVisitor {
 
         if (methods != null && !methods.isEmpty()) {
             if (alreadyInstrumented && !forceInstrumentation) {
-                for (MethodNode mn : methods)
+                for (MethodNode mn : methods) {
+                    db.log(LogLevel.INFO, "Alredy instrumented and not forcing, so not touching method %s#%s%s", className, mn.name, mn.desc);
                     mn.accept(makeOutMV(mn));
+                }
             } else {
                 if (!alreadyInstrumented) {
-                    super.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
+                    emitInstrumentedAnn();
                     classEntry.setInstrumented(true);
                 }
 
                 for (MethodNode mn : methods) {
                     final MethodVisitor outMV = makeOutMV(mn);
                     try {
-                        InstrumentMethod im = new InstrumentMethod(db, className, mn);
+                        InstrumentMethod im = new InstrumentMethod(db, sourceName, className, mn);
                         if (db.isDebug())
                             db.log(LogLevel.INFO, "About to instrument method %s#%s%s", className, mn.name, mn.desc);
 
-                        if (im.collectCodeBlocks()) {
+                        if (im.callsSuspendables()) {
                             if (mn.name.charAt(0) == '<')
                                 throw new UnableToInstrumentException("special method", className, mn.name, mn.desc);
+
                             im.accept(outMV, hasAnnotation(mn));
                         } else {
                             db.log(LogLevel.INFO, "Nothing to instrument in method %s#%s%s", className, mn.name, mn.desc);
                             mn.accept(outMV);
                         }
-
                     } catch (AnalyzerException ex) {
                         ex.printStackTrace();
                         throw new InternalError(ex.getMessage());
@@ -266,12 +268,17 @@ public class InstrumentClass extends ClassVisitor {
             if (!alreadyInstrumented && classEntry.getSuperName() != null) {
                 ClassEntry superClass = db.getClassEntry(classEntry.getSuperName());
                 if (superClass != null && superClass.isInstrumented()) {
-                    super.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
+                    emitInstrumentedAnn();
                     classEntry.setInstrumented(true);
                 }
             }
         }
         super.visitEnd();
+    }
+
+    private void emitInstrumentedAnn() {
+        final AnnotationVisitor instrumentedAV = visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
+        instrumentedAV.visitEnd();
     }
 
     private boolean hasAnnotation(MethodNode mn) {
@@ -293,8 +300,12 @@ public class InstrumentClass extends ClassVisitor {
         return (access & Opcodes.ACC_SYNCHRONIZED) != 0;
     }
 
-    private static boolean checkAccess(int access) {
-        return (access & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE)) == 0;
+    private static boolean checkAccessForMethodVisitor(int access) {
+        return (access & Opcodes.ACC_NATIVE) == 0;
+    }
+
+    private static boolean checkAccessForMethodInstrumentation(int access) {
+        return (access & Opcodes.ACC_ABSTRACT) == 0;
     }
 
     private static SuspendableType max(SuspendableType a, SuspendableType b, SuspendableType def) {

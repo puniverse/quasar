@@ -27,7 +27,7 @@ public interface DelegatingEquals {
      *         return o.equals(delegate);
      *     else
      *         return delegate.equals(o);
-     * }</pre>
+     * }}</pre>
      */
     @Override
     boolean equals(Object o);

@@ -137,13 +137,13 @@ public class JavaAgent {
         instrumentor.setLog(new Log() {
             @Override
             public void log(LogLevel level, String msg, Object... args) {
-                System.out.println("[quasar] " + level + ": " + String.format(msg, args));
+                System.err.println("[quasar] " + level + ": " + String.format(msg, args));
             }
 
             @Override
-            public void error(String msg, Exception exc) {
-                System.out.println("[quasar] ERROR: " + msg);
-                exc.printStackTrace(System.out);
+            public void error(String msg, Throwable exc) {
+                System.err.println("[quasar] ERROR: " + msg);
+                exc.printStackTrace(System.err);
             }
         });
 
@@ -189,8 +189,7 @@ public class JavaAgent {
 
                 return transformed;
             } catch (Throwable t) {
-                System.out.println("[quasar] ERROR: while transforming " + className + ": " + t.getMessage());
-                t.printStackTrace(System.out);
+                instrumentor.error("while transforming " + className + ": " + t.getMessage(), t);
                 return null;
             }
         }

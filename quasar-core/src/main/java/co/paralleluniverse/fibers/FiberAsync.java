@@ -24,19 +24,20 @@ import java.util.concurrent.TimeoutException;
 /**
  * A general helper class that transforms asynchronous requests to synchronous (fiber-blocking) calls.
  *
- * ### Usage example:
+ * <h3>Usage example</h3>
  *
- * Assume that operation `Foo.asyncOp(FooCompletion callback)` is an asynchronous operation, where `Completion` is defined as:
+ * Assume that operation {@code Foo.asyncOp(FooCompletion callback)} is an asynchronous operation, where {@code Completion} is defined as:
  *
- * ```java
+ * <pre>{@code
  * interface FooCompletion {
  *     void success(String result);
  *     void failure(FooException exception);
  * }
- * ```
+ * }</pre>
+ * 
  * We then define the following subclass:
  *
- * ```java
+ * <pre>{@code
  * class FooAsync extends FiberAsync<String, FooException> implements FooCompletion {
  *     {@literal @}Override
  *     public void success(String result) {
@@ -48,11 +49,11 @@ import java.util.concurrent.TimeoutException;
  *         asyncFailed(exception);
  *     }
  * }
- * ```
+ * }</pre>
  *
  * Then, to turn the operation into a fiber-blocking one, we can define:
  *
- * ```java
+ * <pre>{@code
  * String op() {
  *     return new FooAsync() {
  *         protected void requestAsync() {
@@ -60,7 +61,7 @@ import java.util.concurrent.TimeoutException;
  *         }
  *     }.run();
  * }
- * ```
+ * }</pre>
  *
  * @param <V> The value returned by the async request
  * @param <E> An exception class that could be thrown by the async request

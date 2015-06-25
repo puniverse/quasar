@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -28,7 +28,6 @@ import co.paralleluniverse.strands.Synchronization;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.BasicQueue;
-import co.paralleluniverse.strands.queues.BasicSingleConsumerQueue;
 import co.paralleluniverse.strands.queues.CircularBuffer;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.concurrent.TimeUnit;
@@ -38,17 +37,24 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-public abstract class QueueChannel<Message> implements Channel<Message>, Selectable<Message>, Synchronization, java.io.Serializable {
+public abstract class QueueChannel<Message> implements StandardChannel<Message>, Selectable<Message>, Synchronization, java.io.Serializable {
     private static final int MAX_SEND_RETRIES = 10;
+    
+    final BasicQueue<Message> queue;
+    private final boolean singleProducer;
+    private final boolean singleConsumer;
     final Condition sync;
     final Condition sendersSync;
-    final BasicQueue<Message> queue;
     final OverflowPolicy overflowPolicy;
     private Throwable closeException;
     private volatile boolean sendClosed;
     private boolean receiveClosed;
 
     protected QueueChannel(BasicQueue<Message> queue, OverflowPolicy overflowPolicy, boolean singleConsumer) {
+        this(queue, overflowPolicy, false, singleConsumer);
+    }
+    
+    protected QueueChannel(BasicQueue<Message> queue, OverflowPolicy overflowPolicy, boolean singleProducer, boolean singleConsumer) {
         this.queue = queue;
         if (!singleConsumer || queue instanceof CircularBuffer)
             this.sync = new SimpleConditionSynchronizer(this);
@@ -57,6 +63,8 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
         this.overflowPolicy = overflowPolicy;
         this.sendersSync = overflowPolicy == OverflowPolicy.BLOCK ? new SimpleConditionSynchronizer(this) : null;
+        this.singleProducer = singleProducer;
+        this.singleConsumer = singleConsumer;
     }
 
     @Override
@@ -66,8 +74,23 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
         return super.equals(other);
     }
 
+    @Override
     public int capacity() {
         return queue.capacity();
+    }
+
+    @Override
+    public boolean isSingleProducer() {
+        return singleProducer;
+    }
+
+    @Override
+    public boolean isSingleConsumer() {
+        return singleConsumer;
+    }
+
+    public OverflowPolicy getOverflowPolicy() {
+        return overflowPolicy;
     }
 
     protected Condition sync() {
@@ -97,7 +120,7 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
 
     @Override
     public Object register(SelectAction<Message> action) {
-        if (((SelectActionImpl)action).isData()) {
+        if (((SelectActionImpl) action).isData()) {
             if (sendersSync != null)
                 sendersSync.register();
         } else
@@ -279,10 +302,10 @@ public abstract class QueueChannel<Message> implements Channel<Message>, Selecta
      */
     @Override
     public boolean isClosed() {
-        if(receiveClosed)
+        if (receiveClosed)
             return true;
         // racy, but that's OK because we don't guarantee anything if we return false
-        if(sendClosed && queue instanceof BasicSingleConsumerQueue && !((BasicSingleConsumerQueue)queue).hasNext()) {
+        if (sendClosed && queue.isEmpty()) {
             setReceiveClosed();
             return true;
         }

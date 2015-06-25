@@ -61,13 +61,13 @@ public class QuasarURLClassLoader extends URLClassLoader {
         inst.setLog(new Log() {
             @Override
             public void log(LogLevel level, String msg, Object... args) {
-                System.out.println("[quasar] " + level + ": " + String.format(msg, args));
+                System.err.println("[quasar] " + level + ": " + String.format(msg, args));
             }
 
             @Override
-            public void error(String msg, Exception exc) {
-                System.out.println("[quasar] ERROR: " + msg);
-                exc.printStackTrace(System.out);
+            public void error(String msg, Throwable exc) {
+                System.err.println("[quasar] ERROR: " + msg);
+                exc.printStackTrace(System.err);
             }
         });
 //        inst.setVerbose(true);

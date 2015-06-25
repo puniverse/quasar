@@ -35,6 +35,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
 import co.paralleluniverse.strands.Strand;
 import java.util.ArrayList;
+import org.junit.AfterClass;
 import static org.junit.Assert.*;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -46,11 +47,13 @@ import org.junit.Test;
  * @author Matthias Mann
  */
 public class ThrowTest implements SuspendableRunnable {
+    private static Strand.UncaughtExceptionHandler previousUEH;
 
-    private ArrayList<String> results = new ArrayList<String>();
+    private final ArrayList<String> results = new ArrayList<>();
     
     @BeforeClass
     public static void setupClass() {
+        previousUEH = Fiber.getDefaultUncaughtExceptionHandler();
         Fiber.setDefaultUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
 
             @Override
@@ -59,6 +62,13 @@ public class ThrowTest implements SuspendableRunnable {
             }
         });
     }
+
+    @AfterClass
+    public static void afterClass() {
+        // Restore
+        Fiber.setDefaultUncaughtExceptionHandler(previousUEH);
+    }
+
     @Override
     public void run() throws SuspendExecution {
         results.add("A");

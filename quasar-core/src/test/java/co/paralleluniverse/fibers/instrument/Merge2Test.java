@@ -10,6 +10,7 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.TestsHelper;
 import co.paralleluniverse.strands.Strand;
+import org.junit.AfterClass;
 import static org.junit.Assert.*;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -19,8 +20,11 @@ import org.junit.Test;
  * @author mam
  */
 public class Merge2Test implements SuspendableRunnable {
+    private static Strand.UncaughtExceptionHandler previousUEH;
+
     @BeforeClass
     public static void setupClass() {
+        previousUEH = Fiber.getDefaultUncaughtExceptionHandler();
         Fiber.setDefaultUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
 
             @Override
@@ -29,7 +33,13 @@ public class Merge2Test implements SuspendableRunnable {
             }
         });
     }
-    
+
+    @AfterClass
+    public static void afterClass() {
+        // Restore
+        Fiber.setDefaultUncaughtExceptionHandler(previousUEH);
+    }
+
     public interface Interface {
         public void method();
     }

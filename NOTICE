@@ -1,13 +1,13 @@
 This product contains modified source code from Continuations Library, by Matthias Mann:
 
     Copyright (c) 2008-2013, Matthias Mann
-    * LICENSE: New BSD (http://directory.fsf.org/wiki/License:BSD_3Clause)
+    * LICENSE: New BSD (http://opensource.org/licenses/BSD-3-Clause)
     * HOMEPAGE: http://www.matthiasmann.de/content/view/24/26/
 
 This product depends on ASM, an all purpose Java bytecode manipulation and analysis framework
 
-    Copyright (c) 2012 France Télécom
-    * LICENSE: New BSD (http://directory.fsf.org/wiki/License:BSD_3Clause)
+    Copyright (c) 2012 INRIA, France Télécom
+    * LICENSE: New BSD (http://opensource.org/licenses/BSD-3-Clause)
     * HOMEPAGE: http://asm.ow2.org/
 
 This product includes code derived from the JSR-166 project, which was released
@@ -28,12 +28,23 @@ software developed by Coda Hale and Yammer, Inc:
     * LICENSE: Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0.html)
     * HOMEPAGE: http://metrics.codahale.com/
 
-This product depends on 'HdrHistogram', A High Dynamic Range (HDR) Histogram, by Gil Tene:
+This product depends on 'HdrHistogram', A High Dynamic Range (HDR) Histogram, by Gil Tene, Michael Barker,
+and Matt Warren:
 
-    * LICENSE: Public Domain CC0 1.0 (http://creativecommons.org/publicdomain/zero/1.0/)
+    * LICENSE: Public Domain CC0 1.0 (http://creativecommons.org/publicdomain/zero/1.0/) / Old BSD (http://opensource.org/licenses/BSD-2-Clause)
     * HOMEPAGE: https://github.com/giltene/HdrHistogram
 
+This product depends on 'Kryo', Java serialization and cloning: fast, efficient, automatic:
 
+    Copyright (c) 2008, Nathan Sweet
+    * LICENSE: New BSD (http://opensource.org/licenses/BSD-3-Clause)
+    * HOMEPAGE: https://github.com/EsotericSoftware/kryo
+
+This product depends on 'ByteBuddy', Runtime Code Generation for Java:
+
+    Copyright (c) 2014 Rafael Winterhalter
+    * LICENSE: Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0.html)
+    * HOMEPAGE: http://bytebuddy.net/
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE

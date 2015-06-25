@@ -11,11 +11,11 @@
  * as published by the Free Software Foundation.
  */
 /**
- * ## Records - managed shared mutable state
+ * <h2>Records - managed shared mutable state</h2>
  *
  * Here's an example record type definition:
  *
- * ```java
+ * <pre>{@code
  * class A {
  *     public static final RecordType<A> aType = RecordType.newType(A.class);
  *     public static final IntField<A> $id = stateType.intField("id");
@@ -23,10 +23,10 @@
  *     public static final ObjectField<A, String> $name = stateType.objectField("name", String.class);
  *     public static final ObjectField<A, List<String>> $emails = stateType.objectField("emails", new TypeToken<List<String>() {});
  * }
- * ```
+ * }</pre>
  * 
- * `A` is the type's *identifier class*. The fields are instances of {@link co.paralleluniverse.data.record.Field Field} and are, by convention, 
- * given identifiers that begin with a `$` to make it clear that they identify fields rather than values.
+ * {@code A} is the type's <i>identifier class</i>. The fields are instances of {@link co.paralleluniverse.data.record.Field Field} and are, by convention, 
+ * given identifiers that begin with a {@code $} to make it clear that they identify fields rather than values.
  * <br/>
  * A new record is instantiated by calling one of {@link co.paralleluniverse.data.record.RecordType RecordType}'s {@code newInstance} methods.
  * 

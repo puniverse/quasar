@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.test.TestUtil;
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import co.paralleluniverse.strands.Condition;
@@ -22,6 +23,9 @@ import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import co.paralleluniverse.vtime.ScaledClock;
+import co.paralleluniverse.vtime.SystemClock;
+import co.paralleluniverse.vtime.VirtualClock;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.Serializable;
 
@@ -42,6 +46,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.hamcrest.CoreMatchers.*;
+import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
@@ -59,7 +64,7 @@ public class FiberTest implements Serializable {
     public TestName name = new TestName();
     @Rule
     public TestRule watchman = TestUtil.WATCHMAN;
-    
+
     private transient FiberScheduler scheduler;
 
 //    public FiberTest() {
@@ -77,14 +82,24 @@ public class FiberTest implements Serializable {
             {new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1, new ThreadFactoryBuilder().setNameFormat("fiber-scheduler-%d").setDaemon(true).build()))},});
     }
 
+    private static Strand.UncaughtExceptionHandler previousUEH;
+
     @BeforeClass
-    public static void setUpClass() {
+    public static void setupClass() {
+        previousUEH = Fiber.getDefaultUncaughtExceptionHandler();
         Fiber.setDefaultUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
+
             @Override
             public void uncaughtException(Strand s, Throwable e) {
                 Exceptions.rethrow(e);
             }
         });
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        // Restore
+        Fiber.setDefaultUncaughtExceptionHandler(previousUEH);
     }
 
     @Before
@@ -95,20 +110,27 @@ public class FiberTest implements Serializable {
 
     @Test
     public void testTimeout() throws Exception {
-        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution {
-                Fiber.park(100, TimeUnit.MILLISECONDS);
-            }
-        }).start();
+        VirtualClock.setGlobal(Debug.isCI() ? new ScaledClock(0.3) : SystemClock.instance());
+        System.out.println("Using clock: " + VirtualClock.get());
 
         try {
-            fiber.join(50, TimeUnit.MILLISECONDS);
-            fail();
-        } catch (java.util.concurrent.TimeoutException e) {
-        }
+            Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+                @Override
+                public void run() throws SuspendExecution {
+                    Fiber.park(100, TimeUnit.MILLISECONDS);
+                }
+            }).start();
 
-        fiber.join(200, TimeUnit.MILLISECONDS);
+            try {
+                fiber.join(50, TimeUnit.MILLISECONDS);
+                fail();
+            } catch (java.util.concurrent.TimeoutException e) {
+            }
+
+            fiber.join(200, TimeUnit.MILLISECONDS);
+        } finally {
+            VirtualClock.setGlobal(SystemClock.instance());
+        }
     }
 
     @Test

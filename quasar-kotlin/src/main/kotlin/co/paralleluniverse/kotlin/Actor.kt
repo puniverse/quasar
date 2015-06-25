@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -31,7 +31,7 @@ import co.paralleluniverse.strands.queues.QueueIterator
  */
 public abstract class Actor : KotlinActorSupport<Any?, Any?>() {
     public companion object {
-        private object DeferException : Exception()
+        object DeferException : Exception()
         public object Timeout
     }
 
@@ -92,20 +92,24 @@ public abstract class Actor : KotlinActorSupport<Any?, Any?>() {
                 } else {
                     currentMessage = m
                     try {
-                        proc(m)
-                        if (it.value() == m) // another call to receive from within the processor may have deleted n
-                            it.remove()
+                        val res = proc(m)
+
+                        if (res != null) {
+                            checkAndRemove(it, m)
+                            return
+                        } else // Discard
+                            checkAndRemove(it, m)
+
                     } catch (d: DeferException) {
-                        // Skip
+                        // Leave it there and go on to the next one
+                        record(1, "KotlinActor", "receive", "%s skipped %s", this, m)
+                        monitorSkippedMessage()
                     } catch (e: Exception) {
-                        if (it.value() == m) // another call to receive from within the processor may have deleted n
-                            it.remove()
+                        checkAndRemove(it, m)
                         throw e
                     } finally {
                         currentMessage = null
                     }
-                    record(1, "KotlinActor", "receive", "%s skipped %s", this, m)
-                    monitorSkippedMessage()
                 }
             } else {
                 try {
@@ -128,19 +132,24 @@ public abstract class Actor : KotlinActorSupport<Any?, Any?>() {
         }
     }
 
-    Suspendable protected fun defer() {
+    protected fun checkAndRemove(it: QueueIterator<Any>, m: Any) {
+        if (it.value() == m) // Checking it's still there before removing it because another call to receive from within the processor may have removed it already
+            it.remove()
+    }
+
+    protected fun defer() {
         throw DeferException;
     }
 }
 
 // A couple of top-level utils
 
-Suspendable public fun spawn(a: JActor<*, *>): ActorRef<*> {
+public fun spawn(a: JActor<*, *>): ActorRef<Any?> {
     @suppress("UNCHECKED_CAST")
     Fiber(a as SuspendableCallable<Any>).start()
-    return a.ref()
+    return a.ref() as ActorRef<Any?>
 }
 
-Suspendable public fun register(ref: String, v: JActor<*, *>): JActor<*, *> {
+public fun register(ref: String, v: JActor<*, *>): JActor<*, *> {
     return v.register(ref)
 }

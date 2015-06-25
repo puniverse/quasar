@@ -20,8 +20,10 @@ import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.concurrent.util.MapUtil;
+import co.paralleluniverse.fibers.Instrumented;
 import co.paralleluniverse.fibers.RuntimeSuspendExecution;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
 import com.google.common.collect.ImmutableSet;
 import java.lang.reflect.InvocationTargetException;
@@ -309,6 +311,7 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
         }
 
         @Override
+        @Suspendable
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             assert !method.getDeclaringClass().isAssignableFrom(ActorRefDelegate.class);
 
