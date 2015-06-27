@@ -429,7 +429,7 @@ project (':quasar-core') {
         compile("com.esotericsoftware.kryo:kryo:2.24.0") {
             exclude group: "org.ow2.asm", module: '*'
         }
-        compile("de.javakaffee:kryo-serializers:0.30") {
+        compile("de.javakaffee:kryo-serializers:0.31") {
             exclude group: "com.esotericsoftware", module: '*'
             exclude group: "com.esotericsoftware.kryo", module: '*'
         }
