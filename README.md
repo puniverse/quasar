@@ -4,45 +4,36 @@
 
 ## Getting started
 
-In Maven:
+Add the following Maven/Gradle dependencies:
 
-```xml
-<dependency>
-    <groupId>co.paralleluniverse</groupId>
-    <artifactId>quasar-core</artifactId>
-    <version>0.7.2</version>
-</dependency>
+```
+co.paralleluniverse:quasar-core:0.7.2
 ```
 
 or, for JDK8:
 
-~~~ xml
-<dependency>
-    <groupId>co.paralleluniverse</groupId>
-    <artifactId>quasar-core</artifactId>
-    <version>0.7.2</version>
-    <classifier>jdk8</classifier>
-</dependency>
-~~~
+```
+co.paralleluniverse:quasar-core:0.7.2:jdk8
+```
+
+(`jdk8` is the classifier)
 
 To use actors, add
 
-```xml
-<dependency>
-    <groupId>co.paralleluniverse</groupId>
-    <artifactId>quasar-actors</artifactId>
-    <version>0.7.2</version>
-</dependency>
+```
+co.paralleluniverse:quasar-actors:0.7.2
 ```
 
-For clustering support add:
+For clustering support:
 
-```xml
-<dependency>
-    <groupId>co.paralleluniverse</groupId>
-    <artifactId>quasar-galaxy</artifactId>
-    <version>0.7.2</version>
-</dependency>
+```
+co.paralleluniverse:quasar-galaxy:0.7.2
+```
+
+For Reactive Streams:
+
+```
+co.paralleluniverse:quasar-reactive-streams:0.7.2
 ```
 
 Or, build from sources by running:
