@@ -36,6 +36,10 @@ For Reactive Streams:
 co.paralleluniverse:quasar-reactive-streams:0.7.2
 ```
 
+```
+co.paralleluniverse:quasar-kotlin:0.7.2
+```
+
 Or, build from sources by running:
 
 ```
