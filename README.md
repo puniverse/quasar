@@ -45,6 +45,10 @@ For clustering support add:
 </dependency>
 ```
 
+```
+co.paralleluniverse:quasar-kotlin:0.7.2
+```
+
 Or, build from sources by running:
 
 ```

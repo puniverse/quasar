@@ -79,58 +79,45 @@ Introductory blog post: [Erlang (and Go) in Clojure (and Java), Lightweight Thre
 
 Java 7 and is required to run Quasar.
 
-### Using Maven {#maven}
+### Using Maven/Gradle {#maven}
 
-Add the following dependency to Maven:
+Add the following Maven/Gradle dependencies
 
-~~~ xml
-<dependency>
-    <groupId>co.paralleluniverse</groupId>
-    <artifactId>quasar-core</artifactId>
-    <version>{{site.version}}</version>
-</dependency>
-~~~
+```
+co.paralleluniverse:quasar-core:{{site.version}}
+```
 
 or, for JDK8:
 
-~~~ xml
-<dependency>
-    <groupId>co.paralleluniverse</groupId>
-    <artifactId>quasar-core</artifactId>
-    <version>{{site.version}}</version>
-    <classifier>jdk8</classifier>
-</dependency>
-~~~
+```
+co.paralleluniverse:quasar-core:{{site.version}}:jdk8
+```
 
-To use actors, add:
+(`jdk8` is the classifier)
 
-~~~ xml
-<dependency>
-    <groupId>co.paralleluniverse</groupId>
-    <artifactId>quasar-actors</artifactId>
-    <version>{{site.version}}</version>
-</dependency>
-~~~
+To use actors, add
 
-For clustering support, add:
+```
+co.paralleluniverse:quasar-actors:{{site.version}}
+```
 
-~~~ xml
-<dependency>
-    <groupId>co.paralleluniverse</groupId>
-    <artifactId>quasar-galaxy</artifactId>
-    <version>{{site.version}}</version>
-</dependency>
-~~~
+For clustering support:
 
-For Kotlin support, add:
+```
+co.paralleluniverse:quasar-galaxy:{{site.version}}
+```
 
-~~~ xml
-<dependency>
-    <groupId>co.paralleluniverse</groupId>
-    <artifactId>quasar-kotlin</artifactId>
-    <version>{{site.version}}</version>
-</dependency>
-~~~
+For Reactive Streams:
+
+```
+co.paralleluniverse:quasar-reactive-streams:{{site.version}}
+```
+
+For Kotlin support:
+
+```
+co.paralleluniverse:quasar-kotlin:{{site.version}}
+```
 
 ### Instrumenting Your Code {#instrumentation}
 
