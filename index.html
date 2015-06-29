@@ -106,7 +106,7 @@
 <li class="li1">
 <a href="#getting-started">Getting Started</a><ul><li><ul>
 <li><a href="#system-requirements">System Requirements</a></li>
-<li><a href="#maven">Using Maven</a></li>
+<li><a href="#maven">Using Maven/Gradle</a></li>
 <li><a href="#instrumentation">Instrumenting Your Code</a></li>
 <li><a href="#build">Building Quasar</a></li>
 </ul></li></ul>
@@ -228,49 +228,46 @@
 
 <p>Java 7 and is required to run&nbsp;Quasar.</p>
 
-<h3 id="maven">Using&nbsp;Maven</h3>
+<h3 id="maven">Using&nbsp;Maven/Gradle</h3>
 
-<p>Add the following dependency to&nbsp;Maven:</p>
+<p>Add the following Maven/Gradle&nbsp;dependencies</p>
 
-<div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
-</span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
-</span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-core<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.2<span class="nt">&lt;/version&gt;</span>
-</span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
-</span></code></pre></div>
+<p><code>
+co.paralleluniverse:quasar-core:0.7.2
+</code></p>
+
 <p>or, for&nbsp;<span class="caps">JDK8</span>:</p>
 
-<div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
-</span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
-</span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-core<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.2<span class="nt">&lt;/version&gt;</span>
-</span><span id="line-5">    <span class="nt">&lt;classifier&gt;</span>jdk8<span class="nt">&lt;/classifier&gt;</span>
-</span><span id="line-6"><span class="nt">&lt;/dependency&gt;</span>
-</span></code></pre></div>
-<p>To use actors,&nbsp;add:</p>
+<p><code>
+co.paralleluniverse:quasar-core:0.7.2:jdk8
+</code></p>
 
-<div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
-</span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
-</span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-actors<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.2<span class="nt">&lt;/version&gt;</span>
-</span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
-</span></code></pre></div>
-<p>For clustering support,&nbsp;add:</p>
+<p>(<code>jdk8</code> is the&nbsp;classifier)</p>
 
-<div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
-</span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
-</span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-galaxy<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.2<span class="nt">&lt;/version&gt;</span>
-</span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
-</span></code></pre></div>
-<p>For Kotlin support,&nbsp;add:</p>
+<p>To use actors,&nbsp;add</p>
 
-<div class="highlight"><pre><code><span id="line-1"><span class="nt">&lt;dependency&gt;</span>
-</span><span id="line-2">    <span class="nt">&lt;groupId&gt;</span>co.paralleluniverse<span class="nt">&lt;/groupId&gt;</span>
-</span><span id="line-3">    <span class="nt">&lt;artifactId&gt;</span>quasar-kotlin<span class="nt">&lt;/artifactId&gt;</span>
-</span><span id="line-4">    <span class="nt">&lt;version&gt;</span>0.7.2<span class="nt">&lt;/version&gt;</span>
-</span><span id="line-5"><span class="nt">&lt;/dependency&gt;</span>
-</span></code></pre></div>
+<p><code>
+co.paralleluniverse:quasar-actors:0.7.2
+</code></p>
+
+<p>For clustering&nbsp;support:</p>
+
+<p><code>
+co.paralleluniverse:quasar-galaxy:0.7.2
+</code></p>
+
+<p>For Reactive&nbsp;Streams:</p>
+
+<p><code>
+co.paralleluniverse:quasar-reactive-streams:0.7.2
+</code></p>
+
+<p>For Kotlin&nbsp;support:</p>
+
+<p><code>
+co.paralleluniverse:quasar-kotlin:0.7.2
+</code></p>
+
 <h3 id="instrumentation">Instrumenting Your&nbsp;Code</h3>
 
 <p>Quasar fibers rely on bytecode instrumentation. This can be done at classloading time via a Java Agent, or at compilation time with an Ant&nbsp;task.</p>
