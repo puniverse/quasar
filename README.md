@@ -36,6 +36,8 @@ For Reactive Streams:
 co.paralleluniverse:quasar-reactive-streams:0.7.2
 ```
 
+For Kotlin support:
+
 ```
 co.paralleluniverse:quasar-kotlin:0.7.2
 ```
