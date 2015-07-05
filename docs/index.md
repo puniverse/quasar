@@ -381,6 +381,9 @@ String op() {
 
 The call to `run` will block the fiber until the operation completes.
 
+{:.alert .alert-warn}
+**Note**: each `FiberAsync` instance will be linked to the invoking fiber upon construction and it will maintain internal state for a single operation. This means that it needs to be _both_ created _and_ run by the invoking fiber and it can be used for a single operation call _only_ (that is, it cannot be re-used for further calls).
+
 Transforming asynchronous code to fiber-blocking calls has a negligible overhead both in terms of memory and performance, while making the code shorter and far simpler to understand.
 
 ### Advanced Fiber Usage {#advanced-fibers}
