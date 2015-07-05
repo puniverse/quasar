@@ -500,6 +500,8 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 </span></code></pre></div>
 <p>The call to <code>run</code> will block the fiber until the operation&nbsp;completes.</p>
 
+<p class="alert alert-warn"><strong>Note</strong>: each <code>FiberAsync</code> instance will be linked to the invoking fiber upon construction and it will maintain internal state for a single operation. This means that it needs to be <em>both</em> created <em>and</em> run by the invoking fiber and it can be used for a single operation call <em>only</em> (that is, it cannot be re-used for further&nbsp;calls).</p>
+
 <p>Transforming asynchronous code to fiber-blocking calls has a negligible overhead both in terms of memory and performance, while making the code shorter and far simpler to&nbsp;understand.</p>
 
 <h3 id="advanced-fibers">Advanced Fiber&nbsp;Usage</h3>
