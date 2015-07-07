@@ -93,6 +93,11 @@ subprojects {
             runtimeClasspath += compileClasspath + main.runtimeClasspath + test.runtimeClasspath
         }
     }
+    
+    compileJmhJava {
+        sourceCompatibility = '1.8'
+        targetCompatibility = '1.8'
+    }
 
     dependencies {
         compile("io.dropwizard.metrics:metrics-core:3.1.2") {
@@ -187,11 +192,14 @@ subprojects {
         }
 
         jvmArgs '-Xmx2048m'
-
+        //systemProperty 'co.paralleluniverse.fibers.DefaultFiberPool.parallelism', '1'
+        
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
         systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
         // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
         jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
+        
+        //jvmArgs '-XX:+UnlockCommercialFeatures', '-XX:+FlightRecorder', '-XX:StartFlightRecording=duration=60s,filename=recording.jfr,settings=heap'
     }
     
     project.afterEvaluate {
@@ -448,25 +456,25 @@ project (':quasar-core') {
             }
         }
 
-//        def jarTask = task("${set.name}Jar", type: Jar) {
-//            from set.output
-//            from zipTree("${baselib}/high-scale-lib.jar")  // include non-Maven jars
-//            exclude 'META-INF/INDEX.LIST'
-//
-//            manifest {
-//                attributes(
-//	            "Built-By"                  :   System.getProperty("user.name"),
-//	            "Implementation-Title"      :   project.name,
-//	            "Implementation-Version"    :   version,
-//	            "Implementation-Vendor"     :   vendor,
-//	            "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
-//                    "Agent-Class"               :   "co.paralleluniverse.fibers.instrument.JavaAgent",
-//	            "Can-Retransform-Classes"   :   "true",
-//                    "Can-Redefine-Classes"      :   "true",
-//                    //  "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',')
-//                )
-//            }
-//        }
+        //        def jarTask = task("${set.name}Jar", type: Jar) {
+        //            from set.output
+        //            from zipTree("${baselib}/high-scale-lib.jar")  // include non-Maven jars
+        //            exclude 'META-INF/INDEX.LIST'
+        //
+        //            manifest {
+        //                attributes(
+        //	            "Built-By"                  :   System.getProperty("user.name"),
+        //	            "Implementation-Title"      :   project.name,
+        //	            "Implementation-Version"    :   version,
+        //	            "Implementation-Vendor"     :   vendor,
+        //	            "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
+        //                    "Agent-Class"               :   "co.paralleluniverse.fibers.instrument.JavaAgent",
+        //	            "Can-Retransform-Classes"   :   "true",
+        //                    "Can-Redefine-Classes"      :   "true",
+        //                    //  "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',')
+        //                )
+        //            }
+        //        }
 
         def shadowJarTask = task("${set.name}ShadowJar", type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar, dependsOn: classes) {
             classifier = '' // overwrite jar
@@ -520,9 +528,9 @@ project (':quasar-core') {
         targetCompatibility = '1.7'
     }
 
-//    jdk7Jar {
-//        from zipTree("${baselib}/jsr166e.jar")  // include non-Maven jars
-//    }
+    //    jdk7Jar {
+    //        from zipTree("${baselib}/jsr166e.jar")  // include non-Maven jars
+    //    }
 
     jdk7ShadowJar {
         dependencies {
@@ -545,9 +553,9 @@ project (':quasar-core') {
             targetCompatibility = '1.8'
         }
 
-//        jdk8Jar {
-//            classifier = 'jdk8'
-//        }
+        //        jdk8Jar {
+        //            classifier = 'jdk8'
+        //        }
 
         jdk8ShadowJar {
             classifier = 'jdk8'
