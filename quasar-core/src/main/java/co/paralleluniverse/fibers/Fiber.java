@@ -1593,7 +1593,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             final Stack stack = Stack.getStack();
             if (stack != null) {
                 current = stack.getFiber();
-                if (!current.getStackTrace)
+                if (current != null && !current.getStackTrace)
                     throw new AssertionError();
                 return current;
             }

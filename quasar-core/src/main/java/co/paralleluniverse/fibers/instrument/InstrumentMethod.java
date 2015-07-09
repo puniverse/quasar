@@ -45,10 +45,13 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.fibers.Stack;
 import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
+import static co.paralleluniverse.fibers.instrument.Classes.FIBER_CLASS_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.THROWABLE_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.RUNTIME_EXCEPTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.RUNTIME_SUSPEND_EXECUTION_NAME;
+import static co.paralleluniverse.fibers.instrument.Classes.CONTINUATION_CLASS_NAME;
+import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.STACK_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.UNDECLARED_THROWABLE_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.isAllowedToBlock;
@@ -327,6 +330,7 @@ class InstrumentMethod {
 //        }
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, SUSPEND_EXECUTION_NAME);
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, RUNTIME_SUSPEND_EXECUTION_NAME);
+        mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, SUSPEND_NAME);
         if (handleProxyInvocations)
             mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchUTE, UNDECLARED_THROWABLE_NAME);
 
@@ -422,6 +426,7 @@ class InstrumentMethod {
             final AbstractInsnNode min = mn.instructions.get(fi.endInstruction);
             final String owner = getMethodOwner(min), name = getMethodName(min), desc = getMethodDesc(min);
             if (isYieldMethod(owner, name)) { // special case - call to yield
+                final boolean fiber = FIBER_CLASS_NAME.equals(owner);
                 if (min.getOpcode() != Opcodes.INVOKESTATIC)
                     throw new UnableToInstrumentException("invalid call to suspending method.", className, mn.name, mn.desc);
 
@@ -437,15 +442,22 @@ class InstrumentMethod {
                     mv.visitInsn(Opcodes.POP);               // we ignore the returned value...
                 mv.visitLabel(lMethodCalls[i - 1]);          // we resume AFTER the call
 
-                final Label afterPostRestore = new Label();
-                mv.visitVarInsn(Opcodes.ILOAD, lvarResumed);
-                mv.visitJumpInsn(Opcodes.IFEQ, afterPostRestore);
-                emitPostRestore(mv);
-                mv.visitLabel(afterPostRestore);
+                if (fiber) {
+                    final Label afterPostRestore = new Label();
+                    mv.visitVarInsn(Opcodes.ILOAD, lvarResumed);
+                    mv.visitJumpInsn(Opcodes.IFEQ, afterPostRestore);
+                    emitPostRestore(mv);
+                    mv.visitLabel(afterPostRestore);
+                }
 
                 emitRestoreState(mv, i, fi, numYieldArgs);
-                if (yieldReturnsValue)
-                    mv.visitVarInsn(Opcodes.ILOAD, lvarResumed); // ... and replace the returned value with the value of resumed
+
+                if (yieldReturnsValue) {
+                    if (fiber)
+                        mv.visitVarInsn(Opcodes.ILOAD, lvarResumed); // ... and replace the returned value with the value of resumed
+                    else // Continuation.suspend
+                        emitGetContinuation(mv);  // ... and replace the returned value with stack.getContinuation
+                }
 
                 dumpCodeBlock(mv, i, 1 /* skip the call */);
             } else {
@@ -546,7 +558,7 @@ class InstrumentMethod {
             return false; // we allow exactly one suspendable call
 
         final int susCallBci = susCallsBcis[0];
-        
+
         final AbstractInsnNode susCall = mn.instructions.get(susCallBci);
         assert isSuspendableCall(susCall);
         if (isYieldMethod(getMethodOwner(susCall), getMethodName(susCall)))
@@ -902,6 +914,11 @@ class InstrumentMethod {
     private void emitPostRestore(MethodVisitor mv) {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "postRestore", "()V", false);
+    }
+
+    private void emitGetContinuation(MethodVisitor mv) {
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getContinuation", "()L" + CONTINUATION_CLASS_NAME + ";", false);
     }
 
     private void emitPreemptionPoint(MethodVisitor mv, int type) {

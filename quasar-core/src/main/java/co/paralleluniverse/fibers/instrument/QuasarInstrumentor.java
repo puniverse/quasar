@@ -69,6 +69,8 @@ public final class QuasarInstrumentor {
             return false;
         if (className.equals(Classes.FIBER_CLASS_NAME) || className.startsWith(Classes.FIBER_CLASS_NAME + '$'))
             return false;
+        if (className.equals(Classes.CONTINUATION_CLASS_NAME) || className.startsWith(Classes.CONTINUATION_CLASS_NAME + '$'))
+            return false;
         if (className.equals(Classes.STACK_NAME))
             return false;
         if (className.startsWith("org/objectweb/asm/"))

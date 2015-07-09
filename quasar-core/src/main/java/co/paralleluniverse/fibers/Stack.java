@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.common.util.Debug;
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -38,38 +39,60 @@ public final class Stack implements Serializable {
     private static final int INITIAL_METHOD_STACK_DEPTH = 16;
     private static final int FRAME_RECORD_SIZE = 1;
     private static final long serialVersionUID = 12786283751253L;
-    private final Fiber fiber;
+    private final Object context;
+    private final int initialSP;
     private int sp;
     private transient boolean shouldVerifyInstrumentation;
     private transient boolean pushed;
     private long[] dataLong;        // holds primitives on stack as well as each method's entry point and the stack pointer
     private Object[] dataObject;    // holds refs on stack
 
-    Stack(Fiber fiber, int stackSize) {
+    Stack(Object context, int stackSize) {
+        this(context, null, stackSize);
+    }
+
+    Stack(Object context, Stack parent, int stackSize) {
         if (stackSize <= 0)
             throw new IllegalArgumentException("stackSize");
 
-        this.fiber = fiber;
-        this.dataLong = new long[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
-        this.dataObject = new Object[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
+        this.context = context;
+
+        if (parent == null) {
+            this.dataLong = new long[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
+            this.dataObject = new Object[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
+            this.initialSP = 0;
+        } else {
+            this.dataLong = parent.dataLong;
+            this.dataObject = parent.dataObject;
+            this.initialSP = parent.sp; // ??
+        }
 
         resumeStack();
     }
 
     public static Stack getStack() {
-        final Fiber currentFiber = Fiber.currentFiber();
-        return currentFiber != null ? currentFiber.stack : null;
+        final Fiber<?> currentFiber = Fiber.currentFiber();
+        if (currentFiber != null)
+            return currentFiber.stack;
+        final Continuation<?, ?> currentCont = Continuation.getCurrentContinuation();
+        if (currentCont != null)
+            return currentCont.stack;
+        return null;
     }
 
     Fiber getFiber() {
-        return fiber;
+        return context instanceof Fiber ? (Fiber) context : null;
+    }
+    
+    public Continuation getContinuation() {
+        return (Continuation)context;
     }
 
     /**
      * called when resuming a stack
      */
     final void resumeStack() {
-        sp = 0;
+        sp = initialSP;
     }
 
     // for testing/benchmarking only
@@ -95,8 +118,8 @@ public final class Stack implements Serializable {
         long record = dataLong[idx];
         int entry = getEntry(record);
         dataLong[idx] = setPrevNumSlots(record, slots);
-        if (fiber.isRecordingLevel(2))
-            fiber.record(2, "Stack", "nextMethodEntry", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
+        if (Debug.isDebug() && isRecordingLevel(2))
+            record(2, "Stack", "nextMethodEntry", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
 
         return entry;
     }
@@ -121,8 +144,8 @@ public final class Stack implements Serializable {
     /**
      * Called before a method is called.
      *
-     * @param entry      the entry point in the current method for resume
-     * @param numSlots   the number of required stack slots for storing the state of the current method
+     * @param entry    the entry point in the current method for resume
+     * @param numSlots the number of required stack slots for storing the state of the current method
      */
     public final void pushMethod(int entry, int numSlots) {
         shouldVerifyInstrumentation = false;
@@ -144,13 +167,13 @@ public final class Stack implements Serializable {
 //        for (int i = 0; i < FRAME_RECORD_SIZE; i++)
 //            dataLong[nextMethodIdx + i] = 0L;
 
-        if (fiber.isRecordingLevel(2))
-            fiber.record(2, "Stack", "pushMethod     ", "%s %s %s %s %d", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
+        if (Debug.isDebug() && isRecordingLevel(2))
+            record(2, "Stack", "pushMethod     ", "%s %s %s %s %d", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
     }
 
     public final void popMethod() {
         if (shouldVerifyInstrumentation) {
-            Fiber.verifySuspend(fiber);
+            Fiber.verifySuspend(null);
             shouldVerifyInstrumentation = false;
         }
         pushed = false;
@@ -160,7 +183,7 @@ public final class Stack implements Serializable {
         final long record = dataLong[idx];
         final int slots = getNumSlots(record);
         final int newSP = idx - getPrevNumSlots(record);
-        
+
         // clear frame record (probably unnecessary)
         dataLong[idx] = 0L;
 //        for (int i = 0; i < FRAME_RECORD_SIZE; i++)
@@ -171,18 +194,18 @@ public final class Stack implements Serializable {
 
         sp = newSP;
 
-        if (fiber.isRecordingLevel(2))
-            fiber.record(2, "Stack", "popMethod      ", "%s %s %s", Thread.currentThread().getStackTrace()[2], sp /*Arrays.toString(fiber.getStackTrace())*/);        
+        if (Debug.isDebug() && isRecordingLevel(2))
+            record(2, "Stack", "popMethod      ", "%s %s %s", Thread.currentThread().getStackTrace()[2], sp /*Arrays.toString(fiber.getStackTrace())*/);
     }
 
     public final void postRestore() throws SuspendExecution, InterruptedException {
-        fiber.onResume();
+        if (context instanceof Fiber)
+            ((Fiber) context).onResume();
     }
 
-    public final void preemptionPoint(int type) throws SuspendExecution {
-        fiber.preemptionPoint(type);
-    }
-
+//    public final void preemptionPoint(int type) throws SuspendExecution {
+//        fiber.preemptionPoint(type);
+//    }
     private void growStack(int required) {
         int newSize = dataObject.length;
         do {
@@ -338,7 +361,7 @@ public final class Stack implements Serializable {
         final String method;
         final int line;
         final boolean pushed;
-        
+
         TraceLine(String method, int line, boolean pushed) {
             this.method = method;
             this.line = line;
@@ -348,5 +371,36 @@ public final class Stack implements Serializable {
         TraceLine(String method, int line) {
             this(method, line, true);
         }
+    }
+
+    //////////////////////////////
+    protected final boolean isRecordingLevel(int level) {
+        if (context instanceof Fiber)
+            return ((Fiber) context).isRecordingLevel(level);
+        return ((Continuation) context).isRecordingLevel(level);
+    }
+
+    protected final void record(int level, String clazz, String method, String format) {
+        if (context instanceof Fiber)
+            ((Fiber) context).record(level, clazz, method, format);
+        ((Continuation) context).record(level, clazz, method, format);
+    }
+
+    protected final void record(int level, String clazz, String method, String format, Object arg1) {
+        if (context instanceof Fiber)
+            ((Fiber) context).record(level, clazz, method, format, arg1);
+        ((Continuation) context).record(level, clazz, method, format, arg1);
+    }
+
+    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2) {
+        if (context instanceof Fiber)
+            ((Fiber) context).record(level, clazz, method, format, arg1, arg2);
+        ((Continuation) context).record(level, clazz, method, format, arg1);
+    }
+
+    protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3) {
+        if (context instanceof Fiber)
+            ((Fiber) context).record(level, clazz, method, format, arg1, arg2, arg3);
+        ((Continuation) context).record(level, clazz, method, format, arg1, arg2, arg3);
     }
 }
