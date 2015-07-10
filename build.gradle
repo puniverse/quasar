@@ -490,7 +490,7 @@ project (':quasar-core') {
             testClassesDir = project.sourceSets["${set.name}test"].output.classesDir
             classpath = project.sourceSets["${set.name}test"].runtimeClasspath
 
-            systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+            // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
             project.afterEvaluate {
                 jvmArgs "-javaagent:${shadowJarTask.archivePath}" // =vdc
             }
