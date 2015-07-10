@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import static co.paralleluniverse.common.reflection.ASMUtil.isAssignableFrom;
 import co.paralleluniverse.common.reflection.ClassLoaderUtil;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.isClassFile;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToResource;
@@ -21,6 +20,7 @@ import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_ANNOTATION_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_NAME;
+import static co.paralleluniverse.fibers.instrument.DefaultSuspendableClassifier.isAssignableFrom;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import com.google.common.base.Function;
 import java.io.File;
