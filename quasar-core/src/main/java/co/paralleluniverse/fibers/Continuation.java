@@ -47,21 +47,12 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     public Continuation(Class<S> scope, Callable<T> target, int stackSize) {
         this.target = target;
         this.parent = getCurrentContinuation();
-        this.stack = new Stack(this, getCurrentStack(parent), stackSize);
+        this.stack = new Stack(this, stackSize);
         this.scope = scope;
     }
 
     public Continuation(Class<S> scope, Callable<T> target) {
         this(scope, target, DEFAULT_STACK_SIZE);
-    }
-
-    private static Stack getCurrentStack(Continuation c) {
-        if (c != null)
-            return c.stack;
-        Fiber f = Fiber.currentFiber();
-        if (f != null)
-            return f.stack;
-        return null;
     }
 
     static Continuation getCurrentContinuation() {

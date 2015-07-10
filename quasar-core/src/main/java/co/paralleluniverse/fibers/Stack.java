@@ -40,7 +40,6 @@ public final class Stack implements Serializable {
     private static final int FRAME_RECORD_SIZE = 1;
     private static final long serialVersionUID = 12786283751253L;
     private final Object context;
-    private final int initialSP;
     private int sp;
     private transient boolean shouldVerifyInstrumentation;
     private transient boolean pushed;
@@ -48,24 +47,12 @@ public final class Stack implements Serializable {
     private Object[] dataObject;    // holds refs on stack
 
     Stack(Object context, int stackSize) {
-        this(context, null, stackSize);
-    }
-
-    Stack(Object context, Stack parent, int stackSize) {
         if (stackSize <= 0)
             throw new IllegalArgumentException("stackSize");
 
         this.context = context;
-
-        if (true) {
-            this.dataLong = new long[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
-            this.dataObject = new Object[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
-            this.initialSP = 0;
-        } else {
-            this.dataLong = parent.dataLong;
-            this.dataObject = parent.dataObject;
-            this.initialSP = parent.sp; // ??
-        }
+        this.dataLong = new long[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
+        this.dataObject = new Object[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
 
         resumeStack();
     }
@@ -83,16 +70,16 @@ public final class Stack implements Serializable {
     Fiber getFiber() {
         return context instanceof Fiber ? (Fiber) context : null;
     }
-    
+
     public Continuation getContinuation() {
-        return (Continuation)context;
+        return (Continuation) context;
     }
 
     /**
      * called when resuming a stack
      */
     final void resumeStack() {
-        sp = initialSP;
+        sp = 0;
     }
 
     // for testing/benchmarking only
