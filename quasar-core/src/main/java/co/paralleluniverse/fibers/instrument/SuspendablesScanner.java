@@ -13,12 +13,14 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import static co.paralleluniverse.common.reflection.ASMUtil.isAssignableFrom;
 import co.paralleluniverse.common.reflection.ClassLoaderUtil;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.isClassFile;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToResource;
 import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_ANNOTATION_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
+import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_NAME;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import com.google.common.base.Function;
 import java.io.File;
@@ -228,7 +230,7 @@ public class SuspendablesScanner extends Task {
                 if (isClassFile(url.getFile())) {
                     try (InputStream is = cl.getResourceAsStream(resource)) { // cl.getResourceAsStream(resource)
                         new ClassReader(is)
-                                .accept(new SuspendableClassifier(false, ASMAPI, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
+                                .accept(new SuspendableClassifier(cl, false, ASMAPI, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
                     } catch (Exception e) {
                         System.err.println("Exception thrown during processing of " + resource + " at " + url);
                         throw e;
@@ -301,12 +303,14 @@ public class SuspendablesScanner extends Task {
     }
 
     private class SuspendableClassifier extends ClassVisitor {
+        private final ClassLoader cl;
         private final boolean inProject;
         private String className;
         private boolean suspendableClass;
 
-        public SuspendableClassifier(boolean inProject, int api, ClassVisitor cv) {
+        public SuspendableClassifier(ClassLoader cl, boolean inProject, int api, ClassVisitor cv) {
             super(api, cv);
+            this.cl = cl;
             this.inProject = inProject;
         }
 
@@ -386,7 +390,7 @@ public class SuspendablesScanner extends Task {
         private boolean checkExceptions(String[] exceptions) {
             if (exceptions != null) {
                 for (String ex : exceptions) {
-                    if (ex.equals(SUSPEND_EXECUTION_NAME))
+                    if (ex.equals(SUSPEND_EXECUTION_NAME) || isAssignableFrom(SUSPEND_NAME, ex, cl))
                         return true;
                 }
             }
@@ -497,7 +501,7 @@ public class SuspendablesScanner extends Task {
     private void createGraph(InputStream classStream) throws IOException {
         final ClassReader cr = new ClassReader(classStream);
         ClassVisitor cv = null;
-        cv = new SuspendableClassifier(true, ASMAPI, cv);
+        cv = new SuspendableClassifier(cl, true, ASMAPI, cv);
         cv = new ClassNodeVisitor(true, ASMAPI, cv);
         if (auto)
             cv = new CallGraphVisitor(true, ASMAPI, cv);

@@ -57,7 +57,7 @@ public final class Stack implements Serializable {
 
         this.context = context;
 
-        if (parent == null) {
+        if (true) {
             this.dataLong = new long[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
             this.dataObject = new Object[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
             this.initialSP = 0;

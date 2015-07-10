@@ -16,14 +16,21 @@ package co.paralleluniverse.fibers;
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
-import static co.paralleluniverse.fibers.Fiber.flightRecorder;
+import co.paralleluniverse.common.util.SystemProperties;
+import static co.paralleluniverse.fibers.Fiber.checkInstrumentation;
+import co.paralleluniverse.strands.Strand;
+import java.io.Serializable;
 
 /**
- *
+ * This class is not thread safe. All runs of the continuation must be performed on the same strand.
+ * If you need a continuation that can be triggered by multiple strands, please use a fiber.
  * @author pron
  */
-public abstract class Continuation<S extends Suspend, T> {
+public abstract class Continuation<S extends Suspend, T> implements Serializable {
     public static final int DEFAULT_STACK_SIZE = 16;
+    private static final boolean verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
+    protected static final FlightRecorder flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
+
     private static final ThreadLocal<Continuation> currentContinuation = new ThreadLocal<>();
 
     final Stack stack;
@@ -37,24 +44,23 @@ public abstract class Continuation<S extends Suspend, T> {
 
     private static final ThreadLocal<CalledCC> calledcc = new ThreadLocal<>();
 
-    public Continuation(Callable<T> target, Class<S> scope, int stackSize) {
+    public Continuation(Class<S> scope, Callable<T> target, int stackSize) {
         this.target = target;
-        this.stack = new Stack(this, getCurrentStack(), stackSize);
         this.parent = getCurrentContinuation();
+        this.stack = new Stack(this, getCurrentStack(parent), stackSize);
         this.scope = scope;
     }
 
-    public Continuation(Callable<T> target, Class<S> scope) {
-        this(target, scope, DEFAULT_STACK_SIZE);
+    public Continuation(Class<S> scope, Callable<T> target) {
+        this(scope, target, DEFAULT_STACK_SIZE);
     }
 
-    private static Stack getCurrentStack() {
+    private static Stack getCurrentStack(Continuation c) {
+        if (c != null)
+            return c.stack;
         Fiber f = Fiber.currentFiber();
         if (f != null)
             return f.stack;
-        Continuation c = getCurrentContinuation();
-        if (c != null)
-            return c.stack;
         return null;
     }
 
@@ -66,13 +72,23 @@ public abstract class Continuation<S extends Suspend, T> {
         throw suspend;
     }
 
-    public static <S extends Suspend> Continuation<S, ?> suspend(S scope) {
+    /**
+     * Subclasses calling this method must call it explicitly so, {@code Continuation.suspend}, and not simply {@code suspend}.
+     */
+    public static <S extends Suspend> Continuation<S, ?> suspend(S scope) throws S {
+        if (verifyInstrumentation)
+            verifySuspend();
         if (true)
             throw scope;
         return null;
     }
 
-    public static <S extends Suspend> Continuation<S, ?> suspend(S scope, CalledCC ccc) {
+    /**
+     * Subclasses calling this method must call it explicitly so, {@code Continuation.suspend}, and not simply {@code suspend}.
+     */
+    public static <S extends Suspend> Continuation<S, ?> suspend(S scope, CalledCC ccc) throws S {
+        if (verifyInstrumentation)
+            verifySuspend();
         calledcc.set(ccc);
         if (true)
             throw scope;
@@ -101,7 +117,7 @@ public abstract class Continuation<S extends Suspend, T> {
 
     private CalledCC run0() {
         boolean restored = false;
-        prepare();
+        prepare0();
         try {
             result = target.call();
             done = true;
@@ -111,25 +127,33 @@ public abstract class Continuation<S extends Suspend, T> {
                 throw s;
 
             final CalledCC ccc = calledcc.get();
-            restore();
+            restore0();
             restored = true;
             if (ccc != null)
                 calledcc.set(null);
             return ccc;
         } finally {
             if (!restored)
-                restore();
+                restore0();
         }
     }
 
-    protected void prepare() {
-        currentContinuation.set(parent);
+    protected void prepare0() {
+        currentContinuation.set(this);
         calledcc.set(null);
+        prepare();
+    }
+
+    protected void prepare() {
+    }
+
+    private void restore0() {
+        stack.resumeStack();
+        currentContinuation.set(parent);
+        restore();
     }
 
     protected void restore() {
-        stack.resumeStack();
-        currentContinuation.set(parent);
     }
 
     public boolean isDone() {
@@ -138,6 +162,23 @@ public abstract class Continuation<S extends Suspend, T> {
 
     public T getResult() {
         return result;
+    }
+
+    private static Continuation<?, ?> verifySuspend() {
+        return verifySuspend(verifyCurrent());
+    }
+
+    static Continuation<?, ?> verifySuspend(Continuation<?, ?> current) {
+        if (verifyInstrumentation)
+            checkInstrumentation();
+        return current;
+    }
+
+    private static Continuation<?, ?> verifyCurrent() {
+        Continuation<?, ?> current = getCurrentContinuation();
+        if (current == null)
+            throw new IllegalStateException("Not called on a continuation (current strand: " + Strand.currentStrand() + ")");
+        return current;
     }
 
     //<editor-fold defaultstate="collapsed" desc="Recording">

@@ -13,8 +13,11 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.common.reflection.ASMUtil;
 import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
+import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_NAME;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
+import java.io.IOException;
 import java.util.ServiceLoader;
 
 /**
@@ -49,7 +52,7 @@ public class DefaultSuspendableClassifier implements SuspendableClassifier {
                 return st;
 
             // throws SuspendExceution
-            if (checkExceptions(methodExceptions))
+            if (checkExceptions(db, methodExceptions))
                 return SuspendableType.SUSPENDABLE;
         } catch (Exception e) {
             e.printStackTrace();
@@ -58,13 +61,23 @@ public class DefaultSuspendableClassifier implements SuspendableClassifier {
         return null;
     }
 
-    private static boolean checkExceptions(String[] exceptions) {
+    private static boolean checkExceptions(MethodDatabase db, String[] exceptions) {
         if (exceptions != null) {
             for (String ex : exceptions) {
-                if (ex.equals(SUSPEND_EXECUTION_NAME))
+                if (ex.equals(SUSPEND_EXECUTION_NAME) || isAssignableFrom(SUSPEND_NAME, ex, db.getClassLoader()))
                     return true;
             }
         }
         return false;
+    }
+
+    static boolean isAssignableFrom(String supertypeName, String className, ClassLoader cl) {
+        try {
+            return ASMUtil.isAssignableFrom(supertypeName, className, cl);
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof IOException)
+                return false;
+            throw e;
+        }
     }
 }

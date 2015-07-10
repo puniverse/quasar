@@ -42,6 +42,7 @@
 package co.paralleluniverse.fibers.instrument;
 
 // import co.paralleluniverse.common.util.SystemProperties;
+import co.paralleluniverse.common.reflection.ASMUtil;
 import co.paralleluniverse.fibers.Stack;
 import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
@@ -62,6 +63,7 @@ import static co.paralleluniverse.fibers.instrument.MethodDatabase.isInvocationH
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isMethodHandleInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isReflectInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isSyntheticAccess;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -292,6 +294,8 @@ class InstrumentMethod {
     public void accept(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
 
+        // final boolean X = "co/paralleluniverse/fibers/ValuedContinuation".equals(className) && "pause".equals(mn.name);
+
         final boolean skipInstrumentation = canInstrumentationBeSkipped(suspCallsBcis);
 
         emitInstrumentedAnn(mv, skipInstrumentation);
@@ -359,7 +363,7 @@ class InstrumentMethod {
         for (Object o : mn.tryCatchBlocks) {
             final TryCatchBlockNode tcb = (TryCatchBlockNode) o;
 
-            if (SUSPEND_EXECUTION_NAME.equals(tcb.type) && !hasAnnotation) // we allow catch of SuspendExecution in method annotated with @Suspendable.
+            if (!hasAnnotation && (SUSPEND_EXECUTION_NAME.equals(tcb.type) || isAssignableFrom(SUSPEND_NAME, tcb.type, db.getClassLoader()))) // we allow catch of SuspendExecution in method annotated with @Suspendable.
                 throw new UnableToInstrumentException("catch for SuspendExecution", className, mn.name, mn.desc);
             if (handleProxyInvocations && UNDECLARED_THROWABLE_NAME.equals(tcb.type)) // we allow catch of SuspendExecution in method annotated with @Suspendable.
                 throw new UnableToInstrumentException("catch for UndeclaredThrowableException", className, mn.name, mn.desc);
@@ -1208,5 +1212,15 @@ class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;", false); // StringBuilder PrintStream S1
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false); // PrintStream S1
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false); // S1
+    }
+
+    static boolean isAssignableFrom(String supertypeName, String className, ClassLoader cl) {
+        try {
+            return ASMUtil.isAssignableFrom(supertypeName, className, cl);
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof IOException)
+                return false;
+            throw e;
+        }
     }
 }

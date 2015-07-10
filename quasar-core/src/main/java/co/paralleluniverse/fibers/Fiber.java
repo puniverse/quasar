@@ -1609,12 +1609,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             return Integer.toString(sourceLine);
     }
 
-    private static boolean checkInstrumentation() {
+    static boolean checkInstrumentation() {
         return checkInstrumentation(ExtendedStackTrace.here());
     }
 
     @SuppressWarnings("null")
-    private static boolean checkInstrumentation(ExtendedStackTrace st) {
+    static boolean checkInstrumentation(ExtendedStackTrace st) {
         boolean ok = true;
         StringBuilder stackTrace = null;
 
@@ -1630,7 +1630,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             if (ste.getClassName().contains("$$Lambda$"))
                 continue;
 
-            if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
+            if (!isInternalFrame(ste)
                     && !ste.getClassName().equals(Stack.class.getName()) && !SuspendableHelper.isWaiver(ste.getClassName(), ste.getMethodName())) {
                 final Class<?> clazz = ste.getDeclaringClass();
                 boolean classInstrumented = SuspendableHelper.isInstrumented(clazz);
@@ -1657,7 +1657,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                     stackTrace.append(" **"); // Methods can only be found via source lines in @Instrumented annotations
                     ok = false;
                 }
-            } else if (ste.getClassName().equals(Fiber.class.getName()) && ste.getMethodName().equals("run1")) {
+            } else if (isTopExecMethod(ste)) {
                 if (!ok) {
                     final String str = "Uninstrumented methods (marked '**') or call-sites (marked '!!') detected on the call stack: " + stackTrace;
                     if (Debug.isUnitTest())
@@ -1667,7 +1667,17 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 return ok;
             }
         }
-        throw new IllegalStateException("Not run through Fiber.exec(). (trace: " + Arrays.toString(stes) + ")");
+        throw new IllegalStateException("Not run through Fiber.exec() or Continuation.run(). (trace: " + Arrays.toString(stes) + ")");
+    }
+    
+    private static boolean isInternalFrame(ExtendedStackTraceElement ste) {
+        return ste.getClassName().equals(Fiber.class.getName()) || ste.getClassName().startsWith(Fiber.class.getName() + '$')
+                || ste.getClassName().equals(Continuation.class.getName()) || ste.getClassName().startsWith(Continuation.class.getName() + '$');
+    }
+    
+    private static boolean isTopExecMethod(ExtendedStackTraceElement ste) {
+        return (ste.getClassName().equals(Fiber.class.getName()) && ste.getMethodName().equals("run1"))
+                || (ste.getClassName().equals(Continuation.class.getName()) && ste.getMethodName().equals("run0"));
     }
 
     private static StringBuilder initTrace(int i, ExtendedStackTraceElement[] stes) {

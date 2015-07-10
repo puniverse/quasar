@@ -161,6 +161,10 @@ public class MethodDatabase implements Log {
             log.error(msg, ex);
     }
 
+    public ClassLoader getClassLoader() {
+        return cl;
+    }
+
     public void checkClass(File f) {
         try {
             FileInputStream fis = new FileInputStream(f);
