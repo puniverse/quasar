@@ -456,26 +456,6 @@ project (':quasar-core') {
             }
         }
 
-        //        def jarTask = task("${set.name}Jar", type: Jar) {
-        //            from set.output
-        //            from zipTree("${baselib}/high-scale-lib.jar")  // include non-Maven jars
-        //            exclude 'META-INF/INDEX.LIST'
-        //
-        //            manifest {
-        //                attributes(
-        //	            "Built-By"                  :   System.getProperty("user.name"),
-        //	            "Implementation-Title"      :   project.name,
-        //	            "Implementation-Version"    :   version,
-        //	            "Implementation-Vendor"     :   vendor,
-        //	            "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
-        //                    "Agent-Class"               :   "co.paralleluniverse.fibers.instrument.JavaAgent",
-        //	            "Can-Retransform-Classes"   :   "true",
-        //                    "Can-Redefine-Classes"      :   "true",
-        //                    //  "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',')
-        //                )
-        //            }
-        //        }
-
         def shadowJarTask = task("${set.name}ShadowJar", type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar, dependsOn: classes) {
             classifier = '' // overwrite jar
             destinationDir = file("$buildDir/libs")
@@ -510,6 +490,7 @@ project (':quasar-core') {
             testClassesDir = project.sourceSets["${set.name}test"].output.classesDir
             classpath = project.sourceSets["${set.name}test"].runtimeClasspath
 
+            systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
             project.afterEvaluate {
                 jvmArgs "-javaagent:${shadowJarTask.archivePath}" // =vdc
             }
