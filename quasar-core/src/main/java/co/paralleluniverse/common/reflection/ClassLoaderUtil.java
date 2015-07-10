@@ -61,26 +61,38 @@ public final class ClassLoaderUtil {
     }
 
     public static String classToResource(String className) {
+        if (className == null)
+            return null;
         return className.replace('.', '/') + CLASS_FILE_NAME_EXTENSION;
     }
 
     public static String classToResource(Class<?> clazz) {
+        if (clazz == null)
+            return null;
         return classToResource(clazz.getName());
     }
 
     public static String classToSlashed(String className) {
+        if (className == null)
+            return null;
         return className.replace('.', '/');
     }
 
     public static String classToSlashed(Class<?> clazz) {
+        if (clazz == null)
+            return null;
         return classToSlashed(clazz.getName());
     }
 
     public static String resourceToClass(String resourceName) {
+        if (resourceName == null)
+            return null;
         return resourceToSlashed(resourceName).replace('/', '.');
     }
 
     public static String resourceToSlashed(String resourceName) {
+        if (resourceName == null)
+            return null;
         if (!resourceName.endsWith(CLASS_FILE_NAME_EXTENSION))
             throw new IllegalArgumentException("Resource " + resourceName + " is not a class file");
         return resourceName.substring(0, resourceName.length() - CLASS_FILE_NAME_EXTENSION.length());
