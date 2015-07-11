@@ -891,10 +891,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private void installFiberDataInThread(Thread currentThread) {
         record(1, "Fiber", "installFiberDataInThread", "%s <-> %s", this, currentThread);
         installFiberLocals(currentThread);
-        setCurrentFiber(this, currentThread);
         installFiberContextClassLoader(currentThread);
         if (MAINTAIN_ACCESS_CONTROL_CONTEXT)
             installFiberInheritedAccessControlContext(currentThread);
+        setCurrentFiber(this, currentThread);
     }
 
     private void restoreThreadData(Thread currentThread, Object old) {
