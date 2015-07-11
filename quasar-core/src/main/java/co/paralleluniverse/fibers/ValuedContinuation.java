@@ -71,7 +71,7 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
         return res;
     }
 
-    public Out getProductionResult() {
+    public Out getPauseValue() {
         return pauseOut;
     }
 }
