@@ -18,5 +18,12 @@ package co.paralleluniverse.fibers;
  * @author pron
  */
 public class Suspend extends RuntimeException {
-    
+    public Suspend() {
+        super("Oops. Forgot to instrument a method. Run your program with -Dco.paralleluniverse.fibers.verifyInstrumentation=true to catch the culprit!");
+    }
+
+    @Override
+    public Throwable fillInStackTrace() {
+        return this;
+    }
 }
