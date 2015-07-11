@@ -33,10 +33,11 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
 
     private static final ThreadLocal<Continuation> currentContinuation = new ThreadLocal<>();
 
-    final Stack stack;
-    private final Callable<T> target;
     private final Class<S> scope;
     private final Continuation parent;
+    private final Callable<T> target;
+    final Stack stack;
+    private final ThreadData threadData;
     private boolean done;
     private T result;
     private boolean recursive;
@@ -49,6 +50,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
         this.parent = getCurrentContinuation();
         this.stack = new Stack(this, stackSize);
         this.scope = scope;
+        this.threadData = null; // unused
     }
 
     public Continuation(Class<S> scope, Callable<T> target) {
@@ -131,6 +133,8 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
 
     protected void prepare0() {
         currentContinuation.set(this);
+        if (threadData != null)
+            threadData.installDataInThread(Thread.currentThread());
         calledcc.set(null);
         prepare();
     }
@@ -140,6 +144,8 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
 
     private void restore0() {
         stack.resumeStack();
+        if (threadData != null)
+            threadData.restoreThreadData(Thread.currentThread());
         currentContinuation.set(parent);
         restore();
     }
