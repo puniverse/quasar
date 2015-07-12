@@ -933,7 +933,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         if (isRecordingLevel(2)) {
             record(2, "Fiber", "switchFiberAndThreadLocals", "fiberLocals: %s", ThreadUtil.getThreadLocalsString(install ? this.fiberLocals : tmpThreadLocals));
-            record(2, "Fiber", "switchFiberAndThreadLocals", "inheritableFilberLocals: %s", ThreadUtil.getThreadLocalsString(install ? this.inheritableFiberLocals : tmpInheritableThreadLocals));
+            record(2, "Fiber", "switchFiberAndThreadLocals", "inheritableFiberLocals: %s", ThreadUtil.getThreadLocalsString(install ? this.inheritableFiberLocals : tmpInheritableThreadLocals));
         }
 
         ThreadAccess.setThreadLocals(currentThread, this.fiberLocals);
