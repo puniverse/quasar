@@ -27,28 +27,50 @@ public class TrueThreadLocal<T> extends ThreadLocal<T> {
     @Override
     public T get() {
         final Thread thread = Thread.currentThread();
-        final Fiber fiber = Fiber.currentFiber();
-        if (fiber != null)
-            fiber.restoreThreadLocals(thread);
-        try {
-            return super.get();
-        } finally {
-            if (fiber != null)
-                fiber.installFiberLocals(thread);
+        final Continuation cont = Continuation.getDetachedContinuation();
+        if (cont != null && cont.threadData != null) {
+            cont.threadData.restoreThreadLocals(thread);
+            try {
+                return super.get();
+            } finally {
+                cont.threadData.installThreadLocals(thread);
+            }
+        } else {
+            final Fiber fiber = Fiber.currentFiber();
+            if (fiber != null) {
+                fiber.restoreThreadLocals(thread);
+                try {
+                    return super.get();
+                } finally {
+                    fiber.installFiberLocals(thread);
+                }
+            } else
+                return super.get();
         }
     }
 
     @Override
     public void set(T value) {
         final Thread thread = Thread.currentThread();
-        final Fiber fiber = Fiber.currentFiber();
-        if (fiber != null)
-            fiber.restoreThreadLocals(thread);
-        try {
-            super.set(value);
-        } finally {
-            if (fiber != null)
-                fiber.installFiberLocals(thread);
+        final Continuation cont = Continuation.getDetachedContinuation();
+        if (cont != null && cont.threadData != null) {
+            cont.threadData.restoreThreadLocals(thread);
+            try {
+                super.set(value);
+            } finally {
+                cont.threadData.installThreadLocals(thread);
+            }
+        } else {
+            final Fiber fiber = Fiber.currentFiber();
+            if (fiber != null) {
+                fiber.restoreThreadLocals(thread);
+                try {
+                    super.set(value);
+                } finally {
+                    fiber.installFiberLocals(thread);
+                }
+            } else
+                super.set(value);
         }
     }
 }

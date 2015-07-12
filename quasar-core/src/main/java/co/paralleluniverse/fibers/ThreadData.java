@@ -16,6 +16,7 @@ package co.paralleluniverse.fibers;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
 import java.security.AccessControlContext;
+import java.security.AccessController;
 
 /**
  *
@@ -28,18 +29,27 @@ class ThreadData {
     private Object threadLocals;
     private Object inheritableThreadLocals;
 
-    public void installDataInThread(Thread currentThread) {
-        installLocals(currentThread);
-        installFiberContextClassLoader(currentThread);
+    public ThreadData(Thread thread) {
+        final Object inheritableTLs = ThreadAccess.getInheritableThreadLocals(thread);
+        if (inheritableTLs != null)
+            this.inheritableThreadLocals = ThreadAccess.createInheritedMap(inheritableTLs);
+        this.contextClassLoader = ThreadAccess.getContextClassLoader(thread);
         if (MAINTAIN_ACCESS_CONTROL_CONTEXT)
-            installFiberInheritedAccessControlContext(currentThread);
+            this.inheritedAccessControlContext = AccessController.getContext();
     }
 
-    public void restoreThreadData(Thread currentThread) {
-        restoreThreadLocals(currentThread);
-        restoreThreadContextClassLoader(currentThread);
+    public void installDataInThread(Thread thread) {
+        installThreadLocals(thread);
+        installFiberContextClassLoader(thread);
         if (MAINTAIN_ACCESS_CONTROL_CONTEXT)
-            restoreThreadInheritedAccessControlContext(currentThread);
+            installFiberInheritedAccessControlContext(thread);
+    }
+
+    public void restoreThreadData(Thread thread) {
+        restoreThreadLocals(thread);
+        restoreThreadContextClassLoader(thread);
+        if (MAINTAIN_ACCESS_CONTROL_CONTEXT)
+            restoreThreadInheritedAccessControlContext(thread);
     }
 
     /**
@@ -47,7 +57,7 @@ class ThreadData {
      *
      * @param currentThread
      */
-    void installLocals(Thread currentThread) {
+    void installThreadLocals(Thread currentThread) {
         switchThreadLocals(currentThread, true);
     }
 
@@ -63,11 +73,6 @@ class ThreadData {
     private void switchThreadLocals(Thread currentThread, boolean install) {
         Object tmpThreadLocals = ThreadAccess.getThreadLocals(currentThread);
         Object tmpInheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
-
-//        if (isRecordingLevel(2)) {
-//            record(2, "ThreadData", "switchThreadLocals", "fiberLocals: %s", ThreadUtil.getThreadLocalsString(install ? this.threadLocals : tmpThreadLocals));
-//            record(2, "ThreadData", "switchThreadLocals", "inheritableFilberLocals: %s", ThreadUtil.getThreadLocalsString(install ? this.inheritableThreadLocals : tmpInheritableThreadLocals));
-//        }
 
         ThreadAccess.setThreadLocals(currentThread, this.threadLocals);
         ThreadAccess.setInheritablehreadLocals(currentThread, this.inheritableThreadLocals);
@@ -98,5 +103,26 @@ class ThreadData {
         final AccessControlContext origAcc = inheritedAccessControlContext;
         this.inheritedAccessControlContext = ThreadAccess.getInheritedAccessControlContext(currentThread);
         ThreadAccess.setInheritedAccessControlContext(currentThread, origAcc);
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("ThreadData@").append(Integer.toHexString(System.identityHashCode(this))).append('{');
+        if (threadLocals != null || inheritableThreadLocals != null || contextClassLoader != null || inheritedAccessControlContext != null) {
+            sb.append("\n");
+            if (threadLocals != null)
+                sb.append("\tthreadLocals: ").append(ThreadUtil.getThreadLocalsString(threadLocals)).append('\n');
+            if (inheritableThreadLocals != null)
+                sb.append("\tinheritableThreadLocals: ").append(ThreadUtil.getThreadLocalsString(inheritableThreadLocals)).append('\n');
+            if (contextClassLoader != null)
+                sb.append("\tcontextClassLoader: ").append(contextClassLoader).append('\n');
+            if (inheritedAccessControlContext != null)
+                sb.append("\tinheritedAccessControlContext: ").append(inheritedAccessControlContext).append('\n');
+            sb.append("}");
+        } else
+            sb.append("EMPTY");
+        sb.append("}");
+        return sb.toString();
     }
 }

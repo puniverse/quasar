@@ -37,7 +37,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     private final Continuation parent;
     private final Callable<T> target;
     final Stack stack;
-    private final ThreadData threadData;
+    final ThreadData threadData;
     private boolean done;
     private T result;
     private boolean recursive;
@@ -45,20 +45,41 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
 
     private static final ThreadLocal<CalledCC> calledcc = new ThreadLocal<>();
 
-    public Continuation(Class<S> scope, Callable<T> target, int stackSize) {
-        this.target = target;
+    public Continuation(Class<S> scope, boolean detached, int stackSize, Callable<T> target) {
+        if (scope == null)
+            throw new IllegalArgumentException("Scope is null");
         this.parent = getCurrentContinuation();
+        if (detached & parent != null)
+            throw new IllegalStateException("Cannot create a detached continuation nested within another continuation: " + parent);
+        this.target = target;
         this.stack = new Stack(this, stackSize);
         this.scope = scope;
-        this.threadData = null; // unused
+        this.threadData = detached ? new ThreadData(Thread.currentThread()) : null;
+    }
+
+    public Continuation(Class<S> scope, boolean detached, Callable<T> target) {
+        this(scope, detached, DEFAULT_STACK_SIZE, target);
     }
 
     public Continuation(Class<S> scope, Callable<T> target) {
-        this(scope, target, DEFAULT_STACK_SIZE);
+        this(scope, false, DEFAULT_STACK_SIZE, target);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getName() + '@' + Integer.toHexString(System.identityHashCode(this)) + "{scope: " + scope.getName() + " parent: " + parent + '}';
     }
 
     static Continuation getCurrentContinuation() {
         return currentContinuation.get();
+    }
+
+    static Continuation getDetachedContinuation() {
+        for (Continuation c = getCurrentContinuation(); c != null; c = c.parent) {
+            if (c.threadData != null)
+                return c;
+        }
+        return null;
     }
 
     static void suspend0(Suspend suspend) {
@@ -109,8 +130,9 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     }
 
     private CalledCC run0() {
+        final Thread currentThread = threadData != null ? Thread.currentThread() : null;
         boolean restored = false;
-        prepare0();
+        prepare0(currentThread);
         try {
             result = target.call();
             done = true;
@@ -120,21 +142,23 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
                 throw s;
 
             final CalledCC ccc = calledcc.get();
-            restore0();
+            restore0(currentThread);
             restored = true;
             if (ccc != null)
                 calledcc.set(null);
             return ccc;
         } finally {
             if (!restored)
-                restore0();
+                restore0(currentThread);
         }
     }
 
-    protected void prepare0() {
+    protected void prepare0(Thread currentThread) {
         currentContinuation.set(this);
-        if (threadData != null)
-            threadData.installDataInThread(Thread.currentThread());
+        if (threadData != null) {
+            record(2, "Continuation", "prepare", "threadData: %s", threadData);
+            threadData.installDataInThread(currentThread);
+        }
         calledcc.set(null);
         prepare();
     }
@@ -142,10 +166,12 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     protected void prepare() {
     }
 
-    private void restore0() {
+    private void restore0(Thread currentThread) {
         stack.resumeStack();
-        if (threadData != null)
-            threadData.restoreThreadData(Thread.currentThread());
+        if (threadData != null) {
+            record(2, "Continuation", "restore", "threadData: %s", threadData);
+            threadData.restoreThreadData(currentThread);
+        }
         currentContinuation.set(parent);
         restore();
     }

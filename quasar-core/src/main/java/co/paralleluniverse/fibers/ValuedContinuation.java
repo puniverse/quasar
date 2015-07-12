@@ -21,8 +21,12 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
     private Out pauseOut;
     private In pauseIn;
 
-    public ValuedContinuation(Class<S> scope, Callable<T> target, int stackSize) {
-        super(scope, target, stackSize);
+    public ValuedContinuation(Class<S> scope, boolean detached, int stackSize, Callable<T> target) {
+        super(scope, detached, stackSize, target);
+    }
+
+    public ValuedContinuation(Class<S> scope, boolean detached, Callable<T> target) {
+        super(scope, detached, target);
     }
 
     public ValuedContinuation(Class<S> scope, Callable<T> target) {
