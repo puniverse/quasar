@@ -52,17 +52,17 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
         if (detached & parent != null)
             throw new IllegalStateException("Cannot create a detached continuation nested within another continuation: " + parent);
         this.target = target;
-        this.stack = new Stack(this, stackSize);
+        this.stack = new Stack(this, stackSize > 0 ? stackSize : DEFAULT_STACK_SIZE);
         this.scope = scope;
         this.threadData = detached ? new ThreadData(Thread.currentThread()) : null;
     }
 
     public Continuation(Class<S> scope, boolean detached, Callable<T> target) {
-        this(scope, detached, DEFAULT_STACK_SIZE, target);
+        this(scope, detached, 0, target);
     }
 
     public Continuation(Class<S> scope, Callable<T> target) {
-        this(scope, false, DEFAULT_STACK_SIZE, target);
+        this(scope, false, 0, target);
     }
 
     @Override
