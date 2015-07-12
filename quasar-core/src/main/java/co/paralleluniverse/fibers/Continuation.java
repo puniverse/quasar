@@ -138,9 +138,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
             done = true;
             return null;
         } catch (Suspend s) {
-            if (!scope.isInstance(s))
-                throw s;
-
+            verifyScope(s);
             final CalledCC ccc = calledcc.get();
             restore0(currentThread);
             restored = true;
@@ -151,6 +149,11 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
             if (!restored)
                 restore0(currentThread);
         }
+    }
+
+    protected void verifyScope(Suspend s) {
+        if (!scope.isInstance(s))
+            throw s;
     }
 
     protected void prepare0(Thread currentThread) {
