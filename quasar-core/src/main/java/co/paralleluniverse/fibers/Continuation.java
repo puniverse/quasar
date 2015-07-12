@@ -27,7 +27,7 @@ import java.io.Serializable;
  * @author pron
  */
 public abstract class Continuation<S extends Suspend, T> implements Serializable {
-    public static final int DEFAULT_STACK_SIZE = 16;
+    public static final int DEFAULT_STACK_SIZE = 8;
     private static final boolean verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
     protected static final FlightRecorder flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
@@ -130,6 +130,8 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     }
 
     private CalledCC run0() {
+        if (isDone())
+            throw new IllegalStateException("Continuation terminated");
         final Thread currentThread = threadData != null ? Thread.currentThread() : null;
         boolean restored = false;
         prepare0(currentThread);

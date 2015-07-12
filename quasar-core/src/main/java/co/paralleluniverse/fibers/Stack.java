@@ -48,7 +48,7 @@ public final class Stack implements Serializable {
 
     Stack(Object context, int stackSize) {
         if (stackSize <= 0)
-            throw new IllegalArgumentException("stackSize");
+            throw new IllegalArgumentException("stackSize: " + stackSize);
 
         this.context = context;
         this.dataLong = new long[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
