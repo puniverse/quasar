@@ -124,7 +124,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
         return null;
     }
 
-    public final Continuation<S, T> run() {
+    public final Continuation<S, T> go() {
         Continuation<S, T> c = this, res;
         do {
             res = c;

@@ -91,7 +91,7 @@ public class CoIterable<E> implements Iterable<E> {
         }
 
         private E getNext() {
-            c.run();
+            c.go();
             if (c.isDone())
                 throw new NoSuchElementException();
             next = c.getPauseValue();

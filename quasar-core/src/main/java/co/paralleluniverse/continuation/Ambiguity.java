@@ -42,7 +42,7 @@ public class Ambiguity<T> {
 
     public T run() throws NoSolution {
         try {
-            Continuation<AmbScope, T> c = pop().run();
+            Continuation<AmbScope, T> c = pop().go();
             assert c.isDone();
             return c.getResult();
         } catch (RuntimeNoSolution e) {

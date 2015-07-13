@@ -41,9 +41,9 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
         pauseOut = null;
     }
 
-    public ValuedContinuation<S, T, Out, In> run(In value) {
+    public ValuedContinuation<S, T, Out, In> go(In value) {
         pauseIn = value;
-        return (ValuedContinuation<S, T, Out, In>)run();
+        return (ValuedContinuation<S, T, Out, In>)go();
     }
 
     public static <S extends Suspend, In> In pause(S scope) throws S {
