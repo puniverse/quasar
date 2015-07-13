@@ -26,7 +26,7 @@ import java.io.Serializable;
  * If you need a continuation that can be triggered by multiple strands, please use a fiber.
  * @author pron
  */
-public abstract class Continuation<S extends Suspend, T> implements Serializable {
+public abstract class Continuation<S extends Suspend, T> implements Serializable, Cloneable {
     public static final int DEFAULT_STACK_SIZE = 8;
     private static final boolean verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
     protected static final FlightRecorder flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
@@ -36,7 +36,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     private final Class<S> scope;
     private final Continuation parent;
     private final Callable<T> target;
-    final Stack stack;
+    private Stack stack;
     final ThreadData threadData;
     private boolean done;
     private T result;
@@ -63,6 +63,23 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
 
     public Continuation(Class<S> scope, Callable<T> target) {
         this(scope, false, 0, target);
+    }
+
+    Stack getStack() {
+        return stack;
+    }
+
+    @Override
+    public Continuation<S, T> clone() {
+        try {
+            if (threadData != null)
+                throw new UnsupportedOperationException("Cannot clone a detached continuation");
+            Continuation<S, T> o = (Continuation<S, T>) super.clone();
+            o.stack = stack.clone();
+            return o;
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError();
+        }
     }
 
     @Override

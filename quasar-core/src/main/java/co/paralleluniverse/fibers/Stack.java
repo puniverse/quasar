@@ -25,7 +25,7 @@ import java.util.Arrays;
  * @author Matthias Mann
  * @author Ron Pressler
  */
-public final class Stack implements Serializable {
+public final class Stack implements Serializable, Cloneable {
     /*
      * sp points to the first slot to contain data.
      * The _previous_ FRAME_RECORD_SIZE slots contain the frame record.
@@ -57,13 +57,25 @@ public final class Stack implements Serializable {
         resumeStack();
     }
 
+    @Override
+    public Stack clone() {
+        try {
+            Stack o = (Stack)super.clone();
+            o.dataLong = Arrays.copyOf(dataLong, dataLong.length);
+            o.dataObject = Arrays.copyOf(dataObject, dataObject.length);
+            return o;
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError();
+        }
+    }
+
     public static Stack getStack() {
         final Fiber<?> currentFiber = Fiber.currentFiber();
         if (currentFiber != null)
             return currentFiber.stack;
         final Continuation<?, ?> currentCont = Continuation.getCurrentContinuation();
         if (currentCont != null)
-            return currentCont.stack;
+            return currentCont.getStack();
         return null;
     }
 
