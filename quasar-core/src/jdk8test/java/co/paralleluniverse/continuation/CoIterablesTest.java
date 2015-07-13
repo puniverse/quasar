@@ -34,6 +34,11 @@ public class CoIterablesTest {
         assertEquals(toList(range(1000, 1010)), toList(take(10, range(1000))));
     }
 
+    @Test
+    public void testFlatMap() {
+        assertEquals(45, toList(flatMap(range(0, 10), x -> range(0, x))).size());
+    }
+
     static Iterable<Integer> range(int from, int to) {
         return new CoIterable<>(() -> {
             for (int i = from; i < to; i++)
