@@ -25,6 +25,10 @@ import java.util.NoSuchElementException;
  * @author pron
  */
 public class CoIterable<E> implements Iterable<E> {
+    public static <E> CoIterable<E> iterable(Generator<E> generator) {
+        return new CoIterable<E>(generator);
+    }
+    
     private final Generator<E> generator;
 
     public CoIterable(Generator<E> generator) {

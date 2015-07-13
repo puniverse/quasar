@@ -17,11 +17,11 @@ package co.paralleluniverse.fibers;
  *
  * @author pron
  */
-public interface CalledCC<S extends Suspend, T> {
+public interface CalledCC<S extends Suspend> {
     /**
      * Must not call Continuation.run(). Instead return the continuation to run.
      * @param c
      * @return 
      */
-    Continuation<S, T> suspended(Continuation<S, T> c);
+    <T> Continuation<S, T> suspended(Continuation<S, T> c);
 }

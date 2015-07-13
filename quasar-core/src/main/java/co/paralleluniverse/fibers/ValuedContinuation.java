@@ -41,39 +41,46 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
         pauseOut = null;
     }
 
-    public void run(In value) {
+    public ValuedContinuation<S, T, Out, In> run(In value) {
         pauseIn = value;
-        run();
+        return (ValuedContinuation<S, T, Out, In>)run();
     }
 
     public static <S extends Suspend, In> In pause(S scope) throws S {
-        ValuedContinuation<S, ?, ?, In> c = (ValuedContinuation<S, ?, ?, In>) suspend(scope);
-        In res = c.pauseIn;
-        c.pauseIn = null;
-        return res;
+        return inValue((ValuedContinuation<S, ?, ?, In>) suspend(scope));
     }
 
-    public static <S extends Suspend, T, Out, In> In pause(S scope, final Out value) throws S {
-        ValuedContinuation<S, ?, Out, In> c = (ValuedContinuation<S, ?, Out, In>) Continuation.suspend(scope, new CalledCC<S, T>() {
+    public static <S extends Suspend, Out, In> In pause(S scope, final Out value) throws S {
+        return inValue((ValuedContinuation<S, ?, Out, In>) Continuation.suspend(scope, new CalledCC<S>() {
             @Override
-            public Continuation<S, T> suspended(Continuation<S, T> c) {
+            public <T> Continuation<S, T> suspended(Continuation<S, T> c) {
                 ((ValuedContinuation<S, ?, Out, In>) c).pauseOut = value;
                 return null;
             }
-        });
-        In res = c.pauseIn;
-        c.pauseIn = null;
-        return res;
+        }));
     }
 
-    public static <S extends Suspend, T, Out, In> In pause(S scope, final Function<Continuation<S, T>, Out> f) throws S {
-        ValuedContinuation<S, ?, Out, In> c = (ValuedContinuation<S, ?, Out, In>) Continuation.suspend(scope, new CalledCC<S, T>() {
+    public static <S extends Suspend, Out, In> In pause(S scope, final Function<Continuation<S, ?>, Out> f) throws S {
+        return inValue((ValuedContinuation<S, ?, Out, In>) Continuation.suspend(scope, new CalledCC<S>() {
             @Override
-            public Continuation<S, T> suspended(Continuation<S, T> c) {
+            public <T> Continuation<S, T> suspended(Continuation<S, T> c) {
                 ((ValuedContinuation<S, ?, Out, In>) c).pauseOut = f.apply(c);
                 return null;
             }
-        });
+        }));
+    }
+
+    public static <S extends Suspend, Out, In> In pause(S scope, final Out value, final CalledCC<S> ccc) throws S {
+        return inValue((ValuedContinuation<S, ?, Out, In>) Continuation.suspend(scope, new CalledCC<S>() {
+            @Override
+            public <T> Continuation<S, T> suspended(Continuation<S, T> c) {
+                ((ValuedContinuation<S, ?, Out, In>) c).pauseOut = value;
+                return ccc.suspended(c);
+            }
+        }));
+    }
+
+    private static <S extends Suspend, T, Out, In> In inValue(ValuedContinuation<S, T, Out, In> c) {
         In res = c.pauseIn;
         c.pauseIn = null;
         return res;

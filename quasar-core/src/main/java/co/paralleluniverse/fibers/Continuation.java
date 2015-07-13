@@ -73,7 +73,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
             if (threadData != null)
                 throw new UnsupportedOperationException("Cannot clone a detached continuation");
             Continuation<S, T> o = (Continuation<S, T>) super.clone();
-            o.stack = stack.clone();
+            o.stack = new Stack(o, stack);
             return o;
         } catch (CloneNotSupportedException e) {
             throw new AssertionError();
@@ -115,7 +115,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     /**
      * Subclasses calling this method must call it explicitly so, {@code Continuation.suspend}, and not simply {@code suspend}.
      */
-    public static <S extends Suspend, T> Continuation<S, T> suspend(S scope, CalledCC<S, T> ccc) throws S {
+    public static <S extends Suspend, T> Continuation<S, T> suspend(S scope, CalledCC<S> ccc) throws S {
         if (verifyInstrumentation)
             verifySuspend();
         calledcc.set(ccc);
@@ -124,12 +124,14 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
         return null;
     }
 
-    public final void run() {
-        Continuation<S, T> c = this;
+    public final Continuation<S, T> run() {
+        Continuation<S, T> c = this, res;
         do {
+            res = c;
             CalledCC ccc = c.run0();
-            c = ccc != null ? ccc.suspended(this) : null;
+            c = ccc != null ? ccc.suspended(c) : null;
         } while (c != null);
+        return res;
     }
 
     private CalledCC run0() {
@@ -137,22 +139,25 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
             throw new IllegalStateException("Continuation terminated");
         final Thread currentThread = threadData != null ? Thread.currentThread() : null;
         boolean restored = false;
-        prepare0(currentThread);
+        Continuation<?, ?> prev = prepare0(currentThread);
         try {
             result = target.call();
-            done = true;
+            done0(null);
             return null;
         } catch (Suspend s) {
             verifyScope(s);
             final CalledCC ccc = calledcc.get();
-            restore0(currentThread);
+            restore0(currentThread, prev);
             restored = true;
             if (ccc != null)
                 calledcc.set(null);
             return ccc;
+        } catch (Throwable t) {
+            done0(t);
+            throw t;
         } finally {
             if (!restored)
-                restore0(currentThread);
+                restore0(currentThread, prev);
         }
     }
 
@@ -161,7 +166,8 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
             throw s;
     }
 
-    protected void prepare0(Thread currentThread) {
+    protected Continuation<?, ?> prepare0(Thread currentThread) {
+        Continuation<?, ?> prev = currentContinuation.get();
         currentContinuation.set(this);
         if (threadData != null) {
             record(2, "Continuation", "prepare", "threadData: %s", threadData);
@@ -169,22 +175,31 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
         }
         calledcc.set(null);
         prepare();
+        return prev;
     }
 
     protected void prepare() {
     }
 
-    private void restore0(Thread currentThread) {
+    private void restore0(Thread currentThread, Continuation<?, ?> prev) {
         stack.resumeStack();
         if (threadData != null) {
             record(2, "Continuation", "restore", "threadData: %s", threadData);
             threadData.restoreThreadData(currentThread);
         }
-        currentContinuation.set(parent);
+        currentContinuation.set(prev);
         restore();
     }
 
     protected void restore() {
+    }
+
+    private void done0(Throwable t) {
+        done = true;
+        done();
+    }
+
+    protected void done() {
     }
 
     public boolean isDone() {
