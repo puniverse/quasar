@@ -13,6 +13,8 @@
  */
 package co.paralleluniverse.fibers;
 
+import com.google.common.base.Function;
+
 /**
  *
  * @author pron
@@ -51,11 +53,12 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
         return res;
     }
 
-    public static <S extends Suspend, Out, In> In pause(S scope, final Out value) throws S {
-        ValuedContinuation<S, ?, Out, In> c = (ValuedContinuation<S, ?, Out, In>) Continuation.suspend(scope, new CalledCC() {
+    public static <S extends Suspend, T, Out, In> In pause(S scope, final Out value) throws S {
+        ValuedContinuation<S, ?, Out, In> c = (ValuedContinuation<S, ?, Out, In>) Continuation.suspend(scope, new CalledCC<S, T>() {
             @Override
-            public void suspended(Continuation c) {
+            public Continuation<S, T> suspended(Continuation<S, T> c) {
                 ((ValuedContinuation<S, ?, Out, In>) c).pauseOut = value;
+                return null;
             }
         });
         In res = c.pauseIn;
@@ -63,11 +66,12 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
         return res;
     }
 
-    public static <S extends Suspend, Out, In> In pause(S scope, final Callable<Out> f) throws S {
-        ValuedContinuation<S, ?, Out, In> c = (ValuedContinuation<S, ?, Out, In>) Continuation.suspend(scope, new CalledCC() {
+    public static <S extends Suspend, T, Out, In> In pause(S scope, final Function<Continuation<S, T>, Out> f) throws S {
+        ValuedContinuation<S, ?, Out, In> c = (ValuedContinuation<S, ?, Out, In>) Continuation.suspend(scope, new CalledCC<S, T>() {
             @Override
-            public void suspended(Continuation c) {
-                ((ValuedContinuation<S, ?, Out, In>) c).pauseOut = f.call();
+            public Continuation<S, T> suspended(Continuation<S, T> c) {
+                ((ValuedContinuation<S, ?, Out, In>) c).pauseOut = f.apply(c);
+                return null;
             }
         });
         In res = c.pauseIn;

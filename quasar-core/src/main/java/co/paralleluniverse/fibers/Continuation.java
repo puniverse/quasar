@@ -40,8 +40,6 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     final ThreadData threadData;
     private boolean done;
     private T result;
-    private boolean recursive;
-    private boolean runAgain;
 
     private static final ThreadLocal<CalledCC> calledcc = new ThreadLocal<>();
 
@@ -117,7 +115,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     /**
      * Subclasses calling this method must call it explicitly so, {@code Continuation.suspend}, and not simply {@code suspend}.
      */
-    public static <S extends Suspend> Continuation<S, ?> suspend(S scope, CalledCC ccc) throws S {
+    public static <S extends Suspend, T> Continuation<S, T> suspend(S scope, CalledCC<S, T> ccc) throws S {
         if (verifyInstrumentation)
             verifySuspend();
         calledcc.set(ccc);
@@ -126,24 +124,12 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
         return null;
     }
 
-    public void run() {
-        if (recursive) {
-            runAgain = true;
-            return;
-        }
+    public final void run() {
+        Continuation<S, T> c = this;
         do {
-            runAgain = false;
-            final CalledCC ccc = run0();
-
-            if (ccc != null) {
-                recursive = true;
-                try {
-                    ccc.suspended(this);
-                } finally {
-                    recursive = false;
-                }
-            }
-        } while (runAgain);
+            CalledCC ccc = c.run0();
+            c = ccc != null ? ccc.suspended(this) : null;
+        } while (c != null);
     }
 
     private CalledCC run0() {
