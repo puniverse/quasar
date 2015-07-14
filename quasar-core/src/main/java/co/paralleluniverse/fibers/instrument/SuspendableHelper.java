@@ -61,7 +61,7 @@ public final class SuspendableHelper {
         if (m == null)
             return new Pair<>(false, null);
 
-        if (m.isSynthetic())
+        if (isSyntheticAndNotLambda(m))
             return new Pair<>(true, null);
 
         ExtendedStackTraceElement ste = stes[currentSteIdx];
@@ -84,7 +84,11 @@ public final class SuspendableHelper {
     }
 
     public static boolean isInstrumented(Member m) {
-        return m != null && (m.isSynthetic() || getAnnotation(m, Instrumented.class) != null);
+        return m != null && (isSyntheticAndNotLambda(m) || getAnnotation(m, Instrumented.class) != null);
+    }
+    
+    public static boolean isSyntheticAndNotLambda(Member m) {
+        return m.isSynthetic() && !m.getName().startsWith("lambda$");
     }
     
     public static boolean isOptimized(Member m) {
