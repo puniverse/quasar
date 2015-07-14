@@ -99,6 +99,25 @@ public class AmbiguityTest {
         assertEquals(list(), list(solutions(amb)));
     }
 
+    //@Test
+    public void test6() throws Exception {
+        Ambiguity<Integer> amb = solve(() -> {
+            Iterable<Integer> a = iterable(() -> {
+                produce(amb(2));
+                //produce(amb(3, 10));
+            });
+
+            int sum = 0;
+            for (int x : a) {
+                sum += x;
+                assertThat(x % 2 == 0);
+            }
+            return sum;
+        });
+
+        assertEquals(list(2), list(solutions(amb)));
+    }
+
     static <T> Iterable<T> solutions(Ambiguity<T> amb) {
         return iterable(() -> {
             try {
