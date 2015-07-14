@@ -335,7 +335,13 @@ public class Debug {
     }
 
     public static String whereIs(Class<?> clazz) {
-        return clazz != null ? clazz.getClassLoader().getResource(clazz.getName().replace('.', '/') + ".class").toString() : null;
+        if (clazz == null)
+            return null;
+        final String resource = clazz.getName().replace('.', '/') + ".class";
+        URL url = clazz.getResource(resource);
+        if (url == null)
+            url = (clazz.getClassLoader() != null ? clazz.getClassLoader() : ClassLoader.getSystemClassLoader()).getResource(resource);
+        return url != null ? url.toString() : null;
     }
 
     private static Class findClass(String className) {
