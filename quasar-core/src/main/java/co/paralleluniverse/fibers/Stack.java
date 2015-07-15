@@ -277,27 +277,27 @@ public final class Stack implements Serializable {
     }
 
     ///////////////////////////////////////////////////////////////
-    private long setEntry(long record, int entry) {
+    private static long setEntry(long record, int entry) {
         return setBits(record, 0, 14, entry);
     }
 
-    private int getEntry(long record) {
+    private static int getEntry(long record) {
         return (int) getUnsignedBits(record, 0, 14);
     }
 
-    private long setNumSlots(long record, int numSlots) {
+    private static long setNumSlots(long record, int numSlots) {
         return setBits(record, 14, 16, numSlots);
     }
 
-    private int getNumSlots(long record) {
+    private static int getNumSlots(long record) {
         return (int) getUnsignedBits(record, 14, 16);
     }
 
-    private long setPrevNumSlots(long record, int numSlots) {
+    private static long setPrevNumSlots(long record, int numSlots) {
         return setBits(record, 30, 16, numSlots);
     }
 
-    private int getPrevNumSlots(long record) {
+    private static int getPrevNumSlots(long record) {
         return (int) getUnsignedBits(record, 30, 16);
     }
     ///////////////////////////////////////////////////////////////
