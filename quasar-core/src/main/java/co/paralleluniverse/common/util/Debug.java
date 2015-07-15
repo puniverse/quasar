@@ -370,6 +370,26 @@ public class Debug {
         return sb.toString();
     }
 
+    public static void printStackTrace(int num, java.io.PrintStream out) {
+        StackTraceElement[] trace = new Throwable().getStackTrace();
+        if (trace == null)
+            out.println("No stack trace");
+        else {
+            for (int i = 0; i < num && i < trace.length; i++)
+                out.println("\tat " + trace[i]);
+        }
+    }
+
+    public static void printStackTrace(int num, java.io.PrintWriter out) {
+        StackTraceElement[] trace = new Throwable().getStackTrace();
+        if (trace == null)
+            out.println("No stack trace");
+        else {
+            for (int i = 0; i < num && i < trace.length; i++)
+                out.println("\tat " + trace[i]);
+        }
+    }
+
     private static StringBuilder indent(StringBuilder sb, int indent) {
         for (int i = 0; i < indent; i++)
             sb.append(' ');
