@@ -50,7 +50,8 @@ public class ActorRegistry {
 
         actor.preRegister(name);
         final Object res = registry.register(actor.ref0(), globalId);
-
+        actor.postRegister();
+        
         actor.monitor();
         return res;
     }
