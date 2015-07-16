@@ -18,6 +18,7 @@ import co.paralleluniverse.fibers.CalledCC;
 import co.paralleluniverse.fibers.Continuation;
 import co.paralleluniverse.fibers.Suspend;
 import static co.paralleluniverse.fibers.Continuation.suspend;
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -77,7 +78,13 @@ public class Ambiguity<T> {
                 @Override
                 @Suspendable
                 public T call() {
-                    return target.run();
+                    try {
+                        return target.run();
+                    } catch (SuspendExecution e) {
+                        throw new AssertionError(e);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             });
             this.ambiguity = ambiguity;
@@ -132,6 +139,6 @@ public class Ambiguity<T> {
     }
 
     public static interface Ambiguous<T> {
-        T run() throws AmbScope; // Unfortunately, throwables can't be generic. We would have wanted to CoIteratorScope<E>
+        T run() throws AmbScope, SuspendExecution, InterruptedException; // Unfortunately, throwables can't be generic. We would have wanted to CoIteratorScope<E>
     }
 }

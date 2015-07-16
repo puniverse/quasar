@@ -58,6 +58,8 @@ public class CoIterable<E> implements Iterable<E> {
                         return null;
                     } catch (SuspendExecution e) {
                         throw new AssertionError(e);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
                 }
             });
@@ -118,6 +120,6 @@ public class CoIterable<E> implements Iterable<E> {
     private static final CoIteratorScope SCOPE = new CoIteratorScope();
 
     public static interface Generator<E> {
-        void run() throws CoIteratorScope, SuspendExecution; // Unfortunately, throwables can't be generic. We would have wanted to CoIteratorScope<E>
+        void run() throws CoIteratorScope, SuspendExecution, InterruptedException; // Unfortunately, throwables can't be generic. We would have wanted to CoIteratorScope<E>
     }
 }

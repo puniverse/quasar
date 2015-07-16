@@ -44,25 +44,21 @@ public class CoIterableTest {
     public void testInFiber() throws Exception {
         Fiber<Integer> f = new Fiber<>(() -> {
             for (int x : new CoIterable<Integer>(() -> {
-                try {
-                    Fiber.sleep(20);
-                    produce(1);
-                    Fiber.sleep(20);
-                    produce(11);
-                    Fiber.sleep(20);
-                    produce(111);
-                    Fiber.sleep(20);
-                    produce(1111);
-                } catch (InterruptedException e) {
-                    throw new AssertionError(e);
-                }
+                Fiber.sleep(20);
+                produce(1);
+                Fiber.sleep(20);
+                produce(11);
+                Fiber.sleep(20);
+                produce(111);
+                Fiber.sleep(20);
+                produce(1111);
             }))
                 if (x > 100)
                     return x;
             return 0;
         }).start();
-        
-        assertEquals((Integer)111, f.get());
+
+        assertEquals((Integer) 111, f.get());
     }
 
     static Iterable<Integer> range(int from, int to) {

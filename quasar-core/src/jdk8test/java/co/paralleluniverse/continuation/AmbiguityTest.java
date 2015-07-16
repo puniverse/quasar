@@ -17,7 +17,6 @@ import static co.paralleluniverse.continuation.Ambiguity.*;
 import static co.paralleluniverse.continuation.CoIterable.*;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Suspendable;
-import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -93,16 +92,12 @@ public class AmbiguityTest {
     public void test4InFiber() throws Exception {
         Fiber<List<Integer>> f = new Fiber<>(() -> {
             Ambiguity<Integer> amb = solve(() -> {
-                try {
-                    int a = amb(1, 2, 3);
-                    int b = amb(2, 3, 4);
+                int a = amb(1, 2, 3);
+                int b = amb(2, 3, 4);
 
-                    Fiber.sleep(20);
-                    assertThat(b < a);
-                    return b;
-                } catch (Exception e) {
-                    throw new AssertionError(e);
-                }
+                Fiber.sleep(20);
+                assertThat(b < a);
+                return b;
             });
 
             return list(solutions(amb));
@@ -148,27 +143,18 @@ public class AmbiguityTest {
         Fiber<List<Integer>> f = new Fiber<>(() -> {
             Ambiguity<Integer> amb = solve(() -> {
                 Iterable<Integer> a = iterable(() -> {
-                    try {
-                        produce(amb(2, 1));
-                        Fiber.sleep(20);
-                        produce(amb(3, 10));
-                    } catch (Exception e) {
-                        throw new AssertionError(e);
-                    }
+                    produce(amb(2, 1));
+                    Fiber.sleep(20);
+                    produce(amb(3, 10));
                 });
 
-                try {
-                    int sum = 0;
-                    for (int x : a) {
-                        sum += x;
-                        Fiber.sleep(20);
-                        assertThat(x % 2 == 0);
-                    }
-                    return sum;
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    throw new AssertionError(e);
+                int sum = 0;
+                for (int x : a) {
+                    sum += x;
+                    Fiber.sleep(20);
+                    assertThat(x % 2 == 0);
                 }
+                return sum;
             });
             return list(solutions(amb));
         }).start();
