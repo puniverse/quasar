@@ -78,15 +78,15 @@ public final class Stack implements Serializable {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this)) + "{sp: " + sp + " pauseContext: " + Objects.systemToStringSimpleName(context) + '}';
+        return getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this)) + "{sp: " + sp + " pauseContext: " + Objects.systemToStringSimpleName(pausedContext) + '}';
     }
 
 //    public static Stack getStack() {
 //        Stack s = getStack0();
-//        // System.err.println("STACK: " + s + " : " + (s != null ? s.context : "null"));
+//        System.err.println("STACK: " + s + " : " + (s != null ? s.context : "null"));
 //        return s;
 //    }
-    
+
     public static Stack getStack() {
         final Continuation<?, ?> currentCont = Continuation.getCurrentContinuation();
         if (currentCont != null)

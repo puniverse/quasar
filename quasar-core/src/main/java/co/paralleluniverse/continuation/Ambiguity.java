@@ -43,7 +43,8 @@ public class Ambiguity<T> {
     @Suspendable // nested
     public T run() throws NoSolution {
         try {
-            Continuation<AmbScope, T> c = pop().go();
+            AmbContinuation<T> c = pop();
+            c.go();
             assert c.isDone();
             return c.getResult();
         } catch (RuntimeNoSolution e) {
@@ -56,13 +57,16 @@ public class Ambiguity<T> {
     }
 
     private void push(AmbContinuation<?> c) {
+        // System.err.println("PUSH: " + c);
         cs.addFirst((AmbContinuation<T>) c);
     }
 
     private AmbContinuation<T> pop() {
         if (cs.isEmpty())
             throw new RuntimeNoSolution();
-        return cs.removeFirst();
+        AmbContinuation<T> c = cs.removeFirst();
+        // System.err.println("POP: " + c);
+        return c;
     }
 
     private static class AmbContinuation<T> extends Continuation<AmbScope, T> {
@@ -70,8 +74,8 @@ public class Ambiguity<T> {
 
         public AmbContinuation(Ambiguity<T> ambiguity, final Ambiguous<T> target) {
             super(AmbScope.class, new Callable<T>() {
-                @Suspendable
                 @Override
+                @Suspendable
                 public T call() {
                     return target.run();
                 }
@@ -82,6 +86,7 @@ public class Ambiguity<T> {
 
     public static <T> T amb(List<T> values) throws AmbScope {
         AmbContinuation<?> c = captureCurrentContinuation();
+        // System.err.println("XXXX AMB: " + values);
         final T v = values.remove(0);
         if (!values.isEmpty())
             c.ambiguity.push(c);

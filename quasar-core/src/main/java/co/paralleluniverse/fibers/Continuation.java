@@ -36,16 +36,19 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     private final Class<S> scope;
     private final Continuation parent;
     private final Callable<T> target;
+    private Continuation<S, T> c;
     private Stack stack;
 //    private Stack tmpStack;
 //    private int embeddedSP = -1;
 //    private boolean copiedEmbedded;
     final ThreadData threadData;
+    private transient boolean inScope;
     private boolean done;
     private T result;
 
     private static final ThreadLocal<CalledCC> calledcc = new ThreadLocal<>();
 
+    @SuppressWarnings("LeakingThisInConstructor")
     public Continuation(Class<S> scope, boolean detached, int stackSize, Callable<T> target) {
         if (scope == null)
             throw new IllegalArgumentException("Scope is null");
@@ -56,6 +59,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
         this.stack = new Stack(this, stackSize > 0 ? stackSize : DEFAULT_STACK_SIZE);
         this.scope = scope;
         this.threadData = detached ? new ThreadData(Thread.currentThread()) : null;
+        this.c = this;
 
         // System.err.println("INIT: " + this);
     }
@@ -69,7 +73,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     }
 
     Stack getStack() {
-        return stack;
+        return c.stack;
     }
 
     @Override
@@ -78,20 +82,33 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
             if (threadData != null)
                 throw new UnsupportedOperationException("Cannot clone a detached continuation");
             Continuation<S, T> o = (Continuation<S, T>) super.clone();
+            o.c = c == this ? o : c.clone();
             if (stack != null) {
                 o.stack = new Stack(o, stack);
-                o.stack.setPauseContext(stack.getPausedContext() == this ? o : stack.getPausedContext());
+                Object pc = stack.getPausedContext();
+                o.stack.setPauseContext(pc == this ? o : pc);
             }
-            // System.err.println("CLONE: " + this + " -> " + o + " PC: " + o.stack.getPausedContext());
+            // System.err.println("CLONE: " + this + " -> " + o);
+
             return o;
         } catch (CloneNotSupportedException e) {
             throw new AssertionError();
         }
     }
 
+    public boolean isDone() {
+        return c.done;
+    }
+
+    public T getResult() {
+        return c.result;
+    }
+
     @Override
     public String toString() {
-        return getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this)) + "{scope: " + scope.getSimpleName() + " stack: " + stack + " parent: " + parent + '}';
+        return c.getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(c))
+                + "{scope: " + c.scope.getSimpleName() + " stack: " + c.stack + " parent: " + c.parent + '}'
+                + (c != this ? '(' + getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this)) + ')' : "");
     }
 
     static Continuation getCurrentContinuation() {
@@ -135,13 +152,19 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
 
     @Suspendable // may suspend enclosing continuations/fiber
     public final Continuation<S, T> go() {
-        Continuation<S, T> c = this, res;
-        do {
-            res = c;
+        /*
+         * We must keep c in the object on the heap because run0 may pause on an outer scope, and we need to preserve the 
+         * current continuation for when we resume (on the outer scope).
+         * Also, it's better, because it's really part of this object's state.
+         */
+        for (;;) {
             CalledCC ccc = c.run0();
-            c = ccc != null ? ccc.suspended(c) : null;
-        } while (c != null);
-        return res;
+            Continuation<S, T> c0 = ccc != null ? ccc.suspended(c) : null;
+            if (c0 == null)
+                break;
+            c = c0;
+        }
+        return c;
     }
 
     private CalledCC run0() {
@@ -157,6 +180,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
         } catch (Suspend s) {
             verifyScope(s);
 
+            inScope = true;
             final CalledCC ccc = calledcc.get();
             if (ccc != null)
                 calledcc.set(null);
@@ -168,8 +192,6 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
             if (t instanceof Suspend || t instanceof SuspendExecution || t instanceof RuntimeSuspendExecution)
                 throw t;
 
-            // System.err.println("EXCEPTION: " + t);
-            // t.printStackTrace(System.err);
             done0(t);
             throw t;
         } finally {
@@ -198,9 +220,9 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
 
     private void restore0(Thread currentThread, Continuation<?, ?> prev) {
         try {
-            // System.err.println("RESTORE: " + prev);
+            // System.err.println("RESTORE: " + this + " " + inScope + " -> " + prev);
             if (stack != null) {
-                if (stack.getPausedContext() != this)
+                if (!inScope)
                     stack.setPauseContext(null);
                 restoreStack(prev);
             }
@@ -210,6 +232,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
             }
             restore();
         } finally {
+            inScope = false;
             currentContinuation.set(prev);
         }
     }
@@ -269,14 +292,6 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     }
 
     protected void done() {
-    }
-
-    public boolean isDone() {
-        return done;
-    }
-
-    public T getResult() {
-        return result;
     }
 
     private static Continuation<?, ?> verifySuspend() {

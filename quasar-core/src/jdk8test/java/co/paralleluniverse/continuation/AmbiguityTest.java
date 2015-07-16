@@ -15,9 +15,12 @@ package co.paralleluniverse.continuation;
 
 import static co.paralleluniverse.continuation.Ambiguity.*;
 import static co.paralleluniverse.continuation.CoIterable.*;
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.Suspendable;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import org.junit.Test;
@@ -87,6 +90,28 @@ public class AmbiguityTest {
     }
 
     @Test
+    public void test4InFiber() throws Exception {
+        Fiber<List<Integer>> f = new Fiber<>(() -> {
+            Ambiguity<Integer> amb = solve(() -> {
+                try {
+                    int a = amb(1, 2, 3);
+                    int b = amb(2, 3, 4);
+
+                    Fiber.sleep(20);
+                    assertThat(b < a);
+                    return b;
+                } catch (Exception e) {
+                    throw new AssertionError(e);
+                }
+            });
+
+            return list(solutions(amb));
+        }).start();
+
+        assertEquals(list(2), f.get());
+    }
+
+    @Test
     public void test5() {
         Ambiguity<Integer> amb = solve(() -> {
             int a = amb(1, 2, 3);
@@ -99,12 +124,12 @@ public class AmbiguityTest {
         assertEquals(list(), list(solutions(amb)));
     }
 
-    // @Test -- can't work b/c of cloning nested continuations
+    @Test
     public void test6() throws Exception {
         Ambiguity<Integer> amb = solve(() -> {
             Iterable<Integer> a = iterable(() -> {
                 produce(amb(2, 1));
-                //produce(amb(3, 10));
+                produce(amb(3, 10));
             });
 
             int sum = 0;
@@ -115,7 +140,40 @@ public class AmbiguityTest {
             return sum;
         });
 
-        assertEquals(list(2), list(solutions(amb)));
+        assertEquals(list(12), list(solutions(amb)));
+    }
+
+    @Test
+    public void test6InFiber() throws Exception {
+        Fiber<List<Integer>> f = new Fiber<>(() -> {
+            Ambiguity<Integer> amb = solve(() -> {
+                Iterable<Integer> a = iterable(() -> {
+                    try {
+                        produce(amb(2, 1));
+                        Fiber.sleep(20);
+                        produce(amb(3, 10));
+                    } catch (Exception e) {
+                        throw new AssertionError(e);
+                    }
+                });
+
+                try {
+                    int sum = 0;
+                    for (int x : a) {
+                        sum += x;
+                        Fiber.sleep(20);
+                        assertThat(x % 2 == 0);
+                    }
+                    return sum;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    throw new AssertionError(e);
+                }
+            });
+            return list(solutions(amb));
+        }).start();
+
+        assertEquals(list(12), f.get());
     }
 
     static <T> Iterable<T> solutions(Ambiguity<T> amb) {
@@ -128,13 +186,20 @@ public class AmbiguityTest {
         });
     }
 
+    @Suspendable
     private static <E> List<E> list(Iterable<E> it) {
         List<E> list = new ArrayList<E>();
-        Iterables.addAll(list, it);
+        addAll(list, it);
         return list;
     }
 
     private static <E> List<E> list(E... xs) {
         return new ArrayList<E>(Arrays.asList(xs));
+    }
+
+    @Suspendable
+    private static <E> void addAll(Collection<E> c, Iterable<E> it) {
+        for (E e : it)
+            c.add(e);
     }
 }
