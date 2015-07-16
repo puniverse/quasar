@@ -78,8 +78,10 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
             if (threadData != null)
                 throw new UnsupportedOperationException("Cannot clone a detached continuation");
             Continuation<S, T> o = (Continuation<S, T>) super.clone();
-            o.stack = new Stack(o, stack);
-            o.stack.setPauseContext(stack.getPausedContext() == this ? o : stack.getPausedContext());
+            if (stack != null) {
+                o.stack = new Stack(o, stack);
+                o.stack.setPauseContext(stack.getPausedContext() == this ? o : stack.getPausedContext());
+            }
             // System.err.println("CLONE: " + this + " -> " + o + " PC: " + o.stack.getPausedContext());
             return o;
         } catch (CloneNotSupportedException e) {
@@ -168,7 +170,6 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
 
             // System.err.println("EXCEPTION: " + t);
             // t.printStackTrace(System.err);
-
             done0(t);
             throw t;
         } finally {

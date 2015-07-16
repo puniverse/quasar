@@ -63,6 +63,15 @@ public final class Stack implements Serializable {
         this.dataLong = Arrays.copyOf(s.dataLong, s.dataLong.length);
         this.dataObject = Arrays.copyOf(s.dataObject, s.dataObject.length);
 
+        for (int i = 0; i < dataObject.length; i++) {
+            if (dataObject[i] instanceof Continuation) {
+                Continuation c = (Continuation) dataObject[i];
+                if (c != s.context)
+                    dataObject[i] = c.clone();
+//                if (c == s.context)
+//                    dataObject[i] = context;
+            }
+        }
         resumeStack();
     }
 
@@ -76,6 +85,7 @@ public final class Stack implements Serializable {
 //        // System.err.println("STACK: " + s + " : " + (s != null ? s.context : "null"));
 //        return s;
 //    }
+    
     public static Stack getStack() {
         final Continuation<?, ?> currentCont = Continuation.getCurrentContinuation();
         if (currentCont != null)
@@ -286,7 +296,6 @@ public final class Stack implements Serializable {
 //    public final void preemptionPoint(int type) throws SuspendExecution {
 //        fiber.preemptionPoint(type);
 //    }
-
     private void growStack(int required) {
         int newSize = dataObject.length;
         do {
