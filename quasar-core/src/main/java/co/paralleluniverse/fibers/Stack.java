@@ -13,6 +13,8 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.common.monitoring.FlightRecorder;
+import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Objects;
 import java.io.Serializable;
@@ -27,6 +29,7 @@ import java.util.Arrays;
  * @author Ron Pressler
  */
 public final class Stack implements Serializable {
+    protected static final FlightRecorder flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
     /*
      * sp points to the first slot to contain data.
      * The _previous_ FRAME_RECORD_SIZE slots contain the frame record.
@@ -86,7 +89,6 @@ public final class Stack implements Serializable {
 //        System.err.println("STACK: " + s + " : " + (s != null ? s.context : "null"));
 //        return s;
 //    }
-
     public static Stack getStack() {
         final Continuation<?, ?> currentCont = Continuation.getCurrentContinuation();
         if (currentCont != null)
@@ -240,6 +242,39 @@ public final class Stack implements Serializable {
         return res;
     }
 
+    public final void postRestore() throws SuspendExecution, InterruptedException {
+        if (context instanceof Fiber)
+            ((Fiber) context).onResume();
+    }
+
+//    public final void preemptionPoint(int type) throws SuspendExecution {
+//        fiber.preemptionPoint(type);
+//    }
+    private void growStack(int required) {
+        int newSize = dataObject.length;
+        do {
+            newSize *= 2;
+        } while (newSize < required);
+
+        dataLong = Arrays.copyOf(dataLong, newSize);
+        dataObject = Arrays.copyOf(dataObject, newSize);
+    }
+
+    void dump() {
+        int m = 0;
+        int k = 0;
+        while (k < sp - 1) {
+            final long record = dataLong[k++];
+            final int slots = getNumSlots(record);
+
+            System.err.println("\tm=" + (m++) + " entry=" + getEntry(record) + " sp=" + k + " slots=" + slots + " prevSlots=" + getPrevNumSlots(record));
+            for (int i = 0; i < slots; i++, k++)
+                System.err.println("\t\tsp=" + k + " long=" + dataLong[k] + " obj=" + dataObject[k]);
+        }
+    }
+
+    //<editor-fold defaultstate="collapsed" desc="Unused">
+    /////////// Unused ///////////////////////////////////
     // unused
     final void moveTop(Stack s, int captured) {
         int start = captured + FRAME_RECORD_SIZE + getNumSlots(s.dataLong[captured]);
@@ -288,37 +323,7 @@ public final class Stack implements Serializable {
         // System.err.println("PUT_TOP " + this + " -> " + s + ": " + captured);
         // System.err.println("PUT_TOP start: " + start + " n: " + n);
     }
-
-    public final void postRestore() throws SuspendExecution, InterruptedException {
-        if (context instanceof Fiber)
-            ((Fiber) context).onResume();
-    }
-
-//    public final void preemptionPoint(int type) throws SuspendExecution {
-//        fiber.preemptionPoint(type);
-//    }
-    private void growStack(int required) {
-        int newSize = dataObject.length;
-        do {
-            newSize *= 2;
-        } while (newSize < required);
-
-        dataLong = Arrays.copyOf(dataLong, newSize);
-        dataObject = Arrays.copyOf(dataObject, newSize);
-    }
-
-    void dump() {
-        int m = 0;
-        int k = 0;
-        while (k < sp - 1) {
-            final long record = dataLong[k++];
-            final int slots = getNumSlots(record);
-
-            System.err.println("\tm=" + (m++) + " entry=" + getEntry(record) + " sp=" + k + " slots=" + slots + " prevSlots=" + getPrevNumSlots(record));
-            for (int i = 0; i < slots; i++, k++)
-                System.err.println("\t\tsp=" + k + " long=" + dataLong[k] + " obj=" + dataObject[k]);
-        }
-    }
+    // </editor-fold>
 
     public static void push(int value, Stack s, int idx) {
 //        if (s.fiber.isRecordingLevel(3))
@@ -464,34 +469,60 @@ public final class Stack implements Serializable {
         }
     }
 
-    //////////////////////////////
+    //<editor-fold defaultstate="collapsed" desc="Recording">
+    /////////// Recording ///////////////////////////////////
     protected final boolean isRecordingLevel(int level) {
-        if (context instanceof Fiber)
-            return ((Fiber) context).isRecordingLevel(level);
-        return ((Continuation) context).isRecordingLevel(level);
+        if (!Debug.isDebug())
+            return false;
+        final FlightRecorder.ThreadRecorder recorder = flightRecorder.get();
+        if (recorder == null)
+            return false;
+        return recorder.recordsLevel(level);
     }
 
     protected final void record(int level, String clazz, String method, String format) {
-        if (context instanceof Fiber)
-            ((Fiber) context).record(level, clazz, method, format);
-        ((Continuation) context).record(level, clazz, method, format);
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format);
     }
 
     protected final void record(int level, String clazz, String method, String format, Object arg1) {
-        if (context instanceof Fiber)
-            ((Fiber) context).record(level, clazz, method, format, arg1);
-        ((Continuation) context).record(level, clazz, method, format, arg1);
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, arg1);
     }
 
     protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2) {
-        if (context instanceof Fiber)
-            ((Fiber) context).record(level, clazz, method, format, arg1, arg2);
-        ((Continuation) context).record(level, clazz, method, format, arg1);
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2);
     }
 
     protected final void record(int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3) {
-        if (context instanceof Fiber)
-            ((Fiber) context).record(level, clazz, method, format, arg1, arg2, arg3);
-        ((Continuation) context).record(level, clazz, method, format, arg1, arg2, arg3);
+        if (flightRecorder != null)
+            record(flightRecorder.get(), level, clazz, method, format, arg1, arg2, arg3);
     }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, null));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1}));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2}));
+    }
+
+    private static void record(FlightRecorder.ThreadRecorder recorder, int level, String clazz, String method, String format, Object arg1, Object arg2, Object arg3) {
+        if (recorder != null)
+            recorder.record(level, makeFlightRecorderMessage(recorder, clazz, method, format, new Object[]{arg1, arg2, arg3}));
+    }
+
+    private static FlightRecorderMessage makeFlightRecorderMessage(FlightRecorder.ThreadRecorder recorder, String clazz, String method, String format, Object[] args) {
+        return new FlightRecorderMessage(clazz, method, format, args);
+        //return ((FlightRecorderMessageFactory) recorder.getAux()).makeFlightRecorderMessage(clazz, method, format, args);
+    }
+    //</editor-fold>
 }
