@@ -71,13 +71,12 @@ public final class Stack implements Serializable {
         return getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this)) + "{sp: " + sp + '}';
     }
 
+//    public static Stack getStack() {
+//        Stack s = getStack0();
+//        // System.err.println("STACK: " + s + " : " + (s != null ? s.context : "null"));
+//        return s;
+//    }
     public static Stack getStack() {
-        Stack s = getStack0();
-        // System.err.println("STACK: " + s + " : " + (s != null ? s.context : "null"));
-        return s;
-    }
-
-    private static Stack getStack0() {
         final Continuation<?, ?> currentCont = Continuation.getCurrentContinuation();
         if (currentCont != null)
             return currentCont.getStack();
@@ -97,9 +96,10 @@ public final class Stack implements Serializable {
     }
 
     public Object getPausedContext() {
-        Object c = pausedContext;
+        return pausedContext;
+        // Object c = pausedContext;
         // System.err.println("GET_PAUSE_CONTEXT: " + this + " : " + c);
-        return c;
+        // return c;
     }
 
     public Continuation getPausedContinuation() {
@@ -141,7 +141,6 @@ public final class Stack implements Serializable {
 
         // System.err.println("NEXT_ENTRY: " + idx + " # " + entry + " SP: " + sp + " -- " + dataLong);
         // Debug.printStackTrace(6, System.err);
-
         return entry;
     }
 
@@ -226,7 +225,7 @@ public final class Stack implements Serializable {
      */
     public final int capturePosition() {
         int res = sp == 0 ? sp : sp - FRAME_RECORD_SIZE;
-//        System.err.println("CAPTURE: " + res);
+        // System.err.println("CAPTURE: " + res);
         return res;
     }
 
@@ -285,6 +284,7 @@ public final class Stack implements Serializable {
 //    public final void preemptionPoint(int type) throws SuspendExecution {
 //        fiber.preemptionPoint(type);
 //    }
+
     private void growStack(int required) {
         int newSize = dataObject.length;
         do {
