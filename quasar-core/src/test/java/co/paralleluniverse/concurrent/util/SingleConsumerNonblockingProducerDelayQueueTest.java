@@ -21,6 +21,7 @@ import co.paralleluniverse.vtime.VirtualClock;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import static org.hamcrest.CoreMatchers.*;
+import org.junit.AfterClass;
 import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -43,6 +44,11 @@ public class SingleConsumerNonblockingProducerDelayQueueTest {
     public static void setupClass() {
         VirtualClock.setForCurrentThreadAndChildren(Debug.isCI() ? new ScaledClock(0.3) : SystemClock.instance());
         System.out.println("Using clock: " + VirtualClock.get());
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        VirtualClock.setGlobal(SystemClock.instance());
     }
 
     private static final boolean SEQUENCED = false;
