@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.util.Debug;
+import co.paralleluniverse.common.util.Objects;
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -77,7 +78,7 @@ public final class Stack implements Serializable {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this)) + "{sp: " + sp + '}';
+        return getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this)) + "{sp: " + sp + " pauseContext: " + Objects.systemToStringSimpleName(context) + '}';
     }
 
 //    public static Stack getStack() {
