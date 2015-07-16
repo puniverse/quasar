@@ -79,7 +79,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
             if (threadData != null)
                 throw new UnsupportedOperationException("Cannot clone a detached continuation");
             Continuation<S, T> o = (Continuation<S, T>) super.clone();
-            o.c = c == this ? o : c.clone();
+            o.c = (c == this ? o : c.clone());
             if (stack != null) {
                 o.stack = new Stack(o, stack);
                 Object pc = stack.getPausedContext();
@@ -160,6 +160,8 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
             if (c0 == null)
                 break;
             c = c0;
+            if (c != this & stack != null)
+                this.stack = null; // GC
         }
         return c;
     }
@@ -239,7 +241,6 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
 //    private boolean isEmbedded() {
 //        return parent != null && parent == parent;
 //    }
-    
     private void prepareStack() {
 //        if (isEmbedded()) {
 //            tmpStack = stack;
