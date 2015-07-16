@@ -229,7 +229,8 @@ public final class Stack implements Serializable {
         return res;
     }
 
-    public final void moveTop(Stack s, int captured) {
+    // unused
+    final void moveTop(Stack s, int captured) {
         int start = captured + FRAME_RECORD_SIZE + getNumSlots(s.dataLong[captured]);
         int k = start;
         int slots;
@@ -252,7 +253,8 @@ public final class Stack implements Serializable {
         // System.err.println("MOVE_TOP start: " + start + " n: " + n + " SP: " + s.sp);
     }
 
-    public final void putTop(Stack s, int captured) {
+    // unused
+    final void putTop(Stack s, int captured) {
         int start = captured + FRAME_RECORD_SIZE + getNumSlots(s.dataLong[captured]);
         int k = 0;
         int slots;
