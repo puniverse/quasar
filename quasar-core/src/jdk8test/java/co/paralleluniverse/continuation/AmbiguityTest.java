@@ -99,7 +99,7 @@ public class AmbiguityTest {
         assertEquals(list(), list(solutions(amb)));
     }
 
-    // @Test
+    // @Test -- can't work b/c of cloning nested continuations
     public void test6() throws Exception {
         Ambiguity<Integer> amb = solve(() -> {
             Iterable<Integer> a = iterable(() -> {
