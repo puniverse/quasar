@@ -37,6 +37,9 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     private final Continuation parent;
     private final Callable<T> target;
     private Stack stack;
+//    private Stack tmpStack;
+//    private int embeddedSP = -1;
+//    private boolean copiedEmbedded;
     final ThreadData threadData;
     private boolean done;
     private T result;
@@ -53,6 +56,8 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
         this.stack = new Stack(this, stackSize > 0 ? stackSize : DEFAULT_STACK_SIZE);
         this.scope = scope;
         this.threadData = detached ? new ThreadData(Thread.currentThread()) : null;
+
+        // System.err.println("INIT: " + this);
     }
 
     public Continuation(Class<S> scope, boolean detached, Callable<T> target) {
@@ -74,6 +79,8 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
                 throw new UnsupportedOperationException("Cannot clone a detached continuation");
             Continuation<S, T> o = (Continuation<S, T>) super.clone();
             o.stack = new Stack(o, stack);
+            o.stack.setPauseContext(stack.getPausedContext() == this ? o : stack.getPausedContext());
+            // System.err.println("CLONE: " + this + " -> " + o + " PC: " + o.stack.getPausedContext());
             return o;
         } catch (CloneNotSupportedException e) {
             throw new AssertionError();
@@ -82,7 +89,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
 
     @Override
     public String toString() {
-        return getClass().getName() + '@' + Integer.toHexString(System.identityHashCode(this)) + "{scope: " + scope.getName() + " parent: " + parent + '}';
+        return getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this)) + "{scope: " + scope.getSimpleName() + " stack: " + stack + " parent: " + parent + '}';
     }
 
     static Continuation getCurrentContinuation() {
@@ -124,6 +131,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
         return null;
     }
 
+    @Suspendable // may suspend enclosing continuations/fiber
     public final Continuation<S, T> go() {
         Continuation<S, T> c = this, res;
         do {
@@ -135,29 +143,36 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     }
 
     private CalledCC run0() {
+        // System.err.println("RUN: " + this);
         if (isDone())
-            throw new IllegalStateException("Continuation terminated");
+            throw new IllegalStateException("Continuation terminated: " + this);
         final Thread currentThread = threadData != null ? Thread.currentThread() : null;
-        boolean restored = false;
-        Continuation<?, ?> prev = prepare0(currentThread);
+        final Continuation<?, ?> prev = prepare0(currentThread);
         try {
             result = target.call();
             done0(null);
             return null;
         } catch (Suspend s) {
             verifyScope(s);
+
             final CalledCC ccc = calledcc.get();
-            restore0(currentThread, prev);
-            restored = true;
             if (ccc != null)
                 calledcc.set(null);
+
+            suspendStack();
+
             return ccc;
         } catch (Throwable t) {
+            if (t instanceof Suspend || t instanceof SuspendExecution || t instanceof RuntimeSuspendExecution)
+                throw t;
+
+            // System.err.println("EXCEPTION: " + t);
+            // t.printStackTrace(System.err);
+
             done0(t);
             throw t;
         } finally {
-            if (!restored)
-                restore0(currentThread, prev);
+            restore0(currentThread, prev);
         }
     }
 
@@ -167,7 +182,9 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     }
 
     protected Continuation<?, ?> prepare0(Thread currentThread) {
+        // System.err.println("PREPARE: " + this);
         Continuation<?, ?> prev = currentContinuation.get();
+        prepareStack(prev);
         currentContinuation.set(this);
         if (threadData != null) {
             record(2, "Continuation", "prepare", "threadData: %s", threadData);
@@ -178,25 +195,77 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
         return prev;
     }
 
-    protected void prepare() {
-    }
-
     private void restore0(Thread currentThread, Continuation<?, ?> prev) {
-        stack.resumeStack();
-        if (threadData != null) {
-            record(2, "Continuation", "restore", "threadData: %s", threadData);
-            threadData.restoreThreadData(currentThread);
+        try {
+            // System.err.println("RESTORE: " + prev);
+            if (stack != null) {
+                if (stack.getPausedContext() != this)
+                    stack.setPauseContext(null);
+                restoreStack(prev);
+            }
+            if (threadData != null) {
+                record(2, "Continuation", "restore", "threadData: %s", threadData);
+                threadData.restoreThreadData(currentThread);
+            }
+            restore();
+        } finally {
+            currentContinuation.set(prev);
         }
-        currentContinuation.set(prev);
-        restore();
     }
 
-    protected void restore() {
+//    private boolean isEmbedded(Continuation<?, ?> prev) {
+//        return parent != null && prev == parent;
+//    }
+
+    private void prepareStack(Continuation<?, ?> prev) {
+//        if (isEmbedded(prev)) {
+//            tmpStack = stack;
+//            stack = prev.stack;
+//            assert embeddedSP < 0 || embeddedSP == stack.capturePosition() : embeddedSP + " :: " + stack.capturePosition();
+//            embeddedSP = stack.capturePosition();
+//            if (copiedEmbedded) {
+//                tmpStack.putTop(stack, embeddedSP);
+//                copiedEmbedded = false;
+//            }
+//
+//            // System.err.println("PREPARE EMBEDDED: " + stack);
+//        }
+        if (prev != null && stack.getPausedContext() == null)
+            stack.setPauseContext(prev);
+    }
+
+    private void suspendStack() {
+//        if (embeddedSP >= 0) {
+//            tmpStack.moveTop(stack, embeddedSP);
+//            embeddedSP = -1;
+//            copiedEmbedded = true;
+//            tmpStack.setPauseContext(this);
+//        }
+        stack.setPauseContext(this);
+    }
+
+    private void restoreStack(Continuation<?, ?> prev) {
+//        if (isEmbedded(prev)) {
+//            // System.err.println("RESTORE EMBEDDED: " + stack + " -> " + tmpStack);
+//            stack = tmpStack;
+//            tmpStack = null;
+//        }
+
+        stack.resumeStack();
     }
 
     private void done0(Throwable t) {
+        // System.err.println("DONE: " + this + " :: " + t);
+//        tmpStack = null;
+        stack = null;
         done = true;
         done();
+    }
+
+    protected void prepare() {
+    }
+
+    protected void restore() {
     }
 
     protected void done() {

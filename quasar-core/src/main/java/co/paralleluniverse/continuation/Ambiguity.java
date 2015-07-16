@@ -40,6 +40,7 @@ public class Ambiguity<T> {
         push(new AmbContinuation<T>(this, ambiguity));
     }
 
+    @Suspendable // nested
     public T run() throws NoSolution {
         try {
             Continuation<AmbScope, T> c = pop().go();

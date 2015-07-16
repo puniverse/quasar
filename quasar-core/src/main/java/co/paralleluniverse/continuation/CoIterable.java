@@ -41,7 +41,7 @@ public class CoIterable<E> implements Iterable<E> {
     }
 
     private static class CoIterator<E> implements Iterator<E> {
-        private final ValuedContinuation<CoIteratorScope, Void, E, Void> c;
+        private ValuedContinuation<CoIteratorScope, Void, E, Void> c;
 
         private boolean hasNextCalled;
         private boolean hasNext;
@@ -49,7 +49,6 @@ public class CoIterable<E> implements Iterable<E> {
 
         public CoIterator(final Generator<E> generator) {
             c = new ValuedContinuation<CoIteratorScope, Void, E, Void>(CoIteratorScope.class, new Callable<Void>() {
-
                 @Override
                 @Suspendable
                 public Void call() {
@@ -60,6 +59,7 @@ public class CoIterable<E> implements Iterable<E> {
         }
 
         @Override
+        @Suspendable // nested
         public boolean hasNext() {
             if (!hasNextCalled) {
                 try {
@@ -74,6 +74,7 @@ public class CoIterable<E> implements Iterable<E> {
         }
 
         @Override
+        @Suspendable // nested
         public E next() {
             if (hasNextCalled) {
                 if (!hasNext)
@@ -90,8 +91,9 @@ public class CoIterable<E> implements Iterable<E> {
             throw new UnsupportedOperationException();
         }
 
+        @Suspendable // nested
         private E getNext() {
-            c.go();
+            c = (ValuedContinuation<CoIteratorScope, Void, E, Void>)c.go();
             if (c.isDone())
                 throw new NoSuchElementException();
             next = c.getPauseValue();

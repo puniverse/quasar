@@ -742,6 +742,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         } catch (SuspendExecution ex) {
             assert ex == SuspendExecution.PARK || ex == SuspendExecution.YIELD;
             //stack.dump();
+            stack.setPauseContext(this);
             stack.resumeStack();
             runningThread = null;
             orderedSetState(timeoutTask != null ? State.TIMED_WAITING : State.WAITING);

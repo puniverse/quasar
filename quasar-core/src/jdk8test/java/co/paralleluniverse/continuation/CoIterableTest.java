@@ -19,9 +19,9 @@ import static org.junit.Assert.*;
  *
  * @author pron
  */
-public class CoIterablesTest {
+public class CoIterableTest {
 
-    public CoIterablesTest() {
+    public CoIterableTest() {
     }
 
     @Test

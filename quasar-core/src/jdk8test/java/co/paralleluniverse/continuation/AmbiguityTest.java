@@ -99,11 +99,11 @@ public class AmbiguityTest {
         assertEquals(list(), list(solutions(amb)));
     }
 
-    //@Test
+    // @Test
     public void test6() throws Exception {
         Ambiguity<Integer> amb = solve(() -> {
             Iterable<Integer> a = iterable(() -> {
-                produce(amb(2));
+                produce(amb(2, 1));
                 //produce(amb(3, 10));
             });
 

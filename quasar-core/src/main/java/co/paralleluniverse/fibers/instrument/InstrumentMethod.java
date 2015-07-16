@@ -460,7 +460,7 @@ class InstrumentMethod {
                     if (fiber)
                         mv.visitVarInsn(Opcodes.ILOAD, lvarResumed); // ... and replace the returned value with the value of resumed
                     else // Continuation.suspend
-                        emitGetContinuation(mv);  // ... and replace the returned value with stack.getContinuation
+                        emitGetPausedContinuation(mv);  // ... and replace the returned value with stack.getContinuation
                 }
 
                 dumpCodeBlock(mv, i, 1 /* skip the call */);
@@ -920,9 +920,9 @@ class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "postRestore", "()V", false);
     }
 
-    private void emitGetContinuation(MethodVisitor mv) {
+    private void emitGetPausedContinuation(MethodVisitor mv) {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getContinuation", "()L" + CONTINUATION_CLASS_NAME + ";", false);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getPausedContinuation", "()L" + CONTINUATION_CLASS_NAME + ";", false);
     }
 
     private void emitPreemptionPoint(MethodVisitor mv, int type) {
