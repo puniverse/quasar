@@ -5,8 +5,9 @@
  */
 package co.paralleluniverse.continuation;
 
-import static co.paralleluniverse.continuation.CoIterable.produce;
+import static co.paralleluniverse.continuation.CoIterable.*;
 import static co.paralleluniverse.continuation.CoIterables.*;
+import co.paralleluniverse.fibers.Fiber;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,6 +38,31 @@ public class CoIterableTest {
     @Test
     public void testFlatMap() {
         assertEquals(45, toList(flatMap(range(0, 10), x -> range(0, x))).size());
+    }
+
+    @Test
+    public void testInFiber() throws Exception {
+        Fiber<Integer> f = new Fiber<>(() -> {
+            for (int x : new CoIterable<Integer>(() -> {
+                try {
+                    Fiber.sleep(20);
+                    produce(1);
+                    Fiber.sleep(20);
+                    produce(11);
+                    Fiber.sleep(20);
+                    produce(111);
+                    Fiber.sleep(20);
+                    produce(1111);
+                } catch (InterruptedException e) {
+                    throw new AssertionError(e);
+                }
+            }))
+                if (x > 100)
+                    return x;
+            return 0;
+        }).start();
+        
+        assertEquals((Integer)111, f.get());
     }
 
     static Iterable<Integer> range(int from, int to) {

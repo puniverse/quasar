@@ -57,7 +57,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
         this.scope = scope;
         this.threadData = detached ? new ThreadData(Thread.currentThread()) : null;
 
-        // System.err.println("INIT: " + this);
+        System.err.println("INIT: " + this);
     }
 
     public Continuation(Class<S> scope, boolean detached, Callable<T> target) {
@@ -216,7 +216,6 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
 //    private boolean isEmbedded(Continuation<?, ?> prev) {
 //        return parent != null && prev == parent;
 //    }
-
     private void prepareStack(Continuation<?, ?> prev) {
 //        if (isEmbedded(prev)) {
 //            tmpStack = stack;

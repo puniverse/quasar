@@ -78,12 +78,12 @@ public final class Stack implements Serializable {
     }
 
     private static Stack getStack0() {
-        final Fiber<?> currentFiber = Fiber.currentFiber();
-        if (currentFiber != null)
-            return currentFiber.stack;
         final Continuation<?, ?> currentCont = Continuation.getCurrentContinuation();
         if (currentCont != null)
             return currentCont.getStack();
+        final Fiber<?> currentFiber = Fiber.currentFiber();
+        if (currentFiber != null)
+            return currentFiber.stack;
         return null;
     }
 

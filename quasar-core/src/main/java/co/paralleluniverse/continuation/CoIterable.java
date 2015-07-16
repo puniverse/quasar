@@ -15,6 +15,7 @@ package co.paralleluniverse.continuation;
 
 import co.paralleluniverse.fibers.Callable;
 import co.paralleluniverse.fibers.Suspend;
+import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.fibers.ValuedContinuation;
 import java.util.Iterator;
@@ -28,7 +29,7 @@ public class CoIterable<E> implements Iterable<E> {
     public static <E> CoIterable<E> iterable(Generator<E> generator) {
         return new CoIterable<E>(generator);
     }
-    
+
     private final Generator<E> generator;
 
     public CoIterable(Generator<E> generator) {
@@ -52,8 +53,12 @@ public class CoIterable<E> implements Iterable<E> {
                 @Override
                 @Suspendable
                 public Void call() {
-                    generator.run();
-                    return null;
+                    try {
+                        generator.run();
+                        return null;
+                    } catch (SuspendExecution e) {
+                        throw new AssertionError(e);
+                    }
                 }
             });
         }
@@ -93,7 +98,7 @@ public class CoIterable<E> implements Iterable<E> {
 
         @Suspendable // nested
         private E getNext() {
-            c = (ValuedContinuation<CoIteratorScope, Void, E, Void>)c.go();
+            c = (ValuedContinuation<CoIteratorScope, Void, E, Void>) c.go();
             if (c.isDone())
                 throw new NoSuchElementException();
             next = c.getPauseValue();
@@ -113,6 +118,6 @@ public class CoIterable<E> implements Iterable<E> {
     private static final CoIteratorScope SCOPE = new CoIteratorScope();
 
     public static interface Generator<E> {
-        void run() throws CoIteratorScope; // Unfortunately, throwables can't be generic. We would have wanted to CoIteratorScope<E>
+        void run() throws CoIteratorScope, SuspendExecution; // Unfortunately, throwables can't be generic. We would have wanted to CoIteratorScope<E>
     }
 }
