@@ -89,6 +89,7 @@ public final class Stack implements Serializable {
 //        System.err.println("STACK: " + s + " : " + (s != null ? s.context : "null"));
 //        return s;
 //    }
+
     public static Stack getStack() {
         final Continuation<?, ?> currentCont = Continuation.getCurrentContinuation();
         if (currentCont != null)
@@ -233,15 +234,6 @@ public final class Stack implements Serializable {
             record(2, "Stack", "popMethod      ", "%s %s %s", Thread.currentThread().getStackTrace()[2], sp /*Arrays.toString(fiber.getStackTrace())*/);
     }
 
-    /**
-     * Returns the index of the record of the last method.
-     */
-    public final int capturePosition() {
-        int res = sp == 0 ? sp : sp - FRAME_RECORD_SIZE;
-        // System.err.println("CAPTURE: " + res);
-        return res;
-    }
-
     public final void postRestore() throws SuspendExecution, InterruptedException {
         if (context instanceof Fiber)
             ((Fiber) context).onResume();
@@ -275,7 +267,15 @@ public final class Stack implements Serializable {
 
     //<editor-fold defaultstate="collapsed" desc="Unused">
     /////////// Unused ///////////////////////////////////
-    // unused
+    /**
+     * Returns the index of the record of the last method.
+     */
+    final int capturePosition() {
+        int res = sp == 0 ? sp : sp - FRAME_RECORD_SIZE;
+        // System.err.println("CAPTURE: " + res);
+        return res;
+    }
+
     final void moveTop(Stack s, int captured) {
         int start = captured + FRAME_RECORD_SIZE + getNumSlots(s.dataLong[captured]);
         int k = start;
@@ -299,7 +299,6 @@ public final class Stack implements Serializable {
         // System.err.println("MOVE_TOP start: " + start + " n: " + n + " SP: " + s.sp);
     }
 
-    // unused
     final void putTop(Stack s, int captured) {
         int start = captured + FRAME_RECORD_SIZE + getNumSlots(s.dataLong[captured]);
         int k = 0;
