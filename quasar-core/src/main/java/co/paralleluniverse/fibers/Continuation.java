@@ -35,13 +35,13 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
 
     private final Class<S> scope;
     private Continuation parent;
-    private final Callable<T> target;
-    private Continuation<S, T> c;
+    private Callable<T> target;
+    private Continuation<S, T> c; // the actual continuation used; a trampoline mechanism
     private Stack stack;
 //    private Stack tmpStack;
 //    private int embeddedSP = -1;
 //    private boolean copiedEmbedded;
-    final ThreadData threadData;
+    private ThreadData threadData;
     private transient boolean inScope;
     private boolean done;
     private T result;
@@ -69,8 +69,12 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
         this(scope, false, 0, target);
     }
 
-    Stack getStack() {
-        return c.stack;
+    /**
+     * Public methods must use self
+     * @return 
+     */
+    protected Continuation<S, T> self() {
+        return c;
     }
 
     @Override
@@ -93,6 +97,20 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
         }
     }
 
+    private void clear() {
+        this.stack = null;
+        this.target = null;
+        this.threadData = null;
+    }
+
+    Stack getStack() {
+        return c.stack;
+    }
+
+    ThreadData getThreadData() {
+        return c.threadData;
+    }
+
     public boolean isDone() {
         return c.done;
     }
@@ -103,9 +121,10 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
 
     @Override
     public String toString() {
-        return c.getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(c))
-                + "{scope: " + c.scope.getSimpleName() + " stack: " + c.stack + " parent: " + c.parent + '}'
-                + (c != this ? '(' + getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this)) + ')' : "");
+        if (c == this)
+            return getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this))
+                    + "{scope: " + scope.getSimpleName() + " stack: " + stack + " parent: " + parent + '}';
+        return c.toString() + '(' + getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this)) + ')';
     }
 
     static Continuation getCurrentContinuation() {
@@ -159,10 +178,13 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
             Continuation<S, T> c0 = ccc != null ? ccc.suspended(c) : null;
             if (c0 == null)
                 break;
-            c = c0;
-            if (c != this & stack != null)
-                this.stack = null; // GC
+            if (c != c0) {
+                // System.err.println("TRAMPOLINE: " + c + " -> " + c0 + " :: " + this);
+                c.clear(); // GC
+                c = c0;
+            }
         }
+        // System.err.println("RRRRRRRRRRR: " + c + " :: " + this);
         return c;
     }
 
@@ -281,7 +303,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     private void done0(Throwable t) {
         // System.err.println("DONE: " + this + " :: " + t);
 //        tmpStack = null;
-        stack = null;
+        clear();
         done = true;
         done();
     }

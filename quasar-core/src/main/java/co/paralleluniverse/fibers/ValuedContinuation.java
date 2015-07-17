@@ -36,15 +36,25 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
     }
 
     @Override
-    protected void prepare() {
-        super.prepare();
-        pauseOut = null;
+    protected ValuedContinuation<S, T, Out, In> self() {
+        return (ValuedContinuation<S, T, Out, In>) super.self();
     }
 
     @Suspendable
     public ValuedContinuation<S, T, Out, In> go(In value) {
-        pauseIn = value;
-        return (ValuedContinuation<S, T, Out, In>)go();
+        self().pauseIn = value;
+        return (ValuedContinuation<S, T, Out, In>) go();
+    }
+
+    public Out getPauseValue() {
+        // System.err.println("getPauseValue: " + self().pauseOut + " " + this);
+        return self().pauseOut;
+    }
+
+    @Override
+    protected void prepare() {
+        super.prepare();
+        pauseOut = null;
     }
 
     public static <S extends Suspend, In> In pause(S scope) throws S {
@@ -55,6 +65,7 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
         return inValue((ValuedContinuation<S, ?, Out, In>) Continuation.suspend(scope, new CalledCC<S>() {
             @Override
             public <T> Continuation<S, T> suspended(Continuation<S, T> c) {
+                // System.err.println("setPauseValue: " + value + " " + c);
                 ((ValuedContinuation<S, ?, Out, In>) c).pauseOut = value;
                 return null;
             }
@@ -85,9 +96,5 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
         In res = c.pauseIn;
         c.pauseIn = null;
         return res;
-    }
-
-    public Out getPauseValue() {
-        return pauseOut;
     }
 }

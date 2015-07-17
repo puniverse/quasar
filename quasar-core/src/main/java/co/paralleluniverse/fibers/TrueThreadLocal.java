@@ -28,12 +28,12 @@ public class TrueThreadLocal<T> extends ThreadLocal<T> {
     public T get() {
         final Thread thread = Thread.currentThread();
         final Continuation cont = Continuation.getDetachedContinuation();
-        if (cont != null && cont.threadData != null) {
-            cont.threadData.restoreThreadLocals(thread);
+        if (cont != null && cont.getThreadData() != null) {
+            cont.getThreadData().restoreThreadLocals(thread);
             try {
                 return super.get();
             } finally {
-                cont.threadData.installThreadLocals(thread);
+                cont.getThreadData().installThreadLocals(thread);
             }
         } else {
             final Fiber fiber = Fiber.currentFiber();
@@ -53,12 +53,12 @@ public class TrueThreadLocal<T> extends ThreadLocal<T> {
     public void set(T value) {
         final Thread thread = Thread.currentThread();
         final Continuation cont = Continuation.getDetachedContinuation();
-        if (cont != null && cont.threadData != null) {
-            cont.threadData.restoreThreadLocals(thread);
+        if (cont != null && cont.getThreadData() != null) {
+            cont.getThreadData().restoreThreadLocals(thread);
             try {
                 super.set(value);
             } finally {
-                cont.threadData.installThreadLocals(thread);
+                cont.getThreadData().installThreadLocals(thread);
             }
         } else {
             final Fiber fiber = Fiber.currentFiber();
