@@ -696,13 +696,13 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <h3 id="dataflow-reactive-programming">Dataflow (Reactive)&nbsp;Programming</h3>
 
-<p>Dataflow, or reactive programming, is a computation described by composing variables whose value may be set (and possibly changed) at any given time, without concern for when these values are set. Quasar provides two dataflow primitives: <a href="/quasar/javadoc/co/paralleluniverse/strands/dataflow/Val.html"><code>Val</code></a> and <a href="(/quasar/javadoc/co/paralleluniverse/strands/dataflow/Var.html)"><code>Var</code></a> in the <code>co.paralleluniverse.strands.dataflow</code>&nbsp;package.</p>
+<p>Dataflow, or reactive programming, is a computation described by composing variables whose value may be set (and possibly changed) at any given time, without concern for when these values are set. Quasar provides two dataflow primitives: <a href="/quasar/javadoc/co/paralleluniverse/strands/dataflow/Val.html"><code>Val</code></a> and <a href="/quasar/javadoc/co/paralleluniverse/strands/dataflow/Var.html"><code>Var</code></a> in the <code>co.paralleluniverse.strands.dataflow</code>&nbsp;package.</p>
 
 <p>A <a href="/quasar/javadoc/co/paralleluniverse/strands/dataflow/Val.html"><code>Val</code></a> is a dataflow constant. It can have its value set once, and read multiple times. Attempting to read the value of a <code>Val</code> before it’s been set, will block until a value is&nbsp;set.</p>
 
 <p>Vals can also be used as a simple and effective strand coordination mechanism. <code>Val</code> implements&nbsp;<code>j.u.c.Future</code>.</p>
 
-<p>A <a href="(/quasar/javadoc/co/paralleluniverse/strands/dataflow/Var.html)"><code>Var</code></a> is a dataflow variable. It can have it’s value set multiple times, and every new value can trigger the re-computation of other Vars. You can set a <code>Var</code> to retain historical values (consult the Javadoc for more&nbsp;information).</p>
+<p>A <a href="/quasar/javadoc/co/paralleluniverse/strands/dataflow/Var.html"><code>Var</code></a> is a dataflow variable. It can have it’s value set multiple times, and every new value can trigger the re-computation of other Vars. You can set a <code>Var</code> to retain historical values (consult the Javadoc for more&nbsp;information).</p>
 
 <p>Here is a simple example of using Vals and&nbsp;Vars.</p>
 
