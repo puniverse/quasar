@@ -81,43 +81,15 @@ Java 7 and is required to run Quasar.
 
 ### Using Maven/Gradle {#maven}
 
-Add the following Maven/Gradle dependencies
+Add the following Maven/Gradle dependencies:
 
-```
-co.paralleluniverse:quasar-core:{{site.version}}
-```
-
-or, for JDK8:
-
-```
-co.paralleluniverse:quasar-core:{{site.version}}:jdk8
-```
-
-(`jdk8` is the classifier)
-
-To use actors, add
-
-```
-co.paralleluniverse:quasar-actors:{{site.version}}
-```
-
-For clustering support:
-
-```
-co.paralleluniverse:quasar-galaxy:{{site.version}}
-```
-
-For Reactive Streams:
-
-```
-co.paralleluniverse:quasar-reactive-streams:{{site.version}}
-```
-
-For Kotlin support:
-
-```
-co.paralleluniverse:quasar-kotlin:{{site.version}}
-```
+| Feature          | Artifact
+|------------------|------------------
+| Core (required)  | `co.paralleluniverse:quasar-core:{{site.version}}[:jdk8]` (for JDK 8 optionally add the `jdk8` classifier)
+| Actors           | `co.paralleluniverse:quasar-actors:{{site.version}}`
+| Clustering       | `co.paralleluniverse:quasar-galaxy:{{site.version}}`
+| Reactive Streams | `co.paralleluniverse:quasar-reactive-streams:{{site.version}}`
+| Kotlin           | `co.paralleluniverse:quasar-kotlin:{{site.version}}`
 
 ### Instrumenting Your Code {#instrumentation}
 

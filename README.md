@@ -4,50 +4,15 @@
 
 ## Getting started
 
-In Maven:
+Add the following Maven/Gradle dependencies:
 
-```xml
-<dependency>
-    <groupId>co.paralleluniverse</groupId>
-    <artifactId>quasar-core</artifactId>
-    <version>0.7.2</version>
-</dependency>
-```
-
-or, for JDK8:
-
-~~~ xml
-<dependency>
-    <groupId>co.paralleluniverse</groupId>
-    <artifactId>quasar-core</artifactId>
-    <version>0.7.2</version>
-    <classifier>jdk8</classifier>
-</dependency>
-~~~
-
-To use actors, add
-
-```xml
-<dependency>
-    <groupId>co.paralleluniverse</groupId>
-    <artifactId>quasar-actors</artifactId>
-    <version>0.7.2</version>
-</dependency>
-```
-
-For clustering support add:
-
-```xml
-<dependency>
-    <groupId>co.paralleluniverse</groupId>
-    <artifactId>quasar-galaxy</artifactId>
-    <version>0.7.2</version>
-</dependency>
-```
-
-```
-co.paralleluniverse:quasar-kotlin:0.7.2
-```
+| Feature          | Artifact
+|------------------|------------------
+| Core (required)  | `co.paralleluniverse:quasar-core:0.7.2[:jdk8]` (for JDK 8 optionally add the `jdk8` classifier)
+| Actors           | `co.paralleluniverse:quasar-actors:0.7.2`
+| Clustering       | `co.paralleluniverse:quasar-galaxy:0.7.2`
+| Reactive Streams | `co.paralleluniverse:quasar-reactive-streams:0.7.2`
+| Kotlin           | `co.paralleluniverse:quasar-kotlin:0.7.2`
 
 Or, build from sources by running:
 
