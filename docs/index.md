@@ -587,13 +587,13 @@ The example will do exactly one of the following operations: send `msg` to `ch1`
 
 ### Dataflow (Reactive) Programming
 
-Dataflow, or reactive programming, is a computation described by composing variables whose value may be set (and possibly changed) at any given time, without concern for when these values are set. Quasar provides two dataflow primitives: [`Val`]({{javadoc}}/strands/dataflow/Val.html) and [`Var`](({{javadoc}}/strands/dataflow/Var.html)) in the `co.paralleluniverse.strands.dataflow` package.
+Dataflow, or reactive programming, is a computation described by composing variables whose value may be set (and possibly changed) at any given time, without concern for when these values are set. Quasar provides two dataflow primitives: [`Val`]({{javadoc}}/strands/dataflow/Val.html) and [`Var`]({{javadoc}}/strands/dataflow/Var.html) in the `co.paralleluniverse.strands.dataflow` package.
 
 A [`Val`]({{javadoc}}/strands/dataflow/Val.html) is a dataflow constant. It can have its value set once, and read multiple times. Attempting to read the value of a `Val` before it's been set, will block until a value is set.
 
 Vals can also be used as a simple and effective strand coordination mechanism. `Val` implements `j.u.c.Future`.
 
-A [`Var`](({{javadoc}}/strands/dataflow/Var.html)) is a dataflow variable. It can have it's value set multiple times, and every new value can trigger the re-computation of other Vars. You can set a `Var` to retain historical values (consult the Javadoc for more information).
+A [`Var`]({{javadoc}}/strands/dataflow/Var.html) is a dataflow variable. It can have it's value set multiple times, and every new value can trigger the re-computation of other Vars. You can set a `Var` to retain historical values (consult the Javadoc for more information).
 
 Here is a simple example of using Vals and Vars.
 
