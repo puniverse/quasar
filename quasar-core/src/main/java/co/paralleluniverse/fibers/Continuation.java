@@ -193,10 +193,10 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
         if (isDone())
             throw new IllegalStateException("Continuation terminated: " + this);
         final Thread currentThread = threadData != null ? Thread.currentThread() : null;
-        prepare0(currentThread);
+        prepare(currentThread);
         try {
             result = target.call();
-            done0(null);
+            done(null);
             return null;
         } catch (Suspend s) {
             verifyScope(s);
@@ -213,10 +213,10 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
             if (t instanceof Suspend || t instanceof SuspendExecution || t instanceof RuntimeSuspendExecution)
                 throw t;
 
-            done0(t);
+            done(t);
             throw t;
         } finally {
-            restore0(currentThread);
+            restore(currentThread);
         }
     }
 
@@ -225,7 +225,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
             throw s;
     }
 
-    protected void prepare0(Thread currentThread) {
+    protected void prepare(Thread currentThread) {
         // System.err.println("PREPARE: " + this);
         this.parent = getCurrentContinuation();
 //        if (threadData != null & parent != null)
@@ -238,10 +238,9 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
             threadData.installDataInThread(currentThread);
         }
         calledcc.set(null);
-        prepare();
     }
 
-    private void restore0(Thread currentThread) {
+    private void restore(Thread currentThread) {
         try {
             // System.err.println("RESTORE: " + this + " " + inScope + " -> " + parent);
             if (stack != null) {
@@ -253,7 +252,6 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
                 record(2, "Continuation", "restore", "threadData: %s", threadData);
                 threadData.restoreThreadData(currentThread);
             }
-            restore();
         } finally {
             inScope = false;
             currentContinuation.set(parent);
@@ -300,21 +298,11 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
         stack.resumeStack();
     }
 
-    private void done0(Throwable t) {
+    private void done(Throwable t) {
         // System.err.println("DONE: " + this + " :: " + t);
 //        tmpStack = null;
         clear();
         done = true;
-        done();
-    }
-
-    protected void prepare() {
-    }
-
-    protected void restore() {
-    }
-
-    protected void done() {
     }
 
     private static Continuation<?, ?> verifySuspend() {

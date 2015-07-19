@@ -48,13 +48,9 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
 
     public Out getPauseValue() {
         // System.err.println("getPauseValue: " + self().pauseOut + " " + this);
-        return self().pauseOut;
-    }
-
-    @Override
-    protected void prepare() {
-        super.prepare();
-        pauseOut = null;
+        Out v = self().pauseOut;
+        self().pauseOut = null;
+        return v;
     }
 
     public static <S extends Suspend, In> In pause(S scope) throws S {
