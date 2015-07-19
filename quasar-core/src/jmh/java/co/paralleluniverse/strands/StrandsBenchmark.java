@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands;
 
+import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.channels.Channel;
@@ -20,6 +21,7 @@ import co.paralleluniverse.strands.channels.Channels;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -35,6 +37,7 @@ public class StrandsBenchmark {
         System.out.println("VERSION: " + System.getProperty("java.version"));
         System.out.println("OS: " + System.getProperty("os.name"));
         System.out.println("PROCESSORS: " + Runtime.getRuntime().availableProcessors());
+        System.out.println("FORK_JOIN: " + Debug.whereIs(ForkJoinPool.class));
         System.out.println();
 
         System.out.println("HEAVYWEIGHT: " + HEAVYWEIGHT);

@@ -192,6 +192,7 @@ subprojects {
         }
 
         jvmArgs '-Xmx2048m'
+        // jvmArgs "-Xbootclasspath/p:${System.getProperty("user.home")}/jsr166.jar"
         //systemProperty 'co.paralleluniverse.fibers.DefaultFiberPool.parallelism', '1'
         
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
