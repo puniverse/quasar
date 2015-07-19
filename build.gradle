@@ -689,7 +689,9 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
         // doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
         // addStringOption("parse-timeout", "10")
         // stylesheetFile = rootProject.file('./baselib/javadoc.css')
-        options.addStringOption('Xdoclint:none', '-quiet')
+        if(project.ext.java8) {
+            options.addStringOption('Xdoclint:none', '-quiet')
+        }
         links = [
         "http://docs.oracle.com/javase/7/docs/api/",
         "http://docs.guava-libraries.googlecode.com/git-history/v18.0/javadoc/"
