@@ -103,7 +103,7 @@ subprojects {
         compile("io.dropwizard.metrics:metrics-core:3.1.2") {
             exclude group: 'org.slf4j', module: '*'
         }
-        provided "org.apache.ant:ant:1.9.5"
+        provided "org.apache.ant:ant:1.9.6"
         compile "com.google.guava:guava:18.0"
         timewarp 'co.paralleluniverse:timewarp:0.1.0-SNAPSHOT'
         testCompile 'co.paralleluniverse:timewarp:0.1.0-SNAPSHOT'
@@ -118,8 +118,8 @@ subprojects {
         }
         testCompile "org.ow2.asm:asm:$asmVer"
         
-        jmhCompile 'org.openjdk.jmh:jmh-core:1.10.1'
-        jmhCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.10.1'
+        jmhCompile 'org.openjdk.jmh:jmh-core:1.10.3'
+        jmhCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.10.3'
         
         compileOnly 'org.kohsuke.metainf-services:metainf-services:1.5'
         // compileOnly 'com.google.auto.service:auto-service:1.0-rc1' // same as metainf-services
@@ -192,7 +192,7 @@ subprojects {
         }
 
         jvmArgs '-Xmx2048m'
-        // jvmArgs "-Xbootclasspath/p:${System.getProperty("user.home")}/jsr166.jar"
+        jvmArgs "-Xbootclasspath/p:${System.getProperty("user.home")}/jsr166.jar"
         //systemProperty 'co.paralleluniverse.fibers.DefaultFiberPool.parallelism', '1'
         
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
@@ -438,7 +438,7 @@ project (':quasar-core') {
         compile("com.esotericsoftware.kryo:kryo:2.24.0") {
             exclude group: "org.ow2.asm", module: '*'
         }
-        compile("de.javakaffee:kryo-serializers:0.31") {
+        compile("de.javakaffee:kryo-serializers:0.33") {
             exclude group: "com.esotericsoftware", module: '*'
             exclude group: "com.esotericsoftware.kryo", module: '*'
         }
@@ -600,7 +600,7 @@ project (':quasar-actors') {
         provided project(path: ':quasar-core', configuration: "jdk${jdkVer}Archives")
         // compile 'org.mutabilitydetector:MutabilityDetector:0.9.2'
         compile "org.slf4j:slf4j-api:1.7.12"
-        compile "net.bytebuddy:byte-buddy:0.6.11"
+        compile "net.bytebuddy:byte-buddy:0.6.12"
         testRuntime("org.apache.logging.log4j:log4j-slf4j-impl:2.3") {
             exclude group: "org.slf4j", module: '*'
         }
@@ -664,7 +664,7 @@ project (':quasar-reactive-streams') {
             exclude group: "junit", module: "*"
             exclude group: "org.testng", module: "testng"
         }
-        testCompile 'org.testng:testng:6.9.4'
+        testCompile 'org.testng:testng:6.9.6'
     }
 
     test {
