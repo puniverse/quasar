@@ -192,7 +192,7 @@ subprojects {
         }
 
         jvmArgs '-Xmx2048m'
-        jvmArgs "-Xbootclasspath/p:${System.getProperty("user.home")}/jsr166.jar"
+        // jvmArgs "-Xbootclasspath/p:${System.getProperty("user.home")}/jsr166.jar"
         //systemProperty 'co.paralleluniverse.fibers.DefaultFiberPool.parallelism', '1'
         
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
@@ -664,7 +664,10 @@ project (':quasar-reactive-streams') {
             exclude group: "junit", module: "*"
             exclude group: "org.testng", module: "testng"
         }
-        testCompile 'org.testng:testng:6.9.6'
+        testCompile('org.testng:testng:6.9.6') {
+            exclude group: "com.google.guava", module: "*"
+            exclude group: "junit", module: "*"
+        }
     }
 
     test {
