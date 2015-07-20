@@ -680,7 +680,10 @@ project (':quasar-reactive-streams') {
             exclude group: "junit", module: "*"
             exclude group: "org.testng", module: "testng"
         }
-        testCompile 'org.testng:testng:6.9.6'
+        testCompile('org.testng:testng:6.9.6') {
+            exclude group: "com.google.guava", module: "*"
+            exclude group: "junit", module: "*"
+        }
     }
 
     test {
