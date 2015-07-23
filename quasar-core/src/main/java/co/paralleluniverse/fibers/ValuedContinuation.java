@@ -47,7 +47,7 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
     }
 
     public Out getPauseValue() {
-        // System.err.println("getPauseValue: " + self().pauseOut + " " + this);
+        System.err.println("getPauseValue: " + self().pauseOut + " " + this);
         Out v = self().pauseOut;
         self().pauseOut = null;
         return v;
@@ -61,7 +61,7 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
         return inValue((ValuedContinuation<S, ?, Out, In>) Continuation.suspend(scope, new CalledCC<S>() {
             @Override
             public <T> Continuation<S, T> suspended(Continuation<S, T> c) {
-                // System.err.println("setPauseValue: " + value + " " + c);
+                System.err.println("setPauseValue: " + value + " " + c);
                 ((ValuedContinuation<S, ?, Out, In>) c).pauseOut = value;
                 return null;
             }

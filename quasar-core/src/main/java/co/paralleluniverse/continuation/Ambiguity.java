@@ -17,7 +17,7 @@ import co.paralleluniverse.fibers.Callable;
 import co.paralleluniverse.fibers.CalledCC;
 import co.paralleluniverse.fibers.Continuation;
 import co.paralleluniverse.fibers.Suspend;
-import static co.paralleluniverse.fibers.Continuation.suspend;
+import static co.paralleluniverse.fibers.Continuation.*;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import java.util.ArrayDeque;
@@ -46,7 +46,8 @@ public class Ambiguity<T> {
         try {
             AmbContinuation<T> c = pop();
             c.go();
-            assert c.isDone();
+            System.err.println("EEEEEE NOT DONE: " + c);
+            assert c.isDone() : "Not done: " + c;
             return c.getResult();
         } catch (RuntimeNoSolution e) {
             throw new NoSolution();
@@ -54,11 +55,12 @@ public class Ambiguity<T> {
     }
 
     public boolean hasRemaining() {
+        System.err.println("HAS_REMAINING: " + cs);
         return !cs.isEmpty();
     }
 
-    private void push(AmbContinuation<?> c) {
-        // System.err.println("PUSH: " + c);
+    private void push(Continuation<?, ?> c) {
+        System.err.println("PUSH: " + c);
         cs.addFirst((AmbContinuation<T>) c);
     }
 
@@ -66,12 +68,13 @@ public class Ambiguity<T> {
         if (cs.isEmpty())
             throw new RuntimeNoSolution();
         AmbContinuation<T> c = cs.removeFirst();
-        // System.err.println("POP: " + c);
+        System.err.println("POP: " + c);
         return c;
     }
 
     private static class AmbContinuation<T> extends Continuation<AmbScope, T> {
         private final Ambiguity<T> ambiguity;
+        private boolean isClone = true; // trick
 
         public AmbContinuation(Ambiguity<T> ambiguity, final Ambiguous<T> target) {
             super(AmbScope.class, new Callable<T>() {
@@ -91,13 +94,16 @@ public class Ambiguity<T> {
         }
     }
 
-    public static <T> T amb(List<T> values) throws AmbScope {
-        AmbContinuation<?> c = captureCurrentContinuation();
-        // System.err.println("XXXX AMB: " + values);
-        final T v = values.remove(0);
-        if (!values.isEmpty())
-            c.ambiguity.push(c);
-        return v;
+    public static <T> T amb(final List<T> values) throws AmbScope {
+        if (values.size() > 1) {
+            AmbContinuation<T> c;
+            do {
+                System.err.println("ZZZZZZZZZ: CLONING " + values);
+                c = (AmbContinuation<T>) suspend(SCOPE, CAPTURE);
+            } while (c.isClone && values.size() > 1); // will run once for each clone
+        }
+        System.err.println("XXXX AMB: " + values);
+        return values.remove(0);
     }
 
     public static <T> T amb(T... values) throws AmbScope {
@@ -105,23 +111,44 @@ public class Ambiguity<T> {
     }
 
     public static void assertThat(boolean pred) throws AmbScope {
-        if (!pred)
+        if (!pred) {
+            System.err.println("ASSERT FAILED");
             suspend(SCOPE, BACKTRACK);
+        }
     }
 
-    private static AmbContinuation<?> captureCurrentContinuation() throws AmbScope {
-        return (AmbContinuation<?>) suspend(SCOPE, CONTINUE).clone();
-    }
-
+//    private static AmbContinuation<?> captureCurrentContinuation() throws AmbScope {
+//        return (AmbContinuation<?>) suspend(SCOPE, new CalledCC<AmbScope>() {
+//            @Override
+//            public <T> Continuation<AmbScope, T> suspended(Continuation<AmbScope, T> c) {
+//                return c;
+//            }
+//        }).clone();
+//    }
     public static class AmbScope extends Suspend {
     }
 
     private static final AmbScope SCOPE = new AmbScope();
 
-    private static final CalledCC<AmbScope> CONTINUE = new CalledCC<AmbScope>() {
+//    private static final CalledCC<AmbScope> CONTINUE = new CalledCC<AmbScope>() {
+//        @Override
+//        public <T> Continuation<AmbScope, T> suspended(Continuation<AmbScope, T> c) {
+//            return c;
+//        }
+//    };
+
+    private static final CalledCC<AmbScope> CAPTURE = new CalledCC<AmbScope>() {
         @Override
         public <T> Continuation<AmbScope, T> suspended(Continuation<AmbScope, T> c) {
-            return c;
+            System.err.println("QQQQQQQQQQ");
+            try {
+                AmbContinuation<T> a = (AmbContinuation<T>) c;
+                a.ambiguity.push(a.clone());
+                a.isClone = false; // trick: done _after_ the clone
+                return a;          // continue running
+            } catch (CloneNotSupportedException e) {
+                throw new AssertionError(e);
+            }
         }
     };
 

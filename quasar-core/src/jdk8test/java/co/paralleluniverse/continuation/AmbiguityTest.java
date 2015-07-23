@@ -127,11 +127,16 @@ public class AmbiguityTest {
                 produce(amb(3, 10));
             });
 
+            System.err.println("VVVVV0");
             int sum = 0;
             for (int x : a) {
                 sum += x;
+                System.err.println("VVVVV1 ASSERTING: " + x + " " + sum);
                 assertThat(x % 2 == 0);
+                System.err.println("VVVVV2 ASSERTED: " + x + " " + sum);
             }
+            
+            System.err.println("TYTYTYTYTYTYTY " + sum);
             return sum;
         });
 

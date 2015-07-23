@@ -100,10 +100,14 @@ public class CoIterable<E> implements Iterable<E> {
 
         @Suspendable // nested
         private E getNext() {
-            c = (ValuedContinuation<CoIteratorScope, Void, E, Void>) c.go();
-            if (c.isDone())
+            // c = (ValuedContinuation<CoIteratorScope, Void, E, Void>) c.go();
+            c.go();
+            if (c.isDone()) {
+                System.err.println("PPPPP: DONE");
                 throw new NoSuchElementException();
+            }
             next = c.getPauseValue();
+            System.err.println("PPPPP: " + next);
             return next;
         }
     }

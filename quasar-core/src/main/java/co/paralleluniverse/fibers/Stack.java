@@ -47,7 +47,7 @@ public final class Stack implements Serializable {
     private int sp;
     private transient boolean shouldVerifyInstrumentation;
     private transient boolean pushed;
-    private Object pausedContext;
+    private Object suspendedContext;
     private long[] dataLong;        // holds primitives on stack as well as each method's entry point and the stack pointer
     private Object[] dataObject;    // holds refs on stack
 
@@ -67,30 +67,30 @@ public final class Stack implements Serializable {
         this.dataLong = Arrays.copyOf(s.dataLong, s.dataLong.length);
         this.dataObject = Arrays.copyOf(s.dataObject, s.dataObject.length);
 
-        for (int i = 0; i < dataObject.length; i++) {
-            if (dataObject[i] instanceof Continuation) {
-                Continuation c = (Continuation) dataObject[i];
-                if (c != s.context)
-                    dataObject[i] = c.clone();
+//        for (int i = 0; i < dataObject.length; i++) {
+//            if (dataObject[i] instanceof Continuation) {
+//                Continuation c = (Continuation) dataObject[i];
 //                if (c == s.context)
 //                    dataObject[i] = context;
-            }
-        }
+//                if (c != s.context)
+//                    dataObject[i] = c.clone();
+//            }
+//        }
         resumeStack();
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this)) + "{sp: " + sp + " pauseContext: " + Objects.systemToStringSimpleName(pausedContext) + '}';
+        return getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this)) + "{sp: " + sp + " pauseContext: " + Objects.systemToStringSimpleName(suspendedContext) + '}';
     }
 
-//    public static Stack getStack() {
-//        Stack s = getStack0();
-//        System.err.println("STACK: " + s + " : " + (s != null ? s.context : "null"));
-//        return s;
-//    }
-
     public static Stack getStack() {
+        Stack s = getStack0();
+        System.err.println("STACK: " + s + " : " + (s != null ? s.context : "null"));
+        return s;
+    }
+
+    public static Stack getStack0() {
         final Continuation<?, ?> currentCont = Continuation.getCurrentContinuation();
         if (currentCont != null)
             return currentCont.getStack();
@@ -101,23 +101,25 @@ public final class Stack implements Serializable {
     }
 
     void setPauseContext(Object context) {
-        // System.err.println("SET_PAUSE_CONTEXT: " + this + " <- " + context);
-        this.pausedContext = context;
+        System.err.println("SET_PAUSE_CONTEXT: " + this + " <- " + context);
+        this.suspendedContext = context;
     }
 
     Fiber getFiber() {
         return context instanceof Fiber ? (Fiber) context : null;
     }
 
-    public Object getPausedContext() {
-        return pausedContext;
-        // Object c = pausedContext;
-        // System.err.println("GET_PAUSE_CONTEXT: " + this + " : " + c);
-        // return c;
+    public Continuation getAndClearSuspendedContinuation() {
+        Object c = getSuspendedContext();
+        setPauseContext(null);
+        return (Continuation)c;
     }
-
-    public Continuation getPausedContinuation() {
-        return (Continuation) getPausedContext();
+    
+    Object getSuspendedContext() {
+//        return pausedContext;
+        Object c = suspendedContext;
+        System.err.println("GET_PAUSE_CONTEXT: " + this + " : " + c);
+        return c;
     }
 
     /**
@@ -153,8 +155,8 @@ public final class Stack implements Serializable {
         if (Debug.isDebug() && isRecordingLevel(2))
             record(2, "Stack", "nextMethodEntry", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
 
-        // System.err.println("NEXT_ENTRY: " + idx + " # " + entry + " SP: " + sp + " -- " + dataLong);
-        // Debug.printStackTrace(6, System.err);
+        System.err.println("NEXT_ENTRY: " + idx + " # " + entry + " SP: " + sp + " -- " + dataLong);
+        Debug.printStackTrace(6, System.err);
         return entry;
     }
 
@@ -170,7 +172,7 @@ public final class Stack implements Serializable {
 
         // not first, but nextMethodEntry returned 0: revert changes
         sp -= FRAME_RECORD_SIZE + getPrevNumSlots(dataLong[sp - FRAME_RECORD_SIZE]);
-        // System.err.println("CORRECT_SP: SP: " + sp + " pushed: " + p);
+        System.err.println("CORRECT_SP: SP: " + sp + " pushed: " + p);
 
         return false;
     }
@@ -201,7 +203,7 @@ public final class Stack implements Serializable {
 //        for (int i = 0; i < FRAME_RECORD_SIZE; i++)
 //            dataLong[nextMethodIdx + i] = 0L;
 
-        // System.err.println("PUSH_METHOD: " + idx + " # " + entry + " # " + numSlots + " SP: " + sp + " -- " + dataLong);
+        System.err.println("PUSH_METHOD: " + idx + " # " + entry + " # " + numSlots + " SP: " + sp + " -- " + dataLong);
         if (Debug.isDebug() && isRecordingLevel(2))
             record(2, "Stack", "pushMethod     ", "%s %s %s %s %d", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
     }
@@ -229,7 +231,7 @@ public final class Stack implements Serializable {
 
         sp = newSP; // Math.max(newSP, 0)
 
-        // System.err.println("POP_METHOD SP:" + sp);
+        System.err.println("POP_METHOD SP:" + sp);
         if (Debug.isDebug() && isRecordingLevel(2))
             record(2, "Stack", "popMethod      ", "%s %s %s", Thread.currentThread().getStackTrace()[2], sp /*Arrays.toString(fiber.getStackTrace())*/);
     }
@@ -272,11 +274,11 @@ public final class Stack implements Serializable {
      */
     final int capturePosition() {
         int res = sp == 0 ? sp : sp - FRAME_RECORD_SIZE;
-        // System.err.println("CAPTURE: " + res);
+        System.err.println("CAPTURE: " + res);
         return res;
     }
 
-    final void moveTop(Stack s, int captured) {
+    final void takeTop(Stack s, int captured) {
         int start = captured + FRAME_RECORD_SIZE + getNumSlots(s.dataLong[captured]);
         int k = start;
         int slots;
@@ -295,8 +297,9 @@ public final class Stack implements Serializable {
         Arrays.fill(s.dataObject, start, start + n, null);
         s.dataLong[start] = 0L;
         s.sp = captured + FRAME_RECORD_SIZE;
-        // System.err.println("MOVE_TOP " + s + " -> " + this + ": " + captured);
-        // System.err.println("MOVE_TOP start: " + start + " n: " + n + " SP: " + s.sp);
+
+        System.err.println("MOVE_TOP " + s + " -> " + this + ": " + captured);
+        System.err.println("MOVE_TOP start: " + start + " n: " + n + " SP: " + s.sp);
     }
 
     final void putTop(Stack s, int captured) {
@@ -319,8 +322,8 @@ public final class Stack implements Serializable {
         this.dataLong[0] = 0L;
         this.sp = 0;
 
-        // System.err.println("PUT_TOP " + this + " -> " + s + ": " + captured);
-        // System.err.println("PUT_TOP start: " + start + " n: " + n);
+        System.err.println("PUT_TOP " + this + " -> " + s + ": " + captured);
+        System.err.println("PUT_TOP start: " + start + " n: " + n);
     }
     // </editor-fold>
 
