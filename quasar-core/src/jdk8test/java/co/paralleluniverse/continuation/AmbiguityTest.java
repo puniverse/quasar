@@ -57,11 +57,11 @@ public class AmbiguityTest {
     @Test
     public void test2() {
         Ambiguity<Integer> amb = solve(() -> {
-            int a = amb(1, 2, 3);
+            int a = amb(1, 2, 3, 4);
             return a;
         });
 
-        assertEquals(list(1, 2, 3), list(solutions(amb)));
+        assertEquals(list(1, 2, 3, 4), list(solutions(amb)));
     }
 
     @Test
