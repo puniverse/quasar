@@ -112,9 +112,9 @@ public final class Stack implements Serializable {
     public Continuation getAndClearSuspendedContinuation() {
         Object c = getSuspendedContext();
         setPauseContext(null);
-        return (Continuation)c;
+        return (Continuation) c;
     }
-    
+
     Object getSuspendedContext() {
 //        return pausedContext;
         Object c = suspendedContext;
@@ -175,6 +175,26 @@ public final class Stack implements Serializable {
         System.err.println("CORRECT_SP: SP: " + sp + " pushed: " + p);
 
         return false;
+    }
+
+    final void pushContinuation(Continuation<?, ?> c) {
+        int i = nextMethodEntry();
+        assert i == 0;
+        pushMethod(0, 0);
+        dataObject[sp - FRAME_RECORD_SIZE] = c;
+    }
+
+    final void popContinuation(Continuation<?, ?> c) {
+        assert dataObject[sp - FRAME_RECORD_SIZE] == c;
+        popMethod();
+    }
+
+    final Continuation<?, ?> getContinuation() {
+        int i = nextMethodEntry();
+        assert i == 0;
+        Continuation<?, ?> c = (Continuation<?, ?>)dataObject[sp - FRAME_RECORD_SIZE];
+        // pushMethod(0, 0);
+        return c;
     }
 
     /**
