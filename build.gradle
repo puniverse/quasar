@@ -69,8 +69,8 @@ subprojects {
             failOnVersionConflict()
         }
     }
-    
-    
+
+
     configurations {
         compileOnly
         provided
@@ -82,12 +82,12 @@ subprojects {
         main {
             compileClasspath += configurations.compileOnly + configurations.provided
         }
-        
+
         test {
             compileClasspath += configurations.compileOnly + configurations.provided
             runtimeClasspath += configurations.provided
         }
-        
+
         jmh {
             compileClasspath += main.compileClasspath + main.output + test.compileClasspath + test.output
             runtimeClasspath += compileClasspath + main.runtimeClasspath + test.runtimeClasspath
@@ -117,10 +117,10 @@ subprojects {
             exclude group: "org.ow2.asm", module: '*'
         }
         testCompile "org.ow2.asm:asm:$asmVer"
-        
+
         jmhCompile 'org.openjdk.jmh:jmh-core:1.10.3'
         jmhCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.10.3'
-        
+
         compileOnly 'org.kohsuke.metainf-services:metainf-services:1.5'
         // compileOnly 'com.google.auto.service:auto-service:1.0-rc1' // same as metainf-services
         // markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
@@ -190,19 +190,19 @@ subprojects {
         if(project.hasProperty('args')){
             args project.args.split('\\s+')
         }
-
+        
         jvmArgs '-Xmx2048m'
         // jvmArgs "-Xbootclasspath/p:${System.getProperty("user.home")}/jsr166.jar"
-        //systemProperty 'co.paralleluniverse.fibers.DefaultFiberPool.parallelism', '1'
-        
+        // systemProperty 'co.paralleluniverse.fibers.DefaultFiberPool.parallelism', '1'
+
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
         systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
         // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
         jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
-        
-        //jvmArgs '-XX:+UnlockCommercialFeatures', '-XX:+FlightRecorder', '-XX:StartFlightRecording=duration=60s,filename=recording.jfr,settings=heap'
+
+        // jvmArgs '-XX:+UnlockCommercialFeatures', '-XX:+FlightRecorder', '-XX:StartFlightRecording=duration=60s,filename=recording.jfr,settings=heap'
     }
-    
+
     project.afterEvaluate {
         run.dependsOn project(':quasar-core').tasks["jdk${project.ext.jdkVer}ShadowJar"]
     }
@@ -278,8 +278,8 @@ subprojects {
 
                 repository(
                     url: (isReleaseVersion ?
-	                        "https://oss.sonatype.org/service/local/staging/deploy/maven2" :
-	                        "https://oss.sonatype.org/content/repositories/snapshots")) {
+                        "https://oss.sonatype.org/service/local/staging/deploy/maven2" :
+                        "https://oss.sonatype.org/content/repositories/snapshots")) {
                     // User and Password are taken from ~/.gradle/gradle.properties
                     authentication(userName: project.sonatypeUsername, password: project.sonatypePassword)
                 }
@@ -320,7 +320,7 @@ subprojects {
 
 def scanAndInstrument(sset, configs) {
     def cp = '' + sset.output.classesDir + ':' + sset.output.resourcesDir + ':' + configs*.asPath.join(':')
-    
+
     ant.taskdef(
         name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
         classpath: cp)
@@ -374,7 +374,7 @@ project (':quasar-core') {
                 srcDir 'src/main/java'
                 srcDir 'src/jdk7/java'
             }
-            
+
             compileClasspath += main.compileClasspath // += main.uoutput
             runtimeClasspath += main.runtimeClasspath // += main.uoutput
         }
@@ -383,7 +383,7 @@ project (':quasar-core') {
             java {
                 srcDir 'src/test/java'
             }
-            
+
             compileClasspath += jdk7.output + test.compileClasspath
             runtimeClasspath += compileClasspath  + test.runtimeClasspath
         }
@@ -393,7 +393,7 @@ project (':quasar-core') {
                 srcDir 'src/main/java'
                 srcDir 'src/jdk8/java'
             }
-            
+
             compileClasspath += main.compileClasspath
             runtimeClasspath += compileClasspath
         }
@@ -403,7 +403,7 @@ project (':quasar-core') {
                 srcDir 'src/test/java'
                 srcDir 'src/jdk8Test/java'
             }
-            
+
             compileClasspath += jdk8.output + test.compileClasspath
             runtimeClasspath += compileClasspath + test.runtimeClasspath
         }
@@ -412,7 +412,7 @@ project (':quasar-core') {
             java {
                 srcDir 'src/jmh/java'
             }
-            
+
             compileClasspath += jdk8.output + jdk8test.compileClasspath + jdk8test.output
             runtimeClasspath += compileClasspath + jdk8test.runtimeClasspath
         }
@@ -474,13 +474,13 @@ project (':quasar-core') {
 
             manifest {
                 attributes(
-	            "Built-By"                  :   System.getProperty("user.name"),
-	            "Implementation-Title"      :   project.name,
-	            "Implementation-Version"    :   version,
-	            "Implementation-Vendor"     :   vendor,
-	            "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
+                    "Built-By"                  :   System.getProperty("user.name"),
+                    "Implementation-Title"      :   project.name,
+                    "Implementation-Version"    :   version,
+                    "Implementation-Vendor"     :   vendor,
+                    "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
                     "Agent-Class"               :   "co.paralleluniverse.fibers.instrument.JavaAgent",
-	            "Can-Retransform-Classes"   :   "true",
+                    "Can-Retransform-Classes"   :   "true",
                     "Can-Redefine-Classes"      :   "true",
                     //  "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',')
                 )
@@ -503,7 +503,7 @@ project (':quasar-core') {
         assemble.dependsOn shadowJarTask
         check.dependsOn testTask
     }
-   
+
     compileJdk7Java {
         sourceCompatibility = '1.7'
         targetCompatibility = '1.7'

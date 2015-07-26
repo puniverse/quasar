@@ -76,7 +76,7 @@ class LocalActorRegistry implements co.paralleluniverse.actors.spi.ActorRegistry
     }
 
     @Override
-    public <Message> ActorRef<Message> tryGetActor(final String name) {
+    public <Message> ActorRef<Message> tryGetActor(final String name) throws SuspendExecution {
         ActorRef<?> actor = registeredActors.get(name);
         if (actor == null) {
             lock.lock();
