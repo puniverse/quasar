@@ -70,7 +70,6 @@ subprojects {
         }
     }
 
-
     configurations {
         compileOnly
         provided
@@ -93,7 +92,7 @@ subprojects {
             runtimeClasspath += compileClasspath + main.runtimeClasspath + test.runtimeClasspath
         }
     }
-    
+
     compileJmhJava {
         sourceCompatibility = '1.8'
         targetCompatibility = '1.8'
@@ -316,7 +315,6 @@ subprojects {
         }
     }
 }
-
 
 def scanAndInstrument(sset, configs) {
     def cp = '' + sset.output.classesDir + ':' + sset.output.resourcesDir + ':' + configs*.asPath.join(':')
