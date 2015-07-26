@@ -47,6 +47,9 @@ public final class SuspendableHelper {
         if (ste.getDeclaringClass() == null)
             return null;
 
+        if (ste.getMethod() != null)
+            return ste.getMethod();
+
         for (Method m : ste.getDeclaringClass().getDeclaredMethods()) {
             if (m.getName().equals(ste.getMethodName())) {
                 final Instrumented i = getAnnotation(m, Instrumented.class);
@@ -54,7 +57,7 @@ public final class SuspendableHelper {
                     return m;
             }
         }
-        return ste.getMethod();
+        return null;
     }
 
     public static Pair<Boolean, int[]> isCallSiteInstrumented(/*Executable*/ Member m, int sourceLine, ExtendedStackTraceElement[] stes, int currentSteIdx) {
