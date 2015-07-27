@@ -228,6 +228,7 @@ public class Var<T> {
         }
 
         void signalNewValue(Var var) {
+            Var.record("signalNewValue", "Fiber %s for var %s signalled by %s", this, this.var, var);
             hasNewVal = true;
             unpark(var);
         }
@@ -254,6 +255,7 @@ public class Var<T> {
                 if (v != null)
                     v.ch.close(t);
             } finally {
+                Var.record("run", "Fiber %s for var %s terminated", this, var);
                 for (Var<?> v1 : registeredVars) {
                     v1.registeredFibers.remove(this);
                     v1.notifyRegistered();
