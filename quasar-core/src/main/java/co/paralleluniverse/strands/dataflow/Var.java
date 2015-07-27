@@ -157,8 +157,8 @@ public class Var<T> {
     }
 
     private void notifyRegistered() {
-        for (VarFiber<?> f : registeredFibers)
-            f.signalNewValue(this);
+        for (VarFiber<?> fiber : registeredFibers)
+            fiber.signalNewValue(this);
     }
 
     /**
