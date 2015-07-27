@@ -786,6 +786,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 }
             } finally {
                 state = State.TERMINATED;
+                task.setState(0);
                 monitorFiberTerminated(monitor);
                 setException(t);
             }
