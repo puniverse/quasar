@@ -120,9 +120,9 @@
 <li><a href="#transforming-any-asynchronous-callback-to-a-fiber-blocking-operation">Transforming any Asynchronous Callback to A Fiber-Blocking Operation</a></li>
 <li><a href="#advanced-fibers">Advanced Fiber Usage</a></li>
 <li><a href="#channels">Channels</a></li>
-<li><a href="#dataflow-reactive-programming">Dataflow (Reactive) Programming</a></li>
 </ul>
 </li>
+<li><a href="#dataflow-reactive-programming" class="cat-link">Dataflow (Reactive) Programming</a></li>
 <li>
 <a href="#quasars-actor-system" class="cat-link">Quasar’s Actor System</a><ul>
 <li><a href="#sending-and-receiving-messages-actorref">Sending and Receiving Messages, ActorRef</a></li>
@@ -689,7 +689,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 </span></code></pre></div>
 <p>The example will do exactly one of the following operations: send <code>msg</code> to <code>ch1</code> or receive a message from&nbsp;<code>ch2</code>.</p>
 
-<h3 id="dataflow-reactive-programming">Dataflow (Reactive)&nbsp;Programming</h3>
+<h2 id="dataflow-reactive-programming">Dataflow (Reactive)&nbsp;Programming</h2>
 
 <p>Dataflow, or reactive programming, is a computation described by composing variables whose value may be set (and possibly changed) at any given time, without concern for when these values are set. Quasar provides two dataflow primitives: <a href="/quasar/javadoc/co/paralleluniverse/strands/dataflow/Val.html"><code>Val</code></a> and <a href="/quasar/javadoc/co/paralleluniverse/strands/dataflow/Var.html"><code>Var</code></a> in the <code>co.paralleluniverse.strands.dataflow</code>&nbsp;package.</p>
 
