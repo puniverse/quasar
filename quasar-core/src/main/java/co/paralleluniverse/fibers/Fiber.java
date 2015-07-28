@@ -786,7 +786,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 }
             } finally {
                 state = State.TERMINATED;
-                task.setState(0);
+                task.setState(0); // Some error conditions -- when the fiber isn't instrumented well -- may leave it in an inconsistent state (PARKING)
                 monitorFiberTerminated(monitor);
                 setException(t);
             }

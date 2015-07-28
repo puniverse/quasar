@@ -145,7 +145,7 @@ public final class Stack implements Serializable {
 //            dataLong[nextMethodIdx + i] = 0L;
 
         if (fiber.isRecordingLevel(2))
-            fiber.record(2, "Stack", "pushMethod     ", "%s %s %s %s %d", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
+            fiber.record(2, "Stack", "pushMethod     ", "%s %d %d", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
     }
 
     public final void popMethod() {
@@ -172,7 +172,7 @@ public final class Stack implements Serializable {
         sp = newSP;
 
         if (fiber.isRecordingLevel(2))
-            fiber.record(2, "Stack", "popMethod      ", "%s %s %s", Thread.currentThread().getStackTrace()[2], sp /*Arrays.toString(fiber.getStackTrace())*/);        
+            fiber.record(2, "Stack", "popMethod      ", "%s %d", Thread.currentThread().getStackTrace()[2], sp /*Arrays.toString(fiber.getStackTrace())*/);        
     }
 
     public final void postRestore() throws SuspendExecution, InterruptedException {
