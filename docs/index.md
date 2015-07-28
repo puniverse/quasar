@@ -557,7 +557,7 @@ SelectAction sa = Selector.select(Selector.receive(ch1), Selector.send(ch2, msg)
 
 The example will do exactly one of the following operations: send `msg` to `ch1` or receive a message from `ch2`.
 
-### Dataflow (Reactive) Programming
+## Dataflow (Reactive) Programming
 
 Dataflow, or reactive programming, is a computation described by composing variables whose value may be set (and possibly changed) at any given time, without concern for when these values are set. Quasar provides two dataflow primitives: [`Val`]({{javadoc}}/strands/dataflow/Val.html) and [`Var`]({{javadoc}}/strands/dataflow/Var.html) in the `co.paralleluniverse.strands.dataflow` package.
 
