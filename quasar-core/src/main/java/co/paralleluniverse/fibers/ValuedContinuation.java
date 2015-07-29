@@ -41,9 +41,9 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
     }
 
     @Suspendable
-    public ValuedContinuation<S, T, Out, In> go(In value) {
+    public void run(In value) {
         self().pauseIn = value;
-        return (ValuedContinuation<S, T, Out, In>) go();
+        run();
     }
 
     public Out getPauseValue() {

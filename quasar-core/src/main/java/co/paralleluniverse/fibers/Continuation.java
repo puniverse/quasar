@@ -28,7 +28,7 @@ import java.util.WeakHashMap;
  * If you need a continuation that can be triggered by multiple strands, please use a fiber.
  * @author pron
  */
-public abstract class Continuation<S extends Suspend, T> implements Serializable, Cloneable {
+public abstract class Continuation<S extends Suspend, T> implements Runnable, Serializable, Cloneable {
     public static final int DEFAULT_STACK_SIZE = 8;
     private static final boolean ALLOW_CLONING = true;
     private static final boolean verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
@@ -194,7 +194,7 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
     }
 
     @Suspendable // may suspend enclosing continuations/fiber
-    public final Continuation<S, T> go() {
+    public final void run() {
         /*
          * We must keep c in the object on the heap because run0 may pause on an outer scope, and we need to preserve the 
          * current continuation for when we resume (on the outer scope).
@@ -211,7 +211,6 @@ public abstract class Continuation<S extends Suspend, T> implements Serializable
             }
         }
         // System.err.println("RRRRRRRRRRR: " + c + " :: " + this);
-        return c;
     }
 
     private CalledCC run0() {

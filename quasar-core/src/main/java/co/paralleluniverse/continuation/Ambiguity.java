@@ -45,7 +45,7 @@ public class Ambiguity<T> {
     public T run() throws NoSolution {
         try {
             AmbContinuation<T> c = pop();
-            c.go();
+            c.run();
             System.err.println("EEEEEE NOT DONE: " + c);
             assert c.isDone() : "Not done: " + c;
             return c.getResult();
