@@ -20,8 +20,8 @@ import co.paralleluniverse.common.util.SystemProperties;
 import static co.paralleluniverse.fibers.Fiber.checkInstrumentation;
 import co.paralleluniverse.strands.Strand;
 import java.io.Serializable;
+import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.WeakHashMap;
 
 /**
  * This class is not thread safe. All runs of the continuation must be performed on the same strand, or some synchronization measures need be taken.
@@ -43,15 +43,9 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     private ThreadData threadData;
     private boolean done;
     private T result;
-    private Stack parentStack;
     private Continuation parent;
-
     // From this point down, fields are necessary only for cloning
-    private Map<Stack, Object> results;
-    private static final Object NULL = new Object();
-    // The following could have been stored on the stack, but is stored here for convenience
-    private Stack tmpStack;
-    private int parentSP = -1;
+    private IdentityHashMap<Continuation<?, ?>, Continuation<?, ?>> children;
 
     private static final ThreadLocal<CalledCC> calledcc = new ThreadLocal<>();
 
@@ -81,7 +75,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
      * @return
      */
     protected Continuation<S, T> self() {
-        return c;
+        return getClone().c;
     }
 
     @Override
@@ -94,6 +88,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         if (getCurrentContinuation() == this)
             throw new IllegalStateException("Cannot clone a continuation while running in it: " + getCurrentContinuation());
         try {
+            System.err.println("CLONE: " + this);
             Continuation<S, T> o = (Continuation<S, T>) super.clone();
             o.c = (c == this ? o : c.clone());
             if (stack != null) {
@@ -101,12 +96,41 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
                 Object pc = stack.getSuspendedContext();
                 o.stack.setPauseContext(pc == this ? o : pc);
             }
+            if (children != null) {
+                o.children = (IdentityHashMap<Continuation<?, ?>, Continuation<?, ?>>) children.clone();
+                for (Map.Entry e : o.children.entrySet())
+                    e.setValue(((Continuation<?, ?>) e.getValue()).clone());
+            }
             System.err.println("CLONE: " + this + " -> " + o);
 
             return o;
         } catch (CloneNotSupportedException e) {
             throw new AssertionError();
         }
+    }
+
+    private Continuation<S, T> getClone() {
+        if (!ALLOW_CLONING)
+            return this;
+        final Continuation<?, ?> p = getCurrentContinuation();
+        if (p == null)
+            return this;
+        if (p.children == null)
+            return this;
+        final Continuation<S, T> cl = (Continuation<S, T>) p.children.get(this);
+        return cl != null ? cl : this;
+    }
+
+    private void addChild(Continuation<?, ?> child) {
+        System.err.println("ADD_CHILD: " + this + ": " + child);
+        if (children == null)
+            children = new IdentityHashMap<>();
+        children.putIfAbsent(child, child);
+    }
+
+    private void removeChild(Continuation<?, ?> child) {
+        if (children != null)
+            children.remove(child);
     }
 
     private void clear() {
@@ -130,24 +154,39 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     }
 
     public boolean isDone0() {
-        if (ALLOW_CLONING)
-            return c.results != null && c.results.containsKey(c.stack);
-        else
-            return c.done;
+        return getClone().c.done;
     }
 
     public T getResult() {
-        if (ALLOW_CLONING) {
-            if (c.results == null)
-                return null;
-            Object r = c.results.get(c.stack);
-            return r != NULL ? (T) r : null;
-        } else
-            return c.result;
+        return getClone().c.result;
+    }
+
+    @Override
+    public int hashCode() {
+        return getClone().hashCode0();
+    }
+
+    private int hashCode0() {
+        return System.identityHashCode(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Continuation))
+            return false;
+        return getClone().equals0(((Continuation<?, ?>) o).getClone());
+    }
+
+    private boolean equals0(Object o) {
+        return o == this;
     }
 
     @Override
     public String toString() {
+        return getClone().toString0();
+    }
+
+    private String toString0() {
         if (c == this)
             return getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this))
                     + "{scope: " + scope.getSimpleName() + " stack: " + stack + " done: " + isDone0() + '}';
@@ -194,7 +233,13 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     }
 
     @Suspendable // may suspend enclosing continuations/fiber
+    @Override
     public final void run() {
+        getClone().run1();
+    }
+
+    @Suspendable // may suspend enclosing continuations/fiber
+    private final void run1() {
         /*
          * We must keep c in the object on the heap because run0 may pause on an outer scope, and we need to preserve the 
          * current continuation for when we resume (on the outer scope).
@@ -266,7 +311,6 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     protected void prepare(Thread currentThread) {
         System.err.println("PREPARE: " + this);
         this.parent = getCurrentContinuation();
-        this.parentStack = parent != null ? parent.getStack() : null; // Stack.getStack();
 //        if (threadData != null & parent != null)
 //            throw new IllegalStateException("Cannot run a detached continuation nested within another continuation: " + parent);
 
@@ -295,52 +339,20 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         } finally {
             currentContinuation.set(parent);
             this.parent = null;
-            this.parentStack = null;
         }
     }
 
     private void prepareStack() {
-        if (parentStack != null) {
-            if (ALLOW_CLONING) {
-                parentSP = parentStack.capturePosition();
-                if (parentStack.getSuspendedContext() != null) {
-                    tmpStack = stack;
-                    stack = parentStack;
-                }
-
-                if (isDone()) {
-                    String error = "Continuation terminated: " + this;
-                    restoreStack(null);
-                    throw new IllegalStateException(error);
-                }
-
-                System.err.println("PREPARE EMBEDDED: " + stack + " " + tmpStack + " :: " + parentStack.getSuspendedContext());
-            } else if (stack.getSuspendedContext() == null)
-                stack.setPauseContext(parentStack.getSuspendedContext());
-        }
+        if (parent != null && stack.getSuspendedContext() == null)
+            stack.setPauseContext(parent.getStack().getSuspendedContext());
     }
 
     private void restoreStack(Throwable susScope) {
         final boolean inScope = isScope(susScope);
-        System.err.println("RESTORE_STACK: " + parentStack + " " + inScope + " " + tmpStack + " " + susScope + " " + isContinuationScope(susScope));
-        if (ALLOW_CLONING && parentStack != null) {
-            if (inScope) {
-                if (tmpStack != null) {
-                    tmpStack.takeTop(stack, parentSP);
-                    if (results != null && results.containsKey(tmpStack))
-                        results.remove(tmpStack);
-                    System.err.println("RESTORE EMBEDDED INNER: " + stack + " -> " + tmpStack);
-                }
-            } else if (tmpStack == null && susScope != null && isContinuationScope(susScope)) { // special treatment for fibers; we don't want them bothered
-                System.err.println("RESTORE EMBEDDED OUTER: " + stack + " -> " + parentStack);
-                stack.putTop(parentStack, parentSP);
-            }
-
-            parentSP = -1;
-
-            if (tmpStack != null) {
-                stack = tmpStack;
-                tmpStack = null;
+        if (ALLOW_CLONING && parent != null) {
+            if (!inScope && susScope != null && isContinuationScope(susScope)) { // special treatment for fibers; we don't want them bothered
+                System.err.println("RESTORE EMBEDDED OUTER: " + stack + " -> " + parent.getStack());
+                parent.addChild(this);
             }
         }
 
@@ -355,18 +367,9 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         if (t != null)
             t.printStackTrace(System.err);
 
-        if (ALLOW_CLONING) {
-            if (results == null)
-                results = new WeakHashMap<>();
-            results.put(stack, result != null ? result : NULL);
-            if (tmpStack != null)
-                results.put(tmpStack, result != null ? result : NULL);
-            System.err.println("DONE 111: " + this + " :: " + stack + " " + tmpStack);
-        } else {
-            clear();
-            this.done = true;
-            this.result = result;
-        }
+        clear();
+        this.done = true;
+        this.result = result;
     }
 
     private static Continuation<?, ?> verifySuspend() {
