@@ -42,7 +42,7 @@ public class CoIterable<E> implements Iterable<E> {
     }
 
     private static class CoIterator<E> implements Iterator<E> {
-        private ValuedContinuation<CoIteratorScope, Void, E, Void> c;
+        private final ValuedContinuation<CoIteratorScope, Void, E, Void> c;
 
         private boolean hasNextCalled;
         private boolean hasNext;

@@ -194,6 +194,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     }
 
     @Suspendable // may suspend enclosing continuations/fiber
+    @Override
     public final void run() {
         /*
          * We must keep c in the object on the heap because run0 may pause on an outer scope, and we need to preserve the 
