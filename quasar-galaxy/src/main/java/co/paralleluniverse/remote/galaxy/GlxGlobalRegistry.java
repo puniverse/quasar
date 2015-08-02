@@ -174,7 +174,7 @@ public class GlxGlobalRegistry implements ActorRegistry {
         final StoreTransaction txn = store.beginTransaction();
         try {
             try {
-                final long root = store.getRoot(rootName, null);
+                final long root = store.getRoot(rootName, txn);
                 byte[] buf = store.get(root);
                 if (buf == null) {
                     LOG.debug("Store returned null for root {}", rootName);
