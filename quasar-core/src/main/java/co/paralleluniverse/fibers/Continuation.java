@@ -38,12 +38,12 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
 
     private final Class<S> scope;
     private Callable<T> target;
-    private Continuation<S, T> c; // the actual continuation used; a trampoline mechanism
     private Stack stack;
     private ThreadData threadData;
     private boolean done;
     private T result;
     private Continuation parent;
+    private boolean recursive;
     // From this point down, fields are necessary only for cloning
     private IdentityHashMap<Continuation<?, ?>, Continuation<?, ?>> children;
 
@@ -57,7 +57,6 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         this.stack = new Stack(this, stackSize > 0 ? stackSize : DEFAULT_STACK_SIZE);
         this.scope = scope;
         this.threadData = detached ? new ThreadData(Thread.currentThread()) : null;
-        this.c = this;
 
         System.err.println("INIT: " + this);
     }
@@ -75,7 +74,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
      * @return
      */
     protected Continuation<S, T> self() {
-        return getClone().c;
+        return getClone();
     }
 
     @Override
@@ -90,7 +89,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         try {
             System.err.println("CLONE: " + this);
             Continuation<S, T> o = (Continuation<S, T>) super.clone();
-            o.c = (c == this ? o : c.clone());
+            o.recursive = false;
             if (stack != null) {
                 o.stack = new Stack(o, stack);
                 Object pc = stack.getSuspendedContext();
@@ -140,11 +139,11 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     }
 
     Stack getStack() {
-        return c.stack;
+        return stack;
     }
 
     ThreadData getThreadData() {
-        return c.threadData;
+        return threadData;
     }
 
     public boolean isDone() {
@@ -154,11 +153,11 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     }
 
     public boolean isDone0() {
-        return getClone().c.done;
+        return self().done;
     }
 
     public T getResult() {
-        return getClone().c.result;
+        return self().result;
     }
 
     @Override
@@ -187,10 +186,8 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     }
 
     private String toString0() {
-        if (c == this)
-            return getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this))
-                    + "{scope: " + scope.getSimpleName() + " stack: " + stack + " done: " + isDone0() + '}';
-        return c.toString() + '(' + getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this)) + ')';
+        return getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this))
+                + "{scope: " + scope.getSimpleName() + " stack: " + stack + " done: " + isDone0() + '}';
     }
 
     static Continuation getCurrentContinuation() {
@@ -213,11 +210,10 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
      * Subclasses calling this method must call it explicitly so, {@code Continuation.suspend}, and not simply {@code suspend}.
      */
     public static <S extends Suspend> Continuation<S, ?> suspend(S scope) throws S {
+        // return suspend(scope, null);
         if (verifyInstrumentation)
             verifySuspend();
-        if (true)
-            throw scope;
-        return null;
+        throw scope;
     }
 
     /**
@@ -227,9 +223,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         if (verifyInstrumentation)
             verifySuspend();
         calledcc.set(ccc);
-        if (true)
-            throw scope;
-        return null;
+        throw scope;
     }
 
     @Suspendable // may suspend enclosing continuations/fiber
@@ -239,26 +233,31 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     }
 
     @Suspendable // may suspend enclosing continuations/fiber
-    private final void run1() {
+    private void run1() {
         /*
          * We must keep c in the object on the heap because run0 may pause on an outer scope, and we need to preserve the 
          * current continuation for when we resume (on the outer scope).
          * Also, it's better, because it's really part of this object's state.
          */
-        for (;;) {
-            CalledCC ccc = c.run0();
-            Continuation<S, T> c0 = ccc != null ? ccc.suspended(c) : null;
-            if (c0 == null)
-                break;
-            if (c != c0) {
-                System.err.println("TRAMPOLINE: " + c + " -> " + c0 + " :: " + this);
-                c = c0;
+        run0();
+        if (recursive)
+            return;
+        recursive = true;
+        System.err.println("RECURSIVE TRUE: " + this);
+        try {
+            CalledCC ccc;
+            while ((ccc = calledcc.get()) != null) {
+                calledcc.set(null);
+                ccc.suspended(this);
             }
+            // System.err.println("RRRRRRRRRRR: " + c + " :: " + this);
+        } finally {
+            System.err.println("RECURSIVE FALSE: " + this);
+            recursive = false;
         }
-        // System.err.println("RRRRRRRRRRR: " + c + " :: " + this);
     }
 
-    private CalledCC run0() {
+    private void run0() {
         System.err.println("RUN: " + this);
         if (!ALLOW_CLONING && isDone())
             throw new IllegalStateException("Continuation terminated: " + this);
@@ -268,16 +267,9 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         try {
             T res = target.call();
             done(res, null);
-            return null;
         } catch (Suspend s) {
             susScope = s;
             verifyScope(s);
-
-            final CalledCC ccc = calledcc.get();
-            if (ccc != null)
-                calledcc.set(null);
-
-            return ccc;
         } catch (Throwable t) {
             if (isContinuationScope(t) || isFiberScope(t)) {
                 susScope = t;
