@@ -795,8 +795,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             if (!restored)
                 restoreThreadData(currentThread, old);
 
-            if (task instanceof FiberForkJoinTask)
-                ((FiberForkJoinTask) task).tryOnIdle((FiberForkJoinScheduler) scheduler);
+            if (scheduler instanceof FiberForkJoinScheduler)
+                ((FiberForkJoinScheduler) scheduler).tryOnIdle();
         }
     }
 
