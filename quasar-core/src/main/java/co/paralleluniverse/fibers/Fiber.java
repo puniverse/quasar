@@ -26,6 +26,7 @@ import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
+import co.paralleluniverse.fibers.FiberForkJoinScheduler.FiberForkJoinTask;
 import co.paralleluniverse.fibers.instrument.SuspendableHelper;
 import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import co.paralleluniverse.io.serialization.kryo.KryoSerializer;
@@ -169,7 +170,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         setName(name);
         Strand parent = Strand.currentStrand(); // retaining the parent as a field is a huge, complex memory leak
         this.target = target;
-        this.task = scheduler != null ? scheduler.newFiberTask(this) : new FiberForkJoinScheduler.FiberForkJoinTask(this);
+        this.task = scheduler != null ? scheduler.newFiberTask(this) : new FiberForkJoinTask(this);
         this.initialStackSize = stackSize;
         this.stack = new Stack(this, stackSize > 0 ? stackSize : DEFAULT_STACK_SIZE);
 
@@ -793,6 +794,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         } finally {
             if (!restored)
                 restoreThreadData(currentThread, old);
+
+            if (task instanceof FiberForkJoinTask)
+                ((FiberForkJoinTask) task).tryOnIdle((FiberForkJoinScheduler) scheduler);
         }
     }
 

@@ -206,6 +206,9 @@ public class FiberForkJoinScheduler extends FiberScheduler {
             return Fiber.getCurrentStrand();
     }
 
+    protected void onIdle() {
+    }
+
     private class FiberWorkerThread extends ExtendedForkJoinWorkerThread {
         public FiberWorkerThread(ForkJoinPool pool) {
             super(pool);
@@ -327,6 +330,11 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         protected void onCompletion(boolean res) {
             if (res)
                 fiber.onCompletion();
+        }
+
+        void tryOnIdle(FiberForkJoinScheduler scheduler) {
+            if (peekNextLocalTask() == null)
+                scheduler.onIdle();
         }
 
         @Override
