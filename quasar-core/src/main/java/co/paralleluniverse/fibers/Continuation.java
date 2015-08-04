@@ -162,7 +162,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
 
     @Override
     public int hashCode() {
-        return getClone().hashCode0();
+        return self().hashCode0();
     }
 
     private int hashCode0() {
@@ -173,7 +173,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     public boolean equals(Object o) {
         if (!(o instanceof Continuation))
             return false;
-        return getClone().equals0(((Continuation<?, ?>) o).getClone());
+        return self().equals0(((Continuation<?, ?>) o).self());
     }
 
     private boolean equals0(Object o) {
@@ -182,14 +182,18 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
 
     @Override
     public String toString() {
-        return getClone().toString0();
+        return self().toString0();
     }
 
     private String toString0() {
         return getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this))
-                + "{scope: " + scope.getSimpleName() + " stack: " + stack + " done: " + isDone0() + '}';
+                + "{scope: " + getScopeName() + " stack: " + stack + " done: " + isDone0() + '}';
     }
 
+    protected String getScopeName() {
+        return scope.getSimpleName();
+    }
+    
     static Continuation getCurrentContinuation() {
         return currentContinuation.get();
     }
@@ -259,6 +263,8 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
 
     private void run0() {
         System.err.println("RUN: " + this);
+        Debug.printStackTrace(6, System.err);
+        
         if (!ALLOW_CLONING && isDone())
             throw new IllegalStateException("Continuation terminated: " + this);
         Throwable susScope = null;
