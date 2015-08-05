@@ -58,8 +58,8 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         this.scope = scope;
         this.threadData = detached ? new ThreadData(Thread.currentThread()) : null;
 
-        System.err.println("INIT: " + this);
-        Debug.printStackTrace(10, System.err);
+        // System.err.println("INIT: " + this);
+        // Debug.printStackTrace(10, System.err);
     }
 
     public Continuation(Class<S> scope, boolean detached, Callable<T> target) {
@@ -88,7 +88,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         if (getCurrentContinuation() == this)
             throw new IllegalStateException("Cannot clone a continuation while running in it: " + getCurrentContinuation());
         try {
-            System.err.println("CLONE: " + this);
+            // System.err.println("CLONE: " + this);
             Continuation<S, T> o = (Continuation<S, T>) super.clone();
             o.recursive = false;
             if (stack != null) {
@@ -101,7 +101,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
                 for (Map.Entry e : o.children.entrySet())
                     e.setValue(((Continuation<?, ?>) e.getValue()).clone());
             }
-            System.err.println("CLONE: " + this + " -> " + o);
+            // System.err.println("CLONE: " + this + " -> " + o);
 
             return o;
         } catch (CloneNotSupportedException e) {
@@ -122,7 +122,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     }
 
     private void addChild(Continuation<?, ?> child) {
-        System.err.println("ADD_CHILD: " + this + ": " + child);
+        // System.err.println("ADD_CHILD: " + this + ": " + child);
         if (children == null)
             children = new IdentityHashMap<>();
         children.putIfAbsent(child, child);
@@ -148,12 +148,6 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     }
 
     public boolean isDone() {
-        boolean res = isDone0();
-        System.err.println("IS_DONE: " + this + " " + res);
-        return res;
-    }
-
-    public boolean isDone0() {
         return self().done;
     }
 
@@ -188,7 +182,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
 
     private String toString0() {
         return getClass().getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(this))
-                + "{scope: " + getScopeName() + " stack: " + stack + " done: " + isDone0() + '}';
+                + "{scope: " + getScopeName() + " stack: " + stack + " done: " + done + '}';
     }
 
     protected String getScopeName() {
@@ -248,24 +242,24 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         if (recursive)
             return;
         recursive = true;
-        System.err.println("RECURSIVE TRUE: " + this);
+        // System.err.println("RECURSIVE TRUE: " + this);
         try {
             CalledCC ccc;
             while ((ccc = calledcc.get()) != null) {
-                System.err.println("============== CCC: " + ccc);
+                // System.err.println("CCC: " + ccc);
                 calledcc.set(null);
                 ccc.suspended(this);
             }
             // System.err.println("RRRRRRRRRRR: " + c + " :: " + this);
         } finally {
-            System.err.println("RECURSIVE FALSE: " + this);
+            // System.err.println("RECURSIVE FALSE: " + this);
             recursive = false;
         }
     }
 
     private void run0() {
-        System.err.println("RUN: " + this);
-        Debug.printStackTrace(10, System.err);
+        // System.err.println("RUN: " + this);
+        // Debug.printStackTrace(10, System.err);
 
         if (!ALLOW_CLONING && isDone())
             throw new IllegalStateException("Continuation terminated: " + this);
@@ -309,7 +303,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     }
 
     protected void prepare(Thread currentThread) {
-        System.err.println("PREPARE: " + this);
+        // System.err.println("PREPARE: " + this);
         this.parent = getCurrentContinuation();
 //        if (threadData != null & parent != null)
 //            throw new IllegalStateException("Cannot run a detached continuation nested within another continuation: " + parent);
@@ -326,7 +320,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     private void restore(Throwable susScope, Thread currentThread) {
         final boolean inScope = isScope(susScope);
         try {
-            System.err.println("RESTORE: " + this + " " + inScope + " -> " + parent);
+            // System.err.println("RESTORE: " + this + " " + inScope + " -> " + parent);
             if (stack != null) {
                 if (!inScope)
                     stack.setSuspendedContext(null);
@@ -351,7 +345,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         final boolean inScope = isScope(susScope);
         if (ALLOW_CLONING && parent != null) {
             if (!inScope && susScope != null && isContinuationScope(susScope)) { // special treatment for fibers; we don't want them bothered
-                System.err.println("RESTORE EMBEDDED OUTER: " + stack + " -> " + parent.getStack());
+                // System.err.println("RESTORE EMBEDDED OUTER: " + stack + " -> " + parent.getStack());
                 parent.addChild(this);
             }
         }
@@ -363,7 +357,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     }
 
     private void done(T result, Throwable t) {
-        System.err.println("DONE: " + this + " :: " + t);
+        // System.err.println("DONE: " + this + " :: " + t);
         if (t != null)
             t.printStackTrace(System.err);
 

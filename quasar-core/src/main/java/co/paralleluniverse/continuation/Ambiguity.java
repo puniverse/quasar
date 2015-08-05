@@ -58,12 +58,11 @@ public class Ambiguity<T> {
     }
 
     public boolean hasRemaining() {
-        System.err.println("HAS_REMAINING: " + cs);
         return !cs.isEmpty();
     }
 
     private void push(Continuation<?, ?> c) {
-        System.err.println("PUSH: " + c);
+        // System.err.println("PUSH: " + c);
         cs.addFirst((AmbContinuation<T>) c);
     }
 
@@ -71,7 +70,7 @@ public class Ambiguity<T> {
         if (cs.isEmpty())
             throw new RuntimeNoSolution();
         AmbContinuation<T> c = cs.removeFirst();
-        System.err.println("POP: " + c);
+        // System.err.println("POP: " + c);
         return c;
     }
 
@@ -104,7 +103,7 @@ public class Ambiguity<T> {
                 c = (AmbContinuation<T>) suspend(SCOPE, CAPTURE);
             } while (c.isClone && values.size() > 1); // will run once for each clone
         }
-        System.err.println("XXXX AMB: " + values);
+        // System.err.println("XXXX AMB: " + values);
         return values.remove(0);
     }
 
@@ -114,7 +113,7 @@ public class Ambiguity<T> {
 
     public static void assertThat(boolean pred) throws AmbScope {
         if (!pred) {
-            System.err.println("ASSERT FAILED");
+            // System.err.println("ASSERT FAILED");
             suspend(SCOPE, BACKTRACK);
         }
     }
@@ -141,7 +140,6 @@ public class Ambiguity<T> {
     private static final CalledCC<AmbScope> CAPTURE = new CalledCC<AmbScope>() {
         @Override
         public <T> void suspended(Continuation<AmbScope, T> c) {
-            System.err.println("QQQQQQQQQQ");
             try {
                 AmbContinuation<T> a = (AmbContinuation<T>) c;
                 a.ambiguity.push(a.clone());

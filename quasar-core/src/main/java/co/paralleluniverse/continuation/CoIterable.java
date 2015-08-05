@@ -103,11 +103,11 @@ public class CoIterable<E> implements Iterable<E> {
             // c = (ValuedContinuation<CoIteratorScope, Void, E, Void>) c.go();
             c.run();
             if (c.isDone()) {
-                System.err.println("PPPPP: DONE");
+                // System.err.println("PPPPP: DONE");
                 throw new NoSuchElementException();
             }
             next = c.getPauseValue();
-            System.err.println("PPPPP: " + next);
+            // System.err.println("PPPPP: " + next);
             return next;
         }
     }
