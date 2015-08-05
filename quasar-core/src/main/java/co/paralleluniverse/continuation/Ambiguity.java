@@ -43,24 +43,26 @@ public class Ambiguity<T> {
 
     @Suspendable // nested
     public T run() throws NoSolution {
-        try {
-            AmbContinuation<T> c = pop();
-            c.run();
-            System.err.println("EEEEEE NOT DONE: " + c);
-            assert c.isDone() : "Not done: " + c;
-            return c.getResult();
-        } catch (RuntimeNoSolution e) {
-            throw new NoSolution();
+        AmbContinuation<T> c;
+        while (true) {
+            try {
+                c = pop();
+                c.run();
+                // assert c.isDone() : "Not done: " + c;
+                if (c.isDone())
+                    return c.getResult();
+            } catch (RuntimeNoSolution e) {
+                throw new NoSolution();
+            }
         }
     }
 
     public boolean hasRemaining() {
-        System.err.println("HAS_REMAINING: " + cs);
         return !cs.isEmpty();
     }
 
     private void push(Continuation<?, ?> c) {
-        System.err.println("PUSH: " + c);
+        // System.err.println("PUSH: " + c);
         cs.addFirst((AmbContinuation<T>) c);
     }
 
@@ -68,7 +70,7 @@ public class Ambiguity<T> {
         if (cs.isEmpty())
             throw new RuntimeNoSolution();
         AmbContinuation<T> c = cs.removeFirst();
-        System.err.println("POP: " + c);
+        // System.err.println("POP: " + c);
         return c;
     }
 
@@ -98,11 +100,10 @@ public class Ambiguity<T> {
         if (values.size() > 1) {
             AmbContinuation<T> c;
             do {
-                System.err.println("ZZZZZZZZZ: CLONING " + values);
                 c = (AmbContinuation<T>) suspend(SCOPE, CAPTURE);
             } while (c.isClone && values.size() > 1); // will run once for each clone
         }
-        System.err.println("XXXX AMB: " + values);
+        // System.err.println("XXXX AMB: " + values);
         return values.remove(0);
     }
 
@@ -112,7 +113,7 @@ public class Ambiguity<T> {
 
     public static void assertThat(boolean pred) throws AmbScope {
         if (!pred) {
-            System.err.println("ASSERT FAILED");
+            // System.err.println("ASSERT FAILED");
             suspend(SCOPE, BACKTRACK);
         }
     }
@@ -136,28 +137,21 @@ public class Ambiguity<T> {
 //            return c;
 //        }
 //    };
-
     private static final CalledCC<AmbScope> CAPTURE = new CalledCC<AmbScope>() {
         @Override
-        public <T> Continuation<AmbScope, T> suspended(Continuation<AmbScope, T> c) {
-            System.err.println("QQQQQQQQQQ");
+        public <T> void suspended(Continuation<AmbScope, T> c) {
             try {
                 AmbContinuation<T> a = (AmbContinuation<T>) c;
                 a.ambiguity.push(a.clone());
                 a.isClone = false; // trick: done _after_ the clone
-                return a;          // continue running
+                a.run();           // continue running
             } catch (CloneNotSupportedException e) {
                 throw new AssertionError(e);
             }
         }
     };
 
-    private static final CalledCC<AmbScope> BACKTRACK = new CalledCC<AmbScope>() {
-        @Override
-        public <T> Continuation<AmbScope, T> suspended(Continuation<AmbScope, T> c) {
-            return ((AmbContinuation<T>) c).ambiguity.pop();
-        }
-    };
+    private static final CalledCC<AmbScope> BACKTRACK = null;
 
     public static class NoSolution extends Exception {
     }
