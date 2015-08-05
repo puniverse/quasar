@@ -59,6 +59,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         this.threadData = detached ? new ThreadData(Thread.currentThread()) : null;
 
         System.err.println("INIT: " + this);
+        Debug.printStackTrace(10, System.err);
     }
 
     public Continuation(Class<S> scope, boolean detached, Callable<T> target) {
@@ -93,7 +94,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
             if (stack != null) {
                 o.stack = new Stack(o, stack);
                 Object pc = stack.getSuspendedContext();
-                o.stack.setPauseContext(pc == this ? o : pc);
+                o.stack.setSuspendedContext(pc == this ? o : pc);
             }
             if (children != null) {
                 o.children = (IdentityHashMap<Continuation<?, ?>, Continuation<?, ?>>) children.clone();
@@ -193,7 +194,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     protected String getScopeName() {
         return scope.getSimpleName();
     }
-    
+
     static Continuation getCurrentContinuation() {
         return currentContinuation.get();
     }
@@ -233,7 +234,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     @Suspendable // may suspend enclosing continuations/fiber
     @Override
     public final void run() {
-        getClone().run1();
+        self().run1();
     }
 
     @Suspendable // may suspend enclosing continuations/fiber
@@ -251,6 +252,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         try {
             CalledCC ccc;
             while ((ccc = calledcc.get()) != null) {
+                System.err.println("============== CCC: " + ccc);
                 calledcc.set(null);
                 ccc.suspended(this);
             }
@@ -263,8 +265,8 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
 
     private void run0() {
         System.err.println("RUN: " + this);
-        Debug.printStackTrace(6, System.err);
-        
+        Debug.printStackTrace(10, System.err);
+
         if (!ALLOW_CLONING && isDone())
             throw new IllegalStateException("Continuation terminated: " + this);
         Throwable susScope = null;
@@ -289,7 +291,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         }
     }
 
-    private boolean isScope(Throwable s) {
+    protected boolean isScope(Throwable s) {
         return scope.isInstance(s);
     }
 
@@ -301,7 +303,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         return s instanceof Suspend;
     }
 
-    protected void verifyScope(Suspend s) {
+    private void verifyScope(Suspend s) {
         if (!isScope(s))
             throw s;
     }
@@ -327,7 +329,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
             System.err.println("RESTORE: " + this + " " + inScope + " -> " + parent);
             if (stack != null) {
                 if (!inScope)
-                    stack.setPauseContext(null);
+                    stack.setSuspendedContext(null);
                 restoreStack(susScope);
             }
             if (threadData != null) {
@@ -342,7 +344,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
 
     private void prepareStack() {
         if (parent != null && stack.getSuspendedContext() == null)
-            stack.setPauseContext(parent.getStack().getSuspendedContext());
+            stack.setSuspendedContext(parent.getStack().getSuspendedContext());
     }
 
     private void restoreStack(Throwable susScope) {
@@ -355,7 +357,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         }
 
         if (inScope)
-            stack.setPauseContext(this);
+            stack.setSuspendedContext(this);
 
         stack.resumeStack();
     }

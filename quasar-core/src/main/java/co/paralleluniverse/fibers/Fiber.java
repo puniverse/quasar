@@ -623,7 +623,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     public static void sleep(long millis) throws InterruptedException, SuspendExecution {
-        System.err.println("SSSSSSSS SLEEP");
         sleep(millis, TimeUnit.MILLISECONDS);
     }
 
@@ -743,7 +742,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         } catch (SuspendExecution ex) {
             assert ex == SuspendExecution.PARK || ex == SuspendExecution.YIELD;
             //stack.dump();
-            stack.setPauseContext(this);
+            stack.setSuspendedContext(this);
             stack.resumeStack();
             runningThread = null;
             orderedSetState(timeoutTask != null ? State.TIMED_WAITING : State.WAITING);

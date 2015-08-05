@@ -100,7 +100,7 @@ public final class Stack implements Serializable {
         return null;
     }
 
-    void setPauseContext(Object context) {
+    void setSuspendedContext(Object context) {
         System.err.println("SET_PAUSE_CONTEXT: " + this + " <- " + context);
         this.suspendedContext = context;
     }
@@ -111,7 +111,7 @@ public final class Stack implements Serializable {
 
     public Continuation getAndClearSuspendedContinuation() {
         Object c = getSuspendedContext();
-        setPauseContext(null);
+        setSuspendedContext(null);
         return (Continuation) c;
     }
 
@@ -155,8 +155,8 @@ public final class Stack implements Serializable {
         if (Debug.isDebug() && isRecordingLevel(2))
             record(2, "Stack", "nextMethodEntry", "%s %s %s", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
 
-        System.err.println("NEXT_ENTRY: " + idx + " # " + entry + " SP: " + sp + " -- " + dataLong);
-        Debug.printStackTrace(6, System.err);
+        System.err.println("NEXT_ENTRY: " + idx + " # " + entry + " SP: " + sp);
+        Debug.printStackTrace(10, System.err);
         return entry;
     }
 
@@ -175,26 +175,6 @@ public final class Stack implements Serializable {
         System.err.println("CORRECT_SP: SP: " + sp + " pushed: " + p);
 
         return false;
-    }
-
-    final void pushContinuation(Continuation<?, ?> c) {
-        int i = nextMethodEntry();
-        assert i == 0;
-        pushMethod(0, 0);
-        dataObject[sp - FRAME_RECORD_SIZE] = c;
-    }
-
-    final void popContinuation(Continuation<?, ?> c) {
-        assert dataObject[sp - FRAME_RECORD_SIZE] == c;
-        popMethod();
-    }
-
-    final Continuation<?, ?> getContinuation() {
-        int i = nextMethodEntry();
-        assert i == 0;
-        Continuation<?, ?> c = (Continuation<?, ?>)dataObject[sp - FRAME_RECORD_SIZE];
-        // pushMethod(0, 0);
-        return c;
     }
 
     /**
@@ -223,7 +203,7 @@ public final class Stack implements Serializable {
 //        for (int i = 0; i < FRAME_RECORD_SIZE; i++)
 //            dataLong[nextMethodIdx + i] = 0L;
 
-        System.err.println("PUSH_METHOD: " + idx + " # " + entry + " # " + numSlots + " SP: " + sp + " -- " + dataLong);
+        System.err.println("PUSH_METHOD: " + idx + " # " + entry + " # " + numSlots + " SP: " + sp);
         if (Debug.isDebug() && isRecordingLevel(2))
             record(2, "Stack", "pushMethod     ", "%s %s %s %s %d", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
     }
@@ -286,6 +266,29 @@ public final class Stack implements Serializable {
                 System.err.println("\t\tsp=" + k + " long=" + dataLong[k] + " obj=" + dataObject[k]);
         }
     }
+
+    //<editor-fold defaultstate="collapsed" desc="Unused">
+    /////////// Unused ///////////////////////////////////
+    final void pushContinuation(Continuation<?, ?> c) {
+        int i = nextMethodEntry();
+        assert i == 0;
+        pushMethod(0, 0);
+        dataObject[sp - FRAME_RECORD_SIZE] = c;
+    }
+
+    final void popContinuation(Continuation<?, ?> c) {
+        assert dataObject[sp - FRAME_RECORD_SIZE] == c;
+        popMethod();
+    }
+
+    final Continuation<?, ?> getContinuation() {
+        int i = nextMethodEntry();
+        assert i == 0;
+        Continuation<?, ?> c = (Continuation<?, ?>) dataObject[sp - FRAME_RECORD_SIZE];
+        // pushMethod(0, 0);
+        return c;
+    }
+    //</editor-fold>
 
     //<editor-fold defaultstate="collapsed" desc="Unused">
     /////////// Unused ///////////////////////////////////
