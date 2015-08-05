@@ -125,7 +125,9 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
         // System.err.println("ADD_CHILD: " + this + ": " + child);
         if (children == null)
             children = new IdentityHashMap<>();
-        children.putIfAbsent(child, child);
+        // children.putIfAbsent(child, child);
+        if (!children.containsKey(child))
+            children.put(child, child);
     }
 
     private void removeChild(Continuation<?, ?> child) {
