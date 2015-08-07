@@ -25,10 +25,6 @@ import java.util.List;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-/**
- *
- * @author pron
- */
 public class AmbiguityTest {
 
     public AmbiguityTest() {
@@ -120,7 +116,7 @@ public class AmbiguityTest {
     }
 
     @Test
-    public void test6() throws Exception {
+    public void testNesting() throws Exception {
         Ambiguity<Integer> amb = solve(() -> {
             Iterable<Integer> a = iterable(() -> {
                 produce(amb(2, 1));
@@ -140,7 +136,7 @@ public class AmbiguityTest {
     }
 
     @Test
-    public void test6InFiber() throws Exception {
+    public void testNestingInFiber() throws Exception {
         Fiber<List<Integer>> f = new Fiber<>(() -> {
             Ambiguity<Integer> amb = solve(() -> {
                 Iterable<Integer> a = iterable(() -> {

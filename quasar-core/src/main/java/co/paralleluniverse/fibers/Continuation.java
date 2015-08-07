@@ -211,10 +211,7 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
      * Subclasses calling this method must call it explicitly so, {@code Continuation.suspend}, and not simply {@code suspend}.
      */
     public static <S extends Suspend> Continuation<S, ?> suspend(S scope) throws S {
-        // return suspend(scope, null);
-        if (verifyInstrumentation)
-            verifySuspend();
-        throw scope;
+        return suspend(scope, null);
     }
 
     /**
@@ -223,7 +220,8 @@ public abstract class Continuation<S extends Suspend, T> implements Runnable, Se
     public static <S extends Suspend, T> Continuation<S, T> suspend(S scope, CalledCC<S> ccc) throws S {
         if (verifyInstrumentation)
             verifySuspend();
-        calledcc.set(ccc);
+        if (ccc != null)
+            calledcc.set(ccc);
         throw scope;
     }
 

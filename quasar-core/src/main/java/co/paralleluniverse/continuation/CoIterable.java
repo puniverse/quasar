@@ -21,10 +21,6 @@ import co.paralleluniverse.fibers.ValuedContinuation;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-/**
- *
- * @author pron
- */
 public class CoIterable<E> implements Iterable<E> {
     public static <E> CoIterable<E> iterable(Generator<E> generator) {
         return new CoIterable<E>(generator);
@@ -100,14 +96,10 @@ public class CoIterable<E> implements Iterable<E> {
 
         @Suspendable // nested
         private E getNext() {
-            // c = (ValuedContinuation<CoIteratorScope, Void, E, Void>) c.go();
             c.run();
-            if (c.isDone()) {
-                // System.err.println("PPPPP: DONE");
+            if (c.isDone())
                 throw new NoSuchElementException();
-            }
             next = c.getPauseValue();
-            // System.err.println("PPPPP: " + next);
             return next;
         }
     }

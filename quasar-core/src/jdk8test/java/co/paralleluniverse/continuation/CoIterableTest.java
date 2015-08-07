@@ -24,10 +24,6 @@ import java.util.List;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-/**
- *
- * @author pron
- */
 public class CoIterableTest {
 
     public CoIterableTest() {

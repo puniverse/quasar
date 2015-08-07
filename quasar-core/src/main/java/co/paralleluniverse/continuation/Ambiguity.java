@@ -26,10 +26,6 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 
-/**
- *
- * @author pron
- */
 public class Ambiguity<T> {
     public static <T> Ambiguity<T> solve(Ambiguous<T> f) {
         return new Ambiguity<T>(f);
@@ -48,7 +44,6 @@ public class Ambiguity<T> {
             try {
                 c = pop();
                 c.run();
-                // assert c.isDone() : "Not done: " + c;
                 if (c.isDone())
                     return c.getResult();
             } catch (RuntimeNoSolution e) {
@@ -62,7 +57,6 @@ public class Ambiguity<T> {
     }
 
     private void push(Continuation<?, ?> c) {
-        // System.err.println("PUSH: " + c);
         cs.addFirst((AmbContinuation<T>) c);
     }
 
@@ -70,7 +64,6 @@ public class Ambiguity<T> {
         if (cs.isEmpty())
             throw new RuntimeNoSolution();
         AmbContinuation<T> c = cs.removeFirst();
-        // System.err.println("POP: " + c);
         return c;
     }
 
@@ -103,7 +96,6 @@ public class Ambiguity<T> {
                 c = (AmbContinuation<T>) suspend(SCOPE, CAPTURE);
             } while (c.isClone && values.size() > 1); // will run once for each clone
         }
-        // System.err.println("XXXX AMB: " + values);
         return values.remove(0);
     }
 
@@ -112,31 +104,15 @@ public class Ambiguity<T> {
     }
 
     public static void assertThat(boolean pred) throws AmbScope {
-        if (!pred) {
-            // System.err.println("ASSERT FAILED");
+        if (!pred)
             suspend(SCOPE, BACKTRACK);
-        }
     }
 
-//    private static AmbContinuation<?> captureCurrentContinuation() throws AmbScope {
-//        return (AmbContinuation<?>) suspend(SCOPE, new CalledCC<AmbScope>() {
-//            @Override
-//            public <T> Continuation<AmbScope, T> suspended(Continuation<AmbScope, T> c) {
-//                return c;
-//            }
-//        }).clone();
-//    }
     public static class AmbScope extends Suspend {
     }
 
     private static final AmbScope SCOPE = new AmbScope();
 
-//    private static final CalledCC<AmbScope> CONTINUE = new CalledCC<AmbScope>() {
-//        @Override
-//        public <T> Continuation<AmbScope, T> suspended(Continuation<AmbScope, T> c) {
-//            return c;
-//        }
-//    };
     private static final CalledCC<AmbScope> CAPTURE = new CalledCC<AmbScope>() {
         @Override
         public <T> void suspended(Continuation<AmbScope, T> c) {

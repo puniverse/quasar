@@ -17,10 +17,6 @@ import static co.paralleluniverse.continuation.CoIterable.produce;
 import com.google.common.base.Function;
 import java.util.function.Predicate;
 
-/**
- *
- * @author pron
- */
 public class CoIterables {
     public static <E> Iterable<E> filter(Iterable<E> it, Predicate<E> p) {
         return new CoIterable<>(() -> {

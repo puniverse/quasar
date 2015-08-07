@@ -22,6 +22,7 @@ import com.google.common.base.Function;
 public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuation<S, T> {
     private Out pauseOut;
     private In pauseIn;
+    private RuntimeException pauseInException;
 
     public ValuedContinuation(Class<S> scope, boolean detached, int stackSize, Callable<T> target) {
         super(scope, detached, stackSize, target);
@@ -43,6 +44,12 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
     @Suspendable
     public void run(In value) {
         self().pauseIn = value;
+        run();
+    }
+
+    @Suspendable
+    public void run(RuntimeException ex) {
+        self().pauseInException = ex;
         run();
     }
 
@@ -93,7 +100,12 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
 
     private static <S extends Suspend, T, Out, In> In inValue(ValuedContinuation<S, T, Out, In> c) {
         In res = c.pauseIn;
+        RuntimeException ex = c.pauseInException;
         c.pauseIn = null;
-        return res;
+        c.pauseInException = null;
+        if (ex != null)
+            throw ex;
+        else
+            return res;
     }
 }
