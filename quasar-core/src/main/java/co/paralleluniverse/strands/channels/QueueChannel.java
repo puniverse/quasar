@@ -39,7 +39,7 @@ import java.util.concurrent.TimeoutException;
  */
 public abstract class QueueChannel<Message> implements StandardChannel<Message>, Selectable<Message>, Synchronization, java.io.Serializable {
     private static final int MAX_SEND_RETRIES = 10;
-    
+
     final BasicQueue<Message> queue;
     private final boolean singleProducer;
     private final boolean singleConsumer;
@@ -53,7 +53,7 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
     protected QueueChannel(BasicQueue<Message> queue, OverflowPolicy overflowPolicy, boolean singleConsumer) {
         this(queue, overflowPolicy, false, singleConsumer);
     }
-    
+
     protected QueueChannel(BasicQueue<Message> queue, OverflowPolicy overflowPolicy, boolean singleProducer, boolean singleConsumer) {
         this.queue = queue;
         if (!singleConsumer || queue instanceof CircularBuffer)
@@ -226,7 +226,8 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
                     return true;
                 }
                 record("send0", "%s channel queue is full. policy: %s", this, overflowPolicy);
-                onQueueFull(i++, timed, nanos);
+                if (!onQueueFull(i++, timed, nanos))
+                    return true;
 
                 if (timed) {
                     nanos = deadline - System.nanoTime();
@@ -247,10 +248,10 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
         return true;
     }
 
-    void onQueueFull(int iter, boolean timed, long nanos) throws SuspendExecution, InterruptedException, TimeoutException {
+    private boolean onQueueFull(int iter, boolean timed, long nanos) throws SuspendExecution, InterruptedException, TimeoutException {
         switch (overflowPolicy) {
             case DROP:
-                return;
+                return false;
             case THROW:
                 throw new QueueCapacityExceededException();
             case BLOCK:
@@ -258,7 +259,7 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
                     sendersSync.await(iter, nanos, TimeUnit.NANOSECONDS);
                 else
                     sendersSync.await(iter);
-                break;
+                return true;
             case BACKOFF:
                 if (iter > MAX_SEND_RETRIES)
                     throw new QueueCapacityExceededException();
@@ -266,6 +267,9 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
                     Strand.sleep((iter - 5) * 5);
                 else if (iter > 4)
                     Strand.yield();
+                return true;
+            default:
+                throw new AssertionError("Unsupportd policy: " + overflowPolicy);
         }
     }
 
