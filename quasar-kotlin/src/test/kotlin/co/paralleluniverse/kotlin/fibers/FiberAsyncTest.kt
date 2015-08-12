@@ -11,9 +11,13 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.fibers
+package co.paralleluniverse.kotlin.fibers
 
 import co.paralleluniverse.common.util.CheckedCallable
+import co.paralleluniverse.fibers.Fiber
+import co.paralleluniverse.fibers.FiberAsync
+import co.paralleluniverse.fibers.FiberForkJoinScheduler
+import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.strands.SuspendableRunnable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -115,8 +119,6 @@ public class FiberAsyncTest {
     }
 
     abstract class MyFiberAsync : FiberAsync<String, RuntimeException>(), MyCallback {
-        private val fiber = Fiber.currentFiber()
-
         override fun call(str: String) {
             super<FiberAsync>.asyncCompleted(str)
         }
