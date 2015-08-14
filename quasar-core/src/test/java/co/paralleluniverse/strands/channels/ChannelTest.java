@@ -67,7 +67,7 @@ public class ChannelTest {
     public static void afterClass() {
         VirtualClock.setGlobal(SystemClock.instance());
     }
-    
+
     final int mailboxSize;
     final OverflowPolicy policy;
     final boolean singleConsumer;
@@ -98,6 +98,7 @@ public class ChannelTest {
             {5, OverflowPolicy.THROW, false, false},
             {5, OverflowPolicy.BLOCK, true, false},
             {5, OverflowPolicy.BLOCK, false, false},
+            {5, OverflowPolicy.DROP, true, false},
             {1, OverflowPolicy.BLOCK, false, false},
             {-1, OverflowPolicy.THROW, true, false},
             {5, OverflowPolicy.DISPLACE, true, false},
@@ -334,7 +335,7 @@ public class ChannelTest {
     }
 
     @Test
-    public void whenChannelOverflowsThrowException() throws Exception {
+    public void whenChannelOverflowsAndPolicyThrowThenThrowException() throws Exception {
         assumeThat(policy, is(OverflowPolicy.THROW));
         assumeThat(mailboxSize, greaterThan(0));
 
@@ -348,6 +349,17 @@ public class ChannelTest {
         } catch (QueueCapacityExceededException e) {
             System.out.println("i = " + i);
         }
+    }
+
+    @Test
+    public void whenChannelOverflowsAndPolicyDropThenDrop() throws Exception {
+        assumeThat(policy, is(OverflowPolicy.DROP));
+        assumeThat(mailboxSize, greaterThan(0));
+
+        final Channel<Integer> ch = newChannel();
+
+        for (int i = 0; i < 10; i++)
+            ch.send(i);
     }
 
     @Test

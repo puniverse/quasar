@@ -137,7 +137,7 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
 
     @Override
     public int getNumActiveActors() {
-        return (int)activeCount.get();
+        return (int) activeCount.get();
     }
 
     @Override
@@ -172,7 +172,7 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
             sb.append(ste).append('\n');
         return sb.toString();
     }
-    
+
     @Override
     public String[] getMailbox(long actorId) {
         ActorRef actor = actors.get(actorId);
@@ -190,7 +190,7 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
             ms[i++] = m.toString();
         return ms;
     }
-    
+
     @Override
     public void addWatch(long actorId) {
         ActorRef actor = actors.get(actorId);

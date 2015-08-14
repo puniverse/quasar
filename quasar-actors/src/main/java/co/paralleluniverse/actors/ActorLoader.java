@@ -145,7 +145,7 @@ public class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notif
                 ModuleNotification.class.getName(),
                 "Actor module change");
         this.notificationBroadcaster = new NotificationBroadcasterSupport(info);
-        
+
         try {
             registerMBean(mbeanName);
         } catch (InstanceAlreadyExistsException e) {
@@ -555,9 +555,9 @@ public class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notif
 
                             LOG.info("Filesystem monitor: detected module file {} {}", child,
                                     kind == ENTRY_CREATE ? "created"
-                                    : kind == ENTRY_MODIFY ? "modified"
-                                    : kind == ENTRY_DELETE ? "deleted"
-                                    : null);
+                                            : kind == ENTRY_MODIFY ? "modified"
+                                                    : kind == ENTRY_DELETE ? "deleted"
+                                                            : null);
 
                             if (kind == ENTRY_CREATE || kind == ENTRY_MODIFY)
                                 instance.reloadModule(jarUrl);
