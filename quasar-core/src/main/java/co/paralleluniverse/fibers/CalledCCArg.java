@@ -13,6 +13,10 @@
  */
 package co.paralleluniverse.fibers;
 
-public interface Callable<T> {
-    T call() throws Suspend;
+/**
+ *
+ * @author pron
+ */
+public interface CalledCCArg<S extends Suspend, X> {
+    <T, Out, In> void suspended(ValuedContinuation<S, T, Out, In> c, X x);
 }

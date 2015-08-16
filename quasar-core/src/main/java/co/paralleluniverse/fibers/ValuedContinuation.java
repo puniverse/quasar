@@ -13,8 +13,6 @@
  */
 package co.paralleluniverse.fibers;
 
-import com.google.common.base.Function;
-
 /**
  *
  * @author pron
@@ -75,25 +73,37 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
         }));
     }
 
-    public static <S extends Suspend, Out, In> In pause(S scope, final Function<Continuation<S, ?>, Out> f) throws S {
+    public static <S extends Suspend, Out, In> In pause(S scope, final CalledCCReturn<S, Out> ccc) throws S {
         return inValue((ValuedContinuation<S, ?, Out, In>) Continuation.suspend(scope, new CalledCC<S>() {
             @Override
             public <T> void suspended(Continuation<S, T> c) {
-                ((ValuedContinuation<S, ?, Out, In>) c).pauseOut = f.apply(c);
+                ValuedContinuation<S, ?, Out, In> vc = (ValuedContinuation<S, ?, Out, In>) c;
+                vc.pauseOut = ccc.suspended(vc);
             }
         }));
     }
 
-    public static <S extends Suspend, Out, In> In pause(S scope, final CalledCC<S> ccc) throws S {
+    public static <S extends Suspend, Out, In> In pause(S scope, final CalledCCV<S> ccc) throws S {
         return inValue((ValuedContinuation<S, ?, Out, In>) Continuation.suspend(scope, ccc));
     }
 
-    public static <S extends Suspend, Out, In> In pause(S scope, final Out value, final CalledCC<S> ccc) throws S {
+    public static <S extends Suspend, Out, X, In> In pause(S scope, final X x, final CalledCCArg<S, X> ccc) throws S {
         return inValue((ValuedContinuation<S, ?, Out, In>) Continuation.suspend(scope, new CalledCC<S>() {
+
             @Override
             public <T> void suspended(Continuation<S, T> c) {
-                ((ValuedContinuation<S, ?, Out, In>) c).pauseOut = value;
-                ccc.suspended(c);
+                ccc.suspended((ValuedContinuation<S, ?, Out, In>) c, x);
+            }
+        }));
+    }
+
+    public static <S extends Suspend, Out, X, In> In pause(S scope, final X x, final CalledCCArgReturn<S, X, Out> ccc) throws S {
+        return inValue((ValuedContinuation<S, ?, Out, In>) Continuation.suspend(scope, new CalledCC<S>() {
+
+            @Override
+            public <T> void suspended(Continuation<S, T> c) {
+                ValuedContinuation<S, ?, Out, In> vc = (ValuedContinuation<S, ?, Out, In>) c;
+                vc.pauseOut = ccc.suspended(vc, x);
             }
         }));
     }
