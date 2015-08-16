@@ -292,6 +292,14 @@ public final class ReflectionUtil {
         return null;
     }
 
+    public static <T> T instance(Class<T> clazz) {
+        try {
+            return ReflectionUtil.accessible(clazz.getDeclaredConstructor()).newInstance();
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
+        }
+    }
+
     private static final Map<Class<?>, Class<?>> primitiveWrapperMap = new HashMap<Class<?>, Class<?>>();
 
     static {
