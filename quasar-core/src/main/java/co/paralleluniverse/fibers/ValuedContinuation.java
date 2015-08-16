@@ -62,7 +62,7 @@ public class ValuedContinuation<S extends Suspend, T, Out, In> extends Continuat
     }
 
     public static <S extends Suspend, In> In pause(S scope) throws S {
-        return inValue((ValuedContinuation<S, ?, ?, In>) suspend(scope));
+        return inValue((ValuedContinuation<S, ?, ?, In>) Continuation.suspend(scope));
     }
 
     public static <S extends Suspend, Out, In> In pause(S scope, final Out value) throws S {
