@@ -63,6 +63,7 @@ class TypeInterpreter extends BasicInterpreter {
 
     @Override
     public BasicValue newOperation(AbstractInsnNode insn) throws AnalyzerException {
+        // explanation in InstrumentMethod.emitNewAndDup
         if (insn.getOpcode() == Opcodes.NEW)
             return new NewValue(Type.getObjectType(((TypeInsnNode) insn).desc), false, insn);
 
@@ -72,6 +73,7 @@ class TypeInterpreter extends BasicInterpreter {
     @Override
     public BasicValue copyOperation(AbstractInsnNode insn, BasicValue value) throws AnalyzerException {
         if (insn.getOpcode() == Opcodes.DUP) {
+            // explanation in InstrumentMethod.emitNewAndDup
             if (value instanceof NewValue) {
                 NewValue newValue = (NewValue) value;
                 if (!newValue.isDupped)

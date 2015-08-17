@@ -13,15 +13,17 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.common.reflection.ReflectionUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.WorkListEntry;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -100,8 +102,10 @@ public final class QuasarInstrumentor {
         final ClassWriter cw = new DBClassWriter(db, r);
         ClassVisitor cv = (check && EXAMINED_CLASS == null) ? new CheckClassAdapter(cw) : cw;
 
-        if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS))
-            cv = new TraceClassVisitor(cv, new PrintWriter(System.err));
+        if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS)) {
+            writeToFile(className.replace('/', '.') + "-before.class", getClassBuffer(r));
+            // cv = new TraceClassVisitor(cv, new PrintWriter(System.err));
+        }
 
         final InstrumentClass ic = new InstrumentClass(cv, db, forceInstrumentation);
         byte[] transformed = null;
@@ -120,13 +124,8 @@ public final class QuasarInstrumentor {
         }
 
         if (EXAMINED_CLASS != null) {
-            if (className.startsWith(EXAMINED_CLASS)) {
-                try (OutputStream os = new FileOutputStream(className.replace('/', '.') + ".class")) {
-                    os.write(transformed);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+            if (className.startsWith(EXAMINED_CLASS))
+                writeToFile(className.replace('/', '.') + "-after.class", transformed);
 
             if (check) {
                 ClassReader r2 = new ClassReader(transformed);
@@ -186,5 +185,21 @@ public final class QuasarInstrumentor {
 
     public void checkClass(File f) {
         db.checkClass(f);
+    }
+
+    private static void writeToFile(String name, byte[] data) {
+        try (OutputStream os = Files.newOutputStream(Paths.get(name), StandardOpenOption.CREATE_NEW)) {
+            os.write(data);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static byte[] getClassBuffer(ClassReader r) {
+        try {
+            return (byte[]) ReflectionUtil.accessible(ClassReader.class.getDeclaredField("b")).get(r);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
+        }
     }
 }

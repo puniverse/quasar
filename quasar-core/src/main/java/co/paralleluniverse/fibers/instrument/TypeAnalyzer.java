@@ -105,6 +105,7 @@ class TypeAnalyzer extends Analyzer {
                         pop();
                         if (insn.getOpcode() == Opcodes.INVOKESPECIAL && getStackSize() > 0) {
                             if ("<init>".equals(((MethodInsnNode) insn).name)) {
+                                // explanation in InstrumentMethod.emitNewAndDup
                                 Value value = pop();
                                 if (value instanceof NewValue)
                                     value = new BasicValue(((NewValue) value).getType());
