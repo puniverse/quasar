@@ -733,11 +733,12 @@ class InstrumentMethod {
                         Value thisValue = frame.getStack(stackIndex);
                         if (stackIndex >= 1
                                 && isNewValue(thisValue, true)
-                                && isNewValue(frame.getStack(stackIndex - 1), false)
-                                && isOmitted((NewValue) thisValue))
-                            emitNewAndDup(mv, frame, stackIndex, min); // explanation in emitNewAndDup
-                        else
+                                && isNewValue(frame.getStack(stackIndex - 1), false)) {
+                            if (isOmitted((NewValue) thisValue))
+                                emitNewAndDup(mv, frame, stackIndex, min); // explanation in emitNewAndDup
+                        } else {
                             db.log(LogLevel.WARNING, "Expected to find a NewValue on stack index %d: %s", stackIndex, frame);
+                        }
                     }
                     break;
             }
