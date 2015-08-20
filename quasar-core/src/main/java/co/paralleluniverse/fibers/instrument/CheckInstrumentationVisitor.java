@@ -120,7 +120,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
     }
 
     @Override
-    public MethodVisitor visitMethod(int access, final String name, final String desc, String signature, String[] exceptions) {
+    public MethodVisitor visitMethod(final int access, final String name, final String desc, String signature, String[] exceptions) {
         SuspendableType suspendable = null;
         if (suspendableInterface)
             suspendable = SuspendableType.SUSPENDABLE_SUPER;
@@ -136,6 +136,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
                     throw new UnableToInstrumentException("synchronized method", className, name, desc);
             }
         }
+        suspendable = InstrumentClass.suspendableToSuperIfAbstract(access, suspendable);
         classEntry.set(name, desc, suspendable);
 
         if (suspendable == null) // look for @Suspendable annotation
@@ -152,11 +153,12 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
                 @Override
                 public void visitEnd() {
                     super.visitEnd();
-                    classEntry.set(name, desc, susp ? SuspendableType.SUSPENDABLE : SuspendableType.NON_SUSPENDABLE);
+                    classEntry.set(name, desc, InstrumentClass.suspendableToSuperIfAbstract(access, susp ? SuspendableType.SUSPENDABLE : SuspendableType.NON_SUSPENDABLE));
                     hasSuspendable = hasSuspendable | susp;
                 }
             };
         else
             return null;
     }
+
 }
