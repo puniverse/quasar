@@ -88,6 +88,14 @@ public class InstrumentClass extends ClassVisitor {
         this.suspendableInterface = false;
     }
 
+    static SuspendableType suspendableToSuperIfAbstract(int access, SuspendableType suspendable) {
+        if (suspendable == SuspendableType.SUSPENDABLE
+                && ((access & Opcodes.ACC_ABSTRACT) == Opcodes.ACC_ABSTRACT || (access & Opcodes.ACC_INTERFACE) == Opcodes.ACC_INTERFACE))
+            return SuspendableType.SUSPENDABLE_SUPER;
+
+        return suspendable;
+    }
+
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         this.className = name;
@@ -163,6 +171,8 @@ public class InstrumentClass extends ClassVisitor {
                         susp = SuspendableType.SUSPENDABLE;
                     else if (adesc.equals(DONT_INSTRUMENT_ANNOTATION_DESC))
                         susp = SuspendableType.NON_SUSPENDABLE;
+
+                    susp = suspendableToSuperIfAbstract(access, susp);
 
                     return super.visitAnnotation(adesc, visible);
                 }

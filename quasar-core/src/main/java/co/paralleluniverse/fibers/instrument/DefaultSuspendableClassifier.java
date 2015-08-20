@@ -48,7 +48,7 @@ public class DefaultSuspendableClassifier implements SuspendableClassifier {
             if (st != null)
                 return st;
 
-            // throws SuspendExceution
+            // throws SuspendExecution
             if (checkExceptions(methodExceptions))
                 return SuspendableType.SUSPENDABLE;
         } catch (Exception e) {
