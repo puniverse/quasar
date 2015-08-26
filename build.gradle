@@ -181,26 +181,29 @@ subprojects {
         }
     }
 
-    task run(type: JavaExec, dependsOn:[testClasses]) {
-        classpath = sourceSets.main.runtimeClasspath
-        if(project.hasProperty('mainClass')){
-            main = project.mainClass
-        }
-        if(project.hasProperty('args')){
-            args project.args.split('\\s+')
-        }
-        
-        jvmArgs '-Xmx2048m'
-        // jvmArgs "-Xbootclasspath/p:${System.getProperty("user.home")}/jsr166.jar"
-        // systemProperty 'co.paralleluniverse.fibers.DefaultFiberPool.parallelism', '1'
+    ['run', 'debug'].each { name ->
+        project.task(name, type: JavaExec, dependsOn:[testClasses]) {
+            classpath = sourceSets.main.runtimeClasspath
+            if(project.hasProperty('mainClass')){
+                main = project.mainClass
+            }
+            if(project.hasProperty('args')){
+                args project.args.split('\\s+')
+            }
 
-        systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
-        systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
-        // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
-        jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
+            jvmArgs '-Xmx2048m'
+            // jvmArgs "-Xbootclasspath/p:${System.getProperty("user.home")}/jsr166.jar"
+            // systemProperty 'co.paralleluniverse.fibers.DefaultFiberPool.parallelism', '1'
 
-        // jvmArgs '-XX:+UnlockCommercialFeatures', '-XX:+FlightRecorder', '-XX:StartFlightRecording=duration=60s,filename=recording.jfr,settings=heap'
+            systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
+            systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
+            // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+            jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
+
+            // jvmArgs '-XX:+UnlockCommercialFeatures', '-XX:+FlightRecorder', '-XX:StartFlightRecording=duration=60s,filename=recording.jfr,settings=heap'
+        }
     }
+    debug.debug = true;
 
     project.afterEvaluate {
         run.dependsOn project(':quasar-core').tasks["jdk${project.ext.jdkVer}ShadowJar"]
@@ -649,6 +652,12 @@ project (':quasar-galaxy') {
         systemProperty "galaxy.multicast.port", "7050"
         systemProperty "co.paralleluniverse.galaxy.configFile", "${sourceSets.main.output.resourcesDir}/config/peer.xml"
         systemProperty "co.paralleluniverse.galaxy.autoGoOnline", "true"
+        
+        // systemProperty 'co.paralleluniverse.debugMode', 'true'
+        systemProperty 'co.paralleluniverse.monitoring.flightRecorderLevel', '5'
+        systemProperty 'co.paralleluniverse.globalFlightRecorder', 'true'
+        systemProperty 'co.paralleluniverse.flightRecorderDumpFile', 'quasar-galaxy.log'
+        systemProperty 'co.paralleluniverse.monitoring.flightRecorderSize', '200000'
     }
 }
 

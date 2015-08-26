@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author pron
  */
-class LocalActorRegistry implements co.paralleluniverse.actors.spi.ActorRegistry {
+class LocalActorRegistry extends co.paralleluniverse.actors.spi.ActorRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(LocalActorRegistry.class);
     private final ConcurrentMap<String, ActorRef<?>> registeredActors = MapUtil.newConcurrentHashMap();
     private final ReentrantLock lock = new ReentrantLock();
@@ -38,16 +38,16 @@ class LocalActorRegistry implements co.paralleluniverse.actors.spi.ActorRegistry
 
     @Override
     @Suspendable
-    public Object register(ActorRef<?> actor, Object globalId) {
-        final String name = actor.getName();
+    public <Message> void register(Actor<Message, ?> actor, ActorRef<Message> actorRef) {
+        final String name = actorRef.getName();
         if (name == null)
             throw new IllegalArgumentException("name is null");
 
         lock.lock();
         try {
             final ActorRef<?> old = registeredActors.get(name);
-            if (old != null && Objects.equal(old, actor))
-                return globalId;
+            if (old != null && Objects.equal(old, actorRef))
+                return;
 
             if (old != null && LocalActor.isLocal(old) && !LocalActor.isDone(old))
                 throw new RegistrationException("Actor " + old + " is not dead and is already registered under " + name);
@@ -58,25 +58,23 @@ class LocalActorRegistry implements co.paralleluniverse.actors.spi.ActorRegistry
             if (old != null && !registeredActors.remove(name, old))
                 throw new RegistrationException("Concurrent registration under the name " + name);
 
-            if (registeredActors.putIfAbsent(name, actor) != null)
+            if (registeredActors.putIfAbsent(name, actorRef) != null)
                 throw new RegistrationException("Concurrent registration under the name " + name);
-            
+
             cond.signalAll();
         } finally {
             lock.unlock();
         }
-        LOG.info("Registering {}: {}", name, actor);
-
-        return globalId;
+        LOG.info("Registering {}: {}", name, actorRef);
     }
 
     @Override
-    public void unregister(ActorRef<?> actor) {
-        registeredActors.remove(actor.getName());
+    public <Message> void unregister(Actor<Message, ?> actor, ActorRef<Message> actorRef) {
+        registeredActors.remove(actorRef.getName());
     }
 
     @Override
-    public <Message> ActorRef<Message> tryGetActor(final String name) throws SuspendExecution {
+    public ActorRef<?> tryGetActor(final String name) throws SuspendExecution {
         ActorRef<?> actor = registeredActors.get(name);
         if (actor == null) {
             lock.lock();
@@ -86,16 +84,16 @@ class LocalActorRegistry implements co.paralleluniverse.actors.spi.ActorRegistry
                 lock.unlock();
             }
         }
-        return (ActorRef<Message>) actor;
+        return actor;
     }
 
     @Override
-    public <Message> ActorRef<Message> getActor(final String name) throws InterruptedException, SuspendExecution {
+    public ActorRef<?> getActor(final String name) throws InterruptedException, SuspendExecution {
         return getActor(name, 0, null);
     }
 
     @Override
-    public <Message> ActorRef<Message> getActor(final String name, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
+    public ActorRef<?> getActor(final String name, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
         ActorRef<?> actor = registeredActors.get(name);
         if (actor == null) {
             final long deadline = unit != null ? System.nanoTime() + unit.toNanos(timeout) : 0;
@@ -119,16 +117,16 @@ class LocalActorRegistry implements co.paralleluniverse.actors.spi.ActorRegistry
                 lock.unlock();
             }
         }
-        return (ActorRef<Message>) actor;
+        return actor;
     }
 
     @Override
-    public <Message> ActorRef<Message> getOrRegisterActor(final String name, Callable<ActorRef<Message>> actorFactory) throws SuspendExecution {
-        ActorRef<?> actor = registeredActors.get(name);
+    public <T extends ActorRef<?>> T getOrRegisterActor(final String name, Callable<T> actorFactory) throws SuspendExecution {
+        T actor = (T)registeredActors.get(name);
         if (actor == null) {
             lock.lock();
             try {
-                actor = registeredActors.get(name);
+                actor = (T)registeredActors.get(name);
                 if (actor == null) {
                     try {
                         actor = actorFactory.call();
@@ -141,9 +139,9 @@ class LocalActorRegistry implements co.paralleluniverse.actors.spi.ActorRegistry
                 lock.unlock();
             }
         }
-        return (ActorRef<Message>) actor;
+        return actor;
     }
-    
+
     /**
      * Use only in tests!
      */

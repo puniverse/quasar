@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -16,7 +16,8 @@ package co.paralleluniverse.remote.galaxy;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.Cache;
 import co.paralleluniverse.galaxy.CacheListener;
-import co.paralleluniverse.galaxy.Store;
+import co.paralleluniverse.galaxy.quasar.Grid;
+import co.paralleluniverse.galaxy.quasar.Store;
 import co.paralleluniverse.io.serialization.Serialization;
 import co.paralleluniverse.strands.channels.SendPort;
 import java.nio.ByteBuffer;
@@ -33,7 +34,7 @@ public class GlobalRemoteChannelReceiver<Message> implements CacheListener {
 
     static {
         try {
-            store = co.paralleluniverse.galaxy.Grid.getInstance().store();
+            store = Grid.getInstance().store();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

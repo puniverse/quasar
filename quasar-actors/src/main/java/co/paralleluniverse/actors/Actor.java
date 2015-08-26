@@ -93,8 +93,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     private volatile V result;
     private volatile Throwable exception;
     private volatile Throwable deathCause;
-    private Object globalId;
-    private volatile Object registrationId;
+    private volatile Object globalId;
     private transient volatile ActorMonitor monitor;
     private volatile boolean registered;
     private boolean hasMonitor;
@@ -830,7 +829,11 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     }
 
     Object getGlobalId() {
-        return globalId != null ? globalId : registrationId;
+        return globalId;
+    }
+
+    void setGlobalId(Object globalId) {
+        this.globalId = globalId;
     }
 
     @Override
@@ -977,7 +980,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         if (registered)
             return this;
         record(1, "Actor", "register", "Registering actor %s as %s", this, getName());
-        this.registrationId = ActorRegistry.register(this, null);
+        ActorRegistry.register(this);
         return this;
     }
 
@@ -992,7 +995,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         record(1, "Actor", "unregister", "Unregistering actor %s (name: %s)", this, getName());
         if (getName() == null)
             throw new IllegalArgumentException("name is null");
-        ActorRegistry.unregister(ref());
+        ActorRegistry.unregister(this);
         if (monitor != null)
             this.monitor.setActor(null);
         this.registered = false;
@@ -1180,7 +1183,6 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     protected final Object writeReplace() throws java.io.ObjectStreamException {
         if (migrating)
             return this;
-
         final RemoteActor<Message> remote = RemoteActorProxyFactoryService.create(ref(), getGlobalId());
         // remote.startReceiver();
         return remote;

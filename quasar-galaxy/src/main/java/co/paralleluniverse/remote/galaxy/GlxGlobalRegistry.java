@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -13,12 +13,14 @@
  */
 package co.paralleluniverse.remote.galaxy;
 
+import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.spi.ActorRegistry;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.galaxy.AbstractCacheListener;
 import co.paralleluniverse.galaxy.Cache;
+import co.paralleluniverse.galaxy.CacheListener;
 import co.paralleluniverse.galaxy.StoreTransaction;
 import co.paralleluniverse.galaxy.TimeoutException;
 import co.paralleluniverse.galaxy.quasar.Grid;
@@ -39,21 +41,19 @@ import org.slf4j.LoggerFactory;
  * @author pron
  */
 @MetaInfServices
-public class GlxGlobalRegistry implements ActorRegistry {
+public class GlxGlobalRegistry extends ActorRegistry {
     static volatile GlxGlobalRegistry INSTANCE;
 
-    private static final ConcurrentHashMap<String, ActorRef> rootCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, CacheEntry> rootCache = new ConcurrentHashMap<>();
     private static final Logger LOG = LoggerFactory.getLogger(GlxGlobalRegistry.class);
     private static final ReentrantLock lock = new ReentrantLock();
-    private final co.paralleluniverse.galaxy.Grid grid1;
     private final Grid grid;
 
     @SuppressWarnings("LeakingThisInConstructor")
     public GlxGlobalRegistry() {
         assert INSTANCE == null;
         try {
-            grid1 = co.paralleluniverse.galaxy.Grid.getInstance();
-            grid = new Grid(grid1);
+            grid = Grid.getInstance();
         } catch (InterruptedException ex) {
             throw new RuntimeException(ex);
         }
@@ -61,25 +61,29 @@ public class GlxGlobalRegistry implements ActorRegistry {
     }
 
     @Override
-    public Object register(ActorRef<?> actor, Object globalId) throws SuspendExecution {
-        final String rootName = actor.getName();
+    public <Message> void register(Actor<Message, ?> actor, ActorRef<Message> actorRef) throws SuspendExecution {
+        final String rootName = actorRef.getName();
 
-        LOG.info("Registering actor {} at root {}", actor, rootName);
+        LOG.info("Registering actor {} at root {}", actorRef, rootName);
 
         final Store store = grid.store();
         StoreTransaction txn = store.beginTransaction();
         lock.lock();
         try {
             try {
+                Object globalId = getGlobalId(actor);
                 final long root = store.getRoot(rootName, globalId != null ? (Long) globalId : -1, txn);
                 // assert globalId == null || ((Long) globalId) == root; -- it's OK to replace the actor's globalId -- until it's too late
+                setGlobalId(actor, root);
                 store.getx(root, txn);
-                store.set(root, Serialization.getInstance().write(actor), txn);
-                LOG.debug("Registered actor {} at rootId  {}", actor, Long.toHexString(root));
+                store.set(root, Serialization.getInstance().write(actorRef), txn);
+                final long version = store.getVersion(root);
+                LOG.debug("Registered actor {} at rootId  {}", actorRef, Long.toHexString(root));
                 store.commit(txn);
-                return root; // root is the global id
+                
+                updateCache(rootName, new CacheEntry(actorRef, root, version));
             } catch (TimeoutException e) {
-                LOG.error("Registering actor {} at root {} failed due to timeout", actor, rootName);
+                LOG.error("Registering actor {} at root {} failed due to timeout", actorRef, rootName);
                 store.rollback(txn);
                 store.abort(txn);
                 throw new RuntimeException("Actor registration failed");
@@ -92,12 +96,12 @@ public class GlxGlobalRegistry implements ActorRegistry {
     }
 
     @Override
-    public void unregister(final ActorRef<?> actor) {
+    public <Message> void unregister(Actor<Message, ?> actor, final ActorRef<Message> actorRef) {
         new Fiber<Void>() {
 
             @Override
             protected Void run() throws SuspendExecution, InterruptedException {
-                unregister0(actor);
+                unregister0(actorRef);
                 return null;
             }
         };
@@ -128,18 +132,15 @@ public class GlxGlobalRegistry implements ActorRegistry {
     }
 
     @Override
-    public <Message> ActorRef<Message> tryGetActor(String name) throws SuspendExecution {
-        ActorRef cacheValue = rootCache.get(name);
-        if (cacheValue != null)
-            return cacheValue;
-        cacheValue = rootCache.get(name);
-        if (cacheValue != null)
-            return cacheValue;
-        return tryGetActor0(name);
+    public ActorRef<?> tryGetActor(String name) throws SuspendExecution {
+        ActorRef<?> actor = tryCache(name);
+        if (actor != null)
+            return actor;
+        return updateCache(name, tryGetActor0(name));
     }
 
     @Override
-    public <Message> ActorRef<Message> getActor(String name) throws InterruptedException, SuspendExecution {
+    public ActorRef<?> getActor(String name) throws InterruptedException, SuspendExecution {
 //        try {
         return getActor(name, 0, null);
 //        } catch (java.util.concurrent.TimeoutException e) {
@@ -148,38 +149,40 @@ public class GlxGlobalRegistry implements ActorRegistry {
     }
 
     @Override
-    public <Message> ActorRef<Message> getActor(String name, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
-        ActorRef cacheValue = rootCache.get(name);
-        if (cacheValue != null)
-            return cacheValue;
-        cacheValue = rootCache.get(name);
-        if (cacheValue != null)
-            return cacheValue;
-        return getActor0(name, 0, null);
+    public ActorRef<?> getActor(String name, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
+        ActorRef<?> actor = tryCache(name);
+        if (actor != null)
+            return actor;
+        return updateCache(name, getActor0(name, timeout, unit));
     }
 
     @Override
-    public <Message> ActorRef<Message> getOrRegisterActor(String name, Callable<ActorRef<Message>> actorFactory) throws SuspendExecution {
-        ActorRef cacheValue = rootCache.get(name);
-        if (cacheValue != null)
-            return cacheValue;
-        cacheValue = rootCache.get(name);
-        if (cacheValue != null)
-            return cacheValue;
-        return getOrRegisterActor0(name, actorFactory);
+    public <T extends ActorRef<?>> T getOrRegisterActor(String name, Callable<T> actorFactory) throws SuspendExecution {
+        ActorRef<?> actor = tryCache(name);
+        if (actor != null)
+            return (T) actor;
+        return updateCache(name, getOrRegisterActor0(name, actorFactory));
     }
 
-    private <Message> ActorRef<Message> tryGetActor0(final String rootName) throws SuspendExecution, RuntimeException {
+    private ActorRef<?> tryCache(String name) {
+        CacheEntry entry = rootCache.get(name);
+        if (entry == null)
+            return null;
+        return entry.version == grid.store().getVersion(entry.root) ? entry.actor : null;
+    }
+
+    private CacheEntry tryGetActor0(final String rootName) throws SuspendExecution, RuntimeException {
         final Store store = grid.store();
         final StoreTransaction txn = store.beginTransaction();
         try {
             try {
                 final long root = store.getRoot(rootName, txn);
-                byte[] buf = store.get(root);
+                final byte[] buf = store.gets(root, txn);
                 if (buf == null) {
                     LOG.debug("Store returned null for root {}", rootName);
                     return null;
                 }
+                final long version = store.getVersion(root);
                 store.commit(txn);
 
                 LOG.debug("Store returned a buffer ({} bytes) for root {}", buf.length, rootName);
@@ -187,7 +190,8 @@ public class GlxGlobalRegistry implements ActorRegistry {
                 if (buf.length == 0)
                     return null; // TODO: Galaxy should return null
 
-                return (ActorRef<Message>) updateCache(rootName, root, deserActor(rootName, buf));
+                ActorRef<?> actor = deserActor(rootName, buf);
+                return new CacheEntry(actor, root, version);
             } catch (TimeoutException e) {
                 LOG.error("Getting actor {} failed due to timeout", rootName);
                 store.rollback(txn);
@@ -199,19 +203,20 @@ public class GlxGlobalRegistry implements ActorRegistry {
         }
     }
 
-    private <Message> ActorRef<Message> getActor0(final String rootName, long timeout, TimeUnit unit) throws SuspendExecution, RuntimeException, InterruptedException {
+    private CacheEntry getActor0(final String rootName, long timeout, TimeUnit unit) throws SuspendExecution, RuntimeException, InterruptedException {
         final long deadline = unit != null ? System.nanoTime() + unit.toNanos(timeout) : 0;
         final Store store = grid.store();
 
         final long root;
         final ReentrantLock lck0 = new ReentrantLock();
         final Condition cond = lck0.newCondition();
+        boolean listening = false;
 
         final StoreTransaction txn = store.beginTransaction();
         try {
             root = store.getRoot(rootName, txn);
 
-            store.setListener(root, new AbstractCacheListener() {
+            final CacheListener listener = new AbstractCacheListener() {
                 @Override
                 public void evicted(Cache cache, long id) {
                     invalidated(cache, id);
@@ -219,7 +224,7 @@ public class GlxGlobalRegistry implements ActorRegistry {
 
                 @Override
                 public void invalidated(Cache cache, long id) {
-                    grid1.store().getAsync(id);
+                    grid.getDelegate().store().getAsync(id);
                 }
 
                 @Override
@@ -235,7 +240,8 @@ public class GlxGlobalRegistry implements ActorRegistry {
                         store.setListener(root, null);
                     }
                 }
-            });
+            };
+            listening = (store.setListenerIfAbsent(root, listener) == listener);
 
             store.commit(txn);
         } catch (TimeoutException e) {
@@ -246,42 +252,53 @@ public class GlxGlobalRegistry implements ActorRegistry {
         }
 
         try {
-            byte[] buf = store.get(root);
+            byte[] buf = store.gets(root, null);
+            long version = store.getVersion(root);
+            store.release(root);
 
-            lck0.lock();
-            try {
-                while (buf == null || buf.length == 0) {
-                    LOG.debug("Store returned null for root {}", rootName);
+            if (listening) {
+                lck0.lock();
+                try {
+                    while (buf == null || buf.length == 0) {
+                        LOG.debug("Store returned null for root {}", rootName);
 
-                    if (deadline > 0) {
-                        final long now = System.nanoTime();
-                        if (now > deadline)
-                            return null; // throw new java.util.concurrent.TimeoutException();
-                        cond.await(deadline - now, TimeUnit.NANOSECONDS);
-                    } else
-                        cond.await();
-                    buf = store.get(root);
+                        if (deadline > 0) {
+                            final long now = System.nanoTime();
+                            if (now > deadline)
+                                return null; // throw new java.util.concurrent.TimeoutException();
+                            cond.await(deadline - now, TimeUnit.NANOSECONDS);
+                        } else
+                            cond.await();
+
+                        buf = store.gets(root, null);
+                        version = store.getVersion(root);
+                        store.release(root);
+                    }
+                } finally {
+                    lck0.unlock();
                 }
-            } finally {
-                lck0.unlock();
-            }
+            } else
+                assert buf != null && buf.length > 0;
 
-            return (ActorRef<Message>) updateCache(rootName, root, deserActor(rootName, buf));
+            final ActorRef<?> actor = deserActor(rootName, buf);
+            return new CacheEntry(actor, root, version);
         } catch (TimeoutException e) {
             LOG.error("Getting actor {} failed due to timeout", rootName);
             throw new RuntimeException("Actor discovery failed");
         }
     }
 
-    private <Message> ActorRef<Message> getOrRegisterActor0(final String rootName, Callable<ActorRef<Message>> actorFactory) throws SuspendExecution, RuntimeException {
+    private CacheEntry getOrRegisterActor0(final String rootName, Callable<? extends ActorRef<?>> actorFactory) throws SuspendExecution, RuntimeException {
         final Store store = grid.store();
         final StoreTransaction txn = store.beginTransaction();
         try {
             try {
                 final long root = store.getRoot(rootName, txn);
 
-                final ActorRef<Message> actor;
-                byte[] buf = store.getx(root, txn);
+                final ActorRef<?> actor;
+                final byte[] buf = store.getx(root, txn);
+                long version = store.getVersion(root);
+
                 if (buf == null || buf.length == 0) {
                     try {
                         actor = actorFactory.call();
@@ -291,12 +308,13 @@ public class GlxGlobalRegistry implements ActorRegistry {
                     LOG.debug("Store returned null for root {}. Registering actor {} at rootId  {}", rootName, actor, root);
 
                     store.set(root, Serialization.getInstance().write(actor), txn);
+                    version = store.getVersion(root);
                 } else
                     actor = deserActor(rootName, buf);
 
                 store.commit(txn);
 
-                return (ActorRef<Message>) updateCache(rootName, root, actor);
+                return new CacheEntry(actor, root, version);
             } catch (TimeoutException e) {
                 LOG.error("Getting actor {} failed due to timeout", rootName);
                 store.rollback(txn);
@@ -319,35 +337,25 @@ public class GlxGlobalRegistry implements ActorRegistry {
         }
     }
 
-    private ActorRef<?> updateCache(final String rootName, long root, ActorRef<?> actor) {
-        final Store store = grid.store();
-        store.setListener(root, new AbstractCacheListener() {
-            @Override
-            public void invalidated(Cache cache, long id) {
-                evicted(cache, id);
-            }
-
-            @Override
-            public void received(Cache cache, long id, long version, ByteBuffer data) {
-                evicted(cache, id);
-            }
-
-            @Override
-            public void evicted(Cache cache, long id) {
-                rootCache.remove(rootName);
-                store.setListener(id, null);
-            }
-        });
-        rootCache.put(rootName, actor);
-        return actor;
-    }
-
-    void evict(String name, ActorRef<?> actor) {
-        rootCache.remove(name, actor);
+    private <T extends ActorRef<?>> T updateCache(final String rootName, CacheEntry entry) {
+        rootCache.put(rootName, entry);
+        return (T) entry.actor;
     }
 
     @Override
     public void shutdown() {
         grid.cluster().goOffline();
+    }
+
+    static class CacheEntry {
+        final ActorRef<?> actor;
+        final long root;
+        final long version;
+
+        public CacheEntry(ActorRef<?> actor, long root, long version) {
+            this.actor = actor;
+            this.root = root;
+            this.version = version;
+        }
     }
 }
