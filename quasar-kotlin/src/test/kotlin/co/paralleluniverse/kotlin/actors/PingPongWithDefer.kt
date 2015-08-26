@@ -48,7 +48,7 @@ fun now(): String = "[${sdfDate.format(Date())}]"
 
 class Ping(val n: Int) : Actor() {
     Suspendable override fun doRun() {
-        val pong = ActorRegistry.getActor<Any?>("pong")
+        val pong: ActorRef<Any> = ActorRegistry.getActor("pong")
         for(i in 1..n) {
             val msg = Msg("ping$i", self())
             println("${now()} Ping sending '$msg' to '$pong'")

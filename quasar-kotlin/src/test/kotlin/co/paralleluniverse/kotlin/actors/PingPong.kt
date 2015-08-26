@@ -44,7 +44,7 @@ data class Msg(val txt: String, val from: ActorRef<Any?>)
 
 class Ping(val n: Int) : Actor() {
     Suspendable override fun doRun() {
-        val pong = ActorRegistry.getActor<Any?>("pong")
+        val pong: ActorRef<Any> = ActorRegistry.getActor("pong")
         for(i in 1..n) {
             pong.send(Msg("ping", self()))          // Fiber-blocking
             receive {                               // Fiber-blocking, always consume the message
