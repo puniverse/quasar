@@ -77,6 +77,7 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
                 x.throwIn(e);
             }
         } catch (RuntimeException e) {
+            e.printStackTrace();
             LostActor.instance.ref().send(message);
             LostActor.instance.throwIn(e);
         }

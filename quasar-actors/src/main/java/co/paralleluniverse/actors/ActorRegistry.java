@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -42,24 +42,23 @@ public class ActorRegistry {
 
     }
 
-    static Object register(Actor<?, ?> actor, Object globalId) throws SuspendExecution {
+    static <Message> void register(Actor<Message, ?> actor) throws SuspendExecution {
         final String name = actor.getName();
         if (name == null)
             throw new IllegalArgumentException("name is null");
         LOG.info("Registering {}: {}", name, actor);
 
         actor.preRegister(name);
-        final Object res = registry.register(actor.ref0(), globalId);
+        registry.register(actor, actor.ref0());
         actor.postRegister();
-        
+
         actor.monitor();
-        return res;
     }
 
-    static void unregister(final ActorRef<?> actor) {
+    static <Message> void unregister(Actor<Message, ?> actor) {
         LOG.info("Unregistering actor: {}", actor.getName());
 
-        registry.unregister(actor);
+        registry.unregister(actor, actor.ref());
     }
 
     /**
@@ -68,8 +67,8 @@ public class ActorRegistry {
      * @param name the actor's name.
      * @return the actor, or {@code null} if no actor by that name is currently registered.
      */
-    public static <Message> ActorRef<Message> tryGetActor(String name) throws SuspendExecution {
-        return registry.tryGetActor(name);
+    public static <T extends ActorRef<?>> T tryGetActor(String name) throws SuspendExecution {
+        return (T) registry.tryGetActor(name);
     }
 
     /**
@@ -80,8 +79,8 @@ public class ActorRegistry {
      * @param unit    the timeout's unit
      * @return the actor, or {@code null} if the timeout expires before one is registered.
      */
-    public static <Message> ActorRef<Message> getActor(String name, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
-        return registry.getActor(name, timeout, unit);
+    public static <T extends ActorRef<?>> T getActor(String name, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
+        return (T) registry.getActor(name, timeout, unit);
     }
 
     /**
@@ -90,7 +89,7 @@ public class ActorRegistry {
      * @param name the actor's name.
      * @return the actor.
      */
-    public static <Message> ActorRef<Message> getActor(String name) throws InterruptedException, SuspendExecution {
+    public static <T extends ActorRef<?>> T getActor(String name) throws InterruptedException, SuspendExecution {
         return getActor(name, 0, null);
     }
 

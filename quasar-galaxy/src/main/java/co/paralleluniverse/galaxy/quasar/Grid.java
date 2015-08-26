@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -21,6 +21,28 @@ import co.paralleluniverse.remote.galaxy.RemoteInit;
  * @author pron
  */
 public class Grid {
+    public static Grid getInstance() throws InterruptedException {
+        try {
+            return LazyHolder.instance;
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof InterruptedException)
+                throw (InterruptedException) e.getCause();
+            throw e;
+        }
+    }
+
+    private static class LazyHolder {
+        private static Grid instance;
+
+        static {
+            try {
+                instance = new Grid(co.paralleluniverse.galaxy.Grid.getInstance());
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     private final co.paralleluniverse.galaxy.Grid grid;
     private final Store store;
     private final Messenger messenger;
@@ -29,7 +51,7 @@ public class Grid {
         RemoteInit.init();
     }
 
-    public Grid(co.paralleluniverse.galaxy.Grid grid) {
+    private Grid(co.paralleluniverse.galaxy.Grid grid) {
         this.grid = grid;
         this.store = new StoreImpl(grid.store());
         this.messenger = new MessengerImpl(grid.messenger());
@@ -67,5 +89,9 @@ public class Grid {
      */
     public void goOnline() throws InterruptedException {
         grid.goOnline();
+    }
+
+    public co.paralleluniverse.galaxy.Grid getDelegate() {
+        return grid;
     }
 }
