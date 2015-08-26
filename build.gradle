@@ -654,6 +654,12 @@ project (':quasar-galaxy') {
         systemProperty "galaxy.multicast.port", "7050"
         systemProperty "co.paralleluniverse.galaxy.configFile", "${sourceSets.main.output.resourcesDir}/config/peer.xml"
         systemProperty "co.paralleluniverse.galaxy.autoGoOnline", "true"
+        
+        // systemProperty 'co.paralleluniverse.debugMode', 'true'
+        systemProperty 'co.paralleluniverse.monitoring.flightRecorderLevel', '5'
+        systemProperty 'co.paralleluniverse.globalFlightRecorder', 'true'
+        systemProperty 'co.paralleluniverse.flightRecorderDumpFile', 'quasar-galaxy.log'
+        systemProperty 'co.paralleluniverse.monitoring.flightRecorderSize', '200000'
     }
 }
 
