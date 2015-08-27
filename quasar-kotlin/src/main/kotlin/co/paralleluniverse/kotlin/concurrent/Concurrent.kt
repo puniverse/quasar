@@ -21,15 +21,6 @@ import co.paralleluniverse.strands.concurrent.ReentrantReadWriteLock
 import java.util.concurrent.CountDownLatch
 
 /**
- * @author circlespainter
- */
-public fun fiber<T>(block: () -> T, start: Boolean = false, name: String? = null, scheduler: FiberScheduler? = null, stackSize: Int = -1): Fiber<T> {
-    val ret = Fiber(name, scheduler, stackSize, SuspendableCallable(block))
-    if (start) ret.start()
-    return ret
-}
-
-/**
  * Executes the given [action] under the read lock of this lock.
  * @return the return value of the action.
  */
