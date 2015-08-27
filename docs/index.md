@@ -14,7 +14,6 @@ Quasar is developed by [Parallel Universe] and released as free software, dual-l
 
 [Parallel Universe]: http://paralleluniverse.co
 
-
 ### Dependencies
 
 * [JSR166e](http://g.oswego.edu/dl/concurrency-interest/) (embedded in quasar-core) -- java.util.concurrent, by Doug Lea and contributors
@@ -30,6 +29,10 @@ Quasar's clustering makes use of [Galaxy](http://docs.paralleluniverse.co/galaxy
 A core component of Quasar, bytecode instrumentation, is a fork of the wonderful [Continuations Library](http://www.matthiasmann.de/content/view/24/26/) by Matthias Mann.
 
 ## News
+
+### TBBD
+
+Quasar [0.7.3](https://github.com/puniverse/quasar/releases/tag/v0.7.3) has been released.
 
 ### June 25, 2015
 
@@ -268,6 +271,14 @@ new Fiber<Void>(new SuspendableRunnable() {
 You can join a fiber much as you'd do a thread with the `join` method. To obtain the value returned by the fiber (if any), you call the `get` method, which joins the fiber and returns its result.
 
 Other than `Fiber`'s constructor and `start` method, and possibly the `join` and `get` methods, you will not access the `Fiber` class directly much. To perform operations you would normally want to do on a thread, it is better to use the `Strand` class (discussed later), which is a generalizations of both threads and fibers.
+
+When using Kotlin the `fiber` syntax in `co.paralleluniverse.kotlin` makes it even easier:
+
+~~~ kotlin
+fiber {
+  // The fiber will be created and will start executing this body
+}
+~~~
 
 #### The Fiber Scheduler and Runtime Fiber Monitoring {#runtime-monitoring}
 
@@ -556,6 +567,35 @@ SelectAction sa = Selector.select(Selector.receive(ch1), Selector.send(ch2, msg)
 ~~~
 
 The example will do exactly one of the following operations: send `msg` to `ch1` or receive a message from `ch2`.
+
+A very concise `select` syntax for Kotlin is available in the `co.paralleluniverse.kotlin` package:
+
+~~~ kotlin
+val ch1 = Channels.newChannel<Int>(1)
+val ch2 = Channels.newChannel<Int>(1)
+
+assertTrue (
+    fiber {
+        select(Receive(ch1), Send(ch2, 2)) {
+            it
+        }
+    }.get() is Send
+)
+
+ch1.send(1)
+
+assertTrue (
+    fiber {
+        select(Receive(ch1), Send(ch2, 2)) {
+            when (it) {
+                is Receive -> it.msg
+                is Send -> 0
+                else -> -1
+            }
+        }
+    }.get() == 1
+)}
+~~~
 
 ## Dataflow (Reactive) Programming
 
