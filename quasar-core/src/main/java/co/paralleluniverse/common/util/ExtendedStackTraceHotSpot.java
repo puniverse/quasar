@@ -12,7 +12,6 @@
  */
 package co.paralleluniverse.common.util;
 
-import co.paralleluniverse.common.reflection.ReflectionUtil;
 import java.lang.reflect.Constructor;
 // import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
@@ -20,6 +19,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.util.Iterator;
+
+import static co.paralleluniverse.common.reflection.ReflectionUtil.accessible;
+import static co.paralleluniverse.common.util.Exceptions.rethrow;
 
 /**
  * This classes uses internal HotSpot data to retrieve a more detailed stacktrace from a {@link Throwable}.
@@ -150,7 +152,7 @@ class ExtendedStackTraceHotSpot extends ExtendedStackTrace {
         } catch (IllegalAccessException e) {
             throw new AssertionError(e);
         } catch (InvocationTargetException e) {
-            throw Exceptions.rethrow(e);
+            throw rethrow(e);
         }
     }
 
@@ -160,7 +162,7 @@ class ExtendedStackTraceHotSpot extends ExtendedStackTrace {
         } catch (IllegalAccessException e) {
             throw new AssertionError(e);
         } catch (InvocationTargetException e) {
-            throw Exceptions.rethrow(e);
+            throw rethrow(e);
         }
     }
 
@@ -231,11 +233,11 @@ class ExtendedStackTraceHotSpot extends ExtendedStackTrace {
                 throw new IllegalStateException("Not HotSpot");
             // the JVM blocks access to Throwable.backtrace via reflection
             // backtrace = ReflectionUtil.accessible(Throwable.class.getDeclaredField("backtrace"));
-            getStackTraceDepth = ReflectionUtil.accessible(Throwable.class.getDeclaredMethod("getStackTraceDepth"));
-            getStackTraceElement = ReflectionUtil.accessible(Throwable.class.getDeclaredMethod("getStackTraceElement", int.class));
-            methodSlot = ReflectionUtil.accessible(Method.class.getDeclaredField("slot"));
-            ctorSlot = ReflectionUtil.accessible(Constructor.class.getDeclaredField("slot"));
-            fieldSlot = ReflectionUtil.accessible(Field.class.getDeclaredField("slot"));
+            getStackTraceDepth = accessible(Throwable.class.getDeclaredMethod("getStackTraceDepth"));
+            getStackTraceElement = accessible(Throwable.class.getDeclaredMethod("getStackTraceElement", int.class));
+            methodSlot = accessible(Method.class.getDeclaredField("slot"));
+            ctorSlot = accessible(Constructor.class.getDeclaredField("slot"));
+            fieldSlot = accessible(Field.class.getDeclaredField("slot"));
 
             BACKTRACE_FIELD_OFFSET = guessBacktraceFieldOffset();
 

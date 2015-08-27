@@ -242,7 +242,7 @@ public class InstrumentClass extends ClassVisitor {
         if (methods != null && !methods.isEmpty()) {
             if (alreadyInstrumented && !forceInstrumentation) {
                 for (MethodNode mn : methods) {
-                    db.log(LogLevel.INFO, "Alredy instrumented and not forcing, so not touching method %s#%s%s", className, mn.name, mn.desc);
+                    db.log(LogLevel.INFO, "Already instrumented and not forcing, so not touching method %s#%s%s", className, mn.name, mn.desc);
                     mn.accept(makeOutMV(mn));
                 }
             } else {

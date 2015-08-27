@@ -20,7 +20,7 @@ subprojects {
     [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
     group               = "co.paralleluniverse"
-    version             = "0.7.3-SNAPSHOT"
+    version             = "0.8.0-SNAPSHOT"
     status              = "integration"
     description         = "Fibers, Channels and Actors for the JVM"
     ext.url             = "http://puniverse.github.com/quasar"
@@ -70,7 +70,6 @@ subprojects {
         }
     }
 
-
     configurations {
         compileOnly
         provided
@@ -93,7 +92,7 @@ subprojects {
             runtimeClasspath += compileClasspath + main.runtimeClasspath + test.runtimeClasspath
         }
     }
-    
+
     compileJmhJava {
         sourceCompatibility = '1.8'
         targetCompatibility = '1.8'
@@ -133,8 +132,10 @@ subprojects {
 
     compileJava.dependsOn processResources
     compileJava {
-        doLast {
-            scanAndInstrument(sourceSets.main, [configurations.provided, configurations.runtime])
+        if(project.name != 'quasar-kotlin') {
+            doLast {
+                scanAndInstrument(sourceSets.main, [configurations.provided, configurations.runtime])
+            }
         }
     }
 
@@ -182,6 +183,7 @@ subprojects {
         }
     }
 
+<<<<<<< HEAD
     ['run', 'debug'].each { name ->
         project.task(name, type: JavaExec, dependsOn:[testClasses]) {
             classpath = sourceSets.main.runtimeClasspath
@@ -319,7 +321,6 @@ subprojects {
         }
     }
 }
-
 
 def scanAndInstrument(sset, configs) {
     def cp = '' + sset.output.classesDir + ':' + sset.output.resourcesDir + ':' + configs*.asPath.join(':')

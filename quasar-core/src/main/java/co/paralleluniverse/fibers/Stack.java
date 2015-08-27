@@ -121,10 +121,8 @@ public final class Stack implements Serializable {
     /**
      * Called before a method is called.
      *
-     * @param entry      the entry point in the method for resume
-     * @param numSlots   the number of required stack slots for storing the state
-     * @param method     the suspendable call site invoking method name
-     * @param sourceLine the suspendable call site invoking line number
+     * @param entry      the entry point in the current method for resume
+     * @param numSlots   the number of required stack slots for storing the state of the current method
      */
     public final void pushMethod(int entry, int numSlots) {
         shouldVerifyInstrumentation = false;

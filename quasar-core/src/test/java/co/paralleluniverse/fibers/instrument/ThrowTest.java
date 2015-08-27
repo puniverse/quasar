@@ -89,7 +89,7 @@ public class ThrowTest implements SuspendableRunnable {
     @Test
     public void testThrow() {
         results.clear();
-        
+
         Fiber co = new Fiber((String)null, null, this);
         try {
             exec(co);
@@ -104,7 +104,7 @@ public class ThrowTest implements SuspendableRunnable {
         } finally {
             System.out.println(results);
         }
-        
+
         assertEquals(5, results.size());
         assertEquals("A", results.get(0));
         assertEquals("B", results.get(1));

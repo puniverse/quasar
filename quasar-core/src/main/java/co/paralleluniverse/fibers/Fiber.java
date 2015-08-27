@@ -26,6 +26,7 @@ import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
+import co.paralleluniverse.fibers.FiberForkJoinScheduler.FiberForkJoinTask;
 import co.paralleluniverse.fibers.instrument.SuspendableHelper;
 import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import co.paralleluniverse.io.serialization.kryo.KryoSerializer;
@@ -169,7 +170,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         setName(name);
         Strand parent = Strand.currentStrand(); // retaining the parent as a field is a huge, complex memory leak
         this.target = target;
-        this.task = scheduler != null ? scheduler.newFiberTask(this) : new FiberForkJoinScheduler.FiberForkJoinTask(this);
+        this.task = scheduler != null ? scheduler.newFiberTask(this) : new FiberForkJoinTask(this);
         this.initialStackSize = stackSize;
         this.stack = new Stack(this, stackSize > 0 ? stackSize : DEFAULT_STACK_SIZE);
 
@@ -793,6 +794,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         } finally {
             if (!restored)
                 restoreThreadData(currentThread, old);
+
+            if (scheduler instanceof FiberForkJoinScheduler)
+                ((FiberForkJoinScheduler) scheduler).tryOnIdle();
         }
     }
 
@@ -892,10 +896,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private void installFiberDataInThread(Thread currentThread) {
         record(1, "Fiber", "installFiberDataInThread", "%s <-> %s", this, currentThread);
         installFiberLocals(currentThread);
-        setCurrentFiber(this, currentThread);
         installFiberContextClassLoader(currentThread);
         if (MAINTAIN_ACCESS_CONTROL_CONTEXT)
             installFiberInheritedAccessControlContext(currentThread);
+        setCurrentFiber(this, currentThread);
     }
 
     private void restoreThreadData(Thread currentThread, Object old) {
@@ -934,7 +938,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         if (isRecordingLevel(2)) {
             record(2, "Fiber", "switchFiberAndThreadLocals", "fiberLocals: %s", ThreadUtil.getThreadLocalsString(install ? this.fiberLocals : tmpThreadLocals));
-            record(2, "Fiber", "switchFiberAndThreadLocals", "inheritableFilberLocals: %s", ThreadUtil.getThreadLocalsString(install ? this.inheritableFiberLocals : tmpInheritableThreadLocals));
+            record(2, "Fiber", "switchFiberAndThreadLocals", "inheritableFiberLocals: %s", ThreadUtil.getThreadLocalsString(install ? this.inheritableFiberLocals : tmpInheritableThreadLocals));
         }
 
         ThreadAccess.setThreadLocals(currentThread, this.fiberLocals);

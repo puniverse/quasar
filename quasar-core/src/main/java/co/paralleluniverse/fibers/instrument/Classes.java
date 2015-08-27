@@ -35,7 +35,7 @@ final class Classes {
         new BlockingMethod("java/lang/Object", "wait", "()V", "(J)V", "(JI)V"),
     };
     // computed
-    static final String EXCEPTION_DESC = "L" + SUSPEND_EXECUTION_NAME + ";";
+    // static final String EXCEPTION_DESC = "L" + SUSPEND_EXECUTION_NAME + ";";
     static final String ANNOTATION_DESC = "L" + ANNOTATION_NAME + ";";
     static final String DONT_INSTRUMENT_ANNOTATION_DESC = "L" + DONT_INSTRUMENT_ANNOTATION_NAME + ";";
     static final String ALREADY_INSTRUMENTED_DESC = Type.getDescriptor(Instrumented.class);
