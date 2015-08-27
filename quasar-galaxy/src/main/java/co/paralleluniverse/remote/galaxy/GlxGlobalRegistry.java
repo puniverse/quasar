@@ -81,7 +81,7 @@ public class GlxGlobalRegistry extends ActorRegistry {
                 LOG.debug("Registered actor {} at rootId  {}", actorRef, Long.toHexString(root));
                 store.commit(txn);
                 
-                updateCache(rootName, new CacheEntry(actorRef, root, version));
+                updateCache(rootName, new CacheEntry(actorRef, root, version)); // <--- comment out to test "distribution" on a single node
             } catch (TimeoutException e) {
                 LOG.error("Registering actor {} at root {} failed due to timeout", actorRef, rootName);
                 store.rollback(txn);

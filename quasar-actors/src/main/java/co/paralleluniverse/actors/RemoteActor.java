@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -102,7 +102,7 @@ public abstract class RemoteActor<Message> extends ActorImpl<Message> {
     protected static abstract class RemoteActorAdminMessage implements java.io.Serializable {
     }
 
-    static class RemoteActorRegisterListenerAdminMessage extends RemoteActorAdminMessage {
+    private static class RemoteActorRegisterListenerAdminMessage extends RemoteActorAdminMessage {
         private final LifecycleListener listener;
 
         @Override
@@ -119,7 +119,7 @@ public abstract class RemoteActor<Message> extends ActorImpl<Message> {
         }
     }
 
-    static class RemoteActorUnregisterListenerAdminMessage extends RemoteActorAdminMessage {
+    private static class RemoteActorUnregisterListenerAdminMessage extends RemoteActorAdminMessage {
         private final ActorRef observer;
         private final LifecycleListener listener;
 
@@ -146,7 +146,7 @@ public abstract class RemoteActor<Message> extends ActorImpl<Message> {
     }
 
     private static class RemoteActorThrowInAdminMessage extends RemoteActorAdminMessage {
-        private RuntimeException e;
+        private final RuntimeException e;
 
         public RemoteActorThrowInAdminMessage(RuntimeException e) {
             this.e = e;

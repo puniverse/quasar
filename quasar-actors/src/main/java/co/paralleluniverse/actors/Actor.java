@@ -947,7 +947,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * @param name the name of the actor in the registry, must be equal to the {@link #getName() actor's name} if it has one.
      * @return {@code this}
      */
-    public final Actor register(String name) throws SuspendExecution {
+    public final Actor<Message, V> register(String name) throws SuspendExecution {
         if (getName() == null)
             setName(name);
         else if (!getName().equals(name))

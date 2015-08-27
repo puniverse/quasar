@@ -33,7 +33,17 @@ public class GlxGlobalRemoteActor<Message> extends GlxRemoteActor<Message> {
         final ActorImpl<Message> actor = getActor();
         if (actor == null)
             throw new IllegalStateException("Actor for " + this + " not running locally");
-        GlobalRemoteChannelReceiver.getReceiver(actor.getMailbox(), id);
+        final GlobalRemoteChannelReceiver<Object> receiver = GlobalRemoteChannelReceiver.getReceiver(actor.getMailbox(), id);
+        receiver.setFilter(new GlobalRemoteChannelReceiver.MessageFilter<Object>() {
+            @Override
+            public boolean shouldForwardMessage(Object msg) {
+                if (msg instanceof RemoteActorAdminMessage) {
+                    handleAdminMessage((RemoteActorAdminMessage) msg);
+                    return false;
+                }
+                return true;
+            }
+        });
     }
 
     @Override
