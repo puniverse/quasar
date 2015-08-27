@@ -183,7 +183,6 @@ subprojects {
         }
     }
 
-<<<<<<< HEAD
     ['run', 'debug'].each { name ->
         project.task(name, type: JavaExec, dependsOn:[testClasses]) {
             classpath = sourceSets.main.runtimeClasspath
