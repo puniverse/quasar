@@ -89,6 +89,7 @@
 </ul></li>
 <li>
 <a href="#news" class="cat-link">News</a><ul>
+<li><a href="#tbbd">TBBD</a></li>
 <li><a href="#june-25-2015">June 25, 2015</a></li>
 <li><a href="#may-29-2015">May 29, 2015</a></li>
 <li><a href="#december-23-2014">December 23, 2014</a></li>
@@ -179,6 +180,10 @@
 <p>A core component of Quasar, bytecode instrumentation, is a fork of the wonderful <a href="http://www.matthiasmann.de/content/view/24/26/">Continuations Library</a> by Matthias&nbsp;Mann.</p>
 
 <h2 id="news">News</h2>
+
+<h3 id="tbbd"><span class="caps">TBBD</span></h3>
+
+<p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.7.3"><span class="caps">0.7.3</span></a> has been&nbsp;released.</p>
 
 <h3 id="june-25-2015">June 25,&nbsp;2015</h3>
 
@@ -418,6 +423,12 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>Other than <code>Fiber</code>’s constructor and <code>start</code> method, and possibly the <code>join</code> and <code>get</code> methods, you will not access the <code>Fiber</code> class directly much. To perform operations you would normally want to do on a thread, it is better to use the <code>Strand</code> class (discussed later), which is a generalizations of both threads and&nbsp;fibers.</p>
 
+<p>When using Kotlin the <code>fiber</code> syntax in <code>co.paralleluniverse.kotlin</code> makes it even&nbsp;easier:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="n">fiber</span> <span class="p">{</span>
+</span><span id="line-2">  <span class="c1">// The fiber will be created and will start executing this body</span>
+</span><span id="line-3"><span class="p">}</span>
+</span></code></pre></div>
 <h4 id="runtime-monitoring">The Fiber Scheduler and Runtime Fiber&nbsp;Monitoring</h4>
 
 <p>Fibers are scheduled by a <a href="/quasar/javadoc/co/paralleluniverse/fibers/FiberScheduler.html"><code>FiberScheduler</code></a>. When constructing a fiber, you can specify which scheduler should schedule it. If you don’t a <a href="/quasar/javadoc/co/paralleluniverse/fibers/DefaultFiberScheduler.html">default scheduler</a> is used. You can set the default scheduler’s properties by <a href="/quasar/javadoc/co/paralleluniverse/fibers/DefaultFiberScheduler.html">setting some system properties</a>.</p>
@@ -689,6 +700,33 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 </span></code></pre></div>
 <p>The example will do exactly one of the following operations: send <code>msg</code> to <code>ch1</code> or receive a message from&nbsp;<code>ch2</code>.</p>
 
+<p>A very concise <code>select</code> syntax for Kotlin is available in the <code>co.paralleluniverse.kotlin</code>&nbsp;package:</p>
+
+<div class="highlight"><pre><code><span id="line-1"><span class="k">val</span> <span class="py">ch1</span> <span class="p">=</span> <span class="n">Channels</span><span class="p">.</span><span class="n">newChannel</span><span class="p">&lt;</span><span class="n">Int</span><span class="p">&gt;(</span><span class="m">1</span><span class="p">)</span>
+</span><span id="line-2"><span class="k">val</span> <span class="py">ch2</span> <span class="p">=</span> <span class="n">Channels</span><span class="p">.</span><span class="n">newChannel</span><span class="p">&lt;</span><span class="n">Int</span><span class="p">&gt;(</span><span class="m">1</span><span class="p">)</span>
+</span><span id="line-3">
+</span><span id="line-4"><span class="n">assertTrue</span> <span class="p">(</span>
+</span><span id="line-5">    <span class="n">fiber</span> <span class="p">{</span>
+</span><span id="line-6">        <span class="n">select</span><span class="p">(</span><span class="n">Receive</span><span class="p">(</span><span class="n">ch1</span><span class="p">),</span> <span class="n">Send</span><span class="p">(</span><span class="n">ch2</span><span class="p">,</span> <span class="m">2</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="line-7">            <span class="n">it</span>
+</span><span id="line-8">        <span class="p">}</span>
+</span><span id="line-9">    <span class="p">}.</span><span class="k">get</span><span class="p">()</span> <span class="k">is</span> <span class="n">Send</span>
+</span><span id="line-10"><span class="p">)</span>
+</span><span id="line-11">
+</span><span id="line-12"><span class="n">ch1</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="m">1</span><span class="p">)</span>
+</span><span id="line-13">
+</span><span id="line-14"><span class="n">assertTrue</span> <span class="p">(</span>
+</span><span id="line-15">    <span class="n">fiber</span> <span class="p">{</span>
+</span><span id="line-16">        <span class="n">select</span><span class="p">(</span><span class="n">Receive</span><span class="p">(</span><span class="n">ch1</span><span class="p">),</span> <span class="n">Send</span><span class="p">(</span><span class="n">ch2</span><span class="p">,</span> <span class="m">2</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="line-17">            <span class="k">when</span> <span class="p">(</span><span class="n">it</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="line-18">                <span class="k">is</span> <span class="n">Receive</span> <span class="p">-&gt;</span> <span class="n">it</span><span class="p">.</span><span class="n">msg</span>
+</span><span id="line-19">                <span class="k">is</span> <span class="n">Send</span> <span class="p">-&gt;</span> <span class="m">0</span>
+</span><span id="line-20">                <span class="k">else</span> <span class="p">-&gt;</span> <span class="p">-</span><span class="m">1</span>
+</span><span id="line-21">            <span class="p">}</span>
+</span><span id="line-22">        <span class="p">}</span>
+</span><span id="line-23">    <span class="p">}.</span><span class="k">get</span><span class="p">()</span> <span class="p">==</span> <span class="m">1</span>
+</span><span id="line-24"><span class="p">)}</span>
+</span></code></pre></div>
 <h2 id="dataflow-reactive-programming">Dataflow (Reactive)&nbsp;Programming</h2>
 
 <p>Dataflow, or reactive programming, is a computation described by composing variables whose value may be set (and possibly changed) at any given time, without concern for when these values are set. Quasar provides two dataflow primitives: <a href="/quasar/javadoc/co/paralleluniverse/strands/dataflow/Val.html"><code>Val</code></a> and <a href="/quasar/javadoc/co/paralleluniverse/strands/dataflow/Var.html"><code>Var</code></a> in the <code>co.paralleluniverse.strands.dataflow</code>&nbsp;package.</p>
