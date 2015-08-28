@@ -20,7 +20,7 @@ subprojects {
     [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
     group               = "co.paralleluniverse"
-    version             = "0.7.3-SNAPSHOT"
+    version             = "0.7.3"
     status              = "integration"
     description         = "Fibers, Channels and Actors for the JVM"
     ext.url             = "http://puniverse.github.com/quasar"
@@ -220,7 +220,7 @@ subprojects {
     //    }
 
     configure (javadoc) {
-        classpath += configurations.provided 
+        classpath += configurations.provided
         options {
             // docletpath = configurations.markdownDoclet.files.asType(List)
             // doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
@@ -334,7 +334,7 @@ def scanAndInstrument(sset, configs) {
         fileset(dir: sset.output.classesDir)
     }
 
-    ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', 
+    ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask',
         classpath: cp)
     ant.instrumentation(verbose:'true', check:'true', debug:'true') {
         fileset(dir: sset.output.classesDir) {
@@ -654,7 +654,7 @@ project (':quasar-galaxy') {
         systemProperty "galaxy.multicast.port", "7050"
         systemProperty "co.paralleluniverse.galaxy.configFile", "${sourceSets.main.output.resourcesDir}/config/peer.xml"
         systemProperty "co.paralleluniverse.galaxy.autoGoOnline", "true"
-        
+
         // systemProperty 'co.paralleluniverse.debugMode', 'true'
         systemProperty 'co.paralleluniverse.monitoring.flightRecorderLevel', '5'
         systemProperty 'co.paralleluniverse.globalFlightRecorder', 'true'
