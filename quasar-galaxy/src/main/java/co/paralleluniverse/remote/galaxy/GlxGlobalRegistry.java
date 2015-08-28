@@ -110,7 +110,7 @@ public class GlxGlobalRegistry extends ActorRegistry {
     private void unregister0(ActorRef<?> actor) throws SuspendExecution {
         final String rootName = actor.getName();
 
-        LOG.info("Uregistering {}", rootName);
+        LOG.info("Unregistering {}", rootName);
 
         final Store store = grid.store();
 
