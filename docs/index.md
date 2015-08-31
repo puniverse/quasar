@@ -1139,7 +1139,7 @@ An actor doesn't have to be registered in order to be reachable on the network. 
 
 ### Cluster Configuration
 
-For instructions on how to configure the Galaxy cluster, please refer to Galaxy's [getting started guide](http://docs.paralleluniverse.co/galaxy/start/getting-started.html).
+For instructions on how to configure the Galaxy cluster, please refer to Galaxy's [getting started guide](http://docs.paralleluniverse.co/galaxy/#getting-started).
 
 ### Actor Migration
 
