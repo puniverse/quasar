@@ -103,8 +103,13 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
 			mailbox.lock();
 
 			if (it.hasNext()) {
-				final Object m = it.next();
-				mailbox.unlock();
+				final Object m;
+
+                try {
+				    m = it.next();
+			    } finally {
+				    mailbox.unlock();
+				}
 				if (m == currentMessage) {
 					it.remove();
 					continue;

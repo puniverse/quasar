@@ -35,19 +35,19 @@ import java.util.concurrent.TimeUnit
 public class ControlFlowTest {
     private val scheduler = FiberForkJoinScheduler("test", 4, null, false);
 
-    Test
+    @Test
     public fun testForAndWhile() {
         val ch = Channels.newIntChannel(0);
         val vals = listOf(0, 1)
         val fiberSend = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 for(v in vals)
                     ch.send(v)
                 ch.close()
             }
         }).start()
         val fiberReceive = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 var l = listOf<Int>()
                 var i = ch.receive()
                 while(i != null) {
@@ -61,19 +61,19 @@ public class ControlFlowTest {
         fiberReceive.join()
     }
 
-    Test
+    @Test
     public fun testWhen() {
         val ch = Channels.newIntChannel(0);
         val vals = listOf(1, 101)
         val fiberSend = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 for(v in vals)
                     ch.send(v)
                 ch.close()
             }
         }).start()
         val fiberReceive = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 var l = listOf<Boolean>()
                 var i = ch.receive()
                 while(i != null) {
@@ -95,18 +95,18 @@ public class ControlFlowTest {
         fiberReceive.join()
     }
 
-    Test
+    @Test
     public fun testHOFun() {
         val ch = Channels.newIntChannel(0);
         val vals = listOf(0, 1)
         val fiberSend = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 vals.forEach { ch.send(it) }
                 ch.close()
             }
         }).start()
         val fiberReceive = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 var l = listOf<Int>()
                 var i = ch.receive()
                 while(i != null) {

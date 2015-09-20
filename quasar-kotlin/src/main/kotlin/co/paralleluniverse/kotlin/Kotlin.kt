@@ -24,9 +24,9 @@ import java.util.concurrent.TimeUnit
 /**
  * @author circlespainter
  */
-Suspendable public fun fiber<T>(start: Boolean, name: String?, scheduler: FiberScheduler?, stackSize: Int, block: () -> T): Fiber<T> {
-    val sc = @Suspendable object : SuspendableCallable<T> {
-        @throws(SuspendExecution::class) Suspendable override fun run(): T = block()
+@Suspendable public fun fiber<T>(start: Boolean, name: String?, scheduler: FiberScheduler?, stackSize: Int, block: () -> T): Fiber<T> {
+    val sc = object : SuspendableCallable<T> {
+        @Throws(SuspendExecution::class) @Suspendable override fun run(): T = block()
     }
     val ret =
         if (scheduler != null)
@@ -36,26 +36,27 @@ Suspendable public fun fiber<T>(start: Boolean, name: String?, scheduler: FiberS
     if (start) ret.start()
     return ret
 }
-Suspendable public fun  fiber<T>(block: () -> T): Fiber<T> =
+@Suspendable public fun fiber<T>(block: () -> T): Fiber<T> =
     fiber(true, null, null, -1, block)
-Suspendable public fun  fiber<T>(start: Boolean, block: () -> T): Fiber<T> =
+@Suspendable public fun fiber<T>(start: Boolean, block: () -> T): Fiber<T> =
     fiber(start, null, null, -1, block)
-Suspendable public fun  fiber<T>(name: String, block: () -> T): Fiber<T> =
+@Suspendable public fun fiber<T>(name: String, block: () -> T): Fiber<T> =
     fiber(true, name, null, -1, block)
-Suspendable public fun  fiber<T>(scheduler: FiberScheduler, block: () -> T): Fiber<T> =
+@Suspendable public fun fiber<T>(scheduler: FiberScheduler, block: () -> T): Fiber<T> =
     fiber(true, null, scheduler, -1, block)
-Suspendable public fun  fiber<T>(name: String, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
+@Suspendable public fun fiber<T>(name: String, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
     fiber(true, name, scheduler, -1, block)
-Suspendable public fun  fiber<T>(start: Boolean, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
+@Suspendable public fun fiber<T>(start: Boolean, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
     fiber(start, null, scheduler, -1, block)
-Suspendable public fun  fiber<T>(start: Boolean, name: String, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
+@Suspendable public fun fiber<T>(start: Boolean, name: String, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
     fiber(start, name, scheduler, -1, block)
 
 public abstract data class SelectOp<M>(private val wrappedSA: SelectAction<M>) {
     public fun getWrappedSelectAction(): SelectAction<M> = wrappedSA
 }
 public data class Receive<M>(public val receivePort: ReceivePort<M>) : SelectOp<M>(Selector.receive(receivePort)) {
-    public var msg: M = null
+    @Suppress("BASE_WITH_NULLABLE_UPPER_BOUND")
+    public var msg: M? = null
         internal set(value) {
             $msg = value
         }
@@ -63,7 +64,7 @@ public data class Receive<M>(public val receivePort: ReceivePort<M>) : SelectOp<
 }
 public data class Send<M>(public val sendPort: SendPort<M>, public val msg: M) : SelectOp<M>(Selector.send(sendPort, msg))
 
-Suspendable public fun select<R, M>(actions: List<SelectOp<M>>, b: (SelectOp<M>?) -> R, priority: Boolean = false, timeout: Int = -1, unit: TimeUnit = TimeUnit.MILLISECONDS): R {
+@Suspendable public fun select<R, M>(actions: List<SelectOp<M>>, b: (SelectOp<M>?) -> R, priority: Boolean = false, timeout: Int = -1, unit: TimeUnit = TimeUnit.MILLISECONDS): R {
     val sa = Selector.select(priority, timeout.toLong(), unit, actions.map{it.getWrappedSelectAction()}.toList())
     if (sa != null) {
         val sOp = actions.get(sa.index())
@@ -74,8 +75,8 @@ Suspendable public fun select<R, M>(actions: List<SelectOp<M>>, b: (SelectOp<M>?
     } else
         return b(null)
 }
-Suspendable public fun select<R, M>(vararg actions: SelectOp<M>, b: (SelectOp<M>?) -> R): R = select(actions.toList(), b)
-Suspendable public fun select<R, M>(timeout: Int, unit: TimeUnit, vararg actions: SelectOp<M>, b: (SelectOp<M>?) -> R): R =
+@Suspendable public fun select<R, M>(vararg actions: SelectOp<M>, b: (SelectOp<M>?) -> R): R = select(actions.toList(), b)
+@Suspendable public fun select<R, M>(timeout: Int, unit: TimeUnit, vararg actions: SelectOp<M>, b: (SelectOp<M>?) -> R): R =
     select(actions.toList(), b, false, timeout, unit)
-Suspendable public fun select<R, M>(priority: Boolean, timeout: Int, unit: TimeUnit, vararg actions: SelectOp<M>, b: (SelectOp<M>?) -> R): R =
+@Suspendable public fun select<R, M>(priority: Boolean, timeout: Int, unit: TimeUnit, vararg actions: SelectOp<M>, b: (SelectOp<M>?) -> R): R =
     select(actions.toList(), b, priority, timeout, unit)

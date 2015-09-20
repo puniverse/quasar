@@ -145,9 +145,9 @@ public abstract class Actor : KotlinActorSupport<Any?, Any?>() {
 // A couple of top-level utils
 
 public fun spawn(a: JActor<*, *>): ActorRef<Any?> {
-    @suppress("UNCHECKED_CAST")
+    @Suppress("UNCHECKED_CAST")
     Fiber(a as SuspendableCallable<Any>).start()
-    @suppress("UNCHECKED_CAST")
+    @Suppress("UNCHECKED_CAST")
     return a.ref() as ActorRef<Any?>
 }
 

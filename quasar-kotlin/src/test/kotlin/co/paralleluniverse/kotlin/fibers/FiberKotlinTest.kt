@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit
  * @author circlespainter
  */
 public class FiberKotlinTest {
-    Test public fun testSelect() {
+    @Test public fun testSelect() {
         val ch1 = Channels.newChannel<Int>(1)
         val ch2 = Channels.newChannel<Int>(1)
 

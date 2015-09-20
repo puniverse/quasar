@@ -85,14 +85,17 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
             maybeSetCurrentStrandAsOwner();
             Message m;
             Object token = sync.register();
-            for (int i = 0; (m = queue().poll()) == null; i++) {
-                if (isSendClosed()) {
-                    setReceiveClosed();
-                    checkClosed();
+            try {
+                for (int i = 0; (m = queue().poll()) == null; i++) {
+                    if (isSendClosed()) {
+                        setReceiveClosed();
+                        checkClosed();
+                    }
+                    sync.await(i);
                 }
-                sync.await(i);
+            } finally {
+                sync.unregister(token);
             }
-            sync.unregister(token);
 
             signalSenders();
             return m;

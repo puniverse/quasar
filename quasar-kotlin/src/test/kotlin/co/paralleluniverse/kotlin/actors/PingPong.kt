@@ -43,7 +43,7 @@ import co.paralleluniverse.kotlin.*
 data class Msg(val txt: String, val from: ActorRef<Any?>)
 
 class Ping(val n: Int) : Actor() {
-    Suspendable override fun doRun() {
+    @Suspendable override fun doRun() {
         val pong: ActorRef<Any> = ActorRegistry.getActor("pong")
         for(i in 1..n) {
             pong.send(Msg("ping", self()))          // Fiber-blocking
@@ -60,7 +60,7 @@ class Ping(val n: Int) : Actor() {
 }
 
 class Pong() : Actor() {
-    Suspendable override fun doRun() {
+    @Suspendable override fun doRun() {
         while (true) {
             // snippet Kotlin Actors example
             receive(1000, TimeUnit.MILLISECONDS) {  // Fiber-blocking
@@ -86,7 +86,7 @@ class Pong() : Actor() {
 }
 
 public class KotlinPingPongActorTest {
-    Test public fun testActors() {
+    @Test public fun testActors() {
         val pong = spawn(register("pong", Pong()))
         val ping = spawn(Ping(3))
         LocalActor.join(pong)
