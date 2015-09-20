@@ -101,7 +101,7 @@ public class FiberAsyncTest {
     }
 
     companion object {
-        Suspendable fun callService(service: Service): String {
+        @Suspendable fun callService(service: Service): String {
             return object : MyFiberAsync() {
                 override fun requestAsync() {
                     service.registerCallback(this);
@@ -109,7 +109,7 @@ public class FiberAsyncTest {
             }.run()
         }
 
-        Suspendable fun callService(service: Service, timeout: Long, unit: TimeUnit): String {
+        @Suspendable fun callService(service: Service, timeout: Long, unit: TimeUnit): String {
             return object : MyFiberAsync() {
                 override fun requestAsync() {
                     service.registerCallback(this)
@@ -128,10 +128,10 @@ public class FiberAsyncTest {
         }
     }
 
-    Test
+    @Test
     public fun testSyncCallback() {
         val fiber = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 val res = callService(syncService)
                 assertThat(res, equalTo("sync result!"))
             }
@@ -140,10 +140,10 @@ public class FiberAsyncTest {
         fiber.join()
     }
 
-    Test
+    @Test
     public fun testSyncCallbackException() {
         val fiber = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 try {
                     callService(badSyncService)
                     fail()
@@ -156,10 +156,10 @@ public class FiberAsyncTest {
         fiber.join()
     }
 
-    Test
+    @Test
     public fun testAsyncCallback() {
         val fiber = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 val res = callService(asyncService)
                 assertThat(res, equalTo("async result!"))
             }
@@ -168,10 +168,10 @@ public class FiberAsyncTest {
         fiber.join()
     }
 
-    Test
+    @Test
     public fun testAsyncCallbackException() {
         val fiber = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 try {
                     callService(badAsyncService)
                     fail();
@@ -184,10 +184,10 @@ public class FiberAsyncTest {
         fiber.join()
     }
 
-    Test
+    @Test
     public fun testAsyncCallbackExceptionInRequestAsync() {
         val fiber = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 try {
                     object : FiberAsync<String, RuntimeException>() {
                         override protected fun requestAsync() {
@@ -204,10 +204,10 @@ public class FiberAsyncTest {
         fiber.join()
     }
 
-    Test
+    @Test
     public fun testTimedAsyncCallbackNoTimeout() {
         val fiber = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 try {
                     val res = callService(asyncService, 50, TimeUnit.MILLISECONDS)
                     assertThat(res, equalTo("async result!"))
@@ -220,10 +220,10 @@ public class FiberAsyncTest {
         fiber.join();
     }
 
-    Test
+    @Test
     public fun testTimedAsyncCallbackWithTimeout() {
         val fiber = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 try {
                     callService(asyncService, 10, TimeUnit.MILLISECONDS)
                     fail()
@@ -234,10 +234,10 @@ public class FiberAsyncTest {
         fiber.join()
     }
 
-    Test
+    @Test
     public fun testInterrupt1() {
         val fiber = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 try {
                     callService(longAsyncService)
                     fail()
@@ -249,10 +249,10 @@ public class FiberAsyncTest {
         fiber.join()
     }
 
-    Test
+    @Test
     public fun testInterrupt2() {
         val fiber = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 try {
                     callService(longAsyncService)
                     fail()
@@ -265,10 +265,10 @@ public class FiberAsyncTest {
         fiber.join()
     }
 
-    Test
+    @Test
     public fun testRunBlocking() {
         val fiber = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 val res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), object : CheckedCallable<String, InterruptedException> {
                 override public fun call(): String {
                     Thread.sleep(300)
@@ -282,10 +282,10 @@ public class FiberAsyncTest {
         fiber.join()
     }
 
-    Test
+    @Test
     public fun testRunBlockingWithTimeout1() {
         val fiber = Fiber<Void>(scheduler, object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 try {
                     val res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), 400, TimeUnit.MILLISECONDS, object : CheckedCallable<String, InterruptedException> {
                         override public fun call(): String {
@@ -303,10 +303,10 @@ public class FiberAsyncTest {
         fiber.join();
     }
 
-    Test
+    @Test
     public fun testRunBlockingWithTimeout2() {
         val fiber = Fiber<Void>(object : SuspendableRunnable {
-            Suspendable override fun run() {
+            @Suspendable override fun run() {
                 try {
                     FiberAsync.runBlocking(Executors.newCachedThreadPool(), 100, TimeUnit.MILLISECONDS, object : CheckedCallable<String, InterruptedException> {
                         override public fun call(): String {

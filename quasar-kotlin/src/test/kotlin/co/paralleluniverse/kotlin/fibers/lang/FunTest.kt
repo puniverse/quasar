@@ -26,10 +26,10 @@ import org.junit.Test
 
 fun seq(f: () -> Unit, g: () -> Unit): () -> Unit {
     println("seq")
-    return (@Suspendable {f() ; g()})
+    return {f() ; g()}
 }
 
-Suspendable fun f() {
+@Suspendable fun f() {
     Fiber.sleep(10)
     @Suspendable fun f1() {
         Fiber.sleep(10)
@@ -37,44 +37,44 @@ Suspendable fun f() {
     f1()
 }
 
-Suspendable fun fDef(@suppress("UNUSED_PARAMETER") def: Boolean = true) {
+@Suspendable fun fDef(@Suppress("UNUSED_PARAMETER") def: Boolean = true) {
     Fiber.sleep(10)
 }
 
-Suspendable fun fQuick() {
+@Suspendable fun fQuick() {
     println("quick pre-sleep")
     Fiber.sleep(10)
     println("quick after-sleep")
 }
 
-Suspendable fun fVarArg(vararg ls: Long) {
+@Suspendable fun fVarArg(vararg ls: Long) {
     for (l in ls) Fiber.sleep(l)
 }
 
 public class FunTest {
     val scheduler = FiberForkJoinScheduler("test", 4, null, false)
 
-    Test fun testSimpleFun() {
+    @Test fun testSimpleFun() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
-            Suspendable override fun run(): Boolean {
+            @Suspendable override fun run(): Boolean {
                 f()
                 return true
             }
         }).start().get())
     }
 
-    Test fun testDefaultFunWithAllArgs() {
+    @Test fun testDefaultFunWithAllArgs() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
-            Suspendable override fun run(): Boolean {
+            @Suspendable override fun run(): Boolean {
                 fDef(true)
                 return true
             }
         }).start().get())
     }
 
-    Test fun testDefaultFunWithoutSomeArgs() {
+    @Test fun testDefaultFunWithoutSomeArgs() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
-            Suspendable override fun run(): Boolean {
+            @Suspendable override fun run(): Boolean {
                 // TODO https://youtrack.jetbrains.com/issue/KT-6930
                 fDef()
                 return true
@@ -82,27 +82,27 @@ public class FunTest {
         }).start().get())
     }
 
-    Test fun testQuickFun() {
+    @Test fun testQuickFun() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
-            Suspendable override fun run(): Boolean {
+            @Suspendable override fun run(): Boolean {
                 fQuick()
                 return true
             }
         }).start().get())
     }
 
-    Test fun testVarArgFun0() {
+    @Test fun testVarArgFun0() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
-            Suspendable override fun run(): Boolean {
+            @Suspendable override fun run(): Boolean {
                 fVarArg()
                 return true
             }
         }).start().get())
     }
 
-    Test fun testVarArgFun1() {
+    @Test fun testVarArgFun1() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
-            Suspendable override fun run(): Boolean {
+            @Suspendable override fun run(): Boolean {
                 fVarArg(10)
                 return true
             }
@@ -111,9 +111,9 @@ public class FunTest {
 
     // TODO https://youtrack.jetbrains.com/issue/KT-6932
 
-    Test fun testFunRefInvoke() {
+    @Test fun testFunRefInvoke() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
-            Suspendable override fun run(): Boolean {
+            @Suspendable override fun run(): Boolean {
 
                 (::fQuick)()
                 return true
@@ -121,19 +121,19 @@ public class FunTest {
         }).start().get())
     }
 
-    Test fun testFunRefArg() {
+    @Test fun testFunRefArg() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
-            Suspendable override fun run(): Boolean {
+            @Suspendable override fun run(): Boolean {
                 seq(::fQuick, ::fQuick)()
                 return true
             }
         }).start().get())
     }
 
-    Test fun testFunLambda() {
+    @Test fun testFunLambda() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
-            Suspendable override fun run(): Boolean {
-                (@Suspendable { _ : Int -> Fiber.sleep(10) })(1)
+            @Suspendable override fun run(): Boolean {
+                { _ : Int -> Fiber.sleep(10) }(1)
                 return true
             }
         }).start().get())
