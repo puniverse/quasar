@@ -7,7 +7,7 @@
  * the Eclipse Foundation
  *
  *   or (per the licensee's choosing)
- *
+ *<Any?>
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -51,8 +51,8 @@ import java.util.concurrent.TimeUnit
 @Suspendable public fun fiber<T>(start: Boolean, name: String, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
     fiber(start, name, scheduler, -1, block)
 
-public abstract data class SelectOp<M>(private val wrappedSA: SelectAction<M>) {
-    public fun getWrappedSelectAction(): SelectAction<M> = wrappedSA
+public abstract data class SelectOp<out M>(private val wrappedSA: SelectAction<out M>) {
+    public fun getWrappedSelectAction(): SelectAction<out M> = wrappedSA
 }
 public data class Receive<M>(public val receivePort: ReceivePort<M>) : SelectOp<M>(Selector.receive(receivePort)) {
     @Suppress("BASE_WITH_NULLABLE_UPPER_BOUND")
@@ -64,19 +64,20 @@ public data class Receive<M>(public val receivePort: ReceivePort<M>) : SelectOp<
 }
 public data class Send<M>(public val sendPort: SendPort<M>, public val msg: M) : SelectOp<M>(Selector.send(sendPort, msg))
 
-@Suspendable public fun select<R, M>(actions: List<SelectOp<M>>, b: (SelectOp<M>?) -> R, priority: Boolean = false, timeout: Int = -1, unit: TimeUnit = TimeUnit.MILLISECONDS): R {
-    val sa = Selector.select(priority, timeout.toLong(), unit, actions.map{it.getWrappedSelectAction()}.toList())
+@Suspendable public fun select<R>(actions: List<SelectOp<Any?>>, b: (SelectOp<Any?>?) -> R, priority: Boolean = false, timeout: Int = -1, unit: TimeUnit = TimeUnit.MILLISECONDS): R {
+    @Suppress("UNCHECKED_CAST")
+    val sa = Selector.select(priority, timeout.toLong(), unit, actions.map{it.getWrappedSelectAction()}.toList() as List<SelectAction<Any?>>)
     if (sa != null) {
-        val sOp = actions.get(sa.index())
+        val sOp: SelectOp<Any?> = actions.get(sa.index())
         when (sOp) {
-            is Receive -> sOp.msg = sa.message()
+            is Receive<Any?> -> sOp.msg = sa.message()
         }
         return b(sOp)
     } else
         return b(null)
 }
-@Suspendable public fun select<R, M>(vararg actions: SelectOp<M>, b: (SelectOp<M>?) -> R): R = select(actions.toList(), b)
-@Suspendable public fun select<R, M>(timeout: Int, unit: TimeUnit, vararg actions: SelectOp<M>, b: (SelectOp<M>?) -> R): R =
+@Suspendable public fun select<R>(vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R = select(actions.toList(), b)
+@Suspendable public fun select<R>(timeout: Int, unit: TimeUnit, vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =
     select(actions.toList(), b, false, timeout, unit)
-@Suspendable public fun select<R, M>(priority: Boolean, timeout: Int, unit: TimeUnit, vararg actions: SelectOp<M>, b: (SelectOp<M>?) -> R): R =
+@Suspendable public fun select<R>(priority: Boolean, timeout: Int, unit: TimeUnit, vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =
     select(actions.toList(), b, priority, timeout, unit)
