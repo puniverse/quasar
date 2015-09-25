@@ -104,7 +104,6 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
 
 			if (it.hasNext()) {
 				final Object m;
-
                 try {
 				    m = it.next();
 			    } finally {
