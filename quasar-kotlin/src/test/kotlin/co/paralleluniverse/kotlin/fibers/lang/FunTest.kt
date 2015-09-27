@@ -130,12 +130,26 @@ public class FunTest {
         }).start().get())
     }
 
-    @Test fun testFunLambda() {
-        assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
+    @Suspendable
+    private fun callSusLambda(f: (Int) -> Unit, i: Int) =
+        Fiber(scheduler, object : SuspendableCallable<Boolean> {
             @Suspendable override fun run(): Boolean {
-                { _ : Int -> Fiber.sleep(10) }(1)
+                f(i)
                 return true
             }
-        }).start().get())
+        }).start().get()
+
+    // TODO This would break due to https://github.com/puniverse/quasar/issues/121
+    /*
+    @Suspendable
+    private fun callSusLambda(f: (Int) -> Unit, i: Int) =
+        Fiber(scheduler, SuspendableCallable {
+            f(i)
+            true
+        }).start().get()
+    */
+
+    @Test fun testFunLambda() {
+        assertTrue(callSusLambda({ Fiber.sleep(10) }, 1))
     }
 }
