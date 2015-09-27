@@ -18,44 +18,29 @@ import co.paralleluniverse.fibers.instrument.MethodDatabase;
 import co.paralleluniverse.fibers.instrument.SimpleSuspendableClassifier;
 import co.paralleluniverse.fibers.instrument.SuspendableClassifier;
 
-/**
- * Given classes and methodRegexps, Instrumenting all the extending methods in 
- * the scope of given package prefix.
- */
+import java.util.ArrayList;
+
 public class KotlinClassifier implements SuspendableClassifier {
 	private static final String PKG_PREFIX = "kotlin";
-	private static final String[][] supers = {
-			{"kotlin/reflect/KCallable", "call", "callBy"},
-			{"kotlin/reflect/KProperty0", "get"},
-			{"kotlin/reflect/KMutableProperty0", "set"},
-			{"kotlin/reflect/KProperty1", "get"},
-			{"kotlin/reflect/KMutableProperty1", "set"},
-			{"kotlin/reflect/KProperty2", "get"},
-			{"kotlin/reflect/KMutableProperty2", "set"},
-			{"kotlin/jvm/functions/Function0", "invoke"},
-			{"kotlin/jvm/functions/Function1", "invoke"},
-			{"kotlin/jvm/functions/Function2", "invoke"},
-			{"kotlin/jvm/functions/Function3", "invoke"},
-			{"kotlin/jvm/functions/Function4", "invoke"},
-			{"kotlin/jvm/functions/Function5", "invoke"},
-			{"kotlin/jvm/functions/Function6", "invoke"},
-			{"kotlin/jvm/functions/Function7", "invoke"},
-			{"kotlin/jvm/functions/Function8", "invoke"},
-			{"kotlin/jvm/functions/Function9", "invoke"},
-			{"kotlin/jvm/functions/Function10", "invoke"},
-			{"kotlin/jvm/functions/Function11", "invoke"},
-			{"kotlin/jvm/functions/Function12", "invoke"},
-			{"kotlin/jvm/functions/Function13", "invoke"},
-			{"kotlin/jvm/functions/Function14", "invoke"},
-			{"kotlin/jvm/functions/Function15", "invoke"},
-			{"kotlin/jvm/functions/Function16", "invoke"},
-			{"kotlin/jvm/functions/Function17", "invoke"},
-			{"kotlin/jvm/functions/Function18", "invoke"},
-			{"kotlin/jvm/functions/Function19", "invoke"},
-			{"kotlin/jvm/functions/Function20", "invoke"},
-			{"kotlin/jvm/functions/Function21", "invoke"},
-			{"kotlin/jvm/functions/Function22", "invoke"},
-	};
+	private static final String[][] supers;
+
+	private static String[] sa(String... elems) {
+		return elems;
+	}
+
+	static {
+		final ArrayList<String[]> res = new ArrayList<>();
+		res.add(sa("kotlin/reflect/KCallable", "call", "callBy"));
+		res.add(sa("kotlin/reflect/KProperty0", "get"));
+		res.add(sa("kotlin/reflect/KMutableProperty0", "set"));
+		res.add(sa("kotlin/reflect/KProperty1", "get"));
+		res.add(sa("kotlin/reflect/KMutableProperty1", "set"));
+		res.add(sa("kotlin/reflect/KProperty2", "get"));
+		res.add(sa("kotlin/reflect/KMutableProperty2", "set"));
+		for (int i = 0; i <= 22 ; i++)
+			res.add(sa("kotlin/jvm/functions/Function" + i, "invoke"));
+		supers = res.toArray(new String[0][0]);
+	}
 
 	@Override
 	public MethodDatabase.SuspendableType isSuspendable (
@@ -64,29 +49,27 @@ public class KotlinClassifier implements SuspendableClassifier {
 			boolean isInterface, String className, String superClassName, String[] interfaces,
 			String methodName, String methodDesc, String methodSignature, String[] methodExceptions
 	) {
-		// Declares given methods as supers
-		for (String[] susExtendables : supers) {
-			if (className.equals(susExtendables[0]))
-				for (int i = 1; i < susExtendables.length; i++) {
-					if (methodName.matches(susExtendables[i])) {
+		for (final String[] s : supers) {
+			if (className.equals(s[0]))
+				for (int i = 1; i < s.length; i++) {
+					if (methodName.matches(s[i])) {
 						if (db.isVerbose())
-							db.getLog().log(LogLevel.INFO, KotlinClassifier.class.getName() + ": " + className + "." + methodName + " supersOrEqual " + susExtendables[0] + "." + susExtendables[i]);
+							db.getLog().log(LogLevel.INFO, KotlinClassifier.class.getName() + ": " + className + "." + methodName + " supersOrEqual " + s[0] + "." + s[i]);
 						return MethodDatabase.SuspendableType.SUSPENDABLE_SUPER;
 					}
 				}
 		}
 
-
 		if (className != null && !className.startsWith(PKG_PREFIX) &&
 			!(className.contains("$") && sourceName != null && sourceName.toLowerCase().endsWith(".kt")))
 			return null;
 
-		for (String[] susExtendables : supers) {
-			if (SimpleSuspendableClassifier.extendsOrImplements(susExtendables[0], db, className, superClassName, interfaces))
-				for (int i = 1; i < susExtendables.length; i++) {
-					if (methodName.matches(susExtendables[i])) {
+		for (final String[] s : supers) {
+			if (SimpleSuspendableClassifier.extendsOrImplements(s[0], db, className, superClassName, interfaces))
+				for (int i = 1; i < s.length; i++) {
+					if (methodName.matches(s[i])) {
 						if (db.isVerbose())
-							db.getLog().log(LogLevel.INFO, KotlinClassifier.class.getName() + ": " + className + "." + methodName + " extends " + susExtendables[0] + "." + susExtendables[i]);
+							db.getLog().log(LogLevel.INFO, KotlinClassifier.class.getName() + ": " + className + "." + methodName + " extends " + s[0] + "." + s[i]);
 						return MethodDatabase.SuspendableType.SUSPENDABLE;
 					}
 				}
