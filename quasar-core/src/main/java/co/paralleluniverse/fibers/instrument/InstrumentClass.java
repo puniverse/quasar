@@ -41,10 +41,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_ANNOTATION_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
+import static co.paralleluniverse.fibers.instrument.Classes.*;
 import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
@@ -135,7 +132,7 @@ public class InstrumentClass extends ClassVisitor {
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
         if (desc.equals(ALREADY_INSTRUMENTED_DESC))
             this.alreadyInstrumented = true;
-        else if (isInterface && desc.equals(ANNOTATION_DESC))
+        else if (isInterface && (desc.equals(ANNOTATION_DESC) || desc.equals(KOTLIN_ANNOTATION_DESC)))
             this.suspendableInterface = true;
 
         return super.visitAnnotation(desc, visible);
@@ -167,7 +164,7 @@ public class InstrumentClass extends ClassVisitor {
                 @Override
                 public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
                     // look for @Suspendable or @DontInstrument annotation
-                    if (adesc.equals(ANNOTATION_DESC))
+                    if (adesc.equals(ANNOTATION_DESC) || adesc.equals(KOTLIN_ANNOTATION_DESC))
                         susp = SuspendableType.SUSPENDABLE;
                     else if (adesc.equals(DONT_INSTRUMENT_ANNOTATION_DESC))
                         susp = SuspendableType.NON_SUSPENDABLE;
@@ -296,7 +293,7 @@ public class InstrumentClass extends ClassVisitor {
         if (ans == null)
             return false;
         for (AnnotationNode an : ans) {
-            if (an.desc.equals(ANNOTATION_DESC))
+            if (an.desc.equals(ANNOTATION_DESC) || an.desc.equals(KOTLIN_ANNOTATION_DESC))
                 return true;
         }
         return false;
