@@ -1029,7 +1029,7 @@ public abstract class Strand {
         public void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
             long nanos = unit.toNanos(timeout);
             long millis = TimeUnit.MILLISECONDS.convert(nanos, TimeUnit.NANOSECONDS);
-            thread.join(millis, (int) (nanos - millis));
+            thread.join(millis, (int) (nanos - TimeUnit.MILLISECONDS.toNanos(millis)));
             if (thread.isAlive())
                 throw new TimeoutException();
         }
