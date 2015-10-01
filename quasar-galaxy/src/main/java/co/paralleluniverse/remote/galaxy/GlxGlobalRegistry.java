@@ -153,7 +153,11 @@ public class GlxGlobalRegistry extends ActorRegistry {
         ActorRef<?> actor = tryCache(name);
         if (actor != null)
             return actor;
-        return updateCache(name, getActor0(name, timeout, unit));
+        final CacheEntry actorEntry = getActor0(name, timeout, unit);
+        if (actorEntry == null) {
+            return null;
+        }
+        return updateCache(name, actorEntry);
     }
 
     @Override
