@@ -14,8 +14,9 @@
 package co.paralleluniverse.kotlin.fibers.lang
 
 import co.paralleluniverse.fibers.Fiber
-import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.fibers.FiberForkJoinScheduler
+import co.paralleluniverse.fibers.Suspendable
+import co.paralleluniverse.kotlin.fibers
 import org.junit.Assert.assertTrue
 import co.paralleluniverse.strands.SuspendableCallable
 import org.junit.Test
@@ -53,6 +54,21 @@ fun seq(f: () -> Unit, g: () -> Unit): () -> Unit {
 
 public class FunTest {
     val scheduler = FiberForkJoinScheduler("test", 4, null, false)
+
+    @Test fun testKotlinAnnotation() {
+        assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
+            @Suspendable override fun run(): Boolean {
+                @fibers.Suspendable {
+                    println("quick pre-sleep")
+                    Fiber.sleep(10)
+                    println("quick after-sleep")
+                    Fiber.sleep(10)
+                    println("quick after-sleep")
+                }()
+                return true
+            }
+        }).start().get())
+    }
 
     @Test fun testSimpleFun() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {

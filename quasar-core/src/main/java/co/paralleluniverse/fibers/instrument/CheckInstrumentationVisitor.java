@@ -44,6 +44,7 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
+import static co.paralleluniverse.fibers.instrument.Classes.KOTLIN_ANNOTATION_DESC;
 import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
@@ -114,7 +115,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
         if (desc.equals(ALREADY_INSTRUMENTED_DESC))
             this.alreadyInstrumented = true;
-        else if (isInterface && desc.equals(ANNOTATION_DESC))
+        else if (isInterface && (desc.equals(ANNOTATION_DESC) || desc.equals(KOTLIN_ANNOTATION_DESC)))
             this.suspendableInterface = true;
         return null;
     }
@@ -145,7 +146,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
 
                 @Override
                 public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
-                    if (adesc.equals(ANNOTATION_DESC))
+                    if (adesc.equals(ANNOTATION_DESC) || adesc.equals(KOTLIN_ANNOTATION_DESC))
                         susp = true;
                     return null;
                 }
