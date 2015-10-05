@@ -34,10 +34,10 @@ import co.paralleluniverse.strands.SuspendableCallable
 public class OOTest {
     val scheduler = FiberForkJoinScheduler("test", 4, null, false)
     val iv = 1
-        @Suspendable get() { Fiber.sleep(1) ; return $iv }
+        @Suspendable get() { Fiber.sleep(1) ; return field }
     var mv = 1
-        @Suspendable get() { Fiber.sleep(1) ; return $mv }
-        @Suspendable set(v) { Fiber.sleep(1) ; $mv = v }
+        @Suspendable get() { Fiber.sleep(1) ; return field }
+        @Suspendable set(v) { Fiber.sleep(1) ; field = v }
     var md by D()
         @Suspendable get
         @Suspendable set
@@ -118,7 +118,7 @@ public class OOTest {
         }
     }
 
-    data class Data() : DerivedDerived2(), BaseTrait2 {
+    class Data() : DerivedDerived2(), BaseTrait2 {
         @Suspendable override fun doSleep() {
             super<BaseTrait2>.doSleep()
         }

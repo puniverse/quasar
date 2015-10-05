@@ -20,6 +20,11 @@ import co.paralleluniverse.fibers.instrument.SuspendableClassifier;
 
 import java.util.ArrayList;
 
+/**
+ * Quasar-Kotlin M14 integration.
+ *
+ * @author circlespainter
+ */
 public class KotlinClassifier implements SuspendableClassifier {
 	private static final String PKG_PREFIX = "kotlin";
 	private static final String[][] supers;
@@ -30,15 +35,23 @@ public class KotlinClassifier implements SuspendableClassifier {
 
 	static {
 		final ArrayList<String[]> res = new ArrayList<>();
+
 		res.add(sa("kotlin/reflect/KCallable", "call", "callBy"));
+
 		res.add(sa("kotlin/reflect/KProperty0", "get"));
 		res.add(sa("kotlin/reflect/KMutableProperty0", "set"));
 		res.add(sa("kotlin/reflect/KProperty1", "get"));
 		res.add(sa("kotlin/reflect/KMutableProperty1", "set"));
 		res.add(sa("kotlin/reflect/KProperty2", "get"));
 		res.add(sa("kotlin/reflect/KMutableProperty2", "set"));
+
 		for (int i = 0; i <= 22 ; i++)
 			res.add(sa("kotlin/jvm/functions/Function" + i, "invoke"));
+
+		// Kotlin M14 doesn't seem to add `@Suspendable` to the generated `run` when passing a `@Suspendable` lambda
+		res.add(sa("co/paralleluniverse/strands/SuspendableCallable", "run"));
+		res.add(sa("co/paralleluniverse/strands/SuspendableRunnable", "run"));
+
 		supers = res.toArray(new String[0][0]);
 	}
 
@@ -60,8 +73,8 @@ public class KotlinClassifier implements SuspendableClassifier {
 				}
 		}
 
-		if (className != null && !className.startsWith(PKG_PREFIX) &&
-			!(className.contains("$") && sourceName != null && sourceName.toLowerCase().endsWith(".kt")))
+		if (className != null && !className.startsWith(PKG_PREFIX)
+			&& !(className.contains("$") && sourceName != null && sourceName.toLowerCase().endsWith(".kt")))
 			return null;
 
 		for (final String[] s : supers) {

@@ -209,10 +209,10 @@ public class FiberAsyncTest {
         val fiber = Fiber<Void>(scheduler, object : SuspendableRunnable {
             @Suspendable override fun run() {
                 try {
-                    val res = callService(asyncService, 500, TimeUnit.MILLISECONDS)
+                    val res = callService(asyncService, 50, TimeUnit.MILLISECONDS)
                     assertThat(res, equalTo("async result!"))
                 } catch (e: TimeoutException) {
-                    throw RuntimeException(e)
+                    throw RuntimeException()
                 }
             }
         }).start()

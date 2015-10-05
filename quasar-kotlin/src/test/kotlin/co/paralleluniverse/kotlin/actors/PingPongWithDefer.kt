@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.kotlin.actors
 
-import co.paralleluniverse.actors
 import co.paralleluniverse.actors.*
 import co.paralleluniverse.actors.behaviors.BehaviorActor
 import co.paralleluniverse.actors.behaviors.ProxyServerActor
