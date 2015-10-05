@@ -194,6 +194,7 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
             return false;
 
         MethodDatabase.ClassEntry ce = db.getOrLoadClassEntry(className);
+        assert ce != null : "The class " + className + " couldn't be looked up: it may be missing from the classpath";
         if (Objects.equals(superOrIface, ce.getSuperName()))
             return true;
         for (String iface : ce.getInterfaces()) {
