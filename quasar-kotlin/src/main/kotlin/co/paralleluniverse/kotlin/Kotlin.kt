@@ -7,7 +7,7 @@
  * the Eclipse Foundation
  *
  *   or (per the licensee's choosing)
- *<Any?>
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -25,8 +25,8 @@ import java.util.concurrent.TimeUnit
  * @author circlespainter
  */
 @Suspendable public fun fiber<T>(start: Boolean, name: String?, scheduler: FiberScheduler?, stackSize: Int, block: () -> T): Fiber<T> {
-    val sc = object : SuspendableCallable<T> {
-        @Throws(SuspendExecution::class) @Suspendable override fun run(): T = block()
+    val sc = @Suspendable object : SuspendableCallable<T> {
+        @Suspendable override fun run(): T = block()
     }
     val ret =
         if (scheduler != null)
@@ -51,18 +51,18 @@ import java.util.concurrent.TimeUnit
 @Suspendable public fun fiber<T>(start: Boolean, name: String, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
     fiber(start, name, scheduler, -1, block)
 
-public abstract data class SelectOp<out M>(private val wrappedSA: SelectAction<out M>) {
+public open class SelectOp<out M>(private val wrappedSA: SelectAction<out M>) {
     public fun getWrappedSelectAction(): SelectAction<out M> = wrappedSA
 }
-public data class Receive<M>(public val receivePort: ReceivePort<M>) : SelectOp<M>(Selector.receive(receivePort)) {
+public class Receive<M>(public val receivePort: ReceivePort<M>) : SelectOp<M>(Selector.receive(receivePort)) {
     @Suppress("BASE_WITH_NULLABLE_UPPER_BOUND")
     public var msg: M? = null
         internal set(value) {
-            $msg = value
+            field = value
         }
-        get() = $msg
+        get() = field
 }
-public data class Send<M>(public val sendPort: SendPort<M>, public val msg: M) : SelectOp<M>(Selector.send(sendPort, msg))
+public class Send<M>(public val sendPort: SendPort<M>, public val msg: M) : SelectOp<M>(Selector.send(sendPort, msg))
 
 @Suspendable public fun select<R>(actions: List<SelectOp<Any?>>, b: (SelectOp<Any?>?) -> R, priority: Boolean = false, timeout: Int = -1, unit: TimeUnit = TimeUnit.MILLISECONDS): R {
     @Suppress("UNCHECKED_CAST")
@@ -76,7 +76,7 @@ public data class Send<M>(public val sendPort: SendPort<M>, public val msg: M) :
     } else
         return b(null)
 }
-@Suspendable public fun select<R>(vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R = select(actions.toList(), b)
+@Suspendable public fun select<R>(vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =   select(actions.toList(), b)
 @Suspendable public fun select<R>(timeout: Int, unit: TimeUnit, vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =
     select(actions.toList(), b, false, timeout, unit)
 @Suspendable public fun select<R>(priority: Boolean, timeout: Int, unit: TimeUnit, vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =
