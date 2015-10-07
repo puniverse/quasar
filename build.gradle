@@ -554,7 +554,7 @@ project (':quasar-core') {
         }
         tasks.withType(Test) {
             filter {
-                includeTestsMatching "*SingleConsumerLinkedArrayObjectQueueTest"
+                includeTestsMatching "*SingleConsumerLinked*ObjectQueueTest"
             }
         }
         run.dependsOn compileJdk8Java, jdk8testClasses

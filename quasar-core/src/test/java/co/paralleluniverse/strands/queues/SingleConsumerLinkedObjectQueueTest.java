@@ -11,17 +11,21 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * SingleConsumerLinkedArrayObjectQueue hangs test.
  */
-public class SingleConsumerLinkedArrayObjectQueueTest {
+public class SingleConsumerLinkedObjectQueueTest {
     @Test
     public void uglyTest() throws InterruptedException {
         final AtomicBoolean done = new AtomicBoolean(false); // Done flag for thread shutdown
         final AtomicInteger size = new AtomicInteger(); // Queue size
         final AtomicLong progress = new AtomicLong(); // Processed iterations count
-        final SingleConsumerLinkedArrayObjectQueue<Object> queue = new SingleConsumerLinkedArrayObjectQueue<>(); // Tested queue
+        final SingleConsumerQueue<Object> queue = new SingleConsumerLinkedObjectQueue<>(); // Tested queue
         final Thread consumer = new Thread(new Runnable() {
             @Override
             public void run() {
                 while (!done.get()) {
+                    QueueIterator<Object> it = queue.iterator();
+                    while (it.hasNext()) {
+                        it.next();
+                    }
                     if (queue.poll() != null) {
                         size.decrementAndGet();
                     }
@@ -33,9 +37,11 @@ public class SingleConsumerLinkedArrayObjectQueueTest {
             @Override
             public void run() {
                 while (!done.get()) {
-                    if (size.get() < 1) {
+                    if (size.get() < 5) {
                         queue.add(new Object());
                         size.incrementAndGet();
+                    } else {
+                        Thread.yield();
                     }
                 }
             }
