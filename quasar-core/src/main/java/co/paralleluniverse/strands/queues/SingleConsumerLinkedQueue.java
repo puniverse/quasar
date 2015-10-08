@@ -28,6 +28,7 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E> {
     volatile Node head;
     volatile Object p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
     volatile Node tail;
+    protected static volatile int v = 0;
 
     @SuppressWarnings("OverridableMethodCallInConstructor")
     public SingleConsumerLinkedQueue() {
@@ -88,6 +89,10 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E> {
                 if (tail == node && compareAndSetTail(node, null)) { // a concurrent enq would either cause this to fail and wait for node.next, or have this succeed and then set tail and head
                     node.next = null;
                     return;
+                }
+                if (v == 0) {
+                    // PUT BREAKPOINT HERE
+                    v = 1;
                 }
                 while ((h = node.next) == null);
             }

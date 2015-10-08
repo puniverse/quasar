@@ -552,6 +552,11 @@ project (':quasar-core') {
         tasks.withType(JavaExec) {
             classpath += sourceSets.jdk8test.runtimeClasspath + sourceSets.jdk8test.output
         }
+        tasks.withType(Test) {
+            filter {
+                includeTestsMatching "*SingleConsumerLinked*ObjectQueueTest"
+            }
+        }
         run.dependsOn compileJdk8Java, jdk8testClasses
     } else {
         tasks.withType(JavaExec) {

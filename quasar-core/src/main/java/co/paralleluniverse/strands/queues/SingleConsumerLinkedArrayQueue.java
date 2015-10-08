@@ -31,6 +31,7 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E> 
     volatile Node tail;
     volatile int p016, p017, p018, p019, p020, p021, p022, p023, p024, p025, p026, p027, p028, p029, p030;
     int seed = (int) System.nanoTime();
+    protected static volatile int v = 0;
 
     @SuppressWarnings("OverridableMethodCallInConstructor")
     public SingleConsumerLinkedArrayQueue() {
@@ -64,6 +65,11 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E> 
         boolean found = false;
         for (;;) {
             if (i >= blockSize) {
+                if (v == 0) {
+                    // PUT BREAKPOINT HERE
+                    v = 1;
+                }
+
                 if (tail == n)
                     return false;
 
@@ -86,7 +92,7 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E> 
                 break;
             }
         }
-        orderedSetHead(n); // 
+        orderedSetHead(n); //
         headIndex = i;
         return found;
     }
