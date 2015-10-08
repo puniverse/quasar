@@ -974,7 +974,8 @@ Event handlers are called synchronously on the same strand as the actor's, so th
 
 The finite-state-machine behavior is an actor that switches among a set of states and behaves differently in each.
 
-To create an event source actor, simply construct an instance of the [`FiniteStateMachineActor`]({{javadoc}}/actors/behaviors/FiniteStateMachineActor.html) class. Each of the actor's states is represented by a `SuspendableCallable` implementation returning the next state, or the special `FiniteStateMachineActor.TERMINATE` state to terminate the actor. You need to override the `initialState` method so that it returns the actor's initial state. This class is best enjoyed using Java 8 lambda syntax, as in the following example:
+To create a finite state machine actor, simply construct an instance of the 
+[`FiniteStateMachineActor`]({{javadoc}}/actors/behaviors/FiniteStateMachineActor.html) class. Each of the actor's states is represented by a `SuspendableCallable` implementation returning the next state, or the special `FiniteStateMachineActor.TERMINATE` state to terminate the actor. You need to override the `initialState` method so that it returns the actor's initial state. This class is best enjoyed using Java 8 lambda syntax, as in the following example:
 
 ~~~ Java
 new FiniteStateMachineActor() {
@@ -1098,12 +1099,12 @@ Here's an example record type definition:
 ~~~ java
 class A {
   public static final RecordType<A> aType = RecordType.newType(A.class);
-  public static final IntField<A> $id = stateType.intField("id");
-  public static final DoubleField<A> $foo = stateType.doubleField("id", Field.TRANSIENT);
+  public static final IntField<A> $id = aType.intField("id");
+  public static final DoubleField<A> $foo = aType.doubleField("id", Field.TRANSIENT);
   public static final ObjectField<A, String> $name =
-        stateType.objectField("name", String.class);
+        aType.objectField("name", String.class);
   public static final ObjectField<A, List<String>> $emails =
-        stateType.objectField("emails", new TypeToken<List<String>() {});
+        aType.objectField("emails", new TypeToken<List<String>() {});
 }
 ~~~
 
