@@ -147,8 +147,8 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E> {
         final Node t = tail;
         if (t != node || !compareAndSetTail(t, node.prev)) {
             // neither head nor tail
-            prev.next = node.next;
             while (node.next == null); // wait for next
+            prev.next = node.next;
             node.next.prev = prev;
         }
 
