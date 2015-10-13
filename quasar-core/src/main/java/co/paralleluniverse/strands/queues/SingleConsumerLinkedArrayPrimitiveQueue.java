@@ -25,6 +25,7 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
         final Node node;
         final int index;
         final int blockSize = blockSize();
+        Node nn = null;
         for (;;) {
             final PrimitiveNode t = (PrimitiveNode) tail;
             final int i = t.tailIndex;
@@ -37,10 +38,11 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
                 }
                 backoff();
             } else {
-                Node n = newNode();
-                n.prev = t;
-                if (compareAndSetTail(t, n))
-                    t.next = n;
+                if (nn == null)
+                    nn = newNode();
+                nn.prev = t;
+                if (compareAndSetTail(t, nn))
+                    t.next = nn;
                 else
                     backoff();
             }

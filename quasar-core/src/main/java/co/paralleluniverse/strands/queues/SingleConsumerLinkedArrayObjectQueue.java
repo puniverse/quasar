@@ -36,6 +36,7 @@ public class SingleConsumerLinkedArrayObjectQueue<E> extends SingleConsumerLinke
 
     @Override
     public boolean enq(E item) {
+        Node n = null;
         for (;;) {
             final Node t = tail;
             for (int i = 0; i < BLOCK_SIZE; i++) {
@@ -46,7 +47,8 @@ public class SingleConsumerLinkedArrayObjectQueue<E> extends SingleConsumerLinke
                 }
             }
 
-            Node n = newNode();
+            if (n == null)
+                n = newNode();
             n.prev = t;
             if (compareAndSetTail(t, n))
                 t.next = n;
