@@ -65,7 +65,7 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E> 
         for (;;) {
             if (i >= blockSize) {
                 if (tail == n)
-                    return false;
+                    break;
 
                 while (n.next == null); // wait for next
                 Node next = n.next; // can't be null because we're called by the consumer
