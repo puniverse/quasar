@@ -1,13 +1,13 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -25,6 +25,7 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
         final Node node;
         final int index;
         final int blockSize = blockSize();
+        Node nn = null;
         for (;;) {
             final PrimitiveNode t = (PrimitiveNode) tail;
             final int i = t.tailIndex;
@@ -37,10 +38,11 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
                 }
                 backoff();
             } else {
-                Node n = newNode();
-                n.prev = t;
-                if (compareAndSetTail(t, n))
-                    t.next = n;
+                if (nn == null)
+                    nn = newNode();
+                nn.prev = t;
+                if (compareAndSetTail(t, nn))
+                    t.next = nn;
                 else
                     backoff();
             }
