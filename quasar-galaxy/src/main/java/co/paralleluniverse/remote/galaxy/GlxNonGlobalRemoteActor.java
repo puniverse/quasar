@@ -86,7 +86,8 @@ public class GlxNonGlobalRemoteActor<Message> extends GlxRemoteActor<Message> {
     }
 
     private boolean isNodeAlive() {
-        return grid.cluster().getNodes().contains(getOwnerNodeId());
+        final short ownerNodeId = getOwnerNodeId();
+        return grid.cluster().getMyNodeId() == ownerNodeId || grid.cluster().getNodes().contains(ownerNodeId);
     }
 
     @Override
