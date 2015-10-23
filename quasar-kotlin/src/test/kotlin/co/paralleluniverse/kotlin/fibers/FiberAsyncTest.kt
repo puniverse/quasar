@@ -148,7 +148,7 @@ public class FiberAsyncTest {
                     callService(badSyncService)
                     fail()
                 } catch (e: Exception) {
-                    assertThat(e.getMessage(), equalTo("sync exception!"))
+                    assertThat(e.message, equalTo("sync exception!"))
                 }
             }
         }).start()
@@ -176,7 +176,7 @@ public class FiberAsyncTest {
                     callService(badAsyncService)
                     fail();
                 } catch (e: Exception) {
-                    assertThat(e.getMessage(), equalTo("async exception!"))
+                    assertThat(e.message, equalTo("async exception!"))
                 }
             }
         }).start()
@@ -196,7 +196,7 @@ public class FiberAsyncTest {
                     }.run()
                     fail()
                 } catch (e: Exception) {
-                    assertThat(e.getMessage(), equalTo("requestAsync exception!"))
+                    assertThat(e.message, equalTo("requestAsync exception!"))
                 }
             }
         }).start()

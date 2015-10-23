@@ -26,6 +26,7 @@ import co.paralleluniverse.strands.channels.Channels
 import co.paralleluniverse.fibers.Fiber
 import java.util.concurrent.TimeUnit
 import co.paralleluniverse.strands.SuspendableCallable
+import kotlin.reflect.KProperty
 
 /**
  *
@@ -43,12 +44,12 @@ public class OOTest {
         @Suspendable set
 
     class D {
-        @Suspendable fun get(thisRef: Any?, prop: PropertyMetadata): String {
+        @Suspendable operator fun getValue(thisRef: Any?, prop: KProperty<*>): String {
             Fiber.sleep(1)
             return "$thisRef, thank you for delegating '${prop.name}' to me!"
         }
         @Suppress("UNUSED_PARAMETER")
-        @Suspendable fun set(thisRef: Any?, prop: PropertyMetadata, value: String) {
+        @Suspendable operator fun setValue(thisRef: Any?, prop: KProperty<*>, value: String) {
             Fiber.sleep(1)
         }
     }
@@ -98,7 +99,7 @@ public class OOTest {
         }
     }
 
-    open class DerivedDerived2 : DerivedAbstract1(), BaseTrait1
+    abstract class DerivedDerived2 : BaseTrait1, DerivedAbstract1()
 
     class DerivedDerived3 : DerivedAbstract1(), BaseTrait1, BaseTrait2 {
         override @Suspendable fun doSleep() {
@@ -210,7 +211,7 @@ public class OOTest {
     @Test public fun testOODerived2() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
             @Suspendable override fun run(): Boolean {
-                DerivedDerived2().doSleep()
+                (object : DerivedDerived2() {}).doSleep()
                 return true
             }
         }).start().get())
@@ -365,7 +366,7 @@ public class OOTest {
     @Test public fun testOOValPropRefGet() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
             @Suspendable override fun run(): Boolean {
-                ::iv.get(this@OOTest)
+                OOTest::iv.get(this@OOTest)
                 return true
             }
         }).start().get())
@@ -374,7 +375,7 @@ public class OOTest {
     @Test public fun testOOVarPropRefGet() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
             @Suspendable override fun run(): Boolean {
-                ::mv.get(this@OOTest)
+                OOTest::mv.get(this@OOTest)
                 return true
             }
         }).start().get())
@@ -383,7 +384,7 @@ public class OOTest {
     @Test public fun testOOVarPropRefSet() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
             @Suspendable override fun run(): Boolean {
-                ::mv.set(this@OOTest, 3)
+                OOTest::mv.set(this@OOTest, 3)
                 return true
             }
         }).start().get())
@@ -392,7 +393,7 @@ public class OOTest {
     @Test public fun testOODelegVarPropRefGet() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
             @Suspendable override fun run(): Boolean {
-                ::md.get(this@OOTest)
+                OOTest::md.get(this@OOTest)
                 return true
             }
         }).start().get())
@@ -401,7 +402,7 @@ public class OOTest {
     @Test public fun testOODelegVarPropRefSet() {
         assertTrue(Fiber(scheduler, object : SuspendableCallable<Boolean> {
             @Suspendable override fun run(): Boolean {
-                ::md.set(this@OOTest, "hi")
+                OOTest::md.set(this@OOTest, "hi")
                 return true
             }
         }).start().get())
