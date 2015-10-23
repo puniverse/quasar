@@ -21,6 +21,8 @@
  */
 package co.paralleluniverse.strands.concurrent;
 
+import co.paralleluniverse.fibers.Suspendable;
+
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -214,6 +216,7 @@ public class CountDownLatch {
      * @throws InterruptedException if the current thread is interrupted
      *         while waiting
      */
+    @Suspendable
     public void await() throws InterruptedException {
         sync.acquireSharedInterruptibly(1);
     }
@@ -259,6 +262,7 @@ public class CountDownLatch {
      * @throws InterruptedException if the current thread is interrupted
      *         while waiting
      */
+    @Suspendable
     public boolean await(long timeout, TimeUnit unit)
             throws InterruptedException {
         return sync.tryAcquireSharedNanos(1, unit.toNanos(timeout));
