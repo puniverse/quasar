@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 /**
  * @author circlespainter
  */
-@Suspendable public fun fiber<T>(start: Boolean, name: String?, scheduler: FiberScheduler?, stackSize: Int, block: () -> T): Fiber<T> {
+@Suspendable public fun <T> fiber(start: Boolean, name: String?, scheduler: FiberScheduler?, stackSize: Int, block: () -> T): Fiber<T> {
     val sc = @Suspendable object : SuspendableCallable<T> {
         @Suspendable override fun run(): T = block()
     }
@@ -36,19 +36,19 @@ import java.util.concurrent.TimeUnit
     if (start) ret.start()
     return ret
 }
-@Suspendable public fun fiber<T>(block: () -> T): Fiber<T> =
+@Suspendable public fun <T> fiber(block: () -> T): Fiber<T> =
     fiber(true, null, null, -1, block)
-@Suspendable public fun fiber<T>(start: Boolean, block: () -> T): Fiber<T> =
+@Suspendable public fun <T> fiber(start: Boolean, block: () -> T): Fiber<T> =
     fiber(start, null, null, -1, block)
-@Suspendable public fun fiber<T>(name: String, block: () -> T): Fiber<T> =
+@Suspendable public fun <T> fiber(name: String, block: () -> T): Fiber<T> =
     fiber(true, name, null, -1, block)
-@Suspendable public fun fiber<T>(scheduler: FiberScheduler, block: () -> T): Fiber<T> =
+@Suspendable public fun <T> fiber(scheduler: FiberScheduler, block: () -> T): Fiber<T> =
     fiber(true, null, scheduler, -1, block)
-@Suspendable public fun fiber<T>(name: String, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
+@Suspendable public fun <T> fiber(name: String, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
     fiber(true, name, scheduler, -1, block)
-@Suspendable public fun fiber<T>(start: Boolean, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
+@Suspendable public fun <T> fiber(start: Boolean, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
     fiber(start, null, scheduler, -1, block)
-@Suspendable public fun fiber<T>(start: Boolean, name: String, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
+@Suspendable public fun <T> fiber(start: Boolean, name: String, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
     fiber(start, name, scheduler, -1, block)
 
 public open class SelectOp<out M>(private val wrappedSA: SelectAction<out M>) {
@@ -64,7 +64,7 @@ public class Receive<M>(public val receivePort: ReceivePort<M>) : SelectOp<M>(Se
 }
 public class Send<M>(public val sendPort: SendPort<M>, public val msg: M) : SelectOp<M>(Selector.send(sendPort, msg))
 
-@Suspendable public fun select<R>(actions: List<SelectOp<Any?>>, b: (SelectOp<Any?>?) -> R, priority: Boolean = false, timeout: Int = -1, unit: TimeUnit = TimeUnit.MILLISECONDS): R {
+@Suspendable public fun <R> select(actions: List<SelectOp<Any?>>, b: (SelectOp<Any?>?) -> R, priority: Boolean = false, timeout: Int = -1, unit: TimeUnit = TimeUnit.MILLISECONDS): R {
     @Suppress("UNCHECKED_CAST")
     val sa = Selector.select(priority, timeout.toLong(), unit, actions.map{it.getWrappedSelectAction()}.toList() as List<SelectAction<Any?>>)
     if (sa != null) {
@@ -76,8 +76,8 @@ public class Send<M>(public val sendPort: SendPort<M>, public val msg: M) : Sele
     } else
         return b(null)
 }
-@Suspendable public fun select<R>(vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =   select(actions.toList(), b)
-@Suspendable public fun select<R>(timeout: Int, unit: TimeUnit, vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =
+@Suspendable public fun <R> select(vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =   select(actions.toList(), b)
+@Suspendable public fun <R> select(timeout: Int, unit: TimeUnit, vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =
     select(actions.toList(), b, false, timeout, unit)
-@Suspendable public fun select<R>(priority: Boolean, timeout: Int, unit: TimeUnit, vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =
+@Suspendable public fun <R> select(priority: Boolean, timeout: Int, unit: TimeUnit, vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =
     select(actions.toList(), b, priority, timeout, unit)

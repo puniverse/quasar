@@ -1066,10 +1066,7 @@ Unlike plain actors, behaviors can be swapped in without any early consideration
 
 A complete hot code swapping example can be found in [this GitHub repository](https://github.com/puniverse/quasar-codeswap-example).
 
-### Preview: Quasar-Kotlin Actors
-
-{:.alert .alert-info}
-**Note**: The Kotlin-specific Quasar API is likely to undergo major changes and can't be relied upon at this stage: it is introduced here as a preview of Kotlin-Quasar's joint expressive power.
+### Quasar-Kotlin Actors
 
 Kotlin's inline higher-order functions and the `when` construct enable a powerful and natural selective receive syntax:
 
