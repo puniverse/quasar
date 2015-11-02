@@ -22,3 +22,7 @@ classes {
         scanAndInstrument(sourceSets.main, [configurations.provided, configurations.runtime])
     }
 }
+
+sourceSets {
+    main.java.srcDirs += 'src/main/kotlin'
+}
