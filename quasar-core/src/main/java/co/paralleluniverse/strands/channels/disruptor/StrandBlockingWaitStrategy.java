@@ -53,8 +53,7 @@ public final class StrandBlockingWaitStrategy implements WaitStrategy {
             try {
                 for (int i = 0; (availableSequence = cursorSequence.get()) < sequence; i++) {
                     barrier.checkAlert();
-                    processorNotifyCondition.await(i, 1, TimeUnit.NANOSECONDS);
-                    // Fiber.yield();
+                    processorNotifyCondition.await(i);
                 }
             } finally {
                 processorNotifyCondition.unregister(token);
