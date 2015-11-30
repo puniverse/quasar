@@ -9,6 +9,7 @@ buildscript {
     }
 }
 
+ext.java9 = System.properties['java.version'].startsWith('1.9')
 ext.java8 = System.properties['java.version'].startsWith('1.8')
 
 subprojects {
@@ -34,9 +35,10 @@ subprojects {
     ext.distDir         = "$buildDir/dist"
     ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
     ext.baselib         = "${rootProject.projectDir}/baselib"
-    ext.java8 = rootProject.ext.java8
-    ext.jdkVer = ext.java8 ? "8" : "7"
-    ext.quasarJar = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}${ext.java8 ? "-jdk8" : ""}.jar" // project(':quasar-core').jar.archivePath
+    ext.java8           = rootProject.ext.java8
+    ext.java9           = rootProject.ext.java9
+    ext.jdkVer          = ext.java9 ? "9" : (ext.java8 ? "8" : "7")
+    ext.quasarJar       = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}${ext.java9 ? "-jdk9" : (ext.java8 ? "-jdk8" : "")}.jar" // project(':quasar-core').jar.archivePath
 
     ext.asmVer    = '5.0.4'
     ext.kotlinVer = '1.0.0-beta-2423'
@@ -225,7 +227,7 @@ subprojects {
             // docletpath = configurations.markdownDoclet.files.asType(List)
             // doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
             // addStringOption("parse-timeout", "10")
-            if(project.ext.java8) {
+            if (project.ext.java8 || project.ext.java9) {
                 options.addStringOption('Xdoclint:none', '-quiet')
             }
             // stylesheetFile = rootProject.file('./baselib/javadoc.css')
@@ -388,7 +390,7 @@ project (':quasar-core') {
             }
 
             compileClasspath += jdk7.output + test.compileClasspath
-            runtimeClasspath += compileClasspath  + test.runtimeClasspath
+            runtimeClasspath += compileClasspath + test.runtimeClasspath
         }
 
         jdk8 {
@@ -411,19 +413,42 @@ project (':quasar-core') {
             runtimeClasspath += compileClasspath + test.runtimeClasspath
         }
 
+        jdk9 {
+            java {
+                srcDir 'src/main/java'
+                srcDir 'src/jdk8/java'
+                srcDir 'src/jdk9/java'
+            }
+
+            compileClasspath += main.compileClasspath
+            runtimeClasspath += compileClasspath
+        }
+
+        jdk9test {
+            java {
+                srcDir 'src/test/java'
+                srcDir 'src/jdk8Test/java'
+                srcDir 'src/jdk9Test/java'
+            }
+
+            compileClasspath += jdk9.output + test.compileClasspath
+            runtimeClasspath += compileClasspath + test.runtimeClasspath
+        }
+
         jmh {
             java {
                 srcDir 'src/jmh/java'
             }
 
-            compileClasspath += jdk8.output + jdk8test.compileClasspath + jdk8test.output
-            runtimeClasspath += compileClasspath + jdk8test.runtimeClasspath
+            compileClasspath += jdk9.output + jdk9test.compileClasspath + jdk9test.output
+            runtimeClasspath += compileClasspath + jdk9test.runtimeClasspath
         }
     }
 
     configurations {
         jdk7Archives.extendsFrom runtime
         jdk8Archives.extendsFrom runtime
+        jdk9Archives.extendsFrom runtime
     }
 
     dependencies {
@@ -449,8 +474,10 @@ project (':quasar-core') {
     }
 
     def ssets = [sourceSets.jdk7]
-    if(ext.java8) {
+    if (ext.java8) {
         ssets += sourceSets.jdk8
+    } else if (ext.java9) {
+        ssets += sourceSets.jdk9
     }
 
     ssets.each { set ->
@@ -477,15 +504,15 @@ project (':quasar-core') {
 
             manifest {
                 attributes(
-                    "Built-By"                  :   System.getProperty("user.name"),
-                    "Implementation-Title"      :   project.name,
-                    "Implementation-Version"    :   version,
-                    "Implementation-Vendor"     :   vendor,
-                    "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
-                    "Agent-Class"               :   "co.paralleluniverse.fibers.instrument.JavaAgent",
-                    "Can-Retransform-Classes"   :   "true",
-                    "Can-Redefine-Classes"      :   "true",
-                    //  "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',')
+                  "Built-By": System.getProperty("user.name"),
+                  "Implementation-Title": project.name,
+                  "Implementation-Version": version,
+                  "Implementation-Vendor": vendor,
+                  "Premain-Class": "co.paralleluniverse.fibers.instrument.JavaAgent",
+                  "Agent-Class": "co.paralleluniverse.fibers.instrument.JavaAgent",
+                  "Can-Retransform-Classes": "true",
+                  "Can-Redefine-Classes": "true",
+                  //  "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',')
                 )
             }
         }
@@ -526,7 +553,52 @@ project (':quasar-core') {
         jdk7Archives jdk7ShadowJar
     }
 
-    if (ext.java8) {
+    if (ext.java9) {
+        compileJdk8Java {
+            sourceCompatibility = '1.8'
+            targetCompatibility = '1.8'
+        }
+
+        compileJdk8testJava {
+            sourceCompatibility = '1.8'
+            targetCompatibility = '1.8'
+        }
+
+        compileJdk9Java {
+            sourceCompatibility = '1.9'
+            targetCompatibility = '1.9'
+        }
+
+        compileJdk9testJava {
+            sourceCompatibility = '1.9'
+            targetCompatibility = '1.9'
+        }
+
+        //        jdk9Jar {
+        //            classifier = 'jdk9'
+        //        }
+
+        jdk9ShadowJar {
+            classifier = 'jdk9'
+        }
+
+        //        jdk8Jar {
+        //            classifier = 'jdk8'
+        //        }
+
+        jdk8ShadowJar {
+            classifier = 'jdk8'
+        }
+
+        artifacts {
+            jdk8Archives jdk8ShadowJar jdk9Archives jdk9ShadowJar
+        }
+
+        tasks.withType(JavaExec) {
+            classpath += sourceSets.jdk9test.runtimeClasspath + sourceSets.jdk9test.output
+        }
+        run.dependsOn compileJdk9Java, jdk9testClasses
+    } else if (ext.java8) {
         compileJdk8Java {
             sourceCompatibility = '1.8'
             targetCompatibility = '1.8'
@@ -561,7 +633,9 @@ project (':quasar-core') {
     }
 
     javadoc {
-        if (project.ext.java8) {
+        if (project.ext.java9) {
+            source = sourceSets.jdk9.allJava
+        } else if (project.ext.java8) {
             source = sourceSets.jdk8.allJava
         } else {
             source = sourceSets.jdk7.allJava
@@ -688,7 +762,9 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
     title = "Quasar ${project(':quasar-core').version}"
     destinationDir = file("docs/javadoc")
 
-    if (project.ext.java8) {
+    if (project.ext.java9) {
+        source = project(':quasar-core').sourceSets.jdk9.allJava
+    } else if (project.ext.java8) {
         source = project(':quasar-core').sourceSets.jdk8.allJava
     } else {
         source = project(':quasar-core').sourceSets.jdk7.allJava
@@ -702,7 +778,7 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
         // doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
         // addStringOption("parse-timeout", "10")
         // stylesheetFile = rootProject.file('./baselib/javadoc.css')
-        if(project.ext.java8) {
+        if (project.ext.java8 || project.ext.java9) {
             options.addStringOption('Xdoclint:none', '-quiet')
         }
         links = [
