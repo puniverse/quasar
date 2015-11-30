@@ -4,6 +4,7 @@ _site/
 /docs/javadoc/
 .idea/
 *.iml
+*.class
 /artifacts
 /nbproject/private/
 /.nb-gradle
