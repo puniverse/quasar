@@ -11,14 +11,14 @@ import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-final class Quasar9FiberYieldPseudoAlg { static void doIt() throws SuspendExecution {
-
+final class Quasar9FiberYieldPseudoAlg {
+    static void doIt() throws SuspendExecution {
         boolean checkInstrumentation = true;
         final Fiber f = Fiber.currentFiber();
-        final Stack fs = f.getStack();
         if (f != null) {
+            final Stack fs = f.getStack();
             if (esw != null) {
-                final long stackDepth = esw.walk(s -> s.collect(COUNTING)); // TODO: JMH it
+                final long stackDepth = esw.walk(s -> s.collect(COUNTING)); // TODO: JMH
                 if (stackDepth > getFiberStackDepth(fs)) {
                     // Slow path, we'll take our time to fix up things
                     final java.util.Stack<?> fiberStackRebuildToDoList = new java.util.Stack<>(); // TODO: improve perf
@@ -70,7 +70,7 @@ final class Quasar9FiberYieldPseudoAlg { static void doIt() throws SuspendExecut
             }
         }
 
-        regularYield(checkInstrumentation);
+        regularYield(true /* TODO after debugging pass the following instead */ /* checkInstrumentation */);
     }
 
     ///////////////////////////// Less interesting
@@ -136,9 +136,10 @@ final class Quasar9FiberYieldPseudoAlg { static void doIt() throws SuspendExecut
 
     private static final Collector<StackWalker.StackFrame, ?, Long> COUNTING = Collectors.counting();
     private static final Void NOTHING = null;
-
+s
     private static void LOG(String s) {
         // TODO
+        System.err.println(s);
     }
 
     private Quasar9FiberYieldPseudoAlg() {}
