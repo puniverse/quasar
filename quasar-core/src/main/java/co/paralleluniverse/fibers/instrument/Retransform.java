@@ -39,8 +39,8 @@ public class Retransform {
     
     private static final CopyOnWriteArrayList<ClassLoadListener> listeners = new CopyOnWriteArrayList<ClassLoadListener>();
 
-    public static void retransform(Class<?> clazz) throws UnmodifiableClassException {
-        instrumentation.retransformClasses(clazz);
+    public static void retransform(Class<?>... classes) throws UnmodifiableClassException {
+        instrumentation.retransformClasses(classes);
     }
 
     public static void redefine(Collection<ClassDefinition> classDefinitions) {
