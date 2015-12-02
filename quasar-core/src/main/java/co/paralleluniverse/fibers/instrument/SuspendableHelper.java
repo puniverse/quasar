@@ -60,17 +60,17 @@ public final class SuspendableHelper {
         return null;
     }
 
-    public static Pair<Boolean, int[]> isCallSiteInstrumented(/*Executable*/ Member m, int sourceLine, ExtendedStackTraceElement[] stes, int currentSteIdx) {
+    public static Pair<Boolean, int[]> isCallSiteInstrumented(/*Executable*/ Member m, int sourceLine, ExtendedStackTraceElement optUpperSte) {
         if (m == null)
             return new Pair<>(false, null);
 
         if (isSyntheticAndNotLambda(m))
             return new Pair<>(true, null);
 
-        if (currentSteIdx - 1 >= 0
+        if (optUpperSte != null
                 // `verifySuspend` and `popMethod` calls are not suspendable call sites, not verifying them.
-                && ((stes[currentSteIdx - 1].getClassName().equals(Fiber.class.getName()) && stes[currentSteIdx - 1].getMethodName().equals("verifySuspend"))
-                || (stes[currentSteIdx - 1].getClassName().equals(Stack.class.getName()) && stes[currentSteIdx - 1].getMethodName().equals("popMethod")))) {
+                && ((optUpperSte.getClassName().equals(Fiber.class.getName()) && optUpperSte.getMethodName().equals("verifySuspend"))
+                || (optUpperSte.getClassName().equals(Stack.class.getName()) && optUpperSte.getMethodName().equals("popMethod")))) {
             return new Pair<>(true, null);
         } else {
             final Instrumented i = getAnnotation(m, Instrumented.class);

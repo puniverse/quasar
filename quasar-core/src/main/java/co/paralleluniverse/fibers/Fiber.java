@@ -1592,6 +1592,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return current;
     }
 
+    static void checkInstrumentation(boolean[] ok_last, ExtendedStackTraceElement ste, ExtendedStackTraceElement optUpperSte) {
+        checkInstrumentation(ok_last, ste, optUpperSte, null, null, null);
+    }
+
     private static Fiber verifyCurrent() {
         Fiber current = currentFiber();
         if (current == null) {
@@ -1620,70 +1624,81 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @SuppressWarnings("null")
     private static boolean checkInstrumentation(ExtendedStackTrace st) {
-        boolean ok = true;
-        StringBuilder stackTrace = null;
+        final boolean[] ok_last = new boolean[] { true, false };
+        final StringBuilder stackTrace = new StringBuilder();
 
         final ExtendedStackTraceElement[] stes = st.get();
         for (int i = 0; i < stes.length; i++) {
             final ExtendedStackTraceElement ste = stes[i];
-            if (ste.getClassName().equals(Thread.class.getName()) && ste.getMethodName().equals("getStackTrace"))
-                continue;
-            if (ste.getClassName().equals(ExtendedStackTrace.class.getName()))
-                continue;
-            if (!ok)
-                printTraceLine(stackTrace, ste);
-            if (ste.getClassName().contains("$$Lambda$"))
-                continue;
-
-            if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
-                    && !ste.getClassName().equals(Stack.class.getName()) && !SuspendableHelper.isWaiver(ste.getClassName(), ste.getMethodName())) {
-                final Class<?> clazz = ste.getDeclaringClass();
-                boolean classInstrumented = SuspendableHelper.isInstrumented(clazz);
-                final /*Executable*/ Member m = SuspendableHelper.lookupMethod(ste);
-                if (m != null) {
-                    boolean methodInstrumented = SuspendableHelper.isInstrumented(m);
-                    Pair<Boolean, int[]> callSiteInstrumented = SuspendableHelper.isCallSiteInstrumented(m, ste.getLineNumber(), stes, i);
-                    if (!classInstrumented || !methodInstrumented || !callSiteInstrumented.getFirst()) {
-                        if (ok)
-                            stackTrace = initTrace(i, stes);
-
-                        if (!classInstrumented || !methodInstrumented)
-                            stackTrace.append(" **");
-                        else if (!callSiteInstrumented.getFirst())
-                            stackTrace.append(" !! (instrumented suspendable calls at: ")
-                                    .append(callSiteInstrumented.getSecond() == null ? "[]" : Arrays.toString(callSiteInstrumented.getSecond()))
-                                    .append(")");
-                        ok = false;
-                    }
-                } else {
-                    if (ok)
-                        stackTrace = initTrace(i, stes);
-
-                    stackTrace.append(" **"); // Methods can only be found via source lines in @Instrumented annotations
-                    ok = false;
-                }
-            } else if (ste.getClassName().equals(Fiber.class.getName()) && ste.getMethodName().equals("run1")) {
-                if (!ok) {
+            checkInstrumentation(ok_last, ste, (i == 0 ? null : stes[i - 1]), stackTrace, stes, i);
+            if (ok_last[1]) {
+                if (!ok_last[0]) {
                     final String str = "Uninstrumented methods (marked '**') or call-sites (marked '!!') detected on the call stack: " + stackTrace;
                     if (Debug.isUnitTest())
                         throw new VerifyInstrumentationException(str);
                     System.err.println("WARNING: " + str);
                 }
-                return ok;
+
+                return ok_last[0];
             }
         }
         throw new IllegalStateException("Not run through Fiber.exec(). (trace: " + Arrays.toString(stes) + ")");
     }
 
-    private static StringBuilder initTrace(int i, ExtendedStackTraceElement[] stes) {
-        final StringBuilder stackTrace = new StringBuilder();
+    private static void checkInstrumentation(boolean[] ok_last, ExtendedStackTraceElement ste, ExtendedStackTraceElement optUpperSte,
+                                             StringBuilder optStackTrace, ExtendedStackTraceElement[] optStes, Integer optCurrStesIdx) {
+        if (ste.getClassName().equals(Thread.class.getName()) && ste.getMethodName().equals("getStackTrace"))
+            return;
+        if (ste.getClassName().equals(ExtendedStackTrace.class.getName()))
+            return;
+        if (optStackTrace != null && !ok_last[0])
+            printTraceLine(optStackTrace, ste);
+        if (ste.getClassName().contains("$$Lambda$"))
+            return;
+
+        if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
+                && !ste.getClassName().equals(Stack.class.getName()) && !SuspendableHelper.isWaiver(ste.getClassName(), ste.getMethodName())) {
+            final Class<?> clazz = ste.getDeclaringClass();
+            boolean classInstrumented = SuspendableHelper.isInstrumented(clazz);
+            final /*Executable*/ Member m = SuspendableHelper.lookupMethod(ste);
+            if (m != null) {
+                boolean methodInstrumented = SuspendableHelper.isInstrumented(m);
+                Pair<Boolean, int[]> callSiteInstrumented = SuspendableHelper.isCallSiteInstrumented(m, ste.getLineNumber(), optUpperSte);
+                if (!classInstrumented || !methodInstrumented || !callSiteInstrumented.getFirst()) {
+                    if (ok_last[0] && optStackTrace != null && optStes != null && optCurrStesIdx != null)
+                        initTrace(optStackTrace, optStes, optCurrStesIdx);
+
+                    if (optStackTrace != null) {
+                        if (!classInstrumented || !methodInstrumented)
+                            optStackTrace.append(" **");
+                        else if (!callSiteInstrumented.getFirst())
+                            optStackTrace.append(" !! (instrumented suspendable calls at: ")
+                                .append(callSiteInstrumented.getSecond() == null ? "[]" : Arrays.toString(callSiteInstrumented.getSecond()))
+                                .append(")");
+                    }
+                    ok_last[0] = false;
+                }
+            } else {
+                if (optStackTrace != null && optStes != null && optCurrStesIdx != null) {
+                    if (ok_last[0])
+                        initTrace(optStackTrace, optStes, optCurrStesIdx);
+                    optStackTrace.append(" **"); // Methods can only be found via source lines in @Instrumented annotations
+                }
+
+                ok_last[0] = false;
+            }
+        } else if (ste.getClassName().equals(Fiber.class.getName()) && ste.getMethodName().equals("run1")) {
+            ok_last[1] = true;
+        }
+    }
+
+    private static void initTrace(StringBuilder stackTrace, ExtendedStackTraceElement[] stes, int i) {
         for (int j = 0; j <= i; j++) {
             final ExtendedStackTraceElement ste2 = stes[j];
             if (ste2.getClassName().equals(Thread.class.getName()) && ste2.getMethodName().equals("getStackTrace"))
                 continue;
             printTraceLine(stackTrace, ste2);
         }
-        return stackTrace;
     }
 
     private static void printTraceLine(StringBuilder stackTrace, ExtendedStackTraceElement ste) {
