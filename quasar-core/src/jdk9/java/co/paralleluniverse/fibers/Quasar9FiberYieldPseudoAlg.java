@@ -1,11 +1,13 @@
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.common.util.ExtendedStackTraceElement;
 import co.paralleluniverse.fibers.instrument.Retransform;
 
 import java.lang.instrument.UnmodifiableClassException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -18,19 +20,48 @@ final class Quasar9FiberYieldPseudoAlg { static void doIt() throws SuspendExecut
             if (esw != null) {
                 final long stackDepth = esw.walk(s -> s.collect(COUNTING)); // TODO: JMH it
                 if (stackDepth > getFiberStackDepth(fs)) {
+                    // Slow path, we'll take our time to fix up things
                     final java.util.Stack<?> fiberStackRebuildToDoList = new java.util.Stack<>(); // TODO: improve perf
-                    esw.walk(s -> s.map(sf -> { // Top to bottom, skipping internal & reflection
-                        try {
-                            LOG("Live lazy auto-instrumentation: " + sf.getClassName() + "#" + sf.getMethodName());
-                            final Class<?> c = sf.getDeclaringClass();
-                            addSuspendableToKB(c, sf.getMethodName());
-                            Retransform.retransform(c);
-                            pushRebuildToDo(sf, fiberStackRebuildToDoList);
+                    final Collection<Class<?>> toRetransform = new ArrayList<>(); // TODO: improve perf
+                    esw.walk(s -> s.map(new Function<>() {
+                        private boolean yield = true, callingYield = false;
+                        private boolean[] ok_last = new boolean[] { true, false };
+
+                        private ExtendedStackTraceElement upper = null;
+
+                        @Override
+                        public Void apply(StackWalker.StackFrame sf) { // Top to bottom, skipping internal & reflection
+                            if (!ok_last[1]) {
+                                final Class<?> c = sf.getDeclaringClass();
+                                pushRebuildToDo(sf, fiberStackRebuildToDoList, callingYield);
+
+                                if (yield) { // Skip marking/transforming yield frame TODO check that skipping just the first frame is correct
+                                    LOG("Live lazy auto-instrumentation: " + sf.getClassName() + "#" + sf.getMethodName());
+                                    yield = false;
+                                    callingYield = true;
+                                } else {
+                                    Fiber.checkInstrumentation(ok_last, new ExtendedStackTraceElement(sf.toStackTraceElement()), upper);
+                                    if (!ok_last[0]) {
+                                        addNewSuspendableToKB(c, sf.getMethodName());
+                                        toRetransform.add(c);
+                                    }
+
+                                    if (callingYield)
+                                        callingYield = false;
+                                }
+
+                                upper = new ExtendedStackTraceElement(sf.toStackTraceElement());
+                            }
                             return NOTHING;
-                        } catch (final UnmodifiableClassException e) {
-                            throw new RuntimeException(e);
                         }
                     }));
+                    // Retransform classes
+                    try {
+                        // TODO Make it
+                        Retransform.retransform(toRetransform.toArray(new Class[toRetransform.size()]));
+                    } catch (final UnmodifiableClassException e) {
+                        throw new RuntimeException(e);
+                    }
                     // Method ref seems missing from StackFrame info => diff difficult => rebuild
                     apply(fiberStackRebuildToDoList, fs);
                     // We're done, let's skip checks
@@ -49,11 +80,12 @@ final class Quasar9FiberYieldPseudoAlg { static void doIt() throws SuspendExecut
         return -1;
     }
 
-    static void addSuspendableToKB(Class<?> c, String methodName) {
+    static boolean addNewSuspendableToKB(Class<?> c, String methodName) {
         // TODO
+        return true;
     }
 
-    static void pushRebuildToDo(StackWalker.StackFrame sf, List<?> fs) {
+    static void pushRebuildToDo(StackWalker.StackFrame sf, List<?> fs, boolean callingYield) {
         // TODO: build a representation of the fiber stack building ops that would be performed by instrumented code and add it to the end of a temp list
     }
 
