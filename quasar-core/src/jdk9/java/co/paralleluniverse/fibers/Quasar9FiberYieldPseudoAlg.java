@@ -19,7 +19,8 @@ final class Quasar9FiberYieldPseudoAlg {
             final Stack fs = f.getStack();
             if (esw != null) {
                 final long stackDepth = esw.walk(s -> s.collect(COUNTING)); // TODO: JMH
-                if (stackDepth > getFiberStackDepth(fs)) {
+
+                if (stackDepthsDontMatch(stackDepth, getFiberStackDepth(fs))) {
                     // Slow path, we'll take our time to fix up things
                     final java.util.Stack<?> fiberStackRebuildToDoList = new java.util.Stack<>(); // TODO: improve perf
                     final Collection<Class<?>> toRetransform = new ArrayList<>(); // TODO: improve perf
@@ -80,6 +81,10 @@ final class Quasar9FiberYieldPseudoAlg {
         return -1;
     }
 
+    static boolean stackDepthsDontMatch(long stackDepth, long fiberStackDepth) {
+        // TODO: adjust calculation taking into account any "special" frames; must be _fast_
+        return stackDepth > fiberStackDepth;
+    }
     static boolean addNewSuspendableToKB(Class<?> c, String methodName) {
         // TODO
         return true;
