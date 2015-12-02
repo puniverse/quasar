@@ -67,14 +67,13 @@ public final class SuspendableHelper {
         if (isSyntheticAndNotLambda(m))
             return new Pair<>(true, null);
 
-        ExtendedStackTraceElement ste = stes[currentSteIdx];
         if (currentSteIdx - 1 >= 0
                 // `verifySuspend` and `popMethod` calls are not suspendable call sites, not verifying them.
                 && ((stes[currentSteIdx - 1].getClassName().equals(Fiber.class.getName()) && stes[currentSteIdx - 1].getMethodName().equals("verifySuspend"))
                 || (stes[currentSteIdx - 1].getClassName().equals(Stack.class.getName()) && stes[currentSteIdx - 1].getMethodName().equals("popMethod")))) {
             return new Pair<>(true, null);
         } else {
-            Instrumented i = getAnnotation(m, Instrumented.class);
+            final Instrumented i = getAnnotation(m, Instrumented.class);
             if (i != null) {
                 for (int j : i.suspendableCallSites()) {
                     if (j == sourceLine)
@@ -126,6 +125,5 @@ public final class SuspendableHelper {
         return waivers.contains(new Pair<>(className, methodName));
     }
 
-    private SuspendableHelper() {
-    }
+    private SuspendableHelper() {}
 }
