@@ -101,7 +101,7 @@ public final class SuspendableHelper {
         return (i != null && i.methodOptimized());
     }
 
-    private static <T extends Annotation> T getAnnotation(Member m, Class<T> annotationClass) {
+    public static <T extends Annotation> T getAnnotation(Member m, Class<T> annotationClass) {
         if (m == null || annotationClass == null)
             return  null;
 
