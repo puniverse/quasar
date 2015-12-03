@@ -141,7 +141,6 @@ final class Quasar9FiberYieldPseudoAlg {
 
     private static final Collector<StackWalker.StackFrame, ?, Long> COUNTING = Collectors.counting();
     private static final Void NOTHING = null;
-s
     private static void LOG(String s) {
         // TODO
         System.err.println(s);
