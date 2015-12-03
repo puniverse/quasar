@@ -601,30 +601,45 @@ class InstrumentMethod {
         final StringBuilder sb = new StringBuilder();
         final AnnotationVisitor instrumentedAV = mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
         sb.append("@Instrumented(");
-        final AnnotationVisitor linesAV = instrumentedAV.visitArray("suspendableCallSites");
 
-        sb.append("suspendableCallSites=[");
-        for (int i = 0; i < suspCallsSourceLines.length; i++) {
-            if (i != 0)
-                sb.append(", ");
+            final AnnotationVisitor linesAV = instrumentedAV.visitArray("suspendableCallSites");
+            sb.append("suspendableCallSites=[");
+            for (int i = 0; i < suspCallsSourceLines.length; i++) {
+                if (i != 0)
+                    sb.append(", ");
 
-            final int l = suspCallsSourceLines[i];
-            linesAV.visit("", l);
+                final int l = suspCallsSourceLines[i];
+                linesAV.visit("", l);
 
-            sb.append(l);
-        }
-        linesAV.visitEnd();
-        sb.append("],");
+                sb.append(l);
+            }
+            linesAV.visitEnd();
+            sb.append("],");
 
-        instrumentedAV.visit("methodStart", startSourceLine);
-        instrumentedAV.visit("methodEnd", endSourceLine);
-        instrumentedAV.visit("methodOptimized", skip);
-        instrumentedAV.visitEnd();
+            final AnnotationVisitor bciAV = instrumentedAV.visitArray("suspendableCallSitesBCI");
+            sb.append("suspendableCallSitesBCI=[");
+            for (int i = 0; i < suspCallsBcis.length; i++) {
+                if (i != 0)
+                    sb.append(", ");
 
-        sb.append("methodStart=").append(startSourceLine).append(",");
-        sb.append("methodEnd=").append(endSourceLine).append(",");
-        sb.append("methodOptimized=").append(skip);
+                final int l = suspCallsBcis[i];
+                bciAV.visit("", l);
+
+                sb.append(l);
+            }
+            bciAV.visitEnd();
+            sb.append("],");
+
+            instrumentedAV.visit("methodStart", startSourceLine);
+            sb.append("methodStart=").append(startSourceLine).append(",");
+            instrumentedAV.visit("methodEnd", endSourceLine);
+            sb.append("methodEnd=").append(endSourceLine).append(",");
+            instrumentedAV.visit("methodOptimized", skip);
+            sb.append("methodOptimized=").append(skip);
+            instrumentedAV.visitEnd();
+
         sb.append(")");
+
         db.log(LogLevel.DEBUG, "Annotating method %s#%s%s with %s", className, mn.name, mn.desc, sb);
     }
 
