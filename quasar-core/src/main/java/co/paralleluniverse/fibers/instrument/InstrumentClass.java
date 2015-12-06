@@ -148,6 +148,7 @@ public class InstrumentClass extends ClassVisitor {
             markedSuspendable = SuspendableType.SUSPENDABLE_SUPER;
         if (markedSuspendable == null)
             markedSuspendable = classifier.isSuspendable(db, sourceName, sourceDebugInfo, isInterface, className, classEntry.getSuperName(), classEntry.getInterfaces(), name, desc, signature, exceptions);
+
         final SuspendableType setSuspendable = classEntry.check(name, desc);
 
         if (setSuspendable == null)
@@ -214,8 +215,7 @@ public class InstrumentClass extends ClassVisitor {
                         }
                         methods.add(mn);
                     } else {
-                        MethodVisitor _mv = makeOutMV(mn);
-                        _mv = new JSRInlinerAdapter(_mv, access, name, desc, signature, exceptions);
+                        final MethodVisitor _mv = new JSRInlinerAdapter(makeOutMV(mn), access, name, desc, signature, exceptions);
                         mn.accept(new MethodVisitor(ASMAPI, _mv) {
                             @Override
                             public void visitEnd() {
@@ -241,7 +241,7 @@ public class InstrumentClass extends ClassVisitor {
 
         if (methods != null && !methods.isEmpty()) {
             if (alreadyInstrumented && !forceInstrumentation) {
-                for (MethodNode mn : methods) {
+                for (final MethodNode mn : methods) {
                     db.log(LogLevel.INFO, "Already instrumented and not forcing, so not touching method %s#%s%s", className, mn.name, mn.desc);
                     mn.accept(makeOutMV(mn));
                 }
@@ -251,10 +251,10 @@ public class InstrumentClass extends ClassVisitor {
                     classEntry.setInstrumented(true);
                 }
 
-                for (MethodNode mn : methods) {
+                for (final MethodNode mn : methods) {
                     final MethodVisitor outMV = makeOutMV(mn);
                     try {
-                        InstrumentMethod im = new InstrumentMethod(db, sourceName, className, mn);
+                        final InstrumentMethod im = new InstrumentMethod(db, sourceName, className, mn);
                         if (db.isDebug())
                             db.log(LogLevel.INFO, "About to instrument method %s#%s%s", className, mn.name, mn.desc);
 
@@ -267,7 +267,7 @@ public class InstrumentClass extends ClassVisitor {
                             db.log(LogLevel.INFO, "Nothing to instrument in method %s#%s%s", className, mn.name, mn.desc);
                             mn.accept(outMV);
                         }
-                    } catch (AnalyzerException ex) {
+                    } catch (final AnalyzerException ex) {
                         ex.printStackTrace();
                         throw new InternalError(ex.getMessage());
                     }
@@ -276,7 +276,7 @@ public class InstrumentClass extends ClassVisitor {
         } else {
             // if we don't have any suspendable methods, but our superclass is instrumented, we mark this class as instrumented, too.
             if (!alreadyInstrumented && classEntry.getSuperName() != null) {
-                ClassEntry superClass = db.getClassEntry(classEntry.getSuperName());
+                final ClassEntry superClass = db.getClassEntry(classEntry.getSuperName());
                 if (superClass != null && superClass.isInstrumented()) {
                     emitInstrumentedAnn();
                     classEntry.setInstrumented(true);
@@ -295,7 +295,7 @@ public class InstrumentClass extends ClassVisitor {
         final List<AnnotationNode> ans = mn.visibleAnnotations;
         if (ans == null)
             return false;
-        for (AnnotationNode an : ans) {
+        for (final AnnotationNode an : ans) {
             if (an.desc.equals(ANNOTATION_DESC))
                 return true;
         }
@@ -335,7 +335,7 @@ public class InstrumentClass extends ClassVisitor {
         if (l.isEmpty())
             return null;
 
-        return ((List<String>)l).toArray(new String[l.size()]);
+        return l.toArray(new String[l.size()]);
     }
 //    
 //    private static boolean contains(String[] ifaces, String iface) {
