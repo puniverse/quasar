@@ -39,20 +39,26 @@ public final class Stack implements Serializable {
     private static final int FRAME_RECORD_SIZE = 1;
     private static final long serialVersionUID = 12786283751253L;
     private final Fiber fiber;
+    private final int stackSize;
     private int sp;
     private transient boolean shouldVerifyInstrumentation;
     private transient boolean pushed;
     private long[] dataLong;        // holds primitives on stack as well as each method's entry point and the stack pointer
     private Object[] dataObject;    // holds refs on stack
+    private int instrumentedCount; // TODO: transient?
 
     Stack(Fiber fiber, int stackSize) {
         if (stackSize <= 0)
             throw new IllegalArgumentException("stackSize");
 
         this.fiber = fiber;
+        this.stackSize = stackSize;
+        clear();
+    }
+
+    public void clear() {
         this.dataLong = new long[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
         this.dataObject = new Object[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
-
         resumeStack();
     }
 
@@ -75,6 +81,15 @@ public final class Stack implements Serializable {
     // for testing/benchmarking only
     void resetStack() {
         resumeStack();
+    }
+
+    /**
+     * Used by live instrumentation to check for uninstrumented frames
+     *
+     * @return the number of pushMethod() calls - the number of popMethod() calls
+     */
+    public final int getInstrumentedCount() {
+        return instrumentedCount;
     }
 
     /**
@@ -146,6 +161,8 @@ public final class Stack implements Serializable {
 
         if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "pushMethod     ", "%s %d %d", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
+
+        instrumentedCount++;
     }
 
     public final void popMethod() {
@@ -172,7 +189,9 @@ public final class Stack implements Serializable {
         sp = newSP;
 
         if (fiber.isRecordingLevel(2))
-            fiber.record(2, "Stack", "popMethod      ", "%s %d", Thread.currentThread().getStackTrace()[2], sp /*Arrays.toString(fiber.getStackTrace())*/);        
+            fiber.record(2, "Stack", "popMethod      ", "%s %d", Thread.currentThread().getStackTrace()[2], sp /*Arrays.toString(fiber.getStackTrace())*/);
+
+        instrumentedCount--;
     }
 
     public final void postRestore() throws SuspendExecution, InterruptedException {
