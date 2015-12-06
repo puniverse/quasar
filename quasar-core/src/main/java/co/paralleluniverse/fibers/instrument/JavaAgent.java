@@ -93,16 +93,16 @@ import org.objectweb.asm.MethodVisitor;
  * @author Matthias Mann
  */
 public class JavaAgent {
-    private static volatile boolean ACTIVE;
     private static final Set<WeakReference<ClassLoader>> classLoaders = Collections.newSetFromMap(MapUtil.<WeakReference<ClassLoader>, Boolean>newConcurrentHashMap());
+
+    private static QuasarInstrumentor instrumentor;
 
     public static void premain(String agentArguments, Instrumentation instrumentation) {
         if (!instrumentation.isRetransformClassesSupported())
             System.err.println("Retransforming classes is not supported!");
 
         final ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        final QuasarInstrumentor instrumentor = new QuasarInstrumentor(false, cl, new DefaultSuspendableClassifier(cl));
-        ACTIVE = true;
+        instrumentor = new QuasarInstrumentor(false, cl, new DefaultSuspendableClassifier(cl));
         SuspendableHelper.javaAgent = true;
 
         if (agentArguments != null) {
@@ -159,7 +159,11 @@ public class JavaAgent {
     }
 
     public static boolean isActive() {
-        return ACTIVE;
+        return instrumentor != null;
+    }
+
+    public static QuasarInstrumentor getInstrumentor() {
+        return instrumentor;
     }
 
     private static class Transformer implements ClassFileTransformer {
