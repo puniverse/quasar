@@ -114,6 +114,10 @@ public class Retransform {
         listeners.addIfAbsent(listener);
     }
 
+    public static boolean supportsRedefinition() {
+        return instrumentation.isRedefineClassesSupported();
+    }
+
     public interface ClassLoadListener {
         void beforeTransform(String className, Class clazz, byte[] data);
 
