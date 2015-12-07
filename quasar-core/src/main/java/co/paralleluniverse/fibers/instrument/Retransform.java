@@ -43,6 +43,15 @@ public class Retransform {
         instrumentation.retransformClasses(classes);
     }
 
+    public static void redefine(ClassDefinition... cds) {
+        try {
+            instrumentation.redefineClasses(cds);
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
     public static void redefine(Collection<ClassDefinition> classDefinitions) {
         try {
             instrumentation.redefineClasses(classDefinitions.toArray(new ClassDefinition[0]));
