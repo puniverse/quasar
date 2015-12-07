@@ -1,157 +1,99 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.util.ExtendedStackTrace;
-import co.paralleluniverse.common.util.ExtendedStackTraceElement;
+import co.paralleluniverse.common.util.SystemProperties;
+import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
 import co.paralleluniverse.fibers.instrument.*;
+import co.paralleluniverse.strands.SuspendableUtils;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.instrument.ClassDefinition;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.*;
 import java.util.*;
-import java.util.function.Function;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-final class Quasar9FiberYield {
-    // TODO: plug into current yield if JDK9
-    static void doIt() throws SuspendExecution {
+final class LiveInstrumentation {
+    static synchronized boolean fixup(Fiber f) {
         boolean checkInstrumentation = true;
-        final Fiber f = Fiber.currentFiber();
-        if (f != null) {
+        if (autoInstr && f != null) {
             final Stack fs = f.getStack();
             if (esw != null) {
                 if (!agree(esw, fs)) {
                     // Slow path, we'll take our time to fix up things
                     checkCaps();
-                    final java.util.Stack<FiberFramePush> fiberStackRebuildToDoList = new java.util.Stack<>(); // TODO: improve perf
-                    final Collection<Class<?>> toRedefine = new ArrayList<>(); // TODO: improve perf
-                    esw.walk(s -> s.map(new Function<>() {
-                        private boolean yield = true, callingYield = false;
-                        private boolean ok = true, last = false;
+                    // TODO: improve perf
+                    final java.util.Stack<FiberFramePush> fiberStackRebuildToDoList = new java.util.Stack<>();
+                    // TODO: improve perf
+                    final List<StackWalker.StackFrame> frames = esw.walk(s -> s.collect(Collectors.toList()));
 
-                        public StackWalker.StackFrame upper = null;
+                    boolean callingFiberRuntime = false;
+                    boolean ok, last = false;
+                    StackWalker.StackFrame upper = null;
+                    FiberFramePush prevFFP = null;
+                    for(final StackWalker.StackFrame sf : frames) {
+                        if (isFiberRuntimeMethod(sf.getClassName(), sf.getMethodName())) {
+                            // Skip marking/transforming yield frames
+                            callingFiberRuntime = true;
+                        } else {
+                            LOG("Live lazy auto-instrumentation: " + sf.getClassName() + "#" + sf.getMethodName());
+                            final Class<?> cCaller = sf.getDeclaringClass();
+                            final String mnCaller = sf.getMethodName();
 
-                        private FiberFramePush prevFFP = null;
+                            if (prevFFP != null)
+                                prevFFP.setLower(sf);
 
-                        @Override
-                        public Void apply(StackWalker.StackFrame sf) { // Top to bottom, skipping internal & reflection
-                            if (!last) {
-                                final Class<?> cCaller = sf.getDeclaringClass();
-                                final String mnCaller = sf.getMethodName();
-
-                                if (prevFFP != null)
-                                    prevFFP.setLower(sf);
-
-                                prevFFP = pushRebuildToDo(sf, fiberStackRebuildToDoList, callingYield);
-
-                                if (yield) { // Skip marking/transforming yield frame TODO check that this is OK and enough
-                                    LOG("Live lazy auto-instrumentation: " + sf.getClassName() + "#" + sf.getMethodName());
-                                    yield = false;
-                                    callingYield = true;
-                                } else {
-                                    final MethodType mtCaller;
-                                    final int b;
-                                    try {
-                                        mtCaller = (MethodType) getMethodType.invoke(memberName.get(sf));
-                                        b = (int) bci.get(sf);
-                                        final CheckCallSiteFrameInstrumentationReport  report =
-                                            checkCallSiteFrameInstrumentation(cCaller, mnCaller, mtCaller, b, upper);
-                                        ok = report.isOK();
-                                        last = report.last;
-
-                                        fixSuspendableSupers(cCaller, mnCaller, mtCaller);
-                                        if (!ok) {
-                                            if (!report.classInstrumented || !report.methodInstrumented)
-                                                suspendable(cCaller, mnCaller, mtCaller, MethodDatabase.SuspendableType.SUSPENDABLE);
-                                            toRedefine.add(cCaller);
-                                        }
-                                    } catch (final InvocationTargetException | IllegalAccessException e) {
-                                        throw new RuntimeException(e);
-                                    }
-
-                                    if (callingYield)
-                                        callingYield = false;
-                                }
-
-                                upper = sf;
-                            }
-                            return NOTHING;
-                        }
-
-                        private
-                            CheckCallSiteFrameInstrumentationReport
-                            checkCallSiteFrameInstrumentation(Class<?> declaringClass, String methodName,
-                                                              MethodType t, int bci, StackWalker.StackFrame upperStackFrame) {
-                            // TODO: factor with corresponding (Java9-ported) Fiber::checkInstrumentation
-                            final String className = declaringClass.getName();
-                            final CheckCallSiteFrameInstrumentationReport res = new CheckCallSiteFrameInstrumentationReport();
-
-                            if (Thread.class.getName().equals(className) && "getStackTrace".equals(methodName) ||
-                                ExtendedStackTrace.class.getName().equals(className) ||
-                                className.contains("$$Lambda$"))
-                                return CheckCallSiteFrameInstrumentationReport.OK_NOT_FINISHED; // Skip
-
-                            if (!className.equals(Fiber.class.getName()) && !className.startsWith(Fiber.class.getName() + '$')
-                                && !className.equals(Stack.class.getName()) && !SuspendableHelper.isWaiver(className, methodName)) {
-                                res.classInstrumented = SuspendableHelper.isInstrumented(declaringClass);
-                                final Executable m = lookupMethod(declaringClass, methodName, t);
-                                if (m != null) {
-                                    res.methodInstrumented = SuspendableHelper.isInstrumented(m);
-                                    res.callSiteInstrumented = isCallSiteInstrumented(m, bci, upperStackFrame);
-                                }
-                            } else if (Fiber.class.getName().equals(className) && "run1".equals(methodName)) {
-                                res.last = true;
-                            }
-                            return res;
-                        }
-
-                        private boolean isCallSiteInstrumented(Executable m, int bci, StackWalker.StackFrame upperStackFrame) {
-                            // TODO: factor with corresponding (Java9-ported) SuspendableHelper::isCallSiteInstrumented
-                            if (m == null)
-                                return false;
-
-                            if (SuspendableHelper.isSyntheticAndNotLambda(m))
-                                return true;
-
-                            if (upperStackFrame != null
-                                // `verifySuspend` and `popMethod` calls are not suspendable call sites, not verifying them.
-                                && ((Fiber.class.getName().equals(upperStackFrame.getClassName())
-                                        && "verifySuspend".equals(upperStackFrame.getMethodName())) ||
-                                    (Stack.class.getName().equals(upperStackFrame.getClassName())
-                                        && "popMethod".equals(upperStackFrame.getMethodName())))) {
-                                return true;
-                            } else {
-                                final Instrumented i = SuspendableHelper.getAnnotation(m, Instrumented.class);
-                                if (i != null) {
-                                    for (int j : i.suspendableCallSitesBCI()) { // TODO: fill BCIs in instrumentor
-                                        if (j == bci)
-                                            return true;
-                                    }
-                                }
-                            }
-
-                            return false;
-                        }
-                    }));
-
-                    // Knowledge base is fixed up, re-instrument and re-define relevant classes
-                    final List<ClassDefinition> l = toRedefine.stream().map(c -> {
-                        final String n = c.getName().replace(".", "/");
+                            final MethodType mtCaller;
+                            final int b;
                             try {
-                                return new ClassDefinition(c, JavaAgent.getInstrumentor().instrumentClass(n, c.getClassLoader().getResourceAsStream(n)));
-                            } catch (final IOException e) {
+                                mtCaller = (MethodType) getMethodType.invoke(memberName.get(sf));
+
+                                final Executable m = lookupMethod(cCaller, mnCaller, mtCaller);
+                                b = (int) bci.get(sf);
+                                final CheckCallSiteFrameInstrumentationReport  report =
+                                    checkCallSiteFrameInstrumentation(cCaller, m, b, upper);
+                                ok = report.isOK();
+                                last = report.last;
+
+                                fixSuspendableSupers(cCaller, mnCaller, mtCaller);
+                                if (!ok) {
+                                    if (!report.classInstrumented || !report.methodInstrumented)
+                                        suspendable(cCaller, mnCaller, mtCaller, MethodDatabase.SuspendableType.SUSPENDABLE);
+                                    final String n = cCaller.getName();
+                                    final InputStream is = cCaller.getResourceAsStream("/" + n.replace(".", "/") + ".class");
+                                    final byte[] reinstrumented = JavaAgent.getInstrumentor().instrumentClass(n, is);
+                                    Retransform.redefine(new ClassDefinition(cCaller, reinstrumented));
+                                }
+
+                                // Get re-instrumented version before checking if method has been optimized
+                                final Class<?> c1 = Class.forName(cCaller.getName());
+                                final Executable m1 = lookupMethod(c1, mnCaller, mtCaller);
+                                final Instrumented i = SuspendableHelper.getAnnotation(m1, Instrumented.class);
+                                if (i != null && !i.methodOptimized())
+                                    prevFFP = pushRebuildToDo(sf, fiberStackRebuildToDoList, callingFiberRuntime);
+
+                                callingFiberRuntime = false;
+                            } catch (final ClassNotFoundException | InvocationTargetException | IllegalAccessException | IOException e) {
                                 throw new RuntimeException(e);
                             }
                         }
-                    ).collect(Collectors.toList());
-                    Retransform.redefine(l);
 
-                    // Method ref seems missing from StackFrame info => diff difficult => rebuild
+                        upper = sf;
+
+                        if (last)
+                            break;
+                    }
+
+                    // Rebuild stack
                     apply(fiberStackRebuildToDoList, fs);
 
                     // Now it should be ok
-                    assert agree(esw, fs);
+                    // assert agree(esw, fs);
 
                     // We're done, let's skip checks
                     checkInstrumentation = false;
@@ -159,11 +101,76 @@ final class Quasar9FiberYield {
             }
         }
 
-        regularYield(true /* TODO after debugging pass the following instead */ /* checkInstrumentation */);
+        return true /* TODO after debugging pass the following instead */ /* checkInstrumentation */;
     }
 
-    static class CheckCallSiteFrameInstrumentationReport {
-        static final CheckCallSiteFrameInstrumentationReport OK_NOT_FINISHED;
+    private static boolean isFiberRuntimeMethod(String className, String methodName) {
+        return
+            Fiber.class.getName().equals(className) ||
+            LiveInstrumentation.class.getName().equals(className) ||
+            ForkJoinWorkerThread.class.getName().equals(className) ||
+            ForkJoinTask.class.getName().equals(className) ||
+            ParkableForkJoinTask.class.getName().equals(className) ||
+            className.startsWith(SuspendableUtils.VoidSuspendableCallable.class.getName()) ||
+            className.startsWith(ForkJoinPool.class.getName()) ||
+            className.startsWith(FiberForkJoinScheduler.class.getName());
+    }
+
+    private static
+    CheckCallSiteFrameInstrumentationReport
+    checkCallSiteFrameInstrumentation(Class declaringClass, Executable m, int bci, StackWalker.StackFrame upperStackFrame) {
+        // TODO: factor with corresponding (Java9-ported) Fiber::checkInstrumentation
+        final String className = declaringClass.getName();
+        final String methodName = m.getName();
+        final CheckCallSiteFrameInstrumentationReport res = new CheckCallSiteFrameInstrumentationReport();
+
+        if (Thread.class.getName().equals(className) && "getStackTrace".equals(methodName) ||
+            ExtendedStackTrace.class.getName().equals(className) ||
+            className.contains("$$Lambda$"))
+            return CheckCallSiteFrameInstrumentationReport.OK_NOT_FINISHED; // Skip
+
+        if (!className.equals(Fiber.class.getName()) && !className.startsWith(Fiber.class.getName() + '$')
+            && !className.equals(Stack.class.getName()) && !SuspendableHelper.isWaiver(className, methodName)) {
+            res.classInstrumented = SuspendableHelper.isInstrumented(declaringClass);
+            res.methodInstrumented = SuspendableHelper.isInstrumented(m);
+            // TODO: this needs to check against bcis after instrumentation, not before
+            res.callSiteInstrumented = isCallSiteInstrumented(m, bci, upperStackFrame);
+        } else if (Fiber.class.getName().equals(className) && "run1".equals(methodName)) {
+            res.last = true;
+        }
+        return res;
+    }
+
+    private static boolean isCallSiteInstrumented(Executable m, int bci, StackWalker.StackFrame upperStackFrame) {
+        // TODO: factor with corresponding (Java9-ported) SuspendableHelper::isCallSiteInstrumented
+        if (m == null)
+            return false;
+
+        if (SuspendableHelper.isSyntheticAndNotLambda(m))
+            return true;
+
+        if (upperStackFrame != null
+            // `verifySuspend` and `popMethod` calls are not suspendable call sites, not verifying them.
+            && ((Fiber.class.getName().equals(upperStackFrame.getClassName())
+            && "verifySuspend".equals(upperStackFrame.getMethodName())) ||
+            (Stack.class.getName().equals(upperStackFrame.getClassName())
+                && "popMethod".equals(upperStackFrame.getMethodName())))) {
+            return true;
+        } else {
+            final Instrumented i = SuspendableHelper.getAnnotation(m, Instrumented.class);
+            if (i != null) {
+                for (int j : i.suspendableCallSitesBCI()) { // TODO: fill BCIs in instrumentor
+                    if (j == bci)
+                        return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static class CheckCallSiteFrameInstrumentationReport {
+        private static final CheckCallSiteFrameInstrumentationReport OK_NOT_FINISHED;
 
         static {
             OK_NOT_FINISHED = new CheckCallSiteFrameInstrumentationReport();
@@ -172,17 +179,17 @@ final class Quasar9FiberYield {
             OK_NOT_FINISHED.callSiteInstrumented = true;
         }
 
-        boolean classInstrumented = false;
-        boolean methodInstrumented = false;
-        boolean callSiteInstrumented = false;
-        boolean last = false;
+        private boolean classInstrumented = false;
+        private boolean methodInstrumented = false;
+        private boolean callSiteInstrumented = false;
+        private boolean last = false;
 
-        boolean isOK() {
+        private boolean isOK() {
             return classInstrumented && methodInstrumented && callSiteInstrumented;
         }
     }
 
-    static class FiberFramePush {
+    private static class FiberFramePush {
         private final StackWalker.StackFrame sf;
         private final Object[] locals;
         private final Object[] operands;
@@ -194,7 +201,7 @@ final class Quasar9FiberYield {
 
         private int[] suspendableCallSiteLineNumbers;
 
-        FiberFramePush(StackWalker.StackFrame sf, Object[] locals, Object[] operands, boolean callingYield) {
+        private FiberFramePush(StackWalker.StackFrame sf, Object[] locals, Object[] operands, boolean callingYield) {
             this.sf = sf;
             this.locals = locals;
             this.operands = operands;
@@ -202,8 +209,14 @@ final class Quasar9FiberYield {
             this.m = lookupMethod(sf); // Caching it as it's used multiple times
         }
 
-        void setLower(StackWalker.StackFrame lower) {
-            final Member lowerM = SuspendableHelper.lookupMethod(new ExtendedStackTraceElement(lower.toStackTraceElement()));
+        private void setLower(StackWalker.StackFrame lower) {
+            final MethodType mt;
+            try {
+                mt = (MethodType) getMethodType.invoke(memberName.get(lower));
+            } catch (final IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+            final Member lowerM = lookupMethod(lower.getDeclaringClass(), lower.getMethodName(), mt);
             final Instrumented i = lowerM != null ? SuspendableHelper.getAnnotation(lowerM, Instrumented.class) : null;
             if (i != null) {
                 suspendableCallSiteLineNumbers = i.suspendableCallSites();
@@ -221,7 +234,7 @@ final class Quasar9FiberYield {
          * <br>
          * !!! Must be kept aligned with `InstrumentMethod.emitStoreState` and `Stack.pusXXX` !!!
          */
-        void apply(Stack s) {
+        private void apply(Stack s) {
             if (entry < 1)
                 throw new RuntimeException("Can't determine call site index for " + this.toString());
 
@@ -376,7 +389,7 @@ final class Quasar9FiberYield {
         }
     }
 
-    static FiberFramePush pushRebuildToDo(StackWalker.StackFrame sf, Collection<FiberFramePush> todo, boolean callingYield) {
+    private static FiberFramePush pushRebuildToDo(StackWalker.StackFrame sf, Collection<FiberFramePush> todo, boolean callingYield) {
         try {
             final FiberFramePush ffp =
                 new FiberFramePush (
@@ -393,40 +406,35 @@ final class Quasar9FiberYield {
 
     ///////////////////////////// Less interesting
 
-    static boolean agree(StackWalker w, Stack fs) {
-        // TODO: adjust calculation taking into account any "special" frames; must be _fast_, JMH it
-        return w.walk(s -> s.collect(COUNTING)) == fs.getInstrumentedCount();
+    private static boolean agree(StackWalker w, Stack fs) {
+        // TODO: must be _fast_, JMH it
+        final long threadStackDepth = w.walk(s -> s.filter(sf -> !isFiberRuntimeMethod(sf.getClassName(), sf.getMethodName())).collect(COUNTING));
+        return threadStackDepth == fs.getInstrumentedCount();
     }
 
-    static void regularYield(boolean checkInstrumentation) throws SuspendExecution {
-        // TODO: call present yield
-        throw new RuntimeException("Not implemented");
-    }
-
-    static void apply(Collection<FiberFramePush> todo, Stack fs) {
+    private static void apply(Collection<FiberFramePush> todo, Stack fs) {
         fs.clear();
         for (final FiberFramePush ffp : todo)
             ffp.apply(fs);
     }
 
-    static final boolean quasar9;
-    static final boolean autoInstr;
+    private static final boolean autoInstr;
 
-    static StackWalker esw = null;
+    private static StackWalker esw = null;
 
-    static Class<?> primitiveValueClass, liveStackFrameClass;
+    private static Class<?> primitiveValueClass, liveStackFrameClass;
 
-    static Method getLocals, getOperands, getMethodType, primitiveType;
-    static Method booleanValue, byteValue, charValue, shortValue, intValue, floatValue, longValue, doubleValue;
+    private static Method getLocals, getOperands, getMethodType, primitiveType;
+    private static Method booleanValue, byteValue, charValue, shortValue, intValue, floatValue, longValue, doubleValue;
 
-    static Field memberName, bci;
+    private static Field memberName, bci;
 
     static {
         try {
-            quasar9 = true; // TODO
-            autoInstr = true; // TODO: read "enableXXX" sysprop in pre-release, change to "disableXXX" when stable
+            // TODO: change to "disableXXX" when stable
+            autoInstr = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.instrument.enableLive");
 
-            if (quasar9 && autoInstr) {
+            if (autoInstr) {
                 LOG("Live lazy auto-instrumentation ENABLED");
 
                 final Class<?> extendedOptionClass = Class.forName("java.lang.StackWalker$ExtendedOption");
@@ -498,8 +506,6 @@ final class Quasar9FiberYield {
     ///////////////////////////// Uninteresting
 
     private static final Collector<StackWalker.StackFrame, ?, Long> COUNTING = Collectors.counting();
-    private static final Void NOTHING = null;
-
 
     private static void fixSuspendableSupers(Class<?> cCaller, String mnCaller, MethodType mtCaller) {
         final Class<?> sup = cCaller.getSuperclass();
@@ -524,8 +530,9 @@ final class Quasar9FiberYield {
     }
 
     private static void suspendable(Class<?> c, String n, MethodType t, MethodDatabase.SuspendableType st) {
+        final Class<?> s = c.getSuperclass();
         final MethodDatabase.ClassEntry ce = Retransform.getMethodDB().getOrCreateClassEntry (
-            c.getName(), c.getSuperclass().getName()
+            c.getName(), s != null ? s.getName() : null
         );
         final String td = t.toMethodDescriptorString();
         final MethodDatabase.SuspendableType stOld = ce.check(n, td);
@@ -592,5 +599,5 @@ final class Quasar9FiberYield {
         System.err.println(s);
     }
 
-    private Quasar9FiberYield() {}
+    private LiveInstrumentation() {}
 }

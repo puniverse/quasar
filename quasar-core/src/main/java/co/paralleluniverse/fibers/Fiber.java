@@ -1583,7 +1583,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private static Fiber verifySuspend() {
-        return verifySuspend(verifyCurrent());
+        final Fiber f = verifyCurrent();
+        if (LiveInstrumentation.fixup(f))
+            return verifySuspend(f);
+        else
+            return f;
     }
 
     static Fiber verifySuspend(Fiber current) {
