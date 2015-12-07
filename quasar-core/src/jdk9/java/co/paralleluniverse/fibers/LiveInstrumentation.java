@@ -5,6 +5,7 @@ import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
 import co.paralleluniverse.fibers.instrument.*;
 import co.paralleluniverse.strands.SuspendableUtils;
+import com.google.common.io.ByteStreams;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -66,8 +67,8 @@ final class LiveInstrumentation {
                                         suspendable(cCaller, mnCaller, mtCaller, MethodDatabase.SuspendableType.SUSPENDABLE);
                                     final String n = cCaller.getName();
                                     final InputStream is = cCaller.getResourceAsStream("/" + n.replace(".", "/") + ".class");
-                                    final byte[] reinstrumented = JavaAgent.getInstrumentor().instrumentClass(n, is);
-                                    Retransform.redefine(new ClassDefinition(cCaller, reinstrumented));
+                                    final byte[] diskData = ByteStreams.toByteArray(is);
+                                    Retransform.redefine(new ClassDefinition(cCaller, diskData)); // Instrum. will occur
                                 }
 
                                 // Get re-instrumented version before checking if method has been optimized
