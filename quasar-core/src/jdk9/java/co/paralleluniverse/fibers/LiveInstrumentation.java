@@ -309,10 +309,10 @@ final class LiveInstrumentation {
                         Stack.push((boolean) booleanValue.invoke(op) ? 1 : 0, s, idx);
                         break;
                     case 'C':
-                        Stack.push((int) ((char) shortValue.invoke(op)), s, idx);
+                        Stack.push((int) ((char) charValue.invoke(op)), s, idx);
                         break;
                     case 'B':
-                        Stack.push((int) ((byte) shortValue.invoke(op)), s, idx);
+                        Stack.push((int) ((byte) byteValue.invoke(op)), s, idx);
                         break;
                     case 'J':
                         Stack.push((long) longValue.invoke(op), s, idx);
