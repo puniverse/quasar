@@ -410,7 +410,8 @@ final class LiveInstrumentation {
     private static boolean agree(StackWalker w, Stack fs) {
         // TODO: must be _fast_, JMH it
         final long threadStackDepth = w.walk(s -> s.filter(sf -> !isFiberRuntimeMethod(sf.getClassName(), sf.getMethodName())).collect(COUNTING));
-        return threadStackDepth == fs.getInstrumentedCount();
+        //return threadStackDepth == fs.getInstrumentedCount();
+        return false; // TODO: plug real impl.
     }
 
     private static void apply(Collection<FiberFramePush> todo, Stack fs) {
