@@ -533,9 +533,11 @@ final class LiveInstrumentation {
 
     private static void suspendable(Class<?> c, String n, MethodType t, MethodDatabase.SuspendableType st) {
         final Class<?> s = c.getSuperclass();
-        final MethodDatabase.ClassEntry ce = Retransform.getMethodDB().getOrCreateClassEntry (
-            c.getName(), s != null ? s.getName() : null
-        );
+        final MethodDatabase.ClassEntry ce =
+            Retransform.getMethodDB().getOrCreateClassEntry (
+                c.getName().replace(".", "/"),
+                s != null ? s.getName().replace(".", "/") : null
+            );
         final String td = t.toMethodDescriptorString();
         final MethodDatabase.SuspendableType stOld = ce.check(n, td);
         ce.set(n, td, max(stOld, st));
