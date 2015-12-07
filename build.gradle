@@ -12,6 +12,9 @@ buildscript {
 ext.java9 = System.properties['java.version'].startsWith('1.9')
 ext.java8 = System.properties['java.version'].startsWith('1.8')
 
+println("JDK 8: " + ext.java8)
+println("JDK 9: " + ext.java9)
+
 subprojects {
     apply plugin: 'java'
 
