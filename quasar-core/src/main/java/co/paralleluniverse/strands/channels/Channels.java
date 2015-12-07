@@ -562,7 +562,7 @@ public final class Channels {
      * @return a {@link ReceivePort} that receives messages from {@code channels}.
      */
     public static <M> ReceivePort<M> group(ReceivePort<? extends M>... channels) {
-        return new ReceivePortGroup<>(channels);
+        return new ReceivePortGroup<M>(channels);
     }
 
     /**
@@ -586,7 +586,7 @@ public final class Channels {
      * @return a {@link ReceivePort} that receives messages from {@code channels}.
      */
     public static <M> Mix<? extends M> mix(final ReceivePort<? extends M>... channels) {
-        return new ReceivePortGroup<>(channels);
+        return new ReceivePortGroup<M>(channels);
     }
 
     /**
