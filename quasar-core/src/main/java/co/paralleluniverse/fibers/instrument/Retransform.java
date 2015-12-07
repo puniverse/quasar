@@ -55,7 +55,7 @@ public class Retransform {
     public static void redefine(Collection<ClassDefinition> classDefinitions) {
         try {
             instrumentation.redefineClasses(classDefinitions.toArray(new ClassDefinition[0]));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new RuntimeException(e);
         }
     }
