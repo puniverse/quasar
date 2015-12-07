@@ -419,7 +419,6 @@ project (':quasar-core') {
         jdk9 {
             java {
                 srcDir 'src/main/java'
-                srcDir 'src/jdk8/java'
                 srcDir 'src/jdk9/java'
             }
 
@@ -430,7 +429,6 @@ project (':quasar-core') {
         jdk9test {
             java {
                 srcDir 'src/test/java'
-                srcDir 'src/jdk8Test/java'
                 srcDir 'src/jdk9Test/java'
             }
 
@@ -480,6 +478,7 @@ project (':quasar-core') {
     if (ext.java8) {
         ssets += sourceSets.jdk8
     } else if (ext.java9) {
+        ssets += sourceSets.jdk8
         ssets += sourceSets.jdk9
     }
 
@@ -594,7 +593,11 @@ project (':quasar-core') {
         }
 
         artifacts {
-            jdk8Archives jdk8ShadowJar jdk9Archives jdk9ShadowJar
+            jdk9Archives jdk9ShadowJar
+        }
+
+        artifacts {
+            jdk8Archives jdk8ShadowJar
         }
 
         tasks.withType(JavaExec) {
