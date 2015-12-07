@@ -424,7 +424,7 @@ final class LiveInstrumentation {
 
     private static StackWalker esw = null;
 
-    private static Class<?> primitiveValueClass, liveStackFrameClass;
+    private static Class<?> primitiveValueClass;
 
     private static Method getLocals, getOperands, getMethodType, primitiveType;
     private static Method booleanValue, byteValue, charValue, shortValue, intValue, floatValue, longValue, doubleValue;
@@ -453,7 +453,7 @@ final class LiveInstrumentation {
                 /////////////////////////////////////////////////
                 // Get internal LiveStackFrame* class/method refs
                 //////////////////////////////////////////////////
-                liveStackFrameClass = Class.forName("java.lang.LiveStackFrame");
+                Class<?> liveStackFrameClass = Class.forName("java.lang.LiveStackFrame");
                 primitiveValueClass = Class.forName("java.lang.LiveStackFrame$PrimitiveValue");
 
                 final Class<?> stackFrameInfoClass = Class.forName("java.lang.StackFrameInfo");
