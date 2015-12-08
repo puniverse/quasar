@@ -59,25 +59,24 @@ final class LiveInstrumentation {
                                 ok = report.isOK();
                                 last = report.last;
 
-                                fixSuspendableSupers(cCaller, mnCaller, mtCaller);
                                 if (!ok) {
+                                    ensureCorrectSuspendableSupers(cCaller, mnCaller, mtCaller);
                                     if (!report.classInstrumented || !report.methodInstrumented)
                                         suspendable(cCaller, mnCaller, mtCaller, MethodDatabase.SuspendableType.SUSPENDABLE);
                                     final String n = cCaller.getName();
                                     final InputStream is = cCaller.getResourceAsStream("/" + n.replace(".", "/") + ".class");
                                     final byte[] diskData = ByteStreams.toByteArray(is);
-                                    Retransform.redefine(new ClassDefinition(cCaller, diskData)); // Instrum. will occur
+                                    // Quasar instrum. will occur
+                                    Retransform.redefine(new ClassDefinition(cCaller, diskData));
                                 }
 
-                                // Get re-instrumented version before checking if method has been optimized
-                                final Class<?> c1 = Class.forName(cCaller.getName());
-                                final Executable m1 = lookupMethod(c1, mnCaller, mtCaller);
-                                final Instrumented i = SuspendableHelper.getAnnotation(m1, Instrumented.class);
+                                // The annotation will be correct now
+                                final Instrumented i = SuspendableHelper.getAnnotation(lookupMethod(cCaller, mnCaller, mtCaller), Instrumented.class);
                                 if (i != null && !i.methodOptimized())
                                     prevFFP = pushRebuildToDo(sf, fiberStackRebuildToDoList, callingFiberRuntime);
 
                                 callingFiberRuntime = false;
-                            } catch (final ClassNotFoundException | InvocationTargetException | IllegalAccessException | IOException e) {
+                            } catch (final InvocationTargetException | IllegalAccessException | IOException e) {
                                 throw new RuntimeException(e);
                             }
                         }
@@ -89,6 +88,7 @@ final class LiveInstrumentation {
                     }
 
                     // Rebuild stack
+                    fs.dump(); // TODO: remove
                     apply(fiberStackRebuildToDoList, fs);
 
                     // Now it should be ok
@@ -516,7 +516,7 @@ final class LiveInstrumentation {
 
     private static final Collector<StackWalker.StackFrame, ?, Long> COUNTING = Collectors.counting();
 
-    private static void fixSuspendableSupers(Class<?> cCaller, String mnCaller, MethodType mtCaller) {
+    private static void ensureCorrectSuspendableSupers(Class<?> cCaller, String mnCaller, MethodType mtCaller) {
         final Class<?> sup = cCaller.getSuperclass();
         if (sup != null)
             suspendableSuper(sup, mnCaller, mtCaller);
@@ -534,7 +534,7 @@ final class LiveInstrumentation {
         }
         if (m != null) {
             suspendable(c, mn, mt, MethodDatabase.SuspendableType.SUSPENDABLE_SUPER);
-            fixSuspendableSupers(c, mn, mt);
+            ensureCorrectSuspendableSupers(c, mn, mt);
         }
     }
 
