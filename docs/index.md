@@ -275,7 +275,7 @@ Other than `Fiber`'s constructor and `start` method, and possibly the `join` and
 When using Kotlin the `fiber` syntax in `co.paralleluniverse.kotlin` makes it even easier:
 
 ~~~ kotlin
-fiber {
+fiber @Suspendable {
   // The fiber will be created and will start executing this body
 }
 ~~~
@@ -575,7 +575,7 @@ val ch1 = Channels.newChannel<Int>(1)
 val ch2 = Channels.newChannel<Int>(1)
 
 assertTrue (
-    fiber {
+    fiber @Suspendable {
         select(Receive(ch1), Send(ch2, 2)) {
             it
         }
@@ -585,7 +585,7 @@ assertTrue (
 ch1.send(1)
 
 assertTrue (
-    fiber {
+    fiber @Suspendable {
         select(Receive(ch1), Send(ch2, 2)) {
             when (it) {
                 is Receive -> it.msg
