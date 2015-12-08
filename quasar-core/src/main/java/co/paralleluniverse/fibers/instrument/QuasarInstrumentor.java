@@ -25,6 +25,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Date;
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -99,20 +101,21 @@ public final class QuasarInstrumentor {
 
     private byte[] instrumentClass(String className, ClassReader r, boolean forceInstrumentation) {
         log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
+
         final ClassWriter cw = new DBClassWriter(db, r);
-        ClassVisitor cv = (check && EXAMINED_CLASS == null) ? new CheckClassAdapter(cw) : cw;
+        final ClassVisitor cv = (check && EXAMINED_CLASS == null) ? new CheckClassAdapter(cw) : cw;
 
         if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS)) {
-            writeToFile(className.replace('/', '.') + "-before.class", getClassBuffer(r));
+            writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-before-quasar.class", getClassBuffer(r));
             // cv = new TraceClassVisitor(cv, new PrintWriter(System.err));
         }
 
         final InstrumentClass ic = new InstrumentClass(cv, db, forceInstrumentation);
-        byte[] transformed = null;
+        byte[] transformed;
         try {
             r.accept(ic, ClassReader.SKIP_FRAMES);
             transformed = cw.toByteArray();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             if (ic.hasSuspendableMethods()) {
                 error("Unable to instrument class " + className, e);
                 throw e;
@@ -125,7 +128,7 @@ public final class QuasarInstrumentor {
 
         if (EXAMINED_CLASS != null) {
             if (className.startsWith(EXAMINED_CLASS))
-                writeToFile(className.replace('/', '.') + "-after.class", transformed);
+                writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-after-quasar.class", transformed);
 
             if (check) {
                 ClassReader r2 = new ClassReader(transformed);
