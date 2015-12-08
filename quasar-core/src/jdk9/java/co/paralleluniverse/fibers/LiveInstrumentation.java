@@ -90,6 +90,7 @@ final class LiveInstrumentation {
                     // Rebuild stack
                     fs.dump(); // TODO: remove
                     apply(fiberStackRebuildToDoList, fs);
+                    fs.dump(); // TODO: remove
 
                     // Now it should be ok
                     // assert agree(esw, fs);
@@ -234,7 +235,7 @@ final class LiveInstrumentation {
                     Arrays.sort(suspendableCallSiteLineNumbers);
                     // TODO: check against post-transform bcis
                     final int bsResPlus1 = Arrays.binarySearch(suspendableCallSiteLineNumbers, sf.getLineNumber().orElse(-1)) + 1;
-                    entry = Math.abs(bsResPlus1) + 1;
+                    entry = Math.abs(bsResPlus1);
                 }
             }
         }
@@ -276,7 +277,8 @@ final class LiveInstrumentation {
             }
 
             // Store local vars
-            for (int i = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` TODO: check */ ; i < locals.length ; i++) {
+            // for (int i = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` TODO: check */ ; i < locals.length ; i++) {
+            for (int i = 0 ; i < locals.length ; i++) {
                 final Object local = locals[i];
                 if (local != null) {
                     final String type = type(local);
@@ -379,10 +381,20 @@ final class LiveInstrumentation {
             if (numSlots == -1) {
                 int idxPrim = 0, idxObj = 0;
                 for (final Object operand : operands) {
-                    if (primitiveValueClass.isInstance(operand))
-                        idxPrim++;
-                    else if (!isNullableType(type(operand)))
-                        idxObj++;
+                    if (operand != null) {
+                        if (primitiveValueClass.isInstance(operand))
+                            idxPrim++;
+                        else if (!isNullableType(type(operand)))
+                            idxObj++;
+                    }
+                }
+                for (final Object local : locals) {
+                    if (local != null) {
+                        if (primitiveValueClass.isInstance(local))
+                            idxPrim++;
+                        else if (!isNullableType(type(local)))
+                            idxObj++;
+                    }
                 }
                 numSlots = Math.max(idxObj, idxPrim);
             }
@@ -404,7 +416,7 @@ final class LiveInstrumentation {
         }
     }
 
-    private static FiberFramePush pushRebuildToDo(StackWalker.StackFrame sf, Collection<FiberFramePush> todo, boolean callingYield) {
+    private static FiberFramePush pushRebuildToDo(StackWalker.StackFrame sf, java.util.Stack<FiberFramePush> todo, boolean callingYield) {
         try {
             final FiberFramePush ffp =
                 new FiberFramePush (
@@ -412,7 +424,7 @@ final class LiveInstrumentation {
                     (Object[]) getLocals.invoke(sf), (Object[]) getOperands.invoke(sf),
                     callingYield
                 );
-            todo.add(ffp);
+            todo.push(ffp);
             return ffp;
         } catch (final InvocationTargetException | IllegalAccessException e) {
             throw new RuntimeException(e);
@@ -424,14 +436,16 @@ final class LiveInstrumentation {
     private static boolean agree(StackWalker w, Stack fs) {
         // TODO: must be _fast_, JMH it
         final long threadStackDepth = w.walk(s -> s.filter(sf -> !isFiberRuntimeMethod(sf.getClassName(), sf.getMethodName())).collect(COUNTING));
-        //return threadStackDepth == fs.getInstrumentedCount();
-        return false; // TODO: plug real impl.
+        return threadStackDepth == fs.getInstrumentedCount();
+        // return false; // TODO: plug real impl.
     }
 
-    private static void apply(Collection<FiberFramePush> todo, Stack fs) {
+    private static void apply(java.util.Stack<FiberFramePush> todo, Stack fs) {
         fs.clear();
-        for (final FiberFramePush ffp : todo)
+        while (!todo.empty()) {
+            final FiberFramePush ffp = todo.pop();
             ffp.apply(fs);
+        }
     }
 
     private static final boolean autoInstr;
