@@ -56,7 +56,7 @@ public final class Stack implements Serializable {
         clear();
     }
 
-    public void clear() {
+    final void clear() {
         this.dataLong = new long[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
         this.dataObject = new Object[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
         resumeStack();
