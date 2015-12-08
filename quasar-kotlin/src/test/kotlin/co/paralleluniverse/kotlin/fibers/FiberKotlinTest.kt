@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit
 public class FiberKotlinTest {
   @Test public fun testFiber() {
     assertTrue (
-      fiber {
+      fiber @Suspendable {
         println("Hi there")
         Fiber.sleep(10)
         println("Hi there later")
@@ -42,7 +42,7 @@ public class FiberKotlinTest {
     val ch2 = Channels.newChannel<Double>(1)
 
     assertTrue (
-      fiber {
+      fiber @Suspendable  {
         select(Receive(ch1), Send(ch2, 2.0)) {
           it
         }
@@ -51,7 +51,7 @@ public class FiberKotlinTest {
     ch1.send(1)
 
     assertTrue (
-      fiber {
+      fiber @Suspendable {
         select(Receive(ch1), Send(ch2, 2.0)) {
           when (it) {
             is Receive<*> -> it.msg
@@ -63,7 +63,7 @@ public class FiberKotlinTest {
     )
 
     assertTrue (
-      fiber {
+      fiber @Suspendable {
         select(10, TimeUnit.MILLISECONDS, Receive(ch1), Send(ch2, 2.0)) {
           when (it) {
             is Receive<*> -> it.msg
