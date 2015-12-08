@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.kotlin.fibers
 
+import co.paralleluniverse.fibers.*
 import co.paralleluniverse.kotlin.*
 import co.paralleluniverse.strands.channels.Channels
 
@@ -25,6 +26,17 @@ import java.util.concurrent.TimeUnit
  * @author circlespainter
  */
 public class FiberKotlinTest {
+  @Test public fun testFiber() {
+    assertTrue (
+      fiber {
+        println("Hi there")
+        Fiber.sleep(10)
+        println("Hi there later")
+        1
+      }.get() == 1
+    )
+  }
+
   @Test public fun testSelect() {
     val ch1 = Channels.newChannel<Int>(1)
     val ch2 = Channels.newChannel<Double>(1)
