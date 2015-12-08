@@ -207,7 +207,7 @@ final class LiveInstrumentation {
         private final Executable m;
 
         private int numSlots = -1;
-        private int entry = -1;
+        private int entry = 1;
 
         private int[] suspendableCallSiteLineNumbers;
 
@@ -232,9 +232,9 @@ final class LiveInstrumentation {
                 suspendableCallSiteLineNumbers = i.suspendableCallSites();
                 if (suspendableCallSiteLineNumbers != null) {
                     Arrays.sort(suspendableCallSiteLineNumbers);
-                    // TODO: check correctness of binarySearch call
+                    // TODO: check against post-transform bcis
                     final int bsResPlus1 = Arrays.binarySearch(suspendableCallSiteLineNumbers, sf.getLineNumber().orElse(-1)) + 1;
-                    entry = Math.abs(bsResPlus1);
+                    entry = Math.abs(bsResPlus1) + 1;
                 }
             }
         }
@@ -245,10 +245,9 @@ final class LiveInstrumentation {
          * !!! Must be kept aligned with `InstrumentMethod.emitStoreState` and `Stack.pusXXX` !!!
          */
         private void apply(Stack s) {
-            if (entry < 1)
-                throw new RuntimeException("Can't determine call site index for " + this.toString());
-
             final int numArgsToPreserve = callingYield ? m.getParameterCount() : 0;
+
+            s.nextMethodEntry();
 
             // New frame
             s.pushMethod(entry, getNumSlots());
@@ -259,17 +258,19 @@ final class LiveInstrumentation {
 
             // Store stack operands
             for (final Object op : operands) {
-                final String type = type(op);
                 // TODO: check that "omitted" (new value) can't happen at runtime
-                if (!isNullableType(type)) {
-                    if (primitiveValueClass.isInstance(op)) {
-                        storePrim(op, s, idxPrim);
-                        opIdxs.put(op, idxPrim);
-                        idxPrim++;
-                    } else {
-                        Stack.push(op, s, idxObj);
-                        opIdxs.put(op, idxObj);
-                        idxObj++;
+                if (op != null) {
+                    final String type = type(op);
+                    if (!isNullableType(type)) {
+                        if (primitiveValueClass.isInstance(op)) {
+                            storePrim(op, s, idxPrim);
+                            opIdxs.put(op, idxPrim);
+                            idxPrim++;
+                        } else if (!(op instanceof Stack)) { // Skip stack operands
+                            Stack.push(op, s, idxObj);
+                            opIdxs.put(op, idxObj);
+                            idxObj++;
+                        }
                     }
                 }
             }
@@ -277,14 +278,16 @@ final class LiveInstrumentation {
             // Store local vars
             for (int i = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` TODO: check */ ; i < locals.length ; i++) {
                 final Object local = locals[i];
-                final String type = type(local);
-                if (!isNullableType(type)) {
-                    if (primitiveValueClass.isInstance(local)) {
-                        storePrim(local, s, idxPrim);
-                        idxPrim++;
-                    } else {
-                        Stack.push(local, s, idxObj);
-                        idxObj++;
+                if (local != null) {
+                    final String type = type(local);
+                    if (!isNullableType(type)) {
+                        if (primitiveValueClass.isInstance(local)) {
+                            storePrim(local, s, idxPrim);
+                            idxPrim++;
+                        } else if (!(local instanceof Stack)) { // Skip stack locals
+                            Stack.push(local, s, idxObj);
+                            idxObj++;
+                        }
                     }
                 }
             }
@@ -292,13 +295,15 @@ final class LiveInstrumentation {
             // Restore last numArgsToPreserve operands
             for (int i = operands.length - numArgsToPreserve ; i < operands.length ; i++) {
                 final Object op = operands[i];
-                final String type = type(op);
-                // TODO: check that "omitted" (new value) can't happen at runtime
-                if (!isNullableType(type)) {
-                    if (primitiveValueClass.isInstance(op)) {
-                        restorePrim(op, s, opIdxs.get(op));
-                    } else {
-                        s.getObject(opIdxs.get(op));
+                if (op != null) {
+                    final String type = type(op);
+                    // TODO: check that "omitted" (new value) can't happen at runtime
+                    if (!isNullableType(type)) {
+                        if (primitiveValueClass.isInstance(op)) {
+                            restorePrim(op, s, opIdxs.get(op));
+                        } else {
+                            s.getObject(opIdxs.get(op));
+                        }
                     }
                 }
             }
