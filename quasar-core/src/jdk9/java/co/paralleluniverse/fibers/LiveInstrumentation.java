@@ -373,7 +373,7 @@ final class LiveInstrumentation {
         private int getNumSlots() {
             if (numSlots == -1) {
                 int idxPrim = 0, idxObj = 0;
-                for (Object operand : operands) {
+                for (final Object operand : operands) {
                     if (primitiveValueClass.isInstance(operand))
                         idxPrim++;
                     else if (!isNullableType(type(operand)))
