@@ -50,14 +50,12 @@ final class LiveInstrumentation {
                                 prevFFP.setLower(sf);
 
                             final MethodType mtCaller;
-                            final int b;
                             try {
                                 mtCaller = (MethodType) getMethodType.invoke(memberName.get(sf));
 
                                 final Executable m = lookupMethod(cCaller, mnCaller, mtCaller);
-                                b = (int) bci.get(sf);
-                                final CheckCallSiteFrameInstrumentationReport  report =
-                                    checkCallSiteFrameInstrumentation(cCaller, m, b, upper);
+                                final CheckCallSiteFrameInstrumentationReport report =
+                                    checkCallSiteFrameInstrumentation(cCaller, m, sf.getLineNumber().orElse(-1), upper);
                                 ok = report.isOK();
                                 last = report.last;
 
@@ -119,7 +117,7 @@ final class LiveInstrumentation {
 
     private static
     CheckCallSiteFrameInstrumentationReport
-    checkCallSiteFrameInstrumentation(Class declaringClass, Executable m, int bci, StackWalker.StackFrame upperStackFrame) {
+    checkCallSiteFrameInstrumentation(Class declaringClass, Executable m, int line, StackWalker.StackFrame upperStackFrame) {
         // TODO: factor with corresponding (Java9-ported) Fiber::checkInstrumentation
         final String className = declaringClass.getName();
         final String methodName = m.getName();
@@ -134,15 +132,14 @@ final class LiveInstrumentation {
             && !className.equals(Stack.class.getName()) && !SuspendableHelper.isWaiver(className, methodName)) {
             res.classInstrumented = SuspendableHelper.isInstrumented(declaringClass);
             res.methodInstrumented = SuspendableHelper.isInstrumented(m);
-            // TODO: this needs to check against bcis after instrumentation, not before
-            res.callSiteInstrumented = isCallSiteInstrumented(m, bci, upperStackFrame);
+            res.callSiteInstrumented = isCallSiteInstrumented(m, line, upperStackFrame);
         } else if (Fiber.class.getName().equals(className) && "run1".equals(methodName)) {
             res.last = true;
         }
         return res;
     }
 
-    private static boolean isCallSiteInstrumented(Executable m, int bci, StackWalker.StackFrame upperStackFrame) {
+    private static boolean isCallSiteInstrumented(Executable m, int line, StackWalker.StackFrame upperStackFrame) {
         // TODO: factor with corresponding (Java9-ported) SuspendableHelper::isCallSiteInstrumented
         if (m == null)
             return false;
@@ -150,24 +147,36 @@ final class LiveInstrumentation {
         if (SuspendableHelper.isSyntheticAndNotLambda(m))
             return true;
 
-        if (upperStackFrame != null
-            // `verifySuspend` and `popMethod` calls are not suspendable call sites, not verifying them.
-            && ((Fiber.class.getName().equals(upperStackFrame.getClassName())
-            && "verifySuspend".equals(upperStackFrame.getMethodName())) ||
-            (Stack.class.getName().equals(upperStackFrame.getClassName())
-                && "popMethod".equals(upperStackFrame.getMethodName())))) {
-            return true;
-        } else {
-            final Instrumented i = SuspendableHelper.getAnnotation(m, Instrumented.class);
-            if (i != null) {
-                for (int j : i.suspendableCallSitesBCI()) { // TODO: fill BCIs in instrumentor
-                    if (j == bci)
+        if (upperStackFrame != null) {
+            final String cnCallSite = upperStackFrame.getClassName();
+            final String mnCallSite = upperStackFrame.getMethodName();
+            if ((Fiber.class.getName().equals(cnCallSite) && "verifySuspend".equals(mnCallSite)) ||
+                (Stack.class.getName().equals(upperStackFrame.getClassName()) && "popMethod".equals(mnCallSite))) {
+                return true;
+            }
+
+            final MethodType mtCallSite;
+            try {
+                mtCallSite = (MethodType) getMethodType.invoke(memberName.get(upperStackFrame));
+                // `verifySuspend` and `popMethod` calls are not suspendable call sites, not verifying them.
+            } catch (final IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+            final Instrumented ann = SuspendableHelper.getAnnotation(m, Instrumented.class);
+            if (ann != null) {
+                final int[] callSiteSourceLines = ann.suspendableCallSites();
+                final String[] callSiteSignatures = ann.suspendableSignatures();
+                for (int i = 0 ; i < callSiteSourceLines.length ; i++) {
+                    if (callSiteSourceLines[i] == line  &&
+                        callSiteSignatures[i].equals(mnCallSite + mtCallSite.toMethodDescriptorString()))
                         return true;
                 }
             }
+
+            return false;
         }
 
-        return false;
+        throw new RuntimeException("Checking yield method instrumentation!");
     }
 
     private static class CheckCallSiteFrameInstrumentationReport {
@@ -429,7 +438,7 @@ final class LiveInstrumentation {
     private static Method getLocals, getOperands, getMethodType, primitiveType;
     private static Method booleanValue, byteValue, charValue, shortValue, intValue, floatValue, longValue, doubleValue;
 
-    private static Field memberName, bci;
+    private static Field memberName;
 
     static {
         try {
@@ -459,8 +468,6 @@ final class LiveInstrumentation {
                 final Class<?> stackFrameInfoClass = Class.forName("java.lang.StackFrameInfo");
                 memberName = stackFrameInfoClass.getDeclaredField("memberName");
                 memberName.setAccessible(true);
-                bci = stackFrameInfoClass.getDeclaredField("bci");
-                bci.setAccessible(true);
                 getMethodType = Class.forName("java.lang.invoke.MemberName").getDeclaredMethod("getMethodType");
                 getMethodType.setAccessible(true);
 
