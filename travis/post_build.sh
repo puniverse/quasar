@@ -15,7 +15,7 @@ function error_exit
 if [ "$TRAVIS_BRANCH" == "$DOCS_BRANCH" ]; then
 	echo -e "Installing Jekyll...\n"
 	gem install kramdown
-	gem install jekyll
+	gem install jekyll -v 2.5.3
 	gem install typogruby
 	gem install nokogiri
 
