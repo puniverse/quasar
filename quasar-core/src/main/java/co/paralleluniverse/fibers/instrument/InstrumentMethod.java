@@ -119,6 +119,7 @@ class InstrumentMethod {
     private int startSourceLine = -1;
     private int endSourceLine = -1;
     private int[] suspCallsSourceLines = new int[8];
+    private String[] suspCallsSignatures = new String[8];
     private int[] suspCallsBcis = null;
 
     public InstrumentMethod(MethodDatabase db, String sourceName, String className, MethodNode mn) throws AnalyzerException {
@@ -163,14 +164,20 @@ class InstrumentMethod {
                                 suspCallsBcis = Arrays.copyOf(suspCallsBcis, suspCallsBcis.length * 2);
                             if (count >= suspCallsSourceLines.length)
                                 suspCallsSourceLines = Arrays.copyOf(suspCallsSourceLines, suspCallsSourceLines.length * 2);
+                            if (count >= suspCallsSignatures.length)
+                                suspCallsSignatures = Arrays.copyOf(suspCallsSignatures, suspCallsSignatures.length * 2);
                             suspCallsBcis[count] = i;
                             suspCallsSourceLines[count] = currSourceLine;
+                            suspCallsSignatures[count] = getMethodName(in) + getMethodDesc(in);
                             count++;
                         } else
                             possiblyWarnAboutBlocking(in);
                     }
                 }
             }
+
+            if (count < suspCallsSignatures.length)
+                suspCallsSignatures = Arrays.copyOf(suspCallsSignatures, count);
 
             if (count < suspCallsSourceLines.length)
                 suspCallsSourceLines = Arrays.copyOf(suspCallsSourceLines, count);
@@ -616,27 +623,27 @@ class InstrumentMethod {
             linesAV.visitEnd();
             sb.append("],");
 
-            final AnnotationVisitor bciAV = instrumentedAV.visitArray("suspendableCallSitesBCI");
-            sb.append("suspendableCallSitesBCI=[");
-            for (int i = 0; i < suspCallsBcis.length; i++) {
+            final AnnotationVisitor signaturesAV = instrumentedAV.visitArray("suspendableSignatures");
+            sb.append("suspendableSignatures=[");
+            for (int i = 0; i < suspCallsSignatures.length; i++) {
                 if (i != 0)
                     sb.append(", ");
 
-                final int l = suspCallsBcis[i];
-                bciAV.visit("", l);
+                final String l = suspCallsSignatures[i];
+                signaturesAV.visit("", l);
 
                 sb.append(l);
             }
-            bciAV.visitEnd();
+            signaturesAV.visitEnd();
             sb.append("],");
 
-            instrumentedAV.visit("methodStart", startSourceLine);
-            sb.append("methodStart=").append(startSourceLine).append(",");
-            instrumentedAV.visit("methodEnd", endSourceLine);
-            sb.append("methodEnd=").append(endSourceLine).append(",");
-            instrumentedAV.visit("methodOptimized", skip);
-            sb.append("methodOptimized=").append(skip);
-            instrumentedAV.visitEnd();
+        instrumentedAV.visit("methodStart", startSourceLine);
+        sb.append("methodStart=").append(startSourceLine).append(",");
+        instrumentedAV.visit("methodEnd", endSourceLine);
+        sb.append("methodEnd=").append(endSourceLine).append(",");
+        instrumentedAV.visit("methodOptimized", skip);
+        sb.append("methodOptimized=").append(skip);
+        instrumentedAV.visitEnd();
 
         sb.append(")");
 

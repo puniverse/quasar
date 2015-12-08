@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
  * Marks a class or a method as instrumented - for internal use only!
  * It must never be used in Java source code.
  * 
- * It optionally contains the coordinates (both line numbers and bcis)
+ * It optionally contains the coordinates (line numbers)
  * within a method of instrumented call sites and the source position
  * of the method itself (both for verification, if enabled).
  *
@@ -21,7 +21,7 @@ import java.lang.annotation.Target;
 public @interface Instrumented {
     // Relevant only for methods
     int[] suspendableCallSites() default {};
-    int[] suspendableCallSitesBCI() default {};
+    String[] suspendableSignatures() default {};
     int methodStart() default -1;
     int methodEnd() default -1;
     boolean methodOptimized() default false;
