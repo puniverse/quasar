@@ -25,4 +25,7 @@ public @interface Instrumented {
     int methodStart() default -1;
     int methodEnd() default -1;
     boolean methodOptimized() default false;
+
+    int[] suspendableCallSitesBCIsBeforeInstr() default {};
+    int[] suspendableCallSitesBCIsAfterInstr() default {};
 }

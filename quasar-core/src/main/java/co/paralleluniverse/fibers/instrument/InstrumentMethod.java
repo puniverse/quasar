@@ -59,9 +59,13 @@ import static co.paralleluniverse.fibers.instrument.MethodDatabase.isInvocationH
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isMethodHandleInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isReflectInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isSyntheticAccess;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
+import com.google.common.primitives.Ints;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -99,7 +103,6 @@ class InstrumentMethod {
 //  private static final String INTERRUPTED_EXCEPTION_NAME = Type.getInternalName(InterruptedException.class);
 //  private static final boolean DUAL = true; // true if suspendable methods can be called from regular threads in addition to fibers
     private final MethodDatabase db;
-    private final String sourceName;
     private final String className;
     private final MethodNode mn;
     private final Frame[] frames;
@@ -121,10 +124,10 @@ class InstrumentMethod {
     private int[] suspCallsSourceLines = new int[8];
     private String[] suspCallsSignatures = new String[8];
     private int[] suspCallsBcis = null;
+    private List<Integer> suspCallsBcisAfterInstrL = new ArrayList<>();
 
-    public InstrumentMethod(MethodDatabase db, String sourceName, String className, MethodNode mn) throws AnalyzerException {
+    public InstrumentMethod(MethodDatabase db, String className, MethodNode mn) throws AnalyzerException {
         this.db = db;
-        this.sourceName = sourceName;
         this.className = className;
         this.mn = mn;
 
@@ -298,10 +301,9 @@ class InstrumentMethod {
 
         final boolean skipInstrumentation = canInstrumentationBeSkipped(suspCallsBcis);
 
-        emitInstrumentedAnn(mv, skipInstrumentation);
-
         if (skipInstrumentation) {
             db.log(LogLevel.INFO, "[OPTIMIZE] Skipping instrumentation for method %s#%s%s", className, mn.name, mn.desc);
+            emitInstrumentedAnn(mv, null, true);
             mn.accept(mv); // Dump
             return;
         }
@@ -311,6 +313,7 @@ class InstrumentMethod {
 
         final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS && callsSuspendableSupers;
 
+        int bci = 0;
         mv.visitCode();
 
         Label lMethodStart = new Label();
@@ -325,12 +328,12 @@ class InstrumentMethod {
         for (int i = 1; i < numCodeBlocks; i++)
             lMethodCalls[i - 1] = new Label();
 
-        mv.visitInsn(Opcodes.ACONST_NULL);
-        mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationReturnValue);
+        mv.visitInsn(Opcodes.ACONST_NULL); bci++;
+        mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationReturnValue); bci++;
 
 //        if (verifyInstrumentation) {
-//            mv.visitInsn(Opcodes.ICONST_0);
-//            mv.visitVarInsn(Opcodes.ISTORE, lvarSuspendableCalled);
+//            mv.visitInsn(Opcodes.ICONST_0); bci++;
+//            mv.visitVarInsn(Opcodes.ISTORE, lvarSuspendableCalled); bci++;
 //        }
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, SUSPEND_EXECUTION_NAME);
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchSEE, RUNTIME_SUSPEND_EXECUTION_NAME);
@@ -347,7 +350,7 @@ class InstrumentMethod {
             final FrameInfo fi = codeBlocks[i];
             final AbstractInsnNode in = mn.instructions.get(fi.endInstruction);
             if (mn.instructions.get(fi.endInstruction) instanceof MethodInsnNode) {
-                MethodInsnNode min = (MethodInsnNode) in;
+                final MethodInsnNode min = (MethodInsnNode) in;
                 if (isReflectInvocation(min.owner, min.name)) {
                     Label[] ls = new Label[3];
                     for (int k = 0; k < 3; k++)
@@ -359,7 +362,7 @@ class InstrumentMethod {
         }
 
         // Output try-catch blocks
-        for (Object o : mn.tryCatchBlocks) {
+        for (final Object o : mn.tryCatchBlocks) {
             final TryCatchBlockNode tcb = (TryCatchBlockNode) o;
 
             if (SUSPEND_EXECUTION_NAME.equals(tcb.type) && !hasAnnotation) // we allow catch of SuspendExecution in method annotated with @Suspendable.
@@ -380,7 +383,7 @@ class InstrumentMethod {
 
         // Output method annotations
         if (mn.visibleAnnotations != null) {
-            for (Object o : mn.visibleAnnotations) {
+            for (final Object o : mn.visibleAnnotations) {
                 AnnotationNode an = (AnnotationNode) o;
                 an.accept(mv.visitAnnotation(an.desc, true));
             }
@@ -388,42 +391,42 @@ class InstrumentMethod {
 
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchAll, null);
 
-        mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false);
-        mv.visitInsn(Opcodes.DUP);
-        mv.visitVarInsn(Opcodes.ASTORE, lvarStack);
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); bci++;
+        mv.visitInsn(Opcodes.DUP); bci++;
+        mv.visitVarInsn(Opcodes.ASTORE, lvarStack); bci++;
 
         // println(mv, "STACK: ", lvarStack);
-        // dumpStack(mv);
+        // bci = dumpStack(bci, mv);
         // DUAL
-        mv.visitJumpInsn(Opcodes.IFNULL, lMethodStart);
-        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+        mv.visitJumpInsn(Opcodes.IFNULL, lMethodStart); bci++;
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack); bci++;
 
-        emitStoreResumed(mv, true); // we'll assume we have been resumed
+        bci = emitStoreResumed(bci, mv, true); // we'll assume we have been resumed
 
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "nextMethodEntry", "()I", false);
-        mv.visitTableSwitchInsn(1, numCodeBlocks - 1, lMethodStart2, lMethodCalls);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "nextMethodEntry", "()I", false); bci++;
+        mv.visitTableSwitchInsn(1, numCodeBlocks - 1, lMethodStart2, lMethodCalls); bci++;
 
         mv.visitLabel(lMethodStart2);
 
         // the following code handles the case of an instrumented method called not as part of a suspendable code path
         // isFirstInStack will return false in that case.
-        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "isFirstInStackOrPushed", "()Z", false);
-        mv.visitJumpInsn(Opcodes.IFNE, lMethodStart); // if true
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack); bci++;
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "isFirstInStackOrPushed", "()Z", false); bci++;
+        mv.visitJumpInsn(Opcodes.IFNE, lMethodStart); bci++; // if true
 
         // This will reset the fiber stack local if isFirstStack returns false.
-        mv.visitInsn(Opcodes.ACONST_NULL);
-        mv.visitVarInsn(Opcodes.ASTORE, lvarStack);
+        mv.visitInsn(Opcodes.ACONST_NULL); bci++;
+        mv.visitVarInsn(Opcodes.ASTORE, lvarStack); bci++;
 
         mv.visitLabel(lMethodStart);
 
-        emitStoreResumed(mv, false); // no, we have not been resumed
+        bci = emitStoreResumed(bci, mv, false); // no, we have not been resumed
 
-        dumpCodeBlock(mv, 0, 0);
+        bci = dumpCodeBlock(bci, mv, 0, 0, -1);
 
         // Blocks leading to suspendable calls
         for (int i = 1; i < numCodeBlocks; i++) {
-            FrameInfo fi = codeBlocks[i];
+            final FrameInfo fi = codeBlocks[i];
 
             // Emit instrumented call
             final AbstractInsnNode min = mn.instructions.get(fi.endInstruction);
@@ -435,40 +438,43 @@ class InstrumentMethod {
                 final int numYieldArgs = TypeAnalyzer.getNumArguments(desc);
                 final boolean yieldReturnsValue = (Type.getReturnType(desc) != Type.VOID_TYPE);
 
-                emitStoreState(mv, i, fi, numYieldArgs); // we preserve the arguments for the call to yield on the operand stack
-                emitStoreResumed(mv, false); // we have not been resumed
+                bci = emitStoreState(bci, mv, i, fi, numYieldArgs); // we preserve the arguments for the call to yield on the operand stack
+                bci = emitStoreResumed(bci, mv, false); // we have not been resumed
                 // emitSuspendableCalled(mv);
 
                 min.accept(mv);                              // we call the yield method
+                suspCallsBcisAfterInstrL.add(bci);
+                bci++;
+
                 if (yieldReturnsValue)
-                    mv.visitInsn(Opcodes.POP);               // we ignore the returned value...
+                    mv.visitInsn(Opcodes.POP); bci++;        // we ignore the returned value...
                 mv.visitLabel(lMethodCalls[i - 1]);          // we resume AFTER the call
 
                 final Label afterPostRestore = new Label();
-                mv.visitVarInsn(Opcodes.ILOAD, lvarResumed);
-                mv.visitJumpInsn(Opcodes.IFEQ, afterPostRestore);
-                emitPostRestore(mv);
+                mv.visitVarInsn(Opcodes.ILOAD, lvarResumed); bci++;
+                mv.visitJumpInsn(Opcodes.IFEQ, afterPostRestore); bci++;
+                bci = emitPostRestore(bci, mv);
                 mv.visitLabel(afterPostRestore);
 
-                emitRestoreState(mv, i, fi, numYieldArgs);
+                bci = emitRestoreState(bci, mv, i, fi, numYieldArgs);
                 if (yieldReturnsValue)
-                    mv.visitVarInsn(Opcodes.ILOAD, lvarResumed); // ... and replace the returned value with the value of resumed
+                    mv.visitVarInsn(Opcodes.ILOAD, lvarResumed); bci++; // ... and replace the returned value with the value of resumed
 
-                dumpCodeBlock(mv, i, 1 /* skip the call */);
+                bci = dumpCodeBlock(bci, mv, i, 1 /* skip the call */, -1);
             } else {
                 final Label lbl = new Label();
 
                 // DUAL
-                mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-                mv.visitJumpInsn(Opcodes.IFNULL, lbl);
+                mv.visitVarInsn(Opcodes.ALOAD, lvarStack); bci++;
+                mv.visitJumpInsn(Opcodes.IFNULL, lbl); bci++;
 
                 // normal case - call to a suspendable method - resume before the call
-                emitStoreState(mv, i, fi, 0);
-                emitStoreResumed(mv, false); // we have not been resumed
+                bci = emitStoreState(bci, mv, i, fi, 0);
+                bci = emitStoreResumed(bci, mv, false); // we have not been resumed
                 // emitPreemptionPoint(mv, PREEMPTION_CALL);
 
                 mv.visitLabel(lMethodCalls[i - 1]);
-                emitRestoreState(mv, i, fi, 0);
+                bci = emitRestoreState(bci, mv, i, fi, 0);
 
                 // DUAL
                 mv.visitLabel(lbl);
@@ -484,58 +490,196 @@ class InstrumentMethod {
 
                     // mv.visitTryCatchBlock(startTry, endTry, startCatch, "java/lang/reflect/InvocationTargetException");
                     mv.visitLabel(startTry);   // try {
+
                     min.accept(mv);            //   method.invoke()
-                    mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationReturnValue); // save return value
+                    suspCallsBcisAfterInstrL.add(bci);
+                    bci++;
+
+                    mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationReturnValue); bci++; // save return value
                     mv.visitLabel(endTry);     // }
-                    mv.visitJumpInsn(Opcodes.GOTO, endCatch);
+                    mv.visitJumpInsn(Opcodes.GOTO, endCatch); bci++;
                     mv.visitLabel(startCatch); // catch(InvocationTargetException ex) {
-                    mv.visitInsn(Opcodes.DUP);
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
-                    mv.visitTypeInsn(Opcodes.INSTANCEOF, SUSPEND_EXECUTION_NAME);
-                    mv.visitJumpInsn(Opcodes.IFEQ, notSuspendExecution);
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
+                    mv.visitInsn(Opcodes.DUP); bci++;
+                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false); bci++;
+                    mv.visitTypeInsn(Opcodes.INSTANCEOF, SUSPEND_EXECUTION_NAME); bci++;
+                    mv.visitJumpInsn(Opcodes.IFEQ, notSuspendExecution); bci++;
+                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false); bci++;
                     mv.visitLabel(notSuspendExecution);
-                    mv.visitInsn(Opcodes.ATHROW);
+                    mv.visitInsn(Opcodes.ATHROW); bci++;
                     mv.visitLabel(endCatch);
 
-                    mv.visitVarInsn(Opcodes.ALOAD, lvarInvocationReturnValue); // restore return value
-                    dumpCodeBlock(mv, i, 1 /* skip the call */);
+                    mv.visitVarInsn(Opcodes.ALOAD, lvarInvocationReturnValue); bci++; // restore return value
+                    bci = dumpCodeBlock(bci, mv, i, 1 /* skip the call */, -1);
                 } else {
                     // emitSuspendableCalled(mv);
-                    dumpCodeBlock(mv, i, 0);
+                    bci = dumpCodeBlock(bci, mv, i, 0, 0);
                 }
             }
         }
+
+        emitInstrumentedAnn(mv, Ints.toArray(suspCallsBcisAfterInstrL), false);
 
         // Emit catchall's catch section
         mv.visitLabel(lMethodEnd);
 
         if (handleProxyInvocations) {
             mv.visitLabel(lCatchUTE);
-            mv.visitInsn(Opcodes.DUP);
+            mv.visitInsn(Opcodes.DUP); bci++;
 
             // println(mv, "CTCH: ");
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false); bci++;
             // println(mv, "CAUSE: ");
-            mv.visitTypeInsn(Opcodes.INSTANCEOF, SUSPEND_EXECUTION_NAME);
-            mv.visitJumpInsn(Opcodes.IFEQ, lCatchAll);
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
-            mv.visitJumpInsn(Opcodes.GOTO, lCatchSEE);
+            mv.visitTypeInsn(Opcodes.INSTANCEOF, SUSPEND_EXECUTION_NAME); bci++;
+            mv.visitJumpInsn(Opcodes.IFEQ, lCatchAll); bci++;
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false); bci++;
+            mv.visitJumpInsn(Opcodes.GOTO, lCatchSEE); bci++;
         }
 
         mv.visitLabel(lCatchAll);
-        emitPopMethod(mv);
+        bci = emitPopMethod(bci, mv);
         mv.visitLabel(lCatchSEE);
 
         // println(mv, "THROW: ");
-        mv.visitInsn(Opcodes.ATHROW);   // rethrow shared between catchAll and catchSSE
+        mv.visitInsn(Opcodes.ATHROW); bci++;   // rethrow shared between catchAll and catchSSE
 
         if (mn.localVariables != null) {
             for (Object o : mn.localVariables)
                 ((LocalVariableNode) o).accept(mv);
         }
         mv.visitMaxs(mn.maxStack + ADD_OPERANDS, mn.maxLocals + NUM_LOCALS + additionalLocals); // Needed by ASM analysis
+
         mv.visitEnd();
+    }
+
+    private int dumpCodeBlock(int bci, MethodVisitor mv, int idx, int skip, int suspCallRelIdx) {
+        int start = codeBlocks[idx].endInstruction;
+        int end = codeBlocks[idx + 1].endInstruction;
+
+        for (int i = start + skip, j = 0; i < end; i++, j++) {
+            final AbstractInsnNode ins = mn.instructions.get(i);
+
+            switch (ins.getOpcode()) {
+                case Opcodes.RETURN:
+                case Opcodes.ARETURN:
+                case Opcodes.IRETURN:
+                case Opcodes.LRETURN:
+                case Opcodes.FRETURN:
+                case Opcodes.DRETURN:
+                    bci = emitPopMethod(bci, mv);
+                    break;
+
+                case Opcodes.MONITORENTER:
+                case Opcodes.MONITOREXIT:
+                    if (!db.isAllowMonitors()) {
+                        if (!className.equals("clojure/lang/LazySeq"))
+                            throw new UnableToInstrumentException("synchronization", className, mn.name, mn.desc);
+                    } else if (!warnedAboutMonitors) {
+                        warnedAboutMonitors = true;
+                        db.log(LogLevel.WARNING, "Method %s#%s%s contains synchronization", className, mn.name, mn.desc);
+                    }
+                    break;
+
+                case Opcodes.INVOKESPECIAL:
+                    final MethodInsnNode min = (MethodInsnNode) ins;
+                    if ("<init>".equals(min.name)) {
+                        int argSize = TypeAnalyzer.getNumArguments(min.desc);
+                        Frame frame = frames[i];
+                        int stackIndex = frame.getStackSize() - argSize - 1;
+                        Value thisValue = frame.getStack(stackIndex);
+                        if (stackIndex >= 1
+                            && isNewValue(thisValue, true)
+                            && isNewValue(frame.getStack(stackIndex - 1), false)) {
+                            if (isOmitted((NewValue) thisValue))
+                                bci = emitNewAndDup(bci, mv, frame, stackIndex, min); // explanation in emitNewAndDup
+                        } else {
+                            db.log(LogLevel.WARNING, "Expected to find a NewValue on stack index %d: %s", stackIndex, frame);
+                        }
+                    }
+                    break;
+            }
+
+            ins.accept(mv); bci++;
+            if (j == suspCallRelIdx)
+                suspCallsBcisAfterInstrL.add(bci);
+        }
+
+        return bci;
+    }
+
+    public void emitInstrumentedAnn(MethodVisitor mv, int[] suspBcis, boolean optimized) {
+        final StringBuilder sb = new StringBuilder();
+        final AnnotationVisitor instrumentedAV = mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
+        sb.append("@Instrumented(");
+
+        final AnnotationVisitor linesAV = instrumentedAV.visitArray("suspendableCallSites");
+        sb.append("suspendableCallSites=[");
+        for (int i = 0; i < suspCallsSourceLines.length; i++) {
+            if (i != 0)
+                sb.append(", ");
+
+            final int l = suspCallsSourceLines[i];
+            linesAV.visit("", l);
+
+            sb.append(l);
+        }
+        linesAV.visitEnd();
+        sb.append("],");
+
+        final AnnotationVisitor signaturesAV = instrumentedAV.visitArray("suspendableSignatures");
+        sb.append("suspendableSignatures=[");
+        for (int i = 0; i < suspCallsSignatures.length; i++) {
+            if (i != 0)
+                sb.append(", ");
+
+            final String l = suspCallsSignatures[i];
+            signaturesAV.visit("", l);
+
+            sb.append(l);
+        }
+        signaturesAV.visitEnd();
+        sb.append("],");
+
+        final AnnotationVisitor suspCallsBcisBeforeAV = instrumentedAV.visitArray("suspendableCallSitesBCIsBeforeInstr");
+        sb.append("suspendableCallSitesBCIsBeforeInstr=[");
+        for (int i = 0; i < suspCallsBcis.length; i++) {
+            if (i != 0)
+                sb.append(", ");
+
+            final int l = suspCallsBcis[i];
+            suspCallsBcisBeforeAV.visit("", l);
+
+            sb.append(l);
+        }
+        suspCallsBcisBeforeAV.visitEnd();
+        sb.append("],");
+
+        if (suspBcis != null) {
+            final AnnotationVisitor suspCallsBcisAfterAV = instrumentedAV.visitArray("suspendableCallSitesBCIsAfterInstr");
+            sb.append("suspendableCallSitesBCIsAfterInstr=[");
+            for (int i = 0; i < suspBcis.length; i++) {
+                if (i != 0)
+                    sb.append(", ");
+
+                final int l = suspBcis[i];
+                suspCallsBcisAfterAV.visit("", l);
+
+                sb.append(l);
+            }
+            suspCallsBcisAfterAV.visitEnd();
+            sb.append("],");
+        }
+
+        instrumentedAV.visit("methodStart", startSourceLine);
+        sb.append("methodStart=").append(startSourceLine).append(",");
+        instrumentedAV.visit("methodEnd", endSourceLine);
+        sb.append("methodEnd=").append(endSourceLine).append(",");
+        instrumentedAV.visit("methodOptimized", optimized);
+        sb.append("methodOptimized=").append(optimized);
+        instrumentedAV.visitEnd();
+
+        sb.append(")");
+
+        db.log(LogLevel.DEBUG, "Annotating method %s#%s%s with %s", className, mn.name, mn.desc, sb);
     }
 
     private boolean canInstrumentationBeSkipped(int[] susCallsIndexes) {
@@ -604,54 +748,9 @@ class InstrumentMethod {
         return false;
     }
 
-    private void emitInstrumentedAnn(MethodVisitor mv, boolean skip) {
-        final StringBuilder sb = new StringBuilder();
-        final AnnotationVisitor instrumentedAV = mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
-        sb.append("@Instrumented(");
-
-            final AnnotationVisitor linesAV = instrumentedAV.visitArray("suspendableCallSites");
-            sb.append("suspendableCallSites=[");
-            for (int i = 0; i < suspCallsSourceLines.length; i++) {
-                if (i != 0)
-                    sb.append(", ");
-
-                final int l = suspCallsSourceLines[i];
-                linesAV.visit("", l);
-
-                sb.append(l);
-            }
-            linesAV.visitEnd();
-            sb.append("],");
-
-            final AnnotationVisitor signaturesAV = instrumentedAV.visitArray("suspendableSignatures");
-            sb.append("suspendableSignatures=[");
-            for (int i = 0; i < suspCallsSignatures.length; i++) {
-                if (i != 0)
-                    sb.append(", ");
-
-                final String l = suspCallsSignatures[i];
-                signaturesAV.visit("", l);
-
-                sb.append(l);
-            }
-            signaturesAV.visitEnd();
-            sb.append("],");
-
-        instrumentedAV.visit("methodStart", startSourceLine);
-        sb.append("methodStart=").append(startSourceLine).append(",");
-        instrumentedAV.visit("methodEnd", endSourceLine);
-        sb.append("methodEnd=").append(endSourceLine).append(",");
-        instrumentedAV.visit("methodOptimized", skip);
-        sb.append("methodOptimized=").append(skip);
-        instrumentedAV.visitEnd();
-
-        sb.append(")");
-
-        db.log(LogLevel.DEBUG, "Annotating method %s#%s%s with %s", className, mn.name, mn.desc, sb);
-    }
-
-    private void dumpStack(MethodVisitor mv) {
+    private int dumpStack(int bci, MethodVisitor mv) {
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "dumpStack", "()V", false);
+        return bci + 1;
     }
 
     private FrameInfo addCodeBlock(Frame f, int end) {
@@ -665,9 +764,10 @@ class InstrumentMethod {
         return fi;
     }
 
-    private void emitStoreResumed(MethodVisitor mv, boolean value) {
-        mv.visitInsn(value ? Opcodes.ICONST_1 : Opcodes.ICONST_0);
-        mv.visitVarInsn(Opcodes.ISTORE, lvarResumed);
+    private int emitStoreResumed(int bci, MethodVisitor mv, boolean value) {
+        mv.visitInsn(value ? Opcodes.ICONST_1 : Opcodes.ICONST_0); bci++;
+        mv.visitVarInsn(Opcodes.ISTORE, lvarResumed); bci++;
+        return bci;
     }
 
     private int getLabelIdx(LabelNode l) {
@@ -718,57 +818,6 @@ class InstrumentMethod {
         }
     }
 
-    private void dumpCodeBlock(MethodVisitor mv, int idx, int skip) {
-        int start = codeBlocks[idx].endInstruction;
-        int end = codeBlocks[idx + 1].endInstruction;
-
-        for (int i = start + skip; i < end; i++) {
-            AbstractInsnNode ins = mn.instructions.get(i);
-
-            switch (ins.getOpcode()) {
-                case Opcodes.RETURN:
-                case Opcodes.ARETURN:
-                case Opcodes.IRETURN:
-                case Opcodes.LRETURN:
-                case Opcodes.FRETURN:
-                case Opcodes.DRETURN:
-                    emitPopMethod(mv);
-                    break;
-
-                case Opcodes.MONITORENTER:
-                case Opcodes.MONITOREXIT:
-                    if (!db.isAllowMonitors()) {
-                        if (!className.equals("clojure/lang/LazySeq"))
-                            throw new UnableToInstrumentException("synchronization", className, mn.name, mn.desc);
-                    } else if (!warnedAboutMonitors) {
-                        warnedAboutMonitors = true;
-                        db.log(LogLevel.WARNING, "Method %s#%s%s contains synchronization", className, mn.name, mn.desc);
-                    }
-                    break;
-
-                case Opcodes.INVOKESPECIAL:
-                    MethodInsnNode min = (MethodInsnNode) ins;
-                    if ("<init>".equals(min.name)) {
-                        int argSize = TypeAnalyzer.getNumArguments(min.desc);
-                        Frame frame = frames[i];
-                        int stackIndex = frame.getStackSize() - argSize - 1;
-                        Value thisValue = frame.getStack(stackIndex);
-                        if (stackIndex >= 1
-                                && isNewValue(thisValue, true)
-                                && isNewValue(frame.getStack(stackIndex - 1), false)) {
-                            if (isOmitted((NewValue) thisValue))
-                                emitNewAndDup(mv, frame, stackIndex, min); // explanation in emitNewAndDup
-                        } else {
-                            db.log(LogLevel.WARNING, "Expected to find a NewValue on stack index %d: %s", stackIndex, frame);
-                        }
-                    }
-                    break;
-            }
-
-            ins.accept(mv);
-        }
-    }
-
     private static void dumpParameterAnnotations(MethodVisitor mv, List[] parameterAnnotations, boolean visible) {
         for (int i = 0; i < parameterAnnotations.length; i++) {
             if (parameterAnnotations[i] != null) {
@@ -780,7 +829,7 @@ class InstrumentMethod {
         }
     }
 
-    private static void emitConst(MethodVisitor mv, int value) {
+    private static int emitConst(int bci, MethodVisitor mv, int value) {
         if (value >= -1 && value <= 5)
             mv.visitInsn(Opcodes.ICONST_0 + value);
         else if ((byte) value == value)
@@ -789,13 +838,17 @@ class InstrumentMethod {
             mv.visitIntInsn(Opcodes.SIPUSH, value);
         else
             mv.visitLdcInsn(value);
+
+        return bci + 1;
     }
 
-    private static void emitConst(MethodVisitor mv, String value) {
+    private static int emitConst(int bci, MethodVisitor mv, String value) {
         mv.visitLdcInsn(value);
+
+        return bci + 1;
     }
 
-    private void emitNewAndDup(MethodVisitor mv, Frame frame, int stackIndex, MethodInsnNode min) {
+    private int emitNewAndDup(int bci, MethodVisitor mv, Frame frame, int stackIndex, MethodInsnNode min) {
         /*
          * This method, and the entire NewValue business has to do with dealing with the following case:
          * 
@@ -819,43 +872,47 @@ class InstrumentMethod {
          *   INVOKESPECIAL Foo.<init>
          *
          */
-        int arguments = frame.getStackSize() - stackIndex - 1;
+        final int arguments = frame.getStackSize() - stackIndex - 1;
         int neededLocals = 0;
         for (int i = arguments; i >= 1; i--) {
             BasicValue v = (BasicValue) frame.getStack(stackIndex + i);
-            mv.visitVarInsn(v.getType().getOpcode(Opcodes.ISTORE), lvarStack + NUM_LOCALS + neededLocals);
+            mv.visitVarInsn(v.getType().getOpcode(Opcodes.ISTORE), lvarStack + NUM_LOCALS + neededLocals); bci++;
             neededLocals += v.getSize();
         }
         if (additionalLocals < neededLocals)
             additionalLocals = neededLocals;
 
         db.log(LogLevel.DEBUG, "Inserting NEW & DUP for constructor call %s%s with %d arguments (%d locals)", min.owner, min.desc, arguments, neededLocals);
-        ((NewValue) frame.getStack(stackIndex - 1)).insn.accept(mv);
-        ((NewValue) frame.getStack(stackIndex)).insn.accept(mv);
+        ((NewValue) frame.getStack(stackIndex - 1)).insn.accept(mv); bci++;
+        ((NewValue) frame.getStack(stackIndex)).insn.accept(mv); bci++;
 
         for (int i = 1; i <= arguments; i++) {
             BasicValue v = (BasicValue) frame.getStack(stackIndex + i);
             neededLocals -= v.getSize();
-            mv.visitVarInsn(v.getType().getOpcode(Opcodes.ILOAD), lvarStack + NUM_LOCALS + neededLocals);
+            mv.visitVarInsn(v.getType().getOpcode(Opcodes.ILOAD), lvarStack + NUM_LOCALS + neededLocals); bci++;
         }
+
+        return bci;
     }
 
-    private void emitPopMethod(MethodVisitor mv) {
+    private int emitPopMethod(int bci, MethodVisitor mv) {
 //        emitVerifyInstrumentation(mv);
 
         final Label lbl = new Label();
         // DUAL
-        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        mv.visitJumpInsn(Opcodes.IFNULL, lbl);
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack); bci++;
+        mv.visitJumpInsn(Opcodes.IFNULL, lbl); bci++;
 
-        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "popMethod", "()V", false);
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack); bci++;
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "popMethod", "()V", false); bci++;
 
         // DUAL
         mv.visitLabel(lbl);
+
+        return bci;
     }
 
-    private void emitStoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsToPreserve) {
+    private int emitStoreState(int bci, MethodVisitor mv, int idx, FrameInfo fi, int numArgsToPreserve) {
         if (idx > Stack.MAX_ENTRY)
             throw new IllegalArgumentException("Entry index (PC) " + idx + " greater than maximum of " + Stack.MAX_ENTRY + " in " + className + "." + mn.name + mn.desc);
         if (fi.numSlots > Stack.MAX_SLOTS)
@@ -866,10 +923,10 @@ class InstrumentMethod {
         if (fi.lBefore != null)
             fi.lBefore.accept(mv);
 
-        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        emitConst(mv, idx);
-        emitConst(mv, fi.numSlots);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "pushMethod", "(II)V", false);
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack); bci++;
+        bci = emitConst(bci, mv, idx);
+        bci = emitConst(bci, mv, fi.numSlots);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "pushMethod", "(II)V", false); bci++;
 
         // store operand stack
         for (int i = f.getStackSize(); i-- > 0;) {
@@ -878,10 +935,10 @@ class InstrumentMethod {
                 if (!isNullType(v)) {
                     int slotIdx = fi.stackSlotIndices[i];
                     assert slotIdx >= 0 && slotIdx < fi.numSlots;
-                    emitStoreValue(mv, v, lvarStack, slotIdx, -1);
+                    bci = emitStoreValue(bci, mv, v, lvarStack, slotIdx, -1);
                 } else {
                     db.log(LogLevel.DEBUG, "NULL stack entry: type=%s size=%d", v.getType(), v.getSize());
-                    mv.visitInsn(Opcodes.POP);
+                    mv.visitInsn(Opcodes.POP); bci++;
                 }
             }
         }
@@ -890,10 +947,10 @@ class InstrumentMethod {
         for (int i = firstLocal; i < f.getLocals(); i++) {
             BasicValue v = (BasicValue) f.getLocal(i);
             if (!isNullType(v)) {
-                mv.visitVarInsn(v.getType().getOpcode(Opcodes.ILOAD), i);
+                mv.visitVarInsn(v.getType().getOpcode(Opcodes.ILOAD), i); bci++;
                 int slotIdx = fi.localSlotIndices[i];
                 assert slotIdx >= 0 && slotIdx < fi.numSlots;
-                emitStoreValue(mv, v, lvarStack, slotIdx, i);
+                bci = emitStoreValue(bci, mv, v, lvarStack, slotIdx, i);
             }
         }
 
@@ -904,74 +961,82 @@ class InstrumentMethod {
                 if (!isNullType(v)) {
                     int slotIdx = fi.stackSlotIndices[i];
                     assert slotIdx >= 0 && slotIdx < fi.numSlots;
-                    emitRestoreValue(mv, v, lvarStack, slotIdx, -1);
+                    bci = emitRestoreValue(bci, mv, v, lvarStack, slotIdx, -1);
                 } else
-                    mv.visitInsn(Opcodes.ACONST_NULL);
+                    mv.visitInsn(Opcodes.ACONST_NULL); bci++;
             }
         }
+
+        return bci;
     }
 
-    private void emitRestoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsPreserved) {
+    private int emitRestoreState(int bci, MethodVisitor mv, int idx, FrameInfo fi, int numArgsPreserved) {
         Frame f = frames[fi.endInstruction];
 
         // restore local vars
         for (int i = firstLocal; i < f.getLocals(); i++) {
-            BasicValue v = (BasicValue) f.getLocal(i);
+            final BasicValue v = (BasicValue) f.getLocal(i);
             if (!isNullType(v)) {
                 int slotIdx = fi.localSlotIndices[i];
                 assert slotIdx >= 0 && slotIdx < fi.numSlots;
-                emitRestoreValue(mv, v, lvarStack, slotIdx, i);
-                mv.visitVarInsn(v.getType().getOpcode(Opcodes.ISTORE), i);
+                bci = emitRestoreValue(bci, mv, v, lvarStack, slotIdx, i);
+                mv.visitVarInsn(v.getType().getOpcode(Opcodes.ISTORE), i); bci++;
             } else if (v != BasicValue.UNINITIALIZED_VALUE) {
-                mv.visitInsn(Opcodes.ACONST_NULL);
-                mv.visitVarInsn(Opcodes.ASTORE, i);
+                mv.visitInsn(Opcodes.ACONST_NULL); bci++;
+                mv.visitVarInsn(Opcodes.ASTORE, i); bci++;
             }
         }
 
         // restore operand stack
         for (int i = 0; i < f.getStackSize() - numArgsPreserved; i++) {
-            BasicValue v = (BasicValue) f.getStack(i);
+            final BasicValue v = (BasicValue) f.getStack(i);
             if (!isOmitted(v)) {
                 if (!isNullType(v)) {
                     int slotIdx = fi.stackSlotIndices[i];
                     assert slotIdx >= 0 && slotIdx < fi.numSlots;
-                    emitRestoreValue(mv, v, lvarStack, slotIdx, -1);
+                    bci = emitRestoreValue(bci, mv, v, lvarStack, slotIdx, -1);
                 } else
-                    mv.visitInsn(Opcodes.ACONST_NULL);
+                    mv.visitInsn(Opcodes.ACONST_NULL); bci++;
             }
         }
 
         if (fi.lAfter != null)
             fi.lAfter.accept(mv);
+
+        return bci;
     }
 
-    private void emitPostRestore(MethodVisitor mv) {
-        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "postRestore", "()V", false);
+    private int emitPostRestore(int bci, MethodVisitor mv) {
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack); bci++;
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "postRestore", "()V", false); bci++;
+
+        return bci;
     }
 
-    private void emitPreemptionPoint(MethodVisitor mv, int type) {
-        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+    private int emitPreemptionPoint(int bci, MethodVisitor mv, int type) {
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack); bci++;
         switch (type) {
             case 0:
-                mv.visitInsn(Opcodes.ICONST_0);
+                mv.visitInsn(Opcodes.ICONST_0); bci++;
                 break;
             case 1:
-                mv.visitInsn(Opcodes.ICONST_1);
+                mv.visitInsn(Opcodes.ICONST_1); bci++;
                 break;
             case 2:
-                mv.visitInsn(Opcodes.ICONST_2);
+                mv.visitInsn(Opcodes.ICONST_2); bci++;
                 break;
             case 3:
-                mv.visitInsn(Opcodes.ICONST_3);
+                mv.visitInsn(Opcodes.ICONST_3); bci++;
                 break;
             default:
                 throw new AssertionError("Unsupported type: " + type);
         }
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "preemptionPoint", "(I)V", false);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "preemptionPoint", "(I)V", false); bci++;
+
+        return bci;
     }
 
-    private void emitStoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx, int lvar) throws InternalError, IndexOutOfBoundsException {
+    private int emitStoreValue(int bci, MethodVisitor mv, BasicValue v, int lvarStack, int idx, int lvar) throws InternalError, IndexOutOfBoundsException {
         String desc;
 
         switch (v.getType().getSort()) {
@@ -999,57 +1064,61 @@ class InstrumentMethod {
                 throw new InternalError("Unexpected type: " + v.getType());
         }
 
-        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack); bci++;
 //        if (v.getType().getSort() == Type.OBJECT || v.getType().getSort() == Type.ARRAY)
 //            println(mv, "STORE " + (lvar >= 0 ? ("VAR " + lvar + ": ") : "OPRND: "));
-        emitConst(mv, idx);
-        mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "push", desc, false);
+        bci = emitConst(bci, mv, idx);
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "push", desc, false); bci++;
+
+        return bci;
     }
 
-    private void emitRestoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx, int lvar) {
-        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        emitConst(mv, idx);
+    private int emitRestoreValue(int bci, MethodVisitor mv, BasicValue v, int lvarStack, int idx, int lvar) {
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack); bci++;
+        bci = emitConst(bci, mv, idx);
 
         switch (v.getType().getSort()) {
             case Type.OBJECT:
-                String internalName = v.getType().getInternalName();
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getObject", "(I)Ljava/lang/Object;", false);
+                final String internalName = v.getType().getInternalName();
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getObject", "(I)Ljava/lang/Object;", false); bci++;
                 if (!internalName.equals("java/lang/Object"))  // don't cast to Object ;)
-                    mv.visitTypeInsn(Opcodes.CHECKCAST, internalName);
+                    mv.visitTypeInsn(Opcodes.CHECKCAST, internalName); bci++;
 //                println(mv, "RESTORE " + (lvar >= 0 ? ("VAR " + lvar + ": ") : "OPRND: "));
                 break;
             case Type.ARRAY:
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getObject", "(I)Ljava/lang/Object;", false);
-                mv.visitTypeInsn(Opcodes.CHECKCAST, v.getType().getDescriptor());
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getObject", "(I)Ljava/lang/Object;", false); bci++;
+                mv.visitTypeInsn(Opcodes.CHECKCAST, v.getType().getDescriptor()); bci++;
                 break;
             case Type.BYTE:
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getInt", "(I)I", false);
-                mv.visitInsn(Opcodes.I2B);
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getInt", "(I)I", false); bci++;
+                mv.visitInsn(Opcodes.I2B); bci++;
                 break;
             case Type.SHORT:
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getInt", "(I)I", false);
-                mv.visitInsn(Opcodes.I2S);
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getInt", "(I)I", false); bci++;
+                mv.visitInsn(Opcodes.I2S); bci++;
                 break;
             case Type.CHAR:
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getInt", "(I)I", false);
-                mv.visitInsn(Opcodes.I2C);
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getInt", "(I)I", false); bci++;
+                mv.visitInsn(Opcodes.I2C); bci++;
                 break;
             case Type.BOOLEAN:
             case Type.INT:
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getInt", "(I)I", false);
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getInt", "(I)I", false); bci++;
                 break;
             case Type.FLOAT:
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getFloat", "(I)F", false);
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getFloat", "(I)F", false); bci++;
                 break;
             case Type.LONG:
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getLong", "(I)J", false);
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getLong", "(I)J", false); bci++;
                 break;
             case Type.DOUBLE:
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getDouble", "(I)D", false);
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getDouble", "(I)D", false); bci++;
                 break;
             default:
                 throw new InternalError("Unexpected type: " + v.getType());
         }
+
+        return bci;
     }
 
     static boolean isNullType(BasicValue v) {
@@ -1192,47 +1261,51 @@ class InstrumentMethod {
     }
 
     // prints a local var
-    private void println(MethodVisitor mv, String prefix, int refVar) {
-        mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "err", "Ljava/io/PrintStream;");
-        mv.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
-        mv.visitInsn(Opcodes.DUP);
-        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false);
-        mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "currentThread", "()Ljava/lang/Thread;", false);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Thread", "getName", "()Ljava/lang/String;", false);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
-        mv.visitLdcInsn(" " + prefix);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
-        mv.visitLdcInsn(" var " + refVar + ":");
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+    private int println(int bci, MethodVisitor mv, String prefix, int refVar) {
+        mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "err", "Ljava/io/PrintStream;"); bci++;
+        mv.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder"); bci++;
+        mv.visitInsn(Opcodes.DUP); bci++;
+        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false); bci++;
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "currentThread", "()Ljava/lang/Thread;", false); bci++;
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Thread", "getName", "()Ljava/lang/String;", false); bci++;
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false); bci++;
+        mv.visitLdcInsn(" " + prefix); bci++;
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false); bci++;
+        mv.visitLdcInsn(" var " + refVar + ":"); bci++;
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false); bci++;
 
-        mv.visitVarInsn(Opcodes.ALOAD, refVar);
+        mv.visitVarInsn(Opcodes.ALOAD, refVar); bci++;
 
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;", false);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;", false); bci++;
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false); bci++;
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false); bci++;
+
+        return bci;
     }
 
     // prints the value at the top of the operand stack
-    private void println(MethodVisitor mv, String prefix) {
-        mv.visitInsn(Opcodes.DUP); // S1 S1
+    private int println(int bci, MethodVisitor mv, String prefix) {
+        mv.visitInsn(Opcodes.DUP); bci++; // S1 S1
 
-        mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "err", "Ljava/io/PrintStream;"); // PrintStream S1 S1
+        mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "err", "Ljava/io/PrintStream;"); bci++; // PrintStream S1 S1
 
-        mv.visitInsn(Opcodes.SWAP); // S1 PrintStream S1
+        mv.visitInsn(Opcodes.SWAP); bci++; // S1 PrintStream S1
 
-        mv.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder"); // StringBuilder S1 PrintStream S1
-        mv.visitInsn(Opcodes.DUP); // StringBuilder StringBuilder S1 PrintStream S1
-        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false); // StringBuilder S1 PrintStream S1
-        mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "currentThread", "()Ljava/lang/Thread;", false);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Thread", "getName", "()Ljava/lang/String;", false);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
-        mv.visitLdcInsn(" " + prefix); // prefix StringBuilder S1 PrintStream S1
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false); // StringBuilder S1 PrintStream S1
+        mv.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder"); bci++; // StringBuilder S1 PrintStream S1
+        mv.visitInsn(Opcodes.DUP); bci++; // StringBuilder StringBuilder S1 PrintStream S1
+        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false); bci++; // StringBuilder S1 PrintStream S1
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "currentThread", "()Ljava/lang/Thread;", false); bci++;
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Thread", "getName", "()Ljava/lang/String;", false); bci++;
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false); bci++;
+        mv.visitLdcInsn(" " + prefix); bci++; // prefix StringBuilder S1 PrintStream S1
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false); bci++; // StringBuilder S1 PrintStream S1
 
-        mv.visitInsn(Opcodes.SWAP); // S1 StringBuilder PrintStream S1
+        mv.visitInsn(Opcodes.SWAP); bci++; // S1 StringBuilder PrintStream S1
 
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;", false); // StringBuilder PrintStream S1
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false); // PrintStream S1
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false); // S1
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;", false); bci++; // StringBuilder PrintStream S1
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false); bci++; // PrintStream S1
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false); bci++; // S1
+
+        return bci;
     }
 }

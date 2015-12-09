@@ -50,10 +50,9 @@ import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import java.util.ArrayList;
 import java.util.List;
-import org.objectweb.asm.AnnotationVisitor;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
+
+import com.google.common.primitives.Ints;
+import org.objectweb.asm.*;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -159,8 +158,10 @@ public class InstrumentClass extends ClassVisitor {
         if (checkAccessForMethodVisitor(access) && !isYieldMethod(className, name)) {
             if (methods == null)
                 methods = new ArrayList<>();
+            // Bytecode-level AST of a method, being a MethodVisitor itself can be filled through delegation from another visitor
             final MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
 
+            // Analyze, fill and enqueue method ASTs
             return new MethodVisitor(ASMAPI, mn) {
                 private SuspendableType susp = suspendable;
                 private boolean commited = false;
@@ -206,6 +207,7 @@ public class InstrumentClass extends ClassVisitor {
                         db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, setSuspendable);
                     classEntry.set(name, desc, susp);
 
+                    // Initial filtering: write out directly methods that we already know won't need instrumentation
                     if (susp == SuspendableType.SUSPENDABLE && checkAccessForMethodInstrumentation(access)) {
                         if (isSynchronized(access)) {
                             if (!db.isAllowMonitors())
@@ -251,10 +253,13 @@ public class InstrumentClass extends ClassVisitor {
                     classEntry.setInstrumented(true);
                 }
 
+                // Instrument methods
                 for (final MethodNode mn : methods) {
                     final MethodVisitor outMV = makeOutMV(mn);
+                    final String[] a = new String[mn.exceptions.size()];
+                    mn.exceptions.toArray(a);
                     try {
-                        final InstrumentMethod im = new InstrumentMethod(db, sourceName, className, mn);
+                        final InstrumentMethod im = new InstrumentMethod(db, className, mn);
                         if (db.isDebug())
                             db.log(LogLevel.INFO, "About to instrument method %s#%s%s", className, mn.name, mn.desc);
 
@@ -286,6 +291,10 @@ public class InstrumentClass extends ClassVisitor {
         super.visitEnd();
     }
 
+    private MethodVisitor makeOutMV(MethodNode mn) {
+        return super.visitMethod(mn.access, mn.name, mn.desc, mn.signature, toStringArray(mn.exceptions));
+    }
+
     private void emitInstrumentedAnn() {
         final AnnotationVisitor instrumentedAV = visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
         instrumentedAV.visitEnd();
@@ -300,10 +309,6 @@ public class InstrumentClass extends ClassVisitor {
                 return true;
         }
         return false;
-    }
-
-    private MethodVisitor makeOutMV(MethodNode mn) {
-        return super.visitMethod(mn.access, mn.name, mn.desc, mn.signature, toStringArray(mn.exceptions));
     }
 
     private static boolean isSynchronized(int access) {
