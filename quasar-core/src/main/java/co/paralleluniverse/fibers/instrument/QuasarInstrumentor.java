@@ -16,6 +16,7 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.common.reflection.ReflectionUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.SystemProperties;
+import co.paralleluniverse.fibers.OffsetClassReader;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.WorkListEntry;
 import java.io.File;
 import java.io.IOException;
@@ -27,10 +28,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Date;
 
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.*;
 import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
 
@@ -96,12 +94,13 @@ public final class QuasarInstrumentor {
 
     byte[] instrumentClass(String className, InputStream is, boolean forceInstrumentation) throws IOException {
         className = className.replace('.', '/');
-        return instrumentClass(className, new ClassReader(is), forceInstrumentation);
+        return instrumentClass(className, new OffsetClassReader(is), forceInstrumentation);
     }
 
     private byte[] instrumentClass(String className, ClassReader r, boolean forceInstrumentation) {
         log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
 
+        // Phase 1, instrument, tree API
         final ClassWriter cw = new DBClassWriter(db, r);
         final ClassVisitor cv = (check && EXAMINED_CLASS == null) ? new CheckClassAdapter(cw) : cw;
 
@@ -115,6 +114,13 @@ public final class QuasarInstrumentor {
         try {
             r.accept(ic, ClassReader.SKIP_FRAMES);
             transformed = cw.toByteArray();
+
+            // Phase 2, fill suspendable call offsets, event API is enough
+            final OffsetClassReader r1 = new OffsetClassReader(transformed);
+            final ClassWriter cw1 = new ClassWriter(r1, 0);
+            final FillSuspOffsetsClass ic1 = new FillSuspOffsetsClass(cw1, db);
+            r1.accept(ic1, 0);
+            transformed = cw1.toByteArray();
         } catch (final Exception e) {
             if (ic.hasSuspendableMethods()) {
                 error("Unable to instrument class " + className, e);
