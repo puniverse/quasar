@@ -26,6 +26,7 @@ final class LiveInstrumentation {
             final Stack fs = f.getStack();
             if (esw != null) {
                 if (!agree(esw, fs)) {
+                    LOG("Found mismatch between stack depth and fiber stack! Activating live lazy auto-instrumentation");
                     // Slow path, we'll take our time to fix up things
                     checkCaps();
                     // TODO: improve perf
@@ -37,12 +38,11 @@ final class LiveInstrumentation {
                     boolean ok, last = false;
                     StackWalker.StackFrame upper = null;
                     FiberFramePush prevFFP = null;
-                    for(final StackWalker.StackFrame sf : frames) {
+                    for (final StackWalker.StackFrame sf : frames) {
                         if (isFiberRuntimeMethod(sf.getClassName(), sf.getMethodName())) {
                             // Skip marking/transforming yield frames
                             callingFiberRuntime = true;
                         } else {
-                            LOG("Live lazy auto-instrumentation: " + sf.getClassName() + "#" + sf.getMethodName());
                             final Class<?> cCaller = sf.getDeclaringClass();
                             final String mnCaller = sf.getMethodName();
 
@@ -53,27 +53,48 @@ final class LiveInstrumentation {
                             try {
                                 mtCaller = (MethodType) getMethodType.invoke(memberName.get(sf));
 
+                                LOG("\nLive lazy auto-instrumentation for call frame: " + sf.getClassName() + "#" + sf.getMethodName() + mtCaller.toMethodDescriptorString());
+
                                 final Executable m = lookupMethod(cCaller, mnCaller, mtCaller);
                                 final CheckCallSiteFrameInstrumentationReport report =
                                     checkCallSiteFrameInstrumentation(cCaller, m, sf.getLineNumber().orElse(-1), upper);
                                 ok = report.isOK();
                                 last = report.last;
 
+                                LOG("Frame instrumentation analysis report:\n" +
+                                    "\tclass is " +
+                                    (report.classInstrumented ? "instrumented" : "NOT instrumented") + ", \n" +
+                                    "\tmethod is " +
+                                    (report.methodInstrumented ? "instrumented" : "NOT instrumented") + ", \n" +
+                                    "\tcall site in " +
+                                    sf.getFileName().orElse("<UNKNOWN SOURCE FILE>") +
+                                    " at line " + sf.getLineNumber() + " and bci " + bci.get(sf) +
+                                    " to " + upper.getClassName() + "#" + upper.getMethodName() +
+                                    ((MethodType) getMethodType.invoke(memberName.get(sf))).toMethodDescriptorString() +
+                                    " is " + (report.callSiteInstrumented ? "instrumented" : "NOT instrumented"));
+
                                 if (!ok) {
+                                    LOG("Frame instrumentation analysis found problems");
+                                    LOG("-> In any case, ensuring suspendable supers are correct");
                                     ensureCorrectSuspendableSupers(cCaller, mnCaller, mtCaller);
-                                    if (!report.classInstrumented || !report.methodInstrumented)
+                                    if (!report.classInstrumented || !report.methodInstrumented) {
+                                        LOG("-> Class or method not instrumented at all, marking method suspendable");
                                         suspendable(cCaller, mnCaller, mtCaller, MethodDatabase.SuspendableType.SUSPENDABLE);
+                                    }
                                     final String n = cCaller.getName();
+                                    LOG("-> Reloading class from original classloader");
                                     final InputStream is = cCaller.getResourceAsStream("/" + n.replace(".", "/") + ".class");
                                     final byte[] diskData = ByteStreams.toByteArray(is);
-                                    // Quasar instrum. will occur
+                                    LOG("-> Redefining class, Quasar instrumentation with fixed suspendable info will occur");
                                     Retransform.redefine(new ClassDefinition(cCaller, diskData));
                                 }
 
                                 // The annotation will be correct now
                                 final Instrumented i = SuspendableHelper.getAnnotation(lookupMethod(cCaller, mnCaller, mtCaller), Instrumented.class);
-                                if (i != null && !i.methodOptimized())
+                                if (i != null && !i.methodOptimized()) {
+                                    LOG("Method is not optimized, creating a fiber stack rebuild record");
                                     prevFFP = pushRebuildToDo(sf, fiberStackRebuildToDoList, callingFiberRuntime);
+                                }
 
                                 callingFiberRuntime = false;
                             } catch (final InvocationTargetException | IllegalAccessException | IOException e) {
@@ -87,9 +108,11 @@ final class LiveInstrumentation {
                             break;
                     }
 
-                    // Rebuild stack
+                    LOG("\nRebuilding fiber stack");
+                    LOG("** Fiber stack dump before rebuild:"); // TODO: remove
                     fs.dump(); // TODO: remove
                     apply(fiberStackRebuildToDoList, fs);
+                    LOG("** Fiber stack dump after rebuild:"); // TODO: remove
                     fs.dump(); // TODO: remove
 
                     // Now it should be ok
@@ -167,6 +190,14 @@ final class LiveInstrumentation {
             if (ann != null) {
                 final int[] callSiteSourceLines = ann.suspendableCallSites();
                 final String[] callSiteSignatures = ann.suspendableSignatures();
+                LOG("\t\tOptimized method: " + ann.methodOptimized());
+                LOG("\t\tMethod start source line: " + ann.methodStart());
+                LOG("\t\tMethod end source line: " + ann.methodEnd());
+                LOG("\t\tSuspendable call sites source lines: " + Arrays.toString(callSiteSourceLines));
+                LOG("\t\tSuspendable call sites signatures: " + Arrays.toString(callSiteSignatures));
+                LOG("\t\tSuspendable call sites idxs before instrumentation: " + Arrays.toString(ann.suspendableCallSitesIdxsBeforeInstr()));
+                LOG("\t\tSuspendable call sites idxs after instrumentation: " + Arrays.toString(ann.suspendableCallSitesIdxsAfterInstr()));
+                LOG("\t\tSuspendable call sites offsets after instrumentation: " + Arrays.toString(ann.suspendableCallSitesOffsetsAfterInstr()));
                 for (int i = 0 ; i < callSiteSourceLines.length ; i++) {
                     if (callSiteSourceLines[i] == line  &&
                         callSiteSignatures[i].equals(mnCallSite + mtCallSite.toMethodDescriptorString()))
@@ -210,7 +241,7 @@ final class LiveInstrumentation {
         private int numSlots = -1;
         private int entry = 1;
 
-        private int[] suspendableCallSiteLineNumbers;
+        private int[] suspendableCallSitesIdxsAfterInstr;
 
         private FiberFramePush(StackWalker.StackFrame sf, Object[] locals, Object[] operands, boolean callingYield) {
             this.sf = sf;
@@ -230,11 +261,15 @@ final class LiveInstrumentation {
             final Member lowerM = lookupMethod(lower.getDeclaringClass(), lower.getMethodName(), mt);
             final Instrumented i = lowerM != null ? SuspendableHelper.getAnnotation(lowerM, Instrumented.class) : null;
             if (i != null) {
-                suspendableCallSiteLineNumbers = i.suspendableCallSites();
-                if (suspendableCallSiteLineNumbers != null) {
-                    Arrays.sort(suspendableCallSiteLineNumbers);
-                    // TODO: check against post-transform bcis
-                    final int bsResPlus1 = Arrays.binarySearch(suspendableCallSiteLineNumbers, sf.getLineNumber().orElse(-1)) + 1;
+                suspendableCallSitesIdxsAfterInstr = i.suspendableCallSitesIdxsAfterInstr();
+                if (suspendableCallSitesIdxsAfterInstr != null) {
+                    Arrays.sort(suspendableCallSitesIdxsAfterInstr);
+                    final int bsResPlus1;
+                    try {
+                        bsResPlus1 = Arrays.binarySearch(suspendableCallSitesIdxsAfterInstr, (int) bci.get(sf)) + 1;
+                    } catch (final IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    }
                     entry = Math.abs(bsResPlus1);
                 }
             }
@@ -411,7 +446,7 @@ final class LiveInstrumentation {
                 ", m=" + m +
                 ", numSlots=" + numSlots +
                 ", entry=" + entry +
-                ", suspendableCallSiteLineNumbers=" + Arrays.toString(suspendableCallSiteLineNumbers) +
+                ", suspendableCallSitesIdxsAfterInstr=" + Arrays.toString(suspendableCallSitesIdxsAfterInstr) +
                 '}';
         }
     }
@@ -457,7 +492,7 @@ final class LiveInstrumentation {
     private static Method getLocals, getOperands, getMethodType, primitiveType;
     private static Method booleanValue, byteValue, charValue, shortValue, intValue, floatValue, longValue, doubleValue;
 
-    private static Field memberName;
+    private static Field memberName, bci;
 
     static {
         try {
@@ -487,6 +522,8 @@ final class LiveInstrumentation {
                 final Class<?> stackFrameInfoClass = Class.forName("java.lang.StackFrameInfo");
                 memberName = stackFrameInfoClass.getDeclaredField("memberName");
                 memberName.setAccessible(true);
+                bci = stackFrameInfoClass.getDeclaredField("bci");
+                bci.setAccessible(true);
                 getMethodType = Class.forName("java.lang.invoke.MemberName").getDeclaredMethod("getMethodType");
                 getMethodType.setAccessible(true);
 
