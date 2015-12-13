@@ -26,6 +26,8 @@ public @interface Instrumented {
     int methodEnd() default -1;
     boolean methodOptimized() default false;
 
-    int[] suspendableCallSitesBCIsBeforeInstr() default {};
-    int[] suspendableCallSitesBCIsAfterInstr() default {};
+    int[] suspendableCallSitesIdxsBeforeInstr() default {};
+    int[] suspendableCallSitesIdxsAfterInstr() default {};
+
+    int[] suspendableCallSitesOffsetsAfterInstr() default {};
 }
