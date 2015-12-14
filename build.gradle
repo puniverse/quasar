@@ -160,6 +160,8 @@ subprojects {
         systemProperty 'co.paralleluniverse.flightRecorderDumpFile', 'quasar.log'
         systemProperty 'co.paralleluniverse.monitoring.flightRecorderSize', '200000'
 
+        systemProperty 'co.paralleluniverse.fibers.instrument.enableLive', 'true'
+
         if (project.name != 'quasar-core') {
             jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
         }
