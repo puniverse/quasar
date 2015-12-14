@@ -26,7 +26,7 @@ final class LiveInstrumentation {
             final Stack fs = f.getStack();
             if (esw != null) {
                 if (!agree(esw, fs)) {
-                    LOG("Found mismatch between stack depth and fiber stack! Activating live lazy auto-instrumentation");
+                    LOG("\nFound mismatch between stack depth and fiber stack! Activating live lazy auto-instrumentation");
                     // Slow path, we'll take our time to fix up things
                     checkCaps();
                     // TODO: improve perf
@@ -56,8 +56,9 @@ final class LiveInstrumentation {
                                 LOG("\nLive lazy auto-instrumentation for call frame: " + sf.getClassName() + "#" + sf.getMethodName() + mtCaller.toMethodDescriptorString());
 
                                 final Executable m = lookupMethod(cCaller, mnCaller, mtCaller);
+                                final int b = (Integer) bci.get(sf);
                                 final CheckCallSiteFrameInstrumentationReport report =
-                                    checkCallSiteFrameInstrumentation(cCaller, m, (Integer) bci.get(sf), upper);
+                                    checkCallSiteFrameInstrumentation(cCaller, m, b, upper);
                                 ok = report.isOK();
                                 last = report.last;
 
@@ -68,7 +69,7 @@ final class LiveInstrumentation {
                                     (report.methodInstrumented ? "instrumented" : "NOT instrumented") + ", \n" +
                                     "\tcall site in " +
                                     sf.getFileName().orElse("<UNKNOWN SOURCE FILE>") +
-                                    " at line " + sf.getLineNumber() + " and bci " + bci.get(sf) +
+                                    " at line " + sf.getLineNumber() + " and bci " + b +
                                     " to " + upper.getClassName() + "#" + upper.getMethodName() +
                                     ((MethodType) getMethodType.invoke(memberName.get(sf))).toMethodDescriptorString() +
                                     " is " + (report.callSiteInstrumented ? "instrumented" : "NOT instrumented"));
@@ -120,6 +121,8 @@ final class LiveInstrumentation {
 
                     // We're done, let's skip checks
                     checkInstrumentation = false;
+                } else {
+                    LOG("\nInstrumentation seems OK!\n");
                 }
             }
         }
@@ -254,11 +257,13 @@ final class LiveInstrumentation {
                 if (suspendableCallOffsets != null) {
                     Arrays.sort(suspendableCallOffsets);
                     final int bsResPlus1;
+                    final int b;
                     try {
-                        bsResPlus1 = Arrays.binarySearch(suspendableCallOffsets, (int) bci.get(sf)) + 1;
+                        b = (int) bci.get(sf);
                     } catch (final IllegalAccessException e) {
                         throw new RuntimeException(e);
                     }
+                    bsResPlus1 = Arrays.binarySearch(suspendableCallOffsets, b);
                     entry = Math.abs(bsResPlus1);
                 }
             }
@@ -272,7 +277,8 @@ final class LiveInstrumentation {
         private void apply(Stack s) {
             final int numArgsToPreserve = callingYield ? m.getParameterCount() : 0;
 
-            s.nextMethodEntry();
+            if (s.nextMethodEntry() == 0)
+                s.isFirstInStackOrPushed();
 
             // New frame
             s.pushMethod(entry, getNumSlots());

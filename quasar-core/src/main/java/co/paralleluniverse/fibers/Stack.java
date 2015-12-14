@@ -40,6 +40,7 @@ public final class Stack implements Serializable {
     private static final long serialVersionUID = 12786283751253L;
     private final Fiber fiber;
     private final int stackSize;
+
     private int sp;
     private transient boolean shouldVerifyInstrumentation;
     private transient boolean pushed;
@@ -57,10 +58,19 @@ public final class Stack implements Serializable {
     }
 
     final void clear() {
-        this.dataLong = new long[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
-        this.dataObject = new Object[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
-        instrumentedCount = 0;
         resumeStack();
+        shouldVerifyInstrumentation = false;
+        pushed = false;
+        dataLong = new long[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
+        dataObject = new Object[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
+        instrumentedCount = 0;
+    }
+
+    /**
+     * called when resuming a stack
+     */
+    final void resumeStack() {
+        sp = 0;
     }
 
     public static Stack getStack() {
@@ -70,13 +80,6 @@ public final class Stack implements Serializable {
 
     Fiber getFiber() {
         return fiber;
-    }
-
-    /**
-     * called when resuming a stack
-     */
-    final void resumeStack() {
-        sp = 0;
     }
 
     // for testing/benchmarking only
