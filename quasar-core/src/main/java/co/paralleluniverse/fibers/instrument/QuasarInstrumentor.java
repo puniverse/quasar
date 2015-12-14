@@ -94,7 +94,7 @@ public final class QuasarInstrumentor {
 
     byte[] instrumentClass(String className, InputStream is, boolean forceInstrumentation) throws IOException {
         className = className.replace('.', '/');
-        return instrumentClass(className, new OffsetClassReader(is), forceInstrumentation);
+        return instrumentClass(className, new ClassReader(is), forceInstrumentation);
     }
 
     private byte[] instrumentClass(String className, ClassReader r, boolean forceInstrumentation) {
