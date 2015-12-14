@@ -1,4 +1,4 @@
-package co.paralleluniverse.fibers;
+package co.paralleluniverse.fibers.instrument;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Label;

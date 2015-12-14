@@ -16,7 +16,6 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.common.reflection.ReflectionUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.SystemProperties;
-import co.paralleluniverse.fibers.OffsetClassReader;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.WorkListEntry;
 import java.io.File;
 import java.io.IOException;
