@@ -57,7 +57,7 @@ final class LiveInstrumentation {
 
                                 final Executable m = lookupMethod(cCaller, mnCaller, mtCaller);
                                 final CheckCallSiteFrameInstrumentationReport report =
-                                    checkCallSiteFrameInstrumentation(cCaller, m, sf.getLineNumber().orElse(-1), upper);
+                                    checkCallSiteFrameInstrumentation(cCaller, m, (Integer) bci.get(sf), upper);
                                 ok = report.isOK();
                                 last = report.last;
 
@@ -109,10 +109,10 @@ final class LiveInstrumentation {
                     }
 
                     LOG("\nRebuilding fiber stack");
-                    LOG("** Fiber stack dump before rebuild:"); // TODO: remove
+                    LOG("\t** Fiber stack dump before rebuild:"); // TODO: remove
                     fs.dump(); // TODO: remove
                     apply(fiberStackRebuildToDoList, fs);
-                    LOG("** Fiber stack dump after rebuild:"); // TODO: remove
+                    LOG("\t** Fiber stack dump after rebuild:"); // TODO: remove
                     fs.dump(); // TODO: remove
 
                     // Now it should be ok
@@ -141,7 +141,7 @@ final class LiveInstrumentation {
 
     private static
     CheckCallSiteFrameInstrumentationReport
-    checkCallSiteFrameInstrumentation(Class declaringClass, Executable m, int line, StackWalker.StackFrame upperStackFrame) {
+    checkCallSiteFrameInstrumentation(Class declaringClass, Executable m, int offset, StackWalker.StackFrame upperStackFrame) {
         // TODO: factor with corresponding (Java9-ported) Fiber::checkInstrumentation
         final String className = declaringClass.getName();
         final String methodName = m.getName();
@@ -156,14 +156,14 @@ final class LiveInstrumentation {
             && !className.equals(Stack.class.getName()) && !SuspendableHelper.isWaiver(className, methodName)) {
             res.classInstrumented = SuspendableHelper.isInstrumented(declaringClass);
             res.methodInstrumented = SuspendableHelper.isInstrumented(m);
-            res.callSiteInstrumented = isCallSiteInstrumented(m, line, upperStackFrame);
+            res.callSiteInstrumented = isCallSiteInstrumented(m, offset, upperStackFrame);
         } else if (Fiber.class.getName().equals(className) && "run1".equals(methodName)) {
             res.last = true;
         }
         return res;
     }
 
-    private static boolean isCallSiteInstrumented(Executable m, int line, StackWalker.StackFrame upperStackFrame) {
+    private static boolean isCallSiteInstrumented(Executable m, int offset, StackWalker.StackFrame upperStackFrame) {
         // TODO: factor with corresponding (Java9-ported) SuspendableHelper::isCallSiteInstrumented
         if (m == null)
             return false;
@@ -179,28 +179,17 @@ final class LiveInstrumentation {
                 return true;
             }
 
-            final MethodType mtCallSite;
-            try {
-                mtCallSite = (MethodType) getMethodType.invoke(memberName.get(upperStackFrame));
-                // `verifySuspend` and `popMethod` calls are not suspendable call sites, not verifying them.
-            } catch (final IllegalAccessException | InvocationTargetException e) {
-                throw new RuntimeException(e);
-            }
             final Instrumented ann = SuspendableHelper.getAnnotation(m, Instrumented.class);
             if (ann != null) {
-                final int[] callSiteSourceLines = ann.suspendableCallSites();
-                final String[] callSiteSignatures = ann.suspendableSignatures();
                 LOG("\t\tOptimized method: " + ann.methodOptimized());
-                LOG("\t\tMethod start source line: " + ann.methodStart());
-                LOG("\t\tMethod end source line: " + ann.methodEnd());
-                LOG("\t\tSuspendable call sites source lines: " + Arrays.toString(callSiteSourceLines));
-                LOG("\t\tSuspendable call sites signatures: " + Arrays.toString(callSiteSignatures));
-                LOG("\t\tSuspendable call sites idxs before instrumentation: " + Arrays.toString(ann.suspendableCallSitesIdxsBeforeInstr()));
-                LOG("\t\tSuspendable call sites idxs after instrumentation: " + Arrays.toString(ann.suspendableCallSitesIdxsAfterInstr()));
-                LOG("\t\tSuspendable call sites offsets after instrumentation: " + Arrays.toString(ann.suspendableCallSitesOffsetsAfterInstr()));
-                for (int i = 0 ; i < callSiteSourceLines.length ; i++) {
-                    if (callSiteSourceLines[i] == line  &&
-                        callSiteSignatures[i].equals(mnCallSite + mtCallSite.toMethodDescriptorString()))
+                LOG("\t\tMethod start source line: " + ann.methodStartSourceLine());
+                LOG("\t\tMethod end source line: " + ann.methodEndSourceLine());
+                LOG("\t\tSuspendable call source lines: " + Arrays.toString(ann.methodSuspendableCallSourceLines()));
+                LOG("\t\tSuspendable call signatures: " + Arrays.toString(ann.methodSuspendableCallSignatures()));
+                final int[] offsets = ann.methodSuspendableCallOffsets();
+                LOG("\t\tSuspendable call offsets (after instrumentation): " + Arrays.toString(offsets));
+                for (int i = 0 ; i < offsets.length ; i++) {
+                    if (offset == offsets[i])
                         return true;
                 }
             }
@@ -241,7 +230,7 @@ final class LiveInstrumentation {
         private int numSlots = -1;
         private int entry = 1;
 
-        private int[] suspendableCallSitesIdxsAfterInstr;
+        private int[] suspendableCallOffsets;
 
         private FiberFramePush(StackWalker.StackFrame sf, Object[] locals, Object[] operands, boolean callingYield) {
             this.sf = sf;
@@ -261,12 +250,12 @@ final class LiveInstrumentation {
             final Member lowerM = lookupMethod(lower.getDeclaringClass(), lower.getMethodName(), mt);
             final Instrumented i = lowerM != null ? SuspendableHelper.getAnnotation(lowerM, Instrumented.class) : null;
             if (i != null) {
-                suspendableCallSitesIdxsAfterInstr = i.suspendableCallSitesIdxsAfterInstr();
-                if (suspendableCallSitesIdxsAfterInstr != null) {
-                    Arrays.sort(suspendableCallSitesIdxsAfterInstr);
+                suspendableCallOffsets = i.methodSuspendableCallOffsets();
+                if (suspendableCallOffsets != null) {
+                    Arrays.sort(suspendableCallOffsets);
                     final int bsResPlus1;
                     try {
-                        bsResPlus1 = Arrays.binarySearch(suspendableCallSitesIdxsAfterInstr, (int) bci.get(sf)) + 1;
+                        bsResPlus1 = Arrays.binarySearch(suspendableCallOffsets, (int) bci.get(sf)) + 1;
                     } catch (final IllegalAccessException e) {
                         throw new RuntimeException(e);
                     }
@@ -446,7 +435,7 @@ final class LiveInstrumentation {
                 ", m=" + m +
                 ", numSlots=" + numSlots +
                 ", entry=" + entry +
-                ", suspendableCallSitesIdxsAfterInstr=" + Arrays.toString(suspendableCallSitesIdxsAfterInstr) +
+                ", suspendableCallOffsets=" + Arrays.toString(suspendableCallOffsets) +
                 '}';
         }
     }
@@ -472,7 +461,6 @@ final class LiveInstrumentation {
         // TODO: must be _fast_, JMH it
         final long threadStackDepth = w.walk(s -> s.filter(sf -> !isFiberRuntimeMethod(sf.getClassName(), sf.getMethodName())).collect(COUNTING));
         return threadStackDepth == fs.getInstrumentedCount();
-        // return false; // TODO: plug real impl.
     }
 
     private static void apply(java.util.Stack<FiberFramePush> todo, Stack fs) {

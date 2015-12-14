@@ -259,7 +259,7 @@ public class InstrumentClass extends ClassVisitor {
                     final String[] a = new String[mn.exceptions.size()];
                     mn.exceptions.toArray(a);
                     try {
-                        final InstrumentMethod im = new InstrumentMethod(db, className, mn);
+                        final InstrumentMethod im = new InstrumentMethod(db, sourceName, className, mn);
                         if (db.isDebug())
                             db.log(LogLevel.INFO, "About to instrument method %s#%s%s", className, mn.name, mn.desc);
 

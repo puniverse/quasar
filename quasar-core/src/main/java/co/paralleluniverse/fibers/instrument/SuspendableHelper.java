@@ -53,7 +53,7 @@ public final class SuspendableHelper {
         for (Method m : ste.getDeclaringClass().getDeclaredMethods()) {
             if (m.getName().equals(ste.getMethodName())) {
                 final Instrumented i = getAnnotation(m, Instrumented.class);
-                if (m.isSynthetic() || isWaiver(m.getDeclaringClass().getName(), m.getName()) || i != null && ste.getLineNumber() >= i.methodStart() && ste.getLineNumber() <= i.methodEnd())
+                if (m.isSynthetic() || isWaiver(m.getDeclaringClass().getName(), m.getName()) || i != null && ste.getLineNumber() >= i.methodStartSourceLine() && ste.getLineNumber() <= i.methodEndSourceLine())
                     return m;
             }
         }
@@ -75,9 +75,9 @@ public final class SuspendableHelper {
         } else {
             final Instrumented i = getAnnotation(m, Instrumented.class);
             if (i != null) {
-                for (int j : i.suspendableCallSites()) {
+                for (int j : i.methodSuspendableCallSourceLines()) {
                     if (j == sourceLine)
-                        return new Pair<>(true, i.suspendableCallSites());
+                        return new Pair<>(true, i.methodSuspendableCallSourceLines());
                 }
             }
         }

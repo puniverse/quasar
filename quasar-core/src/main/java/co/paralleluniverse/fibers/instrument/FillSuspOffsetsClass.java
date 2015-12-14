@@ -62,8 +62,8 @@ public class FillSuspOffsetsClass extends ClassVisitor {
                 private boolean instrumented;
                 private boolean optimized = false;
                 private int methodStart = -1, methodEnd = -1;
-                private int[] suspCallsSourceLines, suspCallsIdxsBeforeInstr, suspCallsIdxsAfterInstr;
-                private List<String> suspCallsSignaturesL = new ArrayList<>();
+                private int[] suspCallSourceLines;
+                private List<String> suspCallSignaturesL = new ArrayList<>();
 
                 private List<Integer> suspCallOffsetsAfterInstrL = new ArrayList<>();
 
@@ -74,27 +74,23 @@ public class FillSuspOffsetsClass extends ClassVisitor {
                         return new AnnotationVisitor(ASMAPI) { // Only collect info
                             @Override
                             public void visit(String s, Object o) {
-                                if ("methodStart".equals(s))
+                                if ("methodStartSourceLine".equals(s))
                                     methodStart = (Integer) o;
-                                else if ("methodEnd".equals(s))
+                                else if ("methodEndSourceLine".equals(s))
                                     methodEnd = (Integer) o;
                                 else if ("methodOptimized".equals(s))
                                     optimized = (Boolean) o;
-                                else if ("suspendableCallSitesIdxsBeforeInstr".equals(s))
-                                    suspCallsIdxsBeforeInstr = (int[]) o;
-                                else if ("suspendableCallSitesIdxsAfterInstr".equals(s))
-                                    suspCallsIdxsAfterInstr = (int[]) o;
-                                else if ("suspendableCallSites".equals(s))
-                                    suspCallsSourceLines = (int[]) o;
+                                else if ("methodSuspendableCallSourceLines".equals(s))
+                                    suspCallSourceLines = (int[]) o;
                             }
 
                             @Override
                             public AnnotationVisitor visitArray(String s) {
-                                if ("suspendableSignatures".equals(s))
+                                if ("methodSuspendableCallSignatures".equals(s))
                                     return new AnnotationVisitor(ASMAPI) {
                                         @Override
                                         public void visit(String s, Object o) {
-                                            suspCallsSignaturesL.add((String) o);
+                                            suspCallSignaturesL.add((String) o);
                                         }
                                     };
 
@@ -139,10 +135,7 @@ public class FillSuspOffsetsClass extends ClassVisitor {
                     if (instrumented)
                         InstrumentMethod.emitInstrumentedAnn (
                             db, outMV, mn, className, optimized, methodStart, methodEnd,
-                            suspCallsSourceLines,
-                            toStringArray(suspCallsSignaturesL),
-                            suspCallsIdxsBeforeInstr,
-                            suspCallsIdxsAfterInstr,
+                            suspCallSourceLines, toStringArray(suspCallSignaturesL),
                             Ints.toArray(suspCallOffsetsAfterInstrL)
                         );
                     super.visitEnd();

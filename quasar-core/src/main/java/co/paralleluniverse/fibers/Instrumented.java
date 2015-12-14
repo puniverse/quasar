@@ -20,14 +20,10 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Instrumented {
     // Relevant only for methods
-    int[] suspendableCallSites() default {};
-    String[] suspendableSignatures() default {};
-    int methodStart() default -1;
-    int methodEnd() default -1;
+    int[] methodSuspendableCallSourceLines() default {};
+    String[] methodSuspendableCallSignatures() default {};
+    int[] methodSuspendableCallOffsets() default {};
+    int methodStartSourceLine() default -1;
+    int methodEndSourceLine() default -1;
     boolean methodOptimized() default false;
-
-    int[] suspendableCallSitesIdxsBeforeInstr() default {};
-    int[] suspendableCallSitesIdxsAfterInstr() default {};
-
-    int[] suspendableCallSitesOffsetsAfterInstr() default {};
 }
