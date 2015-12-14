@@ -20,13 +20,15 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 final class LiveInstrumentation {
+    private static final MethodDatabase db;
+
     static synchronized boolean fixup(Fiber f) {
         boolean checkInstrumentation = true;
         if (autoInstr && f != null) {
             final Stack fs = f.getStack();
             if (esw != null) {
                 if (!agree(esw, fs)) {
-                    LOG("\nFound mismatch between stack depth and fiber stack! Activating live lazy auto-instrumentation");
+                    DEBUG("\nFound mismatch between stack depth and fiber stack! Activating live lazy auto-instrumentation");
                     // Slow path, we'll take our time to fix up things
                     checkCaps();
                     // TODO: improve perf
@@ -53,7 +55,7 @@ final class LiveInstrumentation {
                             try {
                                 mtCaller = (MethodType) getMethodType.invoke(memberName.get(sf));
 
-                                LOG("\nLive lazy auto-instrumentation for call frame: " + sf.getClassName() + "#" + sf.getMethodName() + mtCaller.toMethodDescriptorString());
+                                DEBUG("\nLive lazy auto-instrumentation for call frame: " + sf.getClassName() + "#" + sf.getMethodName() + mtCaller.toMethodDescriptorString());
 
                                 final Executable m = lookupMethod(cCaller, mnCaller, mtCaller);
                                 final int b = (Integer) bci.get(sf);
@@ -62,7 +64,7 @@ final class LiveInstrumentation {
                                 ok = report.isOK();
                                 last = report.last;
 
-                                LOG("Frame instrumentation analysis report:\n" +
+                                DEBUG("Frame instrumentation analysis report:\n" +
                                     "\tclass is " +
                                     (report.classInstrumented ? "instrumented" : "NOT instrumented") + ", \n" +
                                     "\tmethod is " +
@@ -75,25 +77,25 @@ final class LiveInstrumentation {
                                     " is " + (report.callSiteInstrumented ? "instrumented" : "NOT instrumented"));
 
                                 if (!ok) {
-                                    LOG("Frame instrumentation analysis found problems");
-                                    LOG("-> In any case, ensuring suspendable supers are correct");
+                                    DEBUG("Frame instrumentation analysis found problems");
+                                    DEBUG("-> In any case, ensuring suspendable supers are correct");
                                     ensureCorrectSuspendableSupers(cCaller, mnCaller, mtCaller);
                                     if (!report.classInstrumented || !report.methodInstrumented) {
-                                        LOG("-> Class or method not instrumented at all, marking method suspendable");
+                                        DEBUG("-> Class or method not instrumented at all, marking method suspendable");
                                         suspendable(cCaller, mnCaller, mtCaller, MethodDatabase.SuspendableType.SUSPENDABLE);
                                     }
                                     final String n = cCaller.getName();
-                                    LOG("-> Reloading class from original classloader");
+                                    DEBUG("-> Reloading class from original classloader");
                                     final InputStream is = cCaller.getResourceAsStream("/" + n.replace(".", "/") + ".class");
                                     final byte[] diskData = ByteStreams.toByteArray(is);
-                                    LOG("-> Redefining class, Quasar instrumentation with fixed suspendable info will occur");
+                                    DEBUG("-> Redefining class, Quasar instrumentation with fixed suspendable info will occur");
                                     Retransform.redefine(new ClassDefinition(cCaller, diskData));
                                 }
 
                                 // The annotation will be correct now
                                 final Instrumented i = SuspendableHelper.getAnnotation(lookupMethod(cCaller, mnCaller, mtCaller), Instrumented.class);
                                 if (i != null && !i.methodOptimized()) {
-                                    LOG("Method is not optimized, creating a fiber stack rebuild record");
+                                    DEBUG("Method is not optimized, creating a fiber stack rebuild record");
                                     prevFFP = pushRebuildToDo(sf, fiberStackRebuildToDoList, callingFiberRuntime);
                                 }
 
@@ -109,11 +111,11 @@ final class LiveInstrumentation {
                             break;
                     }
 
-                    LOG("\nRebuilding fiber stack");
-                    LOG("\t** Fiber stack dump before rebuild:"); // TODO: remove
+                    DEBUG("\nRebuilding fiber stack");
+                    DEBUG("\t** Fiber stack dump before rebuild:"); // TODO: remove
                     fs.dump(); // TODO: remove
                     apply(fiberStackRebuildToDoList, fs);
-                    LOG("\t** Fiber stack dump after rebuild:"); // TODO: remove
+                    DEBUG("\t** Fiber stack dump after rebuild:"); // TODO: remove
                     fs.dump(); // TODO: remove
 
                     // Now it should be ok
@@ -122,7 +124,7 @@ final class LiveInstrumentation {
                     // We're done, let's skip checks
                     checkInstrumentation = false;
                 } else {
-                    LOG("\nInstrumentation seems OK!\n");
+                    DEBUG("\nInstrumentation seems OK!\n");
                 }
             }
         }
@@ -184,13 +186,13 @@ final class LiveInstrumentation {
 
             final Instrumented ann = SuspendableHelper.getAnnotation(m, Instrumented.class);
             if (ann != null) {
-                LOG("\t\tOptimized method: " + ann.methodOptimized());
-                LOG("\t\tMethod start source line: " + ann.methodStartSourceLine());
-                LOG("\t\tMethod end source line: " + ann.methodEndSourceLine());
-                LOG("\t\tSuspendable call source lines: " + Arrays.toString(ann.methodSuspendableCallSourceLines()));
-                LOG("\t\tSuspendable call signatures: " + Arrays.toString(ann.methodSuspendableCallSignatures()));
+                DEBUG("\t\tOptimized method: " + ann.methodOptimized());
+                DEBUG("\t\tMethod start source line: " + ann.methodStartSourceLine());
+                DEBUG("\t\tMethod end source line: " + ann.methodEndSourceLine());
+                DEBUG("\t\tSuspendable call source lines: " + Arrays.toString(ann.methodSuspendableCallSourceLines()));
+                DEBUG("\t\tSuspendable call signatures: " + Arrays.toString(ann.methodSuspendableCallSignatures()));
                 final int[] offsets = ann.methodSuspendableCallOffsets();
-                LOG("\t\tSuspendable call offsets (after instrumentation): " + Arrays.toString(offsets));
+                DEBUG("\t\tSuspendable call offsets (after instrumentation): " + Arrays.toString(offsets));
                 for (int i = 0 ; i < offsets.length ; i++) {
                     if (offset == offsets[i])
                         return true;
@@ -492,9 +494,10 @@ final class LiveInstrumentation {
         try {
             // TODO: change to "disableXXX" when stable
             autoInstr = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.instrument.enableLive");
+            db = Retransform.getMethodDB();
 
             if (autoInstr) {
-                LOG("Live lazy auto-instrumentation ENABLED");
+                DEBUG("Live lazy auto-instrumentation ENABLED");
 
                 final Class<?> extendedOptionClass = Class.forName("java.lang.StackWalker$ExtendedOption");
                 final Method ewsNI = StackWalker.class.getDeclaredMethod("newInstance", Set.class, extendedOptionClass);
@@ -655,7 +658,7 @@ final class LiveInstrumentation {
         return "null".equals(type.toLowerCase());
     }
 
-    private static void LOG(String s) {
+    private static void DEBUG(String s) {
         // TODO: plug
         System.err.println(s);
     }
