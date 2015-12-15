@@ -179,19 +179,26 @@ class InstrumentMethod {
     private final String className;
     private final MethodNode mn;
     private final Frame[] frames;
+
     private static final int NUM_LOCALS = 3; // = 3 + (verifyInstrumentation ? 1 : 0); // lvarStack, lvarResumed, lvarInvocationReturnValue
     private static final int ADD_OPERANDS = 6; // 4;
+
     private final int lvarStack; // ref to Stack
     private final int lvarResumed; // boolean indicating if we've been resumed
     private final int lvarInvocationReturnValue;
     // private final int lvarSuspendableCalled; // true iff we've called another suspendable method (used when VERIFY_INSTRUMENTATION)
+
     private final int firstLocal;
+    private int additionalLocals;
+
     private FrameInfo[] codeBlocks = new FrameInfo[32];
     private int numCodeBlocks;
-    private int additionalLocals;
+
     private boolean warnedAboutMonitors;
     private int warnedAboutBlocking;
+
     private boolean callsSuspendableSupers;
+
     private int startSourceLine = -1;
     private int endSourceLine = -1;
     private int[] suspCallsSourceLines = new int[8];
@@ -460,12 +467,11 @@ class InstrumentMethod {
                 mv.visitJumpInsn(Opcodes.IFNULL, lbl);
 
                 // normal case - call to a suspendable method - resume before the call
-                emitStoreState(mv, i, fi, 0);
+                emitStoreState(mv, i, fi, 0); // For preemption point
                 emitStoreResumed(mv, false); // we have not been resumed
                 // emitPreemptionPoint(mv, PREEMPTION_CALL);
-
                 mv.visitLabel(lMethodCalls[i - 1]);
-                emitRestoreState(mv, i, fi, 0);
+                emitRestoreState(mv, i, fi, 0); // For preemption point
 
                 // DUAL
                 mv.visitLabel(lbl);
