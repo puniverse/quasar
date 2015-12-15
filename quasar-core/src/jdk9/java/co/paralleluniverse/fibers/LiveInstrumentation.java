@@ -1,3 +1,16 @@
+/*
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (c) 2015, Parallel Universe Software Co. All rights reserved.
+ *
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *
+ *   or (per the licensee's choosing)
+ *
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
+ */
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.util.ExtendedStackTrace;
@@ -19,6 +32,9 @@ import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+/**
+ * @author circlespainter
+ */
 final class LiveInstrumentation {
     private static final MethodDatabase db;
 
@@ -96,7 +112,7 @@ final class LiveInstrumentation {
                                 final Instrumented i = SuspendableHelper.getAnnotation(lookupMethod(cCaller, mnCaller, mtCaller), Instrumented.class);
                                 if (i != null && !i.methodOptimized()) {
                                     DEBUG("Method is not optimized, creating a fiber stack rebuild record");
-                                    prevFFP = pushRebuildToDo(sf, fiberStackRebuildToDoList, callingFiberRuntime);
+                                    prevFFP = pushRebuildToDo(sf, upper, fiberStackRebuildToDoList, callingFiberRuntime);
                                 }
 
                                 callingFiberRuntime = false;
@@ -125,6 +141,8 @@ final class LiveInstrumentation {
                     checkInstrumentation = false;
                 } else {
                     DEBUG("\nInstrumentation seems OK!\n");
+                    DEBUG("\t** Fiber stack dump:"); // TODO: remove
+                    fs.dump(); // TODO: remove
                 }
             }
         }
@@ -227,25 +245,39 @@ final class LiveInstrumentation {
 
     private static class FiberFramePush {
         private final StackWalker.StackFrame sf;
+        private final Executable m;
         private final Object[] locals;
         private final Object[] operands;
+
+        private final StackWalker.StackFrame upper;
+        private final Executable upperM;
+        private final Object[] upperLocals;
+        // private final Object[] upperOperands;
+
         private final boolean callingYield;
-        private final Executable m;
 
         private int numSlots = -1;
         private int entry = 1;
 
         private int[] suspendableCallOffsets;
 
-        private FiberFramePush(StackWalker.StackFrame sf, Object[] locals, Object[] operands, boolean callingYield) {
+        private FiberFramePush(StackWalker.StackFrame sf, StackWalker.StackFrame upper, boolean callingYield) throws InvocationTargetException, IllegalAccessException {
             this.sf = sf;
-            this.locals = locals;
-            this.operands = operands;
-            this.callingYield = callingYield;
             this.m = lookupMethod(sf); // Caching it as it's used multiple times
+            this.locals = (Object[]) getLocals.invoke(sf);
+            this.operands = (Object[]) getOperands.invoke(sf);
+
+            this.upper = upper;
+            this.upperM = lookupMethod(upper);
+            this.upperLocals = (Object[]) getLocals.invoke(upper);
+            // this.upperOperands = (Object[]) getOperands.invoke(upper);
+
+            this.callingYield = callingYield;
         }
 
         private void setLower(StackWalker.StackFrame lower) {
+            // this.lower = lower;
+            // this.lowerM = lookupMethod(lower);
             final MethodType mt;
             try {
                 mt = (MethodType) getMethodType.invoke(memberName.get(lower));
@@ -277,8 +309,6 @@ final class LiveInstrumentation {
          * !!! Must be kept aligned with `InstrumentMethod.emitStoreState` and `Stack.pusXXX` !!!
          */
         private void apply(Stack s) {
-            final int numArgsToPreserve = callingYield ? m.getParameterCount() : 0;
-
             if (s.nextMethodEntry() == 0)
                 s.isFirstInStackOrPushed();
 
@@ -287,30 +317,52 @@ final class LiveInstrumentation {
 
             // Operands and locals (in this order) slot indices
             int idxObj = 0, idxPrim = 0;
-            final Map<Object, Integer> opIdxs = new HashMap<>(); // TODO: improve perf
 
-            // Store stack operands
+            // ************************************************************************************************
+            // The in-flight situation of the stack if very different from the static analysis perspective:
+            // calls are in progress and in all non-top frames the upper part of operand the stack representing
+            // arguments has been eaten already.
+            // On the other hand we don't need the values there anymore: the instrumentation saves them only in
+            // the case there's a suspension point before the call but this is not the case since we're already
+            // in a yield (and a suspension point would be a yield anyway).
+            //
+            // -> Attempt 1: fake them
+            // ************************************************************************************************
+
+            if (!Modifier.isStatic(upperM.getModifiers()))
+                Stack.push(upperLocals[0] /* Object ref */, s, idxObj++);
+            for (final Class<?> c : upperM.getParameterTypes()) {
+                if (c.isPrimitive()) {
+                    if (Float.class.equals(c))
+                        Stack.push(0.0F, s, idxPrim++);
+                    if (Double.class.equals(c))
+                        Stack.push(0.0D, s, idxPrim++);
+                    if (Long.class.equals(c))
+                        Stack.push(0L, s, idxPrim++);
+                    else
+                        Stack.push(0, s, idxPrim++);
+                } else {
+                    Stack.push(null, s, idxObj++); // Object ref
+                }
+            }
+
+            // Store actual non-call stack operands left
             for (final Object op : operands) {
                 // TODO: check that "omitted" (new value) can't happen at runtime
                 if (op != null) {
                     final String type = type(op);
                     if (!isNullableType(type)) {
-                        if (primitiveValueClass.isInstance(op)) {
-                            storePrim(op, s, idxPrim);
-                            opIdxs.put(op, idxPrim);
-                            idxPrim++;
-                        } else if (!(op instanceof Stack)) { // Skip stack operands
-                            Stack.push(op, s, idxObj);
-                            opIdxs.put(op, idxObj);
-                            idxObj++;
-                        }
+                        if (primitiveValueClass.isInstance(op))
+                            storePrim(op, s, idxPrim++);
+                        else if (!(op instanceof Stack)) // Skip stack operands
+                            Stack.push(op, s, idxObj++);
                     }
                 }
             }
 
             // Store local vars
-            // for (int i = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` TODO: check */ ; i < locals.length ; i++) {
-            for (int i = 0 ; i < locals.length ; i++) {
+            for (int i = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` TODO: check */ ; i < locals.length ; i++) {
+            // for (int i = 0 ; i < locals.length ; i++) {
                 final Object local = locals[i];
                 if (local != null) {
                     final String type = type(local);
@@ -326,21 +378,8 @@ final class LiveInstrumentation {
                 }
             }
 
-            // Restore last numArgsToPreserve operands
-            for (int i = operands.length - numArgsToPreserve ; i < operands.length ; i++) {
-                final Object op = operands[i];
-                if (op != null) {
-                    final String type = type(op);
-                    // TODO: check that "omitted" (new value) can't happen at runtime
-                    if (!isNullableType(type)) {
-                        if (primitiveValueClass.isInstance(op)) {
-                            restorePrim(op, s, opIdxs.get(op));
-                        } else {
-                            s.getObject(opIdxs.get(op));
-                        }
-                    }
-                }
-            }
+            // Since the potential call to a yield method is in progress already (because live instrumentation is
+            // called from all yield methods), we don't need to perform any special magic to preserve its args.
         }
 
         private void storePrim(Object op, Stack s, int idx) {
@@ -379,39 +418,29 @@ final class LiveInstrumentation {
             }
         }
 
-        private void restorePrim(Object op, Stack s, int idx) {
-            final char t;
-            try {
-                t = (char) primitiveType.invoke(op);
-            } catch (final InvocationTargetException | IllegalAccessException e) {
-                throw new RuntimeException(e);
-            }
-
-            switch (t) {
-                case 'I':
-                case 'S':
-                case 'Z':
-                case 'C':
-                case 'B':
-                    s.getInt(idx);
-                    break;
-                case 'J':
-                    s.getLong(idx);
-                    break;
-                case 'F':
-                    s.getFloat(idx);
-                    break;
-                case 'D':
-                    s.getDouble(idx);
-                    break;
-                default:
-                    throw new RuntimeException("Unknown primitive operand type: " + t);
-            }
-        }
-
         private int getNumSlots() {
             if (numSlots == -1) {
                 int idxPrim = 0, idxObj = 0;
+
+                // ************************************************************************************************
+                // The in-flight situation of the stack if very different from the static analysis perspective:
+                // calls are in progress and in all non-top frames the upper part of operand the stack representing
+                // arguments has been eaten already.
+                // On the other hand we don't need the values there anymore: the instrumentation saves them only in
+                // the case there's a suspension before the call but this is not the case since we're in a yield.
+                //
+                // -> Attempt 1: fake them
+                // ************************************************************************************************
+
+                if (!Modifier.isStatic(upperM.getModifiers()))
+                    idxObj++;
+                for (final Class<?> c : upperM.getParameterTypes()) {
+                    if (c.isPrimitive())
+                        idxPrim++;
+                    else
+                        idxObj++;
+                }
+
                 for (final Object operand : operands) {
                     if (operand != null) {
                         if (primitiveValueClass.isInstance(operand))
@@ -420,7 +449,8 @@ final class LiveInstrumentation {
                             idxObj++;
                     }
                 }
-                for (final Object local : locals) {
+                for (int i = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` TODO: check */ ; i < locals.length ; i++) {
+                    final Object local = locals[i];
                     if (local != null) {
                         if (primitiveValueClass.isInstance(local))
                             idxPrim++;
@@ -437,10 +467,13 @@ final class LiveInstrumentation {
         public String toString() {
             return "FiberFramePush{" +
                 "sf=" + sf +
+                ", m=" + m +
                 ", locals=" + Arrays.toString(locals) +
                 ", operands=" + Arrays.toString(operands) +
+                ", upper=" + upper +
+                ", upperM=" + upperM +
+                ", upperLocals=" + Arrays.toString(upperLocals) +
                 ", callingYield=" + callingYield +
-                ", m=" + m +
                 ", numSlots=" + numSlots +
                 ", entry=" + entry +
                 ", suspendableCallOffsets=" + Arrays.toString(suspendableCallOffsets) +
@@ -448,12 +481,12 @@ final class LiveInstrumentation {
         }
     }
 
-    private static FiberFramePush pushRebuildToDo(StackWalker.StackFrame sf, java.util.Stack<FiberFramePush> todo, boolean callingYield) {
+    private static LiveInstrumentation.FiberFramePush pushRebuildToDo(StackWalker.StackFrame sf, StackWalker.StackFrame upper, java.util.Stack<FiberFramePush> todo, boolean callingYield) {
         try {
             final FiberFramePush ffp =
                 new FiberFramePush (
                     sf,
-                    (Object[]) getLocals.invoke(sf), (Object[]) getOperands.invoke(sf),
+                    upper,
                     callingYield
                 );
             todo.push(ffp);
