@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class LocalsAndOperands {
+public class LocalsAndOperandsSample {
     private static Class<?> liveStackFrameClass;
     private static Class<?> primitiveValueClass;
     private static Method getLocals;
@@ -43,7 +43,7 @@ public class LocalsAndOperands {
 
         // no access to local and operands.
         final StackWalker sw = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
-        new LocalsAndOperands(sw, false).test();
+        new LocalsAndOperandsSample(sw, false).test();
 
         // access to local and operands.
         primitiveValueClass = Class.forName("java.lang.LiveStackFrame$PrimitiveValue");
@@ -68,13 +68,13 @@ public class LocalsAndOperands {
         final Field f = extendedOptionClass.getDeclaredField("LOCALS_AND_OPERANDS");
         f.setAccessible(true);
         final StackWalker esw = (StackWalker) ewsNI.invoke(null, s, f.get(null));
-        new LocalsAndOperands(esw, true).test();
+        new LocalsAndOperandsSample(esw, true).test();
     }
 
     private final StackWalker walker;
     private final boolean extended;
 
-    private LocalsAndOperands(StackWalker walker, boolean extended) {
+    private LocalsAndOperandsSample(StackWalker walker, boolean extended) {
         this.walker = walker;
         this.extended = extended;
     }
