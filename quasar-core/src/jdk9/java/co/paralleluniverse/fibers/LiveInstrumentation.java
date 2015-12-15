@@ -179,7 +179,19 @@ final class LiveInstrumentation {
             && !className.equals(Stack.class.getName()) && !SuspendableHelper.isWaiver(className, methodName)) {
             res.classInstrumented = SuspendableHelper.isInstrumented(declaringClass);
             res.methodInstrumented = SuspendableHelper.isInstrumented(m);
-            res.callSiteInstrumented = isCallSiteInstrumented(m, offset, upperStackFrame);
+            final Instrumented ann = SuspendableHelper.getAnnotation(m, Instrumented.class);
+            if (ann != null) {
+                DEBUG("\t\tOptimized method: " + ann.methodOptimized());
+                DEBUG("\t\tMethod start source line: " + ann.methodStartSourceLine());
+                DEBUG("\t\tMethod end source line: " + ann.methodEndSourceLine());
+                DEBUG("\t\tSuspendable call source lines: " + Arrays.toString(ann.methodSuspendableCallSourceLines()));
+                DEBUG("\t\tSuspendable call signatures: " + Arrays.toString(ann.methodSuspendableCallSignatures()));
+                final int[] offsets = ann.methodSuspendableCallOffsets();
+                DEBUG("\t\tSuspendable call offsets (after instrumentation): " + Arrays.toString(offsets));
+
+                res.callSiteInstrumented = isCallSiteInstrumented(m, ann, offset, upperStackFrame);
+            }
+
         } else if (Fiber.class.getName().equals(className) && "run1".equals(methodName)) {
             res.last = true;
         }
@@ -202,15 +214,8 @@ final class LiveInstrumentation {
                 return true;
             }
 
-            final Instrumented ann = SuspendableHelper.getAnnotation(m, Instrumented.class);
             if (ann != null) {
-                DEBUG("\t\tOptimized method: " + ann.methodOptimized());
-                DEBUG("\t\tMethod start source line: " + ann.methodStartSourceLine());
-                DEBUG("\t\tMethod end source line: " + ann.methodEndSourceLine());
-                DEBUG("\t\tSuspendable call source lines: " + Arrays.toString(ann.methodSuspendableCallSourceLines()));
-                DEBUG("\t\tSuspendable call signatures: " + Arrays.toString(ann.methodSuspendableCallSignatures()));
                 final int[] offsets = ann.methodSuspendableCallOffsets();
-                DEBUG("\t\tSuspendable call offsets (after instrumentation): " + Arrays.toString(offsets));
                 for (int i = 0 ; i < offsets.length ; i++) {
                     if (offset == offsets[i])
                         return true;
