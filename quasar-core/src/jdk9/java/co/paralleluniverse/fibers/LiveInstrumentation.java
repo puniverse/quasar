@@ -112,7 +112,7 @@ final class LiveInstrumentation {
                                 final Instrumented i = SuspendableHelper.getAnnotation(lookupMethod(cCaller, mnCaller, mtCaller), Instrumented.class);
                                 if (i != null && !i.methodOptimized()) {
                                     DEBUG("Method is not optimized, creating a fiber stack rebuild record");
-                                    prevFFP = pushRebuildToDo(sf, upper, fiberStackRebuildToDoList, callingFiberRuntime);
+                                    prevFFP = pushRebuildToDo(sf, upper, fiberStackRebuildToDoList, callingFiberRuntime, report.methodInstrumented);
                                 }
 
                                 callingFiberRuntime = false;
@@ -186,7 +186,7 @@ final class LiveInstrumentation {
         return res;
     }
 
-    private static boolean isCallSiteInstrumented(Executable m, int offset, StackWalker.StackFrame upperStackFrame) {
+    private static boolean isCallSiteInstrumented(Executable m, Instrumented ann, int offset, StackWalker.StackFrame upperStackFrame) {
         // TODO: factor with corresponding (Java9-ported) SuspendableHelper::isCallSiteInstrumented
         if (m == null)
             return false;
@@ -255,13 +255,14 @@ final class LiveInstrumentation {
         // private final Object[] upperOperands;
 
         private final boolean callingYield;
+        private final boolean alreadyInstrumented;
 
         private int numSlots = -1;
         private int entry = 1;
 
         private int[] suspendableCallOffsets;
 
-        private FiberFramePush(StackWalker.StackFrame sf, StackWalker.StackFrame upper, boolean callingYield) throws InvocationTargetException, IllegalAccessException {
+        private FiberFramePush(StackWalker.StackFrame sf, StackWalker.StackFrame upper, boolean callingYield, boolean alreadyInstrumented) throws InvocationTargetException, IllegalAccessException {
             this.sf = sf;
             this.m = lookupMethod(sf); // Caching it as it's used multiple times
             this.locals = (Object[]) getLocals.invoke(sf);
@@ -273,6 +274,7 @@ final class LiveInstrumentation {
             // this.upperOperands = (Object[]) getOperands.invoke(upper);
 
             this.callingYield = callingYield;
+            this.alreadyInstrumented = alreadyInstrumented;
         }
 
         private void setLower(StackWalker.StackFrame lower) {
@@ -361,7 +363,7 @@ final class LiveInstrumentation {
             }
 
             // Store local vars
-            for (int i = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` TODO: check */ ; i < locals.length ; i++) {
+            for (int i = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` */ ; i < locals.length - (alreadyInstrumented ? 3 : 0) ; i++) {
             // for (int i = 0 ; i < locals.length ; i++) {
                 final Object local = locals[i];
                 if (local != null) {
@@ -449,7 +451,7 @@ final class LiveInstrumentation {
                             idxObj++;
                     }
                 }
-                for (int i = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` TODO: check */ ; i < locals.length ; i++) {
+                for (int i = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` */ ; i < locals.length - (alreadyInstrumented ? 3 : 0) ; i++) {
                     final Object local = locals[i];
                     if (local != null) {
                         if (primitiveValueClass.isInstance(local))
@@ -481,13 +483,14 @@ final class LiveInstrumentation {
         }
     }
 
-    private static LiveInstrumentation.FiberFramePush pushRebuildToDo(StackWalker.StackFrame sf, StackWalker.StackFrame upper, java.util.Stack<FiberFramePush> todo, boolean callingYield) {
+    private static LiveInstrumentation.FiberFramePush pushRebuildToDo(StackWalker.StackFrame sf, StackWalker.StackFrame upper, java.util.Stack<FiberFramePush> todo, boolean callingYield, boolean methodInstrumented) {
         try {
             final FiberFramePush ffp =
                 new FiberFramePush (
                     sf,
                     upper,
-                    callingYield
+                    callingYield,
+                    methodInstrumented
                 );
             todo.push(ffp);
             return ffp;
