@@ -648,7 +648,9 @@ public class MethodDatabase implements Log {
     public void addOperandStackType(String className, String name, String desc, Type t) {
         if (t != null) {
             final String id = getCacheMethodId(className, name, desc);
-            final List<Type> l = operandStackTypesCacheL.getOrDefault(id, new ArrayList<Type>());
+            List<Type> l = operandStackTypesCacheL.get(id);
+            if (l == null)
+                l = new ArrayList<>();
             l.add(t);
             operandStackTypesCacheL.put(id, l);
         }
@@ -657,7 +659,9 @@ public class MethodDatabase implements Log {
     public void addLocalType(String className, String name, String desc, Type t) {
         if (t != null) {
             final String id = getCacheMethodId(className, name, desc);
-            final List<Type> l = localTypesCacheL.getOrDefault(id, new ArrayList<Type>());
+            List<Type> l = localTypesCacheL.get(id);
+            if (l == null)
+                l = new ArrayList<>();
             l.add(t);
             localTypesCacheL.put(id, l);
         }
@@ -665,7 +669,9 @@ public class MethodDatabase implements Log {
 
     public void sealOperandStackTypes(String className, String name, String desc) {
         final String id = getCacheMethodId(className, name, desc);
-        final List<Type> l = operandStackTypesCacheL.getOrDefault(id, new ArrayList<Type>());
+        List<Type> l = operandStackTypesCacheL.get(id);
+        if (l == null)
+            l = new ArrayList<>();
         final Type[] ta = new Type[l.size()];
         Lists.reverse(l).toArray(ta);
         operandStackTypesCache.put(id, ta);
@@ -674,7 +680,9 @@ public class MethodDatabase implements Log {
 
     public void sealLocalTypes(String className, String name, String desc) {
         final String id = getCacheMethodId(className, name, desc);
-        final List<Type> l = localTypesCacheL.getOrDefault(id, new ArrayList<Type>());
+        List<Type> l = localTypesCacheL.get(id);
+        if (l == null)
+            l = new ArrayList<>();
         final Type[] ta = new Type[l.size()];
         l.toArray(ta);
         localTypesCache.put(id, ta);
