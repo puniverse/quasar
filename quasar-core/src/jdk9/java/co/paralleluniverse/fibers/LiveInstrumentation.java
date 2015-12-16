@@ -19,12 +19,14 @@ import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
 import co.paralleluniverse.fibers.instrument.*;
 import co.paralleluniverse.strands.SuspendableUtils;
 import com.google.common.io.ByteStreams;
+import org.objectweb.asm.Type;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.instrument.ClassDefinition;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.*;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
@@ -36,6 +38,8 @@ import java.util.stream.Collectors;
  * @author circlespainter
  */
 final class LiveInstrumentation {
+    private static final int QUASAR_LOCALS = 3;
+
     private static final MethodDatabase db;
 
     static synchronized boolean fixup(Fiber f) {
@@ -57,7 +61,7 @@ final class LiveInstrumentation {
                     StackWalker.StackFrame upper = null;
                     FiberFramePush prevFFP = null;
                     for (final StackWalker.StackFrame sf : frames) {
-                        if (isFiberRuntimeMethod(sf.getClassName(), sf.getMethodName())) {
+                        if (isFiberRuntimeMethod(sf.getClassName())) {
                             // Skip marking/transforming yield frames
                             callingFiberRuntime = true;
                         } else {
@@ -80,6 +84,7 @@ final class LiveInstrumentation {
                                 ok = report.isOK();
                                 last = report.last;
 
+                                assert upper != null;
                                 DEBUG("Frame instrumentation analysis report:\n" +
                                     "\tclass is " +
                                     (report.classInstrumented ? "instrumented" : "NOT instrumented") + ", \n" +
@@ -150,7 +155,7 @@ final class LiveInstrumentation {
         return true /* TODO after debugging pass the following instead */ /* checkInstrumentation */;
     }
 
-    private static boolean isFiberRuntimeMethod(String className, String methodName) {
+    private static boolean isFiberRuntimeMethod(String className) {
         return
             Fiber.class.getName().equals(className) ||
             LiveInstrumentation.class.getName().equals(className) ||
@@ -216,8 +221,8 @@ final class LiveInstrumentation {
 
             if (ann != null) {
                 final int[] offsets = ann.methodSuspendableCallOffsets();
-                for (int i = 0 ; i < offsets.length ; i++) {
-                    if (offset == offsets[i])
+                for (int offset1 : offsets) {
+                    if (offset == offset1)
                         return true;
                 }
             }
@@ -250,6 +255,7 @@ final class LiveInstrumentation {
 
     private static class FiberFramePush {
         private final StackWalker.StackFrame sf;
+        private final MethodType mt;
         private final Executable m;
         private final Object[] locals;
         private final Object[] operands;
@@ -269,9 +275,10 @@ final class LiveInstrumentation {
 
         private FiberFramePush(StackWalker.StackFrame sf, StackWalker.StackFrame upper, boolean callingYield, boolean alreadyInstrumented) throws InvocationTargetException, IllegalAccessException {
             this.sf = sf;
+            this.mt = (MethodType) getMethodType.invoke(memberName.get(sf));
             this.m = lookupMethod(sf); // Caching it as it's used multiple times
-            this.locals = (Object[]) getLocals.invoke(sf);
-            this.operands = (Object[]) getOperands.invoke(sf);
+            this.locals = removeNulls((Object[]) getLocals.invoke(sf));
+            this.operands = removeNulls((Object[]) getOperands.invoke(sf));
 
             this.upper = upper;
             this.upperM = lookupMethod(upper);
@@ -280,6 +287,17 @@ final class LiveInstrumentation {
 
             this.callingYield = callingYield;
             this.alreadyInstrumented = alreadyInstrumented;
+        }
+
+        private static Object[] removeNulls(Object[] os) {
+            final List<Object> l = new ArrayList<>();
+            for (final Object o : os) {
+                if (o != null)
+                    l.add(o);
+            }
+            final Object[] ret = new Object[l.size()];
+            l.toArray(ret);
+            return ret;
         }
 
         private void setLower(StackWalker.StackFrame lower) {
@@ -354,75 +372,56 @@ final class LiveInstrumentation {
             }
 
             // Store actual non-call stack operands left
-            for (final Object op : operands) {
-                // TODO: check that "omitted" (new value) can't happen at runtime
+            int idxLive = 0;
+            int idxTypes = 0;
+            while (idxLive < operands.length) {
+                final Object op = operands[idxLive];
+                final org.objectweb.asm.Type[] ts =
+                    db.getOperandStackTypes (
+                        sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString()
+                    );
+                final org.objectweb.asm.Type t = ts[upperM.getParameterCount() + idxTypes];
+                int inc = 1;
                 if (op != null) {
                     final String type = type(op);
                     if (!isNullableType(type)) {
                         if (primitiveValueClass.isInstance(op))
-                            storePrim(op, s, idxPrim++);
-                        else if (!(op instanceof Stack)) // Skip stack operands
+                            inc = storePrim(operands, idxLive, t, s, idxPrim++);
+                        else // if (!(op instanceof Stack)) // Skip stack operands
                             Stack.push(op, s, idxObj++);
                     }
                 }
+                idxLive += inc;
+                idxTypes++;
             }
 
             // Store local vars
-            for (int i = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` */ ; i < locals.length - (alreadyInstrumented ? 3 : 0) ; i++) {
+            idxLive = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` */;
+            idxTypes = 0;
+            while (idxLive < locals.length - (alreadyInstrumented ? QUASAR_LOCALS : 0)) {
             // for (int i = 0 ; i < locals.length ; i++) {
-                final Object local = locals[i];
+                final Object local = locals[idxLive];
+                final org.objectweb.asm.Type[] ts =
+                    db.getLocalTypes (
+                        sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString()
+                    );
+                final org.objectweb.asm.Type t = ts[idxTypes];
+                int inc = 1;
                 if (local != null) {
                     final String type = type(local);
                     if (!isNullableType(type)) {
-                        if (primitiveValueClass.isInstance(local)) {
-                            storePrim(local, s, idxPrim);
-                            idxPrim++;
-                        } else if (!(local instanceof Stack)) { // Skip stack locals
-                            Stack.push(local, s, idxObj);
-                            idxObj++;
-                        }
+                        if (primitiveValueClass.isInstance(local))
+                            inc = storePrim(locals, idxLive, t, s, idxPrim++);
+                        else // if (!(local instanceof Stack)) { // Skip stack locals
+                            Stack.push(local, s, idxObj++);
                     }
                 }
+                idxLive += inc;
+                idxTypes++;
             }
 
             // Since the potential call to a yield method is in progress already (because live instrumentation is
             // called from all yield methods), we don't need to perform any special magic to preserve its args.
-        }
-
-        private void storePrim(Object op, Stack s, int idx) {
-            try {
-                final char t = (char) primitiveType.invoke(op);
-                switch (t) {
-                    case 'I':
-                        Stack.push((int) intValue.invoke(op), s, idx);
-                        break;
-                    case 'S':
-                        Stack.push((int) ((short) shortValue.invoke(op)), s, idx);
-                        break;
-                    case 'Z':
-                        Stack.push((boolean) booleanValue.invoke(op) ? 1 : 0, s, idx);
-                        break;
-                    case 'C':
-                        Stack.push((int) ((char) charValue.invoke(op)), s, idx);
-                        break;
-                    case 'B':
-                        Stack.push((int) ((byte) byteValue.invoke(op)), s, idx);
-                        break;
-                    case 'J':
-                        Stack.push((long) longValue.invoke(op), s, idx);
-                        break;
-                    case 'F':
-                        Stack.push((float) floatValue.invoke(op), s, idx);
-                        break;
-                    case 'D':
-                        Stack.push((double) doubleValue.invoke(op), s, idx);
-                        break;
-                    default:
-                        throw new RuntimeException("Unknown primitive operand type: " + t);
-                }
-            } catch (final InvocationTargetException | IllegalAccessException e) {
-                throw new RuntimeException(e);
-            }
         }
 
         private int getNumSlots() {
@@ -448,26 +447,92 @@ final class LiveInstrumentation {
                         idxObj++;
                 }
 
-                for (final Object operand : operands) {
-                    if (operand != null) {
-                        if (primitiveValueClass.isInstance(operand))
-                            idxPrim++;
-                        else if (!isNullableType(type(operand)))
-                            idxObj++;
+                int idxLive = 0;
+                int idxTypes = 0;
+                while (idxLive < operands.length) {
+                    final org.objectweb.asm.Type[] ts =
+                        db.getOperandStackTypes (
+                            sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString()
+                        );
+                    final org.objectweb.asm.Type t = ts[upperM.getParameterCount() + idxTypes];
+                    int inc = 1;
+                    if (Type.INT_TYPE.equals(t) || Type.SHORT_TYPE.equals(t) || Type.BOOLEAN_TYPE.equals(t) ||
+                        Type.CHAR_TYPE.equals(t) || Type.BYTE_TYPE.equals(t) || Type.FLOAT_TYPE.equals(t)) {
+                        idxPrim++;
+                    } else if (Type.LONG_TYPE.equals(t) || Type.DOUBLE_TYPE.equals(t)) {
+                        inc = 2;
+                        idxPrim++;
+                    } else {
+                        idxObj++;
                     }
+                    idxLive += inc;
+                    idxTypes++;
                 }
-                for (int i = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` */ ; i < locals.length - (alreadyInstrumented ? 3 : 0) ; i++) {
-                    final Object local = locals[i];
-                    if (local != null) {
-                        if (primitiveValueClass.isInstance(local))
-                            idxPrim++;
-                        else if (!isNullableType(type(local)))
-                            idxObj++;
+
+                idxLive = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` */;
+                idxTypes = 0;
+                while (idxLive < locals.length - (alreadyInstrumented ? QUASAR_LOCALS : 0)) {
+                    final org.objectweb.asm.Type[] ts =
+                        db.getLocalTypes(
+                            sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString()
+                        );
+                    final org.objectweb.asm.Type t = ts[idxTypes];
+                    int inc = 1;
+                    if (Type.INT_TYPE.equals(t) || Type.SHORT_TYPE.equals(t) || Type.BOOLEAN_TYPE.equals(t) ||
+                        Type.CHAR_TYPE.equals(t) || Type.BYTE_TYPE.equals(t) || Type.FLOAT_TYPE.equals(t)) {
+                        idxPrim++;
+                    } else if (Type.LONG_TYPE.equals(t) || Type.DOUBLE_TYPE.equals(t)) {
+                        inc = 2;
+                        idxPrim++;
+                    } else {
+                        idxObj++;
                     }
+
+                    idxLive += inc;
+                    idxTypes++;
                 }
+
                 numSlots = Math.max(idxObj, idxPrim);
             }
             return numSlots;
+        }
+
+        private int storePrim(Object[] objs, int objsIdx, Type t, Stack s, int stackIdx) {
+            int inc = 1;
+            try {
+                // TODO: ask if the present hack will stay (currently all values except double-word are returned as ints)
+                if (Type.INT_TYPE.equals(t) || Type.SHORT_TYPE.equals(t) || Type.BOOLEAN_TYPE.equals(t) ||
+                    Type.CHAR_TYPE.equals(t) || Type.BYTE_TYPE.equals(t) || Type.FLOAT_TYPE.equals(t)) {
+                    Stack.push((int) intValue.invoke(objs[objsIdx]), s, stackIdx);
+                } else {
+                    inc = 2;
+                    final int i1 = (int) intValue.invoke(objs[objsIdx]), i2 = (int) intValue.invoke(objs[objsIdx + 1]);
+                    if (Type.LONG_TYPE.equals(t))
+                        Stack.push(twoIntsToLong(i1, i2), s, stackIdx);
+                    else if (Type.DOUBLE_TYPE.equals(t))
+                        Stack.push(twoIntsToDouble(i1, i2), s, stackIdx);
+                }
+            } catch (final InvocationTargetException | IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+            return inc;
+        }
+
+        private static long twoIntsToLong(int a, int b) {
+            // TODO: understand & fix
+            System.out.println("\na: " + Integer.toBinaryString(a));
+            System.out.println("b: " + Integer.toBinaryString(b));
+            System.out.println("4l: " + Long.toBinaryString(4l));
+            System.out.println("(long)a << 32 | b & 0xFFFFFFFFL: " + Long.toBinaryString((long)a << 32 | b & 0xFFFFFFFFL));
+            return (long)a << 32 | b & 0xFFFFFFFFL;
+        }
+
+        private static double twoIntsToDouble(int a, int b) {
+            // TODO: understand & fix
+            double ret = Double.longBitsToDouble(twoIntsToLong(a, b));
+            System.out.println("\n1.4d: " + Long.toBinaryString(Double.doubleToRawLongBits(1.4d)));
+            System.out.println("ret: " + Long.toBinaryString(Double.doubleToRawLongBits(ret)));
+            return ret;
         }
 
         @Override
@@ -508,7 +573,7 @@ final class LiveInstrumentation {
 
     private static boolean agree(StackWalker w, Stack fs) {
         // TODO: must be _fast_, JMH it
-        final long threadStackDepth = w.walk(s -> s.filter(sf -> !isFiberRuntimeMethod(sf.getClassName(), sf.getMethodName())).collect(COUNTING));
+        final long threadStackDepth = w.walk(s -> s.filter(sf -> !isFiberRuntimeMethod(sf.getClassName())).collect(COUNTING));
         return threadStackDepth == fs.getInstrumentedCount();
     }
 
@@ -527,7 +592,7 @@ final class LiveInstrumentation {
     private static Class<?> primitiveValueClass;
 
     private static Method getLocals, getOperands, getMethodType, primitiveType;
-    private static Method booleanValue, byteValue, charValue, shortValue, intValue, floatValue, longValue, doubleValue;
+    private static Method intValue;
 
     private static Field memberName, bci;
 
@@ -574,29 +639,8 @@ final class LiveInstrumentation {
                 primitiveType = primitiveValueClass.getDeclaredMethod("type");
                 primitiveType.setAccessible(true);
 
-                booleanValue = primitiveValueClass.getDeclaredMethod("booleanValue");
-                // booleanValue.setAccessible(true);
-
-                byteValue = primitiveValueClass.getDeclaredMethod("byteValue");
-                // byteValue.setAccessible(true);
-
-                charValue = primitiveValueClass.getDeclaredMethod("charValue");
-                // charValue.setAccessible(true);
-
-                shortValue = primitiveValueClass.getDeclaredMethod("shortValue");
-                // shortValue.setAccessible(true);
-
                 intValue = primitiveValueClass.getDeclaredMethod("intValue");
                 // intValue.setAccessible(true);
-
-                floatValue = primitiveValueClass.getDeclaredMethod("floatValue");
-                // floatValue.setAccessible(true);
-
-                longValue = primitiveValueClass.getDeclaredMethod("longValue");
-                // longValue.setAccessible(true);
-
-                doubleValue = primitiveValueClass.getDeclaredMethod("doubleValue");
-                // doubleValue.setAccessible(true);
 
                 // getMonitors = liveStackFrameClass.getDeclaredMethod("getMonitors");
                 // getMonitors.setAccessible(true);

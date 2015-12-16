@@ -639,13 +639,16 @@ class InstrumentMethod {
                                 susp = false;
                             else if (st == null) {
                                 db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s (at %s#%s)", min.owner, min.name, min.desc, className, mn.name);
-                                susp = true;
-                            } else if (susp && st != SuspendableType.SUSPENDABLE_SUPER) {
+                            } else if (st != SuspendableType.SUSPENDABLE_SUPER) {
                                 db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is suspendable", i, min.owner, min.name, min.desc);
                             }
                             if (st == SuspendableType.SUSPENDABLE_SUPER) {
                                 db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s to suspendable-super (instrumentation for proxy support will be enabled)", i, min.owner, min.name, min.desc);
                                 this.callsSuspendableSupers = true;
+                            }
+
+                            if (susp) {
+                                recordFrameTypeInfo(db, f);
                             }
                         }
                     } else if (in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
@@ -673,6 +676,8 @@ class InstrumentMethod {
             }
         }
         addCodeBlock(null, numIns);
+
+        sealFrameTypeInfo(db);
     }
 
     private void possiblyWarnAboutBlocking(final AbstractInsnNode ain) throws UnableToInstrumentException {
@@ -963,7 +968,24 @@ class InstrumentMethod {
         mv.visitLabel(lbl);
     }
 
-    private void emitStoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsToPreserve) {
+    private void recordFrameTypeInfo(MethodDatabase db, Frame f) {
+        for (int i = f.getStackSize(); i-- > 0;) {
+            final BasicValue v = (BasicValue) f.getStack(i);
+            db.addOperandStackType(className, mn.name, mn.desc, v.getType());
+        }
+
+        for (int i = firstLocal; i < f.getLocals(); i++) {
+            final BasicValue v = (BasicValue) f.getLocal(i);
+            db.addLocalType(className, mn.name, mn.desc, v.getType());
+        }
+    }
+
+    private void sealFrameTypeInfo(MethodDatabase db) {
+        db.sealOperandStackTypes(className, mn.name, mn.desc);
+        db.sealLocalTypes(className, mn.name, mn.desc);
+    }
+
+    private void emitStoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsToPutBackToOperandStackAfterStore) {
         if (idx > Stack.MAX_ENTRY)
             throw new IllegalArgumentException("Entry index (PC) " + idx + " greater than maximum of " + Stack.MAX_ENTRY + " in " + className + "." + mn.name + mn.desc);
         if (fi.numSlots > Stack.MAX_SLOTS)
@@ -1005,8 +1027,8 @@ class InstrumentMethod {
             }
         }
 
-        // restore last numArgsToPreserve operands
-        for (int i = f.getStackSize() - numArgsToPreserve; i < f.getStackSize(); i++) {
+        // restore last numArgsToPutBackToOperandStackAfterStore operands
+        for (int i = f.getStackSize() - numArgsToPutBackToOperandStackAfterStore; i < f.getStackSize(); i++) {
             final BasicValue v = (BasicValue) f.getStack(i);
             if (!isOmitted(v)) {
                 if (!isNullType(v)) {

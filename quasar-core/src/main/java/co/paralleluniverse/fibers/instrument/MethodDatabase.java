@@ -46,15 +46,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.TreeMap;
+import java.util.*;
+
+import com.google.common.collect.Lists;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 
 /**
  * <p>
@@ -626,5 +624,72 @@ public class MethodDatabase implements Log {
             this.name = name;
             this.file = file;
         }
+    }
+
+    /////////////////////////////////////////////////////////////////////
+    // Live instrumentation support temporary static analysis info caches
+    /////////////////////////////////////////////////////////////////////
+
+    private Map<String, List<Type>> operandStackTypesCacheL = new HashMap<>(), localTypesCacheL = new HashMap<>();
+    private Map<String, Type[]> operandStackTypesCache = new HashMap<>(), localTypesCache = new HashMap<>();
+
+    private String getCacheMethodId(String className, String name, String desc) {
+        return className.replace('.', '/') + "::" + name + desc;
+    }
+
+    public Type[] getOperandStackTypes(String className, String name, String desc) {
+        return operandStackTypesCache.get(getCacheMethodId(className, name, desc));
+    }
+
+    public Type[] getLocalTypes(String className, String name, String desc) {
+        return localTypesCache.get(getCacheMethodId(className, name, desc));
+    }
+
+    public void addOperandStackType(String className, String name, String desc, Type t) {
+        if (t != null) {
+            final String id = getCacheMethodId(className, name, desc);
+            final List<Type> l = operandStackTypesCacheL.getOrDefault(id, new ArrayList<Type>());
+            l.add(t);
+            operandStackTypesCacheL.put(id, l);
+        }
+    }
+
+    public void addLocalType(String className, String name, String desc, Type t) {
+        if (t != null) {
+            final String id = getCacheMethodId(className, name, desc);
+            final List<Type> l = localTypesCacheL.getOrDefault(id, new ArrayList<Type>());
+            l.add(t);
+            localTypesCacheL.put(id, l);
+        }
+    }
+
+    public void sealOperandStackTypes(String className, String name, String desc) {
+        final String id = getCacheMethodId(className, name, desc);
+        final List<Type> l = operandStackTypesCacheL.getOrDefault(id, new ArrayList<Type>());
+        final Type[] ta = new Type[l.size()];
+        Lists.reverse(l).toArray(ta);
+        operandStackTypesCache.put(id, ta);
+        operandStackTypesCacheL.remove(id);
+    }
+
+    public void sealLocalTypes(String className, String name, String desc) {
+        final String id = getCacheMethodId(className, name, desc);
+        final List<Type> l = localTypesCacheL.getOrDefault(id, new ArrayList<Type>());
+        final Type[] ta = new Type[l.size()];
+        l.toArray(ta);
+        localTypesCache.put(id, ta);
+        localTypesCacheL.remove(id);
+    }
+
+    public void clearOperandStackTypes(String className, String name, String desc) {
+        final String id = getCacheMethodId(className, name, desc);
+        operandStackTypesCacheL.remove(id);
+        operandStackTypesCache.remove(id);
+    }
+
+    public void clearLocalTypes(String className, String name, String desc) {
+        final String id = getCacheMethodId(className, name, desc);
+        localTypesCacheL.remove(id);
+        localTypesCache.remove(id);
     }
 }
