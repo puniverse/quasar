@@ -38,6 +38,11 @@ public class AutoSingleUninstrCallSiteArgsTest {
                 ")"
             );
             m(false, (byte) 1, 'a', (short) 2, 3, 4, 1.3f, 1.4, "ciao", "hello");
+            System.err.println (
+                "Exit run(), called m(" +
+                    "b:false, by: 1, c: 'a', s: 2, i: 3, l: 4, f: 1.3, d: 1.4, s1: 'ciao', s2, 'hello'" +
+                ")"
+            );
             System.err.println("Exit run()");
         }
 
@@ -50,6 +55,12 @@ public class AutoSingleUninstrCallSiteArgsTest {
                 "), calling m1(...)"
             );
             m1(b, by, c, s, i, l, f, d, s1, s2);
+            System.err.println (
+                "Exit m(" +
+                    "b:" + b + ", by:" + by + ", c:" + c + ", s:" + s + ", i:" + i + ", l:" + l + ", " +
+                    "f:" + f + ", d:" + d + ", s1:" + s1 + ", s2:" + s2 +
+                "), called m1(...)"
+            );
             System.err.println("Exit m()");
         }
 
@@ -66,7 +77,12 @@ public class AutoSingleUninstrCallSiteArgsTest {
             } catch (final InterruptedException | SuspendExecution e) {
                 throw new RuntimeException(e);
             }
-            System.err.println("Exit m1()");
+            System.err.println (
+                "Exit m1(" +
+                    "b:" + b + ", by:" + by + ", c:" + c + ", s:" + s + ", i:" + i + ", l:" + l + ", " +
+                    "f:" + f + ", d:" + d + ", s1:" + s1 + ", s2:" + s2 +
+                ")"
+            );
         }
     }
 
