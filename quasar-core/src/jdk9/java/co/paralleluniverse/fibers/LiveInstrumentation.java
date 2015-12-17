@@ -26,7 +26,6 @@ import java.io.InputStream;
 import java.lang.instrument.ClassDefinition;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.*;
-import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
