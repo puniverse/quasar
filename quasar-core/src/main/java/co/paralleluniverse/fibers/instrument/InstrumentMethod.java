@@ -168,7 +168,8 @@ class InstrumentMethod {
         }
     }
 
-    private static final boolean optimizationDisabled = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.disableInstrumentationOptimization");
+    public static final boolean optimizationDisabled = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.disableInstrumentationOptimization");
+
     private static final boolean HANDLE_PROXY_INVOCATIONS = true;
     // private final boolean verifyInstrumentation; //
     private static final int PREEMPTION_BACKBRANCH = 0;

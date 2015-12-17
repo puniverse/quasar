@@ -23,6 +23,7 @@ import java.lang.reflect.Method;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import static org.junit.Assert.*;
+import static org.junit.Assume.*;
 import org.junit.Test;
 
 /**
@@ -51,6 +52,8 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testSkipForwardsToSuspendableVoid() throws InterruptedException, SuspendExecution, ExecutionException {
+        assumeFalse(InstrumentMethod.optimizationDisabled);
+
         new Fiber(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
@@ -71,6 +74,8 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testSkipForwardsToSuspendableObject() throws InterruptedException, SuspendExecution, ExecutionException {
+        assumeFalse(InstrumentMethod.optimizationDisabled);
+
         new Fiber(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
@@ -91,6 +96,8 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testSkipForwardsToSuspendableDouble() throws InterruptedException, SuspendExecution, ExecutionException {
+        assumeFalse(InstrumentMethod.optimizationDisabled);
+
         new Fiber(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
@@ -111,6 +118,8 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testSkipForwardsToSuspendableFloat() throws InterruptedException, SuspendExecution, ExecutionException {
+        assumeFalse(InstrumentMethod.optimizationDisabled);
+
         new Fiber(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
@@ -131,6 +140,8 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testSkipForwardsToSuspendableInt() throws InterruptedException, SuspendExecution, ExecutionException {
+        assumeFalse(InstrumentMethod.optimizationDisabled);
+
         new Fiber(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
@@ -151,6 +162,8 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testSkipForwardsToSuspendableLong() throws InterruptedException, SuspendExecution, ExecutionException {
+        assumeFalse(InstrumentMethod.optimizationDisabled);
+
         new Fiber(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
@@ -171,6 +184,8 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testDontSkipForwardsWithTryCatch() throws InterruptedException, SuspendExecution, ExecutionException {
+        assumeFalse(InstrumentMethod.optimizationDisabled);
+
         new Fiber(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
@@ -187,6 +202,8 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testDontSkipForwardsWithLoop() throws InterruptedException, SuspendExecution, ExecutionException {
+        assumeFalse(InstrumentMethod.optimizationDisabled);
+
         new Fiber(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
@@ -204,6 +221,8 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testDontSkipForwardsWithLoopBefore() throws InterruptedException, SuspendExecution, ExecutionException {
+        assumeFalse(InstrumentMethod.optimizationDisabled);
+
         new Fiber(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
@@ -221,6 +240,8 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testSkipForwardsWithLoopAfter() throws InterruptedException, SuspendExecution, ExecutionException {
+        assumeFalse(InstrumentMethod.optimizationDisabled);
+
         new Fiber(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
@@ -237,6 +258,8 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testDontSkipForwardsWithMethodBefore() throws InterruptedException, SuspendExecution, ExecutionException {
+        assumeFalse(InstrumentMethod.optimizationDisabled);
+
         new Fiber(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
@@ -253,6 +276,8 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testSkipForwardsWithMethodAfter() throws InterruptedException, SuspendExecution, ExecutionException {
+        assumeFalse(InstrumentMethod.optimizationDisabled);
+
         new Fiber(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
@@ -269,6 +294,8 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testDontSkipForwardsWithReflectiveCalls() throws InterruptedException, SuspendExecution, ExecutionException {
+        assumeFalse(InstrumentMethod.optimizationDisabled);
+
         new Fiber(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
