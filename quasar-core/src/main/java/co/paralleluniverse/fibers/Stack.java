@@ -47,6 +47,7 @@ public final class Stack implements Serializable {
     private long[] dataLong;        // holds primitives on stack as well as each method's entry point and the stack pointer
     private Object[] dataObject;    // holds refs on stack
     private int instrumentedCount; // TODO: transient?
+    private int optimizedCount; // TODO: transient?
 
     Stack(Fiber fiber, int stackSize) {
         if (stackSize <= 0)
@@ -64,6 +65,7 @@ public final class Stack implements Serializable {
         dataLong = new long[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
         dataObject = new Object[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
         instrumentedCount = 0;
+        optimizedCount = 0;
     }
 
     /**
@@ -85,6 +87,15 @@ public final class Stack implements Serializable {
     // for testing/benchmarking only
     void resetStack() {
         resumeStack();
+    }
+
+    /**
+     * Used by live instrumentation to check for uninstrumented frames
+     *
+     * @return the number of pushOptimizedMethod() calls - the number of popOptimizedMethod() calls
+     */
+    public final int getOptimizedCount() {
+        return optimizedCount;
     }
 
     /**
@@ -135,6 +146,16 @@ public final class Stack implements Serializable {
         sp -= FRAME_RECORD_SIZE + getPrevNumSlots(dataLong[sp - FRAME_RECORD_SIZE]);
 
         return false;
+    }
+    /**
+     * Called before an optimized method is called.
+     */
+    public final void pushOptimizedMethod() {
+        optimizedCount++;
+    }
+
+    public final void popOptimizedMethod() {
+        optimizedCount--;
     }
 
     /**
