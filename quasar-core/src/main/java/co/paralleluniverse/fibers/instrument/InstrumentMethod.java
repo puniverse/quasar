@@ -42,6 +42,7 @@
 package co.paralleluniverse.fibers.instrument;
 
 // import co.paralleluniverse.common.util.SystemProperties;
+import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.fibers.Stack;
 import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
@@ -167,7 +168,7 @@ class InstrumentMethod {
         }
     }
 
-    private static final boolean optimizationDisabled = false; // SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.disableInstrumentationOptimization");
+    private static final boolean optimizationDisabled = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.disableInstrumentationOptimization");
     private static final boolean HANDLE_PROXY_INVOCATIONS = true;
     // private final boolean verifyInstrumentation; //
     private static final int PREEMPTION_BACKBRANCH = 0;
