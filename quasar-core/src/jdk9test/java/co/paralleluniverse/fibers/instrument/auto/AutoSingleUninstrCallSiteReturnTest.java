@@ -32,30 +32,31 @@ public class AutoSingleUninstrCallSiteReturnTest {
     static class F implements SuspendableCallable<Integer> {
         @Override
         public Integer run() throws SuspendExecution, InterruptedException {
-            System.err.println("Enter run(), calling m()");
-            int ret = m();
-            System.err.println("Exit run()");
+            final String s = "ciao";
+            System.err.println("Enter run(), calling m(" + s + ")");
+            int ret = m(s);
+            System.err.println("Exit run(), called m(" + s + ")");
             return ret;
         }
 
         // @Suspendable
-        public int m() {
-            System.err.println("Enter m(), calling m1()");
-            int ret = m1();
-            System.err.println("Exit m()");
+        public int m(String s) {
+            System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
+            int ret = m1(s);
+            System.err.println("Exit m(" + s + "), called m1(" + s + ")");
             return ret;
         }
 
         @Suspendable
-        public int m1() {
-            System.err.println("Enter m1(), sleeping");
+        public int m1(String s) {
+            System.err.println("Enter m1(" + s + "), sleeping");
             try {
-                Fiber.sleep(1000);
+                Fiber.sleep(10);
             } catch (final InterruptedException | SuspendExecution e) {
                 throw new RuntimeException(e);
             }
-            System.err.println("Exit m1()");
-            return 0;
+            System.err.println("Exit m1(" + s + ")");
+            return -1;
         }
     }
 
@@ -63,7 +64,7 @@ public class AutoSingleUninstrCallSiteReturnTest {
     @Ignore @Test public void uniqueMissingCallSite() {
         final Fiber<Integer> f1 = new Fiber<>(new F()).start();
         try {
-            assertThat(f1.get(), equalTo(0));
+            assertThat(f1.get(), equalTo(-1));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -71,7 +72,7 @@ public class AutoSingleUninstrCallSiteReturnTest {
 
         final Fiber<Integer> f2 = new Fiber<>(new F()).start();
         try {
-            assertThat(f2.get(), equalTo(0));
+            assertThat(f2.get(), equalTo(-1));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
