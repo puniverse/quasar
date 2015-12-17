@@ -215,12 +215,15 @@ public final class Stack implements Serializable {
 
         if (fiber.isRecordingLevel(2))
             fiber.record(2, "Stack", "popMethod      ", "%s %d", Thread.currentThread().getStackTrace()[2], sp /*Arrays.toString(fiber.getStackTrace())*/);
-
-        instrumentedCount--;
     }
 
     public final void postRestore() throws SuspendExecution, InterruptedException {
+        decInstrumentedCount();
         fiber.onResume();
+    }
+
+    public void decInstrumentedCount() {
+        instrumentedCount--;
     }
 
     public final void preemptionPoint(int type) throws SuspendExecution {

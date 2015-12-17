@@ -489,7 +489,9 @@ class InstrumentMethod {
 
                     // mv.visitTryCatchBlock(startTry, endTry, startCatch, "java/lang/reflect/InvocationTargetException");
                     mv.visitLabel(startTry);   // try {
+
                     min.accept(mv);            //   method.invoke()
+
                     mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationReturnValue); // save return value
                     mv.visitLabel(endTry);     // }
                     mv.visitJumpInsn(Opcodes.GOTO, endCatch);
@@ -507,7 +509,22 @@ class InstrumentMethod {
                     emitCodeBlockAfterIdx(mv, i, 1 /* skip the call */);
                 } else {
                     // emitSuspendableCalled(mv);
-                    emitCodeBlockAfterIdx(mv, i, 0);
+                    min.accept(mv);            // susp call
+
+                    // Dec instrumented count
+                    mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+                    mv.visitInsn(Opcodes.DUP);
+                    final Label pop = new Label(), rest = new Label();
+                    mv.visitJumpInsn(Opcodes.IFNULL, pop);
+                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "decInstrumentedCount", "()V", false);
+                    mv.visitJumpInsn(Opcodes.GOTO, rest);
+
+                    mv.visitLabel(pop);
+                    mv.visitInsn(Opcodes.POP);
+
+                    mv.visitLabel(rest);
+
+                    emitCodeBlockAfterIdx(mv, i, 1 /* skip the susp call */);
                 }
             }
         }
