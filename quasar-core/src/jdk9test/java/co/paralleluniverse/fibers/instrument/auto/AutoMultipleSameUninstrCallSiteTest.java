@@ -16,8 +16,7 @@ package co.paralleluniverse.fibers.instrument.auto;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
-import co.paralleluniverse.strands.SuspendableRunnable;
-import org.junit.Ignore;
+import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutionException;
@@ -29,49 +28,50 @@ import static org.junit.Assert.*;
  * @author circlespainter
  */
 public class AutoMultipleSameUninstrCallSiteTest {
-    static class F implements SuspendableRunnable {
+    static class F implements SuspendableCallable<Double> {
         @Override
-        public void run() throws SuspendExecution, InterruptedException {
-            System.err.println("Enter run(), calling m() twice");
-            m();
-            m();
-            System.err.println("Exit run()");
+        public Double run() throws SuspendExecution, InterruptedException {
+            final String s = "ciao";
+            System.err.println("Enter run(), calling m(" + s + ") twice");
+            double ret = m(s); double ret1 = m(s);
+            System.err.println("Exit run(), called m(" + s + ")");
+            return ret + ret1;
         }
 
         // @Suspendable
-        public void m() {
-            System.err.println("Enter m(), calling m1() twice");
-            m1();
-            m1();
-            System.err.println("Exit m()");
+        public static double m(String s) {
+            System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
+            double ret = m1(s); double ret1 = m1(s);
+            System.err.println("Exit m(" + s + "), called m1(" + s + ")");
+            return ret + ret1;
         }
 
         @Suspendable
-        public void m1() {
-            System.err.println("Enter m1(), sleeping twice");
+        public static double m1(String s) {
+            System.err.println("Enter m1(" + s + "), sleeping");
             try {
-                Fiber.sleep(10);
                 Fiber.sleep(10);
             } catch (final InterruptedException | SuspendExecution e) {
                 throw new RuntimeException(e);
             }
-            System.err.println("Exit m1()");
+            System.err.println("Exit m1(" + s + ")");
+            return -1.7;
         }
     }
 
     // TODO: fixme
-    @Ignore @Test public void uniqueMissingCallSite() {
-        final Fiber f1 = new Fiber(new F()).start();
+    @Test public void uniqueMissingCallSiteReturn() {
+        final Fiber<Double> f1 = new Fiber<>(new F()).start();
         try {
-            f1.join();
+            assertThat(f1.get(), equalTo(-6.8));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
 
-        final Fiber f2 = new Fiber(new F()).start();
+        final Fiber<Double> f2 = new Fiber<>(new F()).start();
         try {
-            f2.join();
+            assertThat(f2.get(), equalTo(-6.8));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
