@@ -374,12 +374,10 @@ final class LiveInstrumentation {
             // Store actual non-call stack operands left
             int idxLive = 0;
             int idxTypes = 0;
-            while (idxLive < operands.length) {
+            org.objectweb.asm.Type[] ts =
+                db.getOperandStackTypes(sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString());
+            while (idxLive < operands.length && idxTypes < ts.length) {
                 final Object op = operands[idxLive];
-                final org.objectweb.asm.Type[] ts =
-                    db.getOperandStackTypes (
-                        sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString()
-                    );
                 final org.objectweb.asm.Type t = ts[upperM.getParameterCount() + idxTypes];
                 int inc = 1;
                 if (op != null) {
@@ -401,13 +399,10 @@ final class LiveInstrumentation {
             // Store local vars
             idxLive = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` */;
             idxTypes = 0;
-            while (idxLive < locals.length - (alreadyInstrumented ? QUASAR_LOCALS : 0)) {
+            ts = db.getLocalTypes(sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString());
+            while (idxLive < locals.length - (alreadyInstrumented ? QUASAR_LOCALS : 0) && idxTypes < ts.length) {
             // for (int i = 0 ; i < locals.length ; i++) {
                 final Object local = locals[idxLive];
-                final org.objectweb.asm.Type[] ts =
-                    db.getLocalTypes (
-                        sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString()
-                    );
                 final org.objectweb.asm.Type t = ts[idxTypes];
                 int inc = 1;
                 if (local != null) {
@@ -455,11 +450,9 @@ final class LiveInstrumentation {
 
                 int idxLive = 0;
                 int idxTypes = 0;
-                while (idxLive < operands.length) {
-                    final org.objectweb.asm.Type[] ts =
-                        db.getOperandStackTypes (
-                            sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString()
-                        );
+                org.objectweb.asm.Type[] ts =
+                    db.getOperandStackTypes(sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString());
+                while (idxLive < operands.length && idxTypes < ts.length) {
                     final org.objectweb.asm.Type t = ts[upperM.getParameterCount() + idxTypes];
                     int inc = 1;
                     if (Type.INT_TYPE.equals(t) || Type.SHORT_TYPE.equals(t) || Type.BOOLEAN_TYPE.equals(t) ||
@@ -477,11 +470,8 @@ final class LiveInstrumentation {
 
                 idxLive = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` */;
                 idxTypes = 0;
-                while (idxLive < locals.length - (alreadyInstrumented ? QUASAR_LOCALS : 0)) {
-                    final org.objectweb.asm.Type[] ts =
-                        db.getLocalTypes(
-                            sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString()
-                        );
+                ts = db.getLocalTypes(sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString());
+                while (idxLive < locals.length - (alreadyInstrumented ? QUASAR_LOCALS : 0) && idxTypes < ts.length) {
                     final org.objectweb.asm.Type t = ts[idxTypes];
                     int inc = 1;
                     if (Type.INT_TYPE.equals(t) || Type.SHORT_TYPE.equals(t) || Type.BOOLEAN_TYPE.equals(t) ||
