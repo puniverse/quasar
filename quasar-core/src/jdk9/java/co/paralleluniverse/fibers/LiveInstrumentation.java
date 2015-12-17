@@ -395,6 +395,9 @@ final class LiveInstrumentation {
                 idxTypes++;
             }
 
+            // Cleanup some tmp mem
+            db.clearOperandStackTypes(sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString());
+
             // Store local vars
             idxLive = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` */;
             idxTypes = 0;
@@ -422,6 +425,9 @@ final class LiveInstrumentation {
 
             // Since the potential call to a yield method is in progress already (because live instrumentation is
             // called from all yield methods), we don't need to perform any special magic to preserve its args.
+
+            // Cleanup some tmp mem
+            db.clearLocalTypes(sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString());
         }
 
         private int getNumSlots() {
