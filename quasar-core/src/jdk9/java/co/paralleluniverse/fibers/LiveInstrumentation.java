@@ -46,8 +46,9 @@ final class LiveInstrumentation {
         if (autoInstr && f != null) {
             final Stack fs = f.getStack();
             if (esw != null) {
-                if (!agree(esw, fs)) {
-                    DEBUG("\nFound mismatch between stack depth and fiber stack! Activating live lazy auto-instrumentation");
+                final long diff = agree(esw, fs);
+                if (diff != 0) {
+                    DEBUG("\nFound mismatch between stack depth and fiber stack (" + diff + ")! Activating live lazy auto-instrumentation");
                     // Slow path, we'll take our time to fix up things
                     checkCaps();
                     // TODO: improve perf
@@ -519,18 +520,23 @@ final class LiveInstrumentation {
 
         private static long twoIntsToLong(int a, int b) {
             // TODO: understand & fix
-            System.out.println("\na: " + Integer.toBinaryString(a));
-            System.out.println("b: " + Integer.toBinaryString(b));
-            System.out.println("4l: " + Long.toBinaryString(4l));
-            System.out.println("(long)a << 32 | b & 0xFFFFFFFFL: " + Long.toBinaryString((long)a << 32 | b & 0xFFFFFFFFL));
-            return (long)a << 32 | b & 0xFFFFFFFFL;
+            System.err.println("** twoIntsToLong **");
+            System.err.println("a = " + Integer.toHexString(a) + "_16 = " + Integer.toBinaryString(a) + "_2");
+            System.err.println("b = " + Integer.toHexString(b) + "_16 = " + Integer.toBinaryString(b) + "_2");
+            System.err.println("4l = " + Long.toHexString(4L) + "_16 = " + Long.toHexString(4L) + "_2");
+            final long res = (long)a << 32 | b & 0xFFFFFFFFL;
+            System.err.println("(long)a << 32 | b & 0xFFFFFFFFL: " + Long.toHexString(res) + "_16 = " + Long.toHexString(res) + "_2");
+            return res;
         }
 
         private static double twoIntsToDouble(int a, int b) {
             // TODO: understand & fix
+            System.err.println("** twoIntsToDouble **");
             double ret = Double.longBitsToDouble(twoIntsToLong(a, b));
-            System.out.println("\n1.4d: " + Long.toBinaryString(Double.doubleToRawLongBits(1.4d)));
-            System.out.println("ret: " + Long.toBinaryString(Double.doubleToRawLongBits(ret)));
+            long retBits = Double.doubleToRawLongBits(ret);
+            long oneDotFourBits = Double.doubleToRawLongBits(1.4d);
+            System.err.println("1.4d = " + Long.toHexString(oneDotFourBits) + "_16 = " + Long.toHexString(oneDotFourBits) + "_2");
+            System.err.println("ret = " + Long.toHexString(retBits) + "_16 = " + Long.toHexString(retBits) + "_2");
             return ret;
         }
 
@@ -570,10 +576,18 @@ final class LiveInstrumentation {
 
     ///////////////////////////// Less interesting
 
-    private static boolean agree(StackWalker w, Stack fs) {
+    private static long agree(StackWalker w, Stack fs) {
         // TODO: must be _fast_, JMH it
-        final long threadStackDepth = w.walk(s -> s.filter(sf -> !isFiberRuntimeMethod(sf.getClassName())).collect(COUNTING));
-        return threadStackDepth == fs.getInstrumentedCount();
+        final List<StackWalker.StackFrame> l = w.walk (s -> s.collect(Collectors.toList())); // TODO: remove
+        final long threadStackDepth = w.walk (s ->
+            s.filter (
+                sf -> {
+                    final boolean ret = !isFiberRuntimeMethod(sf.getClassName());
+                    return ret;
+                }
+            ).collect(COUNTING)
+        );
+        return threadStackDepth - fs.getInstrumentedCount();
     }
 
     private static void apply(java.util.Stack<FiberFramePush> todo, Stack fs) {
