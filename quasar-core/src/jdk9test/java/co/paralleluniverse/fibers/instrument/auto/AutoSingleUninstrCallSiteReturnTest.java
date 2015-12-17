@@ -61,7 +61,7 @@ public class AutoSingleUninstrCallSiteReturnTest {
     }
 
     // TODO: fixme
-    @Ignore @Test public void uniqueMissingCallSite() {
+    @Test public void uniqueMissingCallSiteReturn() {
         final Fiber<Integer> f1 = new Fiber<>(new F()).start();
         try {
             assertThat(f1.get(), equalTo(-1));
