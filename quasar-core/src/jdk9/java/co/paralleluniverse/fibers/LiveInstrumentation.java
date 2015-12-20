@@ -315,15 +315,15 @@ final class LiveInstrumentation {
                 suspendableCallOffsets = i.methodSuspendableCallOffsets();
                 if (suspendableCallOffsets != null) {
                     Arrays.sort(suspendableCallOffsets);
-                    final int bsResPlus1;
+                    final int bsRes;
                     final int b;
                     try {
                         b = (int) bci.get(sf);
                     } catch (final IllegalAccessException e) {
                         throw new RuntimeException(e);
                     }
-                    bsResPlus1 = Arrays.binarySearch(suspendableCallOffsets, b);
-                    entry = Math.abs(bsResPlus1);
+                    bsRes = Arrays.binarySearch(suspendableCallOffsets, b);
+                    entry = Math.abs(bsRes);
                 }
             }
         }
@@ -371,11 +371,15 @@ final class LiveInstrumentation {
                 }
             }
 
+            final String idx = Integer.toString(entry);
+            final String cn = sf.getClassName();
+            final String mn = sf.getMethodName();
+            final String md = mt.toMethodDescriptorString();
+
             // Store actual non-call stack operands left
             int idxLive = 0;
             int idxTypes = 0;
-            org.objectweb.asm.Type[] ts =
-                db.getOperandStackTypes(sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString());
+            org.objectweb.asm.Type[] ts = FrameTypesKB.getOperandStackTypes(cn, mn, md, idx);
             while (idxLive < operands.length && idxTypes < ts.length) {
                 final Object op = operands[idxLive];
                 final org.objectweb.asm.Type t = ts[upperM.getParameterCount() + idxTypes];
@@ -394,12 +398,12 @@ final class LiveInstrumentation {
             }
 
             // Cleanup some tmp mem
-            db.clearOperandStackTypes(sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString());
+            FrameTypesKB.clearOperandStackTypes(cn, mn, md, idx);
 
             // Store local vars
             idxLive = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` */;
             idxTypes = 0;
-            ts = db.getLocalTypes(sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString());
+            ts = FrameTypesKB.getLocalTypes(cn, mn, md, idx);
             while (idxLive < locals.length - (alreadyInstrumented ? QUASAR_LOCALS : 0) && idxTypes < ts.length) {
             // for (int i = 0 ; i < locals.length ; i++) {
                 final Object local = locals[idxLive];
@@ -422,7 +426,7 @@ final class LiveInstrumentation {
             // called from all yield methods), we don't need to perform any special magic to preserve its args.
 
             // Cleanup some tmp mem
-            db.clearLocalTypes(sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString());
+            FrameTypesKB.clearLocalTypes(cn, mn, md, idx);
         }
 
         private int getNumSlots() {
@@ -448,10 +452,14 @@ final class LiveInstrumentation {
                         idxObj++;
                 }
 
+                final String idx = Integer.toString(entry);
+                final String cn = sf.getClassName();
+                final String mn = sf.getMethodName();
+                final String md = mt.toMethodDescriptorString();
+
                 int idxLive = 0;
                 int idxTypes = 0;
-                org.objectweb.asm.Type[] ts =
-                    db.getOperandStackTypes(sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString());
+                org.objectweb.asm.Type[] ts = FrameTypesKB.getOperandStackTypes(cn, mn, md, idx);
                 while (idxLive < operands.length && idxTypes < ts.length) {
                     final org.objectweb.asm.Type t = ts[upperM.getParameterCount() + idxTypes];
                     int inc = 1;
@@ -470,7 +478,7 @@ final class LiveInstrumentation {
 
                 idxLive = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` */;
                 idxTypes = 0;
-                ts = db.getLocalTypes(sf.getClassName(), sf.getMethodName(), mt.toMethodDescriptorString());
+                ts = FrameTypesKB.getOperandStackTypes(cn, mn, md, idx);
                 while (idxLive < locals.length - (alreadyInstrumented ? QUASAR_LOCALS : 0) && idxTypes < ts.length) {
                     final org.objectweb.asm.Type t = ts[idxTypes];
                     int inc = 1;

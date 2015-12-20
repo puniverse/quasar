@@ -161,8 +161,8 @@ public class MethodDatabase implements Log {
 
     public void checkClass(File f) {
         try {
-            FileInputStream fis = new FileInputStream(f);
-            CheckInstrumentationVisitor civ = checkFileAndClose(fis, f.getPath());
+            final FileInputStream fis = new FileInputStream(f);
+            final CheckInstrumentationVisitor civ = checkFileAndClose(fis, f.getPath());
 
             if (civ != null) {
                 recordSuspendableMethods(civ.getName(), civ.getClassEntry());
@@ -179,9 +179,9 @@ public class MethodDatabase implements Log {
                     }
                 }
             }
-        } catch (UnableToInstrumentException ex) {
+        } catch (final UnableToInstrumentException ex) {
             throw ex;
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             error(f.getPath(), ex);
         }
     }
@@ -195,7 +195,7 @@ public class MethodDatabase implements Log {
         if (className.startsWith("org/netbeans/lib/"))
             return SuspendableType.NON_SUSPENDABLE;
 
-        int res = isMethodSuspendable0(className, methodName, methodDesc, opcode);
+        final int res = isMethodSuspendable0(className, methodName, methodDesc, opcode);
         switch (res) {
             case UNKNOWN:
                 return null;
@@ -238,7 +238,7 @@ public class MethodDatabase implements Log {
             return UNKNOWN;
         }
 
-        SuspendableType susp1 = entry.check(methodName, methodDesc);
+        final SuspendableType susp1 = entry.check(methodName, methodDesc);
 
         int suspendable = UNKNOWN;
         if (susp1 == null)
@@ -256,7 +256,7 @@ public class MethodDatabase implements Log {
                     suspendable = isMethodSuspendable0(entry.getSuperName(), methodName, methodDesc, opcode);
             }
             if (opcode == Opcodes.INVOKEINTERFACE || opcode == Opcodes.INVOKEVIRTUAL) { // can be INVOKEVIRTUAL on an abstract class implementing the interface
-                for (String iface : entry.getInterfaces()) {
+                for (final String iface : entry.getInterfaces()) {
                     int s = isMethodSuspendable0(iface, methodName, methodDesc, opcode);
                     if (s > suspendable)
                         suspendable = s;
@@ -283,9 +283,9 @@ public class MethodDatabase implements Log {
     }
 
     public synchronized Map<String, ClassEntry> getInnerClassesEntries(String className) {
-        Map<String, ClassEntry> tailMap = classes.tailMap(className, true);
-        HashMap<String, ClassEntry> map = new HashMap<>();
-        for (Map.Entry<String, ClassEntry> entry : tailMap.entrySet()) {
+        final Map<String, ClassEntry> tailMap = classes.tailMap(className, true);
+        final HashMap<String, ClassEntry> map = new HashMap<>();
+        for (final Map.Entry<String, ClassEntry> entry : tailMap.entrySet()) {
             if (entry.getKey().equals(className) || entry.getKey().startsWith(className + '$'))
                 map.put(entry.getKey(), entry.getValue());
         }
@@ -305,13 +305,13 @@ public class MethodDatabase implements Log {
     }
 
     public String getCommonSuperClass(String classA, String classB) {
-        ArrayList<String> listA = getSuperClasses(classA);
-        ArrayList<String> listB = getSuperClasses(classB);
+        final ArrayList<String> listA = getSuperClasses(classA);
+        final ArrayList<String> listB = getSuperClasses(classB);
         if (listA == null || listB == null) {
             return null;
         }
         int idx = 0;
-        int num = Math.min(listA.size(), listB.size());
+        final int num = Math.min(listA.size(), listB.size());
         for (; idx < num; idx++) {
             String superClassA = listA.get(idx);
             String superClassB = listB.get(idx);
@@ -333,7 +333,7 @@ public class MethodDatabase implements Log {
             if ("java/lang/Object".equals(className))
                 return false;
 
-            String superClass = getDirectSuperClass(className);
+            final String superClass = getDirectSuperClass(className);
             if (superClass == null) {
                 log(isProblematicClass(className) ? LogLevel.INFO : LogLevel.WARNING, "Can't determine super class of %s", className);
                 return false;
@@ -369,7 +369,7 @@ public class MethodDatabase implements Log {
         } else {
             try {
                 is.close();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 error(className, e);
             }
         }
@@ -380,18 +380,18 @@ public class MethodDatabase implements Log {
     private CheckInstrumentationVisitor checkFileAndClose(InputStream is, String name) {
         try {
             try {
-                ClassReader r = new ClassReader(is);
+                final ClassReader r = new ClassReader(is);
 
-                CheckInstrumentationVisitor civ = new CheckInstrumentationVisitor(this);
+                final CheckInstrumentationVisitor civ = new CheckInstrumentationVisitor(this);
                 r.accept(civ, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES | ClassReader.SKIP_CODE);
 
                 return civ;
             } finally {
                 is.close();
             }
-        } catch (UnableToInstrumentException ex) {
+        } catch (final UnableToInstrumentException ex) {
             throw ex;
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             error(name, ex);
         }
         return null;
@@ -409,7 +409,7 @@ public class MethodDatabase implements Log {
                 } finally {
                     is.close();
                 }
-            } catch (IOException ex) {
+            } catch (final IOException ex) {
                 error(className, ex);
             }
         }
@@ -417,7 +417,7 @@ public class MethodDatabase implements Log {
     }
 
     private ArrayList<String> getSuperClasses(String className) {
-        ArrayList<String> result = new ArrayList<String>();
+        final ArrayList<String> result = new ArrayList<String>();
         for (;;) {
             result.add(0, className);
             if ("java/lang/Object".equals(className)) {
@@ -434,7 +434,7 @@ public class MethodDatabase implements Log {
     }
 
     protected String getDirectSuperClass(String className) {
-        ClassEntry entry = getClassEntry(className);
+        final ClassEntry entry = getClassEntry(className);
         if (entry != null && entry != CLASS_NOT_FOUND)
             return entry.getSuperName();
 
@@ -542,7 +542,7 @@ public class MethodDatabase implements Log {
         }
 
         public void setAll(SuspendableType suspendable) {
-            for (Map.Entry<String, SuspendableType> entry : methods.entrySet())
+            for (final Map.Entry<String, SuspendableType> entry : methods.entrySet())
                 entry.setValue(suspendable);
         }
 
@@ -560,7 +560,7 @@ public class MethodDatabase implements Log {
 
         // only for instrumentation verification
         public boolean isSuspendable(String name) {
-            for (Map.Entry<String, SuspendableType> entry : methods.entrySet()) {
+            for (final Map.Entry<String, SuspendableType> entry : methods.entrySet()) {
                 String key = entry.getKey();
                 if (key.substring(0, key.indexOf('(')).equals(name) && entry.getValue() != SuspendableType.NON_SUSPENDABLE)
                     return true;
@@ -624,80 +624,5 @@ public class MethodDatabase implements Log {
             this.name = name;
             this.file = file;
         }
-    }
-
-    /////////////////////////////////////////////////////////////////////
-    // Live instrumentation support temporary static analysis info caches
-    /////////////////////////////////////////////////////////////////////
-
-    private Map<String, List<Type>> operandStackTypesCacheL = new HashMap<>(), localTypesCacheL = new HashMap<>();
-    private Map<String, Type[]> operandStackTypesCache = new HashMap<>(), localTypesCache = new HashMap<>();
-
-    private String getCacheMethodId(String className, String name, String desc) {
-        return className.replace('.', '/') + "::" + name + desc;
-    }
-
-    public Type[] getOperandStackTypes(String className, String name, String desc) {
-        return operandStackTypesCache.get(getCacheMethodId(className, name, desc));
-    }
-
-    public Type[] getLocalTypes(String className, String name, String desc) {
-        return localTypesCache.get(getCacheMethodId(className, name, desc));
-    }
-
-    public void addOperandStackType(String className, String name, String desc, Type t) {
-        if (t != null) {
-            final String id = getCacheMethodId(className, name, desc);
-            List<Type> l = operandStackTypesCacheL.get(id);
-            if (l == null)
-                l = new ArrayList<>();
-            l.add(t);
-            operandStackTypesCacheL.put(id, l);
-        }
-    }
-
-    public void addLocalType(String className, String name, String desc, Type t) {
-        if (t != null) {
-            final String id = getCacheMethodId(className, name, desc);
-            List<Type> l = localTypesCacheL.get(id);
-            if (l == null)
-                l = new ArrayList<>();
-            l.add(t);
-            localTypesCacheL.put(id, l);
-        }
-    }
-
-    public void sealOperandStackTypes(String className, String name, String desc) {
-        final String id = getCacheMethodId(className, name, desc);
-        List<Type> l = operandStackTypesCacheL.get(id);
-        if (l == null)
-            l = new ArrayList<>();
-        final Type[] ta = new Type[l.size()];
-        Lists.reverse(l).toArray(ta);
-        operandStackTypesCache.put(id, ta);
-        operandStackTypesCacheL.remove(id);
-    }
-
-    public void sealLocalTypes(String className, String name, String desc) {
-        final String id = getCacheMethodId(className, name, desc);
-        List<Type> l = localTypesCacheL.get(id);
-        if (l == null)
-            l = new ArrayList<>();
-        final Type[] ta = new Type[l.size()];
-        l.toArray(ta);
-        localTypesCache.put(id, ta);
-        localTypesCacheL.remove(id);
-    }
-
-    public void clearOperandStackTypes(String className, String name, String desc) {
-        final String id = getCacheMethodId(className, name, desc);
-        operandStackTypesCacheL.remove(id);
-        operandStackTypesCache.remove(id);
-    }
-
-    public void clearLocalTypes(String className, String name, String desc) {
-        final String id = getCacheMethodId(className, name, desc);
-        localTypesCacheL.remove(id);
-        localTypesCache.remove(id);
     }
 }

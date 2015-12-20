@@ -745,7 +745,7 @@ class InstrumentMethod {
                             }
 
                             if (susp) {
-                                recordFrameTypeInfo(db, f);
+                                recordFrameTypeInfo(db, i);
                             }
                         }
                     } else if (in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
@@ -772,10 +772,10 @@ class InstrumentMethod {
                     }
                 }
             }
+            sealFrameTypeInfo(db, i);
         }
         addCodeBlock(null, numIns);
 
-        sealFrameTypeInfo(db);
     }
 
     private void possiblyWarnAboutBlocking(final AbstractInsnNode ain) throws UnableToInstrumentException {
@@ -1074,21 +1074,22 @@ class InstrumentMethod {
         mv.visitLabel(lbl);
     }
 
-    private void recordFrameTypeInfo(MethodDatabase db, Frame f) {
+    private void recordFrameTypeInfo(MethodDatabase db, int idx) {
+        final Frame f = frames[idx];
         for (int i = f.getStackSize(); i-- > 0;) {
             final BasicValue v = (BasicValue) f.getStack(i);
-            db.addOperandStackType(className, mn.name, mn.desc, v.getType());
+            FrameTypesKB.addOperandStackType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
         }
 
         for (int i = firstLocal; i < f.getLocals(); i++) {
             final BasicValue v = (BasicValue) f.getLocal(i);
-            db.addLocalType(className, mn.name, mn.desc, v.getType());
+            FrameTypesKB.addLocalType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
         }
     }
 
-    private void sealFrameTypeInfo(MethodDatabase db) {
-        db.sealOperandStackTypes(className, mn.name, mn.desc);
-        db.sealLocalTypes(className, mn.name, mn.desc);
+    private void sealFrameTypeInfo(MethodDatabase db, int idx) {
+        FrameTypesKB.sealOperandStackTypes(className, mn.name, mn.desc, Integer.toString(idx));
+        FrameTypesKB.sealLocalTypes(className, mn.name, mn.desc, Integer.toString(idx));
     }
 
     private void emitStoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsToPutBackToOperandStackAfterStore) {
