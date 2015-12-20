@@ -309,8 +309,8 @@ class InstrumentMethod {
 
         if (skipInstrumentation) {
             db.log(LogLevel.INFO, "[OPTIMIZE] Skipping instrumentation for method %s#%s%s", className, mn.name, mn.desc);
-            // acceptOptimized(mv);
-            mn.accept(mv); // Dump
+            acceptOptimized(mv);
+            // mn.accept(mv); // Dump
             return;
         }
 
@@ -588,6 +588,8 @@ class InstrumentMethod {
                 an.accept(mv.visitAnnotation(an.desc, true));
             }
         }
+
+        emitInstrumentedAnn(db, mv, mn, className, true, startSourceLine, endSourceLine, suspCallsSourceLines, suspCallsSignatures, null);
 
         dumpUnoptimizedCodeBlockAfterIdx(mv, 0, 0);
 

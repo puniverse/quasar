@@ -502,7 +502,7 @@ public final class LiveInstrumentation {
                 }
             ).collect(COUNTING)
         );
-        return threadStackDepth - fs.getInstrumentedCount();
+        return threadStackDepth - (fs.getInstrumentedCount() + fs.getOptimizedCount());
     }
 
     private static void apply(java.util.Stack<FiberFramePush> todo, Stack fs) {
