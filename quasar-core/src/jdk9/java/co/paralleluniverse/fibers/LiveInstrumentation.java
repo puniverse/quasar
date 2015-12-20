@@ -75,8 +75,8 @@ public final class LiveInstrumentation {
                                 DEBUG("\nLive lazy auto-instrumentation for call frame: " + f.getClassName() + "#" + f.getMethodName() + mtCaller.toMethodDescriptorString());
 
                                 final int b = (Integer) bci.get(f);
-                                final Verify.CheckCallSiteFrameInstrumentationReport report =
-                                    Verify.checkCallSiteFrameInstrumentation(fs, i, upper);
+                                final Verify.CheckFrameInstrumentationReport report =
+                                    Verify.checkFrameInstrumentation(fs, i, upper);
                                 ok = report.isOK();
                                 last = report.last;
 
@@ -125,6 +125,8 @@ public final class LiveInstrumentation {
                                 if (annFixed != null && !annFixed.methodOptimized()) {
                                     DEBUG("Method is not optimized, creating a fiber stack rebuild record");
                                     prevFFP = pushRebuildToDo(f, upper, fiberStackRebuildToDoList, callingFiberRuntime, report.methodInstrumented);
+                                } else {
+                                    DEBUG("Method is optimized, NOT creating a fiber stack rebuild record");
                                 }
 
                                 callingFiberRuntime = false;
@@ -145,9 +147,6 @@ public final class LiveInstrumentation {
                     apply(fiberStackRebuildToDoList, fiberStack);
                     DEBUG("\t** Fiber stack dump after rebuild:"); // TODO: remove
                     fiberStack.dump(); // TODO: remove
-
-                    // Now it should be ok
-                    // assert agree(esw, fs);
 
                     // We're done, let's skip checks
                     checkInstrumentation = false;

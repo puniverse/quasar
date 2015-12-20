@@ -226,7 +226,7 @@ class InstrumentMethod {
         }
     }
 
-    public boolean callsSuspendables() {
+    public boolean analyzeSuspendableCalls() {
         if (suspCallsIdxs == null) {
             suspCallsIdxs = new int[8];
             final int numIns = mn.instructions.size();
@@ -305,7 +305,7 @@ class InstrumentMethod {
         final boolean skipInstrumentation = canInstrumentationBeSkipped(suspCallsIdxs);
 
         // Else instrument
-        collectCodeBlocksAndSlitTryCatches(!skipInstrumentation); // Must be called first, sets flags & state used below
+        collectCodeBlocksAndSplitTryCatches(!skipInstrumentation); // Must be called first, sets flags & state used below
 
         if (skipInstrumentation) {
             db.log(LogLevel.INFO, "[OPTIMIZE] Skipping instrumentation for method %s#%s%s", className, mn.name, mn.desc);
@@ -709,7 +709,7 @@ class InstrumentMethod {
         db.log(LogLevel.DEBUG, "Annotating method %s#%s%s with %s", className, mn.name, mn.desc, sb);
     }
 
-    private void collectCodeBlocksAndSlitTryCatches(boolean split) {
+    private void collectCodeBlocksAndSplitTryCatches(boolean split) {
         final int numIns = mn.instructions.size();
 
         codeBlocks[0] = FrameInfo.FIRST;
@@ -775,7 +775,6 @@ class InstrumentMethod {
             sealFrameTypeInfo(db, i);
         }
         addCodeBlock(null, numIns);
-
     }
 
     private void possiblyWarnAboutBlocking(final AbstractInsnNode ain) throws UnableToInstrumentException {
@@ -830,7 +829,7 @@ class InstrumentMethod {
             if (ins instanceof JumpInsnNode && mn.instructions.indexOf(((JumpInsnNode) ins).label) <= i)
                 return false; // back branches may be costly, so we'd rather capture state
             if (!db.isAllowMonitors() && (ins.getOpcode() == Opcodes.MONITORENTER || ins.getOpcode() == Opcodes.MONITOREXIT))
-                return false;  // we need collectCodeBlocksAndSlitTryCatches to warn about monitors
+                return false;  // we need collectCodeBlocksAndSplitTryCatches to warn about monitors
         }
 
         // after suspendable call
@@ -840,9 +839,9 @@ class InstrumentMethod {
             if (ins instanceof JumpInsnNode && mn.instructions.indexOf(((JumpInsnNode) ins).label) <= susCallIdx)
                 return false; // if we jump before the suspendable call we suspend more than once -- need instrumentation
             if (!db.isAllowMonitors() && (ins.getOpcode() == Opcodes.MONITORENTER || ins.getOpcode() == Opcodes.MONITOREXIT))
-                return false;  // we need collectCodeBlocksAndSlitTryCatches to warn about monitors
+                return false;  // we need collectCodeBlocksAndSplitTryCatches to warn about monitors
             if (!db.isAllowBlocking() && (ins instanceof MethodInsnNode && blockingCallIdx((MethodInsnNode) ins) != -1))
-                return false;  // we need collectCodeBlocksAndSlitTryCatches to warn about blocking calls
+                return false;  // we need collectCodeBlocksAndSplitTryCatches to warn about blocking calls
         }
 
         return true;

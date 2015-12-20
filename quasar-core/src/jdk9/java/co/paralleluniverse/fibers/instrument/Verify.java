@@ -30,19 +30,16 @@ import java.util.stream.Collectors;
  * @author circlespainter
  */
 public final class Verify {
-    public static class CheckCallSiteFrameInstrumentationReport {
-        private static final CheckCallSiteFrameInstrumentationReport OK_NOT_FINISHED;
+    public static class CheckFrameInstrumentationReport {
+        private static final CheckFrameInstrumentationReport OK_NOT_FINISHED;
 
         static {
-            OK_NOT_FINISHED = new CheckCallSiteFrameInstrumentationReport();
-            OK_NOT_FINISHED.classInstrumented = true;
-            OK_NOT_FINISHED.methodInstrumented = true;
-            OK_NOT_FINISHED.callSiteInstrumented = true;
+            OK_NOT_FINISHED = new CheckFrameInstrumentationReport();
         }
 
-        public boolean classInstrumented = false;
-        public boolean methodInstrumented = false;
-        public boolean callSiteInstrumented = false;
+        public boolean classInstrumented = true;
+        public boolean methodInstrumented = true;
+        public boolean callSiteInstrumented = true;
         public boolean last = false;
         public Instrumented ann;
 
@@ -62,8 +59,8 @@ public final class Verify {
         final StackTraceElement[] stes = new StackTraceElement[stesL.size()];
         stesL.toArray(stes);
         for (int i = 0; i < fs.length; i++) {
-            final CheckCallSiteFrameInstrumentationReport report =
-                checkCallSiteFrameInstrumentation(fs, i, (i == 0 ? null : fs[i - 1]), ok, stes, stackTrace);
+            final Verify.CheckFrameInstrumentationReport report =
+                checkFrameInstrumentation(fs, i, (i == 0 ? null : fs[i - 1]), ok, stes, stackTrace);
             ok = ok && report.isOK();
 
             if (report.last) {
@@ -81,15 +78,13 @@ public final class Verify {
         throw new IllegalStateException("Not run through Fiber.exec(). (trace: " + Arrays.toString(new RuntimeException().getStackTrace()) + ")");
     }
 
-    public static
-    CheckCallSiteFrameInstrumentationReport
-    checkCallSiteFrameInstrumentation(StackWalker.StackFrame[] sfs, int idx, StackWalker.StackFrame upperStackFrame) {
-        return checkCallSiteFrameInstrumentation(sfs, idx, upperStackFrame, true, null, null);
+    public static CheckFrameInstrumentationReport
+    checkFrameInstrumentation(StackWalker.StackFrame[] sfs, int idx, StackWalker.StackFrame upperStackFrame) {
+        return checkFrameInstrumentation(sfs, idx, upperStackFrame, true, null, null);
     }
 
-    public static
-    CheckCallSiteFrameInstrumentationReport
-    checkCallSiteFrameInstrumentation(StackWalker.StackFrame[] fs, int idx, StackWalker.StackFrame upperStackFrame, boolean prevOk, StackTraceElement[] optStes, StringBuilder optStackTrace) {
+    public static CheckFrameInstrumentationReport
+    checkFrameInstrumentation(StackWalker.StackFrame[] fs, int idx, StackWalker.StackFrame upperStackFrame, boolean prevOk, StackTraceElement[] optStes, StringBuilder optStackTrace) {
         final StackWalker.StackFrame f = fs[idx];
         final Class<?> declaringClass = f.getDeclaringClass();
         final String className = declaringClass.getName();
@@ -101,13 +96,13 @@ public final class Verify {
         } catch (final IllegalAccessException e) {
             throw new RuntimeException(e);
         }
-        final CheckCallSiteFrameInstrumentationReport res = new CheckCallSiteFrameInstrumentationReport();
+        final Verify.CheckFrameInstrumentationReport res = new Verify.CheckFrameInstrumentationReport();
 
         if (Thread.class.getName().equals(className) && "getStackTrace".equals(methodName) ||
             ExtendedStackTrace.class.getName().equals(className) ||
             className.contains("$$Lambda$") ||
             (SuspendableHelper9.isFiberRuntimeStackMethod(className) && !"run1".equals(methodName)))
-            return CheckCallSiteFrameInstrumentationReport.OK_NOT_FINISHED; // Skip
+            return Verify.CheckFrameInstrumentationReport.OK_NOT_FINISHED; // Skip
 
         if (optStackTrace != null && !prevOk)
             printTraceLine(optStackTrace, m, f.toStackTraceElement(), offset);
@@ -141,10 +136,8 @@ public final class Verify {
             }
         } else if (Fiber.class.getName().equals(className) && "run1".equals(methodName)) {
             res.last = true;
-            res.classInstrumented = true;
-            res.methodInstrumented = true;
-            res.callSiteInstrumented = true;
         }
+
         return res;
     }
 
