@@ -13,65 +13,70 @@
  */
 package co.paralleluniverse.fibers.instrument.auto;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
-import org.junit.Test;
-import org.junit.Ignore;
-
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
-import co.paralleluniverse.strands.SuspendableRunnable;
+import co.paralleluniverse.strands.SuspendableCallable;
+import org.junit.Test;
+import org.junit.Ignore;
 
 import java.util.concurrent.ExecutionException;
+
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.*;
 
 /**
  * @author circlespainter
  */
 public class AutoSingleUninstrCallSiteLambdaTest {
     // @Suspendable
-    private void m() {
-        System.err.println("Enter m(), calling m1()");
-        m1();
-        System.err.println("Exit m()");
+    public int m(String s) {
+        System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
+        int ret = m1(s);
+        System.err.println("Exit m(" + s + "), called m1(" + s + ")");
+        return ret;
     }
 
     @Suspendable
-    private void m1() {
-        System.err.println("Enter m1(), sleeping");
+    public int m1(String s) {
+        System.err.println("Enter m1(" + s + "), sleeping");
         try {
-            Fiber.sleep(1000);
+            Fiber.sleep(10);
         } catch (final InterruptedException | SuspendExecution e) {
             throw new RuntimeException(e);
         }
-        System.err.println("Exit m1()");
+        System.err.println("Exit m1(" + s + ")");
+        return -1;
     }
 
     // TODO: fixme
-    @Ignore @Test public void uniqueMissingCallSite() {
-        final Fiber f1 = new Fiber(() -> {
-            System.err.println("Enter run(), calling m()");
-            m();
-            System.err.println("Exit run()");
+    @Test public void uniqueMissingCallSiteReturn() {
+        final Fiber<Integer> f1 = new Fiber<>(() -> {
+            final String s = "ciao";
+            System.err.println("Enter run(), calling m(" + s + ")");
+            int ret = m(s);
+            System.err.println("Exit run(), called m(" + s + ")");
+            return ret;
         }).start();
         try {
-            f1.join();
+            assertThat(f1.get(), equalTo(-1));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
 
-        final Fiber f2 = new Fiber(() -> {
-            System.err.println("Enter run(), calling m()");
-            m();
-            System.err.println("Exit run()");
+        final Fiber<Integer> f2 = new Fiber<>(() -> {
+            final String s = "ciao";
+            System.err.println("Enter run(), calling m(" + s + ")");
+            int ret = m(s);
+            System.err.println("Exit run(), called m(" + s + ")");
+            return ret;
         }).start();
         try {
-            f2.join();
+            assertThat(f2.get(), equalTo(-1));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
-
 }
