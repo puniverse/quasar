@@ -229,12 +229,12 @@ public final class LiveInstrumentation {
                     final int bsRes;
                     final int b;
                     try {
-                        b = (int) bci.get(sf);
+                        b = (int) bci.get(lower); // Actual live offset
                     } catch (final IllegalAccessException e) {
                         throw new RuntimeException(e);
                     }
                     bsRes = Arrays.binarySearch(suspendableCallOffsets, b);
-                    entry = Math.abs(bsRes);
+                    entry = Math.abs(bsRes >= 0 ? bsRes + 1 : bsRes); // entry is 1-based
                 }
             }
         }
