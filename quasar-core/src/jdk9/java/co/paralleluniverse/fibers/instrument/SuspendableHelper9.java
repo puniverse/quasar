@@ -55,7 +55,8 @@ public final class SuspendableHelper9 {
             return null;
 
         for (final Method m : declaringClass.getDeclaredMethods()) {
-            if (m.getName().equals(methodName) && Arrays.equals(m.getParameterTypes(), t.parameterArray())) {
+            if (m.getName().equals(methodName) && Arrays.equals(m.getParameterTypes(), t.parameterArray())
+                && t.returnType().equals(m.getReturnType())) {
                 return m;
             }
         }
