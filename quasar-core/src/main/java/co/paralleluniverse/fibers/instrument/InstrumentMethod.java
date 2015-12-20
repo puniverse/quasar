@@ -715,6 +715,7 @@ class InstrumentMethod {
         final int numIns = mn.instructions.size();
 
         codeBlocks[0] = FrameInfo.FIRST;
+        int suspCount = 0;
         for (int i = 0; i < numIns; i++) {
             final Frame f = frames[i];
             if (f != null) { // reachable ?
@@ -745,10 +746,6 @@ class InstrumentMethod {
                                 db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s to suspendable-super (instrumentation for proxy support will be enabled)", i, min.owner, min.name, min.desc);
                                 this.callsSuspendableSupers = true;
                             }
-
-                            if (susp) {
-                                recordFrameTypeInfo(db, i);
-                            }
                         }
                     } else if (in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
                         // invoke dynamic
@@ -765,6 +762,7 @@ class InstrumentMethod {
                         final FrameInfo fi = addCodeBlock(f, i);
                         if (split)
                             splitTryCatch(fi);
+                        recordFrameTypeInfo(++suspCount); // 1-based
                     } else {
                         if (in.getType() == AbstractInsnNode.METHOD_INSN) {// not invokedynamic
                             final MethodInsnNode min = (MethodInsnNode) in;
@@ -1075,7 +1073,7 @@ class InstrumentMethod {
         mv.visitLabel(lbl);
     }
 
-    private void recordFrameTypeInfo(MethodDatabase db, int idx) {
+    private void recordFrameTypeInfo(int idx) {
         final Frame f = frames[idx];
         for (int i = f.getStackSize(); i-- > 0;) {
             final BasicValue v = (BasicValue) f.getStack(i);
