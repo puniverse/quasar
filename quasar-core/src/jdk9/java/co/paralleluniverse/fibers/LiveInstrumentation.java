@@ -154,6 +154,9 @@ public final class LiveInstrumentation {
                     DEBUG("\nInstrumentation seems OK!\n");
                     DEBUG("\t** Fiber stack dump:"); // TODO: remove
                     fiberStack.dump(); // TODO: remove
+
+                    // We're done, let's skip checks
+                    checkInstrumentation = false;
                 }
             }
         }
