@@ -104,6 +104,7 @@ public final class LiveInstrumentation {
                                     ((MethodType) getMethodType.invoke(memberName.get(f))).toMethodDescriptorString() +
                                     " is " + (report.callSiteInstrumented ? "instrumented" : "NOT instrumented"));
 
+                                final String n = cCaller.getName();
                                 if (!ok) {
                                     DEBUG("Frame instrumentation analysis found problems");
                                     DEBUG("-> Ensuring suspendable supers are correct");
@@ -112,13 +113,13 @@ public final class LiveInstrumentation {
                                         DEBUG("-> Class or method not instrumented at all, marking method suspendable");
                                         suspendable(cCaller, mnCaller, mtCaller, MethodDatabase.SuspendableType.SUSPENDABLE);
                                     }
-                                    final String n = cCaller.getName();
-                                    DEBUG("-> Reloading class from original classloader");
-                                    final InputStream is = cCaller.getResourceAsStream("/" + n.replace(".", "/") + ".class");
-                                    final byte[] diskData = ByteStreams.toByteArray(is);
-                                    DEBUG("-> Redefining class, Quasar instrumentation with fixed suspendable info will occur");
-                                    Retransform.redefine(new ClassDefinition(cCaller, diskData));
                                 }
+                                FrameTypesKB.askRecording(n);
+                                DEBUG("Reloading class from original classloader");
+                                final InputStream is = cCaller.getResourceAsStream("/" + n.replace(".", "/") + ".class");
+                                DEBUG("Redefining class, Quasar instrumentation with fixed suspendable info and frame type info will occur");
+                                final byte[] diskData = ByteStreams.toByteArray(is);
+                                Retransform.redefine(new ClassDefinition(cCaller, diskData));
 
                                 // The annotation will be correct now
                                 final Instrumented annFixed = SuspendableHelper.getAnnotation(SuspendableHelper9.lookupMethod(cCaller, mnCaller, mtCaller), Instrumented.class);

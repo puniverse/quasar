@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.common.util.ConcurrentSet;
 import co.paralleluniverse.fibers.LiveInstrumentation;
 import com.google.common.collect.Lists;
 import org.objectweb.asm.Type;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author circlespainter
@@ -29,6 +31,8 @@ public final class FrameTypesKB {
     /////////////////////////////////////////////////////////////////////
     // Live instrumentation support temporary static analysis info caches
     /////////////////////////////////////////////////////////////////////
+
+    private static final ConcurrentSet<String> askedClasses = new ConcurrentSet<>(new ConcurrentHashMap<>());
 
     private static final Map<String, List<Type>> operandStackTypesCacheL = new HashMap<>(), localTypesCacheL = new HashMap<>();
     private static final Map<String, Type[]> operandStackTypesCache = new HashMap<>(), localTypesCache = new HashMap<>();
@@ -46,7 +50,7 @@ public final class FrameTypesKB {
     }
 
     public static void addOperandStackType(String className, String name, String desc, String callSiteIdx, Type t) {
-        if (LiveInstrumentation.ACTIVE && t != null) {
+        if (LiveInstrumentation.ACTIVE && t != null && askedRecording(className.replace('.', '/'))) {
             final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
             List<Type> l = operandStackTypesCacheL.get(id);
             if (l == null)
@@ -57,7 +61,7 @@ public final class FrameTypesKB {
     }
 
     public static void addLocalType(String className, String name, String desc, String callSiteIdx, Type t) {
-        if (LiveInstrumentation.ACTIVE && t != null) {
+        if (LiveInstrumentation.ACTIVE && t != null && askedRecording(className.replace('.', '/'))) {
             final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
             List<Type> l = localTypesCacheL.get(id);
             if (l == null)
@@ -65,6 +69,14 @@ public final class FrameTypesKB {
             l.add(t);
             localTypesCacheL.put(id, l);
         }
+    }
+
+    public static void askRecording(String className) {
+        askedClasses.add(className.replace('.', '/'));
+    }
+
+    private static boolean askedRecording(String className) {
+        return askedClasses.contains(className.replace('.', '/'));
     }
 
     public static void sealOperandStackTypes(String className, String name, String desc, String callSiteIdx) {
