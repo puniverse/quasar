@@ -1,6 +1,8 @@
 package co.paralleluniverse.fibers;
 
-final class LiveInstrumentation {
+public final class LiveInstrumentation {
+    public static final boolean ACTIVE = false;
+
     static boolean fixup(Fiber f) {
         return true;
     }

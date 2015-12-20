@@ -36,14 +36,14 @@ import java.util.stream.Collectors;
 /**
  * @author circlespainter
  */
-final class LiveInstrumentation {
+public final class LiveInstrumentation {
     private static final int QUASAR_LOCALS = 3;
 
     private static final MethodDatabase db;
 
     static synchronized boolean fixup(Fiber f) {
         boolean checkInstrumentation = true;
-        if (autoInstr && f != null) {
+        if (ACTIVE && f != null) {
             final Stack fs = f.getStack();
             if (esw != null) {
                 final long diff = agree(esw, fs);
@@ -602,7 +602,7 @@ final class LiveInstrumentation {
         }
     }
 
-    private static final boolean autoInstr;
+    public static final boolean ACTIVE;
 
     private static StackWalker esw = null;
 
@@ -616,10 +616,10 @@ final class LiveInstrumentation {
     static {
         try {
             // TODO: change to "disableXXX" when stable
-            autoInstr = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.instrument.enableLive");
+            ACTIVE = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.instrument.enableLive");
             db = Retransform.getMethodDB();
 
-            if (autoInstr) {
+            if (ACTIVE) {
                 DEBUG("Live lazy auto-instrumentation ENABLED");
 
                 final Class<?> extendedOptionClass = Class.forName("java.lang.StackWalker$ExtendedOption");

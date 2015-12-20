@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.fibers.LiveInstrumentation;
 import com.google.common.collect.Lists;
 import org.objectweb.asm.Type;
 
@@ -45,7 +46,7 @@ public final class FrameTypesKB {
     }
 
     public static void addOperandStackType(String className, String name, String desc, String callSiteIdx, Type t) {
-        if (t != null) {
+        if (LiveInstrumentation.ACTIVE && t != null) {
             final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
             List<Type> l = operandStackTypesCacheL.get(id);
             if (l == null)
@@ -56,7 +57,7 @@ public final class FrameTypesKB {
     }
 
     public static void addLocalType(String className, String name, String desc, String callSiteIdx, Type t) {
-        if (t != null) {
+        if (LiveInstrumentation.ACTIVE && t != null) {
             final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
             List<Type> l = localTypesCacheL.get(id);
             if (l == null)
@@ -67,37 +68,45 @@ public final class FrameTypesKB {
     }
 
     public static void sealOperandStackTypes(String className, String name, String desc, String callSiteIdx) {
-        final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
-        List<Type> l = operandStackTypesCacheL.get(id);
-        if (l == null)
-            l = new ArrayList<>();
-        final Type[] ta = new Type[l.size()];
-        Lists.reverse(l).toArray(ta);
-        operandStackTypesCache.put(id, ta);
-        operandStackTypesCacheL.remove(id);
+        if (LiveInstrumentation.ACTIVE) {
+            final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
+            List<Type> l = operandStackTypesCacheL.get(id);
+            if (l == null)
+                l = new ArrayList<>();
+            final Type[] ta = new Type[l.size()];
+            Lists.reverse(l).toArray(ta);
+            operandStackTypesCache.put(id, ta);
+            operandStackTypesCacheL.remove(id);
+        }
     }
 
     public static void sealLocalTypes(String className, String name, String desc, String callSiteIdx) {
-        final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
-        List<Type> l = localTypesCacheL.get(id);
-        if (l == null)
-            l = new ArrayList<>();
-        final Type[] ta = new Type[l.size()];
-        l.toArray(ta);
-        localTypesCache.put(id, ta);
-        localTypesCacheL.remove(id);
+        if (LiveInstrumentation.ACTIVE) {
+            final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
+            List<Type> l = localTypesCacheL.get(id);
+            if (l == null)
+                l = new ArrayList<>();
+            final Type[] ta = new Type[l.size()];
+            l.toArray(ta);
+            localTypesCache.put(id, ta);
+            localTypesCacheL.remove(id);
+        }
     }
 
     public static void clearOperandStackTypes(String className, String name, String desc, String callSiteIdx) {
-        final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
-        operandStackTypesCacheL.remove(id);
-        operandStackTypesCache.remove(id);
+        if (LiveInstrumentation.ACTIVE) {
+            final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
+            operandStackTypesCacheL.remove(id);
+            operandStackTypesCache.remove(id);
+        }
     }
 
     public static void clearLocalTypes(String className, String name, String desc, String callSiteIdx) {
-        final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
-        localTypesCacheL.remove(id);
-        localTypesCache.remove(id);
+        if (LiveInstrumentation.ACTIVE) {
+            final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
+            localTypesCacheL.remove(id);
+            localTypesCache.remove(id);
+        }
     }
 
     private FrameTypesKB(){}
