@@ -136,7 +136,7 @@ public class FillSuspOffsetsClass extends ClassVisitor {
                         InstrumentMethod.emitInstrumentedAnn (
                             db, outMV, mn, className, optimized, methodStart, methodEnd,
                             suspCallSourceLines, toStringArray(suspCallSignaturesL),
-                            Ints.toArray(suspCallOffsetsAfterInstrL)
+                            optimized ? null : Ints.toArray(suspCallOffsetsAfterInstrL)
                         );
                     super.visitEnd();
                 }
