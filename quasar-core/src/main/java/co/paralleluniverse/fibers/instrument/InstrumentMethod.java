@@ -763,12 +763,10 @@ class InstrumentMethod {
                         if (split)
                             splitTryCatch(fi);
                         recordFrameTypeInfo(++suspCount); // 1-based
-                    } else {
-                        if (in.getType() == AbstractInsnNode.METHOD_INSN) {// not invokedynamic
-                            final MethodInsnNode min = (MethodInsnNode) in;
-                            db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
-                            possiblyWarnAboutBlocking(min);
-                        }
+                    } else if (in.getType() == AbstractInsnNode.METHOD_INSN) { // not invokedynamic
+                        final MethodInsnNode min = (MethodInsnNode) in;
+                        db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
+                        possiblyWarnAboutBlocking(min);
                     }
                 }
             }

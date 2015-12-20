@@ -106,7 +106,7 @@ public final class LiveInstrumentation {
 
                                 if (!ok) {
                                     DEBUG("Frame instrumentation analysis found problems");
-                                    DEBUG("-> In any case, ensuring suspendable supers are correct");
+                                    DEBUG("-> Ensuring suspendable supers are correct");
                                     ensureCorrectSuspendableSupers(cCaller, mnCaller, mtCaller);
                                     if (!report.classInstrumented || !report.methodInstrumented) {
                                         DEBUG("-> Class or method not instrumented at all, marking method suspendable");
