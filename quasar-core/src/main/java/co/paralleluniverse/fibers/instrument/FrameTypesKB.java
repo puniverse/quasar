@@ -32,7 +32,7 @@ public final class FrameTypesKB {
     // Live instrumentation support temporary static analysis info caches
     /////////////////////////////////////////////////////////////////////
 
-    private static final ConcurrentSet<String> askedClasses = new ConcurrentSet<>(new ConcurrentHashMap<>());
+    private static final ConcurrentSet<String> askedClasses = new ConcurrentSet<String>(new ConcurrentHashMap<String, Object>());
 
     private static final Map<String, List<Type>> operandStackTypesCacheL = new HashMap<>(), localTypesCacheL = new HashMap<>();
     private static final Map<String, Type[]> operandStackTypesCache = new HashMap<>(), localTypesCache = new HashMap<>();

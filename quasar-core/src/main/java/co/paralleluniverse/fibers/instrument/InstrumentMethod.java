@@ -182,8 +182,11 @@ class InstrumentMethod {
     private final MethodNode mn;
     private final Frame[] frames;
 
-    private static final int NUM_LOCALS = 3; // = 3 + (verifyInstrumentation ? 1 : 0); // lvarStack, lvarResumed, lvarInvocationReturnValue
-    private static final int ADD_OPERANDS = 6; // 4;
+    public static final int NUM_LOCALS = 3; // = 3 + (verifyInstrumentation ? 1 : 0); // lvarStack, lvarResumed, lvarInvocationReturnValue
+    public static final int ADD_OPERANDS = 6; // 4;
+
+    public static final int NUM_LOCALS_OPTIMIZED = 2;
+    public static final int ADD_OPERANDS_OPTIMIZED = 2;
 
     private final int lvarStack; // ref to Stack
     private final int lvarResumed; // boolean indicating if we've been resumed
@@ -302,13 +305,13 @@ class InstrumentMethod {
     public void accept(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
 
-        final boolean skipInstrumentation = canInstrumentationBeSkipped(suspCallsIdxs);
+        final boolean optimizeInstrumentation = canInstrumentationBeOptimized(suspCallsIdxs);
 
         // Else instrument
-        collectCodeBlocksAndSplitTryCatches(!skipInstrumentation); // Must be called first, sets flags & state used below
+        collectCodeBlocksAndSplitTryCatches(!optimizeInstrumentation); // Must be called first, sets flags & state used below
 
-        if (skipInstrumentation) {
-            db.log(LogLevel.INFO, "[OPTIMIZE] Skipping instrumentation for method %s#%s%s", className, mn.name, mn.desc);
+        if (optimizeInstrumentation) {
+            db.log(LogLevel.INFO, "[OPTIMIZE] Optimizing instrumentation for method %s#%s%s", className, mn.name, mn.desc);
             acceptOptimized(mv);
             // mn.accept(mv); // Dump
             return;
@@ -391,7 +394,7 @@ class InstrumentMethod {
             }
         }
 
-        emitInstrumentedAnn(db, mv, mn, className, skipInstrumentation, startSourceLine, endSourceLine, suspCallsSourceLines, suspCallsSignatures, null);
+        emitInstrumentedAnn(db, mv, mn, className, optimizeInstrumentation, startSourceLine, endSourceLine, suspCallsSourceLines, suspCallsSignatures, null);
 
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchAll, null);
 
@@ -442,7 +445,8 @@ class InstrumentMethod {
                 final int numYieldArgs = TypeAnalyzer.getNumArguments(desc);
                 final boolean yieldReturnsValue = (Type.getReturnType(desc) != Type.VOID_TYPE);
 
-                emitStoreState(mv, i, fi, numYieldArgs); // we preserve the arguments for the call to yield on the operand stack
+                // NO DUAL: yield callers will only be in suspendable call paths
+                emitStackStoreState(mv, i, fi, numYieldArgs); // we preserve the arguments for the call to yield on the operand stack
                 emitStoreResumed(mv, false); // we have not been resumed
                 // emitSuspendableCalled(mv);
 
@@ -454,10 +458,10 @@ class InstrumentMethod {
                 final Label afterPostRestore = new Label();
                 mv.visitVarInsn(Opcodes.ILOAD, lvarResumed);
                 mv.visitJumpInsn(Opcodes.IFEQ, afterPostRestore);
-                emitPostRestore(mv);
+                emitStackPostRestore(mv);
                 mv.visitLabel(afterPostRestore);
 
-                emitRestoreState(mv, i, fi, numYieldArgs);
+                emitStackRestoreState(mv, fi, numYieldArgs);
                 if (yieldReturnsValue)
                     mv.visitVarInsn(Opcodes.ILOAD, lvarResumed); // ... and replace the returned value with the value of resumed
 
@@ -470,11 +474,11 @@ class InstrumentMethod {
                 mv.visitJumpInsn(Opcodes.IFNULL, lbl);
 
                 // normal case - call to a suspendable method - resume before the call
-                emitStoreState(mv, i, fi, 0); // For preemption point
+                emitStackStoreState(mv, i, fi, 0); // For preemption point
                 emitStoreResumed(mv, false); // we have not been resumed
                 // emitPreemptionPoint(mv, PREEMPTION_CALL);
                 mv.visitLabel(lMethodCalls[i - 1]);
-                emitRestoreState(mv, i, fi, 0); // For preemption point
+                emitStackRestoreState(mv, fi, 0); // For preemption point
 
                 // DUAL
                 mv.visitLabel(lbl);
@@ -547,7 +551,7 @@ class InstrumentMethod {
         }
 
         mv.visitLabel(lCatchAll);
-        emitPopMethod(mv);
+        emitStackPopMethod(mv);
         mv.visitLabel(lCatchSEE);
 
         // println(mv, "THROW: ");
@@ -563,11 +567,12 @@ class InstrumentMethod {
         mv.visitEnd();
     }
 
-    // TODO: just incrementing a counter doesn't work, it looks like optimized methods get restarted, figure out
     private void acceptOptimized(MethodVisitor mv) {
         db.log(LogLevel.INFO, "Minimally instrumenting optimized method %s#%s%s", className, mn.name, mn.desc);
 
         mv.visitCode();
+
+        final Label lMethodStart = new Label();
 
         // Output try-catch blocks
         for (final Object o : mn.tryCatchBlocks) {
@@ -591,51 +596,55 @@ class InstrumentMethod {
 
         emitInstrumentedAnn(db, mv, mn, className, true, startSourceLine, endSourceLine, suspCallsSourceLines, suspCallsSignatures, null);
 
-        dumpUnoptimizedCodeBlockAfterIdx(mv, 0, 0);
+        emitStoreResumed(mv, false); // Assume not resumed
 
-        // Blocks leading to suspendable calls
-        for (int i = 1; i < numCodeBlocks; i++) {
-            final FrameInfo fi = codeBlocks[i];
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false);
+        mv.visitInsn(Opcodes.DUP);
+        mv.visitVarInsn(Opcodes.ASTORE, lvarStack);
+        mv.visitJumpInsn(Opcodes.IFNULL, lMethodStart); // DUAL
 
-            // Emit instrumented call
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "nextMethodEntry", "()I", false); // always either 0 if not resumed or 1 for an optimized method
+        mv.visitVarInsn(Opcodes.ISTORE, lvarResumed);
 
-            final AbstractInsnNode min = mn.instructions.get(fi.endInstruction);
+        mv.visitLabel(lMethodStart);
 
-            final Label lNull1 = new Label(), lNull2 = new Label(), lNonNull1 = new Label(), lNonNull2 = new Label();
-            mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); // get stack
-            mv.visitInsn(Opcodes.DUP); // Dup fiber stack reference on operand stack
-            mv.visitJumpInsn(Opcodes.IFNULL, lNull1); // Eats one fiber stack reference (or null) on operand stack
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "pushOptimizedMethod", "()V", false); // Eats one fiber stack reference on operand stack
-            mv.visitJumpInsn(Opcodes.GOTO, lNonNull1);
+        emitCodeBlockAfterIdx(mv, 0, 0);
 
-            mv.visitLabel(lNull1);
-            mv.visitInsn(Opcodes.POP); // Eats one fiber stack reference (or null) on operand stack
+        // Direct jump to call if resuming
+        mv.visitVarInsn(Opcodes.ILOAD, lvarResumed);
+        final Label call = new Label();
+        mv.visitJumpInsn(Opcodes.IFNE, call); // if not 0
 
-            mv.visitLabel(lNonNull1);
-            min.accept(mv); // susp call
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+        mv.visitJumpInsn(Opcodes.IFNULL, call);
 
-            mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); // get stack
-            mv.visitInsn(Opcodes.DUP); // Dup fiber stack reference on operand stack
-            mv.visitJumpInsn(Opcodes.IFNULL, lNull2); // Eats one fiber stack reference (or null) on operand stack
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "popOptimizedMethod", "()V", false); // Eats one fiber stack reference on operand stack
-            mv.visitJumpInsn(Opcodes.GOTO, lNonNull2);
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "pushOptimizedMethod", "()V", false);
 
-            mv.visitLabel(lNull2);
-            mv.visitInsn(Opcodes.POP); // Eats one fiber stack reference (or null) on operand stack
+        mv.visitLabel(call);
+        final FrameInfo fi = codeBlocks[1];
+        final AbstractInsnNode min = mn.instructions.get(fi.endInstruction);
+        min.accept(mv); // SUSP CALL
 
-            mv.visitLabel(lNonNull2);
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+        final Label dual1 = new Label();
+        mv.visitJumpInsn(Opcodes.IFNULL, dual1);
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
 
-            // Emit the rest
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "decOptimizedCount", "()V", false);
 
-            dumpUnoptimizedCodeBlockAfterIdx(mv, i, 1 /* skip the call */);
-        }
+        mv.visitLabel(dual1);
+        emitCodeBlockAfterIdx(mv, 1, 1 /* skip the susp call */);
+
+        emitStackPopMethod(mv);
 
         if (mn.localVariables != null) {
             for (final Object o : mn.localVariables)
                 ((LocalVariableNode) o).accept(mv);
         }
 
-        mv.visitMaxs(mn.maxStack + 2 /* fiber stack w/dup */, mn.maxLocals); // Needed by ASM analysis
+        mv.visitMaxs(mn.maxStack + ADD_OPERANDS_OPTIMIZED, mn.maxLocals + NUM_LOCALS_OPTIMIZED); // Needed by ASM analysis
 
         mv.visitEnd();
     }
@@ -791,7 +800,7 @@ class InstrumentMethod {
         }
     }
 
-    private boolean canInstrumentationBeSkipped(int[] susCallsIndexes) {
+    private boolean canInstrumentationBeOptimized(int[] susCallsIndexes) {
         if (optimizationDisabled) {
             db.log(LogLevel.DEBUG, "[OPTIMIZE] Optimization disabled, not examining method %s#%s%s with susCallsIndexes=%s", className, mn.name, mn.desc, Arrays.toString(susCallsIndexes));
             return false;
@@ -948,7 +957,7 @@ class InstrumentMethod {
                 case Opcodes.LRETURN:
                 case Opcodes.FRETURN:
                 case Opcodes.DRETURN:
-                    emitPopMethod(mv);
+                    emitStackPopMethod(mv);
                     break;
 
                 case Opcodes.MONITORENTER:
@@ -1056,7 +1065,7 @@ class InstrumentMethod {
         }
     }
 
-    private void emitPopMethod(MethodVisitor mv) {
+    private void emitStackPopMethod(MethodVisitor mv) {
 //        emitVerifyInstrumentation(mv);
 
         final Label lbl = new Label();
@@ -1089,7 +1098,7 @@ class InstrumentMethod {
         FrameTypesKB.sealLocalTypes(className, mn.name, mn.desc, Integer.toString(idx));
     }
 
-    private void emitStoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsToPutBackToOperandStackAfterStore) {
+    private void emitStackStoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsToPutBackToOperandStackAfterStore) {
         if (idx > Stack.MAX_ENTRY)
             throw new IllegalArgumentException("Entry index (PC) " + idx + " greater than maximum of " + Stack.MAX_ENTRY + " in " + className + "." + mn.name + mn.desc);
         if (fi.numSlots > Stack.MAX_SLOTS)
@@ -1145,7 +1154,7 @@ class InstrumentMethod {
         }
     }
 
-    private void emitRestoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsPreserved) {
+    private void emitStackRestoreState(MethodVisitor mv, FrameInfo fi, int numArgsPreserved) {
         final Frame f = frames[fi.endInstruction];
 
         // restore local vars
@@ -1179,7 +1188,7 @@ class InstrumentMethod {
             fi.lAfter.accept(mv);
     }
 
-    private void emitPostRestore(MethodVisitor mv) {
+    private void emitStackPostRestore(MethodVisitor mv) {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "postRestore", "()V", false);
     }
