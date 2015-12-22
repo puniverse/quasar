@@ -247,7 +247,7 @@ class InstrumentMethod {
                         if (endSourceLine == -1 || currSourceLine > endSourceLine)
                             endSourceLine = currSourceLine;
                     } else if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
-                        if (isSuspendableCall(in)) {
+                        if (isSuspendableCall(db, in)) {
                             if (count >= suspCallsIdxs.length)
                                 suspCallsIdxs = Arrays.copyOf(suspCallsIdxs, suspCallsIdxs.length * 2);
                             if (count >= suspCallsSourceLines.length)
@@ -277,24 +277,43 @@ class InstrumentMethod {
         return suspCallsIdxs.length > 0;
     }
 
-    private boolean isSuspendableCall(AbstractInsnNode in) {
+    private static boolean isSuspendableCall(MethodDatabase db, AbstractInsnNode in) {
+        final int type = in.getType();
+        String owner;
+        String name;
+        String desc;
+        if (type == AbstractInsnNode.METHOD_INSN) {
+            final MethodInsnNode min = (MethodInsnNode) in;
+            owner = min.owner;
+            name = min.name;
+            desc = min.desc;
+        } else if (type == AbstractInsnNode.INVOKE_DYNAMIC_INSN) { // invoke dynamic
+            final InvokeDynamicInsnNode idd = (InvokeDynamicInsnNode) in;
+            owner = idd.bsm.getOwner();
+            name = idd.name;
+            desc = idd.desc;
+        } else {
+            throw new RuntimeException("Not a call: " + in);
+        }
+
+        return isSuspendableCall(db, type, in.getOpcode(), owner, name, desc);
+    }
+
+    public static boolean isSuspendableCall(MethodDatabase db, int type, int opcode, String owner, String name, String desc) {
         boolean susp = true;
 
-        if (in.getType() == AbstractInsnNode.METHOD_INSN) {
-            final MethodInsnNode min = (MethodInsnNode) in;
-
-            if (!isSyntheticAccess(min.owner, min.name)
-                && !isReflectInvocation(min.owner, min.name)
-                && !isMethodHandleInvocation(min.owner, min.name)
-                && !isInvocationHandlerInvocation(min.owner, min.name)) {
-                SuspendableType st = db.isMethodSuspendable(min.owner, min.name, min.desc, min.getOpcode());
+        if (type == AbstractInsnNode.METHOD_INSN) {
+            if (!isSyntheticAccess(owner, name)
+                && !isReflectInvocation(owner, name)
+                && !isMethodHandleInvocation(owner, name)
+                && !isInvocationHandlerInvocation(owner, name)) {
+                SuspendableType st = db.isMethodSuspendable(owner, name, desc, opcode);
 
                 if (st == SuspendableType.NON_SUSPENDABLE)
                     susp = false;
             }
-        } else if (in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) { // invoke dynamic
-            final InvokeDynamicInsnNode idin = (InvokeDynamicInsnNode) in;
-            if (idin.bsm.getOwner().equals("java/lang/invoke/LambdaMetafactory")) // lambda
+        } else if (type == AbstractInsnNode.INVOKE_DYNAMIC_INSN) { // invoke dynamic
+            if (owner.equals("java/lang/invoke/LambdaMetafactory")) // lambda
                 susp = false;
         } else
             susp = false;
@@ -814,7 +833,7 @@ class InstrumentMethod {
         final int susCallIdx = susCallsIdxs[0];
 
         final AbstractInsnNode susCall = mn.instructions.get(susCallIdx);
-        assert isSuspendableCall(susCall);
+        assert isSuspendableCall(db, susCall);
         if (isYieldMethod(getMethodOwner(susCall), getMethodName(susCall)))
             return false; // yield calls require instrumentation (to skip the call when resuming)
         if (isReflectInvocation(getMethodOwner(susCall), getMethodName(susCall)))

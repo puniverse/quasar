@@ -17,6 +17,7 @@ import co.paralleluniverse.fibers.Instrumented;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import com.google.common.primitives.Ints;
 import org.objectweb.asm.*;
+import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.util.ArrayList;
@@ -112,22 +113,25 @@ public class FillSuspOffsetsClass extends ClassVisitor {
                 @Override
                 public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean isInterface) {
                     if (instrumented) {
-                        final SuspendableType st = db.isMethodSuspendable(owner, name, desc, opcode);
-                        if (st != SuspendableType.NON_SUSPENDABLE && currLabel != null && currLabel.info instanceof Integer)
+                        final int type = AbstractInsnNode.METHOD_INSN;
+                        if (InstrumentMethod.isSuspendableCall(db, type, opcode, owner, name, desc) &&
+                            currLabel != null && currLabel.info instanceof Integer)
                             suspCallOffsetsAfterInstrL.add((Integer) currLabel.info);
                     }
                     super.visitMethodInsn(opcode, owner, name, desc, isInterface);
                 }
 
                 @Override
-                public void visitInvokeDynamicInsn(String s, String s1, Handle handle, Object... objects) {
+                public void visitInvokeDynamicInsn(String name, String desc, Handle handle, Object... objects) {
                     if (instrumented) {
-                        if (!handle.getOwner().equals("java/lang/invoke/LambdaMetafactory") &&
+                        final int type = AbstractInsnNode.INVOKE_DYNAMIC_INSN;
+                        final int opcode = Opcodes.INVOKEDYNAMIC;
+                        if (InstrumentMethod.isSuspendableCall(db, type, opcode, handle.getOwner(), name, desc) &&
                             currLabel != null && currLabel.info instanceof Integer) {
                             suspCallOffsetsAfterInstrL.add((Integer) currLabel.info);
                         }
                     }
-                    super.visitInvokeDynamicInsn(s, s1, handle, objects);
+                    super.visitInvokeDynamicInsn(name, desc, handle, objects);
                 }
 
                 @Override
