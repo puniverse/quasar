@@ -91,8 +91,6 @@ public final class Stack implements Serializable {
 
     /**
      * Used by live instrumentation to check for uninstrumented frames
-     *
-     * @return the number of pushOptimizedMethod() calls - the number of popOptimizedMethod() calls
      */
     public final int getOptimizedCount() {
         return optimizedCount;
@@ -105,6 +103,10 @@ public final class Stack implements Serializable {
      */
     public final int getInstrumentedCount() {
         return instrumentedCount;
+    }
+
+    public final int currentMethodEntry() {
+        return getEntry(dataLong[sp]);
     }
 
     /**
@@ -147,7 +149,13 @@ public final class Stack implements Serializable {
         return false;
     }
 
+    public final void incOptimizedCount() {
+        System.err.println("optimizedCount++");
+        optimizedCount++;
+    }
+
     public final void decOptimizedCount() {
+        System.err.println("optimizedCount--");
         optimizedCount--;
     }
 
@@ -181,37 +189,6 @@ public final class Stack implements Serializable {
             fiber.record(2, "Stack", "pushMethod     ", "%s %d %d", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
 
         instrumentedCount++;
-    }
-
-    /**
-     * Called before an optimized method is called.
-     *
-     * @param numSlots   the number of required stack slots for storing the state of the current method
-     */
-    public final void pushOptimizedMethod() {
-        shouldVerifyInstrumentation = false;
-        pushed = true;
-
-        int idx = sp - FRAME_RECORD_SIZE;
-        long record = dataLong[idx];
-        record = setEntry(record, 1);
-        record = setNumSlots(record, 0);
-        dataLong[idx] = record;
-
-        int nextMethodIdx = sp;
-        int nextMethodSP = nextMethodIdx + FRAME_RECORD_SIZE;
-        if (nextMethodSP > dataObject.length)
-            growStack(nextMethodSP);
-
-        // clear next method's frame record
-        dataLong[nextMethodIdx] = 0L;
-//        for (int i = 0; i < FRAME_RECORD_SIZE; i++)
-//            dataLong[nextMethodIdx + i] = 0L;
-
-        if (fiber.isRecordingLevel(2))
-            fiber.record(2, "Stack", "pushOptimizedMethod     ", "%s %d %d", Thread.currentThread().getStackTrace()[2], 1, sp /*Arrays.toString(fiber.getStackTrace())*/);
-
-        optimizedCount++;
     }
 
     public final void popMethod() {

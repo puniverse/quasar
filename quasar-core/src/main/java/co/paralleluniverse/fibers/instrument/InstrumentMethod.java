@@ -572,8 +572,6 @@ class InstrumentMethod {
 
         mv.visitCode();
 
-        final Label lMethodStart = new Label();
-
         // Output try-catch blocks
         for (final Object o : mn.tryCatchBlocks) {
             final TryCatchBlockNode tcb = (TryCatchBlockNode) o;
@@ -596,55 +594,54 @@ class InstrumentMethod {
 
         emitInstrumentedAnn(db, mv, mn, className, true, startSourceLine, endSourceLine, suspCallsSourceLines, suspCallsSignatures, null);
 
-        emitStoreResumed(mv, false); // Assume not resumed
+        dumpUnoptimizedCodeBlockAfterIdx(mv, 0, 0);
 
-        mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false);
-        mv.visitInsn(Opcodes.DUP);
-        mv.visitVarInsn(Opcodes.ASTORE, lvarStack);
-        mv.visitJumpInsn(Opcodes.IFNULL, lMethodStart); // DUAL
+        // Blocks leading to suspendable calls
+        for (int i = 1; i < numCodeBlocks; i++) {
+            final FrameInfo fi = codeBlocks[i];
 
-        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "nextMethodEntry", "()I", false); // always either 0 if not resumed or 1 for an optimized method
-        mv.visitVarInsn(Opcodes.ISTORE, lvarResumed);
+            // Emit instrumented call
 
-        mv.visitLabel(lMethodStart);
+            final AbstractInsnNode min = mn.instructions.get(fi.endInstruction);
 
-        emitCodeBlockAfterIdx(mv, 0, 0);
+            final Label lNull1 = new Label(), lNull2 = new Label(), lNonNull2 = new Label();
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); // * R
+            mv.visitInsn(Opcodes.DUP); // * R R
+            mv.visitJumpInsn(Opcodes.IFNULL, lNull1); // * R
+            mv.visitInsn(Opcodes.DUP); // * R R
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "currentMethodEntry", "()I", false); // * R I
+            mv.visitJumpInsn(Opcodes.IFNE, lNull1); // != 0 => resuming => skip incrementing count // * R
+            mv.visitInsn(Opcodes.DUP); // * R R
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "incOptimizedCount", "()V", false); // * R
+            mv.visitJumpInsn(Opcodes.GOTO, lNull1); // * R
 
-        // Direct jump to call if resuming
-        mv.visitVarInsn(Opcodes.ILOAD, lvarResumed);
-        final Label call = new Label();
-        mv.visitJumpInsn(Opcodes.IFNE, call); // if not 0
+            mv.visitLabel(lNull1);
+            mv.visitInsn(Opcodes.POP); // *
 
-        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        mv.visitJumpInsn(Opcodes.IFNULL, call);
+            min.accept(mv); // susp call // * -> .
 
-        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "pushOptimizedMethod", "()V", false);
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); // . R
+            mv.visitInsn(Opcodes.DUP); // . R R
+            mv.visitJumpInsn(Opcodes.IFNULL, lNull2); // . R
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "decOptimizedCount", "()V", false); // .
+            mv.visitJumpInsn(Opcodes.GOTO, lNonNull2);
 
-        mv.visitLabel(call);
-        final FrameInfo fi = codeBlocks[1];
-        final AbstractInsnNode min = mn.instructions.get(fi.endInstruction);
-        min.accept(mv); // SUSP CALL
+            mv.visitLabel(lNull2);
+            mv.visitInsn(Opcodes.POP); // .
 
-        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        final Label dual1 = new Label();
-        mv.visitJumpInsn(Opcodes.IFNULL, dual1);
-        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+            mv.visitLabel(lNonNull2);
 
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "decOptimizedCount", "()V", false);
+            // Emit the rest
 
-        mv.visitLabel(dual1);
-        emitCodeBlockAfterIdx(mv, 1, 1 /* skip the susp call */);
-
-        emitStackPopMethod(mv);
+            dumpUnoptimizedCodeBlockAfterIdx(mv, i, 1 /* skip the call */);
+        }
 
         if (mn.localVariables != null) {
             for (final Object o : mn.localVariables)
                 ((LocalVariableNode) o).accept(mv);
         }
 
-        mv.visitMaxs(mn.maxStack + ADD_OPERANDS_OPTIMIZED, mn.maxLocals + NUM_LOCALS_OPTIMIZED); // Needed by ASM analysis
+        mv.visitMaxs(mn.maxStack + ADD_OPERANDS_OPTIMIZED /* fiber stack w/dup */, mn.maxLocals); // Needed by ASM analysis
 
         mv.visitEnd();
     }
