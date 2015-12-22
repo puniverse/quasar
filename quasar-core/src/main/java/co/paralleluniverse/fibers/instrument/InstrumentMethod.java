@@ -787,7 +787,8 @@ class InstrumentMethod {
                         final FrameInfo fi = addCodeBlock(f, i);
                         if (split)
                             splitTryCatch(fi);
-                        recordFrameTypeInfo(++suspCount); // 1-based
+                        recordFrameTypeInfo(f, ++suspCount); // 1-based
+                        sealFrameTypeInfo(suspCount);
                     } else if (in.getType() == AbstractInsnNode.METHOD_INSN) { // not invokedynamic
                         final MethodInsnNode min = (MethodInsnNode) in;
                         db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
@@ -795,7 +796,6 @@ class InstrumentMethod {
                     }
                 }
             }
-            sealFrameTypeInfo(db, i);
         }
         addCodeBlock(null, numIns);
     }
@@ -1096,8 +1096,7 @@ class InstrumentMethod {
         mv.visitLabel(lbl);
     }
 
-    private void recordFrameTypeInfo(int idx) {
-        final Frame f = frames[idx];
+    private void recordFrameTypeInfo(Frame f, int idx) {
         for (int i = f.getStackSize(); i-- > 0;) {
             final BasicValue v = (BasicValue) f.getStack(i);
             FrameTypesKB.addOperandStackType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
@@ -1109,7 +1108,7 @@ class InstrumentMethod {
         }
     }
 
-    private void sealFrameTypeInfo(MethodDatabase db, int idx) {
+    private void sealFrameTypeInfo(int idx) {
         FrameTypesKB.sealOperandStackTypes(className, mn.name, mn.desc, Integer.toString(idx));
         FrameTypesKB.sealLocalTypes(className, mn.name, mn.desc, Integer.toString(idx));
     }
