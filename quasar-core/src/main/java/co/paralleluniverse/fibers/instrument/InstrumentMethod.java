@@ -1169,7 +1169,7 @@ class InstrumentMethod {
         }
     }
 
-    private void emitStackRestoreState(MethodVisitor mv, FrameInfo fi, int numArgsPreserved) {
+    private void emitStackRestoreState(MethodVisitor mv, FrameInfo fi, int numArgsThatHaveBeenPutBackToOperandStackAfterStore) {
         final Frame f = frames[fi.endInstruction];
 
         // restore local vars
@@ -1187,7 +1187,7 @@ class InstrumentMethod {
         }
 
         // restore operand stack
-        for (int i = 0; i < f.getStackSize() - numArgsPreserved; i++) {
+        for (int i = 0; i < f.getStackSize() - numArgsThatHaveBeenPutBackToOperandStackAfterStore; i++) {
             final BasicValue v = (BasicValue) f.getStack(i);
             if (!isOmitted(v)) {
                 if (!isNullType(v)) {
