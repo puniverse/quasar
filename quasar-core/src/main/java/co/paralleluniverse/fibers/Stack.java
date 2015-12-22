@@ -150,12 +150,10 @@ public final class Stack implements Serializable {
     }
 
     public final void incOptimizedCount() {
-        System.err.println("optimizedCount++");
         optimizedCount++;
     }
 
     public final void decOptimizedCount() {
-        System.err.println("optimizedCount--");
         optimizedCount--;
     }
 
