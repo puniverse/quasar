@@ -50,24 +50,28 @@ public final class FrameTypesKB {
     }
 
     public static void addOperandStackType(String className, String name, String desc, String callSiteIdx, Type t) {
-        if (LiveInstrumentation.ACTIVE && t != null && askedRecording(className.replace('.', '/'))) {
-            final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
-            List<Type> l = operandStackTypesCacheL.get(id);
-            if (l == null)
-                l = new ArrayList<>();
-            l.add(t);
-            operandStackTypesCacheL.put(id, l);
+        if (LiveInstrumentation.ACTIVE && askedRecording(className.replace('.', '/'))) {
+            if (t != null) {
+                final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
+                List<Type> l = operandStackTypesCacheL.get(id);
+                if (l == null)
+                    l = new ArrayList<>();
+                l.add(t);
+                operandStackTypesCacheL.put(id, l);
+            }
         }
     }
 
     public static void addLocalType(String className, String name, String desc, String callSiteIdx, Type t) {
-        if (LiveInstrumentation.ACTIVE && t != null && askedRecording(className.replace('.', '/'))) {
-            final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
-            List<Type> l = localTypesCacheL.get(id);
-            if (l == null)
-                l = new ArrayList<>();
-            l.add(t);
-            localTypesCacheL.put(id, l);
+        if (LiveInstrumentation.ACTIVE && askedRecording(className.replace('.', '/'))) {
+            if (t != null) {
+                final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
+                List<Type> l = localTypesCacheL.get(id);
+                if (l == null)
+                    l = new ArrayList<>();
+                l.add(t);
+                localTypesCacheL.put(id, l);
+            }
         }
     }
 
@@ -80,7 +84,7 @@ public final class FrameTypesKB {
     }
 
     public static void sealOperandStackTypes(String className, String name, String desc, String callSiteIdx) {
-        if (LiveInstrumentation.ACTIVE) {
+        if (LiveInstrumentation.ACTIVE && askedRecording(className.replace('.', '/'))) {
             final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
             List<Type> l = operandStackTypesCacheL.get(id);
             if (l == null)
@@ -93,7 +97,7 @@ public final class FrameTypesKB {
     }
 
     public static void sealLocalTypes(String className, String name, String desc, String callSiteIdx) {
-        if (LiveInstrumentation.ACTIVE) {
+        if (LiveInstrumentation.ACTIVE && askedRecording(className.replace('.', '/'))) {
             final String id = getCacheMethodCallSiteId(className, name, desc, callSiteIdx);
             List<Type> l = localTypesCacheL.get(id);
             if (l == null)
