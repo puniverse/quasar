@@ -32,7 +32,7 @@ public class AutoSingleUninstrCallSiteLambdaTest {
     // @Suspendable
     public int m(String s) {
         System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
-        int ret = m1(s);
+        final int ret = m1(s);
         System.err.println("Exit m(" + s + "), called m1(" + s + ")");
         return ret;
     }
@@ -49,12 +49,11 @@ public class AutoSingleUninstrCallSiteLambdaTest {
         return -1;
     }
 
-    // TODO: fixme
     @Test public void uniqueMissingCallSiteReturn() {
         final Fiber<Integer> f1 = new Fiber<>(() -> {
             final String s = "ciao";
             System.err.println("Enter run(), calling m(" + s + ")");
-            int ret = m(s);
+            final int ret = m(s);
             System.err.println("Exit run(), called m(" + s + ")");
             return ret;
         }).start();
@@ -68,7 +67,7 @@ public class AutoSingleUninstrCallSiteLambdaTest {
         final Fiber<Integer> f2 = new Fiber<>(() -> {
             final String s = "ciao";
             System.err.println("Enter run(), calling m(" + s + ")");
-            int ret = m(s);
+            final int ret = m(s);
             System.err.println("Exit run(), called m(" + s + ")");
             return ret;
         }).start();
