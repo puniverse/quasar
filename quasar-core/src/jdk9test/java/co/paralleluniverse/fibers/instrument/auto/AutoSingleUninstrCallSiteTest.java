@@ -15,12 +15,13 @@ package co.paralleluniverse.fibers.instrument.auto;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
+
+import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
-import co.paralleluniverse.strands.SuspendableRunnable;
 
 import java.util.concurrent.ExecutionException;
 
@@ -31,45 +32,55 @@ import java.util.concurrent.ExecutionException;
  * @author circlespainter
  */
 public class AutoSingleUninstrCallSiteTest {
-    static class F implements SuspendableRunnable {
+    static class F implements SuspendableCallable<Double> {
         @Override
-        public void run() throws SuspendExecution, InterruptedException {
-            System.err.println("Enter run(), calling m()");
-            m();
-            System.err.println("Exit run()");
+        public Double run() throws SuspendExecution, InterruptedException {
+            final String s = "ciao";
+            System.err.println("Enter run(), calling m(" + s + ")");
+            assertThat(s, equalTo("ciao"));
+            final double ret = m(s);
+            System.err.println("Exit run(), called m(" + s + ")");
+            assertThat(s, equalTo("ciao"));
+            return ret;
         }
 
         // @Suspendable
-        public void m() {
-            System.err.println("Enter m(), calling m1()");
-            m1();
-            System.err.println("Exit m()");
+        public double m(String s) {
+            System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
+            assertThat(s, equalTo("ciao"));
+            final double ret = m1(s);
+            System.err.println("Exit m(" + s + "), called m1(" + s + ")");
+            assertThat(s, equalTo("ciao"));
+            return ret;
         }
 
         @Suspendable
-        public void m1() {
-            System.err.println("Enter m1(), sleeping");
+        public double m1(String s) {
+            System.err.println("Enter m1(" + s + "), sleeping");
+            assertThat(s, equalTo("ciao"));
             try {
                 Fiber.sleep(10);
             } catch (final InterruptedException | SuspendExecution e) {
                 throw new RuntimeException(e);
             }
-            System.err.println("Exit m1()");
+            System.err.println("Exit m1(" + s + ")");
+            assertThat(s, equalTo("ciao"));
+            return -1.7;
         }
     }
 
     @Test public void uniqueMissingCallSite() {
-        final Fiber f1 = new Fiber(new F()).start();
+        final Fiber<Double> f1 = new Fiber<>(new F()).start();
         try {
-            f1.join();
+            assertThat(f1.get(), equalTo(-1.7));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
 
-        final Fiber f2 = new Fiber(new F()).start();
+        final Fiber<Double> f2 = new Fiber<>(new F()).start();
         try {
-            f2.join();
+            assertThat(f2.get(), equalTo(-1.7));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
