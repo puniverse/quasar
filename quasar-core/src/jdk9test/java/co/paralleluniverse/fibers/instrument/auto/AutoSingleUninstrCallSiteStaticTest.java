@@ -33,28 +33,34 @@ public class AutoSingleUninstrCallSiteStaticTest {
         public Double run() throws SuspendExecution, InterruptedException {
             final String s = "ciao";
             System.err.println("Enter run(), calling m(" + s + ")");
+            assertThat(s, equalTo("ciao"));
             final double ret = m(s);
             System.err.println("Exit run(), called m(" + s + ")");
+            assertThat(s, equalTo("ciao"));
             return ret;
         }
 
         // @Suspendable
         public static double m(String s) {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
+            assertThat(s, equalTo("ciao"));
             final double ret = m1(s);
             System.err.println("Exit m(" + s + "), called m1(" + s + ")");
+            assertThat(s, equalTo("ciao"));
             return ret;
         }
 
         @Suspendable
         public static double m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
+            assertThat(s, equalTo("ciao"));
             try {
                 Fiber.sleep(10);
             } catch (final InterruptedException | SuspendExecution e) {
                 throw new RuntimeException(e);
             }
             System.err.println("Exit m1(" + s + ")");
+            assertThat(s, equalTo("ciao"));
             return -1.7;
         }
     }

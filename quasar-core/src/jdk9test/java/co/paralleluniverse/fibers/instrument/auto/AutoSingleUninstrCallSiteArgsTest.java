@@ -54,6 +54,16 @@ public class AutoSingleUninstrCallSiteArgsTest {
                     "f:" + f + ", d:" + d + ", s1:" + s1 + ", s2:" + s2 +
                 "), calling m1(...)"
             );
+            assertThat(b, equalTo(false));
+            assertThat(by, equalTo((byte) 1));
+            assertThat(c, equalTo('a'));
+            assertThat(s, equalTo((short) 2));
+            assertThat(i, equalTo(3));
+            assertThat(l, equalTo(4L));
+            assertThat(f, equalTo(1.3F));
+            assertThat(d, equalTo(1.4D));
+            assertThat(s1, equalTo("ciao"));
+            assertThat(s2, equalTo("hello"));
             m1(b, by, c, s, i, l, f, d, s1, s2);
             System.err.println (
                 "Exit m(" +
@@ -61,6 +71,16 @@ public class AutoSingleUninstrCallSiteArgsTest {
                     "f:" + f + ", d:" + d + ", s1:" + s1 + ", s2:" + s2 +
                 "), called m1(...)"
             );
+            assertThat(b, equalTo(false));
+            assertThat(by, equalTo((byte) 1));
+            assertThat(c, equalTo('a'));
+            assertThat(s, equalTo((short) 2));
+            assertThat(i, equalTo(3));
+            assertThat(l, equalTo(4L));
+            assertThat(f, equalTo(1.3F));
+            assertThat(d, equalTo(1.4D));
+            assertThat(s1, equalTo("ciao"));
+            assertThat(s2, equalTo("hello"));
             System.err.println("Exit m()");
         }
 
@@ -72,6 +92,16 @@ public class AutoSingleUninstrCallSiteArgsTest {
                     "f:" + f + ", d:" + d + ", s1:" + s1 + ", s2:" + s2 +
                 "), sleeping"
             );
+            assertThat(b, equalTo(false));
+            assertThat(by, equalTo((byte) 1));
+            assertThat(c, equalTo('a'));
+            assertThat(s, equalTo((short) 2));
+            assertThat(i, equalTo(3));
+            assertThat(l, equalTo(4L));
+            assertThat(f, equalTo(1.3F));
+            assertThat(d, equalTo(1.4D));
+            assertThat(s1, equalTo("ciao"));
+            assertThat(s2, equalTo("hello"));
             try {
                 Fiber.sleep(10);
             } catch (final InterruptedException | SuspendExecution e) {
@@ -83,6 +113,16 @@ public class AutoSingleUninstrCallSiteArgsTest {
                     "f:" + f + ", d:" + d + ", s1:" + s1 + ", s2:" + s2 +
                 ")"
             );
+            assertThat(b, equalTo(false));
+            assertThat(by, equalTo((byte) 1));
+            assertThat(c, equalTo('a'));
+            assertThat(s, equalTo((short) 2));
+            assertThat(i, equalTo(3));
+            assertThat(l, equalTo(4L));
+            assertThat(f, equalTo(1.3F));
+            assertThat(d, equalTo(1.4D));
+            assertThat(s1, equalTo("ciao"));
+            assertThat(s2, equalTo("hello"));
         }
     }
 

@@ -34,28 +34,34 @@ public class AutoSingleUninstrCallSiteReturnTest {
         public Integer run() throws SuspendExecution, InterruptedException {
             final String s = "ciao";
             System.err.println("Enter run(), calling m(" + s + ")");
+            assertThat(s, equalTo("ciao"));
             final int ret = m(s);
             System.err.println("Exit run(), called m(" + s + ")");
+            assertThat(s, equalTo("ciao"));
             return ret;
         }
 
         // @Suspendable
         public int m(String s) {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
+            assertThat(s, equalTo("ciao"));
             final int ret = m1(s);
             System.err.println("Exit m(" + s + "), called m1(" + s + ")");
+            assertThat(s, equalTo("ciao"));
             return ret;
         }
 
         @Suspendable
         public int m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
+            assertThat(s, equalTo("ciao"));
             try {
                 Fiber.sleep(10);
             } catch (final InterruptedException | SuspendExecution e) {
                 throw new RuntimeException(e);
             }
             System.err.println("Exit m1(" + s + ")");
+            assertThat(s, equalTo("ciao"));
             return -1;
         }
     }
