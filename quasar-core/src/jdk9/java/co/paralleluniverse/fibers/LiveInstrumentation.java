@@ -31,10 +31,9 @@ import java.util.stream.Collectors;
  * @author circlespainter
  */
 public final class LiveInstrumentation {
-    private static final int QUASAR_LOCALS = 3;
-
     private static final MethodDatabase db;
 
+    // TODO: remove `synchronized` or change it to a lock
     static synchronized boolean fixup(Fiber fiber) {
         boolean checkInstrumentation = true;
         if (ACTIVE && fiber != null) {
@@ -504,6 +503,7 @@ public final class LiveInstrumentation {
             ).collect(COUNTING)
         );
         return threadStackDepth - (fs.getInstrumentedCount() + fs.getOptimizedCount());
+        // return 1;
     }
 
     private static void apply(java.util.Stack<FiberFramePush> todo, Stack fs) {
