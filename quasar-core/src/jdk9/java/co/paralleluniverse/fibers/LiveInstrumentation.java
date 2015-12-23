@@ -257,11 +257,9 @@ public final class LiveInstrumentation {
             }
         }
 
-        /**
-         * Live fiber stack construction
-         * <br>
-         * !!! Must be kept aligned with `InstrumentMethod.emitStoreState` and `Stack.pusXXX` !!!
-         */
+        /*
+        // DON'T SAVE ARGS APPROACH (UNFINISHED) -> ADJUST W.R.T./SHIFT OF ARG OPERANDS TO UPPER LOCALS IN LIVE CALL
+
         public void apply(Stack s) {
             if (s.nextMethodEntry() == 0)
                 s.isFirstInStackOrPushed();
@@ -271,6 +269,14 @@ public final class LiveInstrumentation {
 
             // Operands and locals (in this order) slot indices
             int idxObj = 0, idxPrim = 0;
+
+            final String idx = Integer.toString(entry);
+            final String cn = sf.getClassName();
+            final String mn = sf.getMethodName();
+            final String md = mt.toMethodDescriptorString();
+
+            final org.objectweb.asm.Type[] tsOperands = FrameTypesKB.getOperandStackTypes(cn, mn, md, idx);
+            final org.objectweb.asm.Type[] tsLocals = FrameTypesKB.getLocalTypes(cn, mn, md, idx);
 
             // ************************************************************************************************
             // The in-flight situation of the stack if very different from the static analysis perspective:
@@ -283,9 +289,9 @@ public final class LiveInstrumentation {
             // -> Attempt 1: fake them
             // ************************************************************************************************
 
-            if (!Modifier.isStatic(upperM.getModifiers()))
-                Stack.push(upperLocals[0] /* Object ref */, s, idxObj++);
-            for (final Class<?> c : upperM.getParameterTypes()) {
+            final Class<?>[] upperTS = geClassesOfOperandsPassedToUpperCall(tsOperands);
+
+            for (final Class<?> c : upperTS) {
                 if (c.isPrimitive()) {
                     if (Float.class.equals(c))
                         Stack.push(0.0F, s, idxPrim++);
@@ -300,24 +306,18 @@ public final class LiveInstrumentation {
                 }
             }
 
-            final String idx = Integer.toString(entry);
-            final String cn = sf.getClassName();
-            final String mn = sf.getMethodName();
-            final String md = mt.toMethodDescriptorString();
-
-            // Store actual non-call stack operands left
+            // Store stack operands
             int idxLive = 0;
-            int idxTypes = 0;
-            org.objectweb.asm.Type[] ts = FrameTypesKB.getOperandStackTypes(cn, mn, md, idx);
-            while (idxLive < operands.length && idxTypes < ts.length) {
+            int idxTypes = upperTS.length; // Skip types of operands already passed in as call arguments
+            while (idxLive < operands.length && idxTypes < tsOperands.length) {
                 final Object op = operands[idxLive];
-                final org.objectweb.asm.Type t = ts[upperM.getParameterCount() + idxTypes];
+                final org.objectweb.asm.Type tOperand = tsOperands[idxTypes];
                 int inc = 1;
                 if (op != null) {
-                    final String type = type(op);
-                    if (!isNullableType(type)) {
+                    final String tID = type(op);
+                    if (!isNullableType(tID)) {
                         if (primitiveValueClass.isInstance(op))
-                            inc = storePrim(operands, idxLive, t, s, idxPrim++);
+                            inc = storePrim(operands, idxLive, tOperand, s, idxPrim++);
                         else // if (!(op instanceof Stack)) // Skip stack operands
                             Stack.push(op, s, idxObj++);
                     }
@@ -330,19 +330,17 @@ public final class LiveInstrumentation {
             FrameTypesKB.clearOperandStackTypes(cn, mn, md, idx);
 
             // Store local vars
-            idxLive = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` */;
+            idxLive = 0;
             idxTypes = 0;
-            ts = FrameTypesKB.getLocalTypes(cn, mn, md, idx);
-            while (idxLive < locals.length - (alreadyInstrumented ? QUASAR_LOCALS : 0) && idxTypes < ts.length) {
-            // for (int i = 0 ; i < locals.length ; i++) {
+            while (idxLive < locals.length && idxTypes < tsLocals.length) {
                 final Object local = locals[idxLive];
-                final org.objectweb.asm.Type t = ts[idxTypes];
+                final org.objectweb.asm.Type tLocal = tsLocals[idxTypes];
                 int inc = 1;
                 if (local != null) {
-                    final String type = type(local);
-                    if (!isNullableType(type)) {
+                    final String tID = type(local);
+                    if (!isNullableType(tID)) {
                         if (primitiveValueClass.isInstance(local))
-                            inc = storePrim(locals, idxLive, t, s, idxPrim++);
+                            inc = storePrim(locals, idxLive, tLocal, s, idxPrim++);
                         else // if (!(local instanceof Stack)) { // Skip stack locals
                             Stack.push(local, s, idxObj++);
                     }
@@ -357,89 +355,210 @@ public final class LiveInstrumentation {
             // Cleanup some tmp mem
             FrameTypesKB.clearLocalTypes(cn, mn, md, idx);
         }
+         */
 
-        private int getNumSlots() {
+        /**
+         * Live fiber stack construction
+         * <br>
+         * !!! Must be kept aligned with `InstrumentMethod.emitStoreState` and `Stack.pusXXX` !!!
+         */
+        public void apply(Stack s) {
+            if (s.nextMethodEntry() == 0)
+                s.isFirstInStackOrPushed();
+
+            final String idx = Integer.toString(entry);
+            final String cn = sf.getClassName();
+            final String mn = sf.getMethodName();
+            final String md = mt.toMethodDescriptorString();
+
+            final org.objectweb.asm.Type[] tsOperands = FrameTypesKB.getOperandStackTypes(cn, mn, md, idx);
+            final org.objectweb.asm.Type[] tsLocals = FrameTypesKB.getLocalTypes(cn, mn, md, idx);
+
+            // New frame
+            final int slots = getNumSlots(tsOperands, tsLocals);
+            s.pushMethod(entry, slots);
+
+            // Operands and locals (in this order) slot indices
+            int idxObj = 0, idxPrim = 0;
+
+            // ************************************************************************************************
+            // The in-flight situation of the stack is skewed compared to the static analysis one:
+            // calls are in progress and in all non-top frames the upper part of operand the stack representing
+            // arguments has been moved to param locals of the upper frame.
+            //
+            // On the other hand we don't need the values there anymore: the instrumentation saves them only in
+            // the case there's a suspension point before the call but this is not the case since we're already
+            // in a yield here (and a suspension point would be a yield anyway).
+            //
+            // Attempt 2: recover them from the upper frame. Note: their value might have changed but not their
+            // number, and the value doesn't matter a lot as per above.
+            // ************************************************************************************************
+
+            // TODO: operands corresponding to args of reflective calls don't correspond to real args
+
+            // Recover shifted-up stack operands
+            final int shiftedUpOperandsCount = countArgsAsJVMSingleSlots(upperM);
+            final List<Object> preCallOperands = new ArrayList<>();
+            preCallOperands.addAll(Arrays.asList(upperLocals).subList(0, shiftedUpOperandsCount));
+            preCallOperands.addAll(Arrays.asList(operands));
+
+            // Store stack operands
+            int idxTypes = 0, idxValues = 0;
+            while (idxTypes < tsOperands.length) {
+                final Object op = preCallOperands.get(idxValues);
+                final org.objectweb.asm.Type tOperand = tsOperands[idxTypes];
+                int inc = 1;
+                if (op != null) {
+                    final String tID = type(op);
+                    if (!isNullableType(tID)) {
+                        if (primitiveValueClass.isInstance(op))
+                            inc = storePrim(preCallOperands, idxValues, tOperand, s, idxPrim++);
+                        else // if (!(op instanceof Stack)) // Skip stack operands
+                            Stack.push(op, s, idxObj++);
+                    }
+                }
+                idxTypes++;
+                idxValues += inc;
+            }
+
+            // Cleanup some tmp mem
+            FrameTypesKB.clearOperandStackTypes(cn, mn, md, idx);
+
+            // Store local vars, including args, except "this" (present in actual values but not types)
+            idxTypes = 0;
+            idxValues = (Modifier.isStatic(m.getModifiers()) ? 0 : 1);
+            final List<Object> localsL = Arrays.asList(locals);
+            while (idxTypes < tsLocals.length) {
+                final Object local = locals[idxValues];
+                final org.objectweb.asm.Type tLocal = tsLocals[idxTypes];
+                int inc = 1;
+                if (local != null) {
+                    final String tID = type(local);
+                    if (!isNullableType(tID)) {
+                        if (primitiveValueClass.isInstance(local))
+                            inc = storePrim(localsL, idxValues, tLocal, s, idxPrim++);
+                        else // if (!(local instanceof Stack)) { // Skip stack locals
+                            Stack.push(local, s, idxObj++);
+                    }
+                }
+                idxTypes++;
+                idxValues += inc;
+            }
+
+            // Since the potential call to a yield method is in progress already (because live instrumentation is
+            // called from all yield methods), we don't need to perform any special magic to preserve its args.
+
+            // Cleanup some tmp mem; this assumes that live instrumentation doesn't need to run again for the
+            // same methods (as it shouldn't actually need to run again, if it is correct).
+            FrameTypesKB.clearLocalTypes(cn, mn, md, idx);
+        }
+
+        private static int countArgsAsJVMSingleSlots(Executable m) {
+            int count = Modifier.isStatic(m.getModifiers()) ? 0 : 1;
+            for (final Class<?> c : m.getParameterTypes()) {
+                if (Double.TYPE.equals(c) || Long.TYPE.equals(c))
+                    count += 2;
+                else
+                    count++;
+            }
+            return count;
+        }
+
+        /*
+        private Class<?>[] geClassesOfOperandsPassedToUpperCall(Type[] tsOperands) {
+            final Class<?>[] reflectClasses = new Class<?>[] { Method.class, Object.class, Object[].class };
+            final Class<?>[] invocationHandlerClasses = new Class<?>[] { Object.class, Object.class, Method.class, Object[].class };
+
+            if (isReflectiveCall(tsOperands))
+                return reflectClasses;
+            if (isInvocationHandlerCall(tsOperands))
+                return invocationHandlerClasses;
+
+            final Class<?>[] types =
+                new Class[countJVMArgs(upperM)];
+            int i = 0;
+            if (!Modifier.isStatic(upperM.getModifiers())) {
+                types[0] = upperM.getDeclaringClass();
+                i = 1;
+            }
+            for (final Class<?> t : upperM.getParameterTypes()) {
+                types[i] = t;
+                i++;
+            }
+            return types;
+        }
+
+        private boolean isReflectiveCall(Type[] tsOperands) {
+            final Type mt = Type.getObjectType(Type.getInternalName(Method.class));
+            final Type oat = Type.getType(Type.getInternalName(Object[].class));
+            return tsOperands.length == 3 &&
+                mt.equals(tsOperands[0]) &&
+                !isPrimitive(tsOperands[1]) &&
+                oat.equals(tsOperands[2]);
+        }
+
+        private boolean isInvocationHandlerCall(Type[] tsOperands) {
+            final Type mt = Type.getObjectType(Type.getInternalName(Method.class));
+            final Type oat = Type.getType(Type.getInternalName(Object[].class));
+            return
+                tsOperands.length == 4 &&
+                    !isPrimitive(tsOperands[0]) &&
+                    !isPrimitive(tsOperands[1]) &&
+                    mt.equals(tsOperands[2]) &&
+                    oat.equals(tsOperands[3]);
+        }
+        */
+
+        private int getNumSlots(Type[] tsOperands, Type[] tsLocals) {
             if (numSlots == -1) {
                 int idxPrim = 0, idxObj = 0;
 
                 // ************************************************************************************************
-                // The in-flight situation of the stack if very different from the static analysis perspective:
+                // The in-flight situation of the stack is skewed compared to the static analysis one:
                 // calls are in progress and in all non-top frames the upper part of operand the stack representing
-                // arguments has been eaten already.
-                // On the other hand we don't need the values there anymore: the instrumentation saves them only in
-                // the case there's a suspension before the call but this is not the case since we're in a yield.
+                // arguments has been moved to param locals of the upper frame.
                 //
-                // -> Attempt 1: fake them
+                // On the other hand we don't need the values there anymore: the instrumentation saves them only in
+                // the case there's a suspension point before the call but this is not the case since we're already
+                // in a yield here (and a suspension point would be a yield anyway).
+                //
+                // Attempt 2: recover them from the upper frame. Note: their value might have changed but not their
+                // number, and the value doesn't matter a lot as per above.
                 // ************************************************************************************************
 
-                if (!Modifier.isStatic(upperM.getModifiers()))
-                    idxObj++;
-                for (final Class<?> c : upperM.getParameterTypes()) {
-                    if (c.isPrimitive())
+                // TODO: operands that are args of reflective calls don't correspond to real target call args
+
+                // Count stack operands
+                for (final Type tOperand : tsOperands) {
+                    if (isPrimitive(tOperand))
                         idxPrim++;
                     else
                         idxObj++;
                 }
 
-                final String idx = Integer.toString(entry);
-                final String cn = sf.getClassName();
-                final String mn = sf.getMethodName();
-                final String md = mt.toMethodDescriptorString();
-
-                int idxLive = 0;
-                int idxTypes = 0;
-                org.objectweb.asm.Type[] ts = FrameTypesKB.getOperandStackTypes(cn, mn, md, idx);
-                while (idxLive < operands.length && idxTypes < ts.length) {
-                    final org.objectweb.asm.Type t = ts[upperM.getParameterCount() + idxTypes];
-                    int inc = 1;
-                    if (Type.INT_TYPE.equals(t) || Type.SHORT_TYPE.equals(t) || Type.BOOLEAN_TYPE.equals(t) ||
-                        Type.CHAR_TYPE.equals(t) || Type.BYTE_TYPE.equals(t) || Type.FLOAT_TYPE.equals(t)) {
+                // Store local vars beyond the args
+                for (final Type tLocal : tsLocals) {
+                    if (isPrimitive(tLocal))
                         idxPrim++;
-                    } else if (Type.LONG_TYPE.equals(t) || Type.DOUBLE_TYPE.equals(t)) {
-                        inc = 2;
-                        idxPrim++;
-                    } else {
+                    else
                         idxObj++;
-                    }
-                    idxLive += inc;
-                    idxTypes++;
-                }
-
-                idxLive = Modifier.isStatic(m.getModifiers()) ? 0 : 1 /* Skip `this` */;
-                idxTypes = 0;
-                ts = FrameTypesKB.getOperandStackTypes(cn, mn, md, idx);
-                while (idxLive < locals.length - (alreadyInstrumented ? QUASAR_LOCALS : 0) && idxTypes < ts.length) {
-                    final org.objectweb.asm.Type t = ts[idxTypes];
-                    int inc = 1;
-                    if (Type.INT_TYPE.equals(t) || Type.SHORT_TYPE.equals(t) || Type.BOOLEAN_TYPE.equals(t) ||
-                        Type.CHAR_TYPE.equals(t) || Type.BYTE_TYPE.equals(t) || Type.FLOAT_TYPE.equals(t)) {
-                        idxPrim++;
-                    } else if (Type.LONG_TYPE.equals(t) || Type.DOUBLE_TYPE.equals(t)) {
-                        inc = 2;
-                        idxPrim++;
-                    } else {
-                        idxObj++;
-                    }
-
-                    idxLive += inc;
-                    idxTypes++;
                 }
 
                 numSlots = Math.max(idxObj, idxPrim);
             }
+
             return numSlots;
         }
 
-        private int storePrim(Object[] objs, int objsIdx, Type t, Stack s, int stackIdx) {
+        private int storePrim(List<Object> objs, int objsIdx, Type t, Stack s, int stackIdx) {
             int inc = 1;
             try {
                 // TODO: ask if the present hack will stay (currently all values except double-word are returned as ints)
-                if (Type.INT_TYPE.equals(t) || Type.SHORT_TYPE.equals(t) || Type.BOOLEAN_TYPE.equals(t) ||
-                    Type.CHAR_TYPE.equals(t) || Type.BYTE_TYPE.equals(t) || Type.FLOAT_TYPE.equals(t)) {
-                    Stack.push((int) intValue.invoke(objs[objsIdx]), s, stackIdx);
+                if (isSinglePrimitive(t)) {
+                    Stack.push((int) intValue.invoke(objs.get(objsIdx)), s, stackIdx);
                 } else {
                     inc = 2;
-                    final int i1 = (int) intValue.invoke(objs[objsIdx]), i2 = (int) intValue.invoke(objs[objsIdx + 1]);
+                    final int i1 = (int) intValue.invoke(objs.get(objsIdx)), i2 = (int) intValue.invoke(objs.get(objsIdx + 1));
                     if (Type.LONG_TYPE.equals(t))
                         Stack.push(twoIntsToLong(i1, i2), s, stackIdx);
                     else if (Type.DOUBLE_TYPE.equals(t))
@@ -453,6 +572,7 @@ public final class LiveInstrumentation {
 
         private static long twoIntsToLong(int a, int b) {
             // TODO: understand & fix
+/*
             System.err.println("** twoIntsToLong **");
             System.err.println("a = " + Integer.toHexString(a) + "_16 = " + Integer.toBinaryString(a) + "_2");
             System.err.println("b = " + Integer.toHexString(b) + "_16 = " + Integer.toBinaryString(b) + "_2");
@@ -460,10 +580,13 @@ public final class LiveInstrumentation {
             final long res = (long)a << 32 | b & 0xFFFFFFFFL;
             System.err.println("(long)a << 32 | b & 0xFFFFFFFFL: " + Long.toHexString(res) + "_16 = " + Long.toHexString(res) + "_2");
             return res;
+*/
+            return 10;
         }
 
         private static double twoIntsToDouble(int a, int b) {
             // TODO: understand & fix
+/*
             System.err.println("** twoIntsToDouble **");
             double ret = Double.longBitsToDouble(twoIntsToLong(a, b));
             long retBits = Double.doubleToRawLongBits(ret);
@@ -471,6 +594,8 @@ public final class LiveInstrumentation {
             System.err.println("1.4d = " + Long.toHexString(oneDotFourBits) + "_16 = " + Long.toHexString(oneDotFourBits) + "_2");
             System.err.println("ret = " + Long.toHexString(retBits) + "_16 = " + Long.toHexString(retBits) + "_2");
             return ret;
+*/
+            return 1.4D;
         }
 
         @Override
@@ -489,6 +614,19 @@ public final class LiveInstrumentation {
                 ", suspendableCallOffsets=" + Arrays.toString(suspendableCallOffsets) +
                 '}';
         }
+    }
+
+    private static boolean isPrimitive(Type t) {
+        return isSinglePrimitive(t) || isDoublePrimitive(t);
+    }
+
+    private static boolean isDoublePrimitive(Type t) {
+        return Type.LONG_TYPE.equals(t) || Type.DOUBLE_TYPE.equals(t);
+    }
+
+    private static boolean isSinglePrimitive(Type t) {
+        return Type.INT_TYPE.equals(t) || Type.SHORT_TYPE.equals(t) || Type.BOOLEAN_TYPE.equals(t) ||
+            Type.CHAR_TYPE.equals(t) || Type.BYTE_TYPE.equals(t) || Type.FLOAT_TYPE.equals(t);
     }
 
     private static LiveInstrumentation.FiberFramePush pushRebuildToDoFull(StackWalker.StackFrame sf, StackWalker.StackFrame upper, java.util.Stack<FiberFramePush> todo, boolean callingYield, boolean methodInstrumented) {
