@@ -124,9 +124,10 @@ public final class LiveInstrumentation {
                                 final Instrumented annFixed = SuspendableHelper.getAnnotation(SuspendableHelper9.lookupMethod(cCaller, mnCaller, mtCaller), Instrumented.class);
                                 if (annFixed != null && !annFixed.methodOptimized()) {
                                     DEBUG("Method is not optimized, creating a fiber stack rebuild record");
-                                    prevFFP = pushRebuildToDo(f, upper, fiberStackRebuildToDoList, callingFiberRuntime, report.methodInstrumented);
+                                    prevFFP = pushRebuildToDoFull(f, upper, fiberStackRebuildToDoList, callingFiberRuntime, report.methodInstrumented);
                                 } else {
-                                    DEBUG("Method is optimized, NOT creating a fiber stack rebuild record");
+                                    DEBUG("Method is optimized, creating an optimized fiber stack rebuild record");
+                                    fiberStackRebuildToDoList.push(FiberFramePushOptimized.INSTANCE);
                                 }
 
                                 callingFiberRuntime = false;
@@ -164,7 +165,24 @@ public final class LiveInstrumentation {
         return checkInstrumentation;
     }
 
-    private static class FiberFramePush {
+    @FunctionalInterface
+    private interface FiberFramePush {
+        void apply(Stack s);
+        default void setLower(StackWalker.StackFrame lower) {}
+    }
+
+    private static class FiberFramePushOptimized implements FiberFramePush {
+        public static final FiberFramePush INSTANCE = new FiberFramePushOptimized();
+
+        @Override
+        public void apply(Stack s) {
+            s.incOptimizedCount();
+        }
+
+        private FiberFramePushOptimized() {}
+    }
+
+    private static class FiberFramePushFull implements FiberFramePush {
         private final StackWalker.StackFrame sf;
         private final MethodType mt;
         private final Executable m;
@@ -184,7 +202,7 @@ public final class LiveInstrumentation {
 
         private int[] suspendableCallOffsets;
 
-        private FiberFramePush(StackWalker.StackFrame sf, StackWalker.StackFrame upper, boolean callingYield, boolean alreadyInstrumented) throws InvocationTargetException, IllegalAccessException {
+        private FiberFramePushFull(StackWalker.StackFrame sf, StackWalker.StackFrame upper, boolean callingYield, boolean alreadyInstrumented) throws InvocationTargetException, IllegalAccessException {
             this.sf = sf;
             this.mt = (MethodType) getMethodType.invoke(memberName.get(sf));
             this.m = SuspendableHelper9.lookupMethod(sf); // Caching it as it's used multiple times
@@ -211,7 +229,7 @@ public final class LiveInstrumentation {
             return ret;
         }
 
-        private void setLower(StackWalker.StackFrame lower) {
+        public void setLower(StackWalker.StackFrame lower) {
             // this.lower = lower;
             // this.lowerM = lookupMethod(lower);
             final MethodType mt;
@@ -244,7 +262,7 @@ public final class LiveInstrumentation {
          * <br>
          * !!! Must be kept aligned with `InstrumentMethod.emitStoreState` and `Stack.pusXXX` !!!
          */
-        private void apply(Stack s) {
+        public void apply(Stack s) {
             if (s.nextMethodEntry() == 0)
                 s.isFirstInStackOrPushed();
 
@@ -473,10 +491,10 @@ public final class LiveInstrumentation {
         }
     }
 
-    private static LiveInstrumentation.FiberFramePush pushRebuildToDo(StackWalker.StackFrame sf, StackWalker.StackFrame upper, java.util.Stack<FiberFramePush> todo, boolean callingYield, boolean methodInstrumented) {
+    private static LiveInstrumentation.FiberFramePush pushRebuildToDoFull(StackWalker.StackFrame sf, StackWalker.StackFrame upper, java.util.Stack<FiberFramePush> todo, boolean callingYield, boolean methodInstrumented) {
         try {
             final FiberFramePush ffp =
-                new FiberFramePush (
+                new FiberFramePushFull (
                     sf,
                     upper,
                     callingYield,
