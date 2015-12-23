@@ -70,7 +70,7 @@ public class AutoMultipleSameUninstrCallSiteTest {
         }
     }
 
-    @Test public void uniqueMissingCallSiteReturn() {
+    @Test public void test() {
         final Fiber<Double> f1 = new Fiber<>(new F()).start();
         try {
             assertThat(f1.get(), equalTo(-6.8));

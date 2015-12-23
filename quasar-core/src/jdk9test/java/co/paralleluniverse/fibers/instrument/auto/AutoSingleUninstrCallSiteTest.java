@@ -28,9 +28,6 @@ import java.util.concurrent.ExecutionException;
 /**
  * @author circlespainter
  */
-/**
- * @author circlespainter
- */
 public class AutoSingleUninstrCallSiteTest {
     static class F implements SuspendableCallable<Double> {
         @Override
@@ -69,7 +66,7 @@ public class AutoSingleUninstrCallSiteTest {
         }
     }
 
-    @Test public void uniqueMissingCallSite() {
+    @Test public void test() {
         final Fiber<Double> f1 = new Fiber<>(new F()).start();
         try {
             assertThat(f1.get(), equalTo(-1.7));

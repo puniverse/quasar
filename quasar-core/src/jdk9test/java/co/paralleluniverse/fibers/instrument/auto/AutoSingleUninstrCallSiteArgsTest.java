@@ -16,6 +16,7 @@ package co.paralleluniverse.fibers.instrument.auto;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
+import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.Test;
 import org.junit.Ignore;
@@ -29,25 +30,26 @@ import static org.junit.Assert.*;
  * @author circlespainter
  */
 public class AutoSingleUninstrCallSiteArgsTest {
-    static class F implements SuspendableRunnable {
+    static class F implements SuspendableCallable<Integer> {
         @Override
-        public void run() throws SuspendExecution, InterruptedException {
+        public Integer run() throws SuspendExecution, InterruptedException {
             System.err.println (
                 "Enter run(), calling m(" +
-                    "b:false, by: 1, c: 'a', s: 2, i: 3, l: 4, f: 1.3, d: 1.4, s1: 'ciao', s2, 'hello'" +
+                    "b:false, by: 1, c: 'a', s: 2, i: 3, l: 10, f: 1.3, d: 1.4, s1: 'ciao', s2, 'hello'" +
                 ")"
             );
-            m(false, (byte) 1, 'a', (short) 2, 3, 4, 1.3f, 1.4, "ciao", "hello");
+            int ret = m(false, (byte) 1, 'a', (short) 2, 3, 10, 1.3F, 1.4D, "ciao", "hello");
             System.err.println (
                 "Exit run(), called m(" +
-                    "b:false, by: 1, c: 'a', s: 2, i: 3, l: 4, f: 1.3, d: 1.4, s1: 'ciao', s2, 'hello'" +
+                    "b:false, by: 1, c: 'a', s: 2, i: 3, l: 10, f: 1.3, d: 1.4, s1: 'ciao', s2, 'hello'" +
                 ")"
             );
             System.err.println("Exit run()");
+            return ret;
         }
 
         // @Suspendable
-        public void m(boolean b, byte by, char c, short s, int i, long l, float f, double d, String s1, String s2) {
+        public int m(boolean b, byte by, char c, short s, int i, long l, float f, double d, String s1, String s2) {
             System.err.println (
                 "Enter m(" +
                     "b:" + b + ", by:" + by + ", c:" + c + ", s:" + s + ", i:" + i + ", l:" + l + ", " +
@@ -59,12 +61,12 @@ public class AutoSingleUninstrCallSiteArgsTest {
             assertThat(c, equalTo('a'));
             assertThat(s, equalTo((short) 2));
             assertThat(i, equalTo(3));
-            assertThat(l, equalTo(4L));
+            assertThat(l, equalTo(10L));
             assertThat(f, equalTo(1.3F));
             assertThat(d, equalTo(1.4D));
             assertThat(s1, equalTo("ciao"));
             assertThat(s2, equalTo("hello"));
-            m1(b, by, c, s, i, l, f, d, s1, s2);
+            int ret = m1(b, by, c, s, i, l, f, d, s1, s2);
             System.err.println (
                 "Exit m(" +
                     "b:" + b + ", by:" + by + ", c:" + c + ", s:" + s + ", i:" + i + ", l:" + l + ", " +
@@ -76,16 +78,17 @@ public class AutoSingleUninstrCallSiteArgsTest {
             assertThat(c, equalTo('a'));
             assertThat(s, equalTo((short) 2));
             assertThat(i, equalTo(3));
-            assertThat(l, equalTo(4L));
+            assertThat(l, equalTo(10L));
             assertThat(f, equalTo(1.3F));
             assertThat(d, equalTo(1.4D));
             assertThat(s1, equalTo("ciao"));
             assertThat(s2, equalTo("hello"));
             System.err.println("Exit m()");
+            return ret;
         }
 
         @Suspendable
-        public void m1(boolean b, byte by, char c, short s, int i, long l, float f, double d, String s1, String s2) {
+        public int m1(boolean b, byte by, char c, short s, int i, long l, float f, double d, String s1, String s2) {
             System.err.println (
                 "Enter m1(" +
                     "b:" + b + ", by:" + by + ", c:" + c + ", s:" + s + ", i:" + i + ", l:" + l + ", " +
@@ -97,7 +100,7 @@ public class AutoSingleUninstrCallSiteArgsTest {
             assertThat(c, equalTo('a'));
             assertThat(s, equalTo((short) 2));
             assertThat(i, equalTo(3));
-            assertThat(l, equalTo(4L));
+            assertThat(l, equalTo(10L));
             assertThat(f, equalTo(1.3F));
             assertThat(d, equalTo(1.4D));
             assertThat(s1, equalTo("ciao"));
@@ -118,18 +121,19 @@ public class AutoSingleUninstrCallSiteArgsTest {
             assertThat(c, equalTo('a'));
             assertThat(s, equalTo((short) 2));
             assertThat(i, equalTo(3));
-            assertThat(l, equalTo(4L));
+            assertThat(l, equalTo(10L));
             assertThat(f, equalTo(1.3F));
             assertThat(d, equalTo(1.4D));
             assertThat(s1, equalTo("ciao"));
             assertThat(s2, equalTo("hello"));
+            return -1;
         }
     }
 
-    @Test public void uniqueMissingCallSiteArgs() {
+    @Test public void test() {
         final Fiber f1 = new Fiber(new F()).start();
         try {
-            f1.join();
+            assertThat(f1.get(), equalTo(-1));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -137,7 +141,7 @@ public class AutoSingleUninstrCallSiteArgsTest {
 
         final Fiber f2 = new Fiber(new F()).start();
         try {
-            f2.join();
+            assertThat(f2.get(), equalTo(-1));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);

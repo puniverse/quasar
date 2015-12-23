@@ -29,16 +29,6 @@ import static org.junit.Assert.*;
  * @author circlespainter
  */
 public class AutoSingleUninstrCallSiteLambdaTest {
-    // @Suspendable
-    public int m(String s) {
-        System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
-        assertThat(s, equalTo("ciao"));
-        final int ret = m1(s);
-        assertThat(s, equalTo("ciao"));
-        System.err.println("Exit m(" + s + "), called m1(" + s + ")");
-        return ret;
-    }
-
     @Suspendable
     public int m1(String s) {
         System.err.println("Enter m1(" + s + "), sleeping");
@@ -53,7 +43,17 @@ public class AutoSingleUninstrCallSiteLambdaTest {
         return -1;
     }
 
-    @Test public void uniqueMissingCallSiteReturn() {
+    // @Suspendable
+    public int m(String s) {
+        System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
+        assertThat(s, equalTo("ciao"));
+        final int ret = m1(s);
+        System.err.println("Exit m(" + s + "), called m1(" + s + ")");
+        assertThat(s, equalTo("ciao"));
+        return ret;
+    }
+
+    @Test public void test() {
         final Fiber<Integer> f1 = new Fiber<>(() -> {
             final String s = "ciao";
             System.err.println("Enter run(), calling m(" + s + ")");
