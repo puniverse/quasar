@@ -104,16 +104,23 @@ public final class LiveInstrumentation {
                                     " is " + (report.callSiteInstrumented ? "instrumented" : "NOT instrumented"));
 
                                 final String n = cCaller.getName();
+
                                 if (!ok) {
-                                    DEBUG("Frame instrumentation analysis found problems");
-                                    DEBUG("-> Ensuring suspendable supers are correct");
-                                    ensureCorrectSuspendableSupers(cCaller, mnCaller, mtCaller);
+                                    DEBUG("Frame instrumentation analysis found problems!");
+                                }
+
+                                DEBUG("-> Ensuring suspendable supers are correct");
+                                ensureCorrectSuspendableSupers(cCaller, mnCaller, mtCaller);
+
+                                if (!ok) {
                                     if (!report.classInstrumented || !report.methodInstrumented) {
                                         DEBUG("-> Class or method not instrumented at all, marking method suspendable");
                                         suspendable(cCaller, mnCaller, mtCaller, MethodDatabase.SuspendableType.SUSPENDABLE);
                                     }
                                 }
+
                                 FrameTypesKB.askRecording(n);
+
                                 DEBUG("Reloading class from original classloader");
                                 final InputStream is = cCaller.getResourceAsStream("/" + n.replace(".", "/") + ".class");
                                 DEBUG("Redefining class, Quasar instrumentation with fixed suspendable info and frame type info will occur");
