@@ -206,6 +206,8 @@ public final class LiveInstrumentation {
     }
 
     private static class FiberFramePushFull implements FiberFramePush {
+        private static final String METHOD_HANDLE_NAME = MethodHandle.class.getName();
+
         private final StackWalker.StackFrame sf;
         private final MethodType mt;
         private final Executable m;
@@ -213,7 +215,7 @@ public final class LiveInstrumentation {
         private final Object[] operands;
 
         private final StackWalker.StackFrame upper;
-        private final Executable upperM;
+        private final Method upperM;
         private final Object[] upperLocals;
         // private final Object[] upperOperands;
 
@@ -447,29 +449,39 @@ public final class LiveInstrumentation {
             // TODO: to be `[0, 0, 0, 0]` when not running in debug mode.
             final boolean callingReflection = isReflection(upperM.getDeclaringClass().getName());
             DEBUG("\tCalling reflection: " + callingReflection);
-            final boolean methodHandleReflection = !upperM.getDeclaringClass().getName().equals("java.lang.reflect.Method");
-            DEBUG("\tIs method handle reflection: " + methodHandleReflection);
             final int reflectionArgsCount = callingReflection ? upperM.getParameterCount() + 1 : 0;
             DEBUG("\tReflection args count: " + reflectionArgsCount);
             int idxTypes = 0, idxValues = 0;
             while (idxTypes + reflectionArgsCount < tsOperands.length) {
-                int inc = 1;
-                final Object op = preCallOperands.get(idxValues);
                 final org.objectweb.asm.Type tOperand = tsOperands[idxTypes];
-                if (op != null) {
-                    final String tID = type(op);
-                    if (!isNullableType(tID)) {
-                        if (primitiveValueClass.isInstance(op))
-                            inc = storePrim(preCallOperands, idxValues, tOperand, s, idxPrim++);
-                        else // if (!(op instanceof Stack)) // Skip stack operands
-                            Stack.push(op, s, idxObj++);
+                if (!METHOD_HANDLE_NAME.equals(tOperand.getClassName())) {
+                    int inc = 1;
+                    final Object op = preCallOperands.get(idxValues);
+                    if (op != null) {
+                        final String tID = type(op);
+                        if (!isNullableType(tID)) {
+                            if (primitiveValueClass.isInstance(op))
+                                inc = storePrim(preCallOperands, idxValues, tOperand, s, idxPrim++);
+                            else // if (!(op instanceof Stack)) // Skip stack operands
+                                Stack.push(op, s, idxObj++);
+                        }
+                    }
+                    idxValues += inc;
+                } else {
+                    DEBUG("\tMethodHandle call detected, reconstructing and pushing handle object");
+                    try {
+                        final boolean bakAccessible = upperM.isAccessible();
+                        upperM.setAccessible(true);
+                        Stack.push(MethodHandles.lookup().unreflect(upperM), s, idxObj++);
+                        upperM.setAccessible(bakAccessible);
+                    } catch (final IllegalAccessException e) {
+                        throw new RuntimeException(e);
                     }
                 }
                 idxTypes++;
-                idxValues += inc;
             }
             if (callingReflection) {
-                for (final Object o : reconstructReflectionArgs(methodHandleReflection, upperFFPF))
+                for (final Object o : reconstructReflectionArgs(upperFFPF))
                     Stack.push(o, s, idxObj++);
             }
 
@@ -505,7 +517,7 @@ public final class LiveInstrumentation {
             FrameTypesKB.clearLocalTypes(cn, mn, md, idx);
         }
 
-        private Iterable<?> reconstructReflectionArgs(boolean methodHandleReflection, FiberFramePushFull upperFFPF) {
+        private Iterable<?> reconstructReflectionArgs(FiberFramePushFull upperFFPF) {
             final boolean isStatic = Modifier.isStatic(upperFFPF.m.getModifiers());
             final Object target = isStatic ? null : upperFFPF.locals[0];
             final List<Object> methodArgs = new ArrayList<>();
@@ -515,22 +527,9 @@ public final class LiveInstrumentation {
                 idx++;
             }
             final List<Object> pushArgs = new ArrayList<>();
-            if (methodHandleReflection) {
-                methodArgs.add(0, target);
-                final MethodHandles.Lookup lookup = MethodHandles.lookup();
-                final MethodHandle mh;
-                try {
-                    mh = lookup.unreflect(((Method) upperFFPF.m)); // TODO: check cast or push specialized type up
-                } catch (final IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                }
-                pushArgs.add(mh);
-                pushArgs.add(methodArgs.toArray());
-            } else {
-                pushArgs.add(upperFFPF.m);
-                pushArgs.add(target);
-                pushArgs.add(methodArgs.toArray());
-            }
+            pushArgs.add(upperFFPF.m);
+            pushArgs.add(target);
+            pushArgs.add(methodArgs.toArray());
             return pushArgs;
         }
 

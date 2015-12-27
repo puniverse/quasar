@@ -21,7 +21,6 @@ import co.paralleluniverse.fibers.Stack;
 import co.paralleluniverse.strands.SuspendableUtils;
 
 import java.lang.invoke.MethodType;
-import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -50,7 +49,7 @@ public final class SuspendableHelper9 {
         }
     }
 
-    public static Executable lookupMethod(Class<?> declaringClass, String methodName, MethodType t) {
+    public static Method lookupMethod(Class<?> declaringClass, String methodName, MethodType t) {
         if (declaringClass == null || methodName == null || t == null)
             return null;
 
@@ -64,7 +63,7 @@ public final class SuspendableHelper9 {
         return null;
     }
 
-    public static Executable lookupMethod(StackWalker.StackFrame sf) {
+    public static Method lookupMethod(StackWalker.StackFrame sf) {
         try {
             return lookupMethod(sf.getDeclaringClass(), sf.getMethodName(), (MethodType) getMethodType.invoke(memberName.get(sf)));
         } catch (final InvocationTargetException | IllegalAccessException e) {
