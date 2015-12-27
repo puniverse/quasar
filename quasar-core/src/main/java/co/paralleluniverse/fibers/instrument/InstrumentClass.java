@@ -328,7 +328,7 @@ public class InstrumentClass extends ClassVisitor {
     }
 
     private boolean hasAnnotation(MethodNode mn) {
-        final List<AnnotationNode> ans = mn.visibleAnnotations;
+        @SuppressWarnings("unchecked") final List<AnnotationNode> ans = mn.visibleAnnotations;
         if (ans == null)
             return false;
         for (final AnnotationNode an : ans) {
@@ -367,6 +367,7 @@ public class InstrumentClass extends ClassVisitor {
         if (l.isEmpty())
             return null;
 
+        //noinspection SuspiciousToArrayCall
         return l.toArray(new String[l.size()]);
     }
 //    
