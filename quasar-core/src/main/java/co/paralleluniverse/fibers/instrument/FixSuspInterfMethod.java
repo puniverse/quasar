@@ -146,6 +146,7 @@ public class FixSuspInterfMethod {
 
             final Label lCheckITE = new Label();
             mv.visitJumpInsn(Opcodes.IFEQ, lCheckITE);                                                                  // -> E
+            mv.visitInsn(Opcodes.ATHROW);                                                                               // -> _
 
             mv.visitLabel(lCheckITE);
             emitCheckITE(mv, e.getValue());
