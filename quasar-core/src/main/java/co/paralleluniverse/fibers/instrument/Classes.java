@@ -28,9 +28,16 @@ import org.objectweb.asm.tree.MethodInsnNode;
  * @author pron
  */
 final class Classes {
+    static final String OBJECT_NAME = Object.class.getName().replace('.', '/');
+    static final String STRING_NAME = String.class.getName().replace('.', '/');
+    static final String CLASS_NAME = Class.class.getName().replace('.', '/');
+
     static final String THROWABLE_NAME = Throwable.class.getName().replace('.', '/');
     static final String EXCEPTION_NAME = Exception.class.getName().replace('.', '/');
     static final String RUNTIME_EXCEPTION_NAME = RuntimeException.class.getName().replace('.', '/');
+
+    static final String INVOCATION_TARGET_EXCEPTION_NAME = InvocationTargetException.class.getName().replace('.', '/');
+    static final String REFLECTIVE_OPERATION_EXCEPTION_NAME = ReflectiveOperationException.class.getName().replace('.', '/');
 
     static final String SUSPEND_EXECUTION_NAME = "co/paralleluniverse/fibers/SuspendExecution";
     static final String RUNTIME_SUSPEND_EXECUTION_NAME = "co/paralleluniverse/fibers/RuntimeSuspendExecution";

@@ -77,6 +77,7 @@ public class InstrumentClass extends ClassVisitor {
     private boolean alreadyInstrumented;
 
     private ArrayList<MethodNode> suspMethods;
+    private ArrayList<MethodNode> otherMethods;
 
     private RuntimeException exception;
 
@@ -159,6 +160,8 @@ public class InstrumentClass extends ClassVisitor {
         if (notNative(access) && !isYieldMethod(className, name)) {
             if (suspMethods == null)
                 suspMethods = new ArrayList<>();
+            if (otherMethods == null)
+                otherMethods = new ArrayList<>();
             // Bytecode-level AST of a method, being a MethodVisitor itself can be filled through delegation from another visitor
             final MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
 
@@ -219,6 +222,8 @@ public class InstrumentClass extends ClassVisitor {
                                 db.log(LogLevel.WARNING, "Method %s#%s%s is synchronized", className, name, desc);
                         }
                         suspMethods.add(mn);
+                    } else if (notAbstract(access)) {
+                        otherMethods.add(mn);
                     } else { // Necessary for abstract methods
                         final MethodVisitor _mv = new JSRInlinerAdapter(makeOutMV(mn), access, name, desc, signature, exceptions);
                         mn.accept(new MethodVisitor(ASMAPI, _mv) {
@@ -243,6 +248,24 @@ public class InstrumentClass extends ClassVisitor {
 
         classEntry.setRequiresInstrumentation(false);
         db.recordSuspendableMethods(className, classEntry);
+
+        // Fix otherMethods
+        for (final MethodNode mn : otherMethods) {
+            final MethodVisitor outMV = makeOutMV(mn);
+            final String[] a = new String[mn.exceptions.size()];
+            mn.exceptions.toArray(a);
+            final FixSuspInterfMethod fm = new FixSuspInterfMethod(db, className, mn);
+            if (db.isDebug())
+                db.log(LogLevel.INFO, "About to examine suspension interferences in method %s#%s%s", className, mn.name, mn.desc);
+
+            if (fm.canInterfereWithSuspension()) {
+                fm.applySuspensionInterferenceFixes(outMV);
+            } else {
+                if (db.isDebug())
+                    db.log(LogLevel.INFO, "Nothing to fix in method %s#%s%s", className, mn.name, mn.desc);
+                mn.accept(outMV);
+            }
+        }
 
         if (suspMethods != null && !suspMethods.isEmpty()) {
             if (alreadyInstrumented && !forceInstrumentation) {
