@@ -18,7 +18,6 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
-import org.junit.Ignore;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.ExecutionException;
@@ -77,7 +76,6 @@ public class AutoSingleUninstrCallSiteReflectionTest {
         }
     }
 
-    // TODO: fixme
     @Test public void test() {
         final Fiber<Integer> f1 = new Fiber<>(new F()).start();
         try {
