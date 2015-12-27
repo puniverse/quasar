@@ -48,6 +48,7 @@ import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.THROWABLE_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.RUNTIME_EXCEPTION_NAME;
+import static co.paralleluniverse.fibers.instrument.Classes.INVOCATION_TARGET_EXCEPTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.RUNTIME_SUSPEND_EXECUTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.STACK_NAME;
@@ -229,6 +230,110 @@ class InstrumentMethod {
         }
     }
 
+    public static boolean isSuspendableCall(MethodDatabase db, int type, int opcode, String owner, String name, String desc) {
+        boolean susp = true;
+
+        if (type == AbstractInsnNode.METHOD_INSN) {
+            if (!isSyntheticAccess(owner, name)
+                && !isReflectInvocation(owner, name)
+                && !isMethodHandleInvocation(owner, name)
+                && !isInvocationHandlerInvocation(owner, name)) {
+                SuspendableType st = db.isMethodSuspendable(owner, name, desc, opcode);
+
+                if (st == SuspendableType.NON_SUSPENDABLE)
+                    susp = false;
+            }
+        } else if (type == AbstractInsnNode.INVOKE_DYNAMIC_INSN) { // invoke dynamic
+            if (owner.equals("java/lang/invoke/LambdaMetafactory")) // lambda
+                susp = false;
+        } else
+            susp = false;
+
+        return susp;
+    }
+
+    public static void dumpParameterAnnotations(MethodVisitor mv, List[] parameterAnnotations, boolean visible) {
+        for (int i = 0; i < parameterAnnotations.length; i++) {
+            if (parameterAnnotations[i] != null) {
+                for (final Object o : parameterAnnotations[i]) {
+                    AnnotationNode an = (AnnotationNode) o;
+                    an.accept(mv.visitParameterAnnotation(i, an.desc, visible));
+                }
+            }
+        }
+    }
+
+    public static void emitInstrumentedAnn (
+        MethodDatabase db, MethodVisitor mv, MethodNode mn, String className,
+        boolean optimized, int methodStart, int methodEnd,
+        int[] optSuspCallSourceLines, String[] optSuspCallSignatures, int[] optSuspCallOffsets
+    ) {
+        final StringBuilder sb = new StringBuilder();
+        final AnnotationVisitor instrumentedAV = mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
+        sb.append("@Instrumented(");
+
+        if (optSuspCallSourceLines != null) {
+            final AnnotationVisitor linesAV = instrumentedAV.visitArray("methodSuspendableCallSourceLines");
+            sb.append("methodSuspendableCallSourceLines=[");
+            for (int i = 0; i < optSuspCallSourceLines.length; i++) {
+                if (i != 0)
+                    sb.append(", ");
+
+                final int l = optSuspCallSourceLines[i];
+                linesAV.visit("", l);
+
+                sb.append(l);
+            }
+            linesAV.visitEnd();
+            sb.append("],");
+        }
+
+        if (optSuspCallSignatures != null) {
+            final AnnotationVisitor sigsAV = instrumentedAV.visitArray("methodSuspendableCallSignatures");
+            sb.append("methodSuspendableCallSignatures=[");
+            for (int i = 0; i < optSuspCallSignatures.length; i++) {
+                if (i != 0)
+                    sb.append(", ");
+
+                final String s = optSuspCallSignatures[i];
+                sigsAV.visit("", s);
+
+                sb.append(s);
+            }
+            sigsAV.visitEnd();
+            sb.append("],");
+        }
+
+        if (optSuspCallOffsets != null) {
+            final AnnotationVisitor offsetsAV = instrumentedAV.visitArray("methodSuspendableCallOffsets");
+            sb.append("methodSuspendableCallOffsets=[");
+            for (int i = 0; i < optSuspCallOffsets.length; i++) {
+                if (i != 0)
+                    sb.append(", ");
+
+                final int l = optSuspCallOffsets[i];
+                offsetsAV.visit("", l);
+
+                sb.append(l);
+            }
+            offsetsAV.visitEnd();
+            sb.append("],");
+        }
+
+        instrumentedAV.visit("methodStartSourceLine", methodStart);
+        instrumentedAV.visit("methodEndSourceLine", methodEnd);
+        instrumentedAV.visit("methodOptimized", optimized);
+
+        instrumentedAV.visitEnd();
+
+        sb.append("methodStartSourceLine=").append(methodStart).append(",");
+        sb.append("methodEndSourceLine=").append(methodEnd).append(",");
+        sb.append("methodOptimized=").append(optimized);
+        sb.append(")");
+
+        db.log(LogLevel.DEBUG, "Annotating method %s#%s%s with %s", className, mn.name, mn.desc, sb);
+    }
+
     public boolean analyzeSuspendableCalls() {
         if (suspCallsIdxs == null) {
             suspCallsIdxs = new int[8];
@@ -277,51 +382,7 @@ class InstrumentMethod {
         return suspCallsIdxs.length > 0;
     }
 
-    private static boolean isSuspendableCall(MethodDatabase db, AbstractInsnNode in) {
-        final int type = in.getType();
-        String owner;
-        String name;
-        String desc;
-        if (type == AbstractInsnNode.METHOD_INSN) {
-            final MethodInsnNode min = (MethodInsnNode) in;
-            owner = min.owner;
-            name = min.name;
-            desc = min.desc;
-        } else if (type == AbstractInsnNode.INVOKE_DYNAMIC_INSN) { // invoke dynamic
-            final InvokeDynamicInsnNode idd = (InvokeDynamicInsnNode) in;
-            owner = idd.bsm.getOwner();
-            name = idd.name;
-            desc = idd.desc;
-        } else {
-            throw new RuntimeException("Not a call: " + in);
-        }
-
-        return isSuspendableCall(db, type, in.getOpcode(), owner, name, desc);
-    }
-
-    public static boolean isSuspendableCall(MethodDatabase db, int type, int opcode, String owner, String name, String desc) {
-        boolean susp = true;
-
-        if (type == AbstractInsnNode.METHOD_INSN) {
-            if (!isSyntheticAccess(owner, name)
-                && !isReflectInvocation(owner, name)
-                && !isMethodHandleInvocation(owner, name)
-                && !isInvocationHandlerInvocation(owner, name)) {
-                SuspendableType st = db.isMethodSuspendable(owner, name, desc, opcode);
-
-                if (st == SuspendableType.NON_SUSPENDABLE)
-                    susp = false;
-            }
-        } else if (type == AbstractInsnNode.INVOKE_DYNAMIC_INSN) { // invoke dynamic
-            if (owner.equals("java/lang/invoke/LambdaMetafactory")) // lambda
-                susp = false;
-        } else
-            susp = false;
-
-        return susp;
-    }
-
-    public void accept(MethodVisitor mv, boolean hasAnnotation) {
+    public void applySuspendableCallsInstrumentation(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
 
         final boolean optimizeInstrumentation = canInstrumentationBeOptimized(suspCallsIdxs);
@@ -331,8 +392,8 @@ class InstrumentMethod {
 
         if (optimizeInstrumentation) {
             db.log(LogLevel.INFO, "[OPTIMIZE] Optimizing instrumentation for method %s#%s%s", className, mn.name, mn.desc);
-            acceptOptimized(mv);
-            // mn.accept(mv); // Dump
+            applyOptimizedInstrumentation(mv);
+            // mn.applySuspendableCallsInstrumentation(mv); // Dump
             return;
         }
 
@@ -380,7 +441,7 @@ class InstrumentMethod {
                     for (int k = 0; k < 3; k++)
                         ls[k] = new Label();
                     refInvokeTryCatch[i - 1] = ls;
-                    mv.visitTryCatchBlock(ls[0], ls[1], ls[2], "java/lang/reflect/InvocationTargetException");
+                    mv.visitTryCatchBlock(ls[0], ls[1], ls[2], INVOCATION_TARGET_EXCEPTION_NAME);
                 }
             }
         }
@@ -570,7 +631,7 @@ class InstrumentMethod {
         }
 
         mv.visitLabel(lCatchAll);
-        emitStackPopMethod(mv);
+        emitFiberStackPopMethod(mv);
         mv.visitLabel(lCatchSEE);
 
         // println(mv, "THROW: ");
@@ -586,7 +647,29 @@ class InstrumentMethod {
         mv.visitEnd();
     }
 
-    private void acceptOptimized(MethodVisitor mv) {
+    private static boolean isSuspendableCall(MethodDatabase db, AbstractInsnNode in) {
+        final int type = in.getType();
+        String owner;
+        String name;
+        String desc;
+        if (type == AbstractInsnNode.METHOD_INSN) {
+            final MethodInsnNode min = (MethodInsnNode) in;
+            owner = min.owner;
+            name = min.name;
+            desc = min.desc;
+        } else if (type == AbstractInsnNode.INVOKE_DYNAMIC_INSN) { // invoke dynamic
+            final InvokeDynamicInsnNode idd = (InvokeDynamicInsnNode) in;
+            owner = idd.bsm.getOwner();
+            name = idd.name;
+            desc = idd.desc;
+        } else {
+            throw new RuntimeException("Not a call: " + in);
+        }
+
+        return isSuspendableCall(db, type, in.getOpcode(), owner, name, desc);
+    }
+
+    private void applyOptimizedInstrumentation(MethodVisitor mv) {
         db.log(LogLevel.INFO, "Minimally instrumenting optimized method %s#%s%s", className, mn.name, mn.desc);
 
         mv.visitCode();
@@ -663,77 +746,6 @@ class InstrumentMethod {
         mv.visitMaxs(mn.maxStack + ADD_OPERANDS_OPTIMIZED /* fiber stack w/dup */, mn.maxLocals); // Needed by ASM analysis
 
         mv.visitEnd();
-    }
-
-    public static void emitInstrumentedAnn (
-        MethodDatabase db, MethodVisitor mv, MethodNode mn, String className,
-        boolean optimized, int methodStart, int methodEnd,
-        int[] optSuspCallSourceLines, String[] optSuspCallSignatures, int[] optSuspCallOffsets
-    ) {
-        final StringBuilder sb = new StringBuilder();
-        final AnnotationVisitor instrumentedAV = mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
-        sb.append("@Instrumented(");
-
-        if (optSuspCallSourceLines != null) {
-            final AnnotationVisitor linesAV = instrumentedAV.visitArray("methodSuspendableCallSourceLines");
-            sb.append("methodSuspendableCallSourceLines=[");
-            for (int i = 0; i < optSuspCallSourceLines.length; i++) {
-                if (i != 0)
-                    sb.append(", ");
-
-                final int l = optSuspCallSourceLines[i];
-                linesAV.visit("", l);
-
-                sb.append(l);
-            }
-            linesAV.visitEnd();
-            sb.append("],");
-        }
-
-        if (optSuspCallSignatures != null) {
-            final AnnotationVisitor sigsAV = instrumentedAV.visitArray("methodSuspendableCallSignatures");
-            sb.append("methodSuspendableCallSignatures=[");
-            for (int i = 0; i < optSuspCallSignatures.length; i++) {
-                if (i != 0)
-                    sb.append(", ");
-
-                final String s = optSuspCallSignatures[i];
-                sigsAV.visit("", s);
-
-                sb.append(s);
-            }
-            sigsAV.visitEnd();
-            sb.append("],");
-        }
-
-        if (optSuspCallOffsets != null) {
-            final AnnotationVisitor offsetsAV = instrumentedAV.visitArray("methodSuspendableCallOffsets");
-            sb.append("methodSuspendableCallOffsets=[");
-            for (int i = 0; i < optSuspCallOffsets.length; i++) {
-                if (i != 0)
-                    sb.append(", ");
-
-                final int l = optSuspCallOffsets[i];
-                offsetsAV.visit("", l);
-
-                sb.append(l);
-            }
-            offsetsAV.visitEnd();
-            sb.append("],");
-        }
-
-        instrumentedAV.visit("methodStartSourceLine", methodStart);
-        instrumentedAV.visit("methodEndSourceLine", methodEnd);
-        instrumentedAV.visit("methodOptimized", optimized);
-
-        instrumentedAV.visitEnd();
-
-        sb.append("methodStartSourceLine=").append(methodStart).append(",");
-        sb.append("methodEndSourceLine=").append(methodEnd).append(",");
-        sb.append("methodOptimized=").append(optimized);
-        sb.append(")");
-
-        db.log(LogLevel.DEBUG, "Annotating method %s#%s%s with %s", className, mn.name, mn.desc, sb);
     }
 
     private void collectCodeBlocksAndSplitTryCatches(boolean split) {
@@ -871,6 +883,7 @@ class InstrumentMethod {
     }
 
     private boolean hasSuspendableTryCatchBlocksAround(int idx) {
+        //noinspection unchecked
         for (final TryCatchBlockNode tcb : (List<TryCatchBlockNode>) mn.tryCatchBlocks) {
             if (mn.instructions.indexOf(tcb.start) <= idx && mn.instructions.indexOf(tcb.end) >= idx
                 && (THROWABLE_NAME.equals(tcb.type)
@@ -973,7 +986,7 @@ class InstrumentMethod {
                 case Opcodes.LRETURN:
                 case Opcodes.FRETURN:
                 case Opcodes.DRETURN:
-                    emitStackPopMethod(mv);
+                    emitFiberStackPopMethod(mv);
                     break;
 
                 case Opcodes.MONITORENTER:
@@ -1007,17 +1020,6 @@ class InstrumentMethod {
             }
 
             ins.accept(mv);
-        }
-    }
-
-    private static void dumpParameterAnnotations(MethodVisitor mv, List[] parameterAnnotations, boolean visible) {
-        for (int i = 0; i < parameterAnnotations.length; i++) {
-            if (parameterAnnotations[i] != null) {
-                for (final Object o : parameterAnnotations[i]) {
-                    AnnotationNode an = (AnnotationNode) o;
-                    an.accept(mv.visitParameterAnnotation(i, an.desc, visible));
-                }
-            }
         }
     }
 
@@ -1081,7 +1083,19 @@ class InstrumentMethod {
         }
     }
 
-    private void emitStackPopMethod(MethodVisitor mv) {
+    private void recordFrameTypeInfo(Frame f, int idx) {
+        for (int i = f.getStackSize(); i-- > 0;) {
+            final BasicValue v = (BasicValue) f.getStack(i);
+            FrameTypesKB.addOperandStackType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
+        }
+
+        for (int i = firstLocal; i < f.getLocals(); i++) {
+            final BasicValue v = (BasicValue) f.getLocal(i);
+            FrameTypesKB.addLocalType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
+        }
+    }
+
+    private void emitFiberStackPopMethod(MethodVisitor mv) {
 //        emitVerifyInstrumentation(mv);
 
         final Label lbl = new Label();
@@ -1094,18 +1108,6 @@ class InstrumentMethod {
 
         // DUAL
         mv.visitLabel(lbl);
-    }
-
-    private void recordFrameTypeInfo(Frame f, int idx) {
-        for (int i = f.getStackSize(); i-- > 0;) {
-            final BasicValue v = (BasicValue) f.getStack(i);
-            FrameTypesKB.addOperandStackType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
-        }
-
-        for (int i = firstLocal; i < f.getLocals(); i++) {
-            final BasicValue v = (BasicValue) f.getLocal(i);
-            FrameTypesKB.addLocalType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
-        }
     }
 
     private void sealFrameTypeInfo(int idx) {

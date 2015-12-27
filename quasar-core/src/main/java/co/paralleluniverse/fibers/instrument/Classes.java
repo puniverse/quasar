@@ -1,10 +1,21 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ *
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *
+ *   or (per the licensee's choosing)
+ *
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Instrumented;
+
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -17,9 +28,10 @@ import org.objectweb.asm.tree.MethodInsnNode;
  * @author pron
  */
 final class Classes {
-    static final String EXCEPTION_NAME = "java/lang/Exception";
-    static final String RUNTIME_EXCEPTION_NAME = "java/lang/RuntimeException";
-    static final String THROWABLE_NAME = "java/lang/Throwable";
+    static final String THROWABLE_NAME = Throwable.class.getName().replace('.', '/');
+    static final String EXCEPTION_NAME = Exception.class.getName().replace('.', '/');
+    static final String RUNTIME_EXCEPTION_NAME = RuntimeException.class.getName().replace('.', '/');
+
     static final String SUSPEND_EXECUTION_NAME = "co/paralleluniverse/fibers/SuspendExecution";
     static final String RUNTIME_SUSPEND_EXECUTION_NAME = "co/paralleluniverse/fibers/RuntimeSuspendExecution";
     static final String UNDECLARED_THROWABLE_NAME = "java/lang/reflect/UndeclaredThrowableException";

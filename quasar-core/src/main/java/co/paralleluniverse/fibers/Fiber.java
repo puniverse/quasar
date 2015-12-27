@@ -644,7 +644,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     /**
      * Returns {@code true} iff we've been suspended and then resumed.
-     * (The return value in the Java code is actually ignored. It is generated and injected in InstrumentMethod.accept())
+     * (The return value in the Java code is actually ignored. It is generated and injected in InstrumentMethod.applySuspendableCallsInstrumentation())
      * <p/>
      *
      * @param blocker
