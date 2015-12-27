@@ -381,8 +381,18 @@ public final class LiveInstrumentation {
             final org.objectweb.asm.Type[] tsOperands = FrameTypesKB.getOperandStackTypes(cn, mn, md, idx);
             final org.objectweb.asm.Type[] tsLocals = FrameTypesKB.getLocalTypes(cn, mn, md, idx);
 
+            DEBUG("\nFiberFramePushFull:");
+            DEBUG("\tMethod: " + m);
+            DEBUG("\tCalling: " + upperM);
+            DEBUG("\tStatic operands types: " + Arrays.toString(tsOperands));
+            DEBUG("\tLive operands: " + Arrays.toString(operands));
+            DEBUG("\tUpper locals: " + Arrays.toString(upperLocals));
+            DEBUG("\tStatic local types: " + Arrays.toString(tsLocals));
+            DEBUG("\tLive locals: " + Arrays.toString(locals));
+
             // New frame
             final int slots = getNumSlots(tsOperands, tsLocals);
+            DEBUG("\tDoing `pushMethod(" + entry + ", " + slots + ")`");
             s.pushMethod(entry, slots);
 
             // Operands and locals (in this order) slot indices
@@ -405,6 +415,7 @@ public final class LiveInstrumentation {
 
             // Recover shifted-up stack operands
             final int shiftedUpOperandsCount = countArgsAsJVMSingleSlots(upperM);
+
             final List<Object> preCallOperands = new ArrayList<>();
             preCallOperands.addAll(Arrays.asList(upperLocals).subList(0, shiftedUpOperandsCount));
             preCallOperands.addAll(Arrays.asList(operands));
@@ -671,9 +682,13 @@ public final class LiveInstrumentation {
 
     private static void apply(java.util.Stack<FiberFramePush> todo, Stack fs) {
         fs.clear();
+        int i = 1;
+        int s = todo.size();
         while (!todo.empty()) {
             final FiberFramePush ffp = todo.pop();
+            System.err.println("\nApplying " + i + " of " + s + " (" + ffp.getClass() + ")");
             ffp.apply(fs);
+            i++;
         }
     }
 
