@@ -465,7 +465,7 @@ class InstrumentMethod {
                 final boolean yieldReturnsValue = (Type.getReturnType(desc) != Type.VOID_TYPE);
 
                 // NO DUAL: yield callers will only be in suspendable call paths
-                emitStackStoreState(mv, i, fi, numYieldArgs); // we preserve the arguments for the call to yield on the operand stack
+                emitFiberStackStoreState(mv, i, fi, numYieldArgs); // we preserve the arguments for the call to yield on the operand stack
                 emitStoreResumed(mv, false); // we have not been resumed
                 // emitSuspendableCalled(mv);
 
@@ -477,10 +477,10 @@ class InstrumentMethod {
                 final Label afterPostRestore = new Label();
                 mv.visitVarInsn(Opcodes.ILOAD, lvarResumed);
                 mv.visitJumpInsn(Opcodes.IFEQ, afterPostRestore);
-                emitStackPostRestore(mv);
+                emitFiberStackPostRestore(mv);
                 mv.visitLabel(afterPostRestore);
 
-                emitStackRestoreState(mv, fi, numYieldArgs);
+                emitFiberStackRestoreState(mv, fi, numYieldArgs);
                 if (yieldReturnsValue)
                     mv.visitVarInsn(Opcodes.ILOAD, lvarResumed); // ... and replace the returned value with the value of resumed
 
@@ -493,11 +493,11 @@ class InstrumentMethod {
                 mv.visitJumpInsn(Opcodes.IFNULL, lbl);
 
                 // normal case - call to a suspendable method - resume before the call
-                emitStackStoreState(mv, i, fi, 0); // For preemption point
+                emitFiberStackStoreState(mv, i, fi, 0); // For preemption point
                 emitStoreResumed(mv, false); // we have not been resumed
                 // emitPreemptionPoint(mv, PREEMPTION_CALL);
                 mv.visitLabel(lMethodCalls[i - 1]);
-                emitStackRestoreState(mv, fi, 0); // For preemption point
+                emitFiberStackRestoreState(mv, fi, 0); // For preemption point
 
                 // DUAL
                 mv.visitLabel(lbl);
@@ -628,7 +628,7 @@ class InstrumentMethod {
             mv.visitInsn(Opcodes.DUP); // * R R
             mv.visitJumpInsn(Opcodes.IFNULL, lNull1); // * R
             mv.visitInsn(Opcodes.DUP); // * R R
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "currentMethodEntry", "()I", false); // * R I
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getCurrentMethodEntry", "()I", false); // * R I
             mv.visitJumpInsn(Opcodes.IFNE, lNull1); // != 0 => resuming => skip incrementing count // * R
             mv.visitInsn(Opcodes.DUP); // * R R
             mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "incOptimizedCount", "()V", false); // * R
@@ -1113,7 +1113,7 @@ class InstrumentMethod {
         FrameTypesKB.sealLocalTypes(className, mn.name, mn.desc, Integer.toString(idx));
     }
 
-    private void emitStackStoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsToPutBackToOperandStackAfterStore) {
+    private void emitFiberStackStoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsToPutBackToOperandStackAfterStore) {
         if (idx > Stack.MAX_ENTRY)
             throw new IllegalArgumentException("Entry index (PC) " + idx + " greater than maximum of " + Stack.MAX_ENTRY + " in " + className + "." + mn.name + mn.desc);
         if (fi.numSlots > Stack.MAX_SLOTS)
@@ -1169,7 +1169,7 @@ class InstrumentMethod {
         }
     }
 
-    private void emitStackRestoreState(MethodVisitor mv, FrameInfo fi, int numArgsThatHaveBeenPutBackToOperandStackAfterStore) {
+    private void emitFiberStackRestoreState(MethodVisitor mv, FrameInfo fi, int numArgsThatHaveBeenPutBackToOperandStackAfterStore) {
         final Frame f = frames[fi.endInstruction];
 
         // restore local vars
@@ -1203,7 +1203,7 @@ class InstrumentMethod {
             fi.lAfter.accept(mv);
     }
 
-    private void emitStackPostRestore(MethodVisitor mv) {
+    private void emitFiberStackPostRestore(MethodVisitor mv) {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "postRestore", "()V", false);
     }

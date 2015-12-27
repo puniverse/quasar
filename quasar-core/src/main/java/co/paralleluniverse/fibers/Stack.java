@@ -105,7 +105,7 @@ public final class Stack implements Serializable {
         return instrumentedCount;
     }
 
-    public final int currentMethodEntry() {
+    public final int getCurrentMethodEntry() {
         return getEntry(dataLong[sp]);
     }
 
