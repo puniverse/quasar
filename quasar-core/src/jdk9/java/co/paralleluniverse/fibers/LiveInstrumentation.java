@@ -481,7 +481,7 @@ public final class LiveInstrumentation {
                     }
                 }
 
-                // Store local vars beyond the args
+                // Count local vars
                 if (tsLocals != null) {
                     for (final Type tLocal : tsLocals) {
                         if (tLocal != null) {
