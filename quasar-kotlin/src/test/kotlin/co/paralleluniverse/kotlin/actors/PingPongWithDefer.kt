@@ -53,7 +53,7 @@ class Ping(val n: Int) : Actor() {
                         if (!it.startsWith("pong")) {
                             println("${now()} Ping discarding string '$it'")
                             null
-                        }
+                        } else Unit
                     }
                     else -> {
                         println("${now()} Ping discarding non-string '$it'")
@@ -83,7 +83,7 @@ class Pong() : Actor() {
                             println("${now()} Pong sending '$msg' to '${it.from}'")
                             it.from.send(msg)    // Fiber-blocking
                             println("${now()} Pong sent '$msg' to ${it.from}")
-                        }
+                        } else Unit
                     }
                     "finished" -> {
                         println("${now()} Pong received 'finished', exiting")
