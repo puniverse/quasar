@@ -16,6 +16,7 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.common.reflection.ReflectionUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.SystemProperties;
+import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.WorkListEntry;
 import java.io.File;
 import java.io.IOException;
@@ -90,7 +91,8 @@ public final class QuasarInstrumentor {
         return instrumentClass(className, new ClassReader(is), false);
     }
 
-    byte[] instrumentClass(String className, InputStream is, boolean forceInstrumentation) throws IOException {
+    @VisibleForTesting
+    public byte[] instrumentClass(String className, InputStream is, boolean forceInstrumentation) throws IOException {
         className = className.replace('.', '/');
         return instrumentClass(className, new ClassReader(is), forceInstrumentation);
     }

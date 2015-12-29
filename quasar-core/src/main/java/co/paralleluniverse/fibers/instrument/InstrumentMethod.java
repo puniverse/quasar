@@ -43,6 +43,7 @@ package co.paralleluniverse.fibers.instrument;
 
 // import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.common.util.SystemProperties;
+import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.fibers.Stack;
 import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
@@ -92,7 +93,8 @@ import org.objectweb.asm.tree.analysis.Value;
  * @author Matthias Mann
  * @author pron
  */
-class InstrumentMethod {
+@VisibleForTesting
+public class InstrumentMethod {
 
     static class FrameInfo {
         static final FrameInfo FIRST = new FrameInfo(null, 0, 0, null, null);
