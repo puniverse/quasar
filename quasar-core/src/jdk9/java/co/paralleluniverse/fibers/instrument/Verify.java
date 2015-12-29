@@ -157,11 +157,11 @@ public final class Verify {
             && !className.equals(Stack.class.getName()) && !SuspendableHelper.isWaiver(className, methodName)) {
             res.classInstrumented = SuspendableHelper.isInstrumented(declaringClass);
             res.methodInstrumented = SuspendableHelper.isInstrumented(m);
+
             final Instrumented ann = SuspendableHelper.getAnnotation(m, Instrumented.class);
             res.ann = ann;
-            if (ann != null) {
-                res.callSiteInstrumented = isCallSiteInstrumented(m, ann, offset, upperStackFrame);
-            }
+            res.callSiteInstrumented = ann != null && isCallSiteInstrumented(m, ann, offset, upperStackFrame);
+
             if (!res.isOK()) {
                 if (prevOk && optStackTrace != null && optStes != null)
                     initTrace(optStackTrace, m, fs, idx);
@@ -231,7 +231,7 @@ public final class Verify {
     }
 
     private static void printTraceLine(StringBuilder stackTrace, Member m, StackTraceElement ste, int offset) {
-        stackTrace.append("\n\tat ").append(ste).append("(bytecode offset: " + offset + ")");
+        stackTrace.append("\n\tat ").append(ste).append("(bytecode offset: ").append(offset).append(")");
         if (SuspendableHelper.isOptimized(m))
             stackTrace.append(" (optimized)");
     }

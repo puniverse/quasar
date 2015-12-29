@@ -48,6 +48,7 @@ public final class QuasarInstrumentor {
         this.aot = aot;
     }
 
+    /** @noinspection unused*/
     public QuasarInstrumentor(ClassLoader classLoader, SuspendableClassifier classifier) {
         this(false, classLoader, classifier);
     }
@@ -60,25 +61,23 @@ public final class QuasarInstrumentor {
         this(false, classLoader, new DefaultSuspendableClassifier(classLoader));
     }
 
+    /** @noinspection unused*/
     public boolean isAOT() {
         return aot;
     }
 
     public boolean shouldInstrument(String className) {
         className = className.replace('.', '/');
-        if (className.startsWith("co/paralleluniverse/fibers/instrument/") && !Debug.isUnitTest())
-            return false;
-        if (className.equals(Classes.FIBER_CLASS_NAME) || className.startsWith(Classes.FIBER_CLASS_NAME + '$'))
-            return false;
-        if (className.equals(Classes.STACK_NAME))
-            return false;
-        if (className.startsWith("org/objectweb/asm/"))
-            return false;
-        if (className.startsWith("org/netbeans/lib/"))
-            return false;
-        if (className.startsWith("java/lang/") || (!allowJdkInstrumentation && MethodDatabase.isJavaCore(className)))
-            return false;
-        return true;
+        return
+            !(className.startsWith("co/paralleluniverse/fibers/instrument/") &&
+            !Debug.isUnitTest()) &&
+                !(className.equals(Classes.FIBER_CLASS_NAME) ||
+                  className.startsWith(Classes.FIBER_CLASS_NAME + '$')) &&
+            !className.equals(Classes.STACK_NAME) &&
+            !className.startsWith("org/objectweb/asm/") &&
+            !className.startsWith("org/netbeans/lib/") &&
+            !(className.startsWith("java/lang/") ||
+                (!allowJdkInstrumentation && MethodDatabase.isJavaCore(className)));
     }
 
     public byte[] instrumentClass(String className, byte[] data) {

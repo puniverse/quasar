@@ -192,7 +192,6 @@ public final class LiveInstrumentation {
         private final Executable m;
 
         public FiberFramePushOptimized(StackWalker.StackFrame sf) throws InvocationTargetException, IllegalAccessException {
-            final MethodType mt = (MethodType) getMethodType.invoke(memberName.get(sf));
             this.m = SuspendableHelper9.lookupMethod(sf);
         }
 
@@ -288,7 +287,7 @@ public final class LiveInstrumentation {
         /**
          * Live fiber stack construction
          * <br>
-         * !!! Must be kept aligned with `InstrumentMethod.emitStoreState` and `Stack.pusXXX` !!!
+         * !!! Must be kept aligned with `InstrumentMethod.emitStoreState` and `Stack.pushXXX` !!!
          */
         public void apply(Stack s) {
             final String idx = Integer.toString(entry);
