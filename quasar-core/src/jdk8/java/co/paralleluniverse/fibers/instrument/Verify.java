@@ -28,6 +28,48 @@ import java.util.Arrays;
  * @author pron
  */
 public final class Verify {
+    public static final boolean verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
+
+    public static <V> void verifyTarget(SuspendableCallable<V> target) {
+        Object t = target;
+        if (target instanceof SuspendableUtils.VoidSuspendableCallable)
+            t = ((SuspendableUtils.VoidSuspendableCallable) target).getRunnable();
+
+        if (t.getClass().getName().contains("$$Lambda$"))
+            return;
+
+        if (verifyInstrumentation && !verifyFiberClass(t.getClass()))
+            throw new VerifyInstrumentationException("Target class " + t.getClass() + " has not been instrumented.");
+    }
+
+    public static boolean verifyFiberClass(Class clazz) {
+        boolean res = clazz.isAnnotationPresent(Instrumented.class);
+        if (!res)
+            res = verifyFiberClass0(clazz); // a second chance
+        return res;
+    }
+
+    private static boolean verifyFiberClass0(Class clazz) {
+        // Sometimes, a child class does not implement any suspendable methods AND is loaded before its superclass (that does). Test for that:
+        final Class superclazz = clazz.getSuperclass();
+        if (superclazz != null) {
+            if (superclazz.isAnnotationPresent(Instrumented.class)) {
+                // make sure the child class doesn't have any suspendable methods
+                final Method[] ms = clazz.getDeclaredMethods();
+                for (final Method m : ms) {
+                    for (final Class et : m.getExceptionTypes()) {
+                        if (et.equals(SuspendExecution.class))
+                            return false;
+                    }
+                    if (m.isAnnotationPresent(Suspendable.class))
+                        return false;
+                }
+                return true;
+            } else
+                return verifyFiberClass0(superclazz);
+        } else
+            return false;
+    }
 
     public static boolean checkInstrumentation() {
         return checkInstrumentation(ExtendedStackTrace.here());

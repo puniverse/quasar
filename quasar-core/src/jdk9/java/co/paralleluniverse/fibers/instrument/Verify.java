@@ -13,11 +13,10 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.common.util.Debug;
-import co.paralleluniverse.common.util.ExtendedStackTrace;
-import co.paralleluniverse.common.util.ExtendedStackTraceElement;
-import co.paralleluniverse.common.util.Pair;
+import co.paralleluniverse.common.util.*;
 import co.paralleluniverse.fibers.*;
+import co.paralleluniverse.strands.SuspendableCallable;
+import co.paralleluniverse.strands.SuspendableUtils;
 
 import java.lang.reflect.*;
 import java.util.Arrays;
@@ -30,6 +29,53 @@ import java.util.stream.Collectors;
  * @author circlespainter
  */
 public final class Verify {
+    public static final boolean verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
+
+    public static <V> void verifyTarget(SuspendableCallable<V> target) {
+        if (LiveInstrumentation.ACTIVE)
+            return; // Live instrumentation will take care of fixes
+
+        Object t = target;
+        if (target instanceof SuspendableUtils.VoidSuspendableCallable)
+            t = ((SuspendableUtils.VoidSuspendableCallable) target).getRunnable();
+
+        if (t.getClass().getName().contains("$$Lambda$"))
+            return;
+
+        if (verifyInstrumentation && !verifyFiberClass(t.getClass()))
+            throw new VerifyInstrumentationException("Target class " + t.getClass() + " has not been instrumented.");
+    }
+
+    public static boolean verifyFiberClass(Class clazz) {
+        // Live instrumentation will take care of fixes
+        boolean res = LiveInstrumentation.ACTIVE || clazz.isAnnotationPresent(Instrumented.class);
+        if (!res)
+            res = verifyFiberClass0(clazz); // a second chance
+        return res;
+    }
+
+    private static boolean verifyFiberClass0(Class clazz) {
+        // Sometimes, a child class does not implement any suspendable methods AND is loaded before its superclass (that does). Test for that:
+        final Class superclazz = clazz.getSuperclass();
+        if (superclazz != null) {
+            if (superclazz.isAnnotationPresent(Instrumented.class)) {
+                // make sure the child class doesn't have any suspendable methods
+                final Method[] ms = clazz.getDeclaredMethods();
+                for (final Method m : ms) {
+                    for (final Class et : m.getExceptionTypes()) {
+                        if (et.equals(SuspendExecution.class))
+                            return false;
+                    }
+                    if (m.isAnnotationPresent(Suspendable.class))
+                        return false;
+                }
+                return true;
+            } else
+                return verifyFiberClass0(superclazz);
+        } else
+            return false;
+    }
+
     public static class CheckFrameInstrumentationReport {
         private static final CheckFrameInstrumentationReport OK_NOT_FINISHED;
 

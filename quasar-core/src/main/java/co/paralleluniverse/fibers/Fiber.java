@@ -33,13 +33,11 @@ import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
-import co.paralleluniverse.strands.SuspendableUtils.VoidSuspendableCallable;
 import static co.paralleluniverse.strands.SuspendableUtils.runnableToCallable;
 import co.paralleluniverse.strands.dataflow.Val;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
-import java.lang.reflect.Method;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.util.Arrays;
@@ -85,8 +83,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private static final long serialVersionUID = 2783452871536981L;
     protected static final FlightRecorder flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
-    private static final boolean verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
-
     static {
         if (Debug.isDebug())
             System.err.println("QUASAR WARNING: Debug mode enabled. This may harm performance.");
@@ -99,7 +95,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private static boolean printVerifyInstrumentationWarning() {
-        if (verifyInstrumentation)
+        if (Verify.verifyInstrumentation)
             System.err.println("QUASAR WARNING: Fibers are set to verify instrumentation. This may *severely* harm performance.");
         return true;
     }
@@ -175,11 +171,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             record(1, "Fiber", "<init>", "Creating fiber name: %s, scheduler: %s, parent: %s, target: %s, task: %s, stackSize: %s", name, scheduler, parent, target, task, stackSize);
 
         if (target != null) {
-            verifyInstrumentedTarget(target);
+            Verify.verifyTarget(target);
 
             if (target instanceof Stranded)
                 ((Stranded) target).setStrand(this);
-        } else if (!isInstrumented(this.getClass())) {
+        } else if (!Verify.verifyFiberClass(this.getClass())) {
             throw new IllegalArgumentException("Fiber class " + this.getClass().getName() + " has not been instrumented.");
         }
 
@@ -235,18 +231,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (parent == null)
             throw new IllegalStateException("This constructor may only be used from within a Fiber");
         return parent;
-    }
-
-    private static void verifyInstrumentedTarget(SuspendableCallable<?> target) {
-        Object t = target;
-        if (target instanceof VoidSuspendableCallable)
-            t = ((VoidSuspendableCallable) target).getRunnable();
-
-        if (t.getClass().getName().contains("$$Lambda$"))
-            return;
-
-        if (verifyInstrumentation && !isInstrumented(t.getClass()))
-            throw new VerifyInstrumentationException("Target class " + t.getClass() + " has not been instrumented.");
     }
 
     private Future<V> future() {
@@ -697,7 +681,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         task.yield();
     }
 
-    boolean exec() {
+    @VisibleForTesting
+    public boolean exec() {
         if (future().isDone())
             return true;
         if (state == State.RUNNING)
@@ -1588,7 +1573,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     static Fiber verifySuspend(Fiber current) {
-        if (verifyInstrumentation)
+        if (Verify.verifyInstrumentation)
             Verify.checkInstrumentation();
         return current;
     }
@@ -1616,37 +1601,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     @SuppressWarnings("unchecked")
-    private static boolean isInstrumented(Class clazz) {
-        boolean res = clazz.isAnnotationPresent(Instrumented.class);
-        if (!res)
-            res = isInstrumented0(clazz); // a second chance
-        return res;
-    }
-
-    private static boolean isInstrumented0(Class clazz) {
-        // Sometimes, a child class does not implement any suspendable methods AND is loaded before its superclass (that does). Test for that:
-        Class superclazz = clazz.getSuperclass();
-        if (superclazz != null) {
-            if (superclazz.isAnnotationPresent(Instrumented.class)) {
-                // make sure the child class doesn't have any suspendable methods
-                Method[] ms = clazz.getDeclaredMethods();
-                for (Method m : ms) {
-                    for (Class et : m.getExceptionTypes()) {
-                        if (et.equals(SuspendExecution.class))
-                            return false;
-                    }
-                    if (m.isAnnotationPresent(Suspendable.class))
-                        return false;
-                }
-                return true;
-            } else
-                return isInstrumented0(superclazz);
-        } else
-            return false;
-    }
 
     @VisibleForTesting
-    void resetState() {
+    public void resetState() {
         task.tryUnpark(null);
         assert task.getState() == FiberTask.RUNNABLE;
     }
