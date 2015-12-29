@@ -14,8 +14,6 @@
 package co.paralleluniverse.fibers.instrument.auto;
 
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
 
@@ -30,7 +28,8 @@ import static org.junit.Assert.*;
 public class AutoMultipleSameUninstrCallSiteTest {
     static class F implements SuspendableCallable<Double> {
         @Override
-        public Double run() throws SuspendExecution, InterruptedException {
+        // @Suspendable
+        public Double run() throws InterruptedException {
             final String s = "ciao";
             System.err.println("Enter run(), calling m(" + s + ") twice");
             final double ret = m(s);
@@ -55,13 +54,14 @@ public class AutoMultipleSameUninstrCallSiteTest {
             return ret + ret1;
         }
 
-        @Suspendable
+        // @Suspendable
+
         public static double m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
             try {
                 Fiber.sleep(10);
-            } catch (final InterruptedException | SuspendExecution e) {
+            } catch (final InterruptedException e) {
                 throw new RuntimeException(e);
             }
             System.err.println("Exit m1(" + s + ")");

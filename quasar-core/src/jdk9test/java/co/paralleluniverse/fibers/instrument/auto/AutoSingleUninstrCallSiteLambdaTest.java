@@ -14,9 +14,6 @@
 package co.paralleluniverse.fibers.instrument.auto;
 
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
-import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
 import org.junit.Ignore;
 
@@ -29,13 +26,13 @@ import static org.junit.Assert.*;
  * @author circlespainter
  */
 public class AutoSingleUninstrCallSiteLambdaTest {
-    @Suspendable
+    // @Suspendable
     public int m1(String s) {
         System.err.println("Enter m1(" + s + "), sleeping");
         assertThat(s, equalTo("ciao"));
         try {
             Fiber.sleep(10);
-        } catch (final InterruptedException | SuspendExecution e) {
+        } catch (final InterruptedException e) {
             throw new RuntimeException(e);
         }
         System.err.println("Exit m1(" + s + ")");

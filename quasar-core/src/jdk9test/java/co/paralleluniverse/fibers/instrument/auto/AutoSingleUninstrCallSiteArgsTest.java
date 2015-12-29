@@ -14,10 +14,7 @@
 package co.paralleluniverse.fibers.instrument.auto;
 
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.SuspendableCallable;
-import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.Test;
 import org.junit.Ignore;
 
@@ -32,7 +29,8 @@ import static org.junit.Assert.*;
 public class AutoSingleUninstrCallSiteArgsTest {
     static class F implements SuspendableCallable<Integer> {
         @Override
-        public Integer run() throws SuspendExecution, InterruptedException {
+        // @Suspendable
+        public Integer run() throws InterruptedException {
             System.err.println (
                 "Enter run(), calling m(" +
                     "b:false, by: 1, c: 'a', s: 2, i: 3, l: 10, f: 1.3, d: 1.4, s1: 'ciao', s2, 'hello'" +
@@ -87,7 +85,7 @@ public class AutoSingleUninstrCallSiteArgsTest {
             return ret;
         }
 
-        @Suspendable
+        // @Suspendable
         public int m1(boolean b, byte by, char c, short s, int i, long l, float f, double d, String s1, String s2) {
             System.err.println (
                 "Enter m1(" +
@@ -107,7 +105,7 @@ public class AutoSingleUninstrCallSiteArgsTest {
             assertThat(s2, equalTo("hello"));
             try {
                 Fiber.sleep(10);
-            } catch (final InterruptedException | SuspendExecution e) {
+            } catch (final InterruptedException e) {
                 throw new RuntimeException(e);
             }
             System.err.println (
