@@ -258,7 +258,7 @@ public class InstrumentClass extends ClassVisitor {
             if (db.isDebug())
                 db.log(LogLevel.INFO, "About to examine suspension interferences in method %s#%s%s", className, mn.name, mn.desc);
 
-            if (fm.canInterfereWithSuspension()) {
+            if (fm.isNeeded()) {
                 fm.applySuspensionInterferenceFixes(outMV);
             } else {
                 if (db.isDebug())

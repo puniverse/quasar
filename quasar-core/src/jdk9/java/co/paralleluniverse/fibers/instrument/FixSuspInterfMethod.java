@@ -16,18 +16,16 @@ package co.paralleluniverse.fibers.instrument;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.AnnotationNode;
+import org.objectweb.asm.tree.LocalVariableNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TryCatchBlockNode;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static co.paralleluniverse.fibers.instrument.Classes.*;
-import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
-import static co.paralleluniverse.fibers.instrument.Classes.THROWABLE_NAME;
-import static co.paralleluniverse.fibers.instrument.Classes.OBJECT_NAME;
-import static co.paralleluniverse.fibers.instrument.Classes.STRING_NAME;
-import static co.paralleluniverse.fibers.instrument.Classes.CLASS_NAME;
 
 /**
  * @author circlespainter
@@ -45,7 +43,7 @@ public class FixSuspInterfMethod {
         this.mn = mn;
     }
 
-    public boolean canInterfereWithSuspension() {
+    public boolean isNeeded() {
         return
             canInterfereWithDirectSuspendExecution() ||
             canInterfereWithReflectSuspendExecution();
