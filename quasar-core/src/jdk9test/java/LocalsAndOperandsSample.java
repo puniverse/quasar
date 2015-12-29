@@ -21,9 +21,10 @@
  * questions.
  */
 /*
- * Adapted by circlespainter on 2015-11-30
+ * Adapted by circlespainter on 2015-12-28
  */
 import java.lang.StackWalker.StackFrame;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.*;
 import java.util.HashSet;
 import java.util.List;
@@ -38,12 +39,13 @@ public class LocalsAndOperandsSample {
     private static Method getMonitors;
     private static Method primitiveType;
 
-    public static void main(String... args) throws Exception {
+    public static void main(String... args) throws Throwable {
         liveStackFrameClass = Class.forName("java.lang.LiveStackFrame");
 
         // no access to local and operands.
         final StackWalker sw = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
-        new LocalsAndOperandsSample(sw, false).test();
+
+        MethodHandles.lookup().unreflect(LocalsAndOperandsSample.class.getDeclaredMethod("test", Long.TYPE, Double.TYPE)).invoke(new LocalsAndOperandsSample(sw, false), 4L, 5.6);
 
         // access to local and operands.
         primitiveValueClass = Class.forName("java.lang.LiveStackFrame$PrimitiveValue");
@@ -65,10 +67,12 @@ public class LocalsAndOperandsSample {
         ewsNI.setAccessible(true);
         final Set<StackWalker.Option> s = new HashSet<>();
         s.add(StackWalker.Option.RETAIN_CLASS_REFERENCE);
+        s.add(StackWalker.Option.SHOW_REFLECT_FRAMES);
         final Field f = extendedOptionClass.getDeclaredField("LOCALS_AND_OPERANDS");
         f.setAccessible(true);
         final StackWalker esw = (StackWalker) ewsNI.invoke(null, s, f.get(null));
-        new LocalsAndOperandsSample(esw, true).test();
+
+        LocalsAndOperandsSample.class.getDeclaredMethod("test", Long.TYPE, Double.TYPE).invoke(new LocalsAndOperandsSample(esw, true), 4L, 5.6);
     }
 
     private final StackWalker walker;
@@ -79,13 +83,7 @@ public class LocalsAndOperandsSample {
         this.extended = extended;
     }
 
-    private synchronized void test() throws Exception {
-        final int x = 10;
-        final char c = 'z';
-        final String hi = "himom";
-        final long l = 1000000L;
-        final double d = 3.1415926;
-
+    public synchronized void test(long l, double d) throws Exception {
         final List<StackWalker.StackFrame> frames = walker.walk(s -> s.collect(Collectors.toList()));
         if (extended) {
             for (final StackWalker.StackFrame f : frames) {
