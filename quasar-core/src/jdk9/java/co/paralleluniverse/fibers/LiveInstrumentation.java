@@ -352,37 +352,40 @@ public final class LiveInstrumentation {
             final int reflectionArgsCount = callingReflection ? upperM.getParameterCount() + 1 : 0;
             DEBUG("\tReflection args count: " + reflectionArgsCount);
             int idxTypes = 0, idxValues = 0;
-            while (idxTypes + reflectionArgsCount < tsOperands.length) {
-                final org.objectweb.asm.Type tOperand = tsOperands[idxTypes];
-                if (!METHOD_HANDLE_NAME.equals(tOperand.getClassName())) {
-                    int inc = 1;
-                    final Object op = preCallOperands.get(idxValues);
-                    if (op != null) {
-                        final String tID = type(op);
-                        if (!isNullableType(tID)) {
-                            if (primitiveValueClass.isInstance(op))
-                                inc = storePrim(preCallOperands, idxValues, tOperand, s, idxPrim++);
-                            else // if (!(op instanceof Stack)) // Skip stack operands
-                                Stack.push(op, s, idxObj++);
+
+            if (tsOperands != null) {
+                while (idxTypes + reflectionArgsCount < tsOperands.length) {
+                    final org.objectweb.asm.Type tOperand = tsOperands[idxTypes];
+                    if (!METHOD_HANDLE_NAME.equals(tOperand.getClassName())) {
+                        int inc = 1;
+                        final Object op = preCallOperands.get(idxValues);
+                        if (op != null) {
+                            final String tID = type(op);
+                            if (!isNullableType(tID)) {
+                                if (primitiveValueClass.isInstance(op))
+                                    inc = storePrim(preCallOperands, idxValues, tOperand, s, idxPrim++);
+                                else // if (!(op instanceof Stack)) // Skip stack operands
+                                    Stack.push(op, s, idxObj++);
+                            }
+                        }
+                        idxValues += inc;
+                    } else {
+                        DEBUG("\tMethodHandle call detected, reconstructing and pushing handle object");
+                        try {
+                            final boolean bakAccessible = upperM.isAccessible();
+                            upperM.setAccessible(true);
+                            Stack.push(MethodHandles.lookup().unreflect(upperM), s, idxObj++);
+                            upperM.setAccessible(bakAccessible);
+                        } catch (final IllegalAccessException e) {
+                            throw new RuntimeException(e);
                         }
                     }
-                    idxValues += inc;
-                } else {
-                    DEBUG("\tMethodHandle call detected, reconstructing and pushing handle object");
-                    try {
-                        final boolean bakAccessible = upperM.isAccessible();
-                        upperM.setAccessible(true);
-                        Stack.push(MethodHandles.lookup().unreflect(upperM), s, idxObj++);
-                        upperM.setAccessible(bakAccessible);
-                    } catch (final IllegalAccessException e) {
-                        throw new RuntimeException(e);
-                    }
+                    idxTypes++;
                 }
-                idxTypes++;
-            }
-            if (callingReflection) {
-                for (final Object o : reconstructReflectionArgs(upperFFPF))
-                    Stack.push(o, s, idxObj++);
+                if (callingReflection) {
+                    for (final Object o : reconstructReflectionArgs(upperFFPF))
+                        Stack.push(o, s, idxObj++);
+                }
             }
 
             // Cleanup some tmp mem
@@ -392,21 +395,24 @@ public final class LiveInstrumentation {
             idxTypes = 0;
             idxValues = (Modifier.isStatic(m.getModifiers()) ? 0 : 1);
             final List<Object> localsL = Arrays.asList(locals);
-            while (idxTypes < tsLocals.length) {
-                final Object local = locals[idxValues];
-                final org.objectweb.asm.Type tLocal = tsLocals[idxTypes];
-                int inc = 1;
-                if (local != null) {
-                    final String tID = type(local);
-                    if (!isNullableType(tID)) {
-                        if (primitiveValueClass.isInstance(local))
-                            inc = storePrim(localsL, idxValues, tLocal, s, idxPrim++);
-                        else // if (!(local instanceof Stack)) { // Skip stack locals
-                            Stack.push(local, s, idxObj++);
+
+            if (tsLocals != null) {
+                while (idxTypes < tsLocals.length) {
+                    final Object local = locals[idxValues];
+                    final org.objectweb.asm.Type tLocal = tsLocals[idxTypes];
+                    int inc = 1;
+                    if (local != null) {
+                        final String tID = type(local);
+                        if (!isNullableType(tID)) {
+                            if (primitiveValueClass.isInstance(local))
+                                inc = storePrim(localsL, idxValues, tLocal, s, idxPrim++);
+                            else // if (!(local instanceof Stack)) { // Skip stack locals
+                                Stack.push(local, s, idxObj++);
+                        }
                     }
+                    idxTypes++;
+                    idxValues += inc;
                 }
-                idxTypes++;
-                idxValues += inc;
             }
 
             // Since the potential call to a yield method is in progress already (because live instrumentation is
@@ -464,19 +470,27 @@ public final class LiveInstrumentation {
                 // TODO: operands that are args of reflective calls don't correspond to real target call args
 
                 // Count stack operands
-                for (final Type tOperand : tsOperands) {
-                    if (isPrimitive(tOperand))
-                        idxPrim++;
-                    else
-                        idxObj++;
+                if (tsOperands != null) {
+                    for (final Type tOperand : tsOperands) {
+                        if (tOperand != null) {
+                            if (isPrimitive(tOperand))
+                                idxPrim++;
+                            else
+                                idxObj++;
+                        }
+                    }
                 }
 
                 // Store local vars beyond the args
-                for (final Type tLocal : tsLocals) {
-                    if (isPrimitive(tLocal))
-                        idxPrim++;
-                    else
-                        idxObj++;
+                if (tsLocals != null) {
+                    for (final Type tLocal : tsLocals) {
+                        if (tLocal != null) {
+                            if (isPrimitive(tLocal))
+                                idxPrim++;
+                            else
+                                idxObj++;
+                        }
+                    }
                 }
 
                 numSlots = Math.max(idxObj, idxPrim);
