@@ -15,7 +15,6 @@ package co.paralleluniverse.kotlin
 
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.FiberScheduler
-import co.paralleluniverse.fibers.SuspendExecution
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.strands.SuspendableCallable
 import co.paralleluniverse.strands.channels.*
@@ -25,9 +24,7 @@ import java.util.concurrent.TimeUnit
  * @author circlespainter
  */
 @Suspendable public fun <T> fiber(start: Boolean, name: String?, scheduler: FiberScheduler?, stackSize: Int, block: () -> T): Fiber<T> {
-    val sc = @Suspendable object : SuspendableCallable<T> {
-        @Suspendable override fun run(): T = block()
-    }
+    val sc = (SuspendableCallable<T> @Suspendable { block() })
     val ret =
         if (scheduler != null)
             Fiber(name, scheduler, stackSize, sc)
@@ -68,7 +65,7 @@ public class Send<M>(public val sendPort: SendPort<M>, public val msg: M) : Sele
     @Suppress("UNCHECKED_CAST")
     val sa = Selector.select(priority, timeout.toLong(), unit, actions.map{it.getWrappedSelectAction()}.toList() as List<SelectAction<Any?>>)
     if (sa != null) {
-        val sOp: SelectOp<Any?> = actions.get(sa.index())
+        val sOp: SelectOp<Any?> = actions[sa.index()]
         when (sOp) {
             is Receive<Any?> -> sOp.msg = sa.message()
         }

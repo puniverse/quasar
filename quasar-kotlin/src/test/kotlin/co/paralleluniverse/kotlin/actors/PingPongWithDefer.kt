@@ -14,21 +14,10 @@
 package co.paralleluniverse.kotlin.actors
 
 import co.paralleluniverse.actors.*
-import co.paralleluniverse.actors.behaviors.BehaviorActor
-import co.paralleluniverse.actors.behaviors.ProxyServerActor
-import co.paralleluniverse.actors.behaviors.Supervisor
-import co.paralleluniverse.actors.behaviors.Supervisor.*
-import co.paralleluniverse.actors.behaviors.Supervisor.ChildMode
-import co.paralleluniverse.actors.behaviors.Supervisor.ChildMode.*
-import co.paralleluniverse.actors.behaviors.SupervisorActor
-import co.paralleluniverse.actors.behaviors.SupervisorActor.*
-import co.paralleluniverse.actors.behaviors.SupervisorActor.RestartStrategy.*
 import co.paralleluniverse.fibers.Suspendable
 import org.junit.Test
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit.*
 import co.paralleluniverse.kotlin.Actor
-import co.paralleluniverse.kotlin.Actor.Companion.Timeout
 import co.paralleluniverse.kotlin.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -64,7 +53,7 @@ class Ping(val n: Int) : Actor() {
                         if (!it.startsWith("pong")) {
                             println("${now()} Ping discarding string '$it'")
                             null
-                        }
+                        } else Unit
                     }
                     else -> {
                         println("${now()} Ping discarding non-string '$it'")
@@ -94,7 +83,7 @@ class Pong() : Actor() {
                             println("${now()} Pong sending '$msg' to '${it.from}'")
                             it.from.send(msg)    // Fiber-blocking
                             println("${now()} Pong sent '$msg' to ${it.from}")
-                        }
+                        } else Unit
                     }
                     "finished" -> {
                         println("${now()} Pong received 'finished', exiting")
