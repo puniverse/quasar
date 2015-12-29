@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -13,10 +13,6 @@
  */
 package co.paralleluniverse.kotlin.concurrent
 
-import co.paralleluniverse.fibers.DefaultFiberScheduler
-import co.paralleluniverse.fibers.Fiber
-import co.paralleluniverse.fibers.FiberScheduler
-import co.paralleluniverse.strands.SuspendableCallable
 import co.paralleluniverse.strands.concurrent.ReentrantReadWriteLock
 import java.util.concurrent.CountDownLatch
 
@@ -57,7 +53,7 @@ public inline fun <T> ReentrantReadWriteLock.write(action: () -> T): T {
 }
 
 /**
- * Executes the given [action] and await for CountDownLatch
+ * Executes the given [operation] and await for CountDownLatch
  * @return the return value of the action.
  */
 public fun <T> Int.latch(operation: CountDownLatch.() -> T): T {

@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -13,19 +13,13 @@
  */
 package co.paralleluniverse.kotlin.fibers.lang
 
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
 import org.junit.Assert.*
-import org.hamcrest.CoreMatchers.*
-import org.junit.Ignore
 import co.paralleluniverse.fibers.FiberForkJoinScheduler
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.strands.SuspendableRunnable
 import co.paralleluniverse.fibers.Suspendable
-import co.paralleluniverse.strands.channels.IntChannel
 import co.paralleluniverse.strands.channels.Channels
-import co.paralleluniverse.strands.Strand
 import java.util.concurrent.TimeUnit
 
 /**
