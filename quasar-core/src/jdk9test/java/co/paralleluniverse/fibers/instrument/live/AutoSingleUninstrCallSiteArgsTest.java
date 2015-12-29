@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.fibers.instrument.auto;
+package co.paralleluniverse.fibers.instrument.live;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.strands.SuspendableCallable;

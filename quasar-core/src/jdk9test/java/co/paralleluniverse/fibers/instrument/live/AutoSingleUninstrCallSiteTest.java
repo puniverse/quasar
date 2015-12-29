@@ -11,21 +11,22 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.fibers.instrument.auto;
-
-import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.strands.SuspendableCallable;
-import org.junit.Test;
-
-import java.util.concurrent.ExecutionException;
+package co.paralleluniverse.fibers.instrument.live;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
+import co.paralleluniverse.strands.SuspendableCallable;
+import org.junit.Test;
+
+import co.paralleluniverse.fibers.Fiber;
+
+import java.util.concurrent.ExecutionException;
+
 /**
  * @author circlespainter
  */
-public class AutoSingleUninstrCallSiteStaticTest {
+public class AutoSingleUninstrCallSiteTest {
     static class F implements SuspendableCallable<Double> {
         @Override
         // @Suspendable
@@ -40,7 +41,7 @@ public class AutoSingleUninstrCallSiteStaticTest {
         }
 
         // @Suspendable
-        public static double m(String s) {
+        public double m(String s) {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
             final double ret = m1(s);
@@ -50,7 +51,7 @@ public class AutoSingleUninstrCallSiteStaticTest {
         }
 
         // @Suspendable
-        public static double m1(String s) {
+        public double m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
             try {

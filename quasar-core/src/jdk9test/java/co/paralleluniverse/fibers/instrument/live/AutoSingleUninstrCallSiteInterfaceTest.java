@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.fibers.instrument.auto;
+package co.paralleluniverse.fibers.instrument.live;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.strands.SuspendableCallable;
@@ -25,38 +25,36 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public class AutoMultipleSameUninstrCallSiteTest {
-    static class F implements SuspendableCallable<Double> {
-        @Override
+public class AutoSingleUninstrCallSiteInterfaceTest {
+    interface M {
         // @Suspendable
-        public Double run() throws InterruptedException {
-            final String s = "ciao";
-            System.err.println("Enter run(), calling m(" + s + ") twice");
-            final double ret = m(s);
+        double m(String s);
+    }
+
+    interface M1 {
+        // @Suspendable
+        double m1(String s);
+    }
+
+    static class MImpl implements M {
+        private static final M1 m1 = new M1Impl();
+
+        // @Suspendable
+        public double m(String s) {
+            System.err.println("Enter m(" + s + "), calling M1.m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
-            final double ret1 = m(s);
-            assertThat(ret, equalTo(-3.4));
+            final M1 m1 = MImpl.m1;
+            final double ret = m1.m1(s);
+            System.err.println("Exit m(" + s + "), called M1.m1(" + s + ")");
+            assertThat(m1, equalTo(MImpl.m1));
             assertThat(s, equalTo("ciao"));
-            System.err.println("Exit run(), called m(" + s + ")");
-            return ret + ret1;
+            return ret;
         }
+    }
 
+    static class M1Impl implements M1 {
         // @Suspendable
-        public static double m(String s) {
-            System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
-            assertThat(s, equalTo("ciao"));
-            final double ret = m1(s);
-            assertThat(s, equalTo("ciao"));
-            final double ret1 = m1(s);
-            System.err.println("Exit m(" + s + "), called m1(" + s + ")");
-            assertThat(ret, equalTo(-1.7));
-            assertThat(s, equalTo("ciao"));
-            return ret + ret1;
-        }
-
-        // @Suspendable
-
-        public static double m1(String s) {
+        public double m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
             try {
@@ -70,10 +68,28 @@ public class AutoMultipleSameUninstrCallSiteTest {
         }
     }
 
+    static class F implements SuspendableCallable<Double> {
+        private static final M m = new MImpl();
+
+        @Override
+        // @Suspendable
+        public Double run() throws InterruptedException {
+            final String s = "ciao";
+            System.err.println("Enter run(), calling M.m(" + s + ")");
+            assertThat(s, equalTo("ciao"));
+            final M m = F.m;
+            final double ret = m.m(s);
+            System.err.println("Exit run(), called M.m(" + s + ")");
+            assertThat(m, equalTo(F.m));
+            assertThat(s, equalTo("ciao"));
+            return ret;
+        }
+    }
+
     @Test public void test() {
         final Fiber<Double> f1 = new Fiber<>(new F()).start();
         try {
-            assertThat(f1.get(), equalTo(-6.8));
+            assertThat(f1.get(), equalTo(-1.7));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -81,7 +97,7 @@ public class AutoMultipleSameUninstrCallSiteTest {
 
         final Fiber<Double> f2 = new Fiber<>(new F()).start();
         try {
-            assertThat(f2.get(), equalTo(-6.8));
+            assertThat(f2.get(), equalTo(-1.7));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
