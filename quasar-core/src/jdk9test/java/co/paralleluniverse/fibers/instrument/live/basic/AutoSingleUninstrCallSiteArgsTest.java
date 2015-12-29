@@ -11,12 +11,11 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.fibers.instrument.live;
+package co.paralleluniverse.fibers.instrument.live.basic;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
-import org.junit.Ignore;
 
 import java.util.concurrent.ExecutionException;
 

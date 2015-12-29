@@ -11,13 +11,13 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.fibers.instrument.live;
+package co.paralleluniverse.fibers.instrument.live.basic;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
 
-import java.lang.reflect.InvocationTargetException;
+import java.lang.invoke.MethodHandles;
 import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -26,7 +26,7 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public class AutoSingleUninstrCallSiteReflectionTest {
+public class AutoSingleUninstrCallSiteMethodHandleTest {
     static class F implements SuspendableCallable<Integer> {
         @Override
         // @Suspendable
@@ -36,8 +36,8 @@ public class AutoSingleUninstrCallSiteReflectionTest {
             assertThat(s, equalTo("ciao"));
             final int ret;
             try {
-                ret = (Integer) this.getClass().getMethod("m", String.class).invoke(this, s);
-            } catch (final IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                ret = (Integer) MethodHandles.lookup().unreflect(this.getClass().getMethod("m", String.class)).invoke(this, s);
+            } catch (final Throwable e) {
                 throw new RuntimeException(e);
             }
             System.err.println("Exit run(), called m(" + s + ")");
@@ -51,8 +51,8 @@ public class AutoSingleUninstrCallSiteReflectionTest {
             assertThat(s, equalTo("ciao"));
             final int ret;
             try {
-                ret = (Integer) this.getClass().getMethod("m1", String.class).invoke(this, s);
-            } catch (final IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                ret = (Integer) MethodHandles.lookup().unreflect(this.getClass().getMethod("m1", String.class)).invoke(this, s);
+            } catch (final Throwable e) {
                 throw new RuntimeException(e);
             }
             System.err.println("Exit m(" + s + "), called m1(" + s + ")");
