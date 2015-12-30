@@ -176,11 +176,12 @@ public class InstrumentMethod {
 
     private static final boolean HANDLE_PROXY_INVOCATIONS = true;
     // private final boolean verifyInstrumentation; //
-    private static final int PREEMPTION_BACKBRANCH = 0;
-    private static final int PREEMPTION_CALL = 1;
-    //  private static final String INTERRUPTED_EXCEPTION_NAME = Type.getInternalName(InterruptedException.class);
-//  private static final boolean DUAL = true; // true if suspendable methods can be called from regular threads in addition to fibers
+    // private static final int PREEMPTION_BACKBRANCH = 0;
+    // private static final int PREEMPTION_CALL = 1;
+    // private static final String INTERRUPTED_EXCEPTION_NAME = Type.getInternalName(InterruptedException.class);
+    // private static final boolean DUAL = true; // true if suspendable methods can be called from regular threads in addition to fibers
     private final MethodDatabase db;
+    /** @noinspection FieldCanBeLocal, unused */
     private final String sourceName;
     private final String className;
     private final MethodNode mn;
@@ -189,7 +190,6 @@ public class InstrumentMethod {
     public static final int NUM_LOCALS = 3; // = 3 + (verifyInstrumentation ? 1 : 0); // lvarStack, lvarResumed, lvarInvocationReturnValue
     public static final int ADD_OPERANDS = 6; // 4;
 
-    public static final int NUM_LOCALS_OPTIMIZED = 2;
     public static final int ADD_OPERANDS_OPTIMIZED = 2;
 
     private final int lvarStack; // ref to Stack
@@ -266,10 +266,25 @@ public class InstrumentMethod {
         }
     }
 
+    private void emitInstrumentedAnn (
+        MethodDatabase db, MethodVisitor mv, MethodNode mn, String className,
+        boolean optimizeInstrumentation, int startSourceLine, int endSourceLine,
+        int[] suspCallsSourceLines, String[] suspCallsSignatures
+    ) {
+        emitInstrumentedAnn (
+            db, mv, mn, className,
+            optimizeInstrumentation, startSourceLine, endSourceLine,
+            suspCallsSourceLines, suspCallsSignatures,
+            null, null
+        );
+    }
+
     public static void emitInstrumentedAnn (
         MethodDatabase db, MethodVisitor mv, MethodNode mn, String className,
         boolean optimized, int methodStart, int methodEnd,
-        int[] optSuspCallSourceLines, String[] optSuspCallSignatures, int[] optSuspCallOffsets
+        int[] optSuspCallSourceLines, String[] optSuspCallSignatures,
+        int[] optSuspCallOffsetsBeforeInstrumentation,
+        int[] optSuspCallOffsetsAfterInstrumentation
     ) {
         final StringBuilder sb = new StringBuilder();
         final AnnotationVisitor instrumentedAV = mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
@@ -307,19 +322,35 @@ public class InstrumentMethod {
             sb.append("],");
         }
 
-        if (optSuspCallOffsets != null) {
-            final AnnotationVisitor offsetsAV = instrumentedAV.visitArray("methodSuspendableCallOffsets");
-            sb.append("methodSuspendableCallOffsets=[");
-            for (int i = 0; i < optSuspCallOffsets.length; i++) {
+        if (optSuspCallOffsetsBeforeInstrumentation != null) {
+            final AnnotationVisitor beforeOffsetsAV = instrumentedAV.visitArray("methodSuspendableCallOffsetsBeforeInstrumentation");
+            sb.append("methodSuspendableCallOffsetsBeforeInstrumentation=[");
+            for (int i = 0; i < optSuspCallOffsetsBeforeInstrumentation.length; i++) {
                 if (i != 0)
                     sb.append(", ");
 
-                final int l = optSuspCallOffsets[i];
-                offsetsAV.visit("", l);
+                final int l = optSuspCallOffsetsBeforeInstrumentation[i];
+                beforeOffsetsAV.visit("", l);
 
                 sb.append(l);
             }
-            offsetsAV.visitEnd();
+            beforeOffsetsAV.visitEnd();
+            sb.append("],");
+        }
+
+        if (optSuspCallOffsetsAfterInstrumentation != null) {
+            final AnnotationVisitor afterOffsetsAV = instrumentedAV.visitArray("methodSuspendableCallOffsetsAfterInstrumentation");
+            sb.append("methodSuspendableCallOffsetsAfterInstrumentation=[");
+            for (int i = 0; i < optSuspCallOffsetsAfterInstrumentation.length; i++) {
+                if (i != 0)
+                    sb.append(", ");
+
+                final int l = optSuspCallOffsetsAfterInstrumentation[i];
+                afterOffsetsAV.visit("", l);
+
+                sb.append(l);
+            }
+            afterOffsetsAV.visitEnd();
             sb.append("],");
         }
 
@@ -400,9 +431,12 @@ public class InstrumentMethod {
             return;
         }
 
+        //noinspection PointlessBooleanExpression,ConstantConditions
         final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS && callsSuspendableSupers;
 
         mv.visitCode();
+
+        int currLine = -1;
 
         final Label lMethodStart = new Label();
         final Label lMethodStart2 = new Label();
@@ -453,6 +487,7 @@ public class InstrumentMethod {
         for (final Object o : mn.tryCatchBlocks) {
             final TryCatchBlockNode tcb = (TryCatchBlockNode) o;
 
+            //noinspection PointlessBooleanExpression
             if (SUSPEND_EXECUTION_NAME.equals(tcb.type) && !hasAnnotation && !LiveInstrumentation.ACTIVE) // we allow catch of SuspendExecution in method annotated with @Suspendable or if live instrumentation is active.
                 throw new UnableToInstrumentException("catch for SuspendExecution", className, mn.name, mn.desc);
             if (handleProxyInvocations && UNDECLARED_THROWABLE_NAME.equals(tcb.type)) // we allow catch of SuspendExecution in method annotated with @Suspendable.
@@ -477,7 +512,8 @@ public class InstrumentMethod {
             }
         }
 
-        emitInstrumentedAnn(db, mv, mn, className, optimizeInstrumentation, startSourceLine, endSourceLine, suspCallsSourceLines, suspCallsSignatures, null);
+        //noinspection ConstantConditions
+        emitInstrumentedAnn(db, mv, mn, className, optimizeInstrumentation, startSourceLine, endSourceLine, suspCallsSourceLines, suspCallsSignatures);
 
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchAll, null);
 
@@ -512,7 +548,7 @@ public class InstrumentMethod {
 
         emitStoreResumed(mv, false); // no, we have not been resumed
 
-        emitCodeBlockAfterIdx(mv, 0, 0);
+        currLine = emitCodeBlockAfterIdx(mv, 0, 0, currLine);
 
         // Blocks leading to suspendable calls
         for (int i = 1; i < numCodeBlocks; i++) {
@@ -533,6 +569,10 @@ public class InstrumentMethod {
                 emitStoreResumed(mv, false); // we have not been resumed
                 // emitSuspendableCalled(mv);
 
+                final Label yieldCall = new Label();         // To read the correct offset later
+                mv.visitLabel(yieldCall);
+                mv.visitLineNumber(currLine, yieldCall);     // Force label output
+
                 min.accept(mv);                              // we call the yield method
                 if (yieldReturnsValue)
                     mv.visitInsn(Opcodes.POP);               // we ignore the returned value...
@@ -549,7 +589,7 @@ public class InstrumentMethod {
                 if (yieldReturnsValue)
                     mv.visitVarInsn(Opcodes.ILOAD, lvarResumed); // ... and replace the returned value with the value of resumed
 
-                emitCodeBlockAfterIdx(mv, i, 1 /* skip the call */);
+                currLine = emitCodeBlockAfterIdx(mv, i, 1 /* skip the yieldcall */, currLine);
             } else {
                 final Label lbl = new Label();
 
@@ -565,7 +605,7 @@ public class InstrumentMethod {
                 emitFiberStackRestoreState(mv, fi, 0); // For preemption point
 
                 // DUAL
-                mv.visitLabel(lbl); // Also good to collect BCI later
+                mv.visitLabel(lbl); // Also good to collect offset later in non-reflect case
 
                 if (isReflectInvocation(owner, name)) {
                     // We catch the InvocationTargetException and unwrap it if it wraps a SuspendExecution exception.
@@ -577,7 +617,7 @@ public class InstrumentMethod {
                     final Label notSuspendExecution = new Label();
 
                     // mv.visitTryCatchBlock(startTry, endTry, startCatch, "java/lang/reflect/InvocationTargetException");
-                    mv.visitLabel(startTry);   // try {
+                    mv.visitLabel(startTry);   // try { // Also good to collect offset later
 
                     min.accept(mv);            //   method.invoke()
 
@@ -595,7 +635,7 @@ public class InstrumentMethod {
                     mv.visitLabel(endCatch);
 
                     mv.visitVarInsn(Opcodes.ALOAD, lvarInvocationReturnValue); // restore return value
-                    emitCodeBlockAfterIdx(mv, i, 1 /* skip the call */);
+                    currLine = emitCodeBlockAfterIdx(mv, i, 1 /* skip the reflective call */, currLine);
                 } else {
                     // emitSuspendableCalled(mv);
                     min.accept(mv);            // susp call
@@ -613,7 +653,7 @@ public class InstrumentMethod {
 
                     mv.visitLabel(rest);
 
-                    emitCodeBlockAfterIdx(mv, i, 1 /* skip the susp call */);
+                    currLine = emitCodeBlockAfterIdx(mv, i, 1 /* skip the susp call */, currLine);
                 }
             }
         }
@@ -698,7 +738,7 @@ public class InstrumentMethod {
             }
         }
 
-        emitInstrumentedAnn(db, mv, mn, className, true, startSourceLine, endSourceLine, suspCallsSourceLines, suspCallsSignatures, null);
+        emitInstrumentedAnn(db, mv, mn, className, true, startSourceLine, endSourceLine, suspCallsSourceLines, suspCallsSignatures);
 
         dumpUnoptimizedCodeBlockAfterIdx(mv, 0, 0);
 
@@ -719,7 +759,7 @@ public class InstrumentMethod {
             mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); // * S
             mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "incOptimizedCount", "()V", false); // *
 
-            mv.visitLabel(suspCall); // Also to collect BCI later
+            mv.visitLabel(suspCall); // Also to collect offset later
             min.accept(mv); // susp call // * -> .
 
             mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); // . S
@@ -893,9 +933,11 @@ public class InstrumentMethod {
         return false;
     }
 
+    /*
     private void dumpStack(MethodVisitor mv) {
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "dumpStack", "()V", false);
     }
+    */
 
     private FrameInfo addCodeBlock(Frame f, int end) {
         if (++numCodeBlocks == codeBlocks.length) {
@@ -969,7 +1011,7 @@ public class InstrumentMethod {
             mn.instructions.get(i).accept(mv);
     }
 
-    private void emitCodeBlockAfterIdx(MethodVisitor mv, int idx, int skip) {
+    private int emitCodeBlockAfterIdx(MethodVisitor mv, int idx, int skip, int currLine) {
         int start = codeBlocks[idx].endInstruction;
         int end = codeBlocks[idx + 1].endInstruction;
 
@@ -1014,10 +1056,16 @@ public class InstrumentMethod {
                         }
                     }
                     break;
+
+                default:
+                    if (ins instanceof LineNumberNode)
+                        currLine = ((LineNumberNode) ins).line;
             }
 
             ins.accept(mv);
         }
+
+        return currLine;
     }
 
     private static void emitConst(MethodVisitor mv, int value) {
@@ -1031,9 +1079,11 @@ public class InstrumentMethod {
             mv.visitLdcInsn(value);
     }
 
+    /*
     private static void emitConst(MethodVisitor mv, String value) {
         mv.visitLdcInsn(value);
     }
+    */
 
     private void emitNewAndDup(MethodVisitor mv, Frame frame, int stackIndex, MethodInsnNode min) {
         /*
@@ -1096,8 +1146,8 @@ public class InstrumentMethod {
     }
 
     private void sealFrameTypeInfo(int idx) {
-        FrameTypesKB.sealOperandStackTypes(className, mn.name, mn.desc, Integer.toString(idx));
-        FrameTypesKB.sealLocalTypes(className, mn.name, mn.desc, Integer.toString(idx));
+        InstrumentKB.sealFrameOperandStackTypes(className, mn.name, mn.desc, Integer.toString(idx));
+        InstrumentKB.sealFrameLocalTypes(className, mn.name, mn.desc, Integer.toString(idx));
     }
 
     private void emitFiberStackStoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsToPutBackToOperandStackAfterStore) {
@@ -1123,7 +1173,7 @@ public class InstrumentMethod {
                 if (!isNullType(v)) {
                     int slotIdx = fi.stackSlotIndices[i];
                     assert slotIdx >= 0 && slotIdx < fi.numSlots;
-                    emitStoreValue(mv, v, lvarStack, slotIdx, -1);
+                    emitStoreValue(mv, v, lvarStack, slotIdx);
                 } else {
                     db.log(LogLevel.DEBUG, "NULL stack entry: type=%s size=%d", v.getType(), v.getSize());
                     mv.visitInsn(Opcodes.POP);
@@ -1138,7 +1188,7 @@ public class InstrumentMethod {
                 mv.visitVarInsn(v.getType().getOpcode(Opcodes.ILOAD), i);
                 int slotIdx = fi.localSlotIndices[i];
                 assert slotIdx >= 0 && slotIdx < fi.numSlots;
-                emitStoreValue(mv, v, lvarStack, slotIdx, i);
+                emitStoreValue(mv, v, lvarStack, slotIdx);
             }
         }
 
@@ -1149,7 +1199,7 @@ public class InstrumentMethod {
                 if (!isNullType(v)) {
                     int slotIdx = fi.stackSlotIndices[i];
                     assert slotIdx >= 0 && slotIdx < fi.numSlots;
-                    emitRestoreValue(mv, v, lvarStack, slotIdx, -1);
+                    emitRestoreValue(mv, v, lvarStack, slotIdx);
                 } else
                     mv.visitInsn(Opcodes.ACONST_NULL);
             }
@@ -1159,12 +1209,12 @@ public class InstrumentMethod {
     private void recordFrameTypeInfo(Frame f, int idx) {
         for (int i = f.getStackSize(); i-- > 0;) {
             final BasicValue v = (BasicValue) f.getStack(i);
-            FrameTypesKB.addOperandStackType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
+            InstrumentKB.addFrameOperandStackType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
         }
 
         for (int i = firstLocal; i < f.getLocals(); i++) {
             final BasicValue v = (BasicValue) f.getLocal(i);
-            FrameTypesKB.addLocalType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
+            InstrumentKB.addFrameLocalType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
         }
     }
 
@@ -1177,7 +1227,7 @@ public class InstrumentMethod {
             if (!isNullType(v)) {
                 int slotIdx = fi.localSlotIndices[i];
                 assert slotIdx >= 0 && slotIdx < fi.numSlots;
-                emitRestoreValue(mv, v, lvarStack, slotIdx, i);
+                emitRestoreValue(mv, v, lvarStack, slotIdx);
                 mv.visitVarInsn(v.getType().getOpcode(Opcodes.ISTORE), i);
             } else if (v != BasicValue.UNINITIALIZED_VALUE) {
                 mv.visitInsn(Opcodes.ACONST_NULL);
@@ -1192,7 +1242,7 @@ public class InstrumentMethod {
                 if (!isNullType(v)) {
                     int slotIdx = fi.stackSlotIndices[i];
                     assert slotIdx >= 0 && slotIdx < fi.numSlots;
-                    emitRestoreValue(mv, v, lvarStack, slotIdx, -1);
+                    emitRestoreValue(mv, v, lvarStack, slotIdx);
                 } else
                     mv.visitInsn(Opcodes.ACONST_NULL);
             }
@@ -1207,6 +1257,7 @@ public class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "postRestore", "()V", false);
     }
 
+    /*
     private void emitPreemptionPoint(MethodVisitor mv, int type) {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         switch (type) {
@@ -1227,8 +1278,9 @@ public class InstrumentMethod {
         }
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "preemptionPoint", "(I)V", false);
     }
+    */
 
-    private void emitStoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx, int lvar) throws InternalError, IndexOutOfBoundsException {
+    private void emitStoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx) throws InternalError, IndexOutOfBoundsException {
         String desc;
 
         switch (v.getType().getSort()) {
@@ -1263,7 +1315,7 @@ public class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "push", desc, false);
     }
 
-    private void emitRestoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx, int lvar) {
+    private void emitRestoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx) {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         emitConst(mv, idx);
 

@@ -64,7 +64,7 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
  * @author Matthias Mann
  * @author pron
  */
-public class InstrumentClass extends ClassVisitor {
+public class InstrumentClassVisitor extends ClassVisitor {
     private final SuspendableClassifier classifier;
     private final MethodDatabase db;
     private boolean forceInstrumentation;
@@ -81,7 +81,7 @@ public class InstrumentClass extends ClassVisitor {
 
     private RuntimeException exception;
 
-    public InstrumentClass(ClassVisitor cv, MethodDatabase db, boolean forceInstrumentation) {
+    public InstrumentClassVisitor(ClassVisitor cv, MethodDatabase db, boolean forceInstrumentation) {
         super(ASMAPI, cv);
         this.db = db;
         this.classifier = db.getClassifier();
@@ -338,19 +338,19 @@ public class InstrumentClass extends ClassVisitor {
         return false;
     }
 
-    private static boolean isSynchronized(int access) {
+    static boolean isSynchronized(int access) {
         return (access & Opcodes.ACC_SYNCHRONIZED) != 0;
     }
 
-    private static boolean notNative(int access) {
+    static boolean notNative(int access) {
         return (access & Opcodes.ACC_NATIVE) == 0;
     }
 
-    private static boolean notAbstract(int access) {
+    static boolean notAbstract(int access) {
         return (access & Opcodes.ACC_ABSTRACT) == 0;
     }
 
-    private static SuspendableType max(SuspendableType a, SuspendableType b, SuspendableType def) {
+    static SuspendableType max(SuspendableType a, SuspendableType b, SuspendableType def) {
         final SuspendableType res = max(a, b);
         return res != null ? res : def;
     }
@@ -363,7 +363,7 @@ public class InstrumentClass extends ClassVisitor {
         return b.compareTo(a) > 0 ? b : a;
     }
 
-    private static String[] toStringArray(List<?> l) {
+    static String[] toStringArray(List<?> l) {
         if (l.isEmpty())
             return null;
 

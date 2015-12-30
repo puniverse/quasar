@@ -175,7 +175,7 @@ public final class Verify {
                             .append(
                                 res.ann.methodSuspendableCallSourceLines() == null ?
                                     "[]" : (Arrays.toString(res.ann.methodSuspendableCallSourceLines()) +
-                                            "/" + Arrays.toString(res.ann.methodSuspendableCallOffsets()))
+                                            "/" + Arrays.toString(res.ann.methodSuspendableCallOffsetsAfterInstrumentation()))
                             )
                             .append(")");
                 }
@@ -203,7 +203,7 @@ public final class Verify {
             }
 
             if (ann != null) {
-                final int[] offsets = ann.methodSuspendableCallOffsets();
+                final int[] offsets = ann.methodSuspendableCallOffsetsAfterInstrumentation();
                 for (int offset1 : offsets) {
                     if (offset == offset1)
                         return true;

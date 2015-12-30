@@ -28,11 +28,11 @@ import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 /**
  * @author circlespainter
  */
-public class FillSuspOffsetsClass extends ClassVisitor {
+public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
     private final MethodDatabase db;
     private String className;
 
-    public FillSuspOffsetsClass(ClassVisitor cv, MethodDatabase db) {
+    public SuspOffsetsAfterInstrClassVisitor(ClassVisitor cv, MethodDatabase db) {
         super(ASMAPI, cv);
         this.db = db;
     }
@@ -58,14 +58,15 @@ public class FillSuspOffsetsClass extends ClassVisitor {
             final MethodVisitor outMV = super.visitMethod(access, name, desc, signature, exceptions);
 
             return new MethodVisitor(ASMAPI, outMV) {
-                public Label currLabel;
+                private Label currLabel = null;
+                private int prevOffset = -1;
                 private boolean instrumented;
                 private boolean optimized = false;
                 private int methodStart = -1, methodEnd = -1;
                 private int[] suspCallSourceLines;
                 private List<String> suspCallSignaturesL = new ArrayList<>();
 
-                private List<Integer> suspCallOffsetsAfterInstrL = new ArrayList<>();
+                private List<Integer> suspOffsetsAfterInstrL = new ArrayList<>();
 
                 @Override
                 public AnnotationVisitor visitAnnotation(final String adesc, boolean visible) {
@@ -114,8 +115,8 @@ public class FillSuspOffsetsClass extends ClassVisitor {
                     if (instrumented) {
                         final int type = AbstractInsnNode.METHOD_INSN;
                         if (InstrumentMethod.isSuspendableCall(db, type, opcode, owner, name, desc) &&
-                            currLabel != null && currLabel.info instanceof Integer)
-                            suspCallOffsetsAfterInstrL.add((Integer) currLabel.info);
+                                currLabel != null && currLabel.info instanceof Integer)
+                            addLine();
                     }
                     super.visitMethodInsn(opcode, owner, name, desc, isInterface);
                 }
@@ -126,9 +127,8 @@ public class FillSuspOffsetsClass extends ClassVisitor {
                         final int type = AbstractInsnNode.INVOKE_DYNAMIC_INSN;
                         final int opcode = Opcodes.INVOKEDYNAMIC;
                         if (InstrumentMethod.isSuspendableCall(db, type, opcode, handle.getOwner(), name, desc) &&
-                            currLabel != null && currLabel.info instanceof Integer) {
-                            suspCallOffsetsAfterInstrL.add((Integer) currLabel.info);
-                        }
+                                currLabel != null && currLabel.info instanceof Integer)
+                            addLine();
                     }
                     super.visitInvokeDynamicInsn(name, desc, handle, objects);
                 }
@@ -139,16 +139,26 @@ public class FillSuspOffsetsClass extends ClassVisitor {
                         InstrumentMethod.emitInstrumentedAnn (
                             db, outMV, mn, className, optimized, methodStart, methodEnd,
                             suspCallSourceLines, toStringArray(suspCallSignaturesL),
-                            Ints.toArray(suspCallOffsetsAfterInstrL)
+                            InstrumentKB.getMethodPreInstrumentationOffsets(className, mn.name, mn.desc),
+                            Ints.toArray(suspOffsetsAfterInstrL)
                         );
+                    InstrumentKB.removeMethodPreInstrumentationOffsets(className, mn.name, mn.desc);
                     super.visitEnd();
+                }
+
+                private void addLine() {
+                    final int currOffset = (Integer) currLabel.info;
+                    if (currOffset > prevOffset) {
+                        suspOffsetsAfterInstrL.add(currOffset);
+                        prevOffset = currOffset;
+                    }
                 }
             };
         }
         return super.visitMethod(access, name, desc, signature, exceptions);
     }
 
-    // TODO: Factor with `InstrumentClass`
+    // TODO: Factor with `InstrumentClassVisitor`
     private static String[] toStringArray(List<?> l) {
         if (l.isEmpty())
             return null;

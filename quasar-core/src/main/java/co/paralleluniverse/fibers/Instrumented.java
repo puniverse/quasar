@@ -22,7 +22,8 @@ public @interface Instrumented {
     // Relevant only for methods
     int[] methodSuspendableCallSourceLines() default {};
     String[] methodSuspendableCallSignatures() default {};
-    int[] methodSuspendableCallOffsets() default {};
+    int[] methodSuspendableCallOffsetsBeforeInstrumentation() default {};
+    int[] methodSuspendableCallOffsetsAfterInstrumentation() default {};
     int methodStartSourceLine() default -1;
     int methodEndSourceLine() default -1;
     boolean methodOptimized() default false;
