@@ -14,7 +14,6 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Instrumented;
-import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import com.google.common.primitives.Ints;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -140,7 +139,7 @@ public class FillSuspOffsetsClass extends ClassVisitor {
                         InstrumentMethod.emitInstrumentedAnn (
                             db, outMV, mn, className, optimized, methodStart, methodEnd,
                             suspCallSourceLines, toStringArray(suspCallSignaturesL),
-                            optimized ? null : Ints.toArray(suspCallOffsetsAfterInstrL)
+                            Ints.toArray(suspCallOffsetsAfterInstrL)
                         );
                     super.visitEnd();
                 }
