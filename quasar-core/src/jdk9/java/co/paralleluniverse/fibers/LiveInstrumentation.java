@@ -133,9 +133,13 @@ public final class LiveInstrumentation {
 
                                         DEBUG("Reloading class from original classloader");
                                         final InputStream is = cCaller.getResourceAsStream("/" + n.replace(".", "/") + ".class");
-                                        DEBUG("Redefining class, Quasar instrumentation with fixed suspendable info and frame type info will occur");
-                                        final byte[] diskData = ByteStreams.toByteArray(is);
-                                        Retransform.redefine(new ClassDefinition(cCaller, diskData));
+                                        if (is != null) { // For some internal, dynamic classes it can be null
+                                            DEBUG("Redefining class, Quasar instrumentation with fixed suspendable info and frame type info will occur");
+                                            final byte[] diskData = ByteStreams.toByteArray(is);
+                                            Retransform.redefine(new ClassDefinition(cCaller, diskData));
+                                        } else {
+                                            DEBUG("Class source stream not found, not reloading");
+                                        }
 
                                         // The annotation will be correct now
                                         final Instrumented annFixed = SuspendableHelper.getAnnotation(SuspendableHelper9.lookupMethod(cCaller, mnCaller, mtCaller), Instrumented.class);
@@ -366,32 +370,21 @@ public final class LiveInstrumentation {
             if (tsOperands != null) {
                 while (idxTypes + reflectionArgsCount < tsOperands.length /* && idxValues < preCallOperands.length */) {
                     final org.objectweb.asm.Type tOperand = tsOperands[idxTypes];
-                    if (!METHOD_HANDLE_NAME.equals(tOperand.getClassName())) {
-                        int inc = 1;
-                        final Object op = preCallOperands[idxValues];
-                        if (op != null) {
-                            final String tID = type(op);
-                            if (!isNullableType(tID)) {
-                                if (primitiveValueClass.isInstance(op))
-                                    inc = storePrim(preCallOperands, idxValues, tOperand, s, idxPrim++);
-                                else // if (!(op instanceof Stack)) // Skip stack operands
-                                    Stack.push(op, s, idxObj++);
-                            }
-                        }
-                        idxValues += inc;
-                    } else {
-                        DEBUG("\tMethodHandle call detected, reconstructing and pushing handle object");
-                        try {
-                            final boolean bakAccessible = upperM.isAccessible();
-                            upperM.setAccessible(true);
-                            Stack.push(MethodHandles.lookup().unreflect(upperM), s, idxObj++);
-                            upperM.setAccessible(bakAccessible);
-                        } catch (final IllegalAccessException e) {
-                            throw new RuntimeException(e);
+                    int inc = 1;
+                    final Object op = preCallOperands[idxValues];
+                    if (op != null) {
+                        final String tID = type(op);
+                        if (!isNullableType(tID)) {
+                            if (primitiveValueClass.isInstance(op))
+                                inc = storePrim(preCallOperands, idxValues, tOperand, s, idxPrim++);
+                            else // if (!(op instanceof Stack)) // Skip stack operands
+                                Stack.push(op, s, idxObj++);
                         }
                     }
+                    idxValues += inc;
                     idxTypes++;
                 }
+
                 if (callingReflection) {
                     for (final Object o : reconstructReflectionArgs(upperFFPF))
                         Stack.push(o, s, idxObj++);
@@ -695,6 +688,7 @@ public final class LiveInstrumentation {
                 final Set<StackWalker.Option> s = new HashSet<>();
                 s.add(StackWalker.Option.RETAIN_CLASS_REFERENCE);
                 s.add(StackWalker.Option.SHOW_REFLECT_FRAMES);
+                s.add(StackWalker.Option.SHOW_HIDDEN_FRAMES);
 
                 final Field f = extendedOptionClass.getDeclaredField("LOCALS_AND_OPERANDS");
                 f.setAccessible(true);
