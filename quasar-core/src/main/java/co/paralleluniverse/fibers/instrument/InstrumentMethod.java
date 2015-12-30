@@ -564,7 +564,7 @@ public class InstrumentMethod {
                 emitFiberStackRestoreState(mv, fi, 0); // For preemption point
 
                 // DUAL
-                mv.visitLabel(lbl);
+                mv.visitLabel(lbl); // Also good to collect BCI later
 
                 if (isReflectInvocation(owner, name)) {
                     // We catch the InvocationTargetException and unwrap it if it wraps a SuspendExecution exception.
@@ -709,32 +709,24 @@ public class InstrumentMethod {
 
             final AbstractInsnNode min = mn.instructions.get(fi.endInstruction);
 
-            final Label lNull1 = new Label(), lNull2 = new Label(), lNonNull2 = new Label();
-            mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); // * R
-            mv.visitInsn(Opcodes.DUP); // * R R
-            mv.visitJumpInsn(Opcodes.IFNULL, lNull1); // * R
-            mv.visitInsn(Opcodes.DUP); // * R R
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getCurrentMethodEntry", "()I", false); // * R I
-            mv.visitJumpInsn(Opcodes.IFNE, lNull1); // != 0 => resuming => skip incrementing count // * R
-            mv.visitInsn(Opcodes.DUP); // * R R
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "incOptimizedCount", "()V", false); // * R
-            mv.visitJumpInsn(Opcodes.GOTO, lNull1); // * R
+            final Label suspCall = new Label(), end = new Label();
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); // * S
+            mv.visitJumpInsn(Opcodes.IFNULL, suspCall); // *
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); // * S
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getCurrentMethodEntry", "()I", false); // * i
+            mv.visitJumpInsn(Opcodes.IFNE, suspCall); // != 0 => resuming => skip incrementing count // *
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); // * S
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "incOptimizedCount", "()V", false); // *
 
-            mv.visitLabel(lNull1);
-            mv.visitInsn(Opcodes.POP); // *
-
+            mv.visitLabel(suspCall); // Also to collect BCI later
             min.accept(mv); // susp call // * -> .
 
-            mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); // . R
-            mv.visitInsn(Opcodes.DUP); // . R R
-            mv.visitJumpInsn(Opcodes.IFNULL, lNull2); // . R
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); // . S
+            mv.visitJumpInsn(Opcodes.IFNULL, end); // .
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); // . S
             mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "decOptimizedCount", "()V", false); // .
-            mv.visitJumpInsn(Opcodes.GOTO, lNonNull2);
 
-            mv.visitLabel(lNull2);
-            mv.visitInsn(Opcodes.POP); // .
-
-            mv.visitLabel(lNonNull2);
+            mv.visitLabel(end);
 
             // Emit the rest
 
