@@ -71,7 +71,7 @@ public final class SuspendableHelper9 {
         }
     }
 
-    public static boolean isFiberRuntimeStackMethod(String className) {
+    public static boolean isUpperFiberRuntime(String className) {
         return
             Fiber.class.getName().equals(className) ||
             Stack.class.getName().equals(className) ||
@@ -86,4 +86,8 @@ public final class SuspendableHelper9 {
     }
 
     private SuspendableHelper9() {}
+
+    public static boolean isFiber(String cn) {
+        return "co.paralleluniverse.fibers.Fiber".equals(cn);
+    }
 }

@@ -147,7 +147,7 @@ public final class Verify {
         if (Thread.class.getName().equals(className) && "getStackTrace".equals(methodName) ||
             ExtendedStackTrace.class.getName().equals(className) ||
             className.contains("$$Lambda$") ||
-            (SuspendableHelper9.isFiberRuntimeStackMethod(className) && !"run1".equals(methodName)))
+            (SuspendableHelper9.isUpperFiberRuntime(className) && !"run1".equals(methodName)))
             return Verify.CheckFrameInstrumentationReport.OK_NOT_FINISHED; // Skip
 
         if (optStackTrace != null && !prevOk)

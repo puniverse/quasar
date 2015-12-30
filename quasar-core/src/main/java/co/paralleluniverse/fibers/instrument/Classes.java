@@ -27,7 +27,7 @@ import org.objectweb.asm.tree.MethodInsnNode;
  *
  * @author pron
  */
-final class Classes {
+public final class Classes {
     static final String OBJECT_NAME = Object.class.getName().replace('.', '/');
     static final String STRING_NAME = String.class.getName().replace('.', '/');
     static final String CLASS_NAME = Class.class.getName().replace('.', '/');
@@ -62,7 +62,8 @@ final class Classes {
     private static final Set<String> yieldMethods = new HashSet<>(Arrays.asList(new String[] {
         "park", "yield", "parkAndUnpark", "yieldAndUnpark", "parkAndSerialize"
     }));
-    static boolean isYieldMethod(String className, String methodName) {
+
+    public static boolean isYieldMethod(String className, String methodName) {
         return FIBER_CLASS_NAME.equals(className) && yieldMethods.contains(methodName);
     }
 

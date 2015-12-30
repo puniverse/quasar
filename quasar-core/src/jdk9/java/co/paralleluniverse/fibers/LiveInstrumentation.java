@@ -26,6 +26,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -54,99 +55,109 @@ public final class LiveInstrumentation {
                         final StackWalker.StackFrame[] fs = new StackWalker.StackFrame[fsL.size()];
                         fsL.toArray(fs);
 
-                        boolean callingFiberRuntime = false;
                         boolean ok, last = false;
                         StackWalker.StackFrame upper = null;
                         FiberFramePushFull upperFFPF = null;
+                        boolean callingUpperRuntime = true, upperFiberRuntime = true, lowerFiberRuntime = false;
                         for (int i = 0; i < fs.length; i++) {
                             final StackWalker.StackFrame f = fs[i];
-                            if (SuspendableHelper9.isFiberRuntimeStackMethod(f.getClassName())) {
-                                // Skip marking/transforming yield frames
-                                callingFiberRuntime = true;
-                            } else if (!isReflection(f.getClassName())) { // Skip reflection
-                                final Class<?> cCaller = f.getDeclaringClass();
-                                final String mnCaller = f.getMethodName();
 
-                                if (upperFFPF != null)
-                                    upperFFPF.setLower(f);
+                            final String cn = f.getClassName();
 
-                                final MethodType mtCaller;
-                                try {
-                                    mtCaller = (MethodType) getMethodType.invoke(memberName.get(f));
+                            if (upperFiberRuntime)
+                                upperFiberRuntime = SuspendableHelper9.isUpperFiberRuntime(cn);
 
-                                    DEBUG("\nLive lazy auto-instrumentation for call frame: " + f.getClassName() + "#" + f.getMethodName() + mtCaller.toMethodDescriptorString());
+                            if (!upperFiberRuntime && !lowerFiberRuntime)
+                                lowerFiberRuntime = SuspendableHelper9.isFiber(cn);
 
-                                    final int b = (Integer) bci.get(f);
-                                    final Verify.CheckFrameInstrumentationReport report =
-                                        Verify.checkFrameInstrumentation(fs, i, upper);
-                                    ok = report.isOK();
-                                    last = report.last;
+                            if (!upperFiberRuntime && !lowerFiberRuntime) {
+                                if (!isReflection(f.getClassName())) { // Skip reflection
+                                    final Class<?> cCaller = f.getDeclaringClass();
 
-                                    if (report.ann != null) {
-                                        DEBUG("\t\tOptimized method: " + report.ann.methodOptimized());
-                                        DEBUG("\t\tMethod start source line: " + report.ann.methodStartSourceLine());
-                                        DEBUG("\t\tMethod end source line: " + report.ann.methodEndSourceLine());
-                                        DEBUG("\t\tSuspendable call source lines: " + Arrays.toString(report.ann.methodSuspendableCallSourceLines()));
-                                        DEBUG("\t\tSuspendable call signatures: " + Arrays.toString(report.ann.methodSuspendableCallSignatures()));
-                                        final int[] offsets = report.ann.methodSuspendableCallOffsets();
-                                        DEBUG("\t\tSuspendable call offsets (after instrumentation): " + Arrays.toString(offsets));
-                                    }
+                                    if (upperFFPF != null)
+                                        upperFFPF.setLower(f);
 
-                                    assert upper != null;
-                                    DEBUG("Frame instrumentation analysis report:\n" +
-                                        "\tclass is " +
-                                        (report.classInstrumented ? "instrumented" : "NOT instrumented") + ", \n" +
-                                        "\tmethod is " +
-                                        (report.methodInstrumented ? "instrumented" : "NOT instrumented") + ", \n" +
-                                        "\tcall site in " +
-                                        f.getFileName().orElse("<UNKNOWN SOURCE FILE>") +
-                                        " at line " + f.getLineNumber() + " and bci " + b +
-                                        " to " + upper.getClassName() + "#" + upper.getMethodName() +
-                                        ((MethodType) getMethodType.invoke(memberName.get(f))).toMethodDescriptorString() +
-                                        " is " + (report.callSiteInstrumented ? "instrumented" : "NOT instrumented"));
+                                    final MethodType mtCaller;
+                                    try {
+                                        mtCaller = (MethodType) getMethodType.invoke(memberName.get(f));
 
-                                    final String n = cCaller.getName();
+                                        DEBUG("\nLive lazy auto-instrumentation for call frame: " + f.getClassName() + "#" + f.getMethodName() + mtCaller.toMethodDescriptorString());
 
-                                    if (!ok)
-                                        DEBUG("Frame instrumentation analysis found problems!");
+                                        final int b = (Integer) bci.get(f);
+                                        final Verify.CheckFrameInstrumentationReport report =
+                                            Verify.checkFrameInstrumentation(fs, i, upper);
+                                        ok = report.isOK();
+                                        last = report.last;
 
-                                    DEBUG("-> Ensuring suspendable supers are correct");
-                                    ensureCorrectSuspendableSupers(cCaller, mnCaller, mtCaller);
-
-                                    if (!ok) {
-                                        if (!report.classInstrumented || !report.methodInstrumented) {
-                                            DEBUG("-> Class or method not instrumented at all, marking method suspendable");
-                                            suspendable(cCaller, mnCaller, mtCaller, MethodDatabase.SuspendableType.SUSPENDABLE);
+                                        if (report.ann != null) {
+                                            DEBUG("\t\tOptimized method: " + report.ann.methodOptimized());
+                                            DEBUG("\t\tMethod start source line: " + report.ann.methodStartSourceLine());
+                                            DEBUG("\t\tMethod end source line: " + report.ann.methodEndSourceLine());
+                                            DEBUG("\t\tSuspendable call source lines: " + Arrays.toString(report.ann.methodSuspendableCallSourceLines()));
+                                            DEBUG("\t\tSuspendable call signatures: " + Arrays.toString(report.ann.methodSuspendableCallSignatures()));
+                                            final int[] offsets = report.ann.methodSuspendableCallOffsets();
+                                            DEBUG("\t\tSuspendable call offsets (after instrumentation): " + Arrays.toString(offsets));
                                         }
+
+                                        assert upper != null;
+                                        DEBUG("Frame instrumentation analysis report:\n" +
+                                            "\tclass is " +
+                                            (report.classInstrumented ? "instrumented" : "NOT instrumented") + ", \n" +
+                                            "\tmethod is " +
+                                            (report.methodInstrumented ? "instrumented" : "NOT instrumented") + ", \n" +
+                                            "\tcall site in " +
+                                            f.getFileName().orElse("<UNKNOWN SOURCE FILE>") +
+                                            " at line " + f.getLineNumber() + " and bci " + b +
+                                            " to " + upper.getClassName() + "#" + upper.getMethodName() +
+                                            ((MethodType) getMethodType.invoke(memberName.get(f))).toMethodDescriptorString() +
+                                            " is " + (report.callSiteInstrumented ? "instrumented" : "NOT instrumented"));
+
+                                        final String n = cCaller.getName();
+
+                                        if (!ok)
+                                            DEBUG("Frame instrumentation analysis found problems!");
+
+                                        final String mnCaller = f.getMethodName();
+
+                                        DEBUG("-> Ensuring suspendable supers are correct");
+                                        ensureCorrectSuspendableSupers(cCaller, mnCaller, mtCaller);
+
+                                        if (!ok) {
+                                            if (!report.classInstrumented || !report.methodInstrumented) {
+                                                DEBUG("-> Class or method not instrumented at all, marking method suspendable");
+                                                suspendable(cCaller, mnCaller, mtCaller, MethodDatabase.SuspendableType.SUSPENDABLE);
+                                            }
+                                        }
+
+                                        FrameTypesKB.askRecording(n);
+
+                                        DEBUG("Reloading class from original classloader");
+                                        final InputStream is = cCaller.getResourceAsStream("/" + n.replace(".", "/") + ".class");
+                                        DEBUG("Redefining class, Quasar instrumentation with fixed suspendable info and frame type info will occur");
+                                        final byte[] diskData = ByteStreams.toByteArray(is);
+                                        Retransform.redefine(new ClassDefinition(cCaller, diskData));
+
+                                        // The annotation will be correct now
+                                        final Instrumented annFixed = SuspendableHelper.getAnnotation(SuspendableHelper9.lookupMethod(cCaller, mnCaller, mtCaller), Instrumented.class);
+                                        if (annFixed != null && !annFixed.methodOptimized()) {
+                                            DEBUG("Method is not optimized, creating a fiber stack rebuild record");
+                                            upperFFPF = pushRebuildToDoFull(f, upper, upperFFPF, fiberStackRebuildToDoList);
+                                        } else {
+                                            DEBUG("Method is optimized, creating an optimized fiber stack rebuild record");
+                                            fiberStackRebuildToDoList.push(new FiberFramePushOptimized(f));
+                                        }
+
+                                        upperFiberRuntime = false;
+                                    } catch (final InvocationTargetException | IllegalAccessException | IOException e) {
+                                        throw new RuntimeException(e);
                                     }
-
-                                    FrameTypesKB.askRecording(n);
-
-                                    DEBUG("Reloading class from original classloader");
-                                    final InputStream is = cCaller.getResourceAsStream("/" + n.replace(".", "/") + ".class");
-                                    DEBUG("Redefining class, Quasar instrumentation with fixed suspendable info and frame type info will occur");
-                                    final byte[] diskData = ByteStreams.toByteArray(is);
-                                    Retransform.redefine(new ClassDefinition(cCaller, diskData));
-
-                                    // The annotation will be correct now
-                                    final Instrumented annFixed = SuspendableHelper.getAnnotation(SuspendableHelper9.lookupMethod(cCaller, mnCaller, mtCaller), Instrumented.class);
-                                    if (annFixed != null && !annFixed.methodOptimized()) {
-                                        DEBUG("Method is not optimized, creating a fiber stack rebuild record");
-                                        upperFFPF = pushRebuildToDoFull(f, upper, upperFFPF, fiberStackRebuildToDoList, callingFiberRuntime);
-                                    } else {
-                                        DEBUG("Method is optimized, creating an optimized fiber stack rebuild record");
-                                        fiberStackRebuildToDoList.push(new FiberFramePushOptimized(f));
-                                    }
-
-                                    callingFiberRuntime = false;
-                                } catch (final InvocationTargetException | IllegalAccessException | IOException e) {
-                                    throw new RuntimeException(e);
+                                } else {
+                                    DEBUG("Skipping reflection frame " + f.getClassName() + "::" + f.getMethodName() + "");
                                 }
-                            } else {
-                                DEBUG("Skipping reflection frame " + f.getClassName() + "::" + f.getMethodName() + "");
                             }
 
                             upper = f;
+                            callingUpperRuntime = upperFiberRuntime;
 
                             if (last)
                                 break;
@@ -219,15 +230,14 @@ public final class LiveInstrumentation {
         // private final Object[] upperOperands;
 
         private final FiberFramePushFull upperFFPF;
-
-        private final boolean callingYield;
+        private final boolean isYield;
 
         private int numSlots = -1;
         private int entry = 1;
 
         private int[] suspendableCallOffsets;
 
-        private FiberFramePushFull(StackWalker.StackFrame sf, StackWalker.StackFrame upper, FiberFramePushFull upperFFPF, boolean callingYield)
+        private FiberFramePushFull(StackWalker.StackFrame sf, StackWalker.StackFrame upper, FiberFramePushFull upperFFPF)
             throws InvocationTargetException, IllegalAccessException
         {
             this.sf = sf;
@@ -242,7 +252,7 @@ public final class LiveInstrumentation {
             // this.upperOperands = (Object[]) getOperands.invoke(upper);
             this.upperFFPF = upperFFPF;
 
-            this.callingYield = callingYield;
+            this.isYield = Classes.isYieldMethod(upper.getClassName().replace('.', '/'), upper.getMethodName());
         }
 
         private static Object[] removeNulls(Object[] os) {
@@ -301,6 +311,7 @@ public final class LiveInstrumentation {
             DEBUG("\nFiberFramePushFull:");
             DEBUG("\tMethod: " + m);
             DEBUG("\tCalling: " + upperM);
+            DEBUG("\t\tCall target is yield: " + isYield);
             DEBUG("\tStatic operands types: " + Arrays.toString(tsOperands));
             DEBUG("\tLive operands: " + Arrays.toString(operands));
             DEBUG("\tUpper locals: " + Arrays.toString(upperLocals));
@@ -337,10 +348,11 @@ public final class LiveInstrumentation {
 
             // Recover shifted-up stack operands
             final int shiftedUpOperandsCount = countArgsAsJVMSingleSlots(upperM);
-
-            final List<Object> preCallOperands = new ArrayList<>();
-            preCallOperands.addAll(Arrays.asList(upperLocals).subList(0, shiftedUpOperandsCount));
-            preCallOperands.addAll(Arrays.asList(operands));
+            final List<Object> preCallOperandsL = new ArrayList<>();
+            preCallOperandsL.addAll(Arrays.asList(upperLocals).subList(0, shiftedUpOperandsCount));
+            preCallOperandsL.addAll(Arrays.asList(operands));
+            final Object[] preCallOperands = new Object[preCallOperandsL.size()];
+            preCallOperandsL.toArray(preCallOperands);
 
             // Store stack operands
             // TODO: remove this reflection hack once the bug causing the locals of
@@ -357,7 +369,7 @@ public final class LiveInstrumentation {
                     final org.objectweb.asm.Type tOperand = tsOperands[idxTypes];
                     if (!METHOD_HANDLE_NAME.equals(tOperand.getClassName())) {
                         int inc = 1;
-                        final Object op = preCallOperands.get(idxValues);
+                        final Object op = preCallOperands[idxValues];
                         if (op != null) {
                             final String tID = type(op);
                             if (!isNullableType(tID)) {
@@ -393,7 +405,6 @@ public final class LiveInstrumentation {
             // Store local vars, including args, except "this" (present in actual values but not types)
             idxTypes = 0;
             idxValues = (Modifier.isStatic(m.getModifiers()) ? 0 : 1);
-            final List<Object> localsL = Arrays.asList(locals);
 
             if (tsLocals != null) {
                 while (idxTypes < tsLocals.length) {
@@ -404,7 +415,7 @@ public final class LiveInstrumentation {
                         final String tID = type(local);
                         if (!isNullableType(tID)) {
                             if (primitiveValueClass.isInstance(local))
-                                inc = storePrim(localsL, idxValues, tLocal, s, idxPrim++);
+                                inc = storePrim(locals, idxValues, tLocal, s, idxPrim++);
                             else // if (!(local instanceof Stack)) { // Skip stack locals
                                 Stack.push(local, s, idxObj++);
                         }
@@ -498,15 +509,15 @@ public final class LiveInstrumentation {
             return numSlots;
         }
 
-        private int storePrim(List<Object> objs, int objsIdx, Type t, Stack s, int stackIdx) {
+        private int storePrim(Object[] objs, int objsIdx, Type t, Stack s, int stackIdx) {
             int inc = 1;
             try {
                 // TODO: ask if the present hack will stay (currently all values except double-word are returned as ints)
                 if (isSinglePrimitive(t)) {
-                    Stack.push((int) intValue.invoke(objs.get(objsIdx)), s, stackIdx);
+                    Stack.push((int) intValue.invoke(objs[objsIdx]), s, stackIdx);
                 } else {
                     inc = 2;
-                    final int i1 = (int) intValue.invoke(objs.get(objsIdx)), i2 = (int) intValue.invoke(objs.get(objsIdx + 1));
+                    final int i1 = (int) intValue.invoke(objs[objsIdx]), i2 = (int) intValue.invoke(objs[objsIdx + 1]);
                     if (Type.LONG_TYPE.equals(t))
                         Stack.push(twoIntsToLong(i1, i2), s, stackIdx);
                     else if (Type.DOUBLE_TYPE.equals(t))
@@ -556,7 +567,6 @@ public final class LiveInstrumentation {
                 ", upper=" + upper +
                 ", upperM=" + upperM +
                 ", upperLocals=" + Arrays.toString(upperLocals) +
-                ", callingYield=" + callingYield +
                 ", numSlots=" + numSlots +
                 ", entry=" + entry +
                 ", suspendableCallOffsets=" + Arrays.toString(suspendableCallOffsets) +
@@ -579,15 +589,14 @@ public final class LiveInstrumentation {
 
     private static LiveInstrumentation.FiberFramePushFull pushRebuildToDoFull (
         StackWalker.StackFrame sf, StackWalker.StackFrame upper, FiberFramePushFull upperFFPF,
-        java.util.Stack<FiberFramePush> todo, boolean callingYield
+        java.util.Stack<FiberFramePush> todo
     ) {
         try {
             final FiberFramePushFull ffp =
                 new FiberFramePushFull (
                     sf,
                     upper,
-                    upperFFPF,
-                    callingYield
+                    upperFFPF
                 );
             todo.push(ffp);
             return ffp;
@@ -601,15 +610,45 @@ public final class LiveInstrumentation {
     private static long agree(StackWalker w, Stack fs) {
         // TODO: must be _fast_, JMH it
         final List<StackWalker.StackFrame> l = w.walk (s -> s.collect(Collectors.toList())); // TODO: remove
-        final long threadStackDepth = w.walk (s ->
-            s.filter (
-                sf ->
-                    !SuspendableHelper9.isFiberRuntimeStackMethod(sf.getClassName()) &&
-                    !isReflection(sf.getClassName())
-            ).collect(COUNTING)
-        );
+        StackFramePredicate.reset();
+        final long threadStackDepth = w.walk (s -> s.filter(StackFramePredicate.INSTANCE).collect(COUNTING));
         return threadStackDepth - (fs.getInstrumentedCount() + fs.getOptimizedCount());
         // return 1;
+    }
+
+    private static class StackFramePredicate implements Predicate<StackWalker.StackFrame> {
+        final private static StackFramePredicate INSTANCE = new StackFramePredicate();
+
+        private boolean upperFiberRuntime, lowerFiberRuntime;
+
+        @Override
+        public final boolean test(StackWalker.StackFrame sf) {
+            final String cn = sf.getClassName();
+
+            if (upperFiberRuntime)
+                upperFiberRuntime = SuspendableHelper9.isUpperFiberRuntime(cn);
+
+            if (!upperFiberRuntime && !lowerFiberRuntime)
+                lowerFiberRuntime = SuspendableHelper9.isFiber(cn);
+
+            return
+                !upperFiberRuntime &&
+                !lowerFiberRuntime &&
+                !isReflection(cn);
+        }
+
+        private StackFramePredicate() {
+            reset(this);
+        }
+
+        private static void reset() {
+            reset(INSTANCE);
+        }
+
+        private static void reset(StackFramePredicate p) {
+            p.upperFiberRuntime = true;
+            p.lowerFiberRuntime = false;
+        }
     }
 
     private static boolean isReflection(String className) {
