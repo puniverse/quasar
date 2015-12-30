@@ -58,7 +58,7 @@ public final class LiveInstrumentation {
                         boolean ok, last = false;
                         StackWalker.StackFrame upper = null;
                         FiberFramePushFull upperFFPF = null;
-                        boolean callingUpperRuntime = true, upperFiberRuntime = true, lowerFiberRuntime = false;
+                        boolean upperFiberRuntime = true, lowerFiberRuntime = false;
                         for (int i = 0; i < fs.length; i++) {
                             final StackWalker.StackFrame f = fs[i];
 
@@ -157,7 +157,6 @@ public final class LiveInstrumentation {
                             }
 
                             upper = f;
-                            callingUpperRuntime = upperFiberRuntime;
 
                             if (last)
                                 break;
@@ -365,7 +364,7 @@ public final class LiveInstrumentation {
             int idxTypes = 0, idxValues = 0;
 
             if (tsOperands != null) {
-                while (idxTypes + reflectionArgsCount < tsOperands.length) {
+                while (idxTypes + reflectionArgsCount < tsOperands.length /* && idxValues < preCallOperands.length */) {
                     final org.objectweb.asm.Type tOperand = tsOperands[idxTypes];
                     if (!METHOD_HANDLE_NAME.equals(tOperand.getClassName())) {
                         int inc = 1;
@@ -407,7 +406,7 @@ public final class LiveInstrumentation {
             idxValues = (Modifier.isStatic(m.getModifiers()) ? 0 : 1);
 
             if (tsLocals != null) {
-                while (idxTypes < tsLocals.length) {
+                while (idxTypes < tsLocals.length /* && idxValues < locals.length */) {
                     final Object local = locals[idxValues];
                     final org.objectweb.asm.Type tLocal = tsLocals[idxTypes];
                     int inc = 1;
