@@ -264,11 +264,12 @@ public final class LiveInstrumentation {
 
         private StackWalker.StackFrame lower;
         private Method lowerM;
+        private boolean lowerWasInstrumented = false;
+
         private int lowerSuspCallIdx = 1;
         private int lowerOffset = -1;
         private int[] lowerSuspendableCallOffsetsBeforeInstr;
         private int[] lowerSuspendableCallOffsetsAfterInstr;
-        private boolean lowerWasInstrumented = false;
 
         private final boolean isYield;
 
@@ -305,9 +306,14 @@ public final class LiveInstrumentation {
         }
 
         public void setLower(StackWalker.StackFrame lower, boolean wasInstrumented) {
-            this.lowerWasInstrumented = wasInstrumented;
             this.lower = lower;
             this.lowerM = SuspendableHelper9.lookupMethod(lower);
+            this.lowerWasInstrumented = wasInstrumented;
+
+            completeInit(); // TODO: figure out if it should be done with instrumentation complete (i.e. when applying rather than when redefining)
+        }
+
+        private void completeInit() {
             final MethodType mt;
             try {
                 mt = (MethodType) getMethodType.invoke(memberName.get(lower));
