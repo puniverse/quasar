@@ -25,7 +25,7 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public class AutoMultipleDifferentUninstrCallSiteTest {
+public class MultipleDifferentUninstrCallSiteTest {
     static class F implements SuspendableCallable<Double> {
         @Override
         // @Suspendable

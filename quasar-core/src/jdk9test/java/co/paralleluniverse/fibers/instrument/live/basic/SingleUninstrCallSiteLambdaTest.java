@@ -24,7 +24,7 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public class AutoSingleUninstrCallSiteLambdaTest {
+public class SingleUninstrCallSiteLambdaTest {
     // @Suspendable
     public int m1(String s) {
         System.err.println("Enter m1(" + s + "), sleeping");

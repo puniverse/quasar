@@ -18,6 +18,9 @@ import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
+import static co.paralleluniverse.fibers.TestsHelper.exec;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
@@ -25,63 +28,78 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public class AutoMultipleSameUninstrCallSiteTest {
+public class ParkAndReparkTest {
     static class F implements SuspendableCallable<Double> {
         @Override
         // @Suspendable
         public Double run() throws InterruptedException {
             final String s = "ciao";
-            System.err.println("Enter run(), calling m(" + s + ") twice");
+            System.err.println("Enter run(), calling m(" + s + ")");
+            assertThat(s, equalTo("ciao"));
             final double ret = m(s);
-            assertThat(s, equalTo("ciao"));
-            final double ret1 = m(s);
-            assertThat(ret, equalTo(-3.4));
-            assertThat(s, equalTo("ciao"));
             System.err.println("Exit run(), called m(" + s + ")");
-            return ret + ret1;
+            assertThat(s, equalTo("ciao"));
+            return ret;
         }
 
         // @Suspendable
-        public static double m(String s) {
+        public double m(String s) {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
             final double ret = m1(s);
-            assertThat(s, equalTo("ciao"));
-            final double ret1 = m1(s);
             System.err.println("Exit m(" + s + "), called m1(" + s + ")");
-            assertThat(ret, equalTo(-1.7));
             assertThat(s, equalTo("ciao"));
-            return ret + ret1;
+            return ret;
         }
 
         // @Suspendable
-
-        public static double m1(String s) {
-            System.err.println("Enter m1(" + s + "), sleeping");
+        public double m1(String s) {
+            System.err.println("Enter m1(" + s + "), parking several times");
+            Fiber.park();
             assertThat(s, equalTo("ciao"));
-            try {
-                Fiber.sleep(10);
-            } catch (final InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            System.err.println("Exit m1(" + s + ")");
+            Fiber.park();
+            System.err.println("Exit m1(" + s + "), parking several times");
+            Fiber.park();
             assertThat(s, equalTo("ciao"));
+            Fiber.park();
             return -1.7;
         }
     }
 
     @Test public void test() {
-        final Fiber<Double> f1 = new Fiber<>(new F()).start();
+        final Fiber<Double> f1 = new Fiber<>((String) null, null, new F());
+        System.err.println("Run f1");
+        exec(f1);
+        System.err.println("Run f1");
+        exec(f1);
+        System.err.println("Run f1");
+        exec(f1);
+        System.err.println("Run f1");
+        exec(f1);
+        System.err.println("Run f1");
+        exec(f1);
+        System.err.println("Get f1");
         try {
-            assertThat(f1.get(), equalTo(-6.8));
+            assertThat(f1.get(), equalTo(-1.7));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
 
-        final Fiber<Double> f2 = new Fiber<>(new F()).start();
+        final Fiber<Double> f2 = new Fiber<>((String) null, null, new F());
+        System.err.println("Run f2");
+        exec(f2);
+        System.err.println("Run f2");
+        exec(f2);
+        System.err.println("Run f2");
+        exec(f2);
+        System.err.println("Run f2");
+        exec(f2);
+        System.err.println("Run f2");
+        exec(f2);
+        System.err.println("Get f2");
         try {
-            assertThat(f2.get(), equalTo(-6.8));
+            assertThat(f2.get(), equalTo(-1.7));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);

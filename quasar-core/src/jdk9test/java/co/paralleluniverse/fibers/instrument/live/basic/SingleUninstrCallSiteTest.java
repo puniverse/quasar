@@ -13,22 +13,20 @@
  */
 package co.paralleluniverse.fibers.instrument.live.basic;
 
-import co.paralleluniverse.fibers.Fiber;
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.*;
+
 import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
 
+import co.paralleluniverse.fibers.Fiber;
+
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-
-import static co.paralleluniverse.fibers.TestsHelper.exec;
-
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
 
 /**
  * @author circlespainter
  */
-public class AutoParkAndReparkTest {
+public class SingleUninstrCallSiteTest {
     static class F implements SuspendableCallable<Double> {
         @Override
         // @Suspendable
@@ -54,31 +52,21 @@ public class AutoParkAndReparkTest {
 
         // @Suspendable
         public double m1(String s) {
-            System.err.println("Enter m1(" + s + "), parking several times");
-            Fiber.park();
+            System.err.println("Enter m1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
-            Fiber.park();
-            System.err.println("Exit m1(" + s + "), parking several times");
-            Fiber.park();
+            try {
+                Fiber.sleep(10);
+            } catch (final InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            System.err.println("Exit m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
-            Fiber.park();
             return -1.7;
         }
     }
 
     @Test public void test() {
-        final Fiber<Double> f1 = new Fiber<>((String) null, null, new F());
-        System.err.println("Run f1");
-        exec(f1);
-        System.err.println("Run f1");
-        exec(f1);
-        System.err.println("Run f1");
-        exec(f1);
-        System.err.println("Run f1");
-        exec(f1);
-        System.err.println("Run f1");
-        exec(f1);
-        System.err.println("Get f1");
+        final Fiber<Double> f1 = new Fiber<>(new F()).start();
         try {
             assertThat(f1.get(), equalTo(-1.7));
         } catch (final ExecutionException | InterruptedException e) {
@@ -86,18 +74,7 @@ public class AutoParkAndReparkTest {
             throw new RuntimeException(e);
         }
 
-        final Fiber<Double> f2 = new Fiber<>((String) null, null, new F());
-        System.err.println("Run f2");
-        exec(f2);
-        System.err.println("Run f2");
-        exec(f2);
-        System.err.println("Run f2");
-        exec(f2);
-        System.err.println("Run f2");
-        exec(f2);
-        System.err.println("Run f2");
-        exec(f2);
-        System.err.println("Get f2");
+        final Fiber<Double> f2 = new Fiber<>(new F()).start();
         try {
             assertThat(f2.get(), equalTo(-1.7));
         } catch (final ExecutionException | InterruptedException e) {

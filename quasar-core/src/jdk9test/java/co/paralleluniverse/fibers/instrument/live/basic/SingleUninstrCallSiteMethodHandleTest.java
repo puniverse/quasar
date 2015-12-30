@@ -13,19 +13,20 @@
  */
 package co.paralleluniverse.fibers.instrument.live.basic;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
-import org.junit.Test;
-
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.strands.SuspendableCallable;
+import org.junit.Test;
 
+import java.lang.invoke.MethodHandles;
 import java.util.concurrent.ExecutionException;
+
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.*;
 
 /**
  * @author circlespainter
  */
-public class AutoSingleUninstrCallSiteReturnTest {
+public class SingleUninstrCallSiteMethodHandleTest {
     static class F implements SuspendableCallable<Integer> {
         @Override
         // @Suspendable
@@ -33,7 +34,12 @@ public class AutoSingleUninstrCallSiteReturnTest {
             final String s = "ciao";
             System.err.println("Enter run(), calling m(" + s + ")");
             assertThat(s, equalTo("ciao"));
-            final int ret = m(s);
+            final int ret;
+            try {
+                ret = (Integer) MethodHandles.lookup().unreflect(this.getClass().getMethod("m", String.class)).invoke(this, s);
+            } catch (final Throwable e) {
+                throw new RuntimeException(e);
+            }
             System.err.println("Exit run(), called m(" + s + ")");
             assertThat(s, equalTo("ciao"));
             return ret;
@@ -43,7 +49,12 @@ public class AutoSingleUninstrCallSiteReturnTest {
         public int m(String s) {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
-            final int ret = m1(s);
+            final int ret;
+            try {
+                ret = (Integer) MethodHandles.lookup().unreflect(this.getClass().getMethod("m1", String.class)).invoke(this, s);
+            } catch (final Throwable e) {
+                throw new RuntimeException(e);
+            }
             System.err.println("Exit m(" + s + "), called m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
             return ret;
