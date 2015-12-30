@@ -13,15 +13,15 @@
  */
 package co.paralleluniverse.fibers.instrument.live.basic;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
-
+import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
 
-import co.paralleluniverse.fibers.Fiber;
-
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.*;
 
 /**
  * @author circlespainter
@@ -54,11 +54,7 @@ public class AutoSingleUninstrCallSiteParkTest {
         public double m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
-            try {
-                Fiber.sleep(10);
-            } catch (final InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            Fiber.park(10, TimeUnit.MILLISECONDS);
             System.err.println("Exit m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
             return -1.7;
