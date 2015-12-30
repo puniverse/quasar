@@ -101,7 +101,7 @@ public class FixSuspInterfMethod {
                         newDualSuspTCBs.put(lFixSEE, tcb.handler.getLabel());
                     } else if (se) {
                         newDirectSuspTCBs.put(lFixSEE, tcb.handler.getLabel());
-                    } else if (ite) {
+                    } else { // ite
                         newReflectSuspTCBs.put(lFixSEE, tcb.handler.getLabel());
                     }
                 }

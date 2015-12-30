@@ -535,6 +535,7 @@ public class InstrumentMethod {
                 min.accept(mv);                              // we call the yield method
                 if (yieldReturnsValue)
                     mv.visitInsn(Opcodes.POP);               // we ignore the returned value...
+
                 mv.visitLabel(lMethodCalls[i - 1]);          // we resume AFTER the call
 
                 final Label afterPostRestore = new Label();
@@ -804,6 +805,7 @@ public class InstrumentMethod {
                         recordFrameTypeInfo(f, ++suspCount); // 1-based
                         sealFrameTypeInfo(suspCount);
                     } else if (in.getType() == AbstractInsnNode.METHOD_INSN) { // not invokedynamic
+                        //noinspection ConstantConditions
                         final MethodInsnNode min = (MethodInsnNode) in;
                         db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
                         possiblyWarnAboutBlocking(min);
@@ -1085,18 +1087,6 @@ public class InstrumentMethod {
         }
     }
 
-    private void recordFrameTypeInfo(Frame f, int idx) {
-        for (int i = f.getStackSize(); i-- > 0;) {
-            final BasicValue v = (BasicValue) f.getStack(i);
-            FrameTypesKB.addOperandStackType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
-        }
-
-        for (int i = firstLocal; i < f.getLocals(); i++) {
-            final BasicValue v = (BasicValue) f.getLocal(i);
-            FrameTypesKB.addLocalType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
-        }
-    }
-
     private void emitFiberStackPopMethod(MethodVisitor mv) {
 //        emitVerifyInstrumentation(mv);
 
@@ -1170,6 +1160,18 @@ public class InstrumentMethod {
                 } else
                     mv.visitInsn(Opcodes.ACONST_NULL);
             }
+        }
+    }
+
+    private void recordFrameTypeInfo(Frame f, int idx) {
+        for (int i = f.getStackSize(); i-- > 0;) {
+            final BasicValue v = (BasicValue) f.getStack(i);
+            FrameTypesKB.addOperandStackType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
+        }
+
+        for (int i = firstLocal; i < f.getLocals(); i++) {
+            final BasicValue v = (BasicValue) f.getLocal(i);
+            FrameTypesKB.addLocalType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
         }
     }
 
@@ -1320,15 +1322,11 @@ public class InstrumentMethod {
     }
 
     static boolean isOmitted(BasicValue v) {
-        if (v instanceof NewValue)
-            return ((NewValue) v).omitted;
-        return false;
+        return v instanceof NewValue && ((NewValue) v).omitted;
     }
 
     static boolean isNewValue(Value v, boolean dupped) {
-        if (v instanceof NewValue)
-            return ((NewValue) v).isDupped == dupped;
-        return false;
+        return v instanceof NewValue && ((NewValue) v).isDupped == dupped;
     }
 
     private static String getMethodOwner(AbstractInsnNode min) {
@@ -1379,6 +1377,7 @@ public class InstrumentMethod {
     }
 
     // prints a local var
+    /*
     private void println(MethodVisitor mv, String prefix, int refVar) {
         mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "err", "Ljava/io/PrintStream;");
         mv.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
@@ -1398,8 +1397,10 @@ public class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
     }
+    */
 
     // prints the value at the top of the operand stack
+    /*
     private void println(MethodVisitor mv, String prefix) {
         mv.visitInsn(Opcodes.DUP); // S1 S1
 
@@ -1422,4 +1423,5 @@ public class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false); // PrintStream S1
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false); // S1
     }
+    */
 }
