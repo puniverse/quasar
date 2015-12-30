@@ -115,6 +115,7 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                     if (instrumented) {
                         final int type = AbstractInsnNode.METHOD_INSN;
                         if (InstrumentMethod.isSuspendableCall(db, type, opcode, owner, name, desc) &&
+                                !Classes.STACK_NAME.equals(owner) && // postRestore
                                 currLabel != null && currLabel.info instanceof Integer)
                             addLine();
                     }
@@ -127,6 +128,7 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                         final int type = AbstractInsnNode.INVOKE_DYNAMIC_INSN;
                         final int opcode = Opcodes.INVOKEDYNAMIC;
                         if (InstrumentMethod.isSuspendableCall(db, type, opcode, handle.getOwner(), name, desc) &&
+                                !Classes.STACK_NAME.equals(handle.getOwner()) && // postRestore
                                 currLabel != null && currLabel.info instanceof Integer)
                             addLine();
                     }
