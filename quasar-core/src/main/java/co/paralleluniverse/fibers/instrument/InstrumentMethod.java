@@ -44,6 +44,7 @@ package co.paralleluniverse.fibers.instrument;
 // import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.common.util.VisibleForTesting;
+import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.Stack;
 import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
@@ -452,7 +453,7 @@ public class InstrumentMethod {
         for (final Object o : mn.tryCatchBlocks) {
             final TryCatchBlockNode tcb = (TryCatchBlockNode) o;
 
-            if (SUSPEND_EXECUTION_NAME.equals(tcb.type) && !hasAnnotation) // we allow catch of SuspendExecution in method annotated with @Suspendable.
+            if (SUSPEND_EXECUTION_NAME.equals(tcb.type) && !hasAnnotation && !LiveInstrumentation.ACTIVE) // we allow catch of SuspendExecution in method annotated with @Suspendable or if live instrumentation is active.
                 throw new UnableToInstrumentException("catch for SuspendExecution", className, mn.name, mn.desc);
             if (handleProxyInvocations && UNDECLARED_THROWABLE_NAME.equals(tcb.type)) // we allow catch of SuspendExecution in method annotated with @Suspendable.
                 throw new UnableToInstrumentException("catch for UndeclaredThrowableException", className, mn.name, mn.desc);
