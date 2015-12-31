@@ -35,12 +35,19 @@ public final class LiveInstrumentation {
     private static final MethodDatabase db;
 
     private static class ReportRecord {
-        final StackWalker.StackFrame f, upper;
+        final StackWalker.StackFrame f, upper, lower;
         final Verify.CheckFrameInstrumentationReport report;
+        private final boolean lowerInstrumented;
 
-        private ReportRecord(StackWalker.StackFrame f, StackWalker.StackFrame upper, Verify.CheckFrameInstrumentationReport report) {
+        private ReportRecord(
+            StackWalker.StackFrame f,
+            StackWalker.StackFrame upper, StackWalker.StackFrame lower,
+            boolean lowerInstrumented, Verify.CheckFrameInstrumentationReport report
+        ) {
             this.f = f;
             this.upper = upper;
+            this.lower = lower;
+            this.lowerInstrumented = lowerInstrumented;
             this.report = report;
         }
     }
@@ -70,9 +77,11 @@ public final class LiveInstrumentation {
                         final List<ReportRecord> reports = new ArrayList<>();
                         boolean upperFiberRuntime = true, lowerFiberRuntime = false;
                         boolean last = false;
-                        StackWalker.StackFrame upper = null;
+                        Verify.CheckFrameInstrumentationReport report = null;
                         for (int i = 0; i < fs.length; i++) {
                             final StackWalker.StackFrame f = fs[i];
+                            final StackWalker.StackFrame upper = i > 0 ? fs[i-1] : null;
+                            final StackWalker.StackFrame lower = i < fs.length - 1 ? fs[i+1] : null;
 
                             final String cn = f.getClassName();
 
@@ -84,18 +93,21 @@ public final class LiveInstrumentation {
 
                             if (!upperFiberRuntime && !lowerFiberRuntime) {
                                 if (!isReflection(f.getClassName())) { // Skip reflection
-                                    assert upper != null;
+                                    if (report == null)
+                                        report = Verify.checkFrameInstrumentation(fs, i, upper);
 
-                                    final Verify.CheckFrameInstrumentationReport report =
-                                        Verify.checkFrameInstrumentation(fs, i, upper);
+                                    final Verify.CheckFrameInstrumentationReport lowerReport =
+                                        lower != null ? Verify.checkFrameInstrumentation(fs, i + 1, f) : null;
 
-                                    reports.add(new ReportRecord(f, upper, report));
+                                    boolean lowerInstrumented = lower != null && lowerReport.methodInstrumented;
+
+                                    reports.add(new ReportRecord(f, upper, lower, lowerInstrumented, report));
 
                                     last = report.last;
+
+                                    report = lowerReport;
                                 }
                             }
-
-                            upper = f;
 
                             if (last)
                                 break;
@@ -104,9 +116,11 @@ public final class LiveInstrumentation {
                         // 2) Process reports
                         FiberFramePushFull upperFFPF = null;
                         for (final ReportRecord rr : reports) {
-                            upper = rr.upper;
                             final StackWalker.StackFrame f = rr.f;
-                            final Verify.CheckFrameInstrumentationReport report = rr.report;
+                            final StackWalker.StackFrame upper = rr.upper;
+                            final StackWalker.StackFrame lower = rr.lower;
+                            final boolean lowerInstrumented = rr.lowerInstrumented;
+                            report = rr.report;
 
                             final boolean ok = report.isOK();
 
@@ -178,15 +192,13 @@ public final class LiveInstrumentation {
 
                                 // d) Rebuild stack
                                 // The annotation will be correct now
-                                if (upperFFPF != null)
-                                    upperFFPF.setLower(f, report.methodInstrumented);
                                 final Instrumented annFixed =
                                     SuspendableHelper.getAnnotation (
                                         SuspendableHelper9.lookupMethod(cCaller, mnCaller, mtCaller), Instrumented.class
                                     );
                                 if (annFixed != null && !annFixed.methodOptimized()) {
                                     DEBUG("Method is not optimized, creating a fiber stack rebuild record");
-                                    upperFFPF = pushRebuildToDoFull(f, upper, upperFFPF, fiberStackRebuildToDoList);
+                                    upperFFPF = pushRebuildToDoFull(f, upper, upperFFPF, lower, lowerInstrumented, fiberStackRebuildToDoList);
                                 } else {
                                     DEBUG("Method is optimized, creating an optimized fiber stack rebuild record");
                                     fiberStackRebuildToDoList.push(new FiberFramePushOptimized(f));
@@ -275,7 +287,9 @@ public final class LiveInstrumentation {
 
         private int numSlots = -1;
 
-        private FiberFramePushFull(StackWalker.StackFrame sf, StackWalker.StackFrame upper, FiberFramePushFull upperFFPF)
+        private FiberFramePushFull(StackWalker.StackFrame sf, StackWalker.StackFrame upper,
+                                   StackWalker.StackFrame lower, boolean lowerWasInstrumented,
+                                   FiberFramePushFull upperFFPF)
             throws InvocationTargetException, IllegalAccessException
         {
             this.sf = sf;
@@ -290,6 +304,10 @@ public final class LiveInstrumentation {
             this.upperLocals = (Object[]) getLocals.invoke(upper);
             // this.upperOperands = (Object[]) getOperands.invoke(upper);
             this.upperFFPF = upperFFPF;
+
+            this.lower = lower;
+            this.lowerM = SuspendableHelper9.lookupMethod(lower);
+            this.lowerWasInstrumented = lowerWasInstrumented;
 
             this.isYield = Classes.isYieldMethod(upper.getClassName().replace('.', '/'), upper.getMethodName());
         }
@@ -306,15 +324,12 @@ public final class LiveInstrumentation {
         }
 
         public void setLower(StackWalker.StackFrame lower, boolean wasInstrumented) {
-            this.lower = lower;
-            this.lowerM = SuspendableHelper9.lookupMethod(lower);
-            this.lowerWasInstrumented = wasInstrumented;
         }
 
         private void completeInit() {
             final MethodType mt;
             try {
-                mt = (MethodType) getMethodType.invoke(memberName.get(lower));
+                mt = (MethodType) getMethodType.invoke(memberName.get(this.lower));
             } catch (final IllegalAccessException | InvocationTargetException e) {
                 throw new RuntimeException(e);
             }
@@ -373,16 +388,6 @@ public final class LiveInstrumentation {
             DEBUG("\tStatic local types: " + Arrays.toString(tsLocals));
             DEBUG("\tLive locals: " + Arrays.toString(locals));
 
-            if (s.nextMethodEntry() == 0) {
-                DEBUG("\tDone `nextMethodEntry` and got 0, doing `isFirstInStackOrPushed`");
-                s.isFirstInStackOrPushed();
-            }
-
-            // New frame
-            final int slots = getNumSlots(tsOperands, tsLocals);
-            DEBUG("\tDoing `pushMethod(" + lowerSuspCallIdx + ", " + slots + ")`");
-            s.pushMethod(lowerSuspCallIdx, slots);
-
             // Operands and locals (in this order) slot indices
             int idxObj = 0, idxPrim = 0;
 
@@ -419,6 +424,17 @@ public final class LiveInstrumentation {
             DEBUG("\tReflection args count: " + reflectionArgsCount);
             int idxTypes = 0, idxValues = 0;
 
+            if (s.nextMethodEntry() == 0) {
+                DEBUG("\nDone `nextMethodEntry` and got 0, doing `isFirstInStackOrPushed`");
+                s.isFirstInStackOrPushed();
+            }
+
+            // New frame
+            final int slots = getNumSlots(tsOperands, tsLocals);
+            DEBUG("Doing `pushMethod(" + lowerSuspCallIdx + ", " + slots + ")`");
+            s.pushMethod(lowerSuspCallIdx, slots);
+
+            DEBUG("Pushing analyzed pre-call frame operands");
             if (tsOperands != null) {
                 while (idxTypes + reflectionArgsCount < tsOperands.length /* && idxValues < preCallOperands.length */) {
                     final org.objectweb.asm.Type tOperand = tsOperands[idxTypes];
@@ -427,10 +443,13 @@ public final class LiveInstrumentation {
                     if (op != null) {
                         final String tID = type(op);
                         if (!isNullableType(tID)) {
-                            if (primitiveValueClass.isInstance(op))
+                            if (primitiveValueClass.isInstance(op)) {
                                 inc = storePrim(preCallOperands, idxValues, tOperand, s, idxPrim++);
-                            else // if (!(op instanceof Stack)) // Skip stack operands
+                                DEBUG("Pushed primitive in operand slots (" + (inc > 1 ? preCallOperands[idxValues + 1] + ", " :"") + preCallOperands[idxValues] + ") of size " + inc + " and type " + tOperand);
+                            } else { // if (!(op instanceof Stack)) // Skip stack operands
                                 Stack.push(op, s, idxObj++);
+                                DEBUG("Pushed object operand " + op + " of type " + tOperand);
+                            }
                         }
                     }
                     idxValues += inc;
@@ -447,6 +466,7 @@ public final class LiveInstrumentation {
             InstrumentKB.clearFrameOperandStackTypes(cn, mn, md, idx);
 
             // Store local vars, including args, except "this" (present in actual values but not types)
+            DEBUG("Pushing analyzed frame locals");
             idxTypes = 0;
             idxValues = (Modifier.isStatic(m.getModifiers()) ? 0 : 1);
 
@@ -458,16 +478,21 @@ public final class LiveInstrumentation {
                     if (local != null) {
                         final String tID = type(local);
                         if (!isNullableType(tID)) {
-                            if (primitiveValueClass.isInstance(local))
+                            if (primitiveValueClass.isInstance(local)) {
                                 inc = storePrim(locals, idxValues, tLocal, s, idxPrim++);
-                            else // if (!(local instanceof Stack)) { // Skip stack locals
+                                DEBUG("Pushed primitive in local slots (" + (inc > 1 ? locals[idxValues + 1] + ", " :"") + locals[idxValues] + ") of size " + inc + " and type " + tLocal);
+                            } else { // if (!(local instanceof Stack)) { // Skip stack locals
                                 Stack.push(local, s, idxObj++);
+                                DEBUG("Pushed object local " + local + " of type " + tLocal);
+                            }
                         }
                     }
                     idxTypes++;
                     idxValues += inc;
                 }
             }
+
+            DEBUG("");
 
             // Since the potential call to a yield method is in progress already (because live instrumentation is
             // called from all yield methods), we don't need to perform any special magic to preserve its args.
@@ -601,6 +626,7 @@ public final class LiveInstrumentation {
             return 1.4D;
         }
 
+        // TODO: Re-generate
         @Override
         public String toString() {
             return "FiberFramePush{" +
@@ -629,19 +655,22 @@ public final class LiveInstrumentation {
     }
 
     private static boolean isSinglePrimitive(Type t) {
-        return Type.INT_TYPE.equals(t) || Type.SHORT_TYPE.equals(t) || Type.BOOLEAN_TYPE.equals(t) ||
-            Type.CHAR_TYPE.equals(t) || Type.BYTE_TYPE.equals(t) || Type.FLOAT_TYPE.equals(t);
+        return
+            Type.INT_TYPE.equals(t)  || Type.SHORT_TYPE.equals(t) || Type.BOOLEAN_TYPE.equals(t) ||
+            Type.CHAR_TYPE.equals(t) || Type.BYTE_TYPE.equals(t)  || Type.FLOAT_TYPE.equals(t);
     }
 
-    private static LiveInstrumentation.FiberFramePushFull pushRebuildToDoFull (
+    private static LiveInstrumentation.FiberFramePushFull pushRebuildToDoFull(
         StackWalker.StackFrame sf, StackWalker.StackFrame upper, FiberFramePushFull upperFFPF,
-        java.util.Stack<FiberFramePush> todo
+        StackWalker.StackFrame lower, boolean lowerWasInstrumented, java.util.Stack<FiberFramePush> todo
     ) {
         try {
             final FiberFramePushFull ffp =
                 new FiberFramePushFull (
                     sf,
                     upper,
+                    lower,
+                    lowerWasInstrumented,
                     upperFFPF
                 );
             todo.push(ffp);
