@@ -309,8 +309,6 @@ public final class LiveInstrumentation {
             this.lower = lower;
             this.lowerM = SuspendableHelper9.lookupMethod(lower);
             this.lowerWasInstrumented = wasInstrumented;
-
-            completeInit(); // TODO: figure out if it should be done with instrumentation complete (i.e. when applying rather than when redefining)
         }
 
         private void completeInit() {
@@ -325,8 +323,13 @@ public final class LiveInstrumentation {
             if (i != null) {
                 lowerSuspendableCallOffsetsBeforeInstr = i.methodSuspendableCallOffsetsBeforeInstrumentation();
                 lowerSuspendableCallOffsetsAfterInstr = i.methodSuspendableCallOffsetsAfterInstrumentation();
-                if (lowerSuspendableCallOffsetsAfterInstr != null) {
-                    Arrays.sort(lowerSuspendableCallOffsetsAfterInstr);
+                int[] searchIdxIn = null;
+                if (lowerWasInstrumented && lowerSuspendableCallOffsetsAfterInstr != null)
+                    searchIdxIn = Arrays.copyOf(lowerSuspendableCallOffsetsAfterInstr, lowerSuspendableCallOffsetsAfterInstr.length);
+                else if (lowerSuspendableCallOffsetsBeforeInstr != null)
+                    searchIdxIn = Arrays.copyOf(lowerSuspendableCallOffsetsBeforeInstr, lowerSuspendableCallOffsetsBeforeInstr.length);
+                if (searchIdxIn != null) {
+                    Arrays.sort(searchIdxIn);
                     final int bsRes;
                     try {
                         lowerOffset = (int) offset.get(lower); // Actual live offset
@@ -345,6 +348,8 @@ public final class LiveInstrumentation {
          * !!! Must be kept aligned with `InstrumentMethod.emitStoreState` and `Stack.pushXXX` !!!
          */
         public void apply(Stack s) {
+            completeInit(); // TODO: figure out if it should be done with instrumentation complete or when redefining
+
             final String idx = Integer.toString(lowerSuspCallIdx);
             final String cn = sf.getClassName();
             final String mn = sf.getMethodName();
