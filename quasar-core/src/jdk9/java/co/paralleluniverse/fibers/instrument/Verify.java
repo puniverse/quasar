@@ -158,9 +158,8 @@ public final class Verify {
             res.classInstrumented = SuspendableHelper.isInstrumented(declaringClass);
             res.methodInstrumented = SuspendableHelper.isInstrumented(m);
 
-            final Instrumented ann = SuspendableHelper.getAnnotation(m, Instrumented.class);
-            res.ann = ann;
-            res.callSiteInstrumented = ann != null && isCallSiteInstrumented(m, ann, offset, upperStackFrame);
+            res.ann = SuspendableHelper.getAnnotation(m, Instrumented.class);
+            res.callSiteInstrumented = res.ann != null && isCallSiteInstrumented(m, res.ann, offset, upperStackFrame);
 
             if (!res.isOK()) {
                 if (prevOk && optStackTrace != null && optStes != null)
@@ -172,10 +171,11 @@ public final class Verify {
                     else if (!res.callSiteInstrumented)
                         optStackTrace
                             .append(" !! (instrumented suspendable calls at: ")
-                            .append(
-                                res.ann.methodSuspendableCallSourceLines() == null ?
-                                    "[]" : (Arrays.toString(res.ann.methodSuspendableCallSourceLines()) +
-                                            "/" + Arrays.toString(res.ann.methodSuspendableCallOffsetsAfterInstrumentation()))
+                            .append (
+                                res.ann == null ?
+                                    "[]" :
+                                    "[" + (Arrays.toString(res.ann.methodSuspendableCallSourceLines()) +
+                                    "/" + Arrays.toString(res.ann.methodSuspendableCallOffsetsAfterInstrumentation())) + "]"
                             )
                             .append(")");
                 }
