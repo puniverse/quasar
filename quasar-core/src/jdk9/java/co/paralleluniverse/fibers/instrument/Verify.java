@@ -88,6 +88,7 @@ public final class Verify {
         public boolean callSiteInstrumented = true;
         public boolean last = false;
         public Instrumented ann;
+        public Method m;
 
         public boolean isOK() {
             return classInstrumented && methodInstrumented && callSiteInstrumented;
@@ -134,7 +135,7 @@ public final class Verify {
         final StackWalker.StackFrame f = fs[idx];
         final Class<?> declaringClass = f.getDeclaringClass();
         final String className = declaringClass.getName();
-        final Executable m = SuspendableHelper9.lookupMethod(f);
+        final Method m = SuspendableHelper9.lookupMethod(f);
         final String methodName = m.getName();
         final int offset;
         try {
@@ -158,6 +159,7 @@ public final class Verify {
             res.classInstrumented = SuspendableHelper.isInstrumented(declaringClass);
             res.methodInstrumented = SuspendableHelper.isInstrumented(m);
 
+            res.m = m;
             res.ann = SuspendableHelper.getAnnotation(m, Instrumented.class);
             res.callSiteInstrumented = res.ann != null && isCallSiteInstrumented(m, res.ann, offset, upperStackFrame);
 
