@@ -88,10 +88,20 @@ public final class Verify {
         public boolean callSiteInstrumented = true;
         public boolean last = false;
         public Instrumented ann;
-        public Method m;
 
         public boolean isOK() {
             return classInstrumented && methodInstrumented && callSiteInstrumented;
+        }
+
+        @Override
+        public String toString() {
+            return "CheckFrameInstrumentationReport{" +
+                "classInstrumented=" + classInstrumented +
+                ", methodInstrumented=" + methodInstrumented +
+                ", callSiteInstrumented=" + callSiteInstrumented +
+                ", last=" + last +
+                ", ann=" + ann +
+                '}';
         }
     }
 
@@ -136,6 +146,7 @@ public final class Verify {
         final Class<?> declaringClass = f.getDeclaringClass();
         final String className = declaringClass.getName();
         final Method m = SuspendableHelper9.lookupMethod(f);
+        final Verify.CheckFrameInstrumentationReport res = new Verify.CheckFrameInstrumentationReport();
         final String methodName = m.getName();
         final int offset;
         try {
@@ -143,7 +154,6 @@ public final class Verify {
         } catch (final IllegalAccessException e) {
             throw new RuntimeException(e);
         }
-        final Verify.CheckFrameInstrumentationReport res = new Verify.CheckFrameInstrumentationReport();
 
         if (Thread.class.getName().equals(className) && "getStackTrace".equals(methodName) ||
             ExtendedStackTrace.class.getName().equals(className) ||
@@ -159,7 +169,6 @@ public final class Verify {
             res.classInstrumented = SuspendableHelper.isInstrumented(declaringClass);
             res.methodInstrumented = SuspendableHelper.isInstrumented(m);
 
-            res.m = m;
             res.ann = SuspendableHelper.getAnnotation(m, Instrumented.class);
             res.callSiteInstrumented = res.ann != null && isCallSiteInstrumented(m, res.ann, offset, upperStackFrame);
 
