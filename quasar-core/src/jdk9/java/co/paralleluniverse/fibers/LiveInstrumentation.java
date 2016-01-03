@@ -171,7 +171,7 @@ public final class LiveInstrumentation {
                         }
 
                         DEBUG("\n3) Re-instrumenting and creating stack rebuild actions");
-                        FiberFramePushFull upperFFPF = null;
+                        FiberFramePush upperFFP = null;
                         for (final ReportRecord rr : reports) {
                             final StackWalker.StackFrame f = rr.f;
                             final StackWalker.StackFrame upper = rr.upper;
@@ -257,17 +257,19 @@ public final class LiveInstrumentation {
                                     );
                                 if (annFixed != null && !annFixed.methodOptimized()) {
                                     DEBUG("\tMethod is not optimized, creating a fiber stack rebuild record");
-                                    upperFFPF =
+                                    upperFFP =
                                         pushRebuildToDoFull (
                                             f,
                                             upper,
                                             lower,
-                                            upperFFPF,
+                                            upperFFP,
                                             fiberStackRebuildToDoList
                                         );
                                 } else {
                                     DEBUG("\tMethod is optimized, creating an optimized fiber stack rebuild record");
-                                    fiberStackRebuildToDoList.push(new FiberFramePushOptimized(f));
+                                    final FiberFramePushOptimized ffpo = new FiberFramePushOptimized(f);
+                                    fiberStackRebuildToDoList.push(ffpo);
+                                    upperFFP = ffpo;
                                 }
                             } catch (final InvocationTargetException | IllegalAccessException e) {
                                 throw new RuntimeException(e);
@@ -317,67 +319,21 @@ public final class LiveInstrumentation {
         }
     }
 
-    @FunctionalInterface
-    private interface FiberFramePush {
-        void apply(Map<StackWalker.StackFrame, Integer> entries, Stack s);
-    }
+    private abstract static class FiberFramePush {
+        protected final StackWalker.StackFrame f;
+        protected final MethodType mt;
+        protected final Method m;
+        protected final Object[] locals;
+        protected final Object[] operands;
+        protected final int currOffset;
 
-    private static class FiberFramePushOptimized implements FiberFramePush {
-        private final Executable m;
-
-        public FiberFramePushOptimized(StackWalker.StackFrame sf) throws InvocationTargetException, IllegalAccessException {
-            this.m = SuspendableHelper9.lookupMethod(sf);
-        }
-
-        @Override
-        public void apply(Map<StackWalker.StackFrame, Integer> entries, Stack s) {
-            DEBUG("\nFiberFramePushOptimized:");
-            DEBUG("\tFor " + m);
-            DEBUG("\tJust increasing optimized count");
-            s.incOptimizedCount();
-        }
-    }
-
-    private static class FiberFramePushFull implements FiberFramePush {
-        private final StackWalker.StackFrame f;
-        private final MethodType mt;
-        private final Executable m;
-        private final Object[] locals;
-        private final Object[] operands;
-
-        private final Method upperM;
-        private final Object[] upperLocals;
-        private final FiberFramePushFull upperFFPF;
-
-        private final Method lowerM;
-        private final int lowerOffset;
-
-        private final boolean isYield;
-        private final int currOffset;
-
-        private int numSlots = -1;
-
-        private FiberFramePushFull(StackWalker.StackFrame f,
-                                   StackWalker.StackFrame upper,
-                                   StackWalker.StackFrame lower,
-                                   FiberFramePushFull upperFFPF)
-            throws InvocationTargetException, IllegalAccessException
-        {
+        public FiberFramePush(StackWalker.StackFrame f) throws InvocationTargetException, IllegalAccessException {
             this.f = f;
+            this.m = SuspendableHelper9.lookupMethod(f);
             this.mt = (MethodType) getMethodType.invoke(memberName.get(f));
-            this.m = SuspendableHelper9.lookupMethod(f); // Caching it as it's used multiple times
             this.currOffset = (int) offset.get(f);
             this.locals = removeNulls((Object[]) getLocals.invoke(f));
             this.operands = removeNulls((Object[]) getOperands.invoke(f));
-
-            this.upperM = SuspendableHelper9.lookupMethod(upper);
-            this.upperLocals = (Object[]) getLocals.invoke(upper);
-            this.upperFFPF = upperFFPF;
-
-            this.lowerM = SuspendableHelper9.lookupMethod(lower);
-            this.lowerOffset = (Integer) offset.get(lower);
-
-            this.isYield = Classes.isYieldMethod(upper.getClassName().replace('.', '/'), upper.getMethodName());
         }
 
         private static Object[] removeNulls(Object[] os) {
@@ -389,6 +345,54 @@ public final class LiveInstrumentation {
             final Object[] ret = new Object[l.size()];
             l.toArray(ret);
             return ret;
+        }
+
+        abstract void apply(Map<StackWalker.StackFrame, Integer> entries, Stack s);
+    }
+
+    private static class FiberFramePushOptimized extends FiberFramePush {
+
+        public FiberFramePushOptimized(StackWalker.StackFrame sf) throws InvocationTargetException, IllegalAccessException {
+            super(sf);
+        }
+
+        @Override
+        public void apply(Map<StackWalker.StackFrame, Integer> entries, Stack s) {
+            DEBUG("\nFiberFramePushOptimized:");
+            DEBUG("\tFor " + m);
+            DEBUG("\tJust increasing optimized count");
+            s.incOptimizedCount();
+        }
+    }
+
+    private static class FiberFramePushFull extends FiberFramePush {
+        private final Method upperM;
+        private final Object[] upperLocals;
+        private final FiberFramePush upperFFP;
+
+        private final Method lowerM;
+        private final int lowerOffset;
+
+        private final boolean isYield;
+
+        private int numSlots = -1;
+
+        private FiberFramePushFull(StackWalker.StackFrame f,
+                                   StackWalker.StackFrame upper,
+                                   StackWalker.StackFrame lower,
+                                   FiberFramePush upperFFP)
+            throws InvocationTargetException, IllegalAccessException
+        {
+            super(f);
+
+            this.upperM = SuspendableHelper9.lookupMethod(upper);
+            this.upperLocals = (Object[]) getLocals.invoke(upper);
+            this.upperFFP = upperFFP;
+
+            this.lowerM = SuspendableHelper9.lookupMethod(lower);
+            this.lowerOffset = (Integer) offset.get(lower);
+
+            this.isYield = Classes.isYieldMethod(upper.getClassName().replace('.', '/'), upper.getMethodName());
         }
 
         /**
@@ -451,8 +455,6 @@ public final class LiveInstrumentation {
             DEBUG("\tCalling reflection: " + callingReflection);
             final int reflectionArgsCount = callingReflection ? upperM.getParameterCount() + 1 : 0;
             DEBUG("\tReflection args count: " + reflectionArgsCount);
-            int idxTypes = 0, idxValues = 0;
-
             if (s.nextMethodEntry() == 0) {
                 DEBUG("\nDone `nextMethodEntry` and got 0, doing `isFirstInStackOrPushed`");
                 s.isFirstInStackOrPushed();
@@ -463,6 +465,7 @@ public final class LiveInstrumentation {
             DEBUG("Doing `pushMethod(suspCallIdx: " + idx + ", slots: " + slots + ")`");
             s.pushMethod(idx, slots);
 
+            int idxTypes = 0, idxValues = 0;
             if (tsOperands != null) {
                 DEBUG("Pushing analyzed pre-call frame operands");
                 while (idxTypes + reflectionArgsCount < tsOperands.length /* && idxValues < preCallOperands.length */) {
@@ -486,7 +489,7 @@ public final class LiveInstrumentation {
                 }
 
                 if (callingReflection) {
-                    for (final Object o : reconstructReflectionArgs(upperFFPF))
+                    for (final Object o : reconstructReflectionArgs(upperFFP))
                         Stack.push(o, s, idxObj++);
                 }
             }
@@ -533,17 +536,17 @@ public final class LiveInstrumentation {
             // InstrumentKB.clearFrameLocalTypes(cn, mn, md, idx);
         }
 
-        private Iterable<?> reconstructReflectionArgs(FiberFramePushFull upperFFPF) {
-            final boolean isStatic = Modifier.isStatic(upperFFPF.m.getModifiers());
-            final Object target = isStatic ? null : upperFFPF.locals[0];
+        private Iterable<?> reconstructReflectionArgs(FiberFramePush upperFFP) {
+            final boolean isStatic = Modifier.isStatic(upperFFP.m.getModifiers());
+            final Object target = isStatic ? null : upperFFP.locals[0];
             final List<Object> methodArgs = new ArrayList<>();
             int idx = isStatic ? 0 : 1;
-            for (int i = 0 ; i < upperFFPF.m.getParameterCount() ; i++) {
-                methodArgs.add(upperFFPF.locals[idx]);
+            for (int i = 0 ; i < upperFFP.m.getParameterCount() ; i++) {
+                methodArgs.add(upperFFP.locals[idx]);
                 idx++;
             }
             final List<Object> pushArgs = new ArrayList<>();
-            pushArgs.add(upperFFPF.m);
+            pushArgs.add(upperFFP.m);
             pushArgs.add(target);
             pushArgs.add(methodArgs.toArray());
             return pushArgs;
@@ -679,7 +682,7 @@ public final class LiveInstrumentation {
         StackWalker.StackFrame f,
         StackWalker.StackFrame upper,
         StackWalker.StackFrame lower,
-        FiberFramePushFull upperFFPF,
+        FiberFramePush upperFFP,
         java.util.Stack<FiberFramePush> todo
     ) {
         try {
@@ -688,7 +691,7 @@ public final class LiveInstrumentation {
                     f,
                     upper,
                     lower,
-                    upperFFPF
+                    upperFFP
                 );
             todo.push(ffp);
             return ffp;
