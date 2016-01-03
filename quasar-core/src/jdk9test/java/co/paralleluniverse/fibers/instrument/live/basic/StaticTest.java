@@ -13,20 +13,19 @@
  */
 package co.paralleluniverse.fibers.instrument.live.basic;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
-
+import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
 
-import co.paralleluniverse.fibers.Fiber;
-
 import java.util.concurrent.ExecutionException;
+
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.*;
 
 /**
  * @author circlespainter
  */
-public class SingleUninstrCallSiteTest {
+public class StaticTest {
     static class F implements SuspendableCallable<Double> {
         @Override
         // @Suspendable
@@ -41,7 +40,7 @@ public class SingleUninstrCallSiteTest {
         }
 
         // @Suspendable
-        public double m(String s) {
+        public static double m(String s) {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
             final double ret = m1(s);
@@ -51,7 +50,7 @@ public class SingleUninstrCallSiteTest {
         }
 
         // @Suspendable
-        public double m1(String s) {
+        public static double m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
             try {

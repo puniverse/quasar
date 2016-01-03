@@ -25,7 +25,7 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public class SingleUninstrCallSiteArgsTest {
+public class ArgsTest {
     static class F implements SuspendableCallable<Integer> {
         @Override
         // @Suspendable

@@ -13,20 +13,19 @@
  */
 package co.paralleluniverse.fibers.instrument.live.basic;
 
-import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.strands.SuspendableCallable;
-import org.junit.Test;
-
-import java.lang.reflect.InvocationTargetException;
-import java.util.concurrent.ExecutionException;
-
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
+import org.junit.Test;
+
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.strands.SuspendableCallable;
+
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author circlespainter
  */
-public class SingleUninstrCallSiteReflectionTest {
+public class ReturnTest {
     static class F implements SuspendableCallable<Integer> {
         @Override
         // @Suspendable
@@ -34,12 +33,7 @@ public class SingleUninstrCallSiteReflectionTest {
             final String s = "ciao";
             System.err.println("Enter run(), calling m(" + s + ")");
             assertThat(s, equalTo("ciao"));
-            final int ret;
-            try {
-                ret = (Integer) this.getClass().getMethod("m", String.class).invoke(this, s);
-            } catch (final IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                throw new RuntimeException(e);
-            }
+            final int ret = m(s);
             System.err.println("Exit run(), called m(" + s + ")");
             assertThat(s, equalTo("ciao"));
             return ret;
@@ -49,12 +43,7 @@ public class SingleUninstrCallSiteReflectionTest {
         public int m(String s) {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
-            final int ret;
-            try {
-                ret = (Integer) this.getClass().getMethod("m1", String.class).invoke(this, s);
-            } catch (final IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                throw new RuntimeException(e);
-            }
+            final int ret = m1(s);
             System.err.println("Exit m(" + s + "), called m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
             return ret;

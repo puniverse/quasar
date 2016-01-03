@@ -25,18 +25,20 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public class SingleUninstrCallSiteStaticTest {
+public class MultipleIdenticalCallSitesTest {
     static class F implements SuspendableCallable<Double> {
         @Override
         // @Suspendable
         public Double run() throws InterruptedException {
             final String s = "ciao";
-            System.err.println("Enter run(), calling m(" + s + ")");
-            assertThat(s, equalTo("ciao"));
+            System.err.println("Enter run(), calling m(" + s + ") twice");
             final double ret = m(s);
-            System.err.println("Exit run(), called m(" + s + ")");
             assertThat(s, equalTo("ciao"));
-            return ret;
+            final double ret1 = m(s);
+            assertThat(ret, equalTo(-3.4));
+            assertThat(s, equalTo("ciao"));
+            System.err.println("Exit run(), called m(" + s + ")");
+            return ret + ret1;
         }
 
         // @Suspendable
@@ -44,12 +46,16 @@ public class SingleUninstrCallSiteStaticTest {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
             final double ret = m1(s);
-            System.err.println("Exit m(" + s + "), called m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
-            return ret;
+            final double ret1 = m1(s);
+            System.err.println("Exit m(" + s + "), called m1(" + s + ")");
+            assertThat(ret, equalTo(-1.7));
+            assertThat(s, equalTo("ciao"));
+            return ret + ret1;
         }
 
         // @Suspendable
+
         public static double m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
@@ -67,7 +73,7 @@ public class SingleUninstrCallSiteStaticTest {
     @Test public void test() {
         final Fiber<Double> f1 = new Fiber<>(new F()).start();
         try {
-            assertThat(f1.get(), equalTo(-1.7));
+            assertThat(f1.get(), equalTo(-6.8));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -75,7 +81,7 @@ public class SingleUninstrCallSiteStaticTest {
 
         final Fiber<Double> f2 = new Fiber<>(new F()).start();
         try {
-            assertThat(f2.get(), equalTo(-1.7));
+            assertThat(f2.get(), equalTo(-6.8));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
