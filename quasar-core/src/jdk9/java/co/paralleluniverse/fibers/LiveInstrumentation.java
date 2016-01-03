@@ -106,7 +106,11 @@ public final class LiveInstrumentation {
                                     last = report.last;
 
                                     report = lowerReport;
+                                } else {
+                                    report = null; // Skipping lower => stale
                                 }
+                            } else {
+                                report = null; // Skipping lower => stale
                             }
 
                             if (last)
@@ -323,9 +327,6 @@ public final class LiveInstrumentation {
             return ret;
         }
 
-        public void setLower(StackWalker.StackFrame lower, boolean wasInstrumented) {
-        }
-
         private void completeInit() {
             final MethodType mt;
             try {
@@ -445,10 +446,10 @@ public final class LiveInstrumentation {
                         if (!isNullableType(tID)) {
                             if (primitiveValueClass.isInstance(op)) {
                                 inc = storePrim(preCallOperands, idxValues, tOperand, s, idxPrim++);
-                                DEBUG("Pushed primitive in operand slots (" + (inc > 1 ? preCallOperands[idxValues + 1] + ", " :"") + preCallOperands[idxValues] + ") of size " + inc + " and type " + tOperand);
+                                DEBUG("\tPushed primitive in operand slots (" + (inc > 1 ? preCallOperands[idxValues + 1] + ", " :"") + preCallOperands[idxValues] + ") of size " + inc + " and type " + tOperand);
                             } else { // if (!(op instanceof Stack)) // Skip stack operands
                                 Stack.push(op, s, idxObj++);
-                                DEBUG("Pushed object operand " + op + " of type " + tOperand);
+                                DEBUG("\tPushed object operand " + op + " of type " + tOperand);
                             }
                         }
                     }
@@ -480,10 +481,10 @@ public final class LiveInstrumentation {
                         if (!isNullableType(tID)) {
                             if (primitiveValueClass.isInstance(local)) {
                                 inc = storePrim(locals, idxValues, tLocal, s, idxPrim++);
-                                DEBUG("Pushed primitive in local slots (" + (inc > 1 ? locals[idxValues + 1] + ", " :"") + locals[idxValues] + ") of size " + inc + " and type " + tLocal);
+                                DEBUG("\tPushed primitive in local slots (" + (inc > 1 ? locals[idxValues + 1] + ", " :"") + locals[idxValues] + ") of size " + inc + " and type " + tLocal);
                             } else { // if (!(local instanceof Stack)) { // Skip stack locals
                                 Stack.push(local, s, idxObj++);
-                                DEBUG("Pushed object local " + local + " of type " + tLocal);
+                                DEBUG("\tPushed object local " + local + " of type " + tLocal);
                             }
                         }
                     }
