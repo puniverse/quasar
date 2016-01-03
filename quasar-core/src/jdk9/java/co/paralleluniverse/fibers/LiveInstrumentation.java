@@ -185,10 +185,6 @@ public final class LiveInstrumentation {
                             InstrumentKB.askFrameTypesRecording(cn);
 
                             // c) Re-instrument
-                            final boolean accessible = SuspendableHelper9.lookupMethod (
-                                rr.f.getDeclaringClass(), rr.f.getMethodName(),
-                                (MethodType) getMethodType.invoke(memberName.get(rr.f))
-                            ).isAccessible();
                             DEBUG("\tReloading class " + cn + " from original classloader");
                             try (final InputStream is = cCaller.getResourceAsStream("/" + cn.replace(".", "/") + ".class")) {
                                 if (is != null) { // For some JDK dynamic classes it can be
@@ -201,13 +197,6 @@ public final class LiveInstrumentation {
                             } catch (final IOException e) {
                                 throw new RuntimeException(e);
                             }
-                            final Method updatedM =
-                                SuspendableHelper9.lookupMethod (
-                                    rr.f.getDeclaringClass(), rr.f.getMethodName(),
-                                    (MethodType) getMethodType.invoke(memberName.get(rr.f))
-                                );
-                            DEBUG("\tRestoring accessibility (" + accessible + ") for redefined method " + updatedM);
-                            updatedM.setAccessible(accessible);
                         }
 
                         DEBUG("\n4) Calculating suspendable call indexes");
