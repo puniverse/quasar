@@ -17,6 +17,7 @@ import co.paralleluniverse.common.reflection.ReflectionUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.common.util.VisibleForTesting;
+import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.WorkListEntry;
 
 import java.io.*;
@@ -110,12 +111,14 @@ public final class QuasarInstrumentor {
             // cv1 = new TraceClassVisitor(cv, new PrintWriter(System.err));
         }
 
-        // Phase 2, record suspendable call offsets pre-instrumentation, event API is enough (read-only)
-        final OffsetClassReader r2 = new OffsetClassReader(transformed);
-        final ClassWriter cw2 = new ClassWriter(r2, 0);
-        final SuspOffsetsBeforeInstrClassVisitor ic2 = new SuspOffsetsBeforeInstrClassVisitor(cw2, db);
-        r2.accept(ic2, 0);
-        transformed = cw2.toByteArray(); // Class not really touched, just convenience
+        if (LiveInstrumentation.ACTIVE) {
+            // Phase 2, record suspendable call offsets pre-instrumentation, event API is enough (read-only)
+            final OffsetClassReader r2 = new OffsetClassReader(transformed);
+            final ClassWriter cw2 = new ClassWriter(r2, 0);
+            final SuspOffsetsBeforeInstrClassVisitor ic2 = new SuspOffsetsBeforeInstrClassVisitor(cw2, db);
+            r2.accept(ic2, 0);
+            transformed = cw2.toByteArray(); // Class not really touched, just convenience
+        }
 
         // Phase 3, instrument, tree API
         final ClassReader r3 = new ClassReader(transformed);
