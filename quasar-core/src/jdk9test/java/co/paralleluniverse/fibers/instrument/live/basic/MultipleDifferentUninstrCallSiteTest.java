@@ -26,52 +26,52 @@ import static org.junit.Assert.*;
  * @author circlespainter
  */
 public class MultipleDifferentUninstrCallSiteTest {
-    static class F implements SuspendableCallable<Double> {
+    static class F implements SuspendableCallable<Integer> {
         @Override
         // @Suspendable
-        public Double run() throws InterruptedException {
+        public Integer run() throws InterruptedException {
             final String s = "ciao";
             System.err.println("Enter run(), calling m(" + s + ") and mm(" + s + ")");
-            final double ret = m(s);
+            final int ret = m(s);
             assertThat(s, equalTo("ciao"));
-            final double ret1 = mm(s);
+            final int ret1 = mm(s);
             System.err.println("Exit run(), called m(" + s + ") and mm(" + s + "), returning " + ret + " + " + ret1 + " = " + (ret + ret1));
             assertThat(s, equalTo("ciao"));
-            assertThat(ret, equalTo(2.8));
-            assertThat(ret1, equalTo(2.8));
+            assertThat(ret, equalTo(2));
+            assertThat(ret1, equalTo(2));
             return ret + ret1;
         }
 
         // @Suspendable
-        public static double m(String s) {
+        public static int m(String s) {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ") and mm1(" + s + ")");
             assertThat(s, equalTo("ciao"));
-            final double ret = m1(s);
+            final int ret = m1(s);
             assertThat(s, equalTo("ciao"));
-            final double ret1 = mm1(s);
+            final int ret1 = mm1(s);
             System.err.println("Exit m(" + s + "), called m1(" + s + ") and mm1(" + s + "), returning " + ret + " + " + ret1 + " = " + (ret + ret1));
             assertThat(s, equalTo("ciao"));
-            assertThat(ret, equalTo(1.4));
-            assertThat(ret1, equalTo(1.4));
+            assertThat(ret, equalTo(1));
+            assertThat(ret1, equalTo(1));
             return ret + ret1;
         }
 
         // @Suspendable
-        public static double mm(String s) {
+        public static int mm(String s) {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ") and mm1(" + s + ")");
             assertThat(s, equalTo("ciao"));
-            final double ret = m1(s);
+            final int ret = m1(s);
             assertThat(s, equalTo("ciao"));
-            final double ret1 = mm1(s);
+            final int ret1 = mm1(s);
             System.err.println("Exit m(" + s + "), called m1(" + s + ") and mm1(" + s + "), returning " + ret + " + " + ret1 + " = " + (ret + ret1));
             assertThat(s, equalTo("ciao"));
-            assertThat(ret, equalTo(1.4));
-            assertThat(ret1, equalTo(1.4));
+            assertThat(ret, equalTo(1));
+            assertThat(ret1, equalTo(1));
             return ret + ret1;
         }
 
         // @Suspendable
-        public static double m1(String s) {
+        public static int m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
             try {
@@ -81,11 +81,11 @@ public class MultipleDifferentUninstrCallSiteTest {
             }
             System.err.println("Exit m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
-            return 1.4;
+            return 1;
         }
 
         // @Suspendable
-        public static double mm1(String s) {
+        public static int mm1(String s) {
             System.err.println("Enter mm1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
             try {
@@ -95,22 +95,22 @@ public class MultipleDifferentUninstrCallSiteTest {
             }
             System.err.println("Exit mm1(" + s + ")");
             assertThat(s, equalTo("ciao"));
-            return 1.4;
+            return 1;
         }
     }
 
     @Test public void test() {
-        final Fiber<Double> f1 = new Fiber<>(new F()).start();
+        final Fiber<Integer> f1 = new Fiber<>(new F()).start();
         try {
-            assertThat(f1.get(), equalTo(5.6));
+            assertThat(f1.get(), equalTo(4));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
 
-        final Fiber<Double> f2 = new Fiber<>(new F()).start();
+        final Fiber<Integer> f2 = new Fiber<>(new F()).start();
         try {
-            assertThat(f2.get(), equalTo(5.6));
+            assertThat(f2.get(), equalTo(4));
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
