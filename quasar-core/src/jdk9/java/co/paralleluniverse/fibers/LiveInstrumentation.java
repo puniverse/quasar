@@ -150,6 +150,7 @@ public final class LiveInstrumentation {
                         }
 
                         DEBUG("\n3) Re-instrumenting");
+                        final Set<Class<?>> redefines = new HashSet<>();
                         for (final ReportRecord rr : reports) {
                             final StackWalker.StackFrame f = rr.f;
                             final Verify.CheckFrameInstrumentationReport report = rr.report;
@@ -183,14 +184,17 @@ public final class LiveInstrumentation {
                             }
 
                             InstrumentKB.askFrameTypesRecording(cn);
-
+                            redefines.add(cCaller);
+                        }
+                        for (final Class<?> c : redefines) {
+                            final String cn = c.getName();
                             // c) Re-instrument
                             DEBUG("\tReloading class " + cn + " from original classloader");
-                            try (final InputStream is = cCaller.getResourceAsStream("/" + cn.replace(".", "/") + ".class")) {
+                            try (final InputStream is = c.getResourceAsStream("/" + cn.replace(".", "/") + ".class")) {
                                 if (is != null) { // For some JDK dynamic classes it can be
                                     DEBUG("\tRedefining => Quasar instrumentation with fixed suspendable info and frame type info will occur");
                                     final byte[] diskData = ByteStreams.toByteArray(is);
-                                    Retransform.redefine(new ClassDefinition(cCaller, diskData));
+                                    Retransform.redefine(new ClassDefinition(c, diskData));
                                 } else {
                                     DEBUG("\tClass source stream not found, not reloading");
                                 }
