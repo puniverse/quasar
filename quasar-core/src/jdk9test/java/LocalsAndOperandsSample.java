@@ -68,6 +68,7 @@ public class LocalsAndOperandsSample {
         final Set<StackWalker.Option> s = new HashSet<>();
         s.add(StackWalker.Option.RETAIN_CLASS_REFERENCE);
         s.add(StackWalker.Option.SHOW_REFLECT_FRAMES);
+        s.add(StackWalker.Option.SHOW_HIDDEN_FRAMES);
         final Field f = extendedOptionClass.getDeclaredField("LOCALS_AND_OPERANDS");
         f.setAccessible(true);
         final StackWalker esw = (StackWalker) ewsNI.invoke(null, s, f.get(null));
