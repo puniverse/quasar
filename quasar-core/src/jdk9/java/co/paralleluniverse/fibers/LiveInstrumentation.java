@@ -103,7 +103,7 @@ public final class LiveInstrumentation {
 
         checkCaps();
 
-        // TODO: improve perf
+        // TODO: 1) reduce garbage, 2) make faster
 
         // 0)
         final StackWalker.StackFrame[] fs = getStackFrames();
