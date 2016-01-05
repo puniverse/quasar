@@ -484,29 +484,39 @@ public final class LiveInstrumentation {
             DEBUG("\t\tFrame method \"" + m + "\":");
             DEBUG("\t\t\tCalled at offset " + lowerOffset + " of: " + lowerM);
             DEBUG("\t\t\tCalling at offset " + currOffset + ": " + upperM + " (yield = " + isYield + ")");
-            DEBUG("\t\tStatic operands types:");
+            DEBUG("\t\tFrame operands types from instrumentation:");
             int i = 1;
+            boolean found = false;
             org.objectweb.asm.Type[] tsTmp;
             do {
                 final String iStr = Integer.toString(i);
                 tsTmp = LiveInstrumentationKB.getFrameOperandStackTypes(cn, mn, md, iStr);
-                if (tsTmp != null)
+                if (tsTmp != null) {
+                    found = true;
                     DEBUG("\t\t\t" + iStr + ": " + Arrays.toString(tsTmp));
+                }
                 i++;
             } while (tsTmp != null);
+            if (!found)
+                DEBUG("\t\t\t<none>");
             DEBUG("\t\tLive operands: " + Arrays.toString(operands));
             DEBUG("\t\tUpper locals: " + Arrays.toString(upperLocals));
-            DEBUG("\t\tStatic local types of all call sites:");
+            DEBUG("\t\tFrame locals types from instrumentation:");
             i = 1;
+            found = false;
             do {
                 final String iStr = Integer.toString(i);
                 tsTmp = LiveInstrumentationKB.getFrameLocalTypes(cn, mn, md, iStr);
-                if (tsTmp != null)
+                if (tsTmp != null) {
+                    found = true;
                     DEBUG("\t\t\t" + iStr + ": " + Arrays.toString(tsTmp));
+                }
                 i++;
             } while (tsTmp != null);
+            if (!found)
+                DEBUG("\t\t\t<none>");
             DEBUG("\t\tLive locals: " + Arrays.toString(locals));
-            DEBUG("\t\t**Suspendable call index**: " + idx);
+            DEBUG("\t\tSuspendable call index: " + idx);
 
             // Operands and locals (in this order) slot indices
             int idxObj = 0, idxPrim = 0;
@@ -523,8 +533,6 @@ public final class LiveInstrumentation {
             // Attempt 2: recover them from the upper frame. Note: their value might have changed but not their
             // number, and the value doesn't matter a lot as per above.
             // ************************************************************************************************
-
-            // TODO: operands corresponding to args of reflective calls don't correspond to real args
 
             // Recover shifted-up stack operands
             final int shiftedUpOperandsCount = countArgsAsJVMSingleSlots(upperM);
@@ -591,7 +599,7 @@ public final class LiveInstrumentation {
             idxValues = (Modifier.isStatic(m.getModifiers()) ? 0 : 1);
 
             if (tsLocals != null) {
-                DEBUG("\tPushing analyzed frame locals:");
+                DEBUG("\t\tPushing analyzed frame locals:");
                 while (idxTypes < tsLocals.length /* && idxValues < locals.length */) {
                     final Object local = locals[idxValues];
                     final org.objectweb.asm.Type tLocal = tsLocals[idxTypes];
