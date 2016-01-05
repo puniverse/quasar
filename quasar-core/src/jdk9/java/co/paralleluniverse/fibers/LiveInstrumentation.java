@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.util.SystemProperties;
+import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.fibers.instrument.*;
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
@@ -26,6 +27,7 @@ import java.lang.instrument.ClassDefinition;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -34,6 +36,19 @@ import java.util.stream.Collectors;
  * @author circlespainter
  */
 public final class LiveInstrumentation {
+
+    private static final AtomicInteger runCount = new AtomicInteger();
+
+    @VisibleForTesting
+    public static int getRunCount() {
+        return runCount.get();
+    }
+
+    @VisibleForTesting
+    public static void resetRunCount() {
+        runCount.set(0);
+    }
+
     private static class ReportRecord {
         final StackWalker.StackFrame f, upper, lower;
         final Verify.CheckFrameInstrumentationReport report;
