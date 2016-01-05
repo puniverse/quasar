@@ -303,8 +303,9 @@ public final class LiveInstrumentation {
             methodToInvolvedCallSiteOffsets.put(getMethodId(rr.f), c);
         }
         for (final ReportRecord rr : reports) {
-            final List<Integer> l = new ArrayList<>(methodToInvolvedCallSiteOffsets.get(getMethodId(rr.f)));
-            Collections.sort(new ArrayList<>(new HashSet<>(l)));
+            List<Integer> l = new ArrayList<>(methodToInvolvedCallSiteOffsets.get(getMethodId(rr.f)));
+            l = new ArrayList<>(new HashSet<>(l));
+            Collections.sort(l);
             methodToInvolvedCallSiteOffsets.put(getMethodId(rr.f), l);
         }
         DEBUG("\tPer-method suspendable call site offsets (pre-call + current live frame offsets, sorted):");
