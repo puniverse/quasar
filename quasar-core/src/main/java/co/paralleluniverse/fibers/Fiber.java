@@ -1758,7 +1758,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     protected final boolean isRecordingLevel(int level) {
         if (!Debug.isDebug())
             return false;
-        final FlightRecorder.ThreadRecorder recorder = flightRecorder.get();
+        final FlightRecorder.ThreadRecorder recorder = flightRecorder != null ? flightRecorder.get() : null;
         if (recorder == null)
             return false;
         return recorder.recordsLevel(level);
