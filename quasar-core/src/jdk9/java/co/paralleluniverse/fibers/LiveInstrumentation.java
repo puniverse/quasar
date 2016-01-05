@@ -634,6 +634,8 @@ public final class LiveInstrumentation {
                 idx++;
             }
             final List<Object> pushArgs = new ArrayList<>();
+            upperFFP.m.setAccessible(true);
+            // TODO: change the line below with `pushArgs.add(upperLocals[0])` (actual Method instance) and remove line above when the "no locals" issue is fixed
             pushArgs.add(upperFFP.m);
             pushArgs.add(target);
             pushArgs.add(methodArgs.toArray());
