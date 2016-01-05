@@ -558,19 +558,21 @@ public final class LiveInstrumentation {
             final int reflectionArgsCount = callingReflection ? upperM.getParameterCount() + 1 : 0;
             DEBUG("\t\tReflection args count: " + reflectionArgsCount);
 
+            DEBUG("\tActions:");
+
             if (s.nextMethodEntry() == 0) {
-                DEBUG("\tDone `nextMethodEntry` and got 0, doing `isFirstInStackOrPushed`");
+                DEBUG("\t\tDone `nextMethodEntry` and got 0, doing `isFirstInStackOrPushed`");
                 s.isFirstInStackOrPushed();
             }
 
             // New frame
             final int slots = getNumSlots(tsOperands, tsLocals);
-            DEBUG("\tDoing `pushMethod(suspCallIdx: " + idx + ", slots: " + slots + ")`");
+            DEBUG("\t\tDoing `pushMethod(suspCallIdx: " + idx + ", slots: " + slots + ")`");
             s.pushMethod(idx, slots);
 
             int idxTypes = 0, idxValues = 0;
             if (tsOperands != null) {
-                DEBUG("\tPushing analyzed pre-call frame operands:");
+                DEBUG("\t\tPushing analyzed pre-call frame operands:");
                 while (idxTypes + reflectionArgsCount < tsOperands.length /* && idxValues < preCallOperands.length */) {
                     final org.objectweb.asm.Type tOperand = tsOperands[idxTypes];
                     int inc = 1;
