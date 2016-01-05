@@ -253,7 +253,7 @@ public final class LiveInstrumentation {
                 }
             }
 
-            InstrumentKB.askFrameTypesRecording(cn);
+            LiveInstrumentationKB.askFrameTypesRecording(cn);
             redefines.add(cCaller);
         }
         for (final Class<?> c : redefines) {
@@ -478,8 +478,8 @@ public final class LiveInstrumentation {
             final String mn = f.getMethodName();
             final String md = mt.toMethodDescriptorString();
 
-            final org.objectweb.asm.Type[] tsOperands = InstrumentKB.getFrameOperandStackTypes(cn, mn, md, idxS);
-            final org.objectweb.asm.Type[] tsLocals = InstrumentKB.getFrameLocalTypes(cn, mn, md, idxS);
+            final org.objectweb.asm.Type[] tsOperands = LiveInstrumentationKB.getFrameOperandStackTypes(cn, mn, md, idxS);
+            final org.objectweb.asm.Type[] tsLocals = LiveInstrumentationKB.getFrameLocalTypes(cn, mn, md, idxS);
 
             DEBUG("\t\tFrame method \"" + m + "\":");
             DEBUG("\t\t\tCalled at offset " + lowerOffset + " of: " + lowerM);
@@ -489,7 +489,7 @@ public final class LiveInstrumentation {
             org.objectweb.asm.Type[] tsTmp;
             do {
                 final String iStr = Integer.toString(i);
-                tsTmp = InstrumentKB.getFrameOperandStackTypes(cn, mn, md, iStr);
+                tsTmp = LiveInstrumentationKB.getFrameOperandStackTypes(cn, mn, md, iStr);
                 if (tsTmp != null)
                     DEBUG("\t\t\t" + iStr + ": " + Arrays.toString(tsTmp));
                 i++;
@@ -500,7 +500,7 @@ public final class LiveInstrumentation {
             i = 1;
             do {
                 final String iStr = Integer.toString(i);
-                tsTmp = InstrumentKB.getFrameLocalTypes(cn, mn, md, iStr);
+                tsTmp = LiveInstrumentationKB.getFrameLocalTypes(cn, mn, md, iStr);
                 if (tsTmp != null)
                     DEBUG("\t\t\t" + iStr + ": " + Arrays.toString(tsTmp));
                 i++;
@@ -584,7 +584,7 @@ public final class LiveInstrumentation {
 
             // TODO: Do it at the end of the whole process, in recursive cases this info is still needed afterwards
             // Cleanup some tmp mem
-            // InstrumentKB.clearFrameOperandStackTypes(cn, mn, md, idx);
+            // LiveInstrumentationKB.clearFrameOperandStackTypes(cn, mn, md, idx);
 
             // Store local vars, including args, except "this" (present in actual values but not types)
             idxTypes = 0;
@@ -621,7 +621,7 @@ public final class LiveInstrumentation {
 
             // TODO: Do it at the end of the whole process, in recursive cases this info is still needed afterwards
             // Cleanup some tmp mem
-            // InstrumentKB.clearFrameLocalTypes(cn, mn, md, idx);
+            // LiveInstrumentationKB.clearFrameLocalTypes(cn, mn, md, idx);
         }
 
         private Iterable<?> reconstructReflectionArgs(FiberFramePush upperFFP) {

@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author circlespainter
  */
-public final class InstrumentKB {
+public final class LiveInstrumentationKB {
     ///////////////////////////////////////////////////////////////////////////
     // Temporary information used during agent-time and/or live instrumentation
     ///////////////////////////////////////////////////////////////////////////
@@ -79,7 +79,8 @@ public final class InstrumentKB {
     }
 
     public static void askFrameTypesRecording(String className) {
-        frameTypesAskedClasses.add(className.replace('.', '/'));
+        if (LiveInstrumentation.ACTIVE)
+            frameTypesAskedClasses.add(className.replace('.', '/'));
     }
 
     private static boolean askedFrameTypesRecording(String className) {
@@ -130,17 +131,17 @@ public final class InstrumentKB {
 
 
     private static final Map<String, int[]> methodPreInstrOffsetsCache = new ConcurrentHashMap<>();
-    private static final int[] EMPTY_INT_ARRAY = new int[0];
 
     public static void setMethodPreInstrumentationOffsets(String className, String name, String desc, int[] offsets) {
-        final String id = getPreInstrOffsetsCacheMethodId(className, name, desc);
-        methodPreInstrOffsetsCache.put(id, offsets);
+        if (LiveInstrumentation.ACTIVE) {
+            final String id = getPreInstrOffsetsCacheMethodId(className, name, desc);
+            methodPreInstrOffsetsCache.put(id, offsets);
+        }
     }
 
     public static int[] getMethodPreInstrumentationOffsets(String className, String name, String desc) {
         final String id = getPreInstrOffsetsCacheMethodId(className, name, desc);
-        final int[] ret = methodPreInstrOffsetsCache.get(id);
-        return ret == null ? EMPTY_INT_ARRAY : ret;
+        return methodPreInstrOffsetsCache.get(id);
     }
 
     public static int[] removeMethodPreInstrumentationOffsets(String className, String name, String desc) {
@@ -149,5 +150,35 @@ public final class InstrumentKB {
     }
 
 
-    private InstrumentKB(){}
+    private static final Map<String, Boolean> classNameToAOTFlag = new ConcurrentHashMap<>();
+
+    public static void instrumenting(String className) {
+        if (LiveInstrumentation.ACTIVE) {
+            final String cn = className.replace('.', '/');
+            final Boolean isAOT = classNameToAOTFlag.get(cn);
+            if (isAOT == null)
+                classNameToAOTFlag.put(className, false);
+        }
+    }
+
+    public static void alreadyInstrumented(String className) {
+        if (LiveInstrumentation.ACTIVE) {
+            final String cn = className.replace('.', '/');
+            final Boolean isAOT = classNameToAOTFlag.get(cn);
+            if (isAOT == null)
+                classNameToAOTFlag.put(className, true);
+        }
+    }
+
+    public static boolean isAOTInstrumented(Class<?> c /* `Class` rather than `String` in order to force loading */) {
+        final String cn = c.getName().replace('.', '/');
+        final Boolean isAOT = classNameToAOTFlag.get(cn);
+        return isAOT != null && isAOT;
+    }
+
+    public static boolean clearAOTInfo(String className) {
+        return classNameToAOTFlag.remove(className.replace('.', '/'));
+    }
+
+    private LiveInstrumentationKB(){}
 }

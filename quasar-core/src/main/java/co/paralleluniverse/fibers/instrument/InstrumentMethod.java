@@ -1146,8 +1146,8 @@ public class InstrumentMethod {
     }
 
     private void sealFrameTypeInfo(int idx) {
-        InstrumentKB.sealFrameOperandStackTypes(className, mn.name, mn.desc, Integer.toString(idx));
-        InstrumentKB.sealFrameLocalTypes(className, mn.name, mn.desc, Integer.toString(idx));
+        LiveInstrumentationKB.sealFrameOperandStackTypes(className, mn.name, mn.desc, Integer.toString(idx));
+        LiveInstrumentationKB.sealFrameLocalTypes(className, mn.name, mn.desc, Integer.toString(idx));
     }
 
     private void emitFiberStackStoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsToPutBackToOperandStackAfterStore) {
@@ -1209,12 +1209,12 @@ public class InstrumentMethod {
     private void recordFrameTypeInfo(Frame f, int idx) {
         for (int i = f.getStackSize(); i-- > 0;) {
             final BasicValue v = (BasicValue) f.getStack(i);
-            InstrumentKB.addFrameOperandStackType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
+            LiveInstrumentationKB.addFrameOperandStackType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
         }
 
         for (int i = firstLocal; i < f.getLocals(); i++) {
             final BasicValue v = (BasicValue) f.getLocal(i);
-            InstrumentKB.addFrameLocalType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
+            LiveInstrumentationKB.addFrameLocalType(className, mn.name, mn.desc, Integer.toString(idx), v.getType());
         }
     }
 

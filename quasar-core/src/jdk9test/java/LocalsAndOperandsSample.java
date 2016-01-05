@@ -88,20 +88,20 @@ public class LocalsAndOperandsSample {
         final List<StackWalker.StackFrame> frames = walker.walk(s -> s.collect(Collectors.toList()));
         if (extended) {
             for (final StackWalker.StackFrame f : frames) {
-                System.out.println("frame: " + f);
+                System.out.println("Frame: " + f);
                 final Object[] locals = (Object[]) getLocals.invoke(f);
                 for (int i = 0; i < locals.length; i++) {
-                    System.out.format("local %d: %s type %s%n", i, locals[i], type(locals[i]));
+                    System.out.format("\tlocal %d: %s type %s%n", i, locals[i], type(locals[i]));
                 }
 
                 final Object[] operands = (Object[]) getOperands.invoke(f);
                 for (int i = 0; i < operands.length; i++) {
-                    System.out.format("operand %d: %s type %s%n", i, operands[i], type(operands[i]));
+                    System.out.format("\toperand %d: %s type %s%n", i, operands[i], type(operands[i]));
                 }
 
                 final Object[] monitors = (Object[]) getMonitors.invoke(f);
                 for (int i = 0; i < monitors.length; i++) {
-                    System.out.format("monitor %d: %s%n", i, monitors[i]);
+                    System.out.format("\tmonitor %d: %s%n", i, monitors[i]);
                 }
             }
         } else {

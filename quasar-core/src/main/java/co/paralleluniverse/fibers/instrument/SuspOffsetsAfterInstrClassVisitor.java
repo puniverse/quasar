@@ -141,10 +141,10 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                         InstrumentMethod.emitInstrumentedAnn (
                             db, outMV, mn, className, optimized, methodStart, methodEnd,
                             suspCallSourceLines, toStringArray(suspCallSignaturesL),
-                            InstrumentKB.getMethodPreInstrumentationOffsets(className, mn.name, mn.desc),
+                            LiveInstrumentationKB.getMethodPreInstrumentationOffsets(className, mn.name, mn.desc),
                             Ints.toArray(suspOffsetsAfterInstrL)
                         );
-                    InstrumentKB.removeMethodPreInstrumentationOffsets(className, mn.name, mn.desc);
+                    LiveInstrumentationKB.removeMethodPreInstrumentationOffsets(className, mn.name, mn.desc);
                     super.visitEnd();
                 }
 

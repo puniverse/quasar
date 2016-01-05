@@ -88,7 +88,7 @@ public class SuspOffsetsBeforeInstrClassVisitor extends ClassVisitor {
 
                 @Override
                 public void visitEnd() {
-                    InstrumentKB.setMethodPreInstrumentationOffsets(className, mn.name, mn.desc, Ints.toArray(suspOffsetsBeforeInstrL));
+                    LiveInstrumentationKB.setMethodPreInstrumentationOffsets(className, mn.name, mn.desc, Ints.toArray(suspOffsetsBeforeInstrL));
                     super.visitEnd();
                 }
 
