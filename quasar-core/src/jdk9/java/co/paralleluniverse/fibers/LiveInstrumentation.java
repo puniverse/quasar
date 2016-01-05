@@ -481,6 +481,12 @@ public final class LiveInstrumentation {
             final org.objectweb.asm.Type[] tsOperands = LiveInstrumentationKB.getFrameOperandStackTypes(cn, mn, md, idxS);
             final org.objectweb.asm.Type[] tsLocals = LiveInstrumentationKB.getFrameLocalTypes(cn, mn, md, idxS);
 
+            // If the class was AOT-instrumented then the frame type info (which is always computed at runtime) will
+            // include operands and locals added by instrumentation and some special adjustments are necessary.
+            final boolean aot = LiveInstrumentationKB.isAOTInstrumented(f.getDeclaringClass());
+            // TODO: do it after the whole process
+            // LiveInstrumentationKB.clearAOTInfo(cn);
+
             DEBUG("\t\tFrame method \"" + m + "\":");
             DEBUG("\t\t\tCalled at offset " + lowerOffset + " of: " + lowerM);
             DEBUG("\t\t\tCalling at offset " + currOffset + ": " + upperM + " (yield = " + isYield + ")");
@@ -517,6 +523,7 @@ public final class LiveInstrumentation {
                 DEBUG("\t\t\t<none>");
             DEBUG("\t\tLive locals: " + Arrays.toString(locals));
             DEBUG("\t\tSuspendable call index: " + idx);
+            DEBUG("\t\tClass was AOT-instrumented: " + aot + "");
 
             // Operands and locals (in this order) slot indices
             int idxObj = 0, idxPrim = 0;
@@ -600,7 +607,13 @@ public final class LiveInstrumentation {
 
             if (tsLocals != null) {
                 DEBUG("\t\tPushing analyzed frame locals:");
-                while (idxTypes < tsLocals.length /* && idxValues < locals.length */) {
+                while (
+                    idxTypes <
+                        tsLocals.length - (
+                            aot ? InstrumentMethod.NUM_LOCALS + 1 : 0
+                        )
+                        /* && idxValues < locals.length */
+                ) {
                     final Object local = locals[idxValues];
                     final org.objectweb.asm.Type tLocal = tsLocals[idxTypes];
                     int inc = 1;

@@ -416,13 +416,83 @@ public class InstrumentMethod {
         return suspCallsIdxs.length > 0;
     }
 
+    public void collectCodeBlocks() {
+        collectCodeBlocksAndSplitTryCatches(false, false);
+    }
+
+    private void collectCodeBlocksAndSplitTryCatches(boolean split, boolean possiblyWarn) {
+        final int numIns = mn.instructions.size();
+
+        codeBlocks[0] = FrameInfo.FIRST;
+        int suspCount = 0;
+        for (int i = 0; i < numIns; i++) {
+            final Frame f = frames[i];
+            if (f != null) { // reachable ?
+                final AbstractInsnNode in = mn.instructions.get(i);
+                if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
+                    boolean susp = true;
+                    if (in.getType() == AbstractInsnNode.METHOD_INSN) {
+                        final MethodInsnNode min = (MethodInsnNode) in;
+                        int opcode = min.getOpcode();
+                        if (isSyntheticAccess(min.owner, min.name))
+                            db.log(LogLevel.DEBUG, "Synthetic accessor method call at instruction %d is assumed suspendable", i);
+                        else if (isReflectInvocation(min.owner, min.name))
+                            db.log(LogLevel.DEBUG, "Reflective method call at instruction %d is assumed suspendable", i);
+                        else if (isMethodHandleInvocation(min.owner, min.name))
+                            db.log(LogLevel.DEBUG, "MethodHandle invocation at instruction %d is assumed suspendable", i);
+                        else if (isInvocationHandlerInvocation(min.owner, min.name))
+                            db.log(LogLevel.DEBUG, "InvocationHandler invocation at instruction %d is assumed suspendable", i);
+                        else {
+                            SuspendableType st = db.isMethodSuspendable(min.owner, min.name, min.desc, opcode);
+                            if (st == SuspendableType.NON_SUSPENDABLE)
+                                susp = false;
+                            else if (st == null) {
+                                db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s (at %s#%s)", min.owner, min.name, min.desc, className, mn.name);
+                            } else if (st != SuspendableType.SUSPENDABLE_SUPER) {
+                                db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is suspendable", i, min.owner, min.name, min.desc);
+                            }
+                            if (st == SuspendableType.SUSPENDABLE_SUPER) {
+                                db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s to suspendable-super (instrumentation for proxy support will be enabled)", i, min.owner, min.name, min.desc);
+                                this.callsSuspendableSupers = true;
+                            }
+                        }
+                    } else if (in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
+                        // invoke dynamic
+                        final InvokeDynamicInsnNode idin = (InvokeDynamicInsnNode) in;
+                        if (idin.bsm.getOwner().equals("java/lang/invoke/LambdaMetafactory")) {
+                            // lambda
+                            db.log(LogLevel.DEBUG, "Lambda at instruction %d", i);
+                            susp = false;
+                        } else
+                            db.log(LogLevel.DEBUG, "InvokeDynamic Method call at instruction %d to is assumed suspendable", i);
+                    }
+
+                    if (susp) {
+                        final FrameInfo fi = addCodeBlock(f, i);
+                        if (split)
+                            splitTryCatch(fi);
+                        recordFrameTypeInfo(f, ++suspCount); // 1-based
+                        sealFrameTypeInfo(suspCount);
+                    } else if (in.getType() == AbstractInsnNode.METHOD_INSN) { // not invokedynamic
+                        //noinspection ConstantConditions
+                        final MethodInsnNode min = (MethodInsnNode) in;
+                        db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
+                        if (possiblyWarn)
+                            possiblyWarnAboutBlocking(min);
+                    }
+                }
+            }
+        }
+        addCodeBlock(null, numIns);
+    }
+
     public void applySuspendableCallsInstrumentation(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
 
         final boolean optimizeInstrumentation = canInstrumentationBeOptimized(suspCallsIdxs);
 
         // Else instrument
-        collectCodeBlocksAndSplitTryCatches(!optimizeInstrumentation); // Must be called first, sets flags & state used below
+        collectCodeBlocksAndSplitTryCatches(!optimizeInstrumentation, true); // Must be called first, sets flags & state used below
 
         if (optimizeInstrumentation) {
             db.log(LogLevel.INFO, "[OPTIMIZE] Optimizing instrumentation for method %s#%s%s", className, mn.name, mn.desc);
@@ -782,71 +852,6 @@ public class InstrumentMethod {
         mv.visitMaxs(mn.maxStack + ADD_OPERANDS_OPTIMIZED /* fiber stack w/dup */, mn.maxLocals); // Needed by ASM analysis
 
         mv.visitEnd();
-    }
-
-    private void collectCodeBlocksAndSplitTryCatches(boolean split) {
-        final int numIns = mn.instructions.size();
-
-        codeBlocks[0] = FrameInfo.FIRST;
-        int suspCount = 0;
-        for (int i = 0; i < numIns; i++) {
-            final Frame f = frames[i];
-            if (f != null) { // reachable ?
-                final AbstractInsnNode in = mn.instructions.get(i);
-                if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
-                    boolean susp = true;
-                    if (in.getType() == AbstractInsnNode.METHOD_INSN) {
-                        final MethodInsnNode min = (MethodInsnNode) in;
-                        int opcode = min.getOpcode();
-                        if (isSyntheticAccess(min.owner, min.name))
-                            db.log(LogLevel.DEBUG, "Synthetic accessor method call at instruction %d is assumed suspendable", i);
-                        else if (isReflectInvocation(min.owner, min.name))
-                            db.log(LogLevel.DEBUG, "Reflective method call at instruction %d is assumed suspendable", i);
-                        else if (isMethodHandleInvocation(min.owner, min.name))
-                            db.log(LogLevel.DEBUG, "MethodHandle invocation at instruction %d is assumed suspendable", i);
-                        else if (isInvocationHandlerInvocation(min.owner, min.name))
-                            db.log(LogLevel.DEBUG, "InvocationHandler invocation at instruction %d is assumed suspendable", i);
-                        else {
-                            SuspendableType st = db.isMethodSuspendable(min.owner, min.name, min.desc, opcode);
-                            if (st == SuspendableType.NON_SUSPENDABLE)
-                                susp = false;
-                            else if (st == null) {
-                                db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s (at %s#%s)", min.owner, min.name, min.desc, className, mn.name);
-                            } else if (st != SuspendableType.SUSPENDABLE_SUPER) {
-                                db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is suspendable", i, min.owner, min.name, min.desc);
-                            }
-                            if (st == SuspendableType.SUSPENDABLE_SUPER) {
-                                db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s to suspendable-super (instrumentation for proxy support will be enabled)", i, min.owner, min.name, min.desc);
-                                this.callsSuspendableSupers = true;
-                            }
-                        }
-                    } else if (in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
-                        // invoke dynamic
-                        final InvokeDynamicInsnNode idin = (InvokeDynamicInsnNode) in;
-                        if (idin.bsm.getOwner().equals("java/lang/invoke/LambdaMetafactory")) {
-                            // lambda
-                            db.log(LogLevel.DEBUG, "Lambda at instruction %d", i);
-                            susp = false;
-                        } else
-                            db.log(LogLevel.DEBUG, "InvokeDynamic Method call at instruction %d to is assumed suspendable", i);
-                    }
-
-                    if (susp) {
-                        final FrameInfo fi = addCodeBlock(f, i);
-                        if (split)
-                            splitTryCatch(fi);
-                        recordFrameTypeInfo(f, ++suspCount); // 1-based
-                        sealFrameTypeInfo(suspCount);
-                    } else if (in.getType() == AbstractInsnNode.METHOD_INSN) { // not invokedynamic
-                        //noinspection ConstantConditions
-                        final MethodInsnNode min = (MethodInsnNode) in;
-                        db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
-                        possiblyWarnAboutBlocking(min);
-                    }
-                }
-            }
-        }
-        addCodeBlock(null, numIns);
     }
 
     private void possiblyWarnAboutBlocking(final AbstractInsnNode ain) throws UnableToInstrumentException {

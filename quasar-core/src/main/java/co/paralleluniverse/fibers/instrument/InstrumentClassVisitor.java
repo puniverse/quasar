@@ -47,6 +47,7 @@ import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_ANNO
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
 import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 
+import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import java.util.ArrayList;
@@ -268,13 +269,26 @@ public class InstrumentClassVisitor extends ClassVisitor {
         }
 
         if (suspMethods != null && !suspMethods.isEmpty()) {
+            if (alreadyInstrumented)
+                LiveInstrumentationKB.alreadyInstrumented(className);
+
             if (alreadyInstrumented && !forceInstrumentation) {
                 for (final MethodNode mn : suspMethods) {
-                    db.log(LogLevel.INFO, "Already instrumented and not forcing, so not touching method %s#%s%s", className, mn.name, mn.desc);
+                    db.log(LogLevel.INFO, "Already instrumented and not forcing, so only collecting requested live instrumentation information and not touching method %s#%s%s", className, mn.name, mn.desc);
+                    try {
+                        final InstrumentMethod im = new InstrumentMethod(db, sourceName, className, mn);
+                        if (im.analyzeSuspendableCalls())
+                            im.collectCodeBlocks(); // Will collect requested live instrumentation information
+                    } catch (final AnalyzerException ex) {
+                        ex.printStackTrace();
+                        throw new InternalError(ex.getMessage());
+                    }
                     mn.accept(makeOutMV(mn));
                 }
             } else {
                 if (!alreadyInstrumented) {
+                    LiveInstrumentationKB.instrumenting(className);
+
                     emitInstrumentedAnn();
                     classEntry.setInstrumented(true);
                 }
