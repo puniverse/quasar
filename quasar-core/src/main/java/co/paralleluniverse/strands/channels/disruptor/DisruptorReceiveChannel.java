@@ -1,32 +1,33 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * To change this template, choose Tools | Templates and open the template in the editor.
  */
 package co.paralleluniverse.strands.channels.disruptor;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Timeout;
-import co.paralleluniverse.strands.channels.ReceivePort;
+import java.lang.reflect.Field;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import com.lmax.disruptor.AbstractSequencer;
 import com.lmax.disruptor.AlertException;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.Sequence;
 import com.lmax.disruptor.Sequencer;
 import com.lmax.disruptor.WaitStrategy;
-import java.lang.reflect.Field;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+
+import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Timeout;
+import co.paralleluniverse.strands.channels.ReceivePort;
 
 /**
  *
  * @author pron
  */
 public class DisruptorReceiveChannel<Message> implements ReceivePort<Message> {
-    private final SequenceBarrier barrier;
+    private final SequenceBarrier     barrier;
     private final RingBuffer<Message> buffer;
-    private final Sequence sequence = new Sequence(Sequencer.INITIAL_CURSOR_VALUE);
-    private long availableSequence;
-    private volatile boolean closed;
+    private final Sequence            sequence          = new Sequence(Sequencer.INITIAL_CURSOR_VALUE);
+    private volatile boolean          closed;
+    long                              availableSequence = -1l;
 
     public DisruptorReceiveChannel(RingBuffer<Message> buffer, Sequence... dependentSequences) {
         this.buffer = buffer;
@@ -42,18 +43,21 @@ public class DisruptorReceiveChannel<Message> implements ReceivePort<Message> {
 
     @Override
     public Message receive() throws SuspendExecution, InterruptedException {
-        if (closed)
+        if (closed) {
             return null;
-        long nextSequence = sequence.get() + 1L;
-        while (nextSequence > availableSequence) {
-            try {
-                availableSequence = barrier.waitFor1(nextSequence);
-            } catch (AlertException ex) {
-                // ???
-            }
         }
-        Message message = buffer.get(nextSequence);
-        return message;
+        long nextSequence = sequence.get() + 1L;
+        try {
+            while (nextSequence > availableSequence) {
+                availableSequence = barrier.waitFor1(nextSequence);
+            }
+            Message message = buffer.get(nextSequence);
+            sequence.set(nextSequence);
+            return message;
+        } catch (AlertException e) {
+            return null;
+        }
+
     }
 
     @Override
@@ -151,7 +155,7 @@ public class DisruptorReceiveChannel<Message> implements ReceivePort<Message> {
 
     static {
         try {
-            sequencerField = RingBuffer.class.getDeclaredField("sequencer");
+            sequencerField = RingBuffer.class.getSuperclass().getDeclaredField("sequencer");
             sequencerField.setAccessible(true);
 
             cursorField = AbstractSequencer.class.getDeclaredField("cursor");

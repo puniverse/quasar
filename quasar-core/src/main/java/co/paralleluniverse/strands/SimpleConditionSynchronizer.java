@@ -1,15 +1,12 @@
 /*
- * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Quasar: lightweight threads and actors for the JVM. Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
  * 
- * This program and the accompanying materials are dual-licensed under
- * either the terms of the Eclipse Public License v1.0 as published by
- * the Eclipse Foundation
- *  
- *   or (per the licensee's choosing)
- *  
- * under the terms of the GNU Lesser General Public License version 3.0
- * as published by the Free Software Foundation.
+ * This program and the accompanying materials are dual-licensed under either the terms of the Eclipse Public License v1.0 as published by the Eclipse
+ * Foundation
+ * 
+ * or (per the licensee's choosing)
+ * 
+ * under the terms of the GNU Lesser General Public License version 3.0 as published by the Free Software Foundation.
  */
 package co.paralleluniverse.strands;
 
@@ -32,8 +29,9 @@ public class SimpleConditionSynchronizer extends ConditionSynchronizer implement
     public Object register() {
         final Strand currentStrand = Strand.currentStrand();
         record("register", "%s register %s", this, currentStrand);
-        waiters.add(currentStrand);
-        return null;
+        while (!waiters.offer(currentStrand))
+            ;
+        return currentStrand;
     }
 
     @Override
@@ -49,7 +47,6 @@ public class SimpleConditionSynchronizer extends ConditionSynchronizer implement
         for (Iterator<Strand> it = waiters.iterator(); it.hasNext();) {
             final Strand s = it.next();
             record("signalAll", "%s signalling %s", this, s);
-
             Strand.unpark(s, owner);
         }
     }
