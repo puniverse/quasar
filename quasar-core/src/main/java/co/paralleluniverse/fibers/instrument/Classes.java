@@ -13,12 +13,15 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.fibers.Instrumented;
+import co.paralleluniverse.fibers.*;
 
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+
+import co.paralleluniverse.strands.Strand;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodInsnNode;
 
@@ -39,14 +42,13 @@ public final class Classes {
     static final String INVOCATION_TARGET_EXCEPTION_NAME = InvocationTargetException.class.getName().replace('.', '/');
     static final String REFLECTIVE_OPERATION_EXCEPTION_NAME = ReflectiveOperationException.class.getName().replace('.', '/');
 
-    static final String SUSPEND_EXECUTION_NAME = "co/paralleluniverse/fibers/SuspendExecution";
-    static final String RUNTIME_SUSPEND_EXECUTION_NAME = "co/paralleluniverse/fibers/RuntimeSuspendExecution";
-    static final String UNDECLARED_THROWABLE_NAME = "java/lang/reflect/UndeclaredThrowableException";
-    static final String ANNOTATION_NAME = "co/paralleluniverse/fibers/Suspendable";
-    static final String DONT_INSTRUMENT_ANNOTATION_NAME = "co/paralleluniverse/fibers/instrument/DontInstrument";
-    static final String FIBER_CLASS_NAME = "co/paralleluniverse/fibers/Fiber"; //Type.getInternalName(COROUTINE_CLASS);
-    private static final String STRAND_NAME = "co/paralleluniverse/strands/Strand"; //Type.getInternalName(COROUTINE_CLASS);
-    static final String STACK_NAME = "co/paralleluniverse/fibers/Stack";
+    static final String SUSPEND_EXECUTION_NAME = SuspendExecution.class.getName().replace('.', '/');
+    static final String RUNTIME_SUSPEND_EXECUTION_NAME = RuntimeSuspendExecution.class.getName().replace('.', '/');
+    static final String UNDECLARED_THROWABLE_NAME = UndeclaredThrowableException.class.getName().replace('.', '/');
+    static final String FIBER_CLASS_NAME = Fiber.class.getName().replace('.', '/');
+    private static final String STRAND_NAME = Strand.class.getName().replace('.', '/');
+    static final String STACK_NAME = Stack.class.getName().replace('.', '/');
+    static final String DONT_INSTRUMENT_NAME = Stack.class.getName().replace('.', '/');
     //static final String EXCEPTION_INSTANCE_NAME = "exception_instance_not_for_user_code";
     private static final BlockingMethod BLOCKING_METHODS[] = {
         new BlockingMethod("java/lang/Thread", "sleep", "(J)V", "(JI)V"),
@@ -55,9 +57,10 @@ public final class Classes {
     };
     // computed
     // static final String EXCEPTION_DESC = "L" + SUSPEND_EXECUTION_NAME + ";";
-    static final String ANNOTATION_DESC = "L" + ANNOTATION_NAME + ";";
-    static final String DONT_INSTRUMENT_ANNOTATION_DESC = "L" + DONT_INSTRUMENT_ANNOTATION_NAME + ";";
-    static final String ALREADY_INSTRUMENTED_DESC = Type.getDescriptor(Instrumented.class);
+    static final String SUSPENDABLE_DESC = Type.getDescriptor(Suspendable.class);
+    static final String DONT_INSTRUMENT_DESC = Type.getDescriptor(DontInstrument.class);
+    static final String INSTRUMENTED_DESC = Type.getDescriptor(Instrumented.class);
+    static final String SUSPENDABLE_CALL_SITE_DESC = Type.getDescriptor(SuspendableCallSite.class);
 
     private static final Set<String> yieldMethods = new HashSet<>(Arrays.asList(new String[] {
         "park", "yield", "parkAndUnpark", "yieldAndUnpark", "parkAndSerialize"
@@ -67,6 +70,7 @@ public final class Classes {
         return FIBER_CLASS_NAME.equals(className) && yieldMethods.contains(methodName);
     }
 
+    /** @noinspection UnusedParameters*/
     public static boolean isAllowedToBlock(String className, String methodName) {
         return STRAND_NAME.equals(className);
     }

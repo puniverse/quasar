@@ -14,12 +14,13 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Instrumented;
-import com.google.common.primitives.Ints;
+import co.paralleluniverse.fibers.SuspendableCallSite;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static co.paralleluniverse.fibers.instrument.Classes.*;
@@ -63,42 +64,98 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                 private boolean instrumented;
                 private boolean optimized = false;
                 private int methodStart = -1, methodEnd = -1;
-                private int[] suspCallSourceLines;
-                private List<String> suspCallSignaturesL = new ArrayList<>();
+                private List<InstrumentMethod.SuspCallSite> suspCallSitesL = new ArrayList<>();
 
                 private List<Integer> suspOffsetsAfterInstrL = new ArrayList<>();
 
                 @Override
                 public AnnotationVisitor visitAnnotation(final String adesc, boolean visible) {
-                    if (adesc.equals(Type.getDescriptor(Instrumented.class))) {
+                    if (adesc.equals(Classes.INSTRUMENTED_DESC)) {
                         instrumented = true;
+
                         return new AnnotationVisitor(ASMAPI) { // Only collect info
                             @Override
-                            public void visit(String s, Object o) {
-                                if ("methodStartSourceLine".equals(s))
-                                    methodStart = (Integer) o;
-                                else if ("methodEndSourceLine".equals(s))
-                                    methodEnd = (Integer) o;
-                                else if ("methodOptimized".equals(s))
-                                    optimized = (Boolean) o;
-                                else if ("methodSuspendableCallSourceLines".equals(s))
-                                    suspCallSourceLines = (int[]) o;
+                            public void visit(String name, Object value) {
+                                if (Instrumented.FIELD_NAME_METHOD_START_SOURCE_LINE.equals(name))
+                                    methodStart = (Integer) value;
+                                else if (Instrumented.FIELD_NAME_METHOD_END_SOURCE_LINE.equals(name))
+                                    methodEnd = (Integer) value;
+                                else if (Instrumented.FIELD_NAME_IS_METHOD_INSTRUMENTATION_OPTIMIZED.equals(name))
+                                    optimized = (Boolean) value;
+                                else
+                                    throw new RuntimeException("Unexpected `@Instrumented` field: " + name);
                             }
 
                             @Override
-                            public AnnotationVisitor visitArray(String s) {
-                                if ("methodSuspendableCallSignatures".equals(s))
+                            public AnnotationVisitor visitArray(String name) {
+                                if (Instrumented.FIELD_NAME_METHOD_SUSPENDABLE_CALL_SITES.equals(name))
                                     return new AnnotationVisitor(ASMAPI) {
                                         @Override
-                                        public void visit(String s, Object o) {
-                                            suspCallSignaturesL.add((String) o);
+                                        public AnnotationVisitor visitAnnotation(String name, String adesc) {
+                                            // Will always be a `SuspendableCallSite`
+                                            return new AnnotationVisitor(ASMAPI) {
+                                                private String desc = null;
+                                                private int sourceLine = -1;
+                                                private int entry = -1;
+                                                private List<Type> operandTypes = new ArrayList<>(), localTypes = new ArrayList<>();
+
+                                                @Override
+                                                public void visit(String name, Object value) {
+                                                    if (SuspendableCallSite.FIELD_NAME_DESC.equals(name))
+                                                        desc = (String) value;
+                                                    else if (SuspendableCallSite.FIELD_NAME_SOURCE_LINE.equals(name))
+                                                        sourceLine = (int) value;
+                                                    else if (SuspendableCallSite.FIELD_NAME_ENTRY.equals(name))
+                                                        entry = (int) value;
+                                                    else if (SuspendableCallSite.FIELD_NAME_STACK_FRAME_OPERANDS_TYPES.equals(name))
+                                                        operandTypes.add(Type.getType((String) value));
+                                                    else if (SuspendableCallSite.FIELD_NAME_STACK_FRAME_LOCALS_TYPES.equals(name))
+                                                        localTypes.add(Type.getType((String) value));
+                                                    else if (SuspendableCallSite.FIELD_NAME_PRE_INSTRUMENTATION_OFFSET.equals(name))
+                                                        ; // Set later
+                                                    else if (SuspendableCallSite.FIELD_NAME_POST_INSTRUMENTATION_OFFSET.equals(name))
+                                                        ; // Set later
+                                                    else
+                                                        throw new RuntimeException("Unexpected `@SuspendableCallSite` field: " + name);
+                                                }
+
+                                                @Override
+                                                public AnnotationVisitor visitArray(String name) {
+                                                    if (SuspendableCallSite.FIELD_NAME_STACK_FRAME_OPERANDS_TYPES.equals(name))
+                                                        return new AnnotationVisitor(ASMAPI) {
+                                                            @Override
+                                                            public void visit(String name, Object value) {
+                                                                operandTypes.add(Type.getType((String) value));
+                                                            }
+                                                        };
+                                                    else if (SuspendableCallSite.FIELD_NAME_STACK_FRAME_LOCALS_TYPES.equals(name))
+                                                        return new AnnotationVisitor(ASMAPI) {
+                                                            @Override
+                                                            public void visit(String name, Object value) {
+                                                                localTypes.add(Type.getType((String) value));
+                                                            }
+                                                        };
+                                                    else
+                                                        throw new RuntimeException("Unexpected `@SuspendableCallSite` field: " + name);
+                                                }
+
+                                                @Override
+                                                public void visitEnd() {
+                                                    suspCallSitesL.add (
+                                                        new InstrumentMethod.SuspCallSite (
+                                                            this.desc, entry, sourceLine, operandTypes, localTypes
+                                                        )
+                                                    );
+                                                }
+                                            };
                                         }
                                     };
-
-                                return null;
+                                else
+                                    throw new RuntimeException("Unexpected `@SuspendableCallSite` field: " + name);
                             }
                         };
                     }
+
                     return super.visitAnnotation(adesc, visible);
                 }
 
@@ -107,6 +164,7 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                     if (instrumented) {
                         currLabel = label;
                     }
+
                     super.visitLabel(label);
                 }
 
@@ -119,6 +177,7 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                                 currLabel != null && currLabel.info instanceof Integer)
                             addLine();
                     }
+
                     super.visitMethodInsn(opcode, owner, name, desc, isInterface);
                 }
 
@@ -137,14 +196,21 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
 
                 @Override
                 public void visitEnd() {
+                    int[] preInstrOffsets = InstrumentationKB.getMethodPreInstrumentationOffsets(className, mn.name, mn.desc);
+
+                    // In some cases suspendable calls are found in pre- that later aren't instrumented
+                    for (int i = 0 ; i < preInstrOffsets.length && i < suspCallSitesL.size() && i < suspOffsetsAfterInstrL.size() ; i++) {
+                        suspCallSitesL.get(i).preInstrumentationOffset = preInstrOffsets[i];
+                        suspCallSitesL.get(i).postInstrumentationOffset = suspOffsetsAfterInstrL.get(i);
+                    }
+
                     if (instrumented)
                         InstrumentMethod.emitInstrumentedAnn (
-                            db, outMV, mn, className, optimized, methodStart, methodEnd,
-                            suspCallSourceLines, toStringArray(suspCallSignaturesL),
-                            LiveInstrumentationKB.getMethodPreInstrumentationOffsets(className, mn.name, mn.desc),
-                            Ints.toArray(suspOffsetsAfterInstrL)
+                            db, outMV, mn, className, optimized, methodStart, methodEnd, suspCallSitesL
                         );
-                    LiveInstrumentationKB.removeMethodPreInstrumentationOffsets(className, mn.name, mn.desc);
+
+                    InstrumentationKB.removeMethodPreInstrumentationOffsets(className, mn.name, mn.desc);
+
                     super.visitEnd();
                 }
 
@@ -157,15 +223,7 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                 }
             };
         }
+
         return super.visitMethod(access, name, desc, signature, exceptions);
-    }
-
-    // TODO: Factor with `InstrumentClassVisitor`
-    private static String[] toStringArray(List<?> l) {
-        if (l.isEmpty())
-            return null;
-
-        //noinspection SuspiciousToArrayCall
-        return l.toArray(new String[l.size()]);
     }
 }

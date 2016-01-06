@@ -41,13 +41,13 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_ANNOTATION_DESC;
+import static co.paralleluniverse.fibers.instrument.Classes.INSTRUMENTED_DESC;
+import static co.paralleluniverse.fibers.instrument.Classes.SUSPENDABLE_DESC;
+import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
 import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 
-import co.paralleluniverse.fibers.LiveInstrumentation;
+import co.paralleluniverse.fibers.Instrumented;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import java.util.ArrayList;
@@ -68,6 +68,8 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
 public class InstrumentClassVisitor extends ClassVisitor {
     private final SuspendableClassifier classifier;
     private final MethodDatabase db;
+    private final boolean aot;
+
     private boolean forceInstrumentation;
     private String className;
     private String sourceDebugInfo;
@@ -82,10 +84,12 @@ public class InstrumentClassVisitor extends ClassVisitor {
 
     private RuntimeException exception;
 
-    public InstrumentClassVisitor(ClassVisitor cv, MethodDatabase db, boolean forceInstrumentation) {
+    public InstrumentClassVisitor(ClassVisitor cv, MethodDatabase db, boolean forceInstrumentation, boolean aot) {
         super(ASMAPI, cv);
         this.db = db;
         this.classifier = db.getClassifier();
+        this.aot = aot;
+
         this.forceInstrumentation = forceInstrumentation;
         this.suspendableInterface = false;
     }
@@ -135,9 +139,9 @@ public class InstrumentClassVisitor extends ClassVisitor {
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-        if (desc.equals(ALREADY_INSTRUMENTED_DESC))
+        if (desc.equals(INSTRUMENTED_DESC))
             this.alreadyInstrumented = true;
-        else if (isInterface && desc.equals(ANNOTATION_DESC))
+        else if (isInterface && desc.equals(SUSPENDABLE_DESC))
             this.suspendableInterface = true;
 
         return super.visitAnnotation(desc, visible);
@@ -175,9 +179,9 @@ public class InstrumentClassVisitor extends ClassVisitor {
                 @Override
                 public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
                     // look for @Suspendable or @DontInstrument annotation
-                    if (adesc.equals(ANNOTATION_DESC))
+                    if (adesc.equals(SUSPENDABLE_DESC))
                         susp = SuspendableType.SUSPENDABLE;
-                    else if (adesc.equals(DONT_INSTRUMENT_ANNOTATION_DESC))
+                    else if (adesc.equals(DONT_INSTRUMENT_DESC))
                         susp = SuspendableType.NON_SUSPENDABLE;
 
                     susp = suspendableToSuperIfAbstract(access, susp);
@@ -269,26 +273,13 @@ public class InstrumentClassVisitor extends ClassVisitor {
         }
 
         if (suspMethods != null && !suspMethods.isEmpty()) {
-            if (alreadyInstrumented)
-                LiveInstrumentationKB.alreadyInstrumented(className);
-
             if (alreadyInstrumented && !forceInstrumentation) {
                 for (final MethodNode mn : suspMethods) {
-                    db.log(LogLevel.INFO, "Already instrumented and not forcing, so only collecting requested live instrumentation information and not touching method %s#%s%s", className, mn.name, mn.desc);
-                    try {
-                        final InstrumentMethod im = new InstrumentMethod(db, sourceName, className, mn);
-                        if (im.analyzeSuspendableCalls())
-                            im.collectCodeBlocks(); // Will collect requested live instrumentation information
-                    } catch (final AnalyzerException ex) {
-                        ex.printStackTrace();
-                        throw new InternalError(ex.getMessage());
-                    }
+                    db.log(LogLevel.INFO, "Already instrumented and not forcing, so not touching method %s#%s%s", className, mn.name, mn.desc);
                     mn.accept(makeOutMV(mn));
                 }
             } else {
                 if (!alreadyInstrumented) {
-                    LiveInstrumentationKB.instrumenting(className);
-
                     emitInstrumentedAnn();
                     classEntry.setInstrumented(true);
                 }
@@ -303,7 +294,7 @@ public class InstrumentClassVisitor extends ClassVisitor {
                         if (db.isDebug())
                             db.log(LogLevel.INFO, "About to instrument method %s#%s%s", className, mn.name, mn.desc);
 
-                        if (im.analyzeSuspendableCalls()) {
+                        if (im.hasSuspendableCalls()) {
                             if (mn.name.charAt(0) == '<')
                                 throw new UnableToInstrumentException("special method", className, mn.name, mn.desc);
 
@@ -337,7 +328,8 @@ public class InstrumentClassVisitor extends ClassVisitor {
     }
 
     private void emitInstrumentedAnn() {
-        final AnnotationVisitor instrumentedAV = visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
+        final AnnotationVisitor instrumentedAV = visitAnnotation(INSTRUMENTED_DESC, true);
+        instrumentedAV.visit(Instrumented.FIELD_NAME_IS_CLASS_AOT_INSTRUMENTED, aot);
         instrumentedAV.visitEnd();
     }
 
@@ -346,7 +338,7 @@ public class InstrumentClassVisitor extends ClassVisitor {
         if (ans == null)
             return false;
         for (final AnnotationNode an : ans) {
-            if (an.desc.equals(ANNOTATION_DESC))
+            if (an.desc.equals(SUSPENDABLE_DESC))
                 return true;
         }
         return false;

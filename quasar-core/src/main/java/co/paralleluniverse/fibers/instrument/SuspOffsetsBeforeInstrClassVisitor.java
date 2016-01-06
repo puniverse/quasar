@@ -29,11 +29,21 @@ import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
  */
 public class SuspOffsetsBeforeInstrClassVisitor extends ClassVisitor {
     private final MethodDatabase db;
+
     private String className;
+
+    private boolean record = true;
 
     public SuspOffsetsBeforeInstrClassVisitor(ClassVisitor cv, MethodDatabase db) {
         super(ASMAPI, cv);
         this.db = db;
+    }
+
+    @Override
+    public AnnotationVisitor visitAnnotation(String name, boolean b) {
+        if (Classes.DONT_INSTRUMENT_DESC.equals(name))
+            record = false;
+        return super.visitAnnotation(name, b);
     }
 
     @Override
@@ -49,7 +59,7 @@ public class SuspOffsetsBeforeInstrClassVisitor extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(final int access, final String name, final String desc, final String signature, final String[] exceptions) {
-        if ((access & Opcodes.ACC_NATIVE) == 0 && !isYieldMethod(className, name)) {
+        if (record && (access & Opcodes.ACC_NATIVE) == 0 && !isYieldMethod(className, name)) {
             // Bytecode-level AST of a method, being a MethodVisitor itself can be filled through delegation from another visitor
             final MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
 
@@ -57,9 +67,17 @@ public class SuspOffsetsBeforeInstrClassVisitor extends ClassVisitor {
             final MethodVisitor outMV = super.visitMethod(access, name, desc, signature, exceptions);
 
             return new MethodVisitor(ASMAPI, outMV) {
-                public List<Integer> suspOffsetsBeforeInstrL = new ArrayList<>();
-                public int prevOffset = -1;
-                public Label currLabel = null;
+                private List<Integer> suspOffsetsBeforeInstrL = new ArrayList<>();
+                private int prevOffset = -1;
+                private Label currLabel = null;
+                private boolean record = true;
+
+                @Override
+                public AnnotationVisitor visitAnnotation(String name, boolean b) {
+                    if (Classes.DONT_INSTRUMENT_DESC.equals(name))
+                        record = false;
+                    return super.visitAnnotation(name, b);
+                }
 
                 @Override
                 public void visitLabel(Label label) {
@@ -88,19 +106,20 @@ public class SuspOffsetsBeforeInstrClassVisitor extends ClassVisitor {
 
                 @Override
                 public void visitEnd() {
-                    LiveInstrumentationKB.setMethodPreInstrumentationOffsets(className, mn.name, mn.desc, Ints.toArray(suspOffsetsBeforeInstrL));
+                    InstrumentationKB.setMethodPreInstrumentationOffsets(className, mn.name, mn.desc, Ints.toArray(suspOffsetsBeforeInstrL));
                     super.visitEnd();
                 }
 
                 private void addLine() {
                     final int currOffset = (Integer) currLabel.info;
-                    if (currOffset > prevOffset) {
+                    if (record && currOffset > prevOffset) {
                         suspOffsetsBeforeInstrL.add(currOffset);
                         prevOffset = currOffset;
                     }
                 }
             };
         }
+
         return super.visitMethod(access, name, desc, signature, exceptions);
     }
 }

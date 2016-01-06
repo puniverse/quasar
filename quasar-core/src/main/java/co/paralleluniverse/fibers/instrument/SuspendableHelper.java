@@ -19,6 +19,8 @@ import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Instrumented;
 import co.paralleluniverse.fibers.Stack;
+import co.paralleluniverse.fibers.SuspendableCallSite;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 // import java.lang.reflect.Executable;
@@ -28,7 +30,6 @@ import java.util.Collections;
 import java.util.Set;
 
 /**
- *
  * @author pron
  */
 public final class SuspendableHelper {
@@ -75,14 +76,31 @@ public final class SuspendableHelper {
         } else {
             final Instrumented i = getAnnotation(m, Instrumented.class);
             if (i != null) {
-                for (int j : i.methodSuspendableCallSourceLines()) {
+                final int[] sourceLines = getSourceLines(i);
+                for (int j : sourceLines) {
                     if (j == sourceLine)
-                        return new Pair<>(true, i.methodSuspendableCallSourceLines());
+                        return new Pair<>(true, sourceLines);
                 }
             }
         }
 
         return new Pair<>(false, null);
+    }
+
+    static int[] getSourceLines(Instrumented a) {
+        final SuspendableCallSite[] susCallSites = a.methodSuspendableCallSites();
+        final int[] ret = new int[susCallSites.length];
+        for (int i = 0 ; i < ret.length ; i++)
+            ret[i] = susCallSites[i].sourceLine();
+        return ret;
+    }
+
+    static int[] getPostInstrumentationOffsets(Instrumented a) {
+        final SuspendableCallSite[] susCallSites = a.methodSuspendableCallSites();
+        final int[] ret = new int[susCallSites.length];
+        for (int i = 0 ; i < ret.length ; i++)
+            ret[i] = susCallSites[i].postInstrumentationOffset();
+        return ret;
     }
 
     public static boolean isInstrumented(Member m) {
@@ -98,7 +116,7 @@ public final class SuspendableHelper {
             return false;
 
         final Instrumented i = getAnnotation(m, Instrumented.class);
-        return (i != null && i.methodOptimized());
+        return (i != null && i.isMethodInstrumentationOptimized());
     }
 
     public static <T extends Annotation> T getAnnotation(Member m, Class<T> annotationClass) {
@@ -116,13 +134,14 @@ public final class SuspendableHelper {
     }
 
     public static boolean isWaiver(String className, String methodName) {
-        if (className.startsWith("java.lang.reflect")
-                || className.startsWith("sun.reflect")
-                || className.startsWith("com.sun.proxy")
-                || className.contains("$ByteBuddy$")
-                || (className.equals("co.paralleluniverse.strands.SuspendableUtils$VoidSuspendableCallable") && methodName.equals("run")))
-            return true;
-        return waivers.contains(new Pair<>(className, methodName));
+        return
+            className.startsWith("java.lang.reflect") ||
+            className.startsWith("sun.reflect") ||
+            className.startsWith("com.sun.proxy") ||
+            className.contains("$ByteBuddy$") ||
+            (className.equals("co.paralleluniverse.strands.SuspendableUtils$VoidSuspendableCallable") &&
+                methodName.equals("run")) ||
+            waivers.contains(new Pair<>(className, methodName));
     }
 
     private SuspendableHelper() {}

@@ -27,7 +27,7 @@ import java.lang.instrument.ClassDefinition;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.*;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -36,19 +36,6 @@ import java.util.stream.Collectors;
  * @author circlespainter
  */
 public final class LiveInstrumentation {
-
-    private static final AtomicInteger runCount = new AtomicInteger();
-
-    @VisibleForTesting
-    public static int getRunCount() {
-        return runCount.get();
-    }
-
-    @VisibleForTesting
-    public static void resetRunCount() {
-        runCount.set(0);
-    }
-
     // TODO: remove `synchronized` or change it to a lock
     static synchronized boolean fixup(Fiber fiber) {
         if (!ACTIVE || fiber == null) // Not using live instrumentation or not in a fiber => don't alter checks
@@ -70,12 +57,13 @@ public final class LiveInstrumentation {
         // Else slow path, we'll take our time to fix up things.
         DEBUG("\nFound mismatch between stack depth and fiber stack (" + diff + ") => activating live lazy auto-instrumentation");
 
-        // The goal is to rebuild a fiber stack "good enough" for a correct resume. What this means is not so easy to figure
-        // out though, so the initial strategy is to ensure a stronger property by performing calls on the fiber stack
-        // object that are equivalent to the ones agent-time instrumentation would inject if it had complete information
-        // about suspendables present in the live stack.
-        // This means which classes are suspendables, which methods, which call sites and _the resume indexes_ these call sites
-        // would have in a fully instrumented method body relative to the suspendables present in the live stack.
+        // ****************************************************************************************************************
+        // The goal is to rebuild a fiber stack "good enough" for a correct resume. What this means is not so easy to
+        // figure out though, so the initial strategy is to ensure a stronger property by performing calls on the fiber
+        // stack object that are equivalent to the ones agent-time instrumentation would inject if it had complete
+        // information about suspendables present in the live stack.
+        // This means which classes are suspendables, which methods, which call sites and _the resume indexes_ these call
+        // sites would have in a fully instrumented method body relative to the suspendables present in the live stack.
         //
         // This latter information is also needed to recover type info from the instrumentation stage as live type info
         // is currently lacking in this respect (no doubles and no longs, they're represented as adjacent int slots).
@@ -94,10 +82,11 @@ public final class LiveInstrumentation {
         // correct offsets, and an up-to-date list of involved call sites with correct offsets. Since some involved
         // call sites could have been instrumented already, these two lists could have non-empty intersection.
         //
-        // Anyway, since the bytecode offsets are correct and instrumentation won't change relative ordering, the (1-based) position
-        // in the ordered set obainined by merging the involved call site offsets (i.e. actual live offsets) with the list of
-        // the already instrumented call site offsets corresponds to the correct suspendable call site resume index in the fully
-        // instrumented method body relative to the suspendables present in the live stack.
+        // Anyway, since the bytecode offsets are correct and instrumentation won't change relative ordering, the (1-based)
+        // position in the ordered set obainined by merging the involved call site offsets (i.e. actual live offsets) with
+        // the list of the already instrumented call site offsets corresponds to the correct suspendable call site resume
+        // index in the fully instrumented method body relative to the suspendables present in the live stack.
+        // ****************************************************************************************************************
 
         runCount.getAndIncrement();
 
@@ -208,9 +197,11 @@ public final class LiveInstrumentation {
         for (final ReportRecord rr : reports) {
             final String mID = getMethodId(rr.f);
             if (methodToSuspOffsetsAfterInstrPreCall.get(mID) == null && rr.report.ann != null) {
-                final int len = rr.report.ann.methodSuspendableCallOffsetsAfterInstrumentation().length;
-                // TODO: copy probably not needed
-                final int[] offsets = Arrays.copyOf(rr.report.ann.methodSuspendableCallOffsetsAfterInstrumentation(),len);
+                final SuspendableCallSite[] suspCallSites = rr.report.ann.methodSuspendableCallSites();
+                final int len = suspCallSites.length;
+                final int[] offsets = new int[len];
+                for (int i = 0 ; i < len ; i++)
+                    offsets[i] = suspCallSites[i].postInstrumentationOffset();
                 methodToSuspOffsetsAfterInstrPreCall.put(mID, offsets);
                 DEBUG("\t\"" + mID + "\": " + Arrays.toString(offsets));
             }
@@ -239,7 +230,6 @@ public final class LiveInstrumentation {
             if (!ok)
                 DEBUG("\t\tFrame instrumentation analysis found problems!");
 
-            final String cn = cCaller.getName();
             final String mnCaller = f.getMethodName();
 
             // b) Fix DB
@@ -253,7 +243,6 @@ public final class LiveInstrumentation {
                 }
             }
 
-            LiveInstrumentationKB.askFrameTypesRecording(cn);
             redefines.add(cCaller);
         }
         for (final Class<?> c : redefines) {
@@ -287,9 +276,12 @@ public final class LiveInstrumentation {
                     (MethodType) getMethodType.invoke(memberName.get(rr.f))
                 );
             final Instrumented updatedAnn = SuspendableHelper.getAnnotation(updatedM, Instrumented.class);
-            final int[] aPrioriSuspendables =
-                updatedAnn != null ?
-                    updatedAnn.methodSuspendableCallOffsetsBeforeInstrumentation() : EMPTY_INT_ARRAY;
+            final SuspendableCallSite[] susCallSites = updatedAnn != null ? updatedAnn.methodSuspendableCallSites() : null;
+            final int[] aPrioriSuspendables = susCallSites != null ? new int[susCallSites.length] : EMPTY_INT_ARRAY;
+            for (int i = 0 ; i < aPrioriSuspendables.length ; i++) {
+                assert susCallSites != null;
+                aPrioriSuspendables[i] = susCallSites[i].preInstrumentationOffset();
+            }
             c = methodToInvolvedCallSiteOffsets.getOrDefault (
                 mID,
                 Lists.newArrayList (
@@ -339,10 +331,9 @@ public final class LiveInstrumentation {
             final MethodType mtCaller;
             mtCaller = (MethodType) getMethodType.invoke(memberName.get(f));
             final Method m = SuspendableHelper9.lookupMethod(cCaller, f.getMethodName(), mtCaller);
-            // d) Enqueue stack-rebuild
             // The annotation will be correct now
             final Instrumented updatedAnn = SuspendableHelper.getAnnotation(m, Instrumented.class);
-            if (updatedAnn != null && !updatedAnn.methodOptimized()) {
+            if (updatedAnn != null && !updatedAnn.isMethodInstrumentationOptimized()) {
                 DEBUG("\tMethod \"" + m + "\" is not optimized, creating a fiber stack rebuild record");
                 upperFFP =
                     pushRebuildToDoFull (
@@ -393,6 +384,7 @@ public final class LiveInstrumentation {
 
     private abstract static class FiberFramePush {
         protected final StackWalker.StackFrame f;
+
         protected final MethodType mt;
         protected final Method m;
         protected final Object[] locals;
@@ -401,6 +393,7 @@ public final class LiveInstrumentation {
 
         public FiberFramePush(StackWalker.StackFrame f) throws InvocationTargetException, IllegalAccessException {
             this.f = f;
+
             this.m = SuspendableHelper9.lookupMethod(f);
             this.mt = (MethodType) getMethodType.invoke(memberName.get(f));
             this.currOffset = (int) offset.get(f);
@@ -446,8 +439,6 @@ public final class LiveInstrumentation {
 
         private final boolean isYield;
 
-        private int numSlots = -1;
-
         private FiberFramePushFull(StackWalker.StackFrame f,
                                    StackWalker.StackFrame upper,
                                    StackWalker.StackFrame lower,
@@ -466,26 +457,68 @@ public final class LiveInstrumentation {
             this.isYield = Classes.isYieldMethod(upper.getClassName().replace('.', '/'), upper.getMethodName());
         }
 
+        @FunctionalInterface
+        private interface FiberStackOp {
+            void apply(Stack s);
+        }
+
+        private class PushObject implements FiberStackOp {
+            private final Object value;
+            private final int idx;
+            private final String msg;
+
+            private PushObject(Object value, int idx, String msg) {
+                this.value = value;
+                this.idx = idx;
+                this.msg = msg;
+            }
+
+            @Override
+            public void apply(Stack s) {
+                Stack.push(value, s, idx);
+                DEBUG(msg);
+            }
+        }
+
+        private class PushPrimitive implements FiberStackOp {
+            private final Object[] ops;
+            private final int i;
+            private final Type t;
+            private final int idx;
+            private final String msg;
+
+            private PushPrimitive(Object[] ops, int i, Type t, int idx, String msg) {
+                this.ops = ops;
+                this.i = i;
+                this.t = t;
+                this.idx = idx;
+                this.msg = msg;
+            }
+
+            @Override
+            public void apply(Stack s) {
+                storePrim(ops, i, t, s, idx);
+                DEBUG(msg);
+            }
+        }
+
         /**
          * Live fiber stack construction
          * <br>
          * !!! Must be kept aligned with `InstrumentMethod.emitStoreState` and `Stack.pushXXX` !!!
          */
         public void apply(Map<StackWalker.StackFrame, Integer> entries, Stack s) {
-            final Integer idx = entries.get(f);
-            final String idxS = idx.toString();
-            final String cn = f.getClassName();
-            final String mn = f.getMethodName();
-            final String md = mt.toMethodDescriptorString();
+            final Instrumented ann = SuspendableHelper.getAnnotation(m, Instrumented.class);
+            final Instrumented classAnn = m.getDeclaringClass().getAnnotation(Instrumented.class);
 
-            final org.objectweb.asm.Type[] tsOperands = LiveInstrumentationKB.getFrameOperandStackTypes(cn, mn, md, idxS);
-            final org.objectweb.asm.Type[] tsLocals = LiveInstrumentationKB.getFrameLocalTypes(cn, mn, md, idxS);
+            final Integer idx = entries.get(f);
+
+            final org.objectweb.asm.Type[] tsOperands = toTypes(ann.methodSuspendableCallSites()[idx-1].stackFrameOperandsTypes());
+            final org.objectweb.asm.Type[] tsLocals = toTypes(ann.methodSuspendableCallSites()[idx-1].stackFrameLocalsTypes());
 
             // If the class was AOT-instrumented then the frame type info (which is always computed at runtime) will
             // include operands and locals added by instrumentation and some special adjustments are necessary.
-            final boolean aot = LiveInstrumentationKB.isAOTInstrumented(f.getDeclaringClass());
-            // TODO: do it after the whole process
-            // LiveInstrumentationKB.clearAOTInfo(cn);
+            final boolean aot = classAnn.isClassAOTInstrumented();
 
             DEBUG("\t\tFrame method \"" + m + "\":");
             DEBUG("\t\t\tCalled at offset " + lowerOffset + " of: " + lowerM);
@@ -493,16 +526,14 @@ public final class LiveInstrumentation {
             DEBUG("\t\tFrame operands types from instrumentation:");
             int i = 1;
             boolean found = false;
-            org.objectweb.asm.Type[] tsTmp;
-            do {
-                final String iStr = Integer.toString(i);
-                tsTmp = LiveInstrumentationKB.getFrameOperandStackTypes(cn, mn, md, iStr);
+            for (final SuspendableCallSite scs : ann.methodSuspendableCallSites()) {
+                final String[] tsTmp = scs.stackFrameOperandsTypes();
                 if (tsTmp != null) {
                     found = true;
-                    DEBUG("\t\t\t" + iStr + ": " + Arrays.toString(tsTmp));
+                    DEBUG("\t\t\t" + i + ": " + Arrays.toString(tsTmp));
+                    i++;
                 }
-                i++;
-            } while (tsTmp != null);
+            }
             if (!found)
                 DEBUG("\t\t\t<none>");
             DEBUG("\t\tLive operands: " + Arrays.toString(operands));
@@ -510,15 +541,14 @@ public final class LiveInstrumentation {
             DEBUG("\t\tFrame locals types from instrumentation:");
             i = 1;
             found = false;
-            do {
-                final String iStr = Integer.toString(i);
-                tsTmp = LiveInstrumentationKB.getFrameLocalTypes(cn, mn, md, iStr);
+            for (final SuspendableCallSite scs : ann.methodSuspendableCallSites()) {
+                final String[] tsTmp = scs.stackFrameLocalsTypes();
                 if (tsTmp != null) {
                     found = true;
-                    DEBUG("\t\t\t" + iStr + ": " + Arrays.toString(tsTmp));
+                    DEBUG("\t\t\t" + i + ": " + Arrays.toString(tsTmp));
+                    i++;
                 }
-                i++;
-            } while (tsTmp != null);
+            }
             if (!found)
                 DEBUG("\t\t\t<none>");
             DEBUG("\t\tLive locals: " + Arrays.toString(locals));
@@ -558,31 +588,24 @@ public final class LiveInstrumentation {
             final int reflectionArgsCount = callingReflection ? upperM.getParameterCount() + 1 : 0;
             DEBUG("\t\tReflection args count: " + reflectionArgsCount);
 
-            DEBUG("\tActions:");
-
-            if (s.nextMethodEntry() == 0) {
-                DEBUG("\t\tDone `nextMethodEntry` and got 0, doing `isFirstInStackOrPushed`");
-                s.isFirstInStackOrPushed();
-            }
-
-            // New frame
-            final int slots = getNumSlots(tsOperands, tsLocals);
-            DEBUG("\t\tDoing `pushMethod(suspCallIdx: " + idx + ", slots: " + slots + ")`");
-            s.pushMethod(idx, slots);
-
+            final List<FiberStackOp> operandsOps = new ArrayList<>();
             int idxTypes = 0, idxValues = 0;
             if (tsOperands != null) {
-                DEBUG("\t\tPushing analyzed pre-call frame operands:");
                 while (idxTypes + reflectionArgsCount < tsOperands.length /* && idxValues < preCallOperands.length */) {
                     final org.objectweb.asm.Type tOperand = tsOperands[idxTypes];
                     int inc = 1;
                     final Object op = preCallOperands[idxValues];
                     if (primitiveValueClass.isInstance(op)) {
-                        inc = storePrim(preCallOperands, idxValues, tOperand, s, idxPrim++);
-                        DEBUG("\t\t\tPushed primitive in operand slots (" + (inc > 1 ? preCallOperands[idxValues + 1] + ", " :"") + preCallOperands[idxValues] + ") of size " + inc + " and type " + tOperand);
-                    } else { // if (!(op instanceof Stack)) // Skip stack operands
-                        Stack.push(op, s, idxObj++);
-                        DEBUG("\t\t\tPushed object operand " + op + " of type " + tOperand);
+                        inc = getTypeSize(tOperand);
+                        operandsOps.add (
+                            new PushPrimitive (
+                                preCallOperands, idxValues, tOperand, idxPrim++,
+                                "\t\t\tPushed primitive in operand slots (" + (inc > 1 ? locals[idxValues + 1] + ", " :"") +
+                                    locals[idxValues] + ") of size " + inc + " and type " + tOperand
+                            )
+                        );
+                    } else {
+                        operandsOps.add(new PushObject(op, idxObj++, "\t\t\tPushed object operand " + op + " of type " + tOperand));
                     }
                     idxValues += inc;
                     idxTypes++;
@@ -594,47 +617,82 @@ public final class LiveInstrumentation {
                 }
             }
 
-            // TODO: Do it at the end of the whole process, in recursive cases this info is still needed afterwards
-            // Cleanup some tmp mem
-            // LiveInstrumentationKB.clearFrameOperandStackTypes(cn, mn, md, idx);
-
             // Store local vars, including args, except "this" (present in actual values but not types)
+            final List<FiberStackOp> localsOps = new ArrayList<>();
             idxTypes = 0;
             idxValues = (Modifier.isStatic(m.getModifiers()) ? 0 : 1);
-
             if (tsLocals != null) {
-                DEBUG("\t\tPushing analyzed frame locals:");
-                while (
-                    idxTypes <
-                        tsLocals.length - (
-                            aot ? InstrumentMethod.NUM_LOCALS + 1 : 0
-                        )
-                        /* && idxValues < locals.length */
-                ) {
+                while (idxTypes < tsLocals.length /* && idxValues < locals.length */) {
                     final Object local = locals[idxValues];
                     final org.objectweb.asm.Type tLocal = tsLocals[idxTypes];
                     int inc = 1;
                     if (primitiveValueClass.isInstance(local)) {
-                        inc = storePrim(locals, idxValues, tLocal, s, idxPrim++);
-                        DEBUG("\t\t\tPushed primitive in local slots (" + (inc > 1 ? locals[idxValues + 1] + ", " :"") + locals[idxValues] + ") of size " + inc + " and type " + tLocal);
+                        inc = getTypeSize(tLocal);
+                        localsOps.add (
+                            new PushPrimitive (
+                                locals, idxValues, tLocal, idxPrim++,
+                                "\t\t\tPushed primitive in local slots (" + (inc > 1 ? locals[idxValues + 1] + ", " :"") +
+                                    locals[idxValues] + ") of size " + inc + " and type " + tLocal
+                            )
+                        );
                     } else { // if (!(local instanceof Stack)) { // Skip stack locals
-                        Stack.push(local, s, idxObj++);
-                        DEBUG("\t\t\tPushed object local " + local + " of type " + tLocal);
+                        localsOps.add(new PushObject(local, idxObj++, "\t\t\tPushed object local " + local + " of type " + tLocal));
                     }
                     idxTypes++;
                     idxValues += inc;
                 }
             }
 
+            DEBUG("\tActions:");
+
+            if (s.nextMethodEntry() == 0) {
+                DEBUG("\t\tDone `nextMethodEntry` and got 0, doing `isFirstInStackOrPushed`");
+                s.isFirstInStackOrPushed();
+            }
+
+            // New frame
+            final int slots = Math.max(idxObj, idxPrim);
+            DEBUG("\t\tDoing `pushMethod(suspCallIdx: " + idx + ", slots: " + slots + ")`");
+            s.pushMethod(idx, slots);
+
+            // Pushes
+            DEBUG("\t\tPushing analyzed pre-call frame operands:");
+            found = false;
+            for(final FiberStackOp op : operandsOps) {
+                found = true;
+                op.apply(s);
+            }
+            if (!found)
+                DEBUG("\t\t\t<none>");
+            DEBUG("\t\tPushing analyzed frame locals:");
+            found = false;
+            for(final FiberStackOp op : localsOps) {
+                found = true;
+                op.apply(s);
+            }
+            if (!found)
+                DEBUG("\t\t\t<none>");
+
             // Since the potential call to a yield method is in progress already (because live instrumentation is
             // called from all yield methods), we don't need to perform any special magic to preserve its args.
 
             // Cleanup some tmp mem; this assumes that live instrumentation doesn't need to run again for the
             // same methods (as it shouldn't actually need to run again, if it is correct).
+        }
 
-            // TODO: Do it at the end of the whole process, in recursive cases this info is still needed afterwards
-            // Cleanup some tmp mem
-            // LiveInstrumentationKB.clearFrameLocalTypes(cn, mn, md, idx);
+        private static int getTypeSize(Type t) {
+            return isSinglePrimitive(t) ? 1 : 2;
+        }
+
+        private static Type[] toTypes(String[] ts) {
+            if (ts == null)
+                return null;
+
+            final Type[] ret = new Type[ts.length];
+            for (int i = 0 ; i < ts.length ; i++)
+                ret[i] = Type.getType(ts[i]);
+
+            return ret;
         }
 
         private Iterable<?> reconstructReflectionArgs(FiberFramePush upperFFP) {
@@ -666,63 +724,12 @@ public final class LiveInstrumentation {
             return count;
         }
 
-        private int getNumSlots(Type[] tsOperands, Type[] tsLocals) {
-            if (numSlots == -1) {
-                int idxPrim = 0, idxObj = 0;
-
-                // ************************************************************************************************
-                // The in-flight situation of the stack is skewed compared to the static analysis one:
-                // calls are in progress and in all non-top frames the upper part of operand the stack representing
-                // arguments has been moved to param locals of the upper frame.
-                //
-                // On the other hand we don't need the values there anymore: the instrumentation saves them only in
-                // the case there's a suspension point before the call but this is not the case since we're already
-                // in a yield here (and a suspension point would be a yield anyway).
-                //
-                // Attempt 2: recover them from the upper frame. Note: their value might have changed but not their
-                // number, and the value doesn't matter a lot as per above.
-                // ************************************************************************************************
-
-                // TODO: operands that are args of reflective calls don't correspond to real target call args
-
-                // Count stack operands
-                if (tsOperands != null) {
-                    for (final Type tOperand : tsOperands) {
-                        if (tOperand != null) {
-                            if (isPrimitive(tOperand))
-                                idxPrim++;
-                            else
-                                idxObj++;
-                        }
-                    }
-                }
-
-                // Count local vars
-                if (tsLocals != null) {
-                    for (final Type tLocal : tsLocals) {
-                        if (tLocal != null) {
-                            if (isPrimitive(tLocal))
-                                idxPrim++;
-                            else
-                                idxObj++;
-                        }
-                    }
-                }
-
-                numSlots = Math.max(idxObj, idxPrim);
-            }
-
-            return numSlots;
-        }
-
-        private int storePrim(Object[] objs, int objsIdx, Type t, Stack s, int stackIdx) {
-            int inc = 1;
+        private static void storePrim(Object[] objs, int objsIdx, Type t, Stack s, int stackIdx) {
             try {
                 // TODO: ask if the present hack will stay (currently all values except double-word are returned as ints)
                 if (isSinglePrimitive(t)) {
                     Stack.push((int) intValue.invoke(objs[objsIdx]), s, stackIdx);
                 } else {
-                    inc = 2;
                     final int i1 = (int) intValue.invoke(objs[objsIdx]), i2 = (int) intValue.invoke(objs[objsIdx + 1]);
                     if (Type.LONG_TYPE.equals(t))
                         Stack.push(twoIntsToLong(i1, i2), s, stackIdx);
@@ -732,7 +739,6 @@ public final class LiveInstrumentation {
             } catch (final InvocationTargetException | IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
-            return inc;
         }
 
         private static long twoIntsToLong(int a, int b) {
@@ -767,14 +773,6 @@ public final class LiveInstrumentation {
         // public String toString()
     }
 
-    private static boolean isPrimitive(Type t) {
-        return isSinglePrimitive(t) || isDoublePrimitive(t);
-    }
-
-    private static boolean isDoublePrimitive(Type t) {
-        return Type.LONG_TYPE.equals(t) || Type.DOUBLE_TYPE.equals(t);
-    }
-
     private static boolean isSinglePrimitive(Type t) {
         return
             Type.INT_TYPE.equals(t)  || Type.SHORT_TYPE.equals(t) || Type.BOOLEAN_TYPE.equals(t) ||
@@ -807,7 +805,6 @@ public final class LiveInstrumentation {
 
     private static long agree(StackWalker w, Stack fs) {
         // TODO: must be _fast_, JMH it
-        final List<StackWalker.StackFrame> l = w.walk (s -> s.collect(Collectors.toList())); // TODO: remove
         StackFramePredicate.reset();
         final long threadStackDepth = w.walk (s -> s.filter(StackFramePredicate.INSTANCE).collect(COUNTING));
         return threadStackDepth - (fs.getInstrumentedCount() + fs.getOptimizedCount());
@@ -861,7 +858,7 @@ public final class LiveInstrumentation {
 
     private static Class<?> primitiveValueClass;
 
-    private static Method getLocals, getOperands, getMethodType, primitiveType;
+    private static Method getLocals, getOperands, getMethodType;
     private static Method intValue;
 
     private static Field memberName, offset;
@@ -907,9 +904,6 @@ public final class LiveInstrumentation {
 
                 getOperands = liveStackFrameClass.getDeclaredMethod("getStack");
                 getOperands.setAccessible(true);
-
-                primitiveType = primitiveValueClass.getDeclaredMethod("type");
-                primitiveType.setAccessible(true);
 
                 intValue = primitiveValueClass.getDeclaredMethod("intValue");
                 // intValue.setAccessible(true);
@@ -978,23 +972,22 @@ public final class LiveInstrumentation {
             throw new RuntimeException("ERROR: live instrumentation needs redefinition support but it's missing!");
     }
 
-    private static String type(Object operand) {
-        if (primitiveValueClass.isInstance(operand)) {
-            final char c;
-            try {
-                c = (char) primitiveType.invoke(operand);
-            } catch (final IllegalAccessException | InvocationTargetException e) {
-                throw new RuntimeException(e);
-            }
-            return String.valueOf(c);
-        } else {
-            return operand.getClass().getName();
-        }
-    }
-
     private static void DEBUG(String s) {
         // TODO: plug
         System.err.println(s);
+    }
+
+
+    private static final AtomicLong runCount = new AtomicLong();
+
+    @VisibleForTesting
+    public static long getRunCount() {
+        return runCount.get();
+    }
+
+    @VisibleForTesting
+    public static void resetRunCount() {
+        runCount.set(0L);
     }
 
     private LiveInstrumentation() {}

@@ -185,10 +185,11 @@ public final class Verify {
                             .append (
                                 res.ann == null ?
                                     "[]" :
-                                    "[" + (Arrays.toString(res.ann.methodSuspendableCallSourceLines()) +
-                                    "/" + Arrays.toString(res.ann.methodSuspendableCallOffsetsAfterInstrumentation())) + "]"
-                            )
-                            .append(")");
+                                    "[" +
+                                        Arrays.toString(SuspendableHelper.getSourceLines(res.ann)) + "/" +
+                                        Arrays.toString(SuspendableHelper.getPostInstrumentationOffsets(res.ann)) +
+                                    "]"
+                            ).append(")");
                 }
             }
         } else if (Fiber.class.getName().equals(className) && "run1".equals(methodName)) {
@@ -214,7 +215,7 @@ public final class Verify {
             }
 
             if (ann != null) {
-                final int[] offsets = ann.methodSuspendableCallOffsetsAfterInstrumentation();
+                final int[] offsets = SuspendableHelper.getPostInstrumentationOffsets(ann);
                 for (int offset1 : offsets) {
                     if (offset == offset1)
                         return true;

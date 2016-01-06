@@ -38,7 +38,7 @@ public class InstrumentationOptimizerTest {
         for (Method m : getClass().getDeclaredMethods()) {
             if (method.equals(m.getName())) {
                 Instrumented i = m.getAnnotation(Instrumented.class);
-                return i != null && i.methodOptimized();
+                return i != null && i.isMethodInstrumentationOptimized();
             }
         }
         return false;
