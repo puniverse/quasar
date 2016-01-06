@@ -115,7 +115,8 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
 
         // We call the verifySuspend first here, because instrumentation problems may corrupt
         // the second call inside Fiber.park
-        Fiber.verifySuspend(fiber);
+        if (LiveInstrumentation.fixup(fiber))
+            Fiber.verifySuspend(fiber);
 
         fiber.record(1, "FiberAsync", "run", "Blocking fiber %s on FibeAsync %s", fiber, this);
         while (!Fiber.park(this, new Fiber.ParkAction() {
