@@ -81,7 +81,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private static final boolean traceInterrupt = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.traceInterrupt");
     private static final boolean disableAgentWarning = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.disableAgentWarning");
     public static final int DEFAULT_STACK_SIZE = 32;
-    private static final Object SERIALIZER_BLOCKER = new Object();
+    /**
+     * A sentinel object that is used as the blocker by parkAndSerialize/unparkDeserialized: use this explicitly if you
+     * wish to call unpark directly on a fiber that has been parked with parkAndSerialize.
+     */
+    public static final Object SERIALIZER_BLOCKER = new Object();
     private static final boolean MAINTAIN_ACCESS_CONTROL_CONTEXT = (System.getSecurityManager() != null);
 //    private static final boolean PREEMPTION = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.enablePreemption");
 //    private static final int PREEMPTION_CREDITS = 3000;
