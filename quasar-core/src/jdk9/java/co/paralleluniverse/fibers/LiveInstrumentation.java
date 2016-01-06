@@ -577,17 +577,12 @@ public final class LiveInstrumentation {
                     final org.objectweb.asm.Type tOperand = tsOperands[idxTypes];
                     int inc = 1;
                     final Object op = preCallOperands[idxValues];
-                    if (op != null) {
-                        final String tID = type(op);
-                        if (!isNullableType(tID)) {
-                            if (primitiveValueClass.isInstance(op)) {
-                                inc = storePrim(preCallOperands, idxValues, tOperand, s, idxPrim++);
-                                DEBUG("\t\tPushed primitive in operand slots (" + (inc > 1 ? preCallOperands[idxValues + 1] + ", " :"") + preCallOperands[idxValues] + ") of size " + inc + " and type " + tOperand);
-                            } else { // if (!(op instanceof Stack)) // Skip stack operands
-                                Stack.push(op, s, idxObj++);
-                                DEBUG("\t\tPushed object operand " + op + " of type " + tOperand);
-                            }
-                        }
+                    if (primitiveValueClass.isInstance(op)) {
+                        inc = storePrim(preCallOperands, idxValues, tOperand, s, idxPrim++);
+                        DEBUG("\t\t\tPushed primitive in operand slots (" + (inc > 1 ? preCallOperands[idxValues + 1] + ", " :"") + preCallOperands[idxValues] + ") of size " + inc + " and type " + tOperand);
+                    } else { // if (!(op instanceof Stack)) // Skip stack operands
+                        Stack.push(op, s, idxObj++);
+                        DEBUG("\t\t\tPushed object operand " + op + " of type " + tOperand);
                     }
                     idxValues += inc;
                     idxTypes++;
@@ -619,17 +614,12 @@ public final class LiveInstrumentation {
                     final Object local = locals[idxValues];
                     final org.objectweb.asm.Type tLocal = tsLocals[idxTypes];
                     int inc = 1;
-                    if (local != null) {
-                        final String tID = type(local);
-                        if (!isNullableType(tID)) {
-                            if (primitiveValueClass.isInstance(local)) {
-                                inc = storePrim(locals, idxValues, tLocal, s, idxPrim++);
-                                DEBUG("\t\tPushed primitive in local slots (" + (inc > 1 ? locals[idxValues + 1] + ", " :"") + locals[idxValues] + ") of size " + inc + " and type " + tLocal);
-                            } else { // if (!(local instanceof Stack)) { // Skip stack locals
-                                Stack.push(local, s, idxObj++);
-                                DEBUG("\t\tPushed object local " + local + " of type " + tLocal);
-                            }
-                        }
+                    if (primitiveValueClass.isInstance(local)) {
+                        inc = storePrim(locals, idxValues, tLocal, s, idxPrim++);
+                        DEBUG("\t\t\tPushed primitive in local slots (" + (inc > 1 ? locals[idxValues + 1] + ", " :"") + locals[idxValues] + ") of size " + inc + " and type " + tLocal);
+                    } else { // if (!(local instanceof Stack)) { // Skip stack locals
+                        Stack.push(local, s, idxObj++);
+                        DEBUG("\t\t\tPushed object local " + local + " of type " + tLocal);
                     }
                     idxTypes++;
                     idxValues += inc;
@@ -1000,11 +990,6 @@ public final class LiveInstrumentation {
         } else {
             return operand.getClass().getName();
         }
-    }
-
-    private static boolean isNullableType(String type) {
-        // TODO: check if this can really happen at runtime too
-        return "null".equals(type.toLowerCase());
     }
 
     private static void DEBUG(String s) {
