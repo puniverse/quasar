@@ -28,6 +28,7 @@ import java.util.ArrayList;
 public class KotlinClassifier implements SuspendableClassifier {
 	private static final String PKG_PREFIX = "kotlin";
 	private static final String[][] supers;
+	private static final String[] excludePrefixes;
 
 	private static String[] sa(String... elems) {
 		return elems;
@@ -36,8 +37,8 @@ public class KotlinClassifier implements SuspendableClassifier {
 	static {
 		final ArrayList<String[]> res = new ArrayList<>();
 
+		// Kotlin reflection support
 		res.add(sa("kotlin/reflect/KCallable", "call", "callBy"));
-
 		res.add(sa("kotlin/reflect/KProperty0", "get"));
 		res.add(sa("kotlin/reflect/KMutableProperty0", "set"));
 		res.add(sa("kotlin/reflect/KProperty1", "get"));
@@ -45,6 +46,7 @@ public class KotlinClassifier implements SuspendableClassifier {
 		res.add(sa("kotlin/reflect/KProperty2", "get"));
 		res.add(sa("kotlin/reflect/KMutableProperty2", "set"));
 
+		// Kotlin functions support
 		for (int i = 0; i <= 22 ; i++)
 			res.add(sa("kotlin/jvm/functions/Function" + i, "invoke"));
 
@@ -53,6 +55,12 @@ public class KotlinClassifier implements SuspendableClassifier {
 		res.add(sa("co/paralleluniverse/strands/SuspendableRunnable", "run"));
 
 		supers = res.toArray(new String[0][0]);
+
+		// Class prefixes that are known not to suspend
+		excludePrefixes = new String[] {
+			// TODO: this specifically is also known to cause a `VerifyError` when instrumented, see #146
+			"kotlin/reflect/jvm/internal/impl/descriptors/impl/ModuleDescriptorImpl"
+		};
 	}
 
 	@Override
@@ -73,9 +81,16 @@ public class KotlinClassifier implements SuspendableClassifier {
 				}
 		}
 
+		// Don't consider Kotlin user files without inner classes
 		if (className != null && !className.startsWith(PKG_PREFIX)
 			&& !(className.contains("$") && sourceName != null && sourceName.toLowerCase().endsWith(".kt")))
 			return null;
+
+		// Exclude packages known not to suspend
+		for (final String s : excludePrefixes) {
+			if (className.startsWith(s))
+				return null;
+		}
 
 		for (final String[] s : supers) {
 			if (SimpleSuspendableClassifier.extendsOrImplements(s[0], db, className, superClassName, interfaces))
