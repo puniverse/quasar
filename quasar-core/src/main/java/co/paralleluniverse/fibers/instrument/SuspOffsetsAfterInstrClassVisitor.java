@@ -15,13 +15,13 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Instrumented;
 import co.paralleluniverse.fibers.SuspendableCallSite;
+import co.paralleluniverse.fibers.SuspendableCalls;
 import com.google.common.primitives.Ints;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static co.paralleluniverse.fibers.instrument.Classes.*;
@@ -68,6 +68,8 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                 private List<InstrumentMethod.SuspCallSite> suspCallSitesL = new ArrayList<>();
 
                 private List<Integer> suspOffsetsAfterInstrL = new ArrayList<>();
+
+                private int[] preInstrOffsets;
 
                 @Override
                 public AnnotationVisitor visitAnnotation(final String adesc, boolean visible) {
@@ -178,6 +180,16 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                                     throw new RuntimeException("Unexpected `@SuspendableCallSite` field: " + name);
                             }
                         };
+                    } else if (Classes.SUSPENDABLE_CALLS_DESC.equals(adesc)) {
+                        return new AnnotationVisitor(ASMAPI) { // Only collect info
+                            @Override
+                            public void visit(String name, Object value) {
+                                if (SuspendableCalls.FIELD_NAME_METHOD_SUSPENDABLE_CALL_OFFSETS.equals(name))
+                                    preInstrOffsets = (int[]) value;
+                                else
+                                    throw new RuntimeException("Unexpected `@SuspendableCalls` field: " + name);
+                            }
+                        };
                     }
 
                     return super.visitAnnotation(adesc, visible);
@@ -220,20 +232,18 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
 
                 @Override
                 public void visitEnd() {
-                    int[] preInstrOffsets = InstrumentationKB.getMethodPreInstrumentationOffsets(className, mn.name, mn.desc);
-
-                    // In some cases suspendable calls are found in pre- that later aren't instrumented
-                    for (int i = 0 ; i < preInstrOffsets.length && i < suspCallSitesL.size() && i < suspOffsetsAfterInstrL.size() ; i++) {
-                        suspCallSitesL.get(i).preInstrumentationOffset = preInstrOffsets[i];
-                        suspCallSitesL.get(i).postInstrumentationOffset = suspOffsetsAfterInstrL.get(i);
+                    if (preInstrOffsets != null) {
+                        // In some cases suspendable calls are found in pre- that later aren't instrumented
+                        for (int i = 0; i < preInstrOffsets.length && i < suspCallSitesL.size() && i < suspOffsetsAfterInstrL.size(); i++) {
+                            suspCallSitesL.get(i).preInstrumentationOffset = preInstrOffsets[i];
+                            suspCallSitesL.get(i).postInstrumentationOffset = suspOffsetsAfterInstrL.get(i);
+                        }
                     }
 
                     if (instrumented)
                         InstrumentMethod.emitInstrumentedAnn (
                             db, outMV, mn, className, optimized, methodStart, methodEnd, suspCallSitesL
                         );
-
-                    InstrumentationKB.removeMethodPreInstrumentationOffsets(className, mn.name, mn.desc);
 
                     super.visitEnd();
                 }

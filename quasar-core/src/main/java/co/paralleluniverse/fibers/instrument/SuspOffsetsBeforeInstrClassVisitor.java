@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.fibers.SuspendableCalls;
 import com.google.common.primitives.Ints;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -102,7 +103,9 @@ public class SuspOffsetsBeforeInstrClassVisitor extends ClassVisitor {
 
                 @Override
                 public void visitEnd() {
-                    InstrumentationKB.setMethodPreInstrumentationOffsets(className, mn.name, mn.desc, Ints.toArray(suspOffsetsBeforeInstrL));
+                    final AnnotationVisitor suspCallsAV = super.visitAnnotation(Classes.SUSPENDABLE_CALLS_DESC, true);
+                    suspCallsAV.visit(SuspendableCalls.FIELD_NAME_METHOD_SUSPENDABLE_CALL_OFFSETS, Ints.toArray(suspOffsetsBeforeInstrL));
+                    suspCallsAV.visitEnd();
                     super.visitEnd();
                 }
 
