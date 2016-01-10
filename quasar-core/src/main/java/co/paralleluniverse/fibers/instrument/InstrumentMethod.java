@@ -505,6 +505,9 @@ public class InstrumentMethod {
         for (int i = 1; i < numCodeBlocks; i++)
             lMethodCalls[i - 1] = new Label();
 
+        final Label absStart = new Label(), absEnd = new Label();
+        mv.visitLabel(absStart);
+
         mv.visitInsn(Opcodes.ACONST_NULL);
         mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationReturnValue);
 
@@ -736,11 +739,22 @@ public class InstrumentMethod {
         // println(mv, "THROW: ");
         mv.visitInsn(Opcodes.ATHROW);   // rethrow shared between catchAll and catchSSE
 
+        mv.visitLabel(absEnd);
+
         if (mn.localVariables != null) {
+            // Pre-existing ones
             for (final Object o : mn.localVariables)
                 ((LocalVariableNode) o).accept(mv);
+            // Instrumentation-added ones
+            /*
+                lvarStack = maxLocals;
+                lvarResumed = maxLocals + 1;
+                lvarInvocationReturnValue = maxLocals + 2;
+             */
+            mv.visitLocalVariable("!quasar_stack", "L" + Classes.STACK_NAME + ";", null, absStart, absEnd, lvarStack);
+            mv.visitLocalVariable("!quasar_resumed", "Z", null, absStart, absEnd, lvarResumed);
+            mv.visitLocalVariable("!quasar_ret", "L" + Classes.OBJECT_NAME + ";", null, absStart, absEnd, lvarInvocationReturnValue);
         }
-
         mv.visitMaxs(mn.maxStack + ADD_OPERANDS, mn.maxLocals + NUM_LOCALS + additionalLocals); // Needed by ASM analysis
 
         mv.visitEnd();
