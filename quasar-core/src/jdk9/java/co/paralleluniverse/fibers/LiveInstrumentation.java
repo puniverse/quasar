@@ -513,7 +513,12 @@ public final class LiveInstrumentation {
 
             final Integer idx = entries.get(f);
 
-            final org.objectweb.asm.Type[] tsOperands = toTypes(ann.methodSuspendableCallSites()[idx-1].stackFrameOperandsTypes());
+            // Stack types are in reverse order w.r.t. what we need here
+            final List<Type> tsOperandsL = Arrays.asList(toTypes(ann.methodSuspendableCallSites()[idx-1].stackFrameOperandsTypes()));
+            Collections.reverse(tsOperandsL);
+            final org.objectweb.asm.Type[] tsOperands = new Type[tsOperandsL.size()];
+            tsOperandsL.toArray(tsOperands);
+
             final org.objectweb.asm.Type[] tsLocals = toTypes(ann.methodSuspendableCallSites()[idx-1].stackFrameLocalsTypes());
 
             // If the class was AOT-instrumented then the frame type info (which is always computed at runtime) will
@@ -600,8 +605,8 @@ public final class LiveInstrumentation {
                         operandsOps.add (
                             new PushPrimitive (
                                 preCallOperands, idxValues, tOperand, idxPrim++,
-                                "\t\t\tPushed primitive in operand slots (" + (inc > 1 ? locals[idxValues + 1] + ", " :"") +
-                                    locals[idxValues] + ") of size " + inc + " and type " + tOperand
+                                "\t\t\tPushed primitive in operand slots (" + (inc > 1 ? preCallOperands[idxValues + 1] + ", " :"") +
+                                    preCallOperands[idxValues] + ") of size " + inc + " and type " + tOperand
                             )
                         );
                     } else {
@@ -613,7 +618,7 @@ public final class LiveInstrumentation {
 
                 if (callingReflection) {
                     for (final Object o : reconstructReflectionArgs(upperFFP))
-                        Stack.push(o, s, idxObj++);
+                        operandsOps.add(new PushObject(o, idxObj++, "\t\t\tPushed reflection object operand " + o));
                 }
             }
 
@@ -681,7 +686,7 @@ public final class LiveInstrumentation {
         }
 
         private static int getTypeSize(Type t) {
-            return isSinglePrimitive(t) ? 1 : 2;
+            return isDoublePrimitive(t) ? 2 : 1;
         }
 
         private static Type[] toTypes(String[] ts) {
@@ -777,6 +782,11 @@ public final class LiveInstrumentation {
         return
             Type.INT_TYPE.equals(t)  || Type.SHORT_TYPE.equals(t) || Type.BOOLEAN_TYPE.equals(t) ||
             Type.CHAR_TYPE.equals(t) || Type.BYTE_TYPE.equals(t)  || Type.FLOAT_TYPE.equals(t);
+    }
+
+    private static boolean isDoublePrimitive(Type t) {
+        return
+            Type.DOUBLE_TYPE.equals(t)  || Type.LONG_TYPE.equals(t);
     }
 
     private static LiveInstrumentation.FiberFramePushFull pushRebuildToDoFull (
