@@ -162,6 +162,7 @@ subprojects {
 
         // systemProperty 'co.paralleluniverse.fibers.instrument.pre.disable', 'true' // TODO: implement
         systemProperty 'co.paralleluniverse.fibers.instrument.live.enable', 'true' // TODO: convert to negative prop
+        // systemProperty 'co.paralleluniverse.fibers.instrument.live.force', 'true' // TODO: comment out
         // systemProperty 'co.paralleluniverse.fibers.disableInstrumentationOptimization', 'true'
         // systemProperty 'co.paralleluniverse.fibers.writeInstrumentedClassesStartingWith', "co/paralleluniverse/fibers/instrument/live/"
         systemProperty 'co.paralleluniverse.fibers.detectRunawayFibers', 'false'

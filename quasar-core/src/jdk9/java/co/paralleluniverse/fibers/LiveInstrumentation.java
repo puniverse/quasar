@@ -814,6 +814,9 @@ public final class LiveInstrumentation {
     ///////////////////////////// Less interesting
 
     private static long agree(StackWalker w, Stack fs) {
+        if (FORCE)
+            return Integer.MIN_VALUE;
+
         // TODO: must be _fast_, JMH it
         StackFramePredicate.reset();
         final long threadStackDepth = w.walk (s -> s.filter(StackFramePredicate.INSTANCE).collect(COUNTING));
@@ -863,6 +866,7 @@ public final class LiveInstrumentation {
     }
 
     public static final boolean ACTIVE;
+    public static final boolean FORCE;
 
     private static StackWalker esw = null;
 
@@ -877,6 +881,7 @@ public final class LiveInstrumentation {
         try {
             // TODO: change to "disableXXX" when stable
             ACTIVE = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.instrument.live.enable");
+            FORCE = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.instrument.live.force");
             db = Retransform.getMethodDB();
 
             if (ACTIVE) {
