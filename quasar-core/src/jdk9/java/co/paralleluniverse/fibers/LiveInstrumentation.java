@@ -876,7 +876,7 @@ public final class LiveInstrumentation {
     static {
         try {
             // TODO: change to "disableXXX" when stable
-            ACTIVE = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.instrument.enableLive");
+            ACTIVE = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.instrument.live.enable");
             db = Retransform.getMethodDB();
 
             if (ACTIVE) {
