@@ -447,8 +447,8 @@ public class InstrumentMethod {
                         }
 
                         if (susp) {
-                            addCodeBlock(f, i);
-                            addSuspendableCallSite(f, i, ++entry /* 1-based */, currSourceLine, getMethodName(in) + getMethodDesc(in));
+                            final FrameInfo fi = addCodeBlock(f, i);
+                            addSuspendableCallSite(fi, i, ++entry /* 1-based */, currSourceLine, getMethodName(in) + getMethodDesc(in));
                         } else if (in.getType() == AbstractInsnNode.METHOD_INSN) { // not invokedynamic
                             //noinspection ConstantConditions
                             final MethodInsnNode min = (MethodInsnNode) in;
@@ -1191,17 +1191,22 @@ public class InstrumentMethod {
         }
     }
 
-    private void addSuspendableCallSite(Frame f, int idx, int entry, int currSourceLine, String desc) {
+    private void addSuspendableCallSite(FrameInfo fi, int idx, int entry, int currSourceLine, String desc) {
+        final Frame f = frames[fi.endInstruction];
+
         final List<Type> operandTypes = new ArrayList<>();
         for (int i = f.getStackSize(); i-- > 0;) {
             final BasicValue v = (BasicValue) f.getStack(i);
-            if (v != null && v.getType() != null)
-                operandTypes.add(v.getType());
+            if (!isOmitted(v)) {
+                if (!isNullType(v)) {
+                    operandTypes.add(v.getType());
+                }
+            }
         }
-        final List<Type>  localTypes = new ArrayList<>();
+        final List<Type> localTypes = new ArrayList<>();
         for (int i = firstLocal; i < f.getLocals(); i++) {
             final BasicValue v = (BasicValue) f.getLocal(i);
-            if (v != null && v.getType() != null)
+            if (!isNullType(v))
                 localTypes.add(v.getType());
         }
         suspCallSites.add(new SuspCallSite(idx, desc, entry, currSourceLine, operandTypes, localTypes));
