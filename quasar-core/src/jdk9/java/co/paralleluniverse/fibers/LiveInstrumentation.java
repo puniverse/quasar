@@ -832,8 +832,10 @@ public final class LiveInstrumentation {
     ///////////////////////////// Less interesting
 
     private static long agree(StackWalker w, Stack fs) {
-        if (FORCE)
+        if (FORCE) {
+            DEBUG("\nWARNING: live instrumentation forcing ACTIVE, this will SEVERELY harm performances");
             return Integer.MIN_VALUE;
+        }
 
         // TODO: must be _fast_, JMH it
         StackFramePredicate.reset();

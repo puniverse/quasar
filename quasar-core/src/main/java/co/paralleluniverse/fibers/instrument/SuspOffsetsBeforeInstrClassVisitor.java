@@ -16,7 +16,6 @@ package co.paralleluniverse.fibers.instrument;
 import com.google.common.primitives.Ints;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.MethodNode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,9 +59,6 @@ public class SuspOffsetsBeforeInstrClassVisitor extends ClassVisitor {
     @Override
     public MethodVisitor visitMethod(final int access, final String name, final String desc, final String signature, final String[] exceptions) {
         if (record && (access & Opcodes.ACC_NATIVE) == 0 && !isYieldMethod(className, name)) {
-            // Bytecode-level AST of a method, being a MethodVisitor itself can be filled through delegation from another visitor
-            final MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
-
             // Analyze, fill and enqueue method ASTs
             final MethodVisitor outMV = super.visitMethod(access, name, desc, signature, exceptions);
 
