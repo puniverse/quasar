@@ -113,9 +113,9 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
         if (registrationComplete)
             throw new IllegalStateException("This FiberAsync instance has already been used");
 
-        // We call the verifySuspend first here, because instrumentation problems may corrupt
-        // the second call inside Fiber.park
-        if (LiveInstrumentation.fixup(fiber))
+        if (!LiveInstrumentation.ACTIVE)
+            // We call the verifySuspend first here, because instrumentation problems may corrupt
+            // the second call inside Fiber.park
             Fiber.verifySuspend(fiber);
 
         fiber.record(1, "FiberAsync", "run", "Blocking fiber %s on FibeAsync %s", fiber, this);
