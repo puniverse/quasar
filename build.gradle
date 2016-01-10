@@ -439,7 +439,7 @@ project (':quasar-core') {
 
         jdk9test {
             java {
-                srcDir 'src/test/java'
+                // srcDir 'src/test/java'
                 srcDir 'src/jdk9Test/java'
             }
 
