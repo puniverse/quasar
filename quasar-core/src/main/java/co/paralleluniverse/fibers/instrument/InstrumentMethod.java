@@ -384,7 +384,7 @@ public class InstrumentMethod {
     }
 
     public boolean hasSuspendableCalls() {
-        collectCodeBlocks(false);
+        collectCodeBlocks(true);
         return suspCallSites.size() > 0;
     }
 
