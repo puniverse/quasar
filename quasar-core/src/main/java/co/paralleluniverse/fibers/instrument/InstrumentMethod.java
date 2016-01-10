@@ -222,21 +222,25 @@ public class InstrumentMethod {
         final int entry;
         final int sourceLine;
         final List<Type> operandTypes;
+        final List<Integer> operandIndexes;
         final List<Type> localTypes;
+        final List<Integer> localIndexes;
 
         int preInstrumentationOffset = -1, postInstrumentationOffset = -1; // Set in `SuspOffsetsAfterInstrClassVisitor`
 
-        SuspCallSite(int idx, String desc, int entry, int sourceLine, List<Type> operandTypes, List<Type> localTypes) {
+        SuspCallSite(int idx, String desc, int entry, int sourceLine, List<Type> operandTypes, List<Integer> operandIndexes, List<Type> localTypes, List<Integer> localIndexes) {
             this.idx = idx;
             this.desc = desc;
             this.entry = entry;
             this.sourceLine = sourceLine;
             this.operandTypes = operandTypes;
+            this.operandIndexes = operandIndexes;
             this.localTypes = localTypes;
+            this.localIndexes = localIndexes;
         }
 
-        public SuspCallSite(String desc, int entry, int sourceLine, List<Type> operandTypes, List<Type> localTypes) {
-            this(-1, desc, entry, sourceLine, operandTypes, localTypes);
+        public SuspCallSite(String desc, int entry, int sourceLine, List<Type> operandTypes, List<Integer> operandIndexes, List<Type> localTypes, List<Integer> localIndexes) {
+            this(-1, desc, entry, sourceLine, operandTypes, operandIndexes, localTypes, localIndexes);
         }
     }
 
@@ -353,6 +357,22 @@ public class InstrumentMethod {
                     sb.append("]");
                 }
 
+                if (scs.operandIndexes != null) {
+                    final AnnotationVisitor frameOpsIdxAV = suspCallSiteAV.visitArray(SuspendableCallSite.FIELD_NAME_STACK_FRAME_OPERANDS_INDEXES);
+                    sb.append(SuspendableCallSite.FIELD_NAME_STACK_FRAME_OPERANDS_INDEXES + "=[");
+                    boolean first1 = true;
+                    for (final Integer i : scs.operandIndexes) {
+                        if (!first1) {
+                            sb.append(",");
+                        }
+                        first1 = false;
+                        frameOpsIdxAV.visit(null, i);
+                        sb.append(i);
+                    }
+                    frameOpsIdxAV.visitEnd();
+                    sb.append("]");
+                }
+
                 if (scs.localTypes != null) {
                     final AnnotationVisitor frameLocsAV = suspCallSiteAV.visitArray(SuspendableCallSite.FIELD_NAME_STACK_FRAME_LOCALS_TYPES);
                     sb.append(SuspendableCallSite.FIELD_NAME_STACK_FRAME_LOCALS_TYPES + "=[");
@@ -366,6 +386,22 @@ public class InstrumentMethod {
                         sb.append(t.getDescriptor());
                     }
                     frameLocsAV.visitEnd();
+                    sb.append("]");
+                }
+
+                if (scs.localIndexes != null) {
+                    final AnnotationVisitor frameLocsIdxAV = suspCallSiteAV.visitArray(SuspendableCallSite.FIELD_NAME_STACK_FRAME_LOCALS_INDEXES);
+                    sb.append(SuspendableCallSite.FIELD_NAME_STACK_FRAME_LOCALS_INDEXES + "=[");
+                    boolean first1 = true;
+                    for (final Integer i : scs.localIndexes) {
+                        if (!first1) {
+                            sb.append(",");
+                        }
+                        first1 = false;
+                        frameLocsIdxAV.visit(null, i);
+                        sb.append(i);
+                    }
+                    frameLocsIdxAV.visitEnd();
                     sb.append("]");
                 }
 
@@ -1209,21 +1245,32 @@ public class InstrumentMethod {
         final Frame f = frames[fi.endInstruction];
 
         final List<Type> operandTypes = new ArrayList<>();
+        final List<Integer> operandIndexes = new ArrayList<>();
         for (int i = f.getStackSize(); i-- > 0;) {
             final BasicValue v = (BasicValue) f.getStack(i);
+            int slotIdx = fi.stackSlotIndices[i];
             if (!isOmitted(v)) {
                 if (!isNullType(v)) {
                     operandTypes.add(v.getType());
+                    operandIndexes.add(slotIdx);
                 }
             }
         }
         final List<Type> localTypes = new ArrayList<>();
+        final List<Integer> localIndexes = new ArrayList<>();
         for (int i = firstLocal; i < f.getLocals(); i++) {
             final BasicValue v = (BasicValue) f.getLocal(i);
-            if (!isNullType(v))
+            int slotIdx = fi.localSlotIndices[i];
+            if (!isNullType(v)) {
                 localTypes.add(v.getType());
+                localIndexes.add(slotIdx);
+            }
         }
-        suspCallSites.add(new SuspCallSite(idx, desc, entry, currSourceLine, operandTypes, localTypes));
+        suspCallSites.add (
+            new SuspCallSite (
+                idx, desc, entry, currSourceLine, operandTypes, operandIndexes, localTypes, localIndexes
+            )
+        );
     }
 
     private void emitFiberStackRestoreState(MethodVisitor mv, FrameInfo fi, int numArgsThatHaveBeenPutBackToOperandStackAfterStore) {

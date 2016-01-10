@@ -41,6 +41,12 @@ public @interface SuspendableCallSite {
     String FIELD_NAME_STACK_FRAME_OPERANDS_TYPES = "stackFrameOperandsTypes";
     String[] stackFrameOperandsTypes() default {};
 
+    String FIELD_NAME_STACK_FRAME_OPERANDS_INDEXES = "stackFrameOperandsIndexes";
+    int[] stackFrameOperandsIndexes() default {};
+
     String FIELD_NAME_STACK_FRAME_LOCALS_TYPES = "stackFrameLocalsTypes";
     String[] stackFrameLocalsTypes() default {};
+
+    String FIELD_NAME_STACK_FRAME_LOCALS_INDEXES = "stackFrameLocalsIndexes";
+    int[] stackFrameLocalsIndexes() default {};
 }

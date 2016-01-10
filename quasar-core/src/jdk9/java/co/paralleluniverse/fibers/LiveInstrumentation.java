@@ -516,10 +516,14 @@ public final class LiveInstrumentation {
             // Stack types are in reverse order w.r.t. what we need here
             final List<Type> tsOperandsL = Arrays.asList(toTypes(ann.methodSuspendableCallSites()[idx-1].stackFrameOperandsTypes()));
             Collections.reverse(tsOperandsL);
-            final org.objectweb.asm.Type[] tsOperands = new Type[tsOperandsL.size()];
+            final Type[] tsOperands = new Type[tsOperandsL.size()];
             tsOperandsL.toArray(tsOperands);
+            final List<Integer> idxOperandsL = Ints.asList(ann.methodSuspendableCallSites()[idx-1].stackFrameOperandsIndexes());
+            Collections.reverse(idxOperandsL);
+            final int[] idxOperands = Ints.toArray(idxOperandsL);
 
-            final org.objectweb.asm.Type[] tsLocals = toTypes(ann.methodSuspendableCallSites()[idx-1].stackFrameLocalsTypes());
+            final Type[] tsLocals = toTypes(ann.methodSuspendableCallSites()[idx-1].stackFrameLocalsTypes());
+            final int[] idxLocals = ann.methodSuspendableCallSites()[idx-1].stackFrameLocalsIndexes();
 
             // If the class was AOT-instrumented then the frame type info (which is always computed at runtime) will
             // include operands and locals added by instrumentation and some special adjustments are necessary.
@@ -541,6 +545,7 @@ public final class LiveInstrumentation {
             }
             if (!found)
                 DEBUG("\t\t\t<none>");
+            DEBUG("\t\tFrame operands indexes from instrumentation: " + Arrays.toString(idxOperands));
             DEBUG("\t\tLive operands: " + Arrays.toString(operands));
             DEBUG("\t\tUpper locals: " + Arrays.toString(upperLocals));
             DEBUG("\t\tFrame locals types from instrumentation:");
@@ -554,6 +559,7 @@ public final class LiveInstrumentation {
                     i++;
                 }
             }
+            DEBUG("\t\tFrame locals indexes from instrumentation: " + Arrays.toString(idxLocals));
             if (!found)
                 DEBUG("\t\t\t<none>");
             DEBUG("\t\tLive locals: " + Arrays.toString(locals));
@@ -604,13 +610,19 @@ public final class LiveInstrumentation {
                         inc = getTypeSize(tOperand);
                         operandsOps.add (
                             new PushPrimitive (
-                                preCallOperands, idxValues, tOperand, idxPrim++,
+                                preCallOperands, idxValues, tOperand, idxPrim,
                                 "\t\t\tPushed primitive in operand slots (" + (inc > 1 ? preCallOperands[idxValues + 1] + ", " :"") +
-                                    preCallOperands[idxValues] + ") of size " + inc + " and type " + tOperand
+                                    preCallOperands[idxValues] + ") of size " + inc + " and type " + tOperand + " on index " + idxPrim
                             )
                         );
+                        idxPrim++;
                     } else {
-                        operandsOps.add(new PushObject(op, idxObj++, "\t\t\tPushed object operand " + op + " of type " + tOperand));
+                        operandsOps.add (
+                            new PushObject (
+                                op, idxObj, "\t\t\tPushed object operand " + op + " of type " + tOperand + " on index " + idxObj
+                            )
+                        );
+                        idxObj++;
                     }
                     idxValues += inc;
                     idxTypes++;
@@ -635,13 +647,19 @@ public final class LiveInstrumentation {
                         inc = getTypeSize(tLocal);
                         localsOps.add (
                             new PushPrimitive (
-                                locals, idxValues, tLocal, idxPrim++,
+                                locals, idxValues, tLocal, idxPrim,
                                 "\t\t\tPushed primitive in local slots (" + (inc > 1 ? locals[idxValues + 1] + ", " :"") +
-                                    locals[idxValues] + ") of size " + inc + " and type " + tLocal
+                                    locals[idxValues] + ") of size " + inc + " and type " + tLocal + " on index " + idxPrim
                             )
                         );
+                        idxPrim++;
                     } else { // if (!(local instanceof Stack)) { // Skip stack locals
-                        localsOps.add(new PushObject(local, idxObj++, "\t\t\tPushed object local " + local + " of type " + tLocal));
+                        localsOps.add (
+                            new PushObject (
+                                local, idxObj, "\t\t\tPushed object local " + local + " of type " + tLocal + " on index " + idxObj
+                            )
+                        );
+                        idxObj++;
                     }
                     idxTypes++;
                     idxValues += inc;

@@ -15,6 +15,7 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Instrumented;
 import co.paralleluniverse.fibers.SuspendableCallSite;
+import com.google.common.primitives.Ints;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -97,7 +98,10 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                                                 private String desc = null;
                                                 private int sourceLine = -1;
                                                 private int entry = -1;
-                                                private List<Type> operandTypes = new ArrayList<>(), localTypes = new ArrayList<>();
+                                                private List<Type> operandTypes = new ArrayList<>(),
+                                                                   localTypes = new ArrayList<>();
+                                                private List<Integer> operandIndexes = new ArrayList<>(),
+                                                                      localIndexes = new ArrayList<>();
 
                                                 @Override
                                                 public void visit(String name, Object value) {
@@ -109,8 +113,12 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                                                         entry = (int) value;
                                                     else if (SuspendableCallSite.FIELD_NAME_STACK_FRAME_OPERANDS_TYPES.equals(name))
                                                         operandTypes.add(Type.getType((String) value));
+                                                    else if (SuspendableCallSite.FIELD_NAME_STACK_FRAME_OPERANDS_INDEXES.equals(name))
+                                                        operandIndexes.addAll(Ints.asList((int[]) value));
                                                     else if (SuspendableCallSite.FIELD_NAME_STACK_FRAME_LOCALS_TYPES.equals(name))
                                                         localTypes.add(Type.getType((String) value));
+                                                    else if (SuspendableCallSite.FIELD_NAME_STACK_FRAME_LOCALS_INDEXES.equals(name))
+                                                        localIndexes.addAll(Ints.asList((int[]) value));
                                                     else if (SuspendableCallSite.FIELD_NAME_PRE_INSTRUMENTATION_OFFSET.equals(name))
                                                         ; // Set later
                                                     else if (SuspendableCallSite.FIELD_NAME_POST_INSTRUMENTATION_OFFSET.equals(name))
@@ -128,11 +136,25 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                                                                 operandTypes.add(Type.getType((String) value));
                                                             }
                                                         };
+                                                    else if (SuspendableCallSite.FIELD_NAME_STACK_FRAME_OPERANDS_INDEXES.equals(name))
+                                                        return new AnnotationVisitor(ASMAPI) {
+                                                            @Override
+                                                            public void visit(String name, Object value) {
+                                                                operandIndexes.add((Integer) value);
+                                                            }
+                                                        };
                                                     else if (SuspendableCallSite.FIELD_NAME_STACK_FRAME_LOCALS_TYPES.equals(name))
                                                         return new AnnotationVisitor(ASMAPI) {
                                                             @Override
                                                             public void visit(String name, Object value) {
                                                                 localTypes.add(Type.getType((String) value));
+                                                            }
+                                                        };
+                                                    else if (SuspendableCallSite.FIELD_NAME_STACK_FRAME_LOCALS_INDEXES.equals(name))
+                                                        return new AnnotationVisitor(ASMAPI) {
+                                                            @Override
+                                                            public void visit(String name, Object value) {
+                                                                localIndexes.add((Integer) value);
                                                             }
                                                         };
                                                     else
@@ -143,7 +165,9 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                                                 public void visitEnd() {
                                                     suspCallSitesL.add (
                                                         new InstrumentMethod.SuspCallSite (
-                                                            this.desc, entry, sourceLine, operandTypes, localTypes
+                                                            this.desc, entry, sourceLine,
+                                                            operandTypes, operandIndexes,
+                                                            localTypes, localIndexes
                                                         )
                                                     );
                                                 }
