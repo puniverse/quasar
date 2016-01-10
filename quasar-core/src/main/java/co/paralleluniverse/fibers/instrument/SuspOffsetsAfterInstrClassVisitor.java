@@ -73,7 +73,7 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
 
                 @Override
                 public AnnotationVisitor visitAnnotation(final String adesc, boolean visible) {
-                    if (adesc.equals(Classes.INSTRUMENTED_DESC)) {
+                    if (Classes.INSTRUMENTED_DESC.equals(adesc)) {
                         instrumented = true;
 
                         return new AnnotationVisitor(ASMAPI) { // Only collect info
@@ -121,9 +121,11 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                                                         localTypes.add(Type.getType((String) value));
                                                     else if (SuspendableCallSite.FIELD_NAME_STACK_FRAME_LOCALS_INDEXES.equals(name))
                                                         localIndexes.addAll(Ints.asList((int[]) value));
-                                                    else if (SuspendableCallSite.FIELD_NAME_PRE_INSTRUMENTATION_OFFSET.equals(name))
+                                                    else //noinspection StatementWithEmptyBody
+                                                        if (SuspendableCallSite.FIELD_NAME_PRE_INSTRUMENTATION_OFFSET.equals(name))
                                                         ; // Set later
-                                                    else if (SuspendableCallSite.FIELD_NAME_POST_INSTRUMENTATION_OFFSET.equals(name))
+                                                    else //noinspection StatementWithEmptyBody
+                                                        if (SuspendableCallSite.FIELD_NAME_POST_INSTRUMENTATION_OFFSET.equals(name))
                                                         ; // Set later
                                                     else
                                                         throw new RuntimeException("Unexpected `@SuspendableCallSite` field: " + name);
