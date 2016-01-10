@@ -160,6 +160,7 @@ subprojects {
         systemProperty 'co.paralleluniverse.flightRecorderDumpFile', 'quasar.log'
         systemProperty 'co.paralleluniverse.monitoring.flightRecorderSize', '200000'
 
+        // systemProperty 'co.paralleluniverse.fibers.instrument.pre.disable', 'true' // TODO: implement
         systemProperty 'co.paralleluniverse.fibers.instrument.live.enable', 'true' // TODO: convert to negative prop
         // systemProperty 'co.paralleluniverse.fibers.disableInstrumentationOptimization', 'true'
         // systemProperty 'co.paralleluniverse.fibers.writeInstrumentedClassesStartingWith', "co/paralleluniverse/fibers/instrument/live/"
@@ -174,6 +175,10 @@ subprojects {
 
         jvmArgs "-Xmx2048m"
         // jvmArgs "-XX:-UseCompressedOops"
+
+        // jvmArgs "-Xint"
+        // jvmArgs "-Xcomp"
+        // jvmArgs "-XX:-TieredCompilation"
 
         beforeTest { desc ->
             logger.quiet("Running test: " + desc)
