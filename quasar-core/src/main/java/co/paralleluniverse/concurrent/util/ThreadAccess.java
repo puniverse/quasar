@@ -13,16 +13,13 @@
  */
 package co.paralleluniverse.concurrent.util;
 
-import co.paralleluniverse.common.util.UtilUnsafe;
-import java.lang.ref.Reference;
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.security.AccessControlContext;
-import java.util.HashMap;
-import java.util.Map;
-import sun.misc.Unsafe;
+import co.paralleluniverse.common.util.*;
+import sun.misc.*;
+
+import java.lang.ref.*;
+import java.lang.reflect.*;
+import java.security.*;
+import java.util.*;
 
 /**
  *
@@ -100,7 +97,7 @@ public class ThreadAccess {
         return UNSAFE.getObject(thread, inheritableThreadLocalsOffset);
     }
 
-    public static void setInheritablehreadLocals(Thread thread, Object inheritableThreadLocals) {
+    public static void setInheritableThreadLocals(Thread thread, Object inheritableThreadLocals) {
         UNSAFE.putObject(thread, inheritableThreadLocalsOffset, inheritableThreadLocals);
     }
 
