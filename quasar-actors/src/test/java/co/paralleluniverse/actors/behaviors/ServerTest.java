@@ -290,7 +290,7 @@ public class ServerTest {
         }
 
         try {
-            LocalActor.join(s, 100, TimeUnit.MILLISECONDS);
+            LocalActor.join(s, 200, TimeUnit.MILLISECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause().getMessage(), equalTo("my exception"));
