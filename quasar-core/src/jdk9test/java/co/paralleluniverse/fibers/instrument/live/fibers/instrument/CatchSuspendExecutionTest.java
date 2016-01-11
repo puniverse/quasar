@@ -84,7 +84,7 @@ public class CatchSuspendExecutionTest {
     @Test
     public void testNonAnnotated() {
         assumeFalse(SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation"));
-        assumeFalse(SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.instrument.enableLive"));
+        assumeFalse(SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.instrument.live.enable"));
 
         try {
             final Fiber<Object> co = new Fiber<>((String) null, null, (SuspendableCallable<Object>) null) {
