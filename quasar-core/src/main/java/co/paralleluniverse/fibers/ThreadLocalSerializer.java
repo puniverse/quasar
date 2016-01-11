@@ -23,7 +23,9 @@ import java.io.Serializable;
  *
  * @author pron
  */
-class ThreadLocalSerializer extends Serializer<ThreadLocal<?>> {
+public class ThreadLocalSerializer extends Serializer<ThreadLocal<?>> {
+    public static boolean PRINT_WARNINGS_ON_UNSERIALIZABLE_THREAD_LOCAL = false;
+
     public ThreadLocalSerializer() {
         setImmutable(true);
     }
@@ -32,41 +34,37 @@ class ThreadLocalSerializer extends Serializer<ThreadLocal<?>> {
     public void write(Kryo kryo, Output output, ThreadLocal<?> tl) {
         output.writeBoolean(tl instanceof InheritableThreadLocal);
         final Object val = tl.get();
-        final boolean reset = shouldReset(kryo, tl, val);
-        kryo.writeObject(output, new ThreadLocalValue(val, reset));
+        final boolean serializable = canSerialize(kryo, tl, val);
+        output.writeBoolean(serializable);
+        if (serializable)
+            kryo.writeClassAndObject(output, val);
     }
 
     @Override
     public ThreadLocal<?> read(Kryo kryo, Input input, Class<ThreadLocal<?>> type) {
-        final boolean itl = input.readBoolean();
-        final ThreadLocalValue tlv = (ThreadLocalValue) kryo.readObject(input, ThreadLocalValue.class);
-
-        final ThreadLocal tl = itl ? new InheritableThreadLocal() : new ThreadLocal();
-        if (!tlv.reset)
-            tl.set(tlv.val);
+        final boolean inheritable = input.readBoolean();
+        final ThreadLocal tl = inheritable ? new InheritableThreadLocal() : new ThreadLocal();
+        final boolean serializable = input.readBoolean();
+        if (serializable)
+            tl.set(kryo.readClassAndObject(input));
         return tl;
     }
 
-    private static boolean shouldReset(Kryo kryo, ThreadLocal<?> tl, Object val) {
+    private static boolean canSerialize(Kryo kryo, ThreadLocal<?> tl, Object val) {
         if (val == null)
-            return false;
-        if (val instanceof Serializable || kryo.getClassResolver().getRegistration(val.getClass()) != null)
-            return false;
-        if (val instanceof co.paralleluniverse.io.serialization.Serialization)
             return true;
-        if (!kryo.getDefaultSerializer(val.getClass()).getClass().isAssignableFrom(FieldSerializer.class))
+        if (val instanceof Serializable || kryo.getClassResolver().getRegistration(val.getClass()) != null)
+            return true;
+        if (val instanceof co.paralleluniverse.io.serialization.Serialization)
             return false;
-        System.err.println("WARNING: cannot serialize ThreadLocal (" + tl + " = " + val + ")");
-        return true;
-    }
+        if (!kryo.getDefaultSerializer(val.getClass()).getClass().isAssignableFrom(FieldSerializer.class))
+            return true;
 
-    static class ThreadLocalValue implements Serializable {
-        boolean reset;
-        Object val;
+        // If we can't serialize the ThreadLocal then we just deserialise it as null. In practice, TLS slots are
+        // almost always filled out on demand with some sort of cached object, so this is often OK.
+        if (PRINT_WARNINGS_ON_UNSERIALIZABLE_THREAD_LOCAL)
+            System.err.println("WARNING: Cannot serialize ThreadLocal (" + tl + " = " + val + "), it will be restored as null.");
 
-        public ThreadLocalValue(Object val, boolean reset) {
-            this.val = reset ? null : val;
-            this.reset = reset;
-        }
+        return false;
     }
 }
