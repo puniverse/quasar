@@ -438,7 +438,9 @@ project (':quasar-core') {
         compile "org.ow2.asm:asm-commons:$asmVer"
         compile "org.ow2.asm:asm-util:$asmVer"
         compile "com.lmax:disruptor:3.3.2"
-        compile("com.esotericsoftware.kryo:kryo:2.24.0") {
+
+        // The exclusions are needed to get asm 5.0.4 whilst Kryo still depends on 5.0.3
+        compile("com.esotericsoftware:kryo:3.0.3") {
             exclude group: "org.ow2.asm", module: '*'
         }
         compile("de.javakaffee:kryo-serializers:0.37") {

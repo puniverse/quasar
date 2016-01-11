@@ -142,6 +142,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private final SuspendableCallable<V> target;
     private transient ClassLoader contextClassLoader;
     private transient AccessControlContext inheritedAccessControlContext;
+    // These are typed as Object because they store JRE-internal ThreadLocalMap objects, which is a package private
+    // class. Also, they're swapped for Object[] during serialisation, as ThreadLocalMap is not a serialisable type.
     private Object fiberLocals;
     private Object inheritableFiberLocals;
     private long sleepStart;
@@ -942,7 +944,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         }
 
         ThreadAccess.setThreadLocals(currentThread, this.fiberLocals);
-        ThreadAccess.setInheritablehreadLocals(currentThread, this.inheritableFiberLocals);
+        ThreadAccess.setInheritableThreadLocals(currentThread, this.inheritableFiberLocals);
 
         this.fiberLocals = tmpThreadLocals;
         this.inheritableFiberLocals = tmpInheritableThreadLocals;
@@ -1758,7 +1760,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     protected final boolean isRecordingLevel(int level) {
         if (!Debug.isDebug())
             return false;
-        final FlightRecorder.ThreadRecorder recorder = flightRecorder.get();
+        final FlightRecorder.ThreadRecorder recorder = flightRecorder != null ? flightRecorder.get() : null;
         if (recorder == null)
             return false;
         return recorder.recordsLevel(level);
@@ -1954,12 +1956,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             final Object tmpThreadLocals = ThreadAccess.getThreadLocals(currentThread);
             final Object tmpInheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
             ThreadAccess.setThreadLocals(currentThread, f.fiberLocals);
-            ThreadAccess.setInheritablehreadLocals(currentThread, f.inheritableFiberLocals);
+            ThreadAccess.setInheritableThreadLocals(currentThread, f.inheritableFiberLocals);
+            Object realFiberLocals = f.fiberLocals;
+            Object realInheritableFiberLocals = f.inheritableFiberLocals;
             try {
-                f.fiberLocals = f.fiberLocals != null
-                        ? filterThreadLocalMap(ThreadAccess.toMap(f.fiberLocals)).keySet().toArray() : null;
-                f.inheritableFiberLocals = f.inheritableFiberLocals != null
-                        ? filterThreadLocalMap(ThreadAccess.toMap(f.inheritableFiberLocals)).keySet().toArray() : null;
+                // Switch the type of fiberLocals here to Object[] from ThreadLocalMap, to ease serialisation.
+                // We must switch it back when we are done.
+                f.fiberLocals = realFiberLocals != null ? ThreadAccess.toMap(realFiberLocals).keySet().toArray() : null;
+                f.inheritableFiberLocals = realInheritableFiberLocals != null ?
+                        ThreadAccess.toMap(realInheritableFiberLocals).keySet().toArray() : null;
                 f.stack.resumeStack();
 
                 kryo.writeClass(output, f.getClass());
@@ -1968,8 +1973,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 t.printStackTrace();
                 throw t;
             } finally {
+                f.fiberLocals = realFiberLocals;
+                f.inheritableFiberLocals = realInheritableFiberLocals;
                 ThreadAccess.setThreadLocals(currentThread, tmpThreadLocals);
-                ThreadAccess.setInheritablehreadLocals(currentThread, tmpInheritableThreadLocals);
+                ThreadAccess.setInheritableThreadLocals(currentThread, tmpInheritableThreadLocals);
             }
         }
 
@@ -1981,7 +1988,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             final Object tmpThreadLocals = ThreadAccess.getThreadLocals(currentThread);
             final Object tmpInheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
             ThreadAccess.setThreadLocals(currentThread, null);
-            ThreadAccess.setInheritablehreadLocals(currentThread, null);
+            ThreadAccess.setInheritableThreadLocals(currentThread, null);
             try {
                 final Registration reg = kryo.readClass(input);
                 if (reg == null)
@@ -1997,21 +2004,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 throw t;
             } finally {
                 ThreadAccess.setThreadLocals(currentThread, tmpThreadLocals);
-                ThreadAccess.setInheritablehreadLocals(currentThread, tmpInheritableThreadLocals);
+                ThreadAccess.setInheritableThreadLocals(currentThread, tmpInheritableThreadLocals);
             }
         }
-    }
-
-    private static Map<ThreadLocal, Object> filterThreadLocalMap(Map<ThreadLocal, Object> map) {
-        // System.out.println("XXXXX THREAD LOCALS: " + map);
-        return map;
-//        for (Iterator<Map.Entry<ThreadLocal, Object>> it = map.entrySet().iterator(); it.hasNext();) {
-//            Map.Entry<ThreadLocal, Object> entry = it.next();
-//            if (entry.getValue() instanceof co.paralleluniverse.io.serialization.Serialization)
-//                it.remove();
-//            if (entry.getKey().getClass().getName().startsWith("org.gradle.") || (entry.getValue() != null && entry.getValue().getClass().getName().startsWith("org.gradle.")))
-//                it.remove();
-//        }
-//        return map;
     }
 }

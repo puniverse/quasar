@@ -182,7 +182,7 @@ public class Debug {
             if (!dumped) {
                 if (filename == null) {
                     filename = getDumpFile();
-                    if (filename.trim().equals(""))
+                    if (filename == null || filename.trim().equals(""))
                         filename = null;
                 }
                 if (filename == null) {
