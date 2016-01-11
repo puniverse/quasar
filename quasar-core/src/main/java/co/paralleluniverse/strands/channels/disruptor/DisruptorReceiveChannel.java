@@ -34,7 +34,7 @@ public class DisruptorReceiveChannel<Message> implements ReceivePort<Message> {
     private final SequenceBarrier barrier;
     private final RingBuffer<Message> buffer;
     private final Sequence sequence = new Sequence(Sequencer.INITIAL_CURSOR_VALUE);
-    private long availableSequence;
+    private long availableSequence = -1L;
     private volatile boolean closed;
 
     public DisruptorReceiveChannel(RingBuffer<Message> buffer, Sequence... dependentSequences) {
@@ -54,15 +54,14 @@ public class DisruptorReceiveChannel<Message> implements ReceivePort<Message> {
         if (closed)
             return null;
         long nextSequence = sequence.get() + 1L;
-        while (nextSequence > availableSequence) {
-            try {
+        try {
+            while (nextSequence > availableSequence)
                 availableSequence = barrier.waitFor1(nextSequence);
-            } catch (AlertException ex) {
-                // ???
-            }
+            Message message = buffer.get(nextSequence);
+            return message;
+        } catch (AlertException ex) {
+            return null;
         }
-        Message message = buffer.get(nextSequence);
-        return message;
     }
 
     @Override
@@ -80,22 +79,18 @@ public class DisruptorReceiveChannel<Message> implements ReceivePort<Message> {
                 final long start = System.nanoTime();
                 long left = unit.toNanos(timeout);
                 final long deadline = start + unit.toNanos(timeout);
-                while (nextSequence > availableSequence) {
-                    try {
-                        availableSequence = barrier.waitFor1(nextSequence, left, TimeUnit.NANOSECONDS);
-                    } catch (AlertException ex) {
-                        // ???
-                    }
-                    if (nextSequence > availableSequence) {
-                        left = deadline - System.nanoTime();
-                        if (left <= 0)
-                            return null;
-                    }
+
+                while (nextSequence > availableSequence)
+                    availableSequence = barrier.waitFor1(nextSequence, left, TimeUnit.NANOSECONDS);
+                if (nextSequence > availableSequence) {
+                    left = deadline - System.nanoTime();
+                    if (left <= 0)
+                        return null;
                 }
             }
             Message message = buffer.get(nextSequence);
             return message;
-        } catch (TimeoutException e) {
+        } catch (TimeoutException | AlertException e) {
             return null;
         }
     }
@@ -160,7 +155,7 @@ public class DisruptorReceiveChannel<Message> implements ReceivePort<Message> {
 
     static {
         try {
-            sequencerField = RingBuffer.class.getDeclaredField("sequencer");
+            sequencerField = RingBuffer.class.getSuperclass().getDeclaredField("sequencer");
             sequencerField.setAccessible(true);
 
             cursorField = AbstractSequencer.class.getDeclaredField("cursor");
