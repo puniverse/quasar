@@ -437,7 +437,6 @@ project (':quasar-core') {
         compile "org.ow2.asm:asm-analysis:$asmVer"
         compile "org.ow2.asm:asm-commons:$asmVer"
         compile "org.ow2.asm:asm-util:$asmVer"
-        compile "com.lmax:disruptor:3.3.2"
 
         // The exclusions are needed to get asm 5.0.4 whilst Kryo still depends on 5.0.3
         compile("com.esotericsoftware:kryo:3.0.3") {
@@ -683,6 +682,15 @@ project (':quasar-reactive-streams') {
 
     test {
         useTestNG()
+    }
+}
+
+project (':quasar-disruptor') {
+    //project.evaluationDependsOn(':quasar-core')
+
+    dependencies {
+        provided project(path: ':quasar-core', configuration: "jdk${jdkVer}Archives")
+        compile "com.lmax:disruptor:3.3.2"
     }
 }
 
