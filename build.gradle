@@ -9,6 +9,10 @@ buildscript {
     }
 }
 
+task wrapper(type: Wrapper) {
+  gradleVersion = "2.7"
+}
+
 ext.java8 = System.properties['java.version'].startsWith('1.8')
 
 subprojects {
