@@ -46,9 +46,9 @@ public final class LiveInstrumentation {
 
         if (diff == 0) { // All OK already
             DEBUG("\nInstrumentation seems OK!\n");
-            DEBUG("\t** Fiber stack dump:"); // TODO: remove
-            fiberStack.dump(); // TODO: remove
-            DEBUG(""); // TODO: remove
+            DEBUG("\t** Fiber stack dump:");
+            DEBUG(fiberStack.toString());
+            DEBUG("");
 
             // We're done, let's skip checks
             return false;
@@ -119,7 +119,7 @@ public final class LiveInstrumentation {
             // 6)
             rebuildFiberStack(fiberStack, fiberStackRebuildToDoList, frameToSuspendableCallIndex);
         } catch (final Throwable t) {
-            System.err.println("!!!LIVE INSTRUMENTATION INTERNAL ERROR - PLEASE REPORT!!!");
+            DEBUG("!!!LIVE INSTRUMENTATION INTERNAL ERROR - PLEASE REPORT!!!");
             t.printStackTrace();
             throw new RuntimeException(t);
         }
@@ -356,13 +356,13 @@ public final class LiveInstrumentation {
 
     private static void rebuildFiberStack(Stack fiberStack, java.util.Stack<FiberFramePush> fiberStackRebuildToDoList, HashMap<StackWalker.StackFrame, Integer> frameToSuspendableCallIndex) {
         DEBUG("\n6) Rebuilding fiber stack");
-        DEBUG("\t** Fiber stack dump before rebuild:"); // TODO: remove
-        fiberStack.dump(); // TODO: remove
-        DEBUG(""); // TODO: remove
+        DEBUG("\t** Fiber stack dump before rebuild:");
+        DEBUG(fiberStack.toString());
+        DEBUG("");
         apply(fiberStackRebuildToDoList, frameToSuspendableCallIndex, fiberStack);
-        DEBUG("\n\t** Fiber stack dump after rebuild:"); // TODO: remove
-        fiberStack.dump(); // TODO: remove
-        DEBUG(""); // TODO: remove
+        DEBUG("\n\t** Fiber stack dump after rebuild:");
+        DEBUG(fiberStack.toString());
+        DEBUG("");
     }
 
     private static String getMethodId(StackWalker.StackFrame f) throws IllegalAccessException, InvocationTargetException {
@@ -376,7 +376,7 @@ public final class LiveInstrumentation {
         int s = todo.size();
         while (!todo.empty()) {
             final FiberFramePush ffp = todo.pop();
-            System.err.println("\tApplying " + i + " of " + s + " (" + ffp.getClass() + ")");
+            DEBUG("\tApplying " + i + " of " + s + " (" + ffp.getClass() + ")");
             ffp.apply(entries, fs);
             i++;
         }
@@ -532,7 +532,7 @@ public final class LiveInstrumentation {
             DEBUG("\t\tFrame method \"" + m + "\":");
             DEBUG("\t\t\tCalled at offset " + lowerOffset + " of: " + lowerM);
             DEBUG("\t\t\tCalling at offset " + currOffset + ": " + upperM + " (yield = " + isYield + ")");
-            DEBUG("\t\tFrame operands types from instrumentation:");
+            DEBUG("\t\tFrame operands types from instrumentation (reverse):");
             int i = 1;
             boolean found = false;
             for (final SuspendableCallSite scs : ann.methodSuspendableCallSites()) {
@@ -612,14 +612,14 @@ public final class LiveInstrumentation {
                             new PushPrimitive (
                                 preCallOperands, idxValues, tOperand, idxPrim,
                                 "\t\t\tPushed primitive in operand slots (" + (inc > 1 ? preCallOperands[idxValues + 1] + ", " :"") +
-                                    preCallOperands[idxValues] + ") of size " + inc + " and type " + tOperand + " on index " + idxPrim
+                                    preCallOperands[idxValues] + ") of size " + inc + " and theoretic type " + tOperand + " and runtime type " + op.getClass() + " on index " + idxPrim
                             )
                         );
                         idxPrim++;
                     } else {
                         operandsOps.add (
                             new PushObject (
-                                op, idxObj, "\t\t\tPushed object operand " + op + " of type " + tOperand + " on index " + idxObj
+                                op, idxObj, "\t\t\tPushed object operand " + op + " of theoretic type " + tOperand + " and runtime type " + op.getClass() + " on index " + idxObj
                             )
                         );
                         idxObj++;
@@ -649,14 +649,14 @@ public final class LiveInstrumentation {
                             new PushPrimitive (
                                 locals, idxValues, tLocal, idxPrim,
                                 "\t\t\tPushed primitive in local slots (" + (inc > 1 ? locals[idxValues + 1] + ", " :"") +
-                                    locals[idxValues] + ") of size " + inc + " and type " + tLocal + " on index " + idxPrim
+                                    locals[idxValues] + ") of size " + inc + " and theoretic type " + tLocal + " and runtime type " + local.getClass() + " on index " + idxPrim
                             )
                         );
                         idxPrim++;
                     } else { // if (!(local instanceof Stack)) { // Skip stack locals
                         localsOps.add (
                             new PushObject (
-                                local, idxObj, "\t\t\tPushed object local " + local + " of type " + tLocal + " on index " + idxObj
+                                local, idxObj, "\t\t\tPushed object local " + local + " of theoretic type " + tLocal + " and runtime type " + local.getClass() + " on index " + idxObj
                             )
                         );
                         idxObj++;
@@ -1009,9 +1009,13 @@ public final class LiveInstrumentation {
 
     private static void DEBUG(String s) {
         // TODO: plug
-        System.err.println(s);
+        /*
+        if (db.isDebug())
+            db.getLog().log(LogLevel.DEBUG, "[LIVE] " + s);
+        */
+        // System.err.println("[LIVE] " + s);
+        // log += ("[LIVE]" + s + "\n");
     }
-
 
     private static final AtomicLong runCount = new AtomicLong();
 

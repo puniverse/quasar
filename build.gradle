@@ -167,9 +167,8 @@ subprojects {
         // systemProperty 'co.paralleluniverse.fibers.writeInstrumentedClassesStartingWith', "co/paralleluniverse/fibers/instrument/live/"
         systemProperty 'co.paralleluniverse.fibers.detectRunawayFibers', 'false'
 
-        if (project.name != 'quasar-core') {
+        if (project.name != 'quasar-core')
             jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
-        }
 
         jvmArgs "-Xbootclasspath/a:${configurations.timewarp.singleFile}"
         jvmArgs "-javaagent:${configurations.timewarp.singleFile}"

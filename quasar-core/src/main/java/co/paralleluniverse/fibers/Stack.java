@@ -240,16 +240,25 @@ public final class Stack implements Serializable {
     }
 
     void dump() {
+        System.err.println(toString());
+    }
+
+    @Override
+    public String toString() {
         int m = 0;
         int k = 0;
+        final StringBuilder sb = new StringBuilder();
+
         while (k < sp - 1) {
             final long record = dataLong[k++];
             final int slots = getNumSlots(record);
 
-            System.err.println("\tm=" + (m++) + " entry=" + getEntry(record) + " sp=" + k + " slots=" + slots + " prevSlots=" + getPrevNumSlots(record));
+            sb.append("\tm=").append(m++).append(" entry=").append(getEntry(record)).append(" sp=").append(k).append(" slots=").append(slots).append(" prevSlots=").append(getPrevNumSlots(record)).append("\n");
             for (int i = 0; i < slots; i++, k++)
-                System.err.println("\t\tsp=" + k + " long=" + dataLong[k] + " obj=" + dataObject[k]);
+                sb.append("\t\tsp=").append(k).append(" long=").append(dataLong[k]).append(" obj=").append(dataObject[k]).append("\n");
         }
+
+        return sb.toString();
     }
 
     public static void push(int value, Stack s, int idx) {
