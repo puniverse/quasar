@@ -59,34 +59,47 @@ public final class LiveInstrumentation {
         DEBUG("\nFound mismatch between stack depth and fiber stack (" + diff + ") => activating live lazy auto-instrumentation");
 
         // ****************************************************************************************************************
-        // The goal is to rebuild a fiber stack "good enough" for a correct resume. What this means is not so easy to
-        // figure out though, so the initial strategy is to ensure a stronger property by performing calls on the fiber
-        // stack object that are equivalent to the ones agent-time instrumentation would inject if it had complete
-        // information about suspendables present in the live stack.
-        // This means which classes are suspendables, which methods, which call sites and _the resume indexes_ these call
-        // sites would have in a fully instrumented method body relative to the suspendables present in the live stack.
+        // The goal is to rebuild a fiber stack "good enough" for a correct resume.
         //
-        // This latter information is also needed to recover type info from the instrumentation stage as live type info
-        // is currently lacking in this respect (no doubles and no longs, they're represented as adjacent int slots).
+        // The initial strategy is to ensure a stronger (but easier to describe) property: performing calls on the fiber
+        // stack object that are equivalent (state-wise) to the ones agent-time instrumentation would inject if it had
+        // complete information about suspendables present in the live stack: this means which classes are suspendables,
+        // which methods, which call sites and _the resume indexes_ these call sites would have in a fully instrumented
+        // method body relative to the suspendables present in the live stack.
+        //
+        // This latter information is also needed to recover type info from the instrumentation stage (live type info
+        // is currently lacking in this respect: no doubles and no longs, they're represented as adjacent int slots).
         //
         // A call site is identified by class, method and bytecode offset. The final offset (and index) of a suspendable
-        // call site will be known only at the end of the re-instrumentation stage because it can be moved by
+        // call site will be known only at the end of the re-instrumentation stage because it can be increased by
         // instrumentation of other suspendable call sites in the same method that appear in the same live stack.
         //
-        // However, for every method the relative ordering of the involved call sites won't be changed by instrumentation.
-        // The position in this ordering is not yet the correct index though, because the method may contain previously
-        // instrumented call sites that are not present in the current live stack.
+        // The _relative ordering_ of the call sites active in that method's frames present in the current live stack
+        // won't be changed by instrumentation.
+        // The position in this ordering at live instrumentation time is not yet the correct index though, because
+        // the method may contain previously instrumented call sites that are not present in the current live stack.
         //
-        // But when live instrumentation starts, the bytecode is aligned with offsets in `@Instrumented` because the stack
-        // will have been unrolled by suspension after a previous run (or lack of) and methods will have re-entered. This
-        // means that for any method involved we have both an up-to-date list of already instrumented call sites with
-        // correct offsets, and an up-to-date list of involved call sites with correct offsets. Since some involved
-        // call sites could have been instrumented already, these two lists could have non-empty intersection.
+        // But when live instrumentation starts, the bytecode offsets are aligned with the offsets in `@Instrumented`
+        // because:
         //
-        // Anyway, since the bytecode offsets are correct and instrumentation won't change relative ordering, the (1-based)
-        // position in the ordered set obainined by merging the involved call site offsets (i.e. actual live offsets) with
-        // the list of the already instrumented call site offsets corresponds to the correct suspendable call site resume
-        // index in the fully instrumented method body relative to the suspendables present in the live stack.
+        // a) Previous live instrumentation runs (or non-live instrumentation) will have fixed the code and annotation.
+        // b) The stack will have been unrolled (by suspension) after a previous run (or lack of) and methods will
+        //    have re-entered.
+        //
+        // This means that for any method appearing in the live stack we have both an up-to-date set of _already
+        // instrumented call sites_ with correct offsets, and an up-to-date set of _involved call sites_ with correct
+        // offsets. Since some involved call sites could have been instrumented already, these two sets could have
+        // non-empty intersection.
+        //
+        // This means that, in order to obtain the 1-based final index that any involved suspendable call site would have
+        // in the final, fully instrumented method body (relative to the suspendables present in the live stack, which
+        // will be exactly the instrumented suspendables present in the stack upon resume) we can act as follows:
+        //
+        // a) Merge the set of the involved call site offsets (i.e. actual live offsets) with the set of the already
+        //    instrumented (at live instrumentation time) call site offsets.
+        // b) Sort that set.
+        // c) Find the 0-based position of the involved suspendable call site in exam.
+        // d) Add 1 (indexes are 1-based because "0" means no resume to be performed).
         // ****************************************************************************************************************
 
         runCount.getAndIncrement();
