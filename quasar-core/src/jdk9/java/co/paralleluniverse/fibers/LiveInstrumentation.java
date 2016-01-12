@@ -506,7 +506,7 @@ public final class LiveInstrumentation {
         /**
          * Live fiber stack construction
          * <br>
-         * !!! Must be kept aligned with `InstrumentMethod.emitStoreState` and `Stack.pushXXX` !!!
+         * !!! Must be kept aligned with `InstrumentMethod.emitFiberStackStoreState` and `Stack.pushXXX` !!!
          */
         public void apply(Map<StackWalker.StackFrame, Integer> entries, Stack s) {
             final Instrumented ann = SuspendableHelper.getAnnotation(m, Instrumented.class);
@@ -613,14 +613,14 @@ public final class LiveInstrumentation {
                             new PushPrimitive (
                                 preCallOperands, idxValues, tOperand, idxPrim,
                                 "\t\t\tPushed primitive in operand slots (" + (inc > 1 ? preCallOperands[idxValues + 1] + ", " :"") +
-                                    preCallOperands[idxValues] + ") of size " + inc + " and theoretic type " + tOperand + " and runtime type " + op.getClass() + " on index " + idxPrim
+                                    preCallOperands[idxValues] + ") of size " + inc + " and theoretic type " + tOperand + " and runtime type " + (op != null ? op.getClass() : "null") + " on index " + idxPrim
                             )
                         );
                         idxPrim++;
                     } else {
                         operandsOps.add (
                             new PushObject (
-                                op, idxObj, "\t\t\tPushed object operand " + op + " of theoretic type " + tOperand + " and runtime type " + op.getClass() + " on index " + idxObj
+                                op, idxObj, "\t\t\tPushed object operand " + op + " of theoretic type " + tOperand + " and runtime type " + (op != null ? op.getClass() : "null") + " on index " + idxObj
                             )
                         );
                         idxObj++;
@@ -650,14 +650,14 @@ public final class LiveInstrumentation {
                             new PushPrimitive (
                                 locals, idxValues, tLocal, idxPrim,
                                 "\t\t\tPushed primitive in local slots (" + (inc > 1 ? locals[idxValues + 1] + ", " :"") +
-                                    locals[idxValues] + ") of size " + inc + " and theoretic type " + tLocal + " and runtime type " + local.getClass() + " on index " + idxPrim
+                                    locals[idxValues] + ") of size " + inc + " and theoretic type " + tLocal + " and runtime type " + (local != null ? local.getClass() : "null") + " on index " + idxPrim
                             )
                         );
                         idxPrim++;
                     } else { // if (!(local instanceof Stack)) { // Skip stack locals
                         localsOps.add (
                             new PushObject (
-                                local, idxObj, "\t\t\tPushed object local " + local + " of theoretic type " + tLocal + " and runtime type " + local.getClass() + " on index " + idxObj
+                                local, idxObj, "\t\t\tPushed object local " + local + " of theoretic type " + tLocal + " and runtime type " + (local != null ? local.getClass() : "null") + " on index " + idxObj
                             )
                         );
                         idxObj++;
@@ -1020,7 +1020,7 @@ public final class LiveInstrumentation {
         if (db.isDebug())
             db.getLog().log(LogLevel.DEBUG, "[LIVE] " + s);
         */
-        err.println("[LIVE] " + s);
+        err.println(s);
         // log += ("[LIVE]" + s + "\n");
     }
 
