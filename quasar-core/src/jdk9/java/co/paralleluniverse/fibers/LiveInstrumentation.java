@@ -36,6 +36,8 @@ import java.util.stream.Collectors;
  * @author circlespainter
  */
 public final class LiveInstrumentation {
+    private static String log;
+
     // TODO: remove `synchronized` or change it to a lock
     static synchronized boolean fixup(Fiber fiber) {
         if (!ACTIVE || fiber == null) // Not using live instrumentation or not in a fiber => don't alter checks
@@ -1008,7 +1010,6 @@ public final class LiveInstrumentation {
     }
 
     private static void DEBUG(String s) {
-        // TODO: plug
         /*
         if (db.isDebug())
             db.getLog().log(LogLevel.DEBUG, "[LIVE] " + s);
