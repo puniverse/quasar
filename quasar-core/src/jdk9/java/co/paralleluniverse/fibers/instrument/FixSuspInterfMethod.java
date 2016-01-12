@@ -87,15 +87,19 @@ public class FixSuspInterfMethod {
             newDirectSuspTCBs = new HashMap<>(),
             newReflectSuspTCBs = new HashMap<>();
 
-        // Output try-catch blocks and before them entries for fix handlers
+        // Output try-catch blocks and before the entries for fix handlers
         for (final Object o : mn.tryCatchBlocks) {
             final TryCatchBlockNode tcb = (TryCatchBlockNode) o;
             if (tcb.handler != null) {
-                final boolean se = isAssignableFromSuspendExecution(tcb.type);
-                final boolean ite =  isAssignableFromInvocationTargetException(tcb.type);
+                final boolean any = tcb.type == null;
+                final boolean se = any || isAssignableFromSuspendExecution(tcb.type);
+                final boolean ite = any || isAssignableFromInvocationTargetException(tcb.type);
                 if (se || ite) {
                     final Label lFixSEE = new Label();
-                    mv.visitTryCatchBlock(tcb.start.getLabel(), tcb.end.getLabel(), lFixSEE, tcb.type);
+                    mv.visitTryCatchBlock (
+                        tcb.start.getLabel(), tcb.end.getLabel(), lFixSEE,
+                        tcb.type != null ? tcb.type : Classes.THROWABLE_NAME
+                    );
 
                     if (se && ite) {
                         newDualSuspTCBs.put(lFixSEE, tcb.handler.getLabel());
