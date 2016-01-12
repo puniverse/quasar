@@ -11,7 +11,9 @@ buildscript {
 
 ext.java9 = System.properties['java.version'].startsWith('1.9') || System.properties['java.version'].startsWith('9')
 ext.java8 = System.properties['java.version'].startsWith('1.8')
+ext.java7 = System.properties['java.version'].startsWith('1.7')
 
+println("JDK 7: " + ext.java7)
 println("JDK 8: " + ext.java8)
 println("JDK 9: " + ext.java9)
 
@@ -38,6 +40,7 @@ subprojects {
     ext.distDir         = "$buildDir/dist"
     ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
     ext.baselib         = "${rootProject.projectDir}/baselib"
+    ext.java7           = rootProject.ext.java7
     ext.java8           = rootProject.ext.java8
     ext.java9           = rootProject.ext.java9
     ext.jdkVer          = ext.java9 ? "9" : (ext.java8 ? "8" : "7")
