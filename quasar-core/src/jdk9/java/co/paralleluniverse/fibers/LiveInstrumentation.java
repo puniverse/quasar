@@ -244,7 +244,11 @@ public final class LiveInstrumentation {
                 }
             }
 
-            redefines.add(cCaller);
+            final Instrumented ci = cCaller.getAnnotation(Instrumented.class);
+            if (ci != null && ci.isClassAOTInstrumented())
+                DEBUG("\t\tClass " + cCaller.getName() + " is AoT-instrumented, not redefining");
+            else
+                redefines.add(cCaller);
         }
         for (final Class<?> c : redefines) {
             final String cn = c.getName();
