@@ -163,6 +163,9 @@ subprojects {
         jvmArgs "-javaagent:${configurations.timewarp.singleFile}"
 
         jvmArgs "-Xmx2048m"
+        if (!project.ext.java8) {
+            jvmArgs "-XX:MaxPermSize=512m" // Travis is having some trouble with PermGen
+        }
         // jvmArgs "-XX:-UseCompressedOops"
 
         beforeTest { desc ->
