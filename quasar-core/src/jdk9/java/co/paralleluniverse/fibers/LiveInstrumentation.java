@@ -654,15 +654,16 @@ public final class LiveInstrumentation {
                             )
                         );
                         idxPrim++;
-                    } else { // if (!(local instanceof Stack)) { // Skip stack locals
+                        idxTypes++;
+                    } else if (!(local instanceof Stack) /* HACK around locals ordering issue, skip Stack objects */) {
                         localsOps.add (
                             new PushObject (
                                 local, idxObj, "\t\t\tPushed object local " + local + " of theoretic type " + tLocal + " and runtime type " + (local != null ? local.getClass() : "null") + " on index " + idxObj
                             )
                         );
                         idxObj++;
+                        idxTypes++;
                     }
-                    idxTypes++;
                     idxValues += inc;
                 }
             }
