@@ -21,8 +21,7 @@ import com.google.common.io.ByteStreams;
 import com.google.common.primitives.Ints;
 import org.objectweb.asm.Type;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.lang.instrument.ClassDefinition;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.*;
@@ -890,6 +889,8 @@ public final class LiveInstrumentation {
     public static final boolean ACTIVE;
     public static final boolean FORCE;
 
+    private static final PrintStream err;
+
     private static StackWalker esw = null;
 
     private static Class<?> primitiveValueClass;
@@ -904,6 +905,11 @@ public final class LiveInstrumentation {
             // TODO: change to "disableXXX" when stable
             ACTIVE = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.instrument.live.enable");
             FORCE = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.instrument.live.force");
+
+            // Bypass any replacement, especially Gradle's threadlocal-based that interfers with
+            // serialization of threadlocals in fibers (ClassNotFound)
+            err = new PrintStream(new FileOutputStream(FileDescriptor.err));
+
             db = Retransform.getMethodDB();
 
             if (ACTIVE) {
@@ -1014,7 +1020,7 @@ public final class LiveInstrumentation {
         if (db.isDebug())
             db.getLog().log(LogLevel.DEBUG, "[LIVE] " + s);
         */
-        // System.err.println("[LIVE] " + s);
+        err.println("[LIVE] " + s);
         // log += ("[LIVE]" + s + "\n");
     }
 
