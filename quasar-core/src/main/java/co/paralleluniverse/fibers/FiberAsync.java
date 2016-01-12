@@ -118,7 +118,7 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
             // the second call inside Fiber.park
             Fiber.verifySuspend(fiber);
 
-        fiber.record(1, "FiberAsync", "run", "Blocking fiber %s on FibeAsync %s", fiber, this);
+        fiber.record(1, "FiberAsync", "run", "Blocking fiber %s on FiberAsync %s", fiber, this);
         while (!Fiber.park(this, new Fiber.ParkAction() {
             @Override
             public void run(Fiber current) {
