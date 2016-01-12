@@ -1,6 +1,6 @@
 language: java
 sudo: false
-install: gradle -q assemble
+install: GRADLE_OPTS="-XX:MaxPermSize=512m" gradle -q assemble
 script: GRADLE_OPTS="-XX:MaxPermSize=512m" gradle -i check
 jdk:
   - oraclejdk7
