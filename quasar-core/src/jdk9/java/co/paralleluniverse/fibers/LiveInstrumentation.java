@@ -425,19 +425,8 @@ public final class LiveInstrumentation {
             this.m = SuspendableHelper9.lookupMethod(f);
             this.mt = (MethodType) getMethodType.invoke(memberName.get(f));
             this.currOffset = (int) offset.get(f);
-            this.locals = removeNulls((Object[]) getLocals.invoke(f));
-            this.operands = removeNulls((Object[]) getOperands.invoke(f));
-        }
-
-        private static Object[] removeNulls(Object[] os) {
-            final List<Object> l = new ArrayList<>();
-            for (final Object o : os) {
-                if (o != null)
-                    l.add(o);
-            }
-            final Object[] ret = new Object[l.size()];
-            l.toArray(ret);
-            return ret;
+            this.locals = (Object[]) getLocals.invoke(f);
+            this.operands = (Object[]) getOperands.invoke(f);
         }
 
         abstract void apply(Map<StackWalker.StackFrame, Integer> entries, Stack s);
