@@ -58,7 +58,7 @@ public final class LiveInstrumentation {
         // Else slow path, we'll take our time to fix up things.
         DEBUG("\nFound mismatch between stack depth and fiber stack (" + diff + ") => activating live lazy auto-instrumentation");
 
-        // ****************************************************************************************************************
+        // *************************************************************************************************************
         // The goal is to rebuild a fiber stack "good enough" for a correct resume.
         //
         // The initial strategy is to ensure a stronger (but easier to describe) property: performing calls on the fiber
@@ -83,24 +83,25 @@ public final class LiveInstrumentation {
         // because:
         //
         // a) Previous live instrumentation runs (or non-live instrumentation) will have fixed the code and annotation.
-        // b) The stack will have been unrolled (by suspension) after a previous run (or lack of) and methods will
-        //    have re-entered.
+        // b) The stack will have been unrolled (by suspension) after a previous live instrumentation run (or lack of)
+        //    and methods will have re-entered.
         //
-        // This means that for any method appearing in the live stack we have both an up-to-date set of _already
+        // This means that, for any method appearing in the live stack, we have both an up-to-date set of _already
         // instrumented call sites_ with correct offsets, and an up-to-date set of _involved call sites_ with correct
-        // offsets. Since some involved call sites could have been instrumented already, these two sets could have
-        // non-empty intersection.
+        // offsets.
+        // As a side note, Since some involved call sites could have been instrumented already, these two sets could
+        // have non-empty intersection.
         //
-        // This means that, in order to obtain the 1-based final index that any involved suspendable call site would have
-        // in the final, fully instrumented method body (relative to the suspendables present in the live stack, which
-        // will be exactly the instrumented suspendables present in the stack upon resume) we can act as follows:
+        // This means that, in order to obtain the 1-based final index that any involved suspendable call site would
+        // have in the final, fully instrumented method body (relative to the suspendables present in the live stack,
+        // which will be exactly the instrumented suspendables present in the stack upon resume) we can act as follows:
         //
         // a) Merge the set of the involved call site offsets (i.e. actual live offsets) with the set of the already
         //    instrumented (at live instrumentation time) call site offsets.
         // b) Sort that set.
         // c) Find the 0-based position of the involved suspendable call site in exam.
-        // d) Add 1 (indexes are 1-based because "0" means no resume to be performed).
-        // ****************************************************************************************************************
+        // d) Add 1 (resume indexes are 1-based, "0" means no resume to be performed i.e. method start).
+        // *************************************************************************************************************
 
         runCount.getAndIncrement();
 
