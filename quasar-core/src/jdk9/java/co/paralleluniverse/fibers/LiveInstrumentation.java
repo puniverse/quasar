@@ -492,8 +492,8 @@ public final class LiveInstrumentation {
 
             @Override
             public void apply(Stack s) {
-                Stack.push(value, s, idx);
                 DEBUG(msg);
+                Stack.push(value, s, idx);
             }
         }
 
@@ -514,8 +514,8 @@ public final class LiveInstrumentation {
 
             @Override
             public void apply(Stack s) {
-                storePrim(ops, i, t, s, idx);
                 DEBUG(msg);
+                storePrim(ops, i, t, s, idx);
             }
         }
 
@@ -628,7 +628,7 @@ public final class LiveInstrumentation {
                         operandsOps.add (
                             new PushPrimitive (
                                 preCallOperands, idxValues, tOperand, idxPrim,
-                                "\t\t\tPushed primitive in operand slots (" + (inc > 1 ? preCallOperands[idxValues + 1] + ", " :"") +
+                                "\t\t\tPushing primitive in operand slots (" + (inc > 1 ? preCallOperands[idxValues + 1] + ", " :"") +
                                     preCallOperands[idxValues] + ") of size " + inc + " and theoretic type " + tOperand + " and runtime type " + (op != null ? op.getClass() : "null") + " on index " + idxPrim
                             )
                         );
@@ -636,7 +636,7 @@ public final class LiveInstrumentation {
                     } else {
                         operandsOps.add (
                             new PushObject (
-                                op, idxObj, "\t\t\tPushed object operand " + op + " of theoretic type " + tOperand + " and runtime type " + (op != null ? op.getClass() : "null") + " on index " + idxObj
+                                op, idxObj, "\t\t\tPushing object operand " + op + " of theoretic type " + tOperand + " and runtime type " + (op != null ? op.getClass() : "null") + " on index " + idxObj
                             )
                         );
                         idxObj++;
@@ -665,7 +665,7 @@ public final class LiveInstrumentation {
                         localsOps.add (
                             new PushPrimitive (
                                 locals, idxValues, tLocal, idxPrim,
-                                "\t\t\tPushed primitive in local slots (" + (inc > 1 ? locals[idxValues + 1] + ", " :"") +
+                                "\t\t\tPushing primitive in local slots (" + (inc > 1 ? locals[idxValues + 1] + ", " :"") +
                                     locals[idxValues] + ") of size " + inc + " and theoretic type " + tLocal + " and runtime type " + (local != null ? local.getClass() : "null") + " on index " + idxPrim
                             )
                         );
@@ -674,7 +674,7 @@ public final class LiveInstrumentation {
                     } else if (!(local instanceof Stack) /* HACK around locals ordering issue, skip Stack objects */) {
                         localsOps.add (
                             new PushObject (
-                                local, idxObj, "\t\t\tPushed object local " + local + " of theoretic type " + tLocal + " and runtime type " + (local != null ? local.getClass() : "null") + " on index " + idxObj
+                                local, idxObj, "\t\t\tPushing object local " + local + " of theoretic type " + tLocal + " and runtime type " + (local != null ? local.getClass() : "null") + " on index " + idxObj
                             )
                         );
                         idxObj++;
