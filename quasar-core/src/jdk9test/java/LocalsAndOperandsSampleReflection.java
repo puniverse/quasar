@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class LocalsAndOperandsSample {
+public class LocalsAndOperandsSampleReflection {
     private static Class<?> liveStackFrameClass;
     private static Class<?> primitiveValueClass;
     private static Method getLocals;
@@ -40,13 +40,13 @@ public class LocalsAndOperandsSample {
     private static Method primitiveType;
 
     public static void main(String... args) throws Throwable {
+        liveStackFrameClass = Class.forName("java.lang.LiveStackFrame");
+
         // no access to local and operands.
         final StackWalker sw = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
 
-        System.out.println("\nTest basic StackWalker:");
-        new LocalsAndOperandsSample(sw, false).test(4L, 5.6);
-
-        liveStackFrameClass = Class.forName("java.lang.LiveStackFrame");
+        System.out.println("\nTest basic StackWalker (reflective call):");
+        MethodHandles.lookup().unreflect(LocalsAndOperandsSampleReflection.class.getDeclaredMethod("test", Long.TYPE, Double.TYPE)).invoke(new LocalsAndOperandsSampleReflection(sw, false), 4L, 5.6);
 
         // access to local and operands.
         primitiveValueClass = Class.forName("java.lang.LiveStackFrame$PrimitiveValue");
@@ -74,22 +74,22 @@ public class LocalsAndOperandsSample {
         f.setAccessible(true);
         final StackWalker esw = (StackWalker) ewsNI.invoke(null, s, f.get(null));
 
-        System.out.println("\nTest extended StackWalker:");
-        new LocalsAndOperandsSample(esw, true).test(4L, 5.6);
+        System.out.println("\nTest extended StackWalker (reflective call):");
+        LocalsAndOperandsSampleReflection.class.getDeclaredMethod("test", Long.TYPE, Double.TYPE).invoke(new LocalsAndOperandsSampleReflection(esw, true), 4L, 5.6);
     }
 
     private final StackWalker walker;
     private final boolean extended;
 
-    private LocalsAndOperandsSample(StackWalker walker, boolean extended) {
+    private LocalsAndOperandsSampleReflection(StackWalker walker, boolean extended) {
         this.walker = walker;
         this.extended = extended;
     }
 
     public synchronized void test(long l, double d) throws Exception {
-        final List<StackFrame> frames = walker.walk(s -> s.collect(Collectors.toList()));
+        final List<StackWalker.StackFrame> frames = walker.walk(s -> s.collect(Collectors.toList()));
         if (extended) {
-            for (final StackFrame f : frames) {
+            for (final StackWalker.StackFrame f : frames) {
                 System.out.println("Frame: " + f);
                 final Object[] locals = (Object[]) getLocals.invoke(f);
                 for (int i = 0; i < locals.length; i++) {
