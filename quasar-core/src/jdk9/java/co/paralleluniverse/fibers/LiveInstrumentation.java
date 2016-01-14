@@ -37,6 +37,17 @@ import java.util.stream.Collectors;
 public final class LiveInstrumentation {
     // TODO: remove `synchronized` or change it to a lock
     static synchronized boolean fixup(Fiber fiber) {
+        if (DUMP_STACK_FRAMES_FIRST) {
+            DEBUG("\nWARNING: live instrumentation's preliminar stack dump ACTIVE, this will SEVERELY harm performances");
+            lastFrames = getStackFrames();
+            try {
+                DEBUG(dump(lastFrames));
+            } catch (final Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+        }
+
         if (!ACTIVE || fiber == null) // Not using live instrumentation or not in a fiber => don't alter checks
             return true;
 
@@ -576,9 +587,9 @@ public final class LiveInstrumentation {
                     i++;
                 }
             }
-            DEBUG("\t\tFrame locals indexes from instrumentation: " + Arrays.toString(idxLocals));
             if (!found)
                 DEBUG("\t\t\t<none>");
+            DEBUG("\t\tFrame locals fiber stack indexes from instrumentation: " + Arrays.toString(idxLocals));
             DEBUG("\t\tLive locals: " + Arrays.toString(locals));
             DEBUG("\t\tSuspendable call index: " + idx);
             DEBUG("\t\tClass was AOT-instrumented: " + aot + "");
@@ -903,6 +914,7 @@ public final class LiveInstrumentation {
             className.startsWith("java.lang.reflect.");
     }
 
+    public static final boolean DUMP_STACK_FRAMES_FIRST;
     public static final boolean ACTIVE;
     public static final boolean FORCE;
 
@@ -912,13 +924,14 @@ public final class LiveInstrumentation {
 
     private static Class<?> primitiveValueClass;
 
-    private static Method getLocals, getOperands, getMonitors, getMethodType, intValue;
+    private static Method getLocals, getOperands, getMonitors, primitiveType, getMethodType, intValue;
 
     private static Field memberName, offset;
 
     static {
         try {
             // TODO: change to "disableXXX" when stable
+            DUMP_STACK_FRAMES_FIRST = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.instrument.live.dumpStackFramesFirst");
             ACTIVE = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.instrument.live.enable");
             FORCE = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.instrument.live.force");
 
@@ -928,8 +941,10 @@ public final class LiveInstrumentation {
 
             db = Retransform.getMethodDB();
 
-            if (ACTIVE) {
-                DEBUG("Live lazy auto-instrumentation ENABLED");
+            if (ACTIVE || DUMP_STACK_FRAMES_FIRST) {
+                if (ACTIVE) {
+                    DEBUG("Live lazy auto-instrumentation ENABLED");
+                }
 
                 final Class<?> extendedOptionClass = Class.forName("java.lang.StackWalker$ExtendedOption");
                 final Method ewsNI = StackWalker.class.getDeclaredMethod("newInstance", Set.class, extendedOptionClass);
@@ -964,11 +979,14 @@ public final class LiveInstrumentation {
                 getOperands = liveStackFrameClass.getDeclaredMethod("getStack");
                 getOperands.setAccessible(true);
 
-                intValue = primitiveValueClass.getDeclaredMethod("intValue");
-                // intValue.setAccessible(true);
+                getMonitors = liveStackFrameClass.getDeclaredMethod("getMonitors");
+                getMonitors.setAccessible(true);
 
-                // getMonitors = liveStackFrameClass.getDeclaredMethod("getMonitors");
-                // getMonitors.setAccessible(true);
+                primitiveType = primitiveValueClass.getDeclaredMethod("type");
+                primitiveType.setAccessible(true);
+
+                intValue = primitiveValueClass.getDeclaredMethod("intValue");
+                intValue.setAccessible(true);
             }
         } catch (final Exception e) {
             throw new RuntimeException(e);
@@ -1031,6 +1049,45 @@ public final class LiveInstrumentation {
             throw new RuntimeException("ERROR: live instrumentation needs redefinition support but it's missing!");
     }
 
+    private static String dump(StackWalker.StackFrame[] fs) throws Exception {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("\n*********************STACK DUMP*********************\n");
+        for (final StackWalker.StackFrame f : fs) {
+            //noinspection RedundantCast
+            sb.append(String.format (
+                "[FRAME] %s:%d, %s#%s%s @ %db%n",
+                f.getFileName().orElse("<UNKNOWN>"), f.getLineNumber().orElse(-1),
+                f.getClassName(), f.getMethodName(),
+                ((MethodType) getMethodType.invoke(memberName.get(f))).toMethodDescriptorString(),
+                (int) offset.get(f)
+            ));
+
+            final Object[] locals = (Object[]) getLocals.invoke(f);
+            for (int i = 0; i < locals.length; i++)
+                sb.append(String.format("\tlocal %d: %s type %s%n", i, locals[i], type(locals[i])));
+
+            final Object[] operands = (Object[]) getOperands.invoke(f);
+            for (int i = 0; i < operands.length; i++)
+                sb.append(String.format("\toperand %d: %s type %s%n", i, operands[i], type(operands[i])));
+
+            final Object[] monitors = (Object[]) getMonitors.invoke(f);
+            for (int i = 0; i < monitors.length; i++)
+                sb.append(String.format("\tmonitor %d: %s%n", i, monitors[i]));
+        }
+        return sb.toString();
+    }
+
+    private static String type(Object o) throws Exception {
+        if (primitiveValueClass.isInstance(o)) {
+            final char c = (char) primitiveType.invoke(o);
+            return String.valueOf(c);
+        } else if (o != null) {
+            return o.getClass().getName();
+        } else {
+            return "null";
+        }
+    }
+
     private static void DEBUG(String s) {
         /*
         if (db.isDebug())
@@ -1038,6 +1095,8 @@ public final class LiveInstrumentation {
         */
         err.println(s);
     }
+
+    private static StackWalker.StackFrame[] lastFrames;
 
     private static final AtomicLong runCount = new AtomicLong();
 

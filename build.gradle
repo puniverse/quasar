@@ -164,6 +164,7 @@ subprojects {
         systemProperty 'co.paralleluniverse.monitoring.flightRecorderSize', '200000'
 
         // systemProperty 'co.paralleluniverse.fibers.instrument.pre.disable', 'true' // TODO: implement
+        systemProperty 'co.paralleluniverse.fibers.instrument.live.dumpStackFramesFirst', 'true'
         systemProperty 'co.paralleluniverse.fibers.instrument.live.enable', 'true' // TODO: convert to negative prop
         // systemProperty 'co.paralleluniverse.fibers.instrument.live.force', 'true' // TODO: comment out
         // systemProperty 'co.paralleluniverse.fibers.disableInstrumentationOptimization', 'true'
