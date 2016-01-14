@@ -26,6 +26,6 @@ import java.lang.annotation.Target;
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface SuspendableCalls {
-    String FIELD_NAME_METHOD_SUSPENDABLE_CALL_OFFSETS = "suspendableCallOffsets";
+    String FIELD_NAME_SUSPENDABLE_CALL_OFFSETS = "suspendableCallOffsets";
     int[] suspendableCallOffsets() default {};
 }

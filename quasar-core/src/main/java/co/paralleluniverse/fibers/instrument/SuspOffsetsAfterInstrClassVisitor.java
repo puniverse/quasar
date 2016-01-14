@@ -186,7 +186,7 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                         return new AnnotationVisitor(ASMAPI) { // Only collect info
                             @Override
                             public void visit(String name, Object value) {
-                                if (SuspendableCalls.FIELD_NAME_METHOD_SUSPENDABLE_CALL_OFFSETS.equals(name))
+                                if (SuspendableCalls.FIELD_NAME_SUSPENDABLE_CALL_OFFSETS.equals(name))
                                     preInstrOffsets = (int[]) value;
                                 else
                                     throw new RuntimeException("Unexpected `@SuspendableCalls` field: " + name);

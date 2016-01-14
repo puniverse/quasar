@@ -35,8 +35,6 @@ import java.util.stream.Collectors;
  * @author circlespainter
  */
 public final class LiveInstrumentation {
-    private static String log;
-
     // TODO: remove `synchronized` or change it to a lock
     static synchronized boolean fixup(Fiber fiber) {
         if (!ACTIVE || fiber == null) // Not using live instrumentation or not in a fiber => don't alter checks
@@ -914,8 +912,7 @@ public final class LiveInstrumentation {
 
     private static Class<?> primitiveValueClass;
 
-    private static Method getLocals, getOperands, getMethodType;
-    private static Method intValue;
+    private static Method getLocals, getOperands, getMonitors, getMethodType, intValue;
 
     private static Field memberName, offset;
 
@@ -950,7 +947,7 @@ public final class LiveInstrumentation {
                 /////////////////////////////////////////////////
                 // Get internal LiveStackFrame* class/method refs
                 //////////////////////////////////////////////////
-                Class<?> liveStackFrameClass = Class.forName("java.lang.LiveStackFrame");
+                final Class<?> liveStackFrameClass = Class.forName("java.lang.LiveStackFrame");
                 primitiveValueClass = Class.forName("java.lang.LiveStackFrame$PrimitiveValue");
 
                 final Class<?> stackFrameInfoClass = Class.forName("java.lang.StackFrameInfo");
@@ -1040,7 +1037,6 @@ public final class LiveInstrumentation {
             db.getLog().log(LogLevel.DEBUG, "[LIVE] " + s);
         */
         err.println(s);
-        // log += ("[LIVE]" + s + "\n");
     }
 
     private static final AtomicLong runCount = new AtomicLong();

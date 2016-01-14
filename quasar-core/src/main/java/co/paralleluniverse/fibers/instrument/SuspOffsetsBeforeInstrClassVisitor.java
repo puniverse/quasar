@@ -104,7 +104,7 @@ public class SuspOffsetsBeforeInstrClassVisitor extends ClassVisitor {
                 @Override
                 public void visitEnd() {
                     final AnnotationVisitor suspCallsAV = super.visitAnnotation(Classes.SUSPENDABLE_CALLS_DESC, true);
-                    suspCallsAV.visit(SuspendableCalls.FIELD_NAME_METHOD_SUSPENDABLE_CALL_OFFSETS, Ints.toArray(suspOffsetsBeforeInstrL));
+                    suspCallsAV.visit(SuspendableCalls.FIELD_NAME_SUSPENDABLE_CALL_OFFSETS, Ints.toArray(suspOffsetsBeforeInstrL));
                     suspCallsAV.visitEnd();
                     super.visitEnd();
                 }
