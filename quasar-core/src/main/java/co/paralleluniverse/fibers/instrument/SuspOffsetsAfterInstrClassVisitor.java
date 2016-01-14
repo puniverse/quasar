@@ -21,8 +21,7 @@ import org.objectweb.asm.*;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static co.paralleluniverse.fibers.instrument.Classes.*;
 import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
@@ -71,6 +70,8 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
 
                 private int[] preInstrOffsets;
 
+                private List<Integer> localsSlotsL = new ArrayList<>(8);
+
                 @Override
                 public AnnotationVisitor visitAnnotation(final String adesc, boolean visible) {
                     if (Classes.INSTRUMENTED_DESC.equals(adesc)) {
@@ -85,6 +86,9 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                                     methodEnd = (Integer) value;
                                 else if (Instrumented.FIELD_NAME_IS_METHOD_INSTRUMENTATION_OPTIMIZED.equals(name))
                                     optimized = (Boolean) value;
+                                else //noinspection StatementWithEmptyBody
+                                    if (Instrumented.FIELD_NAME_METHOD_UNINSTRUMENTED_LOCALS_SLOTS.equals(name))
+                                    ; // Set later
                                 else
                                     throw new RuntimeException("Unexpected `@Instrumented` field: " + name);
                             }
@@ -198,6 +202,12 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                 }
 
                 @Override
+                public void visitLocalVariable(String name, String desc, String sig, Label lStart, Label lEnd, int slot) {
+                    localsSlotsL.add(slot);
+                    super.visitLocalVariable(name, desc, sig, lStart, lEnd, slot);
+                }
+
+                @Override
                 public void visitLabel(Label label) {
                     if (instrumented) {
                         currLabel = label;
@@ -242,9 +252,12 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                         }
                     }
 
+                    localsSlotsL = new ArrayList<>(new HashSet<>(localsSlotsL)); // Unique
+                    Collections.sort(localsSlotsL); // Sort
+
                     if (instrumented)
                         InstrumentMethod.emitInstrumentedAnn (
-                            db, outMV, mn, className, optimized, methodStart, methodEnd, suspCallSitesL
+                            db, outMV, mn, className, optimized, methodStart, methodEnd, suspCallSitesL, localsSlotsL
                         );
 
                     super.visitEnd();

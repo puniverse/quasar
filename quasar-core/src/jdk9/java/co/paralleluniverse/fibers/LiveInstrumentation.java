@@ -541,6 +541,7 @@ public final class LiveInstrumentation {
 
             final Type[] tsLocals = toTypes(ann.methodSuspendableCallSites()[idx-1].stackFrameLocalsTypes());
             final int[] idxLocals = ann.methodSuspendableCallSites()[idx-1].stackFrameLocalsIndexes();
+            final int[] slotsLocals = ann.methodUninstrumentedLocalsSlots();
 
             // If the class was AOT-instrumented then the frame type info (which is always computed at runtime) will
             // include operands and locals added by instrumentation and some special adjustments are necessary.
@@ -579,6 +580,7 @@ public final class LiveInstrumentation {
             if (!found)
                 DEBUG("\t\t\t<none>");
             DEBUG("\t\tFrame locals fiber stack indexes from instrumentation: " + Arrays.toString(idxLocals));
+            DEBUG("\t\tFrame locals slots from instrumentation: " + Arrays.toString(slotsLocals));
             DEBUG("\t\tLive locals: " + Arrays.toString(locals));
             DEBUG("\t\tSuspendable call index: " + idx);
             DEBUG("\t\tClass was AOT-instrumented: " + aot + "");

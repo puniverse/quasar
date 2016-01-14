@@ -301,7 +301,8 @@ public class InstrumentMethod {
     public static void emitInstrumentedAnn (
         MethodDatabase db, MethodVisitor mv, MethodNode mn, String className,
         boolean optimized, int methodStart, int methodEnd,
-        List<SuspCallSite> suspCallSites
+        List<SuspCallSite> suspCallSites,
+        List<Integer> uninstrumentedLocalsSlots
     ) {
         final StringBuilder sb = new StringBuilder();
 
@@ -410,6 +411,22 @@ public class InstrumentMethod {
             }
 
             suspCallSitesAV.visitEnd();
+            sb.append("]");
+        }
+
+        if (uninstrumentedLocalsSlots != null) {
+            final AnnotationVisitor localsSlotsAV = instrumentedAV.visitArray(Instrumented.FIELD_NAME_METHOD_UNINSTRUMENTED_LOCALS_SLOTS);
+            sb.append(SuspendableCallSite.FIELD_NAME_STACK_FRAME_LOCALS_INDEXES + "=[");
+            boolean first = true;
+            for (final Integer i : uninstrumentedLocalsSlots) {
+                if (!first) {
+                    sb.append(",");
+                }
+                first = false;
+                localsSlotsAV.visit(null, i);
+                sb.append(i);
+            }
+            localsSlotsAV.visitEnd();
             sb.append("]");
         }
 
@@ -607,7 +624,7 @@ public class InstrumentMethod {
         }
 
         //noinspection ConstantConditions
-        emitInstrumentedAnn(db, mv, mn, className, optimizeInstrumentation, startSourceLine, endSourceLine, suspCallSites);
+        emitInstrumentedAnn(db, mv, mn, className, optimizeInstrumentation, startSourceLine, endSourceLine, suspCallSites, null);
 
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchAll, null);
 
@@ -781,15 +798,37 @@ public class InstrumentMethod {
             // Pre-existing ones
             for (final Object o : mn.localVariables)
                 ((LocalVariableNode) o).accept(mv);
-            // Instrumentation-added ones
+            // Instrumentation-added ones: NOT emitting them. It works like this:
+            //
+            // a) We avoid emitting instrumentation locals.
+            // b) In some AoT cases (e.g. `<...>/dataflow/Val.get()`) the locals indexes are as expected
+            //    on disk (instrumention locals last in the following order: lvarStack, lvarResumed and
+            //    lvarInvocationReturnValue) but during shadowing the slot
+            //    number of all the locals gets changed, seemingly according to code reference order (except
+            //    0 always being `this`), which means that 1 = lvarInvocationReturnValue, 2 = lvarStack
+            //    and 3 = lvarResumed.
+            // c) We record the slot index of the original locals in `@Instrumented`.
+            // d) In live instrumentation, we use the above indexes to access the live locals array provided
+            //    by `StackWalker.LiveStackFrame` rather than assuming (wrongly) that all the original locals
+            //    come first.
+            //    Note that we still assume that relative ordering is preserved, which would be true if, as it
+            //    seems, the reordering happens according to var reference order in the instructions sequence.
             /*
                 lvarStack = maxLocals;
                 lvarResumed = maxLocals + 1;
                 lvarInvocationReturnValue = maxLocals + 2;
+
+                OR
+
+                lvarInvocationReturnValue = 1;
+                lvarStack = 2;
+                lvarResumed = 3;
              */
+            /*
             mv.visitLocalVariable("!quasar_stack", "L" + Classes.STACK_NAME + ";", null, absStart, absEnd, lvarStack);
             mv.visitLocalVariable("!quasar_resumed", "Z", null, absStart, absEnd, lvarResumed);
             mv.visitLocalVariable("!quasar_ret", "L" + Classes.OBJECT_NAME + ";", null, absStart, absEnd, lvarInvocationReturnValue);
+            */
         }
         mv.visitMaxs(mn.maxStack + ADD_OPERANDS, mn.maxLocals + NUM_LOCALS + additionalLocals); // Needed by ASM analysis
 
@@ -843,7 +882,7 @@ public class InstrumentMethod {
             }
         }
 
-        emitInstrumentedAnn(db, mv, mn, className, true, startSourceLine, endSourceLine, suspCallSites);
+        emitInstrumentedAnn(db, mv, mn, className, true, startSourceLine, endSourceLine, suspCallSites, null);
 
         dumpUnoptimizedCodeBlockAfterIdx(mv, 0, 0);
 
