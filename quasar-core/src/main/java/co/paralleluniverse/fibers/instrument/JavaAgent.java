@@ -75,13 +75,20 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.concurrent.util.MapUtil;
 import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.lang.ref.WeakReference;
 import java.security.ProtectionDomain;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Set;
+
+import com.google.common.io.ByteStreams;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -175,6 +182,23 @@ public class JavaAgent {
 
         @Override
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+
+            // DEBUG
+            if (QuasarInstrumentor.EXAMINED_CLASS != null && className.startsWith(QuasarInstrumentor.EXAMINED_CLASS)) {
+                boolean b;
+                try {
+                    final InputStream is = loader.getResourceAsStream(className.replace('.', '/') + ".class");
+                    final byte[] orig = ByteStreams.toByteArray(is);
+                    b = Arrays.equals(classfileBuffer, orig);
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
+                QuasarInstrumentor.writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-0-original-buffer.class.loader.txt",
+                    (loader.toString() + ": " + b).getBytes());
+                QuasarInstrumentor.writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-0-original-buffer.class", classfileBuffer);
+            }
+
             if (className.startsWith("clojure/lang/Compiler"))
                 return crazyClojureOnceDisable(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
 

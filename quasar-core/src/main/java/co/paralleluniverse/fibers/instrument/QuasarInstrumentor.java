@@ -26,6 +26,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Date;
 
+import com.google.common.io.ByteStreams;
 import org.objectweb.asm.*;
 import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
@@ -35,7 +36,7 @@ import org.objectweb.asm.util.TraceClassVisitor;
  */
 public final class QuasarInstrumentor {
     public static final int ASMAPI = Opcodes.ASM5;
-    private final static String EXAMINED_CLASS = System.getProperty("co.paralleluniverse.fibers.writeInstrumentedClassesStartingWith");
+    /* private */ final static String EXAMINED_CLASS = System.getProperty("co.paralleluniverse.fibers.writeInstrumentedClassesStartingWith");
     private static final boolean allowJdkInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.allowJdkInstrumentation");
     private final MethodDatabase db;
     private boolean check;
@@ -94,18 +95,26 @@ public final class QuasarInstrumentor {
     public byte[] instrumentClass(String className, InputStream is, boolean forceInstrumentation) throws IOException {
         className = className.replace('.', '/');
 
-        log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
-
-        // Phase 1, add a label before any suspendable calls, event API is enough
-        final ClassReader r1 = new ClassReader(is);
-        final ClassWriter cw1 = new ClassWriter(r1, 0);
-        final LabelSuspendableCallSitesClassVisitor ic1 = new LabelSuspendableCallSitesClassVisitor(cw1, db);
-        r1.accept(ic1, 0);
-        byte[] transformed = cw1.toByteArray();
+        byte[] transformed = ByteStreams.toByteArray(is);
 
         // DEBUG
         if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS)) {
-            writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-before-quasar.class", transformed);
+            writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-1.class", transformed);
+            // cv1 = new TraceClassVisitor(cv, new PrintWriter(System.err));
+        }
+
+        log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
+
+        // Phase 1, add a label before any suspendable calls, event API is enough
+        final ClassReader r1 = new ClassReader(transformed);
+        final ClassWriter cw1 = new ClassWriter(r1, 0);
+        final LabelSuspendableCallSitesClassVisitor ic1 = new LabelSuspendableCallSitesClassVisitor(cw1, db);
+        r1.accept(ic1, 0);
+        transformed = cw1.toByteArray();
+
+        // DEBUG
+        if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS)) {
+            writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-2.class", transformed);
             // cv1 = new TraceClassVisitor(cv, new PrintWriter(System.err));
         }
 
@@ -115,6 +124,12 @@ public final class QuasarInstrumentor {
         final SuspOffsetsBeforeInstrClassVisitor ic2 = new SuspOffsetsBeforeInstrClassVisitor(cw2, db);
         r2.accept(ic2, 0);
         transformed = cw2.toByteArray(); // Class not really touched, just convenience
+
+        // DEBUG
+        if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS)) {
+            writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-3.class", transformed);
+            // cv1 = new TraceClassVisitor(cv, new PrintWriter(System.err));
+        }
 
         // Phase 3, instrument, tree API
         final ClassReader r3 = new ClassReader(transformed);
@@ -135,6 +150,12 @@ public final class QuasarInstrumentor {
             }
         }
 
+        // DEBUG
+        if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS)) {
+            writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-4.class", transformed);
+            // cv1 = new TraceClassVisitor(cv, new PrintWriter(System.err));
+        }
+
         // Phase 4, fill suspendable call offsets, event API is enough
         final OffsetClassReader r4 = new OffsetClassReader(transformed);
         final ClassWriter cw4 = new ClassWriter(r4, 0);
@@ -145,7 +166,7 @@ public final class QuasarInstrumentor {
         // DEBUG
         if (EXAMINED_CLASS != null) {
             if (className.startsWith(EXAMINED_CLASS))
-                writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-after-quasar.class", transformed);
+                writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-5-final.class", transformed);
 
             if (check) {
                 ClassReader r5 = new ClassReader(transformed);
@@ -207,7 +228,7 @@ public final class QuasarInstrumentor {
         db.checkClass(f);
     }
 
-    private static void writeToFile(String name, byte[] data) {
+    /* private */ static void writeToFile(String name, byte[] data) {
         try (OutputStream os = Files.newOutputStream(Paths.get(name), StandardOpenOption.CREATE_NEW)) {
             os.write(data);
         } catch (IOException e) {
