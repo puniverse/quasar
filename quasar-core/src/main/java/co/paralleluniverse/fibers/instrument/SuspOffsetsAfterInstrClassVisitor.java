@@ -186,7 +186,7 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                                     throw new RuntimeException("Unexpected `@SuspendableCallSite` field: " + name);
                             }
                         };
-                    } else if (Classes.SUSPENDABLE_CALLS_DESC.equals(adesc)) {
+                    } else if (Classes.SUSPENDABLE_CALLS_DESC.equals(adesc)) { // Non-AoT
                         return new AnnotationVisitor(ASMAPI) { // Only collect info
                             @Override
                             public void visit(String name, Object value) {

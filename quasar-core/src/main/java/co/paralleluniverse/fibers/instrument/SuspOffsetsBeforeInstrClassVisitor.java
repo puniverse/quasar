@@ -40,17 +40,17 @@ public class SuspOffsetsBeforeInstrClassVisitor extends ClassVisitor {
     }
 
     @Override
-    public AnnotationVisitor visitAnnotation(String name, boolean b) {
-        if (Classes.DONT_INSTRUMENT_DESC.equals(name))
+    public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
+        if (Classes.DONT_INSTRUMENT_DESC.equals(adesc))
             record = false;
-        return super.visitAnnotation(name, b);
+        return super.visitAnnotation(adesc, visible);
     }
 
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         this.className = name;
 
-        // need atleast 1.5 for annotations to work
+        // Need at least 1.5 for annotations to work
         if (version < Opcodes.V1_5)
             version = Opcodes.V1_5;
 

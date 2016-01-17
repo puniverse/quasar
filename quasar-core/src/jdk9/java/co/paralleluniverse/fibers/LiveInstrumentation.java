@@ -118,7 +118,6 @@ public final class LiveInstrumentation {
 
         // TODO: 1) reduce garbage, 2) make faster
 
-        // 0)
         final StackWalker.StackFrame[] fs = getStackFrames();
 
         try {
@@ -195,6 +194,26 @@ public final class LiveInstrumentation {
 
             if (!upperFiberRuntime && !lowerFiberRuntime)
                 lowerFiberRuntime = SuspendableHelper9.isFiber(cn);
+
+/*
+            // Fix stale offsets in AoT-instrumented classes due to shadow transform
+            final Class<?> c = f.getDeclaringClass();
+            final Instrumented ann = c.getAnnotation(Instrumented.class);
+            if (ann != null && ann.isClassAOTInstrumented()) {
+                try (final InputStream is = c.getResourceAsStream("/" + cn.replace(".", "/") + ".class")) {
+                    if (is != null) { // For some JDK dynamic classes it can be
+                        DEBUG("\t\tReloading AoT class " + cn + " from original classloader and redefining to fix offset mismatches (shadow)");
+                        final byte[] diskData = ByteStreams.toByteArray(is);
+                        Retransform.redefine(new ClassDefinition(c, diskData));
+                    } else {
+                        DEBUG("\t\t\tClass source stream not found, not reloading to fix offset mismatches (shadow)");
+                    }
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
+            }
+*/
 
             if (!upperFiberRuntime && !lowerFiberRuntime) {
                 if (!isReflection(f.getClassName())) { // Skip reflection
@@ -286,6 +305,7 @@ public final class LiveInstrumentation {
                     DEBUG("\t\t\tClass source stream not found, not reloading");
                 }
             } catch (final IOException e) {
+                e.printStackTrace();
                 throw new RuntimeException(e);
             }
         }
@@ -526,64 +546,55 @@ public final class LiveInstrumentation {
          */
         public void apply(Map<StackWalker.StackFrame, Integer> entries, Stack s) {
             final Instrumented ann = SuspendableHelper.getAnnotation(m, Instrumented.class);
-            final Instrumented classAnn = m.getDeclaringClass().getAnnotation(Instrumented.class);
-
             final Integer idx = entries.get(f);
-
-            // Stack types are in reverse order w.r.t. what we need here
-            final List<Type> tsOperandsL = Arrays.asList(toTypes(ann.methodSuspendableCallSites()[idx-1].stackFrameOperandsTypes()));
-            Collections.reverse(tsOperandsL);
-            final Type[] tsOperands = new Type[tsOperandsL.size()];
-            tsOperandsL.toArray(tsOperands);
-            final List<Integer> idxOperandsL = Ints.asList(ann.methodSuspendableCallSites()[idx-1].stackFrameOperandsIndexes());
-            Collections.reverse(idxOperandsL);
-            final int[] idxOperands = Ints.toArray(idxOperandsL);
-
-            final Type[] tsLocals = toTypes(ann.methodSuspendableCallSites()[idx-1].stackFrameLocalsTypes());
-            final int[] idxLocals = ann.methodSuspendableCallSites()[idx-1].stackFrameLocalsIndexes();
-            final int[] slotsLocals = ann.methodUninstrumentedLocalsSlots();
-
-            // If the class was AOT-instrumented then the frame type info (which is always computed at runtime) will
-            // include operands and locals added by instrumentation and some special adjustments are necessary.
-            final boolean aot = classAnn.isClassAOTInstrumented();
 
             DEBUG("\t\tFrame method \"" + m + "\":");
             DEBUG("\t\t\tCalled at offset " + lowerOffset + " of: " + lowerM);
             DEBUG("\t\t\tCalling at offset " + currOffset + ": " + upperM + " (yield = " + isYield + ")");
-            DEBUG("\t\tFrame operands types from instrumentation (reverse):");
+            DEBUG("\t\t\tFrame operands types from instrumentation (reverse):");
             int i = 1;
             boolean found = false;
             for (final SuspendableCallSite scs : ann.methodSuspendableCallSites()) {
                 final String[] tsTmp = scs.stackFrameOperandsTypes();
                 if (tsTmp != null) {
                     found = true;
-                    DEBUG("\t\t\t" + i + ": " + Arrays.toString(tsTmp));
+                    DEBUG("\t\t\t\t" + i + ": " + Arrays.toString(tsTmp));
                     i++;
                 }
             }
             if (!found)
-                DEBUG("\t\t\t<none>");
-            DEBUG("\t\tFrame operands indexes from instrumentation: " + Arrays.toString(idxOperands));
-            DEBUG("\t\tLive operands: " + Arrays.toString(operands));
-            DEBUG("\t\tUpper locals: " + Arrays.toString(upperLocals));
-            DEBUG("\t\tFrame locals types from instrumentation:");
+                DEBUG("\t\t\t\t<none>");
+
+            final List<Integer> idxOperandsL = Ints.asList(ann.methodSuspendableCallSites()[idx-1].stackFrameOperandsIndexes());
+            Collections.reverse(idxOperandsL);
+            final int[] idxOperands = Ints.toArray(idxOperandsL);
+
+            DEBUG("\t\t\tFrame operands indexes from instrumentation: " + Arrays.toString(idxOperands));
+            DEBUG("\t\t\tLive operands: " + Arrays.toString(operands));
+            DEBUG("\t\t\tUpper locals: " + Arrays.toString(upperLocals));
+            DEBUG("\t\t\tFrame locals types from instrumentation:");
             i = 1;
             found = false;
             for (final SuspendableCallSite scs : ann.methodSuspendableCallSites()) {
                 final String[] tsTmp = scs.stackFrameLocalsTypes();
                 if (tsTmp != null) {
                     found = true;
-                    DEBUG("\t\t\t" + i + ": " + Arrays.toString(tsTmp));
+                    DEBUG("\t\t\t\t" + i + ": " + Arrays.toString(tsTmp));
                     i++;
                 }
             }
             if (!found)
-                DEBUG("\t\t\t<none>");
-            DEBUG("\t\tFrame locals fiber stack indexes from instrumentation: " + Arrays.toString(idxLocals));
-            DEBUG("\t\tFrame locals slots from instrumentation: " + Arrays.toString(slotsLocals));
-            DEBUG("\t\tLive locals: " + Arrays.toString(locals));
-            DEBUG("\t\tSuspendable call index: " + idx);
-            DEBUG("\t\tClass was AOT-instrumented: " + aot + "");
+                DEBUG("\t\t\t\t<none>");
+
+            final Type[] tsLocals = toTypes(ann.methodSuspendableCallSites()[idx-1].stackFrameLocalsTypes());
+            final int[] idxLocals = ann.methodSuspendableCallSites()[idx-1].stackFrameLocalsIndexes();
+            DEBUG("\t\t\tFrame locals fiber stack indexes from instrumentation: " + Arrays.toString(idxLocals));
+            DEBUG("\t\t\tLive locals: " + Arrays.toString(locals));
+            DEBUG("\t\t\tSuspendable call index: " + idx);
+
+            final Instrumented classAnn = m.getDeclaringClass().getAnnotation(Instrumented.class);
+            final boolean aot = classAnn.isClassAOTInstrumented();
+            DEBUG("\t\t\tClass was AOT-instrumented: " + aot + "");
 
             // Operands and locals (in this order) slot indices
             int idxObj = 0, idxPrim = 0;
@@ -614,43 +625,52 @@ public final class LiveInstrumentation {
             // TODO: `VIRTUAL java/lang/reflect/Method/invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;`
             // TODO: to be `[0, 0, 0, 0]` when not running in debug mode.
             final boolean callingReflection = isReflection(upperM.getDeclaringClass().getName());
-            DEBUG("\t\tCalling reflection: " + callingReflection);
+            DEBUG("\t\t\tCalling reflection: " + callingReflection);
             final int reflectionArgsCount = callingReflection ? upperM.getParameterCount() + 1 : 0;
-            DEBUG("\t\tReflection args count: " + reflectionArgsCount);
+            DEBUG("\t\t\tReflection args count: " + reflectionArgsCount);
+
+            // Stack types are in reverse order w.r.t. what we need here
+            final List<Type> tsOperandsL = Arrays.asList(toTypes(ann.methodSuspendableCallSites()[idx-1].stackFrameOperandsTypes()));
+            Collections.reverse(tsOperandsL);
+            final Type[] tsOperands = new Type[tsOperandsL.size()];
+            tsOperandsL.toArray(tsOperands);
 
             final List<FiberStackOp> operandsOps = new ArrayList<>();
             int idxTypes = 0, idxValues = 0;
-            if (tsOperands != null) {
-                while (idxTypes + reflectionArgsCount < tsOperands.length /* && idxValues < preCallOperands.length */) {
-                    final org.objectweb.asm.Type tOperand = tsOperands[idxTypes];
-                    int inc = 1;
-                    final Object op = preCallOperands[idxValues];
-                    if (primitiveValueClass.isInstance(op)) {
+            while (idxTypes + reflectionArgsCount < tsOperands.length /* && idxValues < preCallOperands.length */) {
+                int inc = 1;
+                final Type tOperand = tsOperands[idxTypes];
+                final Object op = preCallOperands[idxValues];
+                    if (op != null && primitiveValueClass.isInstance(op)) {
                         inc = getTypeSize(tOperand);
                         operandsOps.add (
-                            new PushPrimitive (
+                            new PushPrimitive(
                                 preCallOperands, idxValues, tOperand, idxPrim,
-                                "\t\t\tPushing primitive in operand slots (" + (inc > 1 ? preCallOperands[idxValues + 1] + ", " :"") +
-                                    preCallOperands[idxValues] + ") of size " + inc + " and theoretic type " + tOperand + " and runtime type " + (op != null ? op.getClass() : "null") + " on index " + idxPrim
+                                "\t\t\t\tPUSH " + idxPrim + " OP(" + idxValues + ") PRIM (" +
+                                    op + (inc > 1 ? "," + preCallOperands[idxValues + 1] : "") +
+                                    ") :? " + tOperand + " : " + op.getClass()
                             )
                         );
                         idxPrim++;
                     } else {
                         operandsOps.add (
-                            new PushObject (
-                                op, idxObj, "\t\t\tPushing object operand " + op + " of theoretic type " + tOperand + " and runtime type " + (op != null ? op.getClass() : "null") + " on index " + idxObj
+                            new PushObject(
+                                op, idxObj,
+                                "\t\t\t\tPUSH " + idxObj + " OP(" + idxValues + ") OBJ (" +
+                                    op +
+                                    ") :? " + tOperand + " : " + (op != null ? op.getClass() : "null")
                             )
                         );
                         idxObj++;
                     }
-                    idxValues += inc;
-                    idxTypes++;
                 }
+                idxValues += inc;
+                idxTypes++;
+            }
 
-                if (callingReflection) {
-                    for (final Object o : reconstructReflectionArgs(upperFFP))
-                        operandsOps.add(new PushObject(o, idxObj++, "\t\t\tPushed reflection object operand " + o));
-                }
+            if (callingReflection) {
+                for (final Object o : reconstructReflectionArgs(upperFFP))
+                    operandsOps.add(new PushObject(o, idxObj++, "\t\t\tPushed reflection object operand " + o));
             }
 
             // Store local vars, including args, except "this" (present in actual values but not types)
@@ -659,62 +679,67 @@ public final class LiveInstrumentation {
             idxValues = (Modifier.isStatic(m.getModifiers()) ? 0 : 1);
             if (tsLocals != null) {
                 while (idxTypes < tsLocals.length /* && idxValues < locals.length */) {
-                    final Object local = locals[idxValues];
-                    final org.objectweb.asm.Type tLocal = tsLocals[idxTypes];
+                    final int slot = idxValues; // slotsLocals[idxTypes];
+                    final Object local = locals[slot];
+                    final Type tLocal = tsLocals[idxTypes];
                     int inc = 1;
-                    if (primitiveValueClass.isInstance(local)) {
-                        inc = getTypeSize(tLocal);
-                        localsOps.add (
-                            new PushPrimitive (
-                                locals, idxValues, tLocal, idxPrim,
-                                "\t\t\tPushing primitive in local slots (" + (inc > 1 ? locals[idxValues + 1] + ", " :"") +
-                                    locals[idxValues] + ") of size " + inc + " and theoretic type " + tLocal + " and runtime type " + (local != null ? local.getClass() : "null") + " on index " + idxPrim
-                            )
-                        );
-                        idxPrim++;
-                        idxTypes++;
-                    } else if (!(local instanceof Stack) /* HACK around locals ordering issue, skip Stack objects */) {
-                        localsOps.add (
-                            new PushObject (
-                                local, idxObj, "\t\t\tPushing object local " + local + " of theoretic type " + tLocal + " and runtime type " + (local != null ? local.getClass() : "null") + " on index " + idxObj
-                            )
-                        );
-                        idxObj++;
-                        idxTypes++;
+                        if (local != null && primitiveValueClass.isInstance(local)) {
+                            inc = getTypeSize(tLocal);
+                            localsOps.add(
+                                new PushPrimitive(
+                                    locals, idxValues, tLocal, idxPrim,
+                                    "\t\t\t\tPUSH " + idxPrim + " LOC(" + slot + ") PRIM (" +
+                                        local + (inc > 1 ? "," + locals[slot + 1] : "") +
+                                        ") :? " + tLocal + " : " + local.getClass()
+                                )
+                            );
+                            idxPrim++;
+                        } else {
+                            localsOps.add(
+                                new PushObject(
+                                    local, idxObj,
+                                    "\t\t\t\tPUSH " + idxObj + " LOC(" + slot + ") OBJ (" +
+                                        local +
+                                        ") :? " + tLocal + " : " + (local != null ? local.getClass() : "null")
+                                )
+                            );
+                            idxObj++;
+                        }
                     }
+                    idxTypes++;
                     idxValues += inc;
                 }
             }
 
-            DEBUG("\tActions:");
+            DEBUG("\t\tActions:");
 
             if (s.nextMethodEntry() == 0) {
-                DEBUG("\t\tDone `nextMethodEntry` and got 0, doing `isFirstInStackOrPushed`");
+                DEBUG("\t\t\tDone `nextMethodEntry` and got 0, doing `isFirstInStackOrPushed`");
                 s.isFirstInStackOrPushed();
             }
 
             // New frame
             final int slots = Math.max(idxObj, idxPrim);
-            DEBUG("\t\tDoing `pushMethod(suspCallIdx: " + idx + ", slots: " + slots + ")`");
+            DEBUG("\t\t\tDoing `pushMethod(suspCallIdx: " + idx + ", slots: " + slots + ")`");
             s.pushMethod(idx, slots);
 
             // Pushes
-            DEBUG("\t\tPushing analyzed pre-call frame operands:");
+            DEBUG("\t\t\tPushing analyzed pre-call frame operands:");
             found = false;
             for(final FiberStackOp op : operandsOps) {
                 found = true;
                 op.apply(s);
             }
             if (!found)
-                DEBUG("\t\t\t<none>");
-            DEBUG("\t\tPushing analyzed frame locals:");
+                DEBUG("\t\t\t\t<none>");
+            DEBUG("\t\t\tPushing analyzed frame locals:");
             found = false;
             for(final FiberStackOp op : localsOps) {
                 found = true;
                 op.apply(s);
             }
             if (!found)
-                DEBUG("\t\t\t<none>");
+                DEBUG("\t\t\t\t<none>");
 
             // Since the potential call to a yield method is in progress already (because live instrumentation is
             // called from all yield methods), we don't need to perform any special magic to preserve its args.
@@ -780,6 +805,7 @@ public final class LiveInstrumentation {
                         Stack.push(twoIntsToDouble(i1, i2), s, stackIdx);
                 }
             } catch (final InvocationTargetException | IllegalAccessException e) {
+                e.printStackTrace();
                 throw new RuntimeException(e);
             }
         }
@@ -845,6 +871,7 @@ public final class LiveInstrumentation {
             todo.push(ffp);
             return ffp;
         } catch (final InvocationTargetException | IllegalAccessException e) {
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
@@ -980,6 +1007,7 @@ public final class LiveInstrumentation {
                 intValue.setAccessible(true);
             }
         } catch (final Exception e) {
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
