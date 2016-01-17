@@ -520,7 +520,8 @@ project (':quasar-core') {
             }
             exclude 'META-INF/INDEX.LIST'
 
-            relocate 'org.objectweb.asm.', 'co.paralleluniverse.asm.'
+            // TODO: check there is instrumented Quasar code using ASM and enable only for the latter, else it scrambles locals in AoT-instrumented code, see https://github.com/johnrengelman/shadow/issues/176
+            // relocate 'org.objectweb.asm.', 'co.paralleluniverse.asm.'
 
             manifest {
                 attributes(
