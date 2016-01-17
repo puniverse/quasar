@@ -252,7 +252,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    @Ignore // TODO Fix
+    @Ignore
     public void testThreadLocalsParallel() throws Exception {
         final ThreadLocal<String> tl = new ThreadLocal<>();
 
@@ -279,7 +279,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    @Ignore // TODO Fix
+    @Ignore
     public void testInheritThreadLocalsParallel() throws Exception {
         final ThreadLocal<String> tl = new ThreadLocal<>();
         tl.set("foo");
