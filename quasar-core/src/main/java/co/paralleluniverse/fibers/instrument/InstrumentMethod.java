@@ -1266,8 +1266,8 @@ public class InstrumentMethod {
         for (int i = firstLocal; i < f.getLocals(); i++) {
             final BasicValue v = (BasicValue) f.getLocal(i);
             int slotIdx = fi.localSlotIndices[i];
-            if (!isNullType(v)) {
-                localTypes.add(v.getType());
+            if (v != BasicValue.UNINITIALIZED_VALUE) {
+                localTypes.add(isNullType(v) ? NULL_TYPE : v.getType());
                 localIndexes.add(slotIdx);
             }
         }

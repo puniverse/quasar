@@ -700,27 +700,31 @@ public final class LiveInstrumentation {
                     final Type tLocal = tsLocals[idxTypes];
                     final int slot = idxValues; // Shadow's relocation would scramble them during AoT, difficult to track them; relocation disable for now, see https://github.com/johnrengelman/shadow/issues/176
                     final Object local = locals[slot];
-                    if (local != null && primitiveValueClass.isInstance(local)) {
-                        inc = getTypeSize(tLocal);
-                        localsOps.add(
-                            new PushPrimitive(
-                                locals, idxValues, tLocal, idxPrim,
-                                "\t\t\t\tPUSH " + idxPrim + " LOC(" + slot + ") PRIM (" +
-                                    local + (inc > 1 ? "," + locals[slot + 1] : "") +
-                                    ") :? " + tLocal + " : " + local.getClass()
-                            )
-                        );
-                        idxPrim++;
+                    if (!isNullType(tLocal)) {
+                        if (local != null && primitiveValueClass.isInstance(local)) {
+                            inc = getTypeSize(tLocal);
+                            localsOps.add(
+                                new PushPrimitive(
+                                    locals, idxValues, tLocal, idxPrim,
+                                    "\t\t\t\tPUSH " + idxPrim + " LOC(" + slot + ") PRIM (" +
+                                        local + (inc > 1 ? "," + locals[slot + 1] : "") +
+                                        ") :? " + tLocal + " : " + local.getClass()
+                                )
+                            );
+                            idxPrim++;
+                        } else {
+                            localsOps.add(
+                                new PushObject(
+                                    local, idxObj,
+                                    "\t\t\t\tPUSH " + idxObj + " LOC(" + slot + ") OBJ (" +
+                                        local +
+                                        ") :? " + tLocal + " : " + (local != null ? local.getClass() : "null")
+                                )
+                            );
+                            idxObj++;
+                        }
                     } else {
-                        localsOps.add(
-                            new PushObject(
-                                local, idxObj,
-                                "\t\t\t\tPUSH " + idxObj + " LOC(" + slot + ") OBJ (" +
-                                    local +
-                                    ") :? " + tLocal + " : " + (local != null ? local.getClass() : "null")
-                            )
-                        );
-                        idxObj++;
+                        operandsOps.add(new SkipNull("\t\t\t\tNULL OP(" + idxValues + ")"));
                     }
                     idxTypes++;
                     idxValues += inc;
