@@ -252,12 +252,11 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    @Ignore
     public void testThreadLocalsParallel() throws Exception {
         final ThreadLocal<String> tl = new ThreadLocal<>();
 
-        final int n = 100;
-        final int loops = 100;
+        final int n = 5;
+        final int loops = 5;
         final Fiber[] fibers = new Fiber[n];
         for (int i = 0; i < n; i++) {
             final int id = i;
@@ -279,13 +278,12 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    @Ignore
     public void testInheritThreadLocalsParallel() throws Exception {
         final ThreadLocal<String> tl = new ThreadLocal<>();
         tl.set("foo");
 
-        final int n = 100;
-        final int loops = 100;
+        final int n = 5;
+        final int loops = 5;
         final Fiber[] fibers = new Fiber[n];
         for (int i = 0; i < n; i++) {
             final int id = i;
