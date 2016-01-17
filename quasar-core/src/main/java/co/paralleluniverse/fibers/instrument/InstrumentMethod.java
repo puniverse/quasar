@@ -178,6 +178,8 @@ public class InstrumentMethod {
 
     public static final boolean optimizationDisabled = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.disableInstrumentationOptimization");
 
+    private static final Type NULL_TYPE = Type.getType("null");
+
     private static final boolean HANDLE_PROXY_INVOCATIONS = true;
     // private final boolean verifyInstrumentation; //
     // private static final int PREEMPTION_BACKBRANCH = 0;
@@ -1252,10 +1254,11 @@ public class InstrumentMethod {
             final BasicValue v = (BasicValue) f.getStack(i);
             int slotIdx = fi.stackSlotIndices[i];
             if (!isOmitted(v)) {
-                if (!isNullType(v)) {
-                    operandTypes.add(v.getType());
+                // Emit null types as they'll be found in live arrays
+                // if (!isNullType(v)) {
+                    operandTypes.add(isNullType(v) ? NULL_TYPE : v.getType());
                     operandIndexes.add(slotIdx);
-                }
+                // }
             }
         }
         final List<Type> localTypes = new ArrayList<>();

@@ -500,6 +500,19 @@ public final class LiveInstrumentation {
             void apply(Stack s);
         }
 
+        private class SkipNull implements FiberStackOp {
+            private final String msg;
+
+            private SkipNull(String msg) {
+                this.msg = msg;
+            }
+
+            @Override
+            public void apply(Stack s) {
+                DEBUG(msg);
+            }
+        }
+
         private class PushObject implements FiberStackOp {
             private final Object value;
             private final int idx;
@@ -642,6 +655,7 @@ public final class LiveInstrumentation {
                 int inc = 1;
                 final Type tOperand = tsOperands[idxTypes];
                 final Object op = preCallOperands[idxValues];
+                if (!isNullType(tOperand)) {
                     if (op != null && primitiveValueClass.isInstance(op)) {
                         inc = getTypeSize(tOperand);
                         operandsOps.add (
@@ -664,6 +678,8 @@ public final class LiveInstrumentation {
                         );
                         idxObj++;
                     }
+                } else {
+                    operandsOps.add(new SkipNull("\t\t\t\tNULL OP(" + idxValues + ")"));
                 }
                 idxValues += inc;
                 idxTypes++;
@@ -747,6 +763,10 @@ public final class LiveInstrumentation {
 
             // Cleanup some tmp mem; this assumes that live instrumentation doesn't need to run again for the
             // same methods (as it shouldn't actually need to run again, if it is correct).
+        }
+
+        private static boolean isNullType(Type t) {
+            return "null".equals(t.toString());
         }
 
         private static int getTypeSize(Type t) {
