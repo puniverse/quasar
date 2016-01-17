@@ -285,12 +285,13 @@ public final class LiveInstrumentation {
                     suspendable(cCaller, mnCaller, mtCaller, MethodDatabase.SuspendableType.SUSPENDABLE);
                 }
             }
-
+/*
             final Instrumented ci = cCaller.getAnnotation(Instrumented.class);
             if (ci != null && ci.isClassAOTInstrumented())
                 DEBUG("\t\tClass " + cCaller.getName() + " is AoT-instrumented, not redefining");
             else
-                redefines.add(cCaller);
+*/
+            redefines.add(cCaller);
         }
         for (final Class<?> c : redefines) {
             final String cn = c.getName();
@@ -637,7 +638,7 @@ public final class LiveInstrumentation {
 
             final List<FiberStackOp> operandsOps = new ArrayList<>();
             int idxTypes = 0, idxValues = 0;
-            while (idxTypes + reflectionArgsCount < tsOperands.length /* && idxValues < preCallOperands.length */) {
+            while (idxTypes + reflectionArgsCount < tsOperands.length) {
                 int inc = 1;
                 final Type tOperand = tsOperands[idxTypes];
                 final Object op = preCallOperands[idxValues];
@@ -678,8 +679,8 @@ public final class LiveInstrumentation {
             idxTypes = 0;
             idxValues = (Modifier.isStatic(m.getModifiers()) ? 0 : 1);
             if (tsLocals != null) {
-                while (idxTypes < tsLocals.length /* && idxValues < locals.length */) {
-                    final int slot = idxValues; // slotsLocals[idxTypes];
+                while (idxTypes < tsLocals.length) {
+                    final int slot = idxValues; // Shadow's relocation would scramble them during AoT, difficult to track them; relocation disable for now, see https://github.com/johnrengelman/shadow/issues/176
                     final Object local = locals[slot];
                     final Type tLocal = tsLocals[idxTypes];
                     int inc = 1;

@@ -41,8 +41,4 @@ public @interface Instrumented {
     int methodEndSourceLine() default -1;
     String FIELD_NAME_METHOD_SUSPENDABLE_CALL_SITES = "methodSuspendableCallSites";
     SuspendableCallSite[] methodSuspendableCallSites() default {};
-
-    // See InstrumentMethod for an explanation, section emitting local vars in fully instrumented code
-    String FIELD_NAME_METHOD_UNINSTRUMENTED_LOCALS_SLOTS = "methodUninstrumentedLocalsSlots";
-    int[] methodUninstrumentedLocalsSlots() default 0;
 }
