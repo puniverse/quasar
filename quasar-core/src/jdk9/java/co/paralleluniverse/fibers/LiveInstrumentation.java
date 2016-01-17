@@ -700,28 +700,27 @@ public final class LiveInstrumentation {
                     final Object local = locals[slot];
                     final Type tLocal = tsLocals[idxTypes];
                     int inc = 1;
-                        if (local != null && primitiveValueClass.isInstance(local)) {
-                            inc = getTypeSize(tLocal);
-                            localsOps.add(
-                                new PushPrimitive(
-                                    locals, idxValues, tLocal, idxPrim,
-                                    "\t\t\t\tPUSH " + idxPrim + " LOC(" + slot + ") PRIM (" +
-                                        local + (inc > 1 ? "," + locals[slot + 1] : "") +
-                                        ") :? " + tLocal + " : " + local.getClass()
-                                )
-                            );
-                            idxPrim++;
-                        } else {
-                            localsOps.add(
-                                new PushObject(
-                                    local, idxObj,
-                                    "\t\t\t\tPUSH " + idxObj + " LOC(" + slot + ") OBJ (" +
-                                        local +
-                                        ") :? " + tLocal + " : " + (local != null ? local.getClass() : "null")
-                                )
-                            );
-                            idxObj++;
-                        }
+                    if (local != null && primitiveValueClass.isInstance(local)) {
+                        inc = getTypeSize(tLocal);
+                        localsOps.add(
+                            new PushPrimitive(
+                                locals, idxValues, tLocal, idxPrim,
+                                "\t\t\t\tPUSH " + idxPrim + " LOC(" + slot + ") PRIM (" +
+                                    local + (inc > 1 ? "," + locals[slot + 1] : "") +
+                                    ") :? " + tLocal + " : " + local.getClass()
+                            )
+                        );
+                        idxPrim++;
+                    } else {
+                        localsOps.add(
+                            new PushObject(
+                                local, idxObj,
+                                "\t\t\t\tPUSH " + idxObj + " LOC(" + slot + ") OBJ (" +
+                                    local +
+                                    ") :? " + tLocal + " : " + (local != null ? local.getClass() : "null")
+                            )
+                        );
+                        idxObj++;
                     }
                     idxTypes++;
                     idxValues += inc;
