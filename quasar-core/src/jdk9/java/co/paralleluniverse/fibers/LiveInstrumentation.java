@@ -696,10 +696,10 @@ public final class LiveInstrumentation {
             idxValues = (Modifier.isStatic(m.getModifiers()) ? 0 : 1);
             if (tsLocals != null) {
                 while (idxTypes < tsLocals.length) {
+                    int inc = 1;
+                    final Type tLocal = tsLocals[idxTypes];
                     final int slot = idxValues; // Shadow's relocation would scramble them during AoT, difficult to track them; relocation disable for now, see https://github.com/johnrengelman/shadow/issues/176
                     final Object local = locals[slot];
-                    final Type tLocal = tsLocals[idxTypes];
-                    int inc = 1;
                     if (local != null && primitiveValueClass.isInstance(local)) {
                         inc = getTypeSize(tLocal);
                         localsOps.add(
