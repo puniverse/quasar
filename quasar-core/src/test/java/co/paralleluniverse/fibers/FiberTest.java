@@ -23,9 +23,6 @@ import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
-import co.paralleluniverse.vtime.ScaledClock;
-import co.paralleluniverse.vtime.SystemClock;
-import co.paralleluniverse.vtime.VirtualClock;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.Serializable;
 
@@ -110,27 +107,20 @@ public class FiberTest implements Serializable {
 
     @Test
     public void testTimeout() throws Exception {
-        VirtualClock.setGlobal(Debug.isCI() ? new ScaledClock(0.3) : SystemClock.instance());
-        System.out.println("Using clock: " + VirtualClock.get());
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution {
+                Fiber.park(100, TimeUnit.MILLISECONDS);
+            }
+        }).start();
 
         try {
-            Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
-                @Override
-                public void run() throws SuspendExecution {
-                    Fiber.park(100, TimeUnit.MILLISECONDS);
-                }
-            }).start();
-
-            try {
-                fiber.join(50, TimeUnit.MILLISECONDS);
-                fail();
-            } catch (java.util.concurrent.TimeoutException e) {
-            }
-
-            fiber.join(200, TimeUnit.MILLISECONDS);
-        } finally {
-            VirtualClock.setGlobal(SystemClock.instance());
+            fiber.join(50, TimeUnit.MILLISECONDS);
+            fail();
+        } catch (java.util.concurrent.TimeoutException e) {
         }
+
+        fiber.join(200, TimeUnit.MILLISECONDS);
     }
 
     @Test

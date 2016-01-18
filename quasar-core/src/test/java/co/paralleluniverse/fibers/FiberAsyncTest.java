@@ -17,9 +17,6 @@ import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.CheckedCallable;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.strands.SuspendableRunnable;
-import co.paralleluniverse.vtime.ScaledClock;
-import co.paralleluniverse.vtime.SystemClock;
-import co.paralleluniverse.vtime.VirtualClock;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -45,17 +42,6 @@ public class FiberAsyncTest {
     public TestName name = new TestName();
     @Rule
     public TestRule watchman = TestUtil.WATCHMAN;
-
-    @BeforeClass
-    public static void setupClass() {
-        VirtualClock.setForCurrentThreadAndChildren(Debug.isCI() ? new ScaledClock(0.3) : SystemClock.instance());
-        System.out.println("Using clock: " + VirtualClock.get());
-    }
-
-    @AfterClass
-    public static void afterClass() {
-        VirtualClock.setGlobal(SystemClock.instance());
-    }
 
     private FiberScheduler scheduler;
 

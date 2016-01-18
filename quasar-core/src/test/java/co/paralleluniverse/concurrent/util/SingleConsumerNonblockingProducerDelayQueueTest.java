@@ -15,9 +15,6 @@ package co.paralleluniverse.concurrent.util;
 
 import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Debug;
-import co.paralleluniverse.vtime.ScaledClock;
-import co.paralleluniverse.vtime.SystemClock;
-import co.paralleluniverse.vtime.VirtualClock;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import static org.hamcrest.CoreMatchers.*;
@@ -39,17 +36,6 @@ public class SingleConsumerNonblockingProducerDelayQueueTest {
     public TestName name = new TestName();
     @Rule
     public TestRule watchman = TestUtil.WATCHMAN;
-
-    @BeforeClass
-    public static void setupClass() {
-        VirtualClock.setForCurrentThreadAndChildren(Debug.isCI() ? new ScaledClock(0.3) : SystemClock.instance());
-        System.out.println("Using clock: " + VirtualClock.get());
-    }
-
-    @AfterClass
-    public static void afterClass() {
-        VirtualClock.setGlobal(SystemClock.instance());
-    }
 
     private static final boolean SEQUENCED = false;
 
