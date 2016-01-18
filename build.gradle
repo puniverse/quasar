@@ -160,7 +160,9 @@ subprojects {
         }
 
         jvmArgs "-Xbootclasspath/a:${configurations.timewarp.singleFile}"
-        jvmArgs "-javaagent:${configurations.timewarp.singleFile}"
+        if (System.getenv("TRAVIS") == 'true') {
+            jvmArgs "-javaagent:${configurations.timewarp.singleFile}=3" // slow clock down x3
+        }
 
         jvmArgs "-Xmx2048m"
         if (!project.ext.java8) {

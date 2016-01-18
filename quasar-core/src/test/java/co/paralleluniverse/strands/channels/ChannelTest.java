@@ -24,9 +24,6 @@ import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
-import co.paralleluniverse.vtime.ScaledClock;
-import co.paralleluniverse.vtime.SystemClock;
-import co.paralleluniverse.vtime.VirtualClock;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.Collection;
@@ -56,17 +53,6 @@ public class ChannelTest {
     public TestName name = new TestName();
     @Rule
     public TestRule watchman = TestUtil.WATCHMAN;
-
-    @BeforeClass
-    public static void setupClass() {
-        VirtualClock.setForCurrentThreadAndChildren(Debug.isCI() ? new ScaledClock(0.3) : SystemClock.instance());
-        System.out.println("Using clock: " + VirtualClock.get());
-    }
-
-    @AfterClass
-    public static void afterClass() {
-        VirtualClock.setGlobal(SystemClock.instance());
-    }
 
     final int mailboxSize;
     final OverflowPolicy policy;
