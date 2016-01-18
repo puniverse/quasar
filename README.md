@@ -12,6 +12,7 @@ Add the following Maven/Gradle dependencies:
 | Actors           | `co.paralleluniverse:quasar-actors:0.7.4`
 | Clustering       | `co.paralleluniverse:quasar-galaxy:0.7.4`
 | Reactive Streams | `co.paralleluniverse:quasar-reactive-streams:0.7.4`
+| Disruptor Channels| `co.paralleluniverse:quasar-disruptor:0.7.4`
 | Kotlin           | `co.paralleluniverse:quasar-kotlin:0.7.4`
 
 Or, build from sources by running:
