@@ -37,7 +37,7 @@ import static org.junit.Assert.*;
  *
  * @author pron
  */
-public class AsyncListenableFutureTest {
+public final class AsyncListenableFutureTest {
     @Rule
     public TestName name = new TestName();
     @Rule
@@ -50,13 +50,13 @@ public class AsyncListenableFutureTest {
     }
 
     @Test
-    public void simpleTest1() throws Exception {
+    public final void simpleTest1() throws Exception {
         final SettableFuture<String> fut = SettableFuture.create();
 
         final Fiber<String> fiber = new Fiber<>(scheduler, (SuspendableCallable<String>) () -> {
             try {
                 return AsyncListenableFuture.get(fut);
-            } catch (ExecutionException e) {
+            } catch (final ExecutionException e) {
                 throw new RuntimeException(e);
             }
         }).start();
@@ -65,7 +65,7 @@ public class AsyncListenableFutureTest {
             try {
                 Thread.sleep(200);
                 fut.set("hi!");
-            } catch (InterruptedException ignored) {
+            } catch (final InterruptedException ignored) {
             }
         }).start();
 
@@ -74,15 +74,15 @@ public class AsyncListenableFutureTest {
     }
 
     @Test
-    public void testException() throws Exception {
+    public final void testException() throws Exception {
         final SettableFuture<String> fut = SettableFuture.create();
 
         final Fiber<String> fiber = new Fiber<>(scheduler, (SuspendableCallable<String>) () -> {
             try {
-                String res = AsyncListenableFuture.get(fut);
+                final String res = AsyncListenableFuture.get(fut);
                 fail();
                 return res;
-            } catch (ExecutionException e) {
+            } catch (final ExecutionException e) {
                 throw Exceptions.rethrow(e.getCause());
             }
         }).start();
@@ -91,20 +91,20 @@ public class AsyncListenableFutureTest {
             try {
                 Thread.sleep(200);
                 fut.setException(new RuntimeException("haha!"));
-            } catch (InterruptedException ignored) {
+            } catch (final InterruptedException ignored) {
             }
         }).start();
 
         try {
             fiber.get();
             fail();
-        } catch (ExecutionException e) {
+        } catch (final ExecutionException e) {
             assertThat(e.getCause().getMessage(), equalTo("haha!"));
         }
     }
 
     @Test
-    public void testException2() throws Exception {
+    public final void testException2() throws Exception {
         final ListenableFuture<String> fut = new AbstractFuture<>() {
             {
                 setException(new RuntimeException("haha!"));
@@ -113,10 +113,10 @@ public class AsyncListenableFutureTest {
 
         final Fiber<String> fiber = new Fiber<>((SuspendableCallable<String>) () -> {
             try {
-                String res = AsyncListenableFuture.get(fut);
+                final String res = AsyncListenableFuture.get(fut);
                 fail();
                 return res;
-            } catch (ExecutionException e) {
+            } catch (final ExecutionException e) {
                 throw Exceptions.rethrow(e.getCause());
             }
         }).start();
@@ -124,7 +124,7 @@ public class AsyncListenableFutureTest {
         try {
             fiber.get();
             fail();
-        } catch (ExecutionException e) {
+        } catch (final ExecutionException e) {
             assertThat(e.getCause().getMessage(), equalTo("haha!"));
         }
     }

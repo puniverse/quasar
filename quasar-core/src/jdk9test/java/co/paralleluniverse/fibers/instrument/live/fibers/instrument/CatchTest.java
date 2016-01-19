@@ -44,10 +44,10 @@ import static org.junit.Assert.assertEquals;
  *
  * @author Matthias Mann
  */
-public class CatchTest {
+public final class CatchTest {
     private ArrayList<String> results = new ArrayList<>();
 
-    class Runnable1 implements SuspendableRunnable {
+    private final class Runnable1 implements SuspendableRunnable {
         int cnt = 0;
 
         private void throwOnSecondCall() {
@@ -60,7 +60,7 @@ public class CatchTest {
         }
 
         @Override
-        public void run() {
+        public final void run() {
             results.add("A");
             Fiber.park();
             try {
@@ -82,7 +82,7 @@ public class CatchTest {
     }
 
     @Test
-    public void testCatch() {
+    public final void testCatch() {
         results.clear();
 
         try {
@@ -120,9 +120,9 @@ public class CatchTest {
                 "I"), results);
     }
 
-    class Callable1 implements SuspendableCallable<Integer> {
+    private final class Callable1 implements SuspendableCallable<Integer> {
         @Override
-        public Integer run() {
+        public final Integer run() {
             try {
                 results.add("A");
                 Fiber.park();
@@ -138,7 +138,7 @@ public class CatchTest {
     }
 
     @Test
-    public void testCatch2() {
+    public final void testCatch2() {
         results.clear();
 
         try {

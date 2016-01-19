@@ -15,12 +15,11 @@ import static org.junit.Assert.assertEquals;
  *
  * @author Matthias Mann
  */
-public class UninitializedTest implements SuspendableRunnable {
-
-    Object result = "b";
+public final class UninitializedTest implements SuspendableRunnable {
+    private Object result = "b";
 
     @Test
-    public void testUninitialized() {
+    public final void testUninitialized() {
         Fiber co = new Fiber((String) null, null, this);
         int count = 1;
         while (!TestsHelper.exec(co))
@@ -31,7 +30,7 @@ public class UninitializedTest implements SuspendableRunnable {
     }
 
     @Override
-    public void run() {
+    public final void run() {
         result = getProperty();
     }
 

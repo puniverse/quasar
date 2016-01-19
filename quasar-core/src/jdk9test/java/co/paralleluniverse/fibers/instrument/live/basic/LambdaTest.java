@@ -51,7 +51,7 @@ public final class LambdaTest extends LiveInstrumentationTest {
         return ret;
     }
 
-    @Test public void test() {
+    @Test public final void test() {
         final Fiber<Integer> f1 = new Fiber<>(() -> {
             final String s = "ciao";
             System.err.println("Enter run(), calling m(" + s + ")");

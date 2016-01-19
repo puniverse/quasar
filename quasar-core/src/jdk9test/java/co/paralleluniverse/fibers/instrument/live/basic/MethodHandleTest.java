@@ -42,10 +42,10 @@ public final class MethodHandleTest extends LiveInstrumentationTest {
         mhm1 = MethodHandles.lookup().unreflect(m1);
     }
 
-    private class F implements SuspendableCallable<Integer> {
+    private final class F implements SuspendableCallable<Integer> {
         @Override
         // @Suspendable
-        public Integer run() throws InterruptedException {
+        public final Integer run() throws InterruptedException {
             final String s = "ciao";
             System.err.println("Enter run(), calling m(" + s + ")");
             assertThat(s, equalTo("ciao"));
@@ -92,7 +92,7 @@ public final class MethodHandleTest extends LiveInstrumentationTest {
         }
     }
 
-    @Test public void test() {
+    @Test public final void test() {
         final Fiber<Integer> f1 = new Fiber<>(new F()).start();
         try {
             assertThat(f1.get(), equalTo(-1));

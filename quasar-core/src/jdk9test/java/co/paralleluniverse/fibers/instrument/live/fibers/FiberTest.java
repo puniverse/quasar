@@ -46,7 +46,7 @@ import static org.junit.Assert.*;
  * @author pron
  */
 @RunWith(Parameterized.class)
-public class FiberTest implements Serializable {
+public final class FiberTest implements Serializable {
     @Rule
     public TestName name = new TestName();
     @Rule
@@ -86,14 +86,8 @@ public class FiberTest implements Serializable {
         Fiber.setDefaultUncaughtExceptionHandler(previousUEH);
     }
 
-    @Before
-    public void before() {
-//        if (scheduler instanceof FiberForkJoinScheduler)
-//            System.out.println("==> " + ((FiberForkJoinScheduler) scheduler).getForkJoinPool().getClass().getSuperclass().getName());
-    }
-
     @Test
-    public void testTimeout() throws Exception {
+    public final void testTimeout() throws Exception {
         VirtualClock.setGlobal(Debug.isCI() ? new ScaledClock(0.3) : SystemClock.instance());
         System.out.println("Using clock: " + VirtualClock.get());
 
@@ -113,7 +107,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testJoinFromFiber() throws Exception {
+    public final void testJoinFromFiber() throws Exception {
         final Fiber<Integer> fiber1 = new Fiber<>(scheduler, (SuspendableCallable<Integer>) () -> {
             Fiber.park(100, TimeUnit.MILLISECONDS);
             return 123;
@@ -134,7 +128,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testInterrupt() throws Exception {
+    public final void testInterrupt() throws Exception {
         final Fiber fiber = new Fiber(scheduler, (SuspendableRunnable) () -> {
             try {
                 Fiber.sleep(100);
@@ -149,7 +143,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testCancel1() throws Exception {
+    public final void testCancel1() throws Exception {
         final AtomicBoolean started = new AtomicBoolean();
         final AtomicBoolean terminated = new AtomicBoolean();
         final Fiber fiber = new Fiber(scheduler, (SuspendableRunnable) () -> {
@@ -171,7 +165,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testCancel2() throws Exception {
+    public final void testCancel2() throws Exception {
         final AtomicBoolean started = new AtomicBoolean();
         final AtomicBoolean terminated = new AtomicBoolean();
         final Fiber fiber = new Fiber(scheduler, (SuspendableRunnable) () -> {
@@ -197,7 +191,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testThreadLocals() throws Exception {
+    public final void testThreadLocals() throws Exception {
         final ThreadLocal<String> tl1 = new ThreadLocal<>();
         final InheritableThreadLocal<String> tl2 = new InheritableThreadLocal<>();
         tl1.set("foo");
@@ -226,7 +220,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testInheritThreadLocals() throws Exception {
+    public final void testInheritThreadLocals() throws Exception {
         final ThreadLocal<String> tl1 = new ThreadLocal<>();
         tl1.set("foo");
 
@@ -252,7 +246,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testThreadLocalsParallel() throws Exception {
+    public final void testThreadLocalsParallel() throws Exception {
         final ThreadLocal<String> tl = new ThreadLocal<>();
 
         final int n = 5;
@@ -278,7 +272,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testInheritThreadLocalsParallel() throws Exception {
+    public final void testInheritThreadLocalsParallel() throws Exception {
         final ThreadLocal<String> tl = new ThreadLocal<>();
         tl.set("foo");
 
@@ -305,8 +299,8 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void whenFiberIsNewThenDumpStackReturnsNull() throws Exception {
-        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+    public final void whenFiberIsNewThenDumpStackReturnsNull() throws Exception {
+        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws InterruptedException {
                 foo();
@@ -321,8 +315,8 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void whenFiberIsTerminatedThenDumpStackReturnsNull() throws Exception {
-        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+    public final void whenFiberIsTerminatedThenDumpStackReturnsNull() throws Exception {
+        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws InterruptedException {
                 foo();
@@ -339,8 +333,8 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testDumpStackCurrentFiber() throws Exception {
-        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+    public final void testDumpStackCurrentFiber() throws Exception {
+        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws InterruptedException {
                 foo();
@@ -361,7 +355,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testDumpStackRunningFiber() throws Exception {
+    public final void testDumpStackRunningFiber() throws Exception {
         final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws InterruptedException {
@@ -397,7 +391,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testDumpStackWaitingFiber() throws Exception {
+    public final void testDumpStackWaitingFiber() throws Exception {
         final Condition cond = new SimpleConditionSynchronizer(null);
         final AtomicBoolean flag = new AtomicBoolean(false);
 
@@ -448,7 +442,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testDumpStackWaitingFiberWhenCalledFromFiber() throws Exception {
+    public final void testDumpStackWaitingFiberWhenCalledFromFiber() throws Exception {
         final Condition cond = new SimpleConditionSynchronizer(null);
         final AtomicBoolean flag = new AtomicBoolean(false);
 
@@ -459,7 +453,7 @@ public class FiberTest implements Serializable {
             }
 
             private void foo() throws InterruptedException {
-                Object token = cond.register();
+                final Object token = cond.register();
                 try {
                     for (int i = 0; !flag.get(); i++)
                         cond.await(i);
@@ -474,13 +468,13 @@ public class FiberTest implements Serializable {
         Thread.sleep(2000);
 
         final Fiber fiber2 = new Fiber(scheduler, (SuspendableRunnable) () -> {
-            StackTraceElement[] st = fiber.getStackTrace();
+            final StackTraceElement[] st = fiber.getStackTrace();
 
             if (st != null) {
                 // Strand.printStackTrace(st, System.err);
                 assertThat(st[0].getMethodName(), equalTo("park"));
                 boolean found = false;
-                for (StackTraceElement ste : st) {
+                for (final StackTraceElement ste : st) {
                     if ("foo".equals(ste.getMethodName())) {
                         found = true;
                         break;
@@ -501,7 +495,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testDumpStackSleepingFiber() throws Exception {
+    public final void testDumpStackSleepingFiber() throws Exception {
         // sleep is a special case
         final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
@@ -535,7 +529,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testBadFiberDetection() throws Exception {
+    public final void testBadFiberDetection() throws Exception {
         final Fiber good = new Fiber("good", scheduler, (SuspendableRunnable) () -> {
             for (int i = 0; i < 100; i++)
                 Strand.sleep(10);
@@ -554,7 +548,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testUncaughtExceptionHandler() throws Exception {
+    public final void testUncaughtExceptionHandler() throws Exception {
         final AtomicReference<Throwable> t = new AtomicReference<>();
 
         final Fiber<Void> f = new Fiber<>() {
@@ -579,7 +573,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testDefaultUncaughtExceptionHandler() throws Exception {
+    public final void testDefaultUncaughtExceptionHandler() throws Exception {
         final AtomicReference<Throwable> t = new AtomicReference<>();
 
         final Fiber<Void> f = new Fiber<>() {
@@ -606,7 +600,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testUtilsGet() throws Exception {
+    public final void testUtilsGet() throws Exception {
         final List<Fiber<String>> fibers = new ArrayList<>();
         final List<String> expectedResults = new ArrayList<>();
         for (int i = 0; i < 20; i++) {
@@ -620,7 +614,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testUtilsGetWithTimeout() throws Exception {
+    public final void testUtilsGetWithTimeout() throws Exception {
         final List<Fiber<String>> fibers = new ArrayList<>();
         final List<String> expectedResults = new ArrayList<>();
         for (int i = 0; i < 20; i++) {
@@ -634,7 +628,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test(expected = TimeoutException.class)
-    public void testUtilsGetZeroWait() throws Exception {
+    public final void testUtilsGetZeroWait() throws Exception {
         final List<Fiber<String>> fibers = new ArrayList<>();
         final List<String> expectedResults = new ArrayList<>();
         for (int i = 0; i < 20; i++) {
@@ -648,7 +642,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test(expected = TimeoutException.class)
-    public void testUtilsGetSmallWait() throws Exception {
+    public final void testUtilsGetSmallWait() throws Exception {
         final List<Fiber<String>> fibers = new ArrayList<>();
         final List<String> expectedResults = new ArrayList<>();
         for (int i = 0; i < 20; i++) {
@@ -667,7 +661,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testSerialization1() throws Exception {
+    public final void testSerialization1() throws Exception {
         // com.esotericsoftware.minlog.Log.set(1);
         final SettableFuture<byte[]> buf = new SettableFuture<>();
 
@@ -679,13 +673,13 @@ public class FiberTest implements Serializable {
         assertThat(f2.get(), is(55));
     }
 
-    static class SerFiber1 extends SerFiber<Integer> {
+    private static final class SerFiber1 extends SerFiber<Integer> {
         public SerFiber1(FiberScheduler scheduler, FiberWriter fiberWriter) {
             super(scheduler, fiberWriter);
         }
 
         @Override
-        public Integer run() throws InterruptedException {
+        public final Integer run() throws InterruptedException {
             int sum = 0;
             for (int i = 1; i <= 10; i++) {
                 sum += i;
@@ -700,7 +694,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testSerialization2() throws Exception {
+    public final void testSerialization2() throws Exception {
         // com.esotericsoftware.minlog.Log.set(1);
         final SettableFuture<byte[]> buf = new SettableFuture<>();
 
@@ -711,7 +705,7 @@ public class FiberTest implements Serializable {
         assertThat(f2.get(), is(55));
     }
 
-    static class SerFiber2 extends Fiber<Integer> {
+    private static final class SerFiber2 extends Fiber<Integer> {
         public SerFiber2(FiberScheduler scheduler, final FiberWriter fiberWriter) {
             // Using a lambda here seems to trouble Kryo
             //noinspection Convert2Lambda
@@ -734,7 +728,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testSerializationWithThreadLocals() throws Exception {
+    public final void testSerializationWithThreadLocals() throws Exception {
         final ThreadLocal<String> tl1 = new ThreadLocal<>();
         final InheritableThreadLocal<String> tl2 = new InheritableThreadLocal<>();
         tl1.set("foo");
@@ -749,7 +743,7 @@ public class FiberTest implements Serializable {
         assertThat(f2.get(), is(55));
     }
 
-    static class SerFiber3 extends SerFiber<Integer> {
+    private static final class SerFiber3 extends SerFiber<Integer> {
         private final ThreadLocal<String> tl1;
         private final InheritableThreadLocal<String> tl2;
 
@@ -760,7 +754,7 @@ public class FiberTest implements Serializable {
         }
 
         @Override
-        public Integer run() throws InterruptedException {
+        public final Integer run() throws InterruptedException {
             assertThat(tl1.get(), is(nullValue()));
             assertThat(tl2.get(), is("bar"));
 
@@ -783,7 +777,7 @@ public class FiberTest implements Serializable {
         }
     }
 
-    static class SerFiber<V> extends Fiber<V> implements Serializable {
+    private static class SerFiber<V> extends Fiber<V> implements Serializable {
         protected final transient FiberWriter fiberWriter;
 
         /** @noinspection unused*/
@@ -798,7 +792,7 @@ public class FiberTest implements Serializable {
         }
     }
 
-    static class SettableFutureFiberWriter implements FiberWriter {
+    private static final class SettableFutureFiberWriter implements FiberWriter {
         private final transient SettableFuture<byte[]> buf;
 
         public SettableFutureFiberWriter(SettableFuture<byte[]> buf) {
@@ -806,7 +800,7 @@ public class FiberTest implements Serializable {
         }
 
         @Override
-        public void write(Fiber fiber, ByteArraySerializer ser) {
+        public final void write(Fiber fiber, ByteArraySerializer ser) {
             buf.set(ser.write(fiber));
         }
 

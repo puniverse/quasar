@@ -12,17 +12,15 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-
 /**
  *
  * @author Matthias Mann
  */
 public class NullTest implements SuspendableRunnable {
-
-    Object result = "b";
+    private Object result = "b";
     
     @Test
-    public void testNull() {
+    public final void testNull() {
         final Fiber co = new Fiber<>((String)null, null, this);
         int count = 1;
         while(!TestsHelper.exec(co))
@@ -33,7 +31,7 @@ public class NullTest implements SuspendableRunnable {
     }
     
     @Override
-    public void run() {
+    public final void run() {
         result = getProperty();
     }
     

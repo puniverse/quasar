@@ -34,10 +34,10 @@ import static org.junit.Assert.*;
 public final class AccessTest extends LiveInstrumentationTest {
     private static List<Integer> l = new ArrayList<>();
 
-    private static class F implements SuspendableCallable<Double> {
+    private static final class F implements SuspendableCallable<Double> {
         @Override
         // @Suspendable
-        public Double run() throws InterruptedException {
+        public final Double run() throws InterruptedException {
             System.err.println("Invoking accessor");
             l.size();
             final String s = "ciao";
@@ -81,7 +81,7 @@ public final class AccessTest extends LiveInstrumentationTest {
         }
     }
 
-    @Test public void test() {
+    @Test public final void test() {
         final Fiber<Double> f1 = new Fiber<>((String) null, null, new F());
         System.err.println("Run f1");
         exec(f1);

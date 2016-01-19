@@ -38,27 +38,27 @@ import static org.junit.Assert.assertEquals;
  *
  * @author Matthias Mann
  */
-public class ArrayTest implements SuspendableRunnable {
+public final class ArrayTest implements SuspendableRunnable {
 
     private static final PatchLevel l1 = new PatchLevel();
     private static final PatchLevel[] l2 = new PatchLevel[] { l1 };
     private static final PatchLevel[][] l3 = new PatchLevel[][] { l2 };
     
     @Test
-    public void testArray() {
+    public final void testArray() {
         Fiber co = new Fiber((String)null, null, this);
         TestsHelper.exec(co);
         assertEquals(42, l1.i);
     }
     
     @Override
-    public void run() {
+    public final void run() {
         PatchLevel[][] local_patch_levels = l3;
         PatchLevel patch_level = local_patch_levels[0][0];
         patch_level.setLevel(42);
     }
     
-    public static class PatchLevel {
+    private static class PatchLevel {
         int i;
     
         public void setLevel(int value) {

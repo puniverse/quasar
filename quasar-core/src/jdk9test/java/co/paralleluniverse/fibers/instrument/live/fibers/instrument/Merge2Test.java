@@ -19,7 +19,7 @@ import static org.junit.Assert.assertTrue;
  *
  * @author mam
  */
-public class Merge2Test implements SuspendableRunnable {
+public final class Merge2Test implements SuspendableRunnable {
     private static Strand.UncaughtExceptionHandler previousUEH;
 
     @BeforeClass
@@ -34,21 +34,21 @@ public class Merge2Test implements SuspendableRunnable {
         Fiber.setDefaultUncaughtExceptionHandler(previousUEH);
     }
 
-    public interface Interface {
+    private interface Interface {
         void method();
     }
 
-    public static Interface getInterface() {
+    private static Interface getInterface() {
         return null;
     }
 
-    public static void suspendable() {
+    private static void suspendable() {
     }
 
     @Override
-    public void run() {
+    public final void run() {
         try {
-            Interface iface = getInterface();
+            final Interface iface = getInterface();
             //noinspection ConstantConditions
             iface.method();
         } catch(IllegalStateException ise) {
@@ -57,9 +57,9 @@ public class Merge2Test implements SuspendableRunnable {
     }
 
     @Test
-    public void testMerge2() {
+    public final void testMerge2() {
         try {
-            Fiber c = new Fiber((String)null, null, new Merge2Test());
+            final Fiber c = new Fiber((String)null, null, new Merge2Test());
             TestsHelper.exec(c);
             assertTrue("Should not reach here", false);
         } catch (NullPointerException ex) {

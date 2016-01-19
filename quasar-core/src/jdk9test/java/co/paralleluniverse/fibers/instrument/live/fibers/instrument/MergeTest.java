@@ -11,18 +11,16 @@ import org.junit.Test;
 
 import java.io.IOException;
 
-
 /**
  *
  * @author mam
  */
 public class MergeTest implements SuspendableRunnable {
-
     public static void throwsIO() throws IOException {
     }
 
     @Override
-    public void run() {
+    public final void run() {
         try {
             throwsIO();
         } catch(final IOException e) {
@@ -31,7 +29,7 @@ public class MergeTest implements SuspendableRunnable {
     }
 
     @Test
-    public void testMerge() {
+    public final void testMerge() {
         Fiber c = new Fiber<>((String)null, null, new MergeTest());
         TestsHelper.exec(c);
     }

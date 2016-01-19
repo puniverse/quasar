@@ -38,11 +38,11 @@ public final class InterfaceTest extends LiveInstrumentationTest {
         double m1(String s);
     }
 
-    private static class MImpl implements M {
+    private static final class MImpl implements M {
         private static final M1 m1 = new M1Impl();
 
         // @Suspendable
-        public double m(String s) {
+        public final double m(String s) {
             System.err.println("Enter m(" + s + "), calling M1.m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
             final M1 m1 = MImpl.m1;
@@ -54,9 +54,9 @@ public final class InterfaceTest extends LiveInstrumentationTest {
         }
     }
 
-    private static class M1Impl implements M1 {
+    private static final class M1Impl implements M1 {
         // @Suspendable
-        public double m1(String s) {
+        public final double m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
             try {
@@ -70,12 +70,12 @@ public final class InterfaceTest extends LiveInstrumentationTest {
         }
     }
 
-    private static class F implements SuspendableCallable<Double> {
+    private static final class F implements SuspendableCallable<Double> {
         private static final M m = new MImpl();
 
         @Override
         // @Suspendable
-        public Double run() throws InterruptedException {
+        public final Double run() throws InterruptedException {
             final String s = "ciao";
             System.err.println("Enter run(), calling M.m(" + s + ")");
             assertThat(s, equalTo("ciao"));
@@ -88,7 +88,7 @@ public final class InterfaceTest extends LiveInstrumentationTest {
         }
     }
 
-    @Test public void test() {
+    @Test public final void test() {
         final Fiber<Double> f1 = new Fiber<>(new F()).start();
         try {
             assertThat(f1.get(), equalTo(-1.7));

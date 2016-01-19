@@ -39,9 +39,9 @@ public class ReflectionInvokeTest {
         return "hi";
     }
 
-    class Callable1 implements SuspendableCallable<Integer> {
+    private class Callable1 implements SuspendableCallable<Integer> {
         @Override
-        public Integer run() {
+        public final Integer run() {
             final Method m;
             try {
                 m = ReflectionInvokeTest.class.getDeclaredMethod("suspendableMethod");
@@ -64,7 +64,7 @@ public class ReflectionInvokeTest {
     }
 
     @Test
-    public void testCatch() {
+    public final void testCatch() {
         results.clear();
 
         try {

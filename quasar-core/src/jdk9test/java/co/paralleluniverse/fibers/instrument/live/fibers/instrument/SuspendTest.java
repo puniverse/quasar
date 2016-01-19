@@ -39,9 +39,9 @@ import static co.paralleluniverse.fibers.TestsHelper.exec;
  *
  * @author Matthias Mann
  */
-public class SuspendTest implements SuspendableRunnable {
+public final class SuspendTest implements SuspendableRunnable {
     @Test
-    public void testSuspend() {
+    public final void testSuspend() {
         final SuspendTest test = new SuspendTest();
         final Fiber co = new Fiber((String)null, null, test);
 
@@ -52,7 +52,7 @@ public class SuspendTest implements SuspendableRunnable {
     }
 
     @Override
-    public void run() {
+    public final void run() {
         int i0 = 0, i1 = 1;
         for (int j = 0; j < 10; j++) {
             i1 = i1 + i0;

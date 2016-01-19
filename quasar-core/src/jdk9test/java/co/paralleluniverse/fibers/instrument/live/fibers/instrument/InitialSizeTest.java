@@ -17,20 +17,20 @@ import static org.junit.Assert.*;
 /**
  * @author Matthias Mann
  */
-public class InitialSizeTest implements SuspendableRunnable {
+public final class InitialSizeTest implements SuspendableRunnable {
     
     @Test
-    public void test1() {
+    public final void test1() {
         testWithSize(1);
     }
     
     @Test
-    public void test2() {
+    public final void test2() {
         testWithSize(2);
     }
     
     @Test
-    public void test3() {
+    public final void test3() {
         testWithSize(3);
     }
     
@@ -45,12 +45,12 @@ public class InitialSizeTest implements SuspendableRunnable {
     }
 
     @Override
-    public void run() {
+    public final void run() {
         int fac10 = factorial(10);
         assertEquals(3628800, fac10);
     }
     
-    public int factorial(Integer a) {
+    private int factorial(Integer a) {
         if(a == 0) {
             Fiber.park();
             return 1;

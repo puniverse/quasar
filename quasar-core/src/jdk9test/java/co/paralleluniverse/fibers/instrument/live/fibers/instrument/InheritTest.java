@@ -19,8 +19,7 @@ import static org.junit.Assert.assertEquals;
  *
  * @author mam
  */
-public class InheritTest {
-
+public final class InheritTest {
     @Test
     public void testInherit() {
         final C dut = new C();
@@ -37,18 +36,17 @@ public class InheritTest {
         assertEquals("b", dut.result.get(4));
     }
     
-    public static class A {
-        public static void suspend() throws SuspendExecution {
+    private static class A {
+        static void suspend() throws SuspendExecution {
             Fiber.park();
         }
     }
-    
-    public static class B extends A {
+
+    private static class B extends A {
         final ArrayList<String> result = new ArrayList<>();
     }
     
-    public static class C extends B {
-        
+    private static final class C extends B {
         public void otherMethod() throws SuspendExecution {
             result.add("o1");
             Fiber.park();

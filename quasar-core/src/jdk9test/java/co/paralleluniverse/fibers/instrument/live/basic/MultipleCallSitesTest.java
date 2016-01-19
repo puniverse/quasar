@@ -28,10 +28,10 @@ import static org.junit.Assert.*;
  * @author circlespainter
  */
 public final class MultipleCallSitesTest extends LiveInstrumentationTest {
-    private static class F implements SuspendableCallable<Integer> {
+    private static final class F implements SuspendableCallable<Integer> {
         @Override
         // @Suspendable
-        public Integer run() throws InterruptedException {
+        public final Integer run() throws InterruptedException {
             final String s = "ciao";
             System.err.println("Enter run(), calling m(" + s + ") and mm(" + s + ")");
             final int ret = m(s);
@@ -101,7 +101,7 @@ public final class MultipleCallSitesTest extends LiveInstrumentationTest {
         }
     }
 
-    @Test public void test() {
+    @Test public final void test() {
         final Fiber<Integer> f1 = new Fiber<>(new F()).start();
         try {
             assertThat(f1.get(), equalTo(4));

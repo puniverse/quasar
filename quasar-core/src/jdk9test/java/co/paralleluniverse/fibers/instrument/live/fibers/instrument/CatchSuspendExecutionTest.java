@@ -33,7 +33,7 @@ import static org.junit.Assume.assumeFalse;
  *
  * @author pron
  */
-public class CatchSuspendExecutionTest {
+public final class CatchSuspendExecutionTest {
     private final List<String> results = new ArrayList<>();
 
     public void suspendableMethod() {
@@ -61,7 +61,7 @@ public class CatchSuspendExecutionTest {
     }
 
     @Test
-    public void testAnnotated() {
+    public final void testAnnotated() {
         try {
             final Fiber<Object> co = new Fiber<>((String) null, null, (SuspendableCallable<Object>) null) {
                 @Override
@@ -82,7 +82,7 @@ public class CatchSuspendExecutionTest {
     }
 
     @Test
-    public void testNonAnnotated() {
+    public final void testNonAnnotated() {
         assumeFalse(SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation"));
         assumeFalse(SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.instrument.live.enable"));
 

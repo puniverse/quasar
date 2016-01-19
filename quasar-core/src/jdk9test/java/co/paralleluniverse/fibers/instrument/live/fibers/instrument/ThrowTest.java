@@ -41,13 +41,12 @@ import java.util.ArrayList;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
 import static org.junit.Assert.*;
 
-
 /**
  * Test the propagation of unhandled exceptions throw a suspendable call
  * 
  * @author Matthias Mann
  */
-public class ThrowTest implements SuspendableRunnable {
+public final class ThrowTest implements SuspendableRunnable {
     private static Strand.UncaughtExceptionHandler previousUEH;
 
     private final ArrayList<String> results = new ArrayList<>();
@@ -68,7 +67,7 @@ public class ThrowTest implements SuspendableRunnable {
     }
 
     @Override
-    public void run() {
+    public final void run() {
         results.add("A");
         Fiber.park();
         try {
@@ -85,10 +84,10 @@ public class ThrowTest implements SuspendableRunnable {
     }
 
     @Test
-    public void testThrow() {
+    public final void testThrow() {
         results.clear();
 
-        Fiber co = new Fiber((String)null, null, this);
+        final Fiber co = new Fiber((String)null, null, this);
         try {
             exec(co);
             results.add("B");

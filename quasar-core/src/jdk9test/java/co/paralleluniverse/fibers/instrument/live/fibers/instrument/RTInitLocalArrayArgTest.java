@@ -27,13 +27,14 @@ import static org.junit.Assert.assertTrue;
  *
  * @author circlespainter
  */
-public class RTInitLocalArrayArgTest implements SuspendableCallable<Object> {
+public final class RTInitLocalArrayArgTest implements SuspendableCallable<Object> {
     @Suspendable // Instrumentation is needed to break
     private static Object myMethod(Object arg) {
         return arg;
     }
 
-    public Object run() throws InterruptedException {
+    @Override
+    public final Object run() throws InterruptedException {
         Object arg = null;
 
         // Any runtime check needed here to break instrumentation
@@ -48,7 +49,7 @@ public class RTInitLocalArrayArgTest implements SuspendableCallable<Object> {
     }
 
     @Test
-    public void test() throws ExecutionException, InterruptedException {
+    public final void test() throws ExecutionException, InterruptedException {
         assertTrue(new Fiber<>(this).start().get() != null);
     }
 }

@@ -43,12 +43,11 @@ import static org.junit.Assert.assertEquals;
  * 
  * @author Matthias Mann
  */
-public class FinallyTest implements SuspendableRunnable {
-
-    private ArrayList<String> results = new ArrayList<>();
+public final class FinallyTest implements SuspendableRunnable {
+    private final ArrayList<String> results = new ArrayList<>();
     
     @Override
-    public void run() {
+    public final void run() {
         results.add("A");
         Fiber.park();
         try {
@@ -64,7 +63,7 @@ public class FinallyTest implements SuspendableRunnable {
     }
 
     @Test
-    public void testFinally() {
+    public final void testFinally() {
         results.clear();
         
         try {

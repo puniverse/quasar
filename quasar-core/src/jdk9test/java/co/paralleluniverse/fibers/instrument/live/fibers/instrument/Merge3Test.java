@@ -16,12 +16,11 @@ import java.util.Arrays;
  * @author Matthias Mann
  */
 public class Merge3Test implements SuspendableRunnable {
-
     public boolean a;
     public boolean b;
     
     @Override
-    public void run() {
+    public final void run() {
         if(a) {
             final Object[] arr = new Object[2];
             System.out.println(Arrays.toString(arr));
@@ -37,7 +36,7 @@ public class Merge3Test implements SuspendableRunnable {
     }
     
     @Test
-    public void testMerge3() {
+    public final void testMerge3() {
         Fiber c = new Fiber<>((String)null, null, new Merge3Test());
         TestsHelper.exec(c);
     }

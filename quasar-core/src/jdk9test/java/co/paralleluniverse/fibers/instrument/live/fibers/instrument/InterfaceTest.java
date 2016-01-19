@@ -13,21 +13,21 @@ import org.junit.Test;
  *
  * @author Elias Naur
  */
-public class InterfaceTest {
-    interface SomeInterface {
+public final class InterfaceTest {
+    private interface SomeInterface {
         void doStuff();
     }
 
     /** @noinspection unused*/
-    public class C2 implements SomeInterface {
+    public static final class C2 implements SomeInterface {
         @Override
-        public void doStuff() {
+        public final void doStuff() {
         }
     }
 
-    public class C implements SomeInterface {
+    private static final class C implements SomeInterface {
         @Override
-        public void doStuff() {
+        public final void doStuff() {
             /*			float time = 0f;
              float seconds = .8f;
              do {
@@ -47,12 +47,12 @@ public class InterfaceTest {
     }
 
     @Test
-    public void testSuspend() {
+    public final void testSuspend() {
 //		final I i = new C();
-        Fiber co = new Fiber<>((String)null, null, (SuspendableRunnable) () -> {
+        final Fiber co = new Fiber<>((String)null, null, (SuspendableRunnable) () -> {
             // next line causes an error because of incomplete merge in TypeInterpreter
             //SomeInterface i = System.currentTimeMillis() > 0 ? new C() : new C2();
-            SomeInterface i = new C();
+            final SomeInterface i = new C();
             System.out.println("i = " + i);
             i.doStuff();
         });

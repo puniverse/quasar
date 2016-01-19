@@ -28,10 +28,10 @@ import static org.junit.Assert.*;
  * @author circlespainter
  */
 public final class StaticTest extends LiveInstrumentationTest {
-    private static class F implements SuspendableCallable<Double> {
+    private static final class F implements SuspendableCallable<Double> {
         @Override
         // @Suspendable
-        public Double run() throws InterruptedException {
+        public final Double run() throws InterruptedException {
             final String s = "ciao";
             System.err.println("Enter run(), calling m(" + s + ")");
             assertThat(s, equalTo("ciao"));
@@ -66,7 +66,7 @@ public final class StaticTest extends LiveInstrumentationTest {
         }
     }
 
-    @Test public void test() {
+    @Test public final void test() {
         final Fiber<Double> f1 = new Fiber<>(new F()).start();
         try {
             assertThat(f1.get(), equalTo(-1.7));

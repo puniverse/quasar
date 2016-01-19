@@ -45,7 +45,7 @@ import static org.junit.Assert.assertThat;
  *
  * @author pron
  */
-public class FiberAsyncIOTest {
+public final class FiberAsyncIOTest {
     @Rule
     public TestName name = new TestName();
     @Rule
@@ -55,32 +55,26 @@ public class FiberAsyncIOTest {
     private static final Charset charset = Charset.forName("UTF-8");
     private static final CharsetEncoder encoder = charset.newEncoder();
     private static final CharsetDecoder decoder = charset.newDecoder();
+
     private final FiberScheduler scheduler;
 
     public FiberAsyncIOTest() {
         scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 
-    @Before
-    public void setUp() {
-    }
-
-    @After
-    public void tearDown() {
-    }
-
     @Test
     @Suspendable
-    public void testFiberAsyncSocket() throws Exception {
+    public final void testFiberAsyncSocket() throws Exception {
         final IntChannel sync = Channels.newIntChannel(0);
         
         final Fiber server = new Fiber(scheduler, (SuspendableRunnable) () -> {
-            try (FiberServerSocketChannel socket = FiberServerSocketChannel.open().bind(new InetSocketAddress(PORT))) {
+            try (final FiberServerSocketChannel socket =
+                     FiberServerSocketChannel.open().bind(new InetSocketAddress(PORT))) {
                 sync.send(0); // Start client
 
-                try (FiberSocketChannel ch = socket.accept()) {
+                try (final FiberSocketChannel ch = socket.accept()) {
 
-                    ByteBuffer buf = ByteBuffer.allocateDirect(1024);
+                    final ByteBuffer buf = ByteBuffer.allocateDirect(1024);
 
                     // long-typed reqeust/response
                     int n = ch.read(buf);
@@ -88,12 +82,12 @@ public class FiberAsyncIOTest {
                     assertThat(n, is(8)); // we assume the message is sent in a single packet
 
                     buf.flip();
-                    long req = buf.getLong();
+                    final long req = buf.getLong();
 
                     assertThat(req, is(12345678L));
 
                     buf.clear();
-                    long res = 87654321L;
+                    final long res = 87654321L;
                     buf.putLong(res);
                     buf.flip();
 
@@ -106,14 +100,14 @@ public class FiberAsyncIOTest {
                     ch.read(buf); // we assume the message is sent in a single packet
 
                     buf.flip();
-                    String req2 = decoder.decode(buf).toString();
+                    final String req2 = decoder.decode(buf).toString();
 
                     assertThat(req2, is("my request"));
 
-                    String res2 = "my response";
+                    final String res2 = "my response";
                     ch.write(encoder.encode(CharBuffer.wrap(res2)));
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new RuntimeException(e);
             }
         }).start();
@@ -126,11 +120,11 @@ public class FiberAsyncIOTest {
                 throw new AssertionError(ex);
             }
 
-            try (FiberSocketChannel ch = FiberSocketChannel.open(new InetSocketAddress(PORT))) {
-                ByteBuffer buf = ByteBuffer.allocateDirect(1024);
+            try (final FiberSocketChannel ch = FiberSocketChannel.open(new InetSocketAddress(PORT))) {
+                final ByteBuffer buf = ByteBuffer.allocateDirect(1024);
 
                 // long-typed reqeust/response
-                long req = 12345678L;
+                final long req = 12345678L;
                 buf.putLong(req);
                 buf.flip();
 
@@ -144,19 +138,19 @@ public class FiberAsyncIOTest {
                 assertThat(n, is(8)); // we assume the message is sent in a single packet
 
                 buf.flip();
-                long res = buf.getLong();
+                final long res = buf.getLong();
 
                 assertThat(res, is(87654321L));
 
                 // String reqeust/response
-                String req2 = "my request";
+                final String req2 = "my request";
                 ch.write(encoder.encode(CharBuffer.wrap(req2)));
 
                 buf.clear();
                 ch.read(buf); // we assume the message is sent in a single packet
 
                 buf.flip();
-                String res2 = decoder.decode(buf).toString();
+                final String res2 = decoder.decode(buf).toString();
 
                 assertThat(res2, is("my response"));
 
@@ -165,7 +159,7 @@ public class FiberAsyncIOTest {
                 n = ch.read(buf);
 
                 assertThat(n, is(-1));
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new RuntimeException(e);
             }
         }).start();
@@ -176,12 +170,12 @@ public class FiberAsyncIOTest {
 
     @Test
     @Suspendable
-    public void testFiberAsyncFile() throws Exception {
+    public final void testFiberAsyncFile() throws Exception {
         new Fiber(scheduler, (SuspendableRunnable) () -> {
-            try (FiberFileChannel ch = FiberFileChannel.open(Paths.get(System.getProperty("user.home"), "fibertest.bin"), READ, WRITE, CREATE, TRUNCATE_EXISTING)) {
-                ByteBuffer buf = ByteBuffer.allocateDirect(1024);
+            try (final FiberFileChannel ch = FiberFileChannel.open(Paths.get(System.getProperty("user.home"), "fibertest.bin"), READ, WRITE, CREATE, TRUNCATE_EXISTING)) {
+                final ByteBuffer buf = ByteBuffer.allocateDirect(1024);
 
-                String text = "this is my text blahblah";
+                final String text = "this is my text blahblah";
                 ch.write(encoder.encode(CharBuffer.wrap(text)));
 
                 ch.position(0);
@@ -201,7 +195,7 @@ public class FiberAsyncIOTest {
                 read = decoder.decode(buf).toString();
 
                 assertThat(read, equalTo(text.substring(5)));
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new RuntimeException(e);
             }
 

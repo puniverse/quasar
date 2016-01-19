@@ -15,17 +15,15 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 
-
 /**
  *
  * @author Matthias Mann
  */
-public class DoubleTest implements SuspendableRunnable {
-
-    double result;
+public final class DoubleTest implements SuspendableRunnable {
+    private double result;
 
     @Test @Ignore // TODO: Re-enable when double numbers work
-    public void testDouble() {
+    public final void testDouble() {
         Fiber co = new Fiber<>((String)null, null, this);
         TestsHelper.exec(co);
         assertEquals(0, result, 1e-8);
@@ -35,10 +33,9 @@ public class DoubleTest implements SuspendableRunnable {
     }
 
     @Override
-    public void run() throws SuspendExecution {
+    public final void run() throws SuspendExecution {
         double temp = Math.cos(0);
         Fiber.park();
         this.result = temp;
     }
-
 }

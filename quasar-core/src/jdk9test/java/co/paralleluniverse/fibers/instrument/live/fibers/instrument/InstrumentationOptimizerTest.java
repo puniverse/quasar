@@ -32,7 +32,7 @@ import static org.junit.Assume.assumeFalse;
  *
  * @author circlespainter
  */
-public class InstrumentationOptimizerTest {
+public final class InstrumentationOptimizerTest {
 
     private boolean isOptimized(String method) {
         for (Method m : getClass().getDeclaredMethods()) {
@@ -44,7 +44,7 @@ public class InstrumentationOptimizerTest {
         return false;
     }
 
-    public void sleepFiberVoid() throws InterruptedException {
+    public final void sleepFiberVoid() throws InterruptedException {
         Fiber.sleep(10);
     }
 
@@ -53,7 +53,7 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testSkipForwardsToSuspendableVoid() throws InterruptedException, ExecutionException {
+    public final void testSkipForwardsToSuspendableVoid() throws InterruptedException, ExecutionException {
         assumeFalse(InstrumentMethod.optimizationDisabled);
 
         new Fiber((SuspendableRunnable) this::skipForwardsToSuspendableVoid).start().join();
@@ -70,7 +70,7 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testSkipForwardsToSuspendableObject() throws InterruptedException, ExecutionException {
+    public final void testSkipForwardsToSuspendableObject() throws InterruptedException, ExecutionException {
         assumeFalse(InstrumentMethod.optimizationDisabled);
 
         new Fiber((SuspendableRunnable) this::skipForwardsToSuspendableObject).start().join();
@@ -87,7 +87,7 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testSkipForwardsToSuspendableDouble() throws InterruptedException, ExecutionException {
+    public final void testSkipForwardsToSuspendableDouble() throws InterruptedException, ExecutionException {
         assumeFalse(InstrumentMethod.optimizationDisabled);
 
         new Fiber((SuspendableRunnable) this::skipForwardsToSuspendableDouble).start().join();
@@ -104,7 +104,7 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testSkipForwardsToSuspendableFloat() throws InterruptedException, ExecutionException {
+    public final void testSkipForwardsToSuspendableFloat() throws InterruptedException, ExecutionException {
         assumeFalse(InstrumentMethod.optimizationDisabled);
 
         new Fiber((SuspendableRunnable) this::skipForwardsToSuspendableFloat).start().join();
@@ -121,7 +121,7 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testSkipForwardsToSuspendableInt() throws InterruptedException, ExecutionException {
+    public final void testSkipForwardsToSuspendableInt() throws InterruptedException, ExecutionException {
         assumeFalse(InstrumentMethod.optimizationDisabled);
 
         new Fiber((SuspendableRunnable) this::skipForwardsToSuspendableInt).start().join();
@@ -138,7 +138,7 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testSkipForwardsToSuspendableLong() throws InterruptedException, ExecutionException {
+    public final void testSkipForwardsToSuspendableLong() throws InterruptedException, ExecutionException {
         assumeFalse(InstrumentMethod.optimizationDisabled);
 
         new Fiber((SuspendableRunnable) this::skipForwardsToSuspendableLong).start().join();
@@ -154,7 +154,7 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testDontSkipForwardsWithTryCatch() throws InterruptedException, ExecutionException {
+    public final void testDontSkipForwardsWithTryCatch() throws InterruptedException, ExecutionException {
         assumeFalse(InstrumentMethod.optimizationDisabled);
 
         new Fiber((SuspendableRunnable) this::dontSkipForwardsWithTryCatch).start().join();
@@ -167,7 +167,7 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testDontSkipForwardsWithLoop() throws InterruptedException, ExecutionException {
+    public final void testDontSkipForwardsWithLoop() throws InterruptedException, ExecutionException {
         assumeFalse(InstrumentMethod.optimizationDisabled);
 
         new Fiber((SuspendableRunnable) this::dontSkipForwardsWithLoop).start().join();
@@ -181,7 +181,7 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testDontSkipForwardsWithLoopBefore() throws InterruptedException, ExecutionException {
+    public final void testDontSkipForwardsWithLoopBefore() throws InterruptedException, ExecutionException {
         assumeFalse(InstrumentMethod.optimizationDisabled);
 
         new Fiber((SuspendableRunnable) this::dontSkipForwardsWithLoopBefore).start().join();
@@ -195,7 +195,7 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testSkipForwardsWithLoopAfter() throws InterruptedException, ExecutionException {
+    public final void testSkipForwardsWithLoopAfter() throws InterruptedException, ExecutionException {
         assumeFalse(InstrumentMethod.optimizationDisabled);
 
         new Fiber((SuspendableRunnable) this::skipForwardsWithLoopAfter).start().join();
@@ -208,7 +208,7 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testDontSkipForwardsWithMethodBefore() throws InterruptedException, ExecutionException {
+    public final void testDontSkipForwardsWithMethodBefore() throws InterruptedException, ExecutionException {
         assumeFalse(InstrumentMethod.optimizationDisabled);
 
         new Fiber((SuspendableRunnable) this::dontSkipForwardsWithMethodBefore).start().join();
@@ -221,7 +221,7 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testSkipForwardsWithMethodAfter() throws InterruptedException, ExecutionException {
+    public final void testSkipForwardsWithMethodAfter() throws InterruptedException, ExecutionException {
         assumeFalse(InstrumentMethod.optimizationDisabled);
 
         new Fiber((SuspendableRunnable) this::skipForwardsWithMethodAfter).start().join();
@@ -234,7 +234,7 @@ public class InstrumentationOptimizerTest {
     }
 
     @Test
-    public void testDontSkipForwardsWithReflectiveCalls() throws InterruptedException, ExecutionException {
+    public final void testDontSkipForwardsWithReflectiveCalls() throws InterruptedException, ExecutionException {
         assumeFalse(InstrumentMethod.optimizationDisabled);
 
         new Fiber((SuspendableRunnable) () -> {
