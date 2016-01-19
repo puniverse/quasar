@@ -14,6 +14,8 @@
 package co.paralleluniverse.fibers.instrument.live.basic;
 
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
 
@@ -29,7 +31,7 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public final class AccessTest {
+public final class AccessTest extends LiveInstrumentationTest {
     private static List<Integer> l = new ArrayList<>();
 
     private static class F implements SuspendableCallable<Double> {
@@ -123,5 +125,7 @@ public final class AccessTest {
         }
         assertThat(l.size(), equalTo(4));
         assertEquals(Arrays.asList(1, 2, 3, 4), l);
+
+        assertThat(LiveInstrumentation.getRunCount(), equalTo(1L));
     }
 }

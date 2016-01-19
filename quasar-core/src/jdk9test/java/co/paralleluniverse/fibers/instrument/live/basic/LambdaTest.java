@@ -14,6 +14,8 @@
 package co.paralleluniverse.fibers.instrument.live.basic;
 
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutionException;
@@ -24,7 +26,7 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public final class LambdaTest {
+public final class LambdaTest extends LiveInstrumentationTest {
     // @Suspendable
     private int m1(String s) {
         System.err.println("Enter m1(" + s + "), sleeping");
@@ -81,5 +83,7 @@ public final class LambdaTest {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
+
+        assertThat(LiveInstrumentation.getRunCount(), equalTo(2L));
     }
 }

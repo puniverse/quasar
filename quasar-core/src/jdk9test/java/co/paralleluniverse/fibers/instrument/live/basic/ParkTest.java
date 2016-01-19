@@ -14,6 +14,8 @@
 package co.paralleluniverse.fibers.instrument.live.basic;
 
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
 
@@ -26,7 +28,7 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public final class ParkTest {
+public final class ParkTest extends LiveInstrumentationTest{
     private static class F implements SuspendableCallable<Double> {
         @Override
         // @Suspendable
@@ -77,5 +79,7 @@ public final class ParkTest {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
+
+        assertThat(LiveInstrumentation.getRunCount(), equalTo(1L));
     }
 }

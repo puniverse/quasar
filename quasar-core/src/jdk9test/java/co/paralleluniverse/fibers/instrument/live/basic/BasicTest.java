@@ -16,6 +16,8 @@ package co.paralleluniverse.fibers.instrument.live.basic;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
+import co.paralleluniverse.fibers.LiveInstrumentation;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
 
@@ -26,7 +28,7 @@ import java.util.concurrent.ExecutionException;
 /**
  * @author circlespainter
  */
-public final class BasicTest {
+public final class BasicTest extends LiveInstrumentationTest {
     private static class F implements SuspendableCallable<Double> {
         @Override
         // @Suspendable
@@ -81,5 +83,7 @@ public final class BasicTest {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
+
+        assertThat(LiveInstrumentation.getRunCount(), equalTo(1L));
     }
 }
