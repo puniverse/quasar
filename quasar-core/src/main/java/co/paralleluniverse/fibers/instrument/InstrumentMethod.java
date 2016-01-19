@@ -717,6 +717,9 @@ public class InstrumentMethod {
 
                     min.accept(mv);            //   method.invoke()
 
+                    // Dec instrumented count
+                    emitDecInstrumentedCount(mv);
+
                     mv.visitVarInsn(Opcodes.ASTORE, lvarInvocationReturnValue); // save return value
                     mv.visitLabel(endTry);     // }
                     mv.visitJumpInsn(Opcodes.GOTO, endCatch);
@@ -737,17 +740,7 @@ public class InstrumentMethod {
                     min.accept(mv);            // susp call
 
                     // Dec instrumented count
-                    mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-                    mv.visitInsn(Opcodes.DUP);
-                    final Label pop = new Label(), rest = new Label();
-                    mv.visitJumpInsn(Opcodes.IFNULL, pop);
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "decInstrumentedCount", "()V", false);
-                    mv.visitJumpInsn(Opcodes.GOTO, rest);
-
-                    mv.visitLabel(pop);
-                    mv.visitInsn(Opcodes.POP);
-
-                    mv.visitLabel(rest);
+                    emitDecInstrumentedCount(mv);
 
                     currLine = emitCodeBlockAfterIdx(mv, i, 1 /* skip the susp call */, currLine);
                 }
@@ -798,6 +791,18 @@ public class InstrumentMethod {
         mv.visitMaxs(mn.maxStack + ADD_OPERANDS, mn.maxLocals + NUM_LOCALS + additionalLocals); // Needed by ASM analysis
 
         mv.visitEnd();
+    }
+
+    private void emitDecInstrumentedCount(MethodVisitor mv) {
+        mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
+        mv.visitInsn(Opcodes.DUP);
+        final Label pop = new Label(), rest = new Label();
+        mv.visitJumpInsn(Opcodes.IFNULL, pop);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "decInstrumentedCount", "()V", false);
+        mv.visitJumpInsn(Opcodes.GOTO, rest);
+        mv.visitLabel(pop);
+        mv.visitInsn(Opcodes.POP);
+        mv.visitLabel(rest);
     }
 
     private static boolean isSuspendableCall(MethodDatabase db, AbstractInsnNode in) {
@@ -863,7 +868,7 @@ public class InstrumentMethod {
             mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); // * S
             mv.visitJumpInsn(Opcodes.IFNULL, suspCall); // *
             mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); // * S
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getCurrentMethodEntry", "()I", false); // * i
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "isResuming", "()Z", false); // * i
             mv.visitJumpInsn(Opcodes.IFNE, suspCall); // != 0 => resuming => skip incrementing count // *
             mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false); // * S
             mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "incOptimizedCount", "()V", false); // *

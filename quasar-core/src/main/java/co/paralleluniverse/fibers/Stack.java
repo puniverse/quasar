@@ -46,8 +46,10 @@ public final class Stack implements Serializable {
     private transient boolean pushed;
     private long[] dataLong;        // holds primitives on stack as well as each method's entry point and the stack pointer
     private Object[] dataObject;    // holds refs on stack
+
     private int instrumentedCount; // TODO: transient?
     private int optimizedCount; // TODO: transient?
+    private boolean resuming; // TODO: transient?
 
     Stack(Fiber fiber, int stackSize) {
         if (stackSize <= 0)
@@ -59,13 +61,16 @@ public final class Stack implements Serializable {
     }
 
     final void clear() {
-        resumeStack();
+        sp = 0;
+
         shouldVerifyInstrumentation = false;
         pushed = false;
         dataLong = new long[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
         dataObject = new Object[stackSize + (FRAME_RECORD_SIZE * INITIAL_METHOD_STACK_DEPTH)];
+
         instrumentedCount = 0;
         optimizedCount = 0;
+        resuming = false;
     }
 
     /**
@@ -73,6 +78,7 @@ public final class Stack implements Serializable {
      */
     final void resumeStack() {
         sp = 0;
+        resuming = true;
     }
 
     public static Stack getStack() {
@@ -105,8 +111,8 @@ public final class Stack implements Serializable {
         return instrumentedCount;
     }
 
-    public final int getCurrentMethodEntry() {
-        return getEntry(dataLong[sp]);
+    public final boolean isResuming() {
+        return resuming;
     }
 
     /**
@@ -137,6 +143,8 @@ public final class Stack implements Serializable {
      * called when nextMethodEntry returns 0
      */
     public final boolean isFirstInStackOrPushed() {
+        resuming = false;
+
         boolean p = pushed;
         pushed = false;
 
@@ -150,10 +158,14 @@ public final class Stack implements Serializable {
     }
 
     public final void incOptimizedCount() {
+        resuming = false;
+
         optimizedCount++;
     }
 
     public final void decOptimizedCount() {
+        resuming = false;
+
         optimizedCount--;
     }
 
@@ -164,6 +176,8 @@ public final class Stack implements Serializable {
      * @param numSlots   the number of required stack slots for storing the state of the current method
      */
     public final void pushMethod(int entry, int numSlots) {
+        resuming = false;
+
         shouldVerifyInstrumentation = false;
         pushed = true;
 
@@ -190,6 +204,8 @@ public final class Stack implements Serializable {
     }
 
     public final void popMethod() {
+        resuming = false;
+
         if (shouldVerifyInstrumentation) {
             Fiber.verifySuspend(fiber);
             shouldVerifyInstrumentation = false;
@@ -217,11 +233,15 @@ public final class Stack implements Serializable {
     }
 
     public final void postRestore() throws SuspendExecution, InterruptedException {
+        resuming = false;
+
         decInstrumentedCount();
         fiber.onResume();
     }
 
     public void decInstrumentedCount() {
+        resuming = false;
+
         instrumentedCount--;
     }
 
@@ -264,30 +284,40 @@ public final class Stack implements Serializable {
     }
 
     public static void push(int value, Stack s, int idx) {
+        s.resuming = false;
+
 //        if (s.fiber.isRecordingLevel(3))
 //            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
         s.dataLong[s.sp + idx] = value;
     }
 
     public static void push(float value, Stack s, int idx) {
+        s.resuming = false;
+
 //        if (s.fiber.isRecordingLevel(3))
 //            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
         s.dataLong[s.sp + idx] = Float.floatToRawIntBits(value);
     }
 
     public static void push(long value, Stack s, int idx) {
+        s.resuming = false;
+
 //        if (s.fiber.isRecordingLevel(3))
 //            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
         s.dataLong[s.sp + idx] = value;
     }
 
     public static void push(double value, Stack s, int idx) {
+        s.resuming = false;
+
 //        if (s.fiber.isRecordingLevel(3))
 //            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
         s.dataLong[s.sp + idx] = Double.doubleToRawLongBits(value);
     }
 
     public static void push(Object value, Stack s, int idx) {
+        s.resuming = false;
+
 //        if (s.fiber.isRecordingLevel(3))
 //            s.fiber.record(3, "Stack", "push", "%d (%d) %s", idx, s.sp + idx, value);
         s.dataObject[s.sp + idx] = value;
