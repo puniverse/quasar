@@ -25,18 +25,18 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public class InterfaceTest {
-    interface M {
+public final class InterfaceTest {
+    private interface M {
         // @Suspendable
         double m(String s);
     }
 
-    interface M1 {
+    private interface M1 {
         // @Suspendable
         double m1(String s);
     }
 
-    static class MImpl implements M {
+    private static class MImpl implements M {
         private static final M1 m1 = new M1Impl();
 
         // @Suspendable
@@ -52,7 +52,7 @@ public class InterfaceTest {
         }
     }
 
-    static class M1Impl implements M1 {
+    private static class M1Impl implements M1 {
         // @Suspendable
         public double m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
@@ -68,7 +68,7 @@ public class InterfaceTest {
         }
     }
 
-    static class F implements SuspendableCallable<Double> {
+    private static class F implements SuspendableCallable<Double> {
         private static final M m = new MImpl();
 
         @Override

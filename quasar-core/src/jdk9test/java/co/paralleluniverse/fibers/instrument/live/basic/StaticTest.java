@@ -25,8 +25,8 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public class StaticTest {
-    static class F implements SuspendableCallable<Double> {
+public final class StaticTest {
+    private static class F implements SuspendableCallable<Double> {
         @Override
         // @Suspendable
         public Double run() throws InterruptedException {
@@ -40,7 +40,7 @@ public class StaticTest {
         }
 
         // @Suspendable
-        public static double m(String s) {
+        private static double m(String s) {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
             final double ret = m1(s);
@@ -50,7 +50,7 @@ public class StaticTest {
         }
 
         // @Suspendable
-        public static double m1(String s) {
+        private static double m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
             try {

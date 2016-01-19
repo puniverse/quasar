@@ -24,9 +24,9 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public class LambdaTest {
+public final class LambdaTest {
     // @Suspendable
-    public int m1(String s) {
+    private int m1(String s) {
         System.err.println("Enter m1(" + s + "), sleeping");
         assertThat(s, equalTo("ciao"));
         try {
@@ -40,7 +40,7 @@ public class LambdaTest {
     }
 
     // @Suspendable
-    public int m(String s) {
+    private int m(String s) {
         System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
         assertThat(s, equalTo("ciao"));
         final int ret = m1(s);

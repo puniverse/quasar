@@ -26,8 +26,8 @@ import java.util.concurrent.ExecutionException;
 /**
  * @author circlespainter
  */
-public class BasicTest {
-    static class F implements SuspendableCallable<Double> {
+public final class BasicTest {
+    private static class F implements SuspendableCallable<Double> {
         @Override
         // @Suspendable
         public Double run() throws InterruptedException {
@@ -41,7 +41,7 @@ public class BasicTest {
         }
 
         // @Suspendable
-        public double m(String s) {
+        private double m(String s) {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
             final double ret = m1(s);
@@ -51,7 +51,7 @@ public class BasicTest {
         }
 
         // @Suspendable
-        public double m1(String s) {
+        private double m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
             try {

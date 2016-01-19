@@ -26,8 +26,8 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public class ReflectionTest {
-    static class F implements SuspendableCallable<Integer> {
+public final class ReflectionTest {
+    private static class F implements SuspendableCallable<Integer> {
         @Override
         // @Suspendable
         public Integer run() throws InterruptedException {
@@ -36,7 +36,7 @@ public class ReflectionTest {
             assertThat(s, equalTo("ciao"));
             final int ret;
             try {
-                ret = (Integer) this.getClass().getMethod("m", String.class).invoke(this, s);
+                ret = (Integer) this.getClass().getDeclaredMethod("m", String.class).invoke(this, s);
             } catch (final IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                 throw new RuntimeException(e);
             }
@@ -45,13 +45,14 @@ public class ReflectionTest {
             return ret;
         }
 
+        /** @noinspection unused*/
         // @Suspendable
-        public int m(String s) {
+        private int m(String s) {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
             final int ret;
             try {
-                ret = (Integer) this.getClass().getMethod("m1", String.class).invoke(this, s);
+                ret = (Integer) this.getClass().getDeclaredMethod("m1", String.class).invoke(this, s);
             } catch (final IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                 throw new RuntimeException(e);
             }
@@ -60,8 +61,9 @@ public class ReflectionTest {
             return ret;
         }
 
+        /** @noinspection unused*/
         // @Suspendable
-        public int m1(String s) {
+        private int m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
             try {

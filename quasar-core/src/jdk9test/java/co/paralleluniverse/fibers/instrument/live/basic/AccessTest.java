@@ -29,10 +29,10 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public class AccessTest {
+public final class AccessTest {
     private static List<Integer> l = new ArrayList<>();
 
-    class F implements SuspendableCallable<Double> {
+    private static class F implements SuspendableCallable<Double> {
         @Override
         // @Suspendable
         public Double run() throws InterruptedException {
@@ -48,7 +48,7 @@ public class AccessTest {
         }
 
         // @Suspendable
-        public double m(String s) {
+        private double m(String s) {
             System.err.println("Invoking accessor");
             l.size();
             System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
@@ -60,7 +60,7 @@ public class AccessTest {
         }
 
         // @Suspendable
-        public double m1(String s) {
+        private double m1(String s) {
             System.err.println("Invoking accessor");
             l.size();
             System.err.println("Enter m1(" + s + "), parking several times");
@@ -117,11 +117,11 @@ public class AccessTest {
         System.err.println("Get f2");
         try {
             assertThat(f2.get(), equalTo(-1.7));
-            assertThat(l.size(), equalTo(4));
-            assertEquals(Arrays.asList(1, 2, 3, 4), l);
         } catch (final ExecutionException | InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
+        assertThat(l.size(), equalTo(4));
+        assertEquals(Arrays.asList(1, 2, 3, 4), l);
     }
 }

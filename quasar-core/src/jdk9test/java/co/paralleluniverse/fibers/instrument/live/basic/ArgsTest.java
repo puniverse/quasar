@@ -25,8 +25,8 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public class ArgsTest {
-    static class F implements SuspendableCallable<Integer> {
+public final class ArgsTest {
+    private static class F implements SuspendableCallable<Integer> {
         @Override
         // @Suspendable
         public Integer run() throws InterruptedException {
@@ -46,7 +46,7 @@ public class ArgsTest {
         }
 
         // @Suspendable
-        public int m(boolean b, byte by, char c, short s, int i, long l, float f, double d, String s1, String s2) {
+        private int m(boolean b, byte by, char c, short s, int i, long l, float f, double d, String s1, String s2) {
             System.err.println (
                 "Enter m(" +
                     "b:" + b + ", by:" + by + ", c:" + c + ", s:" + s + ", i:" + i + ", l:" + l + ", " +
@@ -85,7 +85,7 @@ public class ArgsTest {
         }
 
         // @Suspendable
-        public int m1(boolean b, byte by, char c, short s, int i, long l, float f, double d, String s1, String s2) {
+        private int m1(boolean b, byte by, char c, short s, int i, long l, float f, double d, String s1, String s2) {
             System.err.println (
                 "Enter m1(" +
                     "b:" + b + ", by:" + by + ", c:" + c + ", s:" + s + ", i:" + i + ", l:" + l + ", " +
@@ -128,7 +128,7 @@ public class ArgsTest {
     }
 
     @Test public void test() {
-        final Fiber f1 = new Fiber(new F()).start();
+        final Fiber f1 = new Fiber<>(new F()).start();
         try {
             assertThat(f1.get(), equalTo(-1));
         } catch (final ExecutionException | InterruptedException e) {
@@ -136,7 +136,7 @@ public class ArgsTest {
             throw new RuntimeException(e);
         }
 
-        final Fiber f2 = new Fiber(new F()).start();
+        final Fiber f2 = new Fiber<>(new F()).start();
         try {
             assertThat(f2.get(), equalTo(-1));
         } catch (final ExecutionException | InterruptedException e) {

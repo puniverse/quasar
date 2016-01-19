@@ -25,8 +25,8 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public class MultipleCallSitesTest {
-    static class F implements SuspendableCallable<Integer> {
+public final class MultipleCallSitesTest {
+    private static class F implements SuspendableCallable<Integer> {
         @Override
         // @Suspendable
         public Integer run() throws InterruptedException {
@@ -43,7 +43,7 @@ public class MultipleCallSitesTest {
         }
 
         // @Suspendable
-        public static int m(String s) {
+        private static int m(String s) {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ") and mm1(" + s + ")");
             assertThat(s, equalTo("ciao"));
             final int ret = m1(s);
@@ -57,7 +57,7 @@ public class MultipleCallSitesTest {
         }
 
         // @Suspendable
-        public static int mm(String s) {
+        private static int mm(String s) {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ") and mm1(" + s + ")");
             assertThat(s, equalTo("ciao"));
             final int ret = m1(s);
@@ -71,7 +71,7 @@ public class MultipleCallSitesTest {
         }
 
         // @Suspendable
-        public static int m1(String s) {
+        private static int m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
             try {
@@ -85,7 +85,7 @@ public class MultipleCallSitesTest {
         }
 
         // @Suspendable
-        public static int mm1(String s) {
+        private static int mm1(String s) {
             System.err.println("Enter mm1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
             try {

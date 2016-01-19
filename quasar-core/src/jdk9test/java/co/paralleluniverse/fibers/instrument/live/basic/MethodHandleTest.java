@@ -17,7 +17,9 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
 import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -26,8 +28,19 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public class MethodHandleTest {
-    static class F implements SuspendableCallable<Integer> {
+public final class MethodHandleTest {
+    private final MethodHandle mhm, mhm1;
+
+    public MethodHandleTest() throws NoSuchMethodException, IllegalAccessException {
+        final Method m = F.class.getDeclaredMethod("m", String.class);
+        m.setAccessible(true);
+        mhm = MethodHandles.lookup().unreflect(m);
+        final Method m1 = F.class.getDeclaredMethod("m1", String.class);
+        m1.setAccessible(true);
+        mhm1 = MethodHandles.lookup().unreflect(m1);
+    }
+
+    private class F implements SuspendableCallable<Integer> {
         @Override
         // @Suspendable
         public Integer run() throws InterruptedException {
@@ -36,7 +49,7 @@ public class MethodHandleTest {
             assertThat(s, equalTo("ciao"));
             final int ret;
             try {
-                ret = (Integer) MethodHandles.lookup().unreflect(this.getClass().getMethod("m", String.class)).invoke(this, s);
+                ret = (Integer) mhm.invoke(this, s);
             } catch (final Throwable e) {
                 throw new RuntimeException(e);
             }
@@ -45,13 +58,14 @@ public class MethodHandleTest {
             return ret;
         }
 
+        /** @noinspection unused*/
         // @Suspendable
-        public int m(String s) {
+        private int m(String s) {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
             final int ret;
             try {
-                ret = (Integer) MethodHandles.lookup().unreflect(this.getClass().getMethod("m1", String.class)).invoke(this, s);
+                ret = (Integer) mhm1.invoke(this, s);
             } catch (final Throwable e) {
                 throw new RuntimeException(e);
             }
@@ -60,8 +74,9 @@ public class MethodHandleTest {
             return ret;
         }
 
+        /** @noinspection unused*/
         // @Suspendable
-        public int m1(String s) {
+        private int m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
             try {

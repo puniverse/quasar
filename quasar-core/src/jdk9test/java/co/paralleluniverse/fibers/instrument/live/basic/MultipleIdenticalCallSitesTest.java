@@ -25,7 +25,7 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
-public class MultipleIdenticalCallSitesTest {
+public final class MultipleIdenticalCallSitesTest {
     static class F implements SuspendableCallable<Double> {
         @Override
         // @Suspendable
@@ -42,7 +42,7 @@ public class MultipleIdenticalCallSitesTest {
         }
 
         // @Suspendable
-        public static double m(String s) {
+        private static double m(String s) {
             System.err.println("Enter m(" + s + "), calling m1(" + s + ")");
             assertThat(s, equalTo("ciao"));
             final double ret = m1(s);
@@ -55,8 +55,7 @@ public class MultipleIdenticalCallSitesTest {
         }
 
         // @Suspendable
-
-        public static double m1(String s) {
+        private static double m1(String s) {
             System.err.println("Enter m1(" + s + "), sleeping");
             assertThat(s, equalTo("ciao"));
             try {
