@@ -216,7 +216,7 @@ public final class LiveInstrumentation {
 */
 
             if (!upperFiberRuntime && !lowerFiberRuntime) {
-                if (!isReflection(f.getClassName())) { // Skip reflection
+                if (!isReflection(f.getClassName()) && !isDynamicInvoke(f.getClassName())) { // Skip reflection && dynInvoke
                     final Verify.CheckFrameInstrumentationReport report =
                         Verify.checkFrameInstrumentation(fs, i, upper);
 
@@ -933,7 +933,8 @@ public final class LiveInstrumentation {
             return
                 !upperFiberRuntime &&
                 !lowerFiberRuntime &&
-                !isReflection(cn);
+                !isReflection(cn) &&
+                !isDynamicInvoke(cn);
         }
 
         private StackFramePredicate() {
@@ -954,6 +955,11 @@ public final class LiveInstrumentation {
         return
             className.startsWith("sun.reflect.") ||
             className.startsWith("java.lang.reflect.");
+    }
+
+    private static boolean isDynamicInvoke(String className) {
+        return
+            className.startsWith("java.lang.invoke.");
     }
 
     public static final boolean DUMP_STACK_FRAMES_FIRST;
