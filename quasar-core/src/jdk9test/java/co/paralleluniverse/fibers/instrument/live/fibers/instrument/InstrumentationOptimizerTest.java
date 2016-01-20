@@ -15,8 +15,10 @@ package co.paralleluniverse.fibers.instrument.live.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Instrumented;
+import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.instrument.InstrumentMethod;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.Test;
 
@@ -25,6 +27,7 @@ import java.lang.reflect.Method;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
 import static org.junit.Assume.assumeFalse;
 
@@ -32,7 +35,7 @@ import static org.junit.Assume.assumeFalse;
  *
  * @author circlespainter
  */
-public final class InstrumentationOptimizerTest {
+public final class InstrumentationOptimizerTest extends LiveInstrumentationTest {
 
     private boolean isOptimized(String method) {
         for (Method m : getClass().getDeclaredMethods()) {
@@ -58,6 +61,8 @@ public final class InstrumentationOptimizerTest {
 
         new Fiber((SuspendableRunnable) this::skipForwardsToSuspendableVoid).start().join();
         assertTrue(isOptimized("skipForwardsToSuspendableVoid"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     private Object sleepFiberObject() throws InterruptedException {
@@ -75,6 +80,8 @@ public final class InstrumentationOptimizerTest {
 
         new Fiber((SuspendableRunnable) this::skipForwardsToSuspendableObject).start().join();
         assertTrue(isOptimized("skipForwardsToSuspendableObject"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     private double sleepFiberDouble() throws InterruptedException {
@@ -92,6 +99,8 @@ public final class InstrumentationOptimizerTest {
 
         new Fiber((SuspendableRunnable) this::skipForwardsToSuspendableDouble).start().join();
         assertTrue(isOptimized("skipForwardsToSuspendableDouble"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     private float sleepFiberFloat() throws InterruptedException {
@@ -109,6 +118,8 @@ public final class InstrumentationOptimizerTest {
 
         new Fiber((SuspendableRunnable) this::skipForwardsToSuspendableFloat).start().join();
         assertTrue(isOptimized("skipForwardsToSuspendableFloat"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     private int sleepFiberInt() throws InterruptedException {
@@ -126,6 +137,8 @@ public final class InstrumentationOptimizerTest {
 
         new Fiber((SuspendableRunnable) this::skipForwardsToSuspendableInt).start().join();
         assertTrue(isOptimized("skipForwardsToSuspendableInt"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     private long sleepFiberLong() throws InterruptedException {
@@ -143,6 +156,8 @@ public final class InstrumentationOptimizerTest {
 
         new Fiber((SuspendableRunnable) this::skipForwardsToSuspendableLong).start().join();
         assertTrue(isOptimized("skipForwardsToSuspendableLong"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     private Object dontSkipForwardsWithTryCatch() throws InterruptedException {
@@ -159,6 +174,8 @@ public final class InstrumentationOptimizerTest {
 
         new Fiber((SuspendableRunnable) this::dontSkipForwardsWithTryCatch).start().join();
         assertFalse(isOptimized("skipForwardsWithTryCatch"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     private void dontSkipForwardsWithLoop() throws InterruptedException {
@@ -172,6 +189,8 @@ public final class InstrumentationOptimizerTest {
 
         new Fiber((SuspendableRunnable) this::dontSkipForwardsWithLoop).start().join();
         assertFalse(isOptimized("skipForwardsWithLoop"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     private void dontSkipForwardsWithLoopBefore() throws InterruptedException {
@@ -186,6 +205,8 @@ public final class InstrumentationOptimizerTest {
 
         new Fiber((SuspendableRunnable) this::dontSkipForwardsWithLoopBefore).start().join();
         assertFalse(isOptimized("skipForwardsWithLoopBefore"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     private void skipForwardsWithLoopAfter() throws InterruptedException {
@@ -200,6 +221,8 @@ public final class InstrumentationOptimizerTest {
 
         new Fiber((SuspendableRunnable) this::skipForwardsWithLoopAfter).start().join();
         assertTrue(isOptimized("skipForwardsWithLoopAfter"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     private void dontSkipForwardsWithMethodBefore() throws InterruptedException {
@@ -213,6 +236,8 @@ public final class InstrumentationOptimizerTest {
 
         new Fiber((SuspendableRunnable) this::dontSkipForwardsWithMethodBefore).start().join();
         assertFalse(isOptimized("skipForwardsWithMethodBefore"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     private void skipForwardsWithMethodAfter() throws InterruptedException {
@@ -226,6 +251,8 @@ public final class InstrumentationOptimizerTest {
 
         new Fiber((SuspendableRunnable) this::skipForwardsWithMethodAfter).start().join();
         assertTrue(isOptimized("skipForwardsWithMethodAfter"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     private void dontSkipForwardsWithReflectiveCalls() throws InterruptedException, NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
@@ -245,5 +272,7 @@ public final class InstrumentationOptimizerTest {
             }
         }).start().join();
         assertFalse(isOptimized("skipForwardsWithReflectiveCalls"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 }

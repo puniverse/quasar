@@ -5,17 +5,21 @@
 package co.paralleluniverse.fibers.instrument.live.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.TestsHelper;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 /**
  *
  * @author Matthias Mann
  */
-public final class UninitializedTest implements SuspendableRunnable {
+public final class UninitializedTest extends LiveInstrumentationTest implements SuspendableRunnable {
     private Object result = "b";
 
     @Test
@@ -27,6 +31,8 @@ public final class UninitializedTest implements SuspendableRunnable {
 
         assertEquals(2, count);
         assertEquals("a", result);
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Override

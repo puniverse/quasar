@@ -5,19 +5,22 @@
 package co.paralleluniverse.fibers.instrument.live.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.Stack;
 import co.paralleluniverse.fibers.TestsHelper;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
 
 /**
  * @author Matthias Mann
  */
-public final class InitialSizeTest implements SuspendableRunnable {
+public final class InitialSizeTest extends LiveInstrumentationTest implements SuspendableRunnable {
     
     @Test
     public final void test1() {
@@ -42,6 +45,8 @@ public final class InitialSizeTest implements SuspendableRunnable {
         res = TestsHelper.exec(c);
         assertEquals(true, res);
         assertTrue(getStackSize(c) > 10);
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Override

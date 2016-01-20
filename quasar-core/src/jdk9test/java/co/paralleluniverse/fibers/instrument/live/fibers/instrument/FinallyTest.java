@@ -29,13 +29,17 @@
 package co.paralleluniverse.fibers.instrument.live.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.Test;
 
 import java.util.ArrayList;
 
 import static co.paralleluniverse.fibers.TestsHelper.exec;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 
 /**
@@ -43,7 +47,7 @@ import static org.junit.Assert.assertEquals;
  * 
  * @author Matthias Mann
  */
-public final class FinallyTest implements SuspendableRunnable {
+public final class FinallyTest extends LiveInstrumentationTest implements SuspendableRunnable {
     private final ArrayList<String> results = new ArrayList<>();
     
     @Override
@@ -89,5 +93,7 @@ public final class FinallyTest implements SuspendableRunnable {
         assertEquals("G", results.get(6));
         assertEquals("H", results.get(7));
         assertEquals("I", results.get(8));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 }

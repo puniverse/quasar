@@ -14,12 +14,16 @@
 package co.paralleluniverse.fibers.instrument.live.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.Suspendable;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutionException;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -27,7 +31,7 @@ import static org.junit.Assert.assertTrue;
  *
  * @author circlespainter
  */
-public final class RTInitLocalArrayArgTest implements SuspendableCallable<Object> {
+public final class RTInitLocalArrayArgTest extends LiveInstrumentationTest implements SuspendableCallable<Object> {
     @Suspendable // Instrumentation is needed to break
     private static Object myMethod(Object arg) {
         return arg;
@@ -51,5 +55,6 @@ public final class RTInitLocalArrayArgTest implements SuspendableCallable<Object
     @Test
     public final void test() throws ExecutionException, InterruptedException {
         assertTrue(new Fiber<>(this).start().get() != null);
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
     }
 }

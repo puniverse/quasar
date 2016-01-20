@@ -16,7 +16,9 @@ package co.paralleluniverse.fibers.instrument.live.fibers.instrument;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
 
@@ -25,7 +27,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import static co.paralleluniverse.fibers.TestsHelper.exec;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeFalse;
 
 /**
@@ -33,7 +37,7 @@ import static org.junit.Assume.assumeFalse;
  *
  * @author pron
  */
-public final class CatchSuspendExecutionTest {
+public final class CatchSuspendExecutionTest extends LiveInstrumentationTest {
     private final List<String> results = new ArrayList<>();
 
     private final void suspendableMethod() {
@@ -79,6 +83,8 @@ public final class CatchSuspendExecutionTest {
 
         assertEquals(3, results.size());
         assertEquals(Arrays.asList("A", "B", "C"), results);
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test

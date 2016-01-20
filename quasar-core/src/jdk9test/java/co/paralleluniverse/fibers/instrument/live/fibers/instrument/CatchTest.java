@@ -29,6 +29,8 @@
 package co.paralleluniverse.fibers.instrument.live.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.Test;
@@ -37,14 +39,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import static co.paralleluniverse.fibers.TestsHelper.exec;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 /**
  * Check that a generic catch all does not affect the suspension of a method
  *
  * @author Matthias Mann
  */
-public final class CatchTest {
+public final class CatchTest extends LiveInstrumentationTest {
     private ArrayList<String> results = new ArrayList<>();
 
     private final class Runnable1 implements SuspendableRunnable {
@@ -118,6 +122,8 @@ public final class CatchTest {
                 "called second time",
                 "H",
                 "I"), results);
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(3L));
     }
 
     private final class Callable1 implements SuspendableCallable<Integer> {
@@ -159,5 +165,7 @@ public final class CatchTest {
                 "C",
                 "D",
                 "E"), results);
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 }

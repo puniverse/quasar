@@ -6,19 +6,23 @@
 package co.paralleluniverse.fibers.instrument.live.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.Test;
 
 import java.util.ArrayList;
 
 import static co.paralleluniverse.fibers.TestsHelper.exec;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 /**
  *
  * @author mam
  */
-public final class InheritTest {
+public final class InheritTest extends LiveInstrumentationTest {
     @Test
     public final void testInherit() {
         final C dut = new C();
@@ -33,6 +37,8 @@ public final class InheritTest {
         assertEquals("o2", dut.result.get(2));
         assertEquals("b", dut.result.get(3));
         assertEquals("b", dut.result.get(4));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(2L));
     }
     
     private static class A {

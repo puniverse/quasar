@@ -5,15 +5,20 @@
 package co.paralleluniverse.fibers.instrument.live.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.TestsHelper;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.Test;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 /**
  *
  * @author Elias Naur
  */
-public final class InterfaceTest {
+public final class InterfaceTest extends LiveInstrumentationTest {
     private interface SomeInterface {
         void doStuff();
     }
@@ -59,5 +64,7 @@ public final class InterfaceTest {
         while (!TestsHelper.exec(co))
             System.out.println("State=" + co.getState());
         System.out.println("State=" + co.getState());
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
     }
 }

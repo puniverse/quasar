@@ -15,6 +15,7 @@ package co.paralleluniverse.fibers.instrument.live.fibers.io;
 
 import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.fibers.*;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.fibers.io.FiberFileChannel;
 import co.paralleluniverse.fibers.io.FiberServerSocketChannel;
 import co.paralleluniverse.fibers.io.FiberSocketChannel;
@@ -42,7 +43,7 @@ import static org.junit.Assert.assertThat;
  *
  * @author pron
  */
-public final class FiberAsyncIOTest {
+public final class FiberAsyncIOTest extends LiveInstrumentationTest {
     @Rule
     public TestName name = new TestName();
     @Rule
@@ -163,6 +164,8 @@ public final class FiberAsyncIOTest {
 
         client.join();
         server.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(2L));
     }
 
     @Test
@@ -197,5 +200,7 @@ public final class FiberAsyncIOTest {
             }
 
         }).start().join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 }

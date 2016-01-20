@@ -18,7 +18,9 @@ import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
+import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.futures.AsyncListenableFuture;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableCallable;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -37,7 +39,7 @@ import static org.junit.Assert.*;
  *
  * @author pron
  */
-public final class AsyncListenableFutureTest {
+public final class AsyncListenableFutureTest extends LiveInstrumentationTest {
     @Rule
     public TestName name = new TestName();
     @Rule
@@ -71,6 +73,7 @@ public final class AsyncListenableFutureTest {
 
         assertThat(fiber.get(), equalTo("hi!"));
 
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -101,6 +104,8 @@ public final class AsyncListenableFutureTest {
         } catch (final ExecutionException e) {
             assertThat(e.getCause().getMessage(), equalTo("haha!"));
         }
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -127,5 +132,7 @@ public final class AsyncListenableFutureTest {
         } catch (final ExecutionException e) {
             assertThat(e.getCause().getMessage(), equalTo("haha!"));
         }
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
     }
 }

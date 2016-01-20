@@ -6,20 +6,24 @@ package co.paralleluniverse.fibers.instrument.live.fibers.instrument;
 
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.TestsHelper;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
  *
  * @author mam
  */
-public final class Merge2Test implements SuspendableRunnable {
+public final class Merge2Test extends LiveInstrumentationTest implements SuspendableRunnable {
     private static Strand.UncaughtExceptionHandler previousUEH;
 
     @BeforeClass
@@ -53,6 +57,7 @@ public final class Merge2Test implements SuspendableRunnable {
             iface.method();
         } catch (final IllegalStateException ise) {
             suspendable();
+            assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
         }
     }
 

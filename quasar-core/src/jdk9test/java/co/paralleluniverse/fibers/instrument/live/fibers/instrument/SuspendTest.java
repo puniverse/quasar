@@ -29,17 +29,21 @@
 package co.paralleluniverse.fibers.instrument.live.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.Test;
 
 import static co.paralleluniverse.fibers.TestsHelper.exec;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 /**
  * Basic test
  *
  * @author Matthias Mann
  */
-public final class SuspendTest implements SuspendableRunnable {
+public final class SuspendTest extends LiveInstrumentationTest implements SuspendableRunnable {
     @Test
     public final void testSuspend() {
         final SuspendTest test = new SuspendTest();
@@ -49,6 +53,8 @@ public final class SuspendTest implements SuspendableRunnable {
             System.out.println("State=" + co.getState());
 
         System.out.println("State=" + co.getState());
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Override

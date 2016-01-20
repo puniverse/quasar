@@ -28,17 +28,21 @@
  */package co.paralleluniverse.fibers.instrument.live.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.TestsHelper;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 /**
  *
  * @author Matthias Mann
  */
-public final class ArrayTest implements SuspendableRunnable {
+public final class ArrayTest extends LiveInstrumentationTest implements SuspendableRunnable {
 
     private static final PatchLevel l1 = new PatchLevel();
     private static final PatchLevel[] l2 = new PatchLevel[] { l1 };
@@ -49,6 +53,8 @@ public final class ArrayTest implements SuspendableRunnable {
         Fiber co = new Fiber((String)null, null, this);
         TestsHelper.exec(co);
         assertEquals(42, l1.i);
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
     }
     
     @Override

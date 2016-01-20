@@ -6,12 +6,15 @@
 package co.paralleluniverse.fibers.instrument.live.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.TestsHelper;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 
@@ -19,7 +22,7 @@ import static org.junit.Assert.assertEquals;
  *
  * @author Matthias Mann
  */
-public final class DoubleTest implements SuspendableRunnable {
+public final class DoubleTest extends LiveInstrumentationTest implements SuspendableRunnable {
     private double result;
 
     @Test @Ignore // TODO: Re-enable when double numbers work
@@ -30,6 +33,8 @@ public final class DoubleTest implements SuspendableRunnable {
         boolean res = TestsHelper.exec(co);
         assertEquals(1, result, 1e-8);
         assertEquals(res, true);
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Override

@@ -5,17 +5,22 @@
 package co.paralleluniverse.fibers.instrument.live.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.TestsHelper;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.Test;
 
 import java.util.Arrays;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+
 /**
  *
  * @author Matthias Mann
  */
-public class Merge3Test implements SuspendableRunnable {
+public class Merge3Test extends LiveInstrumentationTest implements SuspendableRunnable {
     public boolean a;
     public boolean b;
     
@@ -39,5 +44,6 @@ public class Merge3Test implements SuspendableRunnable {
     public final void testMerge3() {
         Fiber c = new Fiber<>((String)null, null, new Merge3Test());
         TestsHelper.exec(c);
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
     }
 }

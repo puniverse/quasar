@@ -43,7 +43,7 @@ import static org.junit.Assert.*;
  *
  * @author pron
  */
-public final class FiberAsyncTest {
+public final class FiberAsyncTest extends LiveInstrumentationTest {
     @Rule
     public TestName name = new TestName();
     @Rule
@@ -141,6 +141,8 @@ public final class FiberAsyncTest {
         }).start();
 
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -155,6 +157,8 @@ public final class FiberAsyncTest {
         }).start();
 
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -165,6 +169,8 @@ public final class FiberAsyncTest {
         }).start();
 
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -179,6 +185,8 @@ public final class FiberAsyncTest {
         }).start();
 
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -198,6 +206,8 @@ public final class FiberAsyncTest {
         }).start();
 
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -212,6 +222,8 @@ public final class FiberAsyncTest {
         }).start();
 
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -225,6 +237,8 @@ public final class FiberAsyncTest {
         }).start();
 
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -239,6 +253,8 @@ public final class FiberAsyncTest {
 
         fiber.interrupt();
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -254,6 +270,8 @@ public final class FiberAsyncTest {
         Thread.sleep(100);
         fiber.interrupt();
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -270,6 +288,8 @@ public final class FiberAsyncTest {
         }).start();
 
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -290,6 +310,8 @@ public final class FiberAsyncTest {
         }).start();
 
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -309,5 +331,7 @@ public final class FiberAsyncTest {
         }).start();
 
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 }

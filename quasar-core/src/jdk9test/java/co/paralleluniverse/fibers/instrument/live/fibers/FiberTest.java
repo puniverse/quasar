@@ -17,6 +17,7 @@ import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.*;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import co.paralleluniverse.strands.*;
 import co.paralleluniverse.vtime.ScaledClock;
@@ -46,7 +47,7 @@ import static org.junit.Assert.*;
  * @author pron
  */
 @RunWith(Parameterized.class)
-public final class FiberTest implements Serializable {
+public final class FiberTest extends LiveInstrumentationTest implements Serializable {
     @Rule
     final public TestName name = new TestName();
     @Rule
@@ -101,6 +102,8 @@ public final class FiberTest implements Serializable {
             }
 
             fiber.join(1000, TimeUnit.MILLISECONDS);
+
+            assertTrue(LiveInstrumentation.fetchRunCount() <= 2L);
         } finally {
             VirtualClock.setGlobal(SystemClock.instance());
         }
@@ -125,6 +128,8 @@ public final class FiberTest implements Serializable {
 
         assertThat(res, is(123));
         assertThat(fiber1.get(), is(123));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(2L));
     }
 
     @Test
@@ -140,6 +145,8 @@ public final class FiberTest implements Serializable {
         Thread.sleep(20);
         fiber.interrupt();
         fiber.join(500, TimeUnit.MILLISECONDS);
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -162,6 +169,8 @@ public final class FiberTest implements Serializable {
         fiber.join(500, TimeUnit.MILLISECONDS);
         assertThat(started.get(), is(true));
         assertThat(terminated.get(), is(true));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -188,6 +197,8 @@ public final class FiberTest implements Serializable {
         }
         assertThat(started.get(), is(false));
         assertThat(terminated.get(), is(false));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
     }
 
     @Test
@@ -217,6 +228,8 @@ public final class FiberTest implements Serializable {
 
         assertThat(tl1.get(), is("foo"));
         assertThat(tl2.get(), is("bar"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -243,6 +256,9 @@ public final class FiberTest implements Serializable {
         fiber.join();
 
         assertThat(tl1.get(), is("foo"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
+
     }
 
     @Test
@@ -269,6 +285,9 @@ public final class FiberTest implements Serializable {
 
         for (final Fiber fiber : fibers)
             fiber.join();
+
+        // The uninstrumented detector will ring for each parallel fiber running the same uninstrumented code (fiber stack already built)
+        assertTrue(LiveInstrumentation.fetchRunCount() <= (long) n);
     }
 
     @Test
@@ -296,6 +315,9 @@ public final class FiberTest implements Serializable {
 
         for (final Fiber fiber : fibers)
             fiber.join();
+
+        // The uninstrumented detector will ring for each parallel fiber running the same uninstrumented code (fiber stack already built)
+        assertTrue(LiveInstrumentation.fetchRunCount() <= (long) n);
     }
 
     @Test
@@ -312,6 +334,8 @@ public final class FiberTest implements Serializable {
 
         StackTraceElement[] st = fiber.getStackTrace();
         assertThat(st, is(nullValue()));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
     }
 
     @Test
@@ -330,6 +354,8 @@ public final class FiberTest implements Serializable {
 
         StackTraceElement[] st = fiber.getStackTrace();
         assertThat(st, is(nullValue()));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
     }
 
     @Test
@@ -352,6 +378,8 @@ public final class FiberTest implements Serializable {
         }).start();
 
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
     }
 
     @Test
@@ -388,6 +416,8 @@ public final class FiberTest implements Serializable {
         assertThat(st[st.length - 1].getClassName(), equalTo(Fiber.class.getName()));
 
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
     }
 
     @Test
@@ -439,6 +469,8 @@ public final class FiberTest implements Serializable {
         cond.signalAll();
 
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -492,6 +524,8 @@ public final class FiberTest implements Serializable {
         cond.signalAll();
 
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -526,6 +560,8 @@ public final class FiberTest implements Serializable {
         assertThat(st[st.length - 1].getClassName(), equalTo(Fiber.class.getName()));
 
         fiber.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -545,6 +581,8 @@ public final class FiberTest implements Serializable {
 
         good.join();
         bad.join();
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 
     @Test
@@ -570,6 +608,8 @@ public final class FiberTest implements Serializable {
 
         //noinspection ThrowableResultOfMethodCallIgnored
         assertThat(t.get().getMessage(), equalTo("foo"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
     }
 
     @Test
@@ -597,6 +637,8 @@ public final class FiberTest implements Serializable {
 
         assertTrue(th != null);
         assertThat(th.getMessage(), equalTo("foo"));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
     }
 
     @Test
@@ -611,6 +653,8 @@ public final class FiberTest implements Serializable {
 
         final List<String> results = FiberUtil.get(fibers);
         assertThat(results, equalTo(expectedResults));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
     }
 
     @Test
@@ -625,52 +669,65 @@ public final class FiberTest implements Serializable {
 
         final List<String> results = FiberUtil.get(1, TimeUnit.SECONDS, fibers);
         assertThat(results, equalTo(expectedResults));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
     }
 
     @Test(expected = TimeoutException.class)
     public final void testUtilsGetZeroWait() throws Exception {
+        final int n = 20;
         final List<Fiber<String>> fibers = new ArrayList<>();
-        final List<String> expectedResults = new ArrayList<>();
-        for (int i = 0; i < 20; i++) {
-            final int tmpI = i;
-            expectedResults.add("testUtilsSequence-" + tmpI);
-            fibers.add(new Fiber<>((SuspendableCallable<String>) () -> "testUtilsSequence-" + tmpI).start());
-        }
+        try {
+            final List<String> expectedResults = new ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                final int tmpI = i;
+                expectedResults.add("testUtilsSequence-" + tmpI);
+                fibers.add(new Fiber<>((SuspendableCallable<String>) () -> "testUtilsSequence-" + tmpI).start());
+            }
 
-        final List<String> results = FiberUtil.get(0, TimeUnit.SECONDS, fibers);
-        assertThat(results, equalTo(expectedResults));
+            final List<String> results = FiberUtil.get(0, TimeUnit.SECONDS, fibers);
+            assertThat(results, equalTo(expectedResults));
+            assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
+        } catch (final Throwable t) {
+            // Wait for stray fibers
+            for (final Fiber<?> f : fibers) {
+                if (f.isAlive())
+                    f.join();
+            }
+            assertThat(LiveInstrumentation.fetchRunCount(), equalTo(0L));
+            throw t;
+        }
     }
 
     @Test(expected = TimeoutException.class)
     public final void testUtilsGetSmallWait() throws Exception {
         final List<Fiber<String>> fibers = new ArrayList<>();
-        final List<String> expectedResults = new ArrayList<>();
-        for (int i = 0; i < 20; i++) {
-            final int tmpI = i;
-            expectedResults.add("testUtilsSequence-" + tmpI);
-            fibers.add(new Fiber<>((SuspendableCallable<String>) () -> {
-                // increase the sleep time to simulate data coming in then timeout
-                Strand.sleep(tmpI * 3, TimeUnit.MILLISECONDS);
-                return "testUtilsSequence-" + tmpI;
-            }).start());
+        final int n = 20;
+        try {
+            final List<String> expectedResults = new ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                final int tmpI = i;
+                expectedResults.add("testUtilsSequence-" + tmpI);
+                fibers.add(new Fiber<>((SuspendableCallable<String>) () -> {
+                    // increase the sleep time to simulate data coming in then timeout
+                    Strand.sleep(tmpI * 3, TimeUnit.MILLISECONDS);
+                    return "testUtilsSequence-" + tmpI;
+                }).start());
+            }
+
+            // must be less than 60 (3 * 20) or else the test could sometimes pass.
+            final List<String> results = FiberUtil.get(55, TimeUnit.MILLISECONDS, fibers);
+            assertThat(results, equalTo(expectedResults));
+            assertTrue(LiveInstrumentation.fetchRunCount() <= (long) n);
+        } catch (final Throwable t) {
+            // Wait for stray fibers
+            for (final Fiber<?> f : fibers) {
+                if (f.isAlive())
+                    f.join();
+            }
+            assertTrue(LiveInstrumentation.fetchRunCount() <= (long) n);
+            throw t;
         }
-
-        // must be less than 60 (3 * 20) or else the test could sometimes pass.
-        final List<String> results = FiberUtil.get(55, TimeUnit.MILLISECONDS, fibers);
-        assertThat(results, equalTo(expectedResults));
-    }
-
-    @Test
-    public final void testSerialization1() throws Exception {
-        // com.esotericsoftware.minlog.Log.set(1);
-        final SettableFuture<byte[]> buf = new SettableFuture<>();
-
-        //noinspection unused
-        final Fiber<Integer> f1 = new SerFiber1(scheduler, new SettableFutureFiberWriter(buf)).start();
-        Thread.sleep(1000);
-        final Fiber<Integer> f2 = Fiber.unparkSerialized(buf.get(), scheduler);
-
-        assertThat(f2.get(), is(55));
     }
 
     private static final class SerFiber1 extends SerFiber<Integer> {
@@ -694,6 +751,21 @@ public final class FiberTest implements Serializable {
     }
 
     @Test
+    public final void testSerialization1() throws Exception {
+        // com.esotericsoftware.minlog.Log.set(1);
+        final SettableFuture<byte[]> buf = new SettableFuture<>();
+
+        //noinspection unused
+        final Fiber<Integer> f1 = new SerFiber1(scheduler, new SettableFutureFiberWriter(buf)).start();
+        Thread.sleep(1000);
+        final Fiber<Integer> f2 = Fiber.unparkSerialized(buf.get(), scheduler);
+
+        assertThat(f2.get(), is(55));
+
+        assertTrue(LiveInstrumentation.fetchRunCount() <= 1L);
+    }
+
+    @Test
     public final void testSerialization2() throws Exception {
         // com.esotericsoftware.minlog.Log.set(1);
         final SettableFuture<byte[]> buf = new SettableFuture<>();
@@ -703,6 +775,8 @@ public final class FiberTest implements Serializable {
         final Fiber<Integer> f2 = Fiber.unparkSerialized(buf.get(), scheduler);
 
         assertThat(f2.get(), is(55));
+
+        assertTrue(LiveInstrumentation.fetchRunCount() <= 1L);
     }
 
     private static final class SerFiber2 extends Fiber<Integer> {
@@ -741,6 +815,8 @@ public final class FiberTest implements Serializable {
         final Fiber<Integer> f2 = Fiber.unparkSerialized(buf.get(), scheduler);
 
         assertThat(f2.get(), is(55));
+
+        assertTrue(LiveInstrumentation.fetchRunCount() <= 1L);
     }
 
     private static final class SerFiber3 extends SerFiber<Integer> {

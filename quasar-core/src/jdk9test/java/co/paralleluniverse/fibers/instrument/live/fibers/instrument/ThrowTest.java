@@ -30,6 +30,8 @@ package co.paralleluniverse.fibers.instrument.live.fibers.instrument;
 
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.LiveInstrumentation;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.AfterClass;
@@ -39,6 +41,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 
 import static co.paralleluniverse.fibers.TestsHelper.exec;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
 
 /**
@@ -46,7 +49,7 @@ import static org.junit.Assert.*;
  * 
  * @author Matthias Mann
  */
-public final class ThrowTest implements SuspendableRunnable {
+public final class ThrowTest extends LiveInstrumentationTest implements SuspendableRunnable {
     private static Strand.UncaughtExceptionHandler previousUEH;
 
     private final ArrayList<String> results = new ArrayList<>();
@@ -108,5 +111,7 @@ public final class ThrowTest implements SuspendableRunnable {
         assertEquals("C", results.get(2));
         assertEquals("D", results.get(3));
         assertEquals("F", results.get(4));
+
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 }
