@@ -21,7 +21,7 @@ import org.junit.Before;
  */
 public abstract class LiveInstrumentationTest {
     @Before
-    public void resetLiveInstrumentationRunCount() {
+    public final void resetLiveInstrumentationRunCountTest() {
         LiveInstrumentation.resetRunCount();
     }
 }

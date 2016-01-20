@@ -53,13 +53,13 @@ public final class ArrayTest implements SuspendableRunnable {
     
     @Override
     public final void run() {
-        PatchLevel[][] local_patch_levels = l3;
-        PatchLevel patch_level = local_patch_levels[0][0];
+        final PatchLevel[][] local_patch_levels = l3;
+        final PatchLevel patch_level = local_patch_levels[0][0];
         patch_level.setLevel(42);
     }
     
     private static class PatchLevel {
-        int i;
+        private int i;
     
         public void setLevel(int value) {
             i = value;

@@ -84,6 +84,6 @@ public final class LambdaTest extends LiveInstrumentationTest {
             throw new RuntimeException(e);
         }
 
-        assertThat(LiveInstrumentation.getRunCount(), equalTo(2L));
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(2L));
     }
 }

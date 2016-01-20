@@ -36,7 +36,7 @@ import static org.junit.Assume.assumeFalse;
 public final class CatchSuspendExecutionTest {
     private final List<String> results = new ArrayList<>();
 
-    public void suspendableMethod() {
+    private final void suspendableMethod() {
         try {
             results.add("A");
             Fiber.park();
@@ -65,7 +65,7 @@ public final class CatchSuspendExecutionTest {
         try {
             final Fiber<Object> co = new Fiber<>((String) null, null, (SuspendableCallable<Object>) null) {
                 @Override
-                protected Object run() throws InterruptedException {
+                protected final Object run() throws InterruptedException {
                     suspendableMethod();
                     return null;
                 }
@@ -89,7 +89,7 @@ public final class CatchSuspendExecutionTest {
         try {
             final Fiber<Object> co = new Fiber<>((String) null, null, (SuspendableCallable<Object>) null) {
                 @Override
-                protected Object run() throws InterruptedException {
+                protected final Object run() throws InterruptedException {
                     nonsuspendableMethod();
                     return null;
                 }

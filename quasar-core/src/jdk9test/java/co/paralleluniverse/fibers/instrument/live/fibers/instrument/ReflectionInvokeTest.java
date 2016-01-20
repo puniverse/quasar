@@ -30,16 +30,17 @@ import static org.junit.Assert.assertEquals;
  *
  * @author Matthias Mann
  */
-public class ReflectionInvokeTest {
+public final class ReflectionInvokeTest {
     private ArrayList<String> results = new ArrayList<>();
 
     /** @noinspection unused*/
     private String suspendableMethod() {
+        System.out.println("Parking");
         Fiber.park();
         return "hi";
     }
 
-    private class Callable1 implements SuspendableCallable<Integer> {
+    private final class Callable1 implements SuspendableCallable<Integer> {
         @Override
         public final Integer run() {
             final Method m;
@@ -51,12 +52,14 @@ public class ReflectionInvokeTest {
             }
             try {
                 results.add("A");
+                System.out.println("Invoking 1");
                 m.invoke(ReflectionInvokeTest.this);
                 results.add("C");
+                System.out.println("Invoking 2");
                 m.invoke(ReflectionInvokeTest.this);
                 results.add("E");
                 return 3;
-            } catch (InvocationTargetException | IllegalAccessException ex) {
+            } catch (final InvocationTargetException | IllegalAccessException ex) {
                 //System.out.println("EX: " + ex);
                 throw new RuntimeException(ex);
             }

@@ -51,7 +51,7 @@ public final class Merge2Test implements SuspendableRunnable {
             final Interface iface = getInterface();
             //noinspection ConstantConditions
             iface.method();
-        } catch(IllegalStateException ise) {
+        } catch (final IllegalStateException ise) {
             suspendable();
         }
     }
@@ -62,7 +62,7 @@ public final class Merge2Test implements SuspendableRunnable {
             final Fiber c = new Fiber((String)null, null, new Merge2Test());
             TestsHelper.exec(c);
             assertTrue("Should not reach here", false);
-        } catch (NullPointerException ex) {
+        } catch (final NullPointerException ex) {
             // NPE expected
         }
     }

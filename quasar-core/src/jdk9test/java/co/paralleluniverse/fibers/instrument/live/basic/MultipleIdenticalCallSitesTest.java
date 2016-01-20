@@ -88,6 +88,6 @@ public final class MultipleIdenticalCallSitesTest extends LiveInstrumentationTes
             throw new RuntimeException(e);
         }
 
-        assertThat(LiveInstrumentation.getRunCount(), equalTo(1L));
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 }

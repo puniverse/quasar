@@ -109,6 +109,6 @@ public final class MethodHandleTest extends LiveInstrumentationTest {
             throw new RuntimeException(e);
         }
 
-        assertThat(LiveInstrumentation.getRunCount(), equalTo(1L));
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 }

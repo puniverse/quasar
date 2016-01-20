@@ -95,7 +95,7 @@ public final class ThrowTest implements SuspendableRunnable {
             results.add("D");
             exec(co);
             assertTrue(false);
-        } catch (IllegalStateException es) {
+        } catch (final IllegalStateException es) {
             assertEquals("bla", es.getMessage());
             //assertEquals(LightweightThread.State.FINISHED, co.getState());
         } finally {

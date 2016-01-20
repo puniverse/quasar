@@ -6,7 +6,6 @@
 package co.paralleluniverse.fibers.instrument.live.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.Test;
 
@@ -21,9 +20,9 @@ import static org.junit.Assert.assertEquals;
  */
 public final class InheritTest {
     @Test
-    public void testInherit() {
+    public final void testInherit() {
         final C dut = new C();
-        Fiber c = new Fiber((String)null, null, (SuspendableRunnable) dut::myMethod);
+        final Fiber c = new Fiber((String)null, null, (SuspendableRunnable) dut::myMethod);
         for(int i=0 ; i<3 ; i++) {
             exec(c);
         }
@@ -37,7 +36,7 @@ public final class InheritTest {
     }
     
     private static class A {
-        static void suspend() throws SuspendExecution {
+        static void suspend() {
             Fiber.park();
         }
     }
@@ -47,13 +46,13 @@ public final class InheritTest {
     }
     
     private static final class C extends B {
-        public void otherMethod() throws SuspendExecution {
+        public final void otherMethod() {
             result.add("o1");
             Fiber.park();
             result.add("o2");
         }
         
-        public void myMethod() throws SuspendExecution {
+        public final void myMethod() {
             result.add("a");
             otherMethod();
 

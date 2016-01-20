@@ -19,6 +19,7 @@ import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberAsync;
 import co.paralleluniverse.fibers.*;
+import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.vtime.ScaledClock;
 import co.paralleluniverse.vtime.SystemClock;

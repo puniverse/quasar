@@ -20,7 +20,6 @@ import co.paralleluniverse.strands.SuspendableCallable;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import static co.paralleluniverse.fibers.TestsHelper.exec;
 
@@ -107,6 +106,6 @@ public final class ParkAndReparkTest extends LiveInstrumentationTest {
             throw new RuntimeException(e);
         }
 
-        assertThat(LiveInstrumentation.getRunCount(), equalTo(1L));
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 }

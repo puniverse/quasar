@@ -51,7 +51,7 @@ public final class InitialSizeTest implements SuspendableRunnable {
     }
     
     private int factorial(Integer a) {
-        if(a == 0) {
+        if (a == 0) {
             Fiber.park();
             return 1;
         }

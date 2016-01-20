@@ -37,6 +37,8 @@ import java.util.stream.Collectors;
 public final class LiveInstrumentation {
     // TODO: remove `synchronized` or change it to a lock
     static synchronized boolean fixup(Fiber fiber) {
+        DEBUG("\nCurrent live instrumentation count: " + runCount.get());
+
         if (DUMP_STACK_FRAMES_FIRST) {
             DEBUG("\nWARNING: live instrumentation's preliminar stack dump ACTIVE, this will SEVERELY harm performances");
             lastFrames = getStackFrames();
@@ -151,12 +153,61 @@ public final class LiveInstrumentation {
         return false;
     }
 
+    private static long agree(StackWalker w, Stack fs) {
+        if (FORCE) {
+            DEBUG("\nWARNING: live instrumentation forcing ACTIVE, this will SEVERELY harm performances");
+            return Integer.MIN_VALUE;
+        }
+
+        // TODO: must be _fast_, JMH it
+        StackFramePredicate.reset();
+        final List<StackWalker.StackFrame> frames = w.walk(s -> s.collect(Collectors.toList())); // TODO Remove
+        final long threadStackDepth = w.walk(s -> s.filter(StackFramePredicate.INSTANCE).collect(COUNTING));
+        return threadStackDepth - (fs.getInstrumentedCount() + fs.getOptimizedCount());
+        // return 1;
+    }
+
     private static StackWalker.StackFrame[] getStackFrames() {
-        DEBUG("\n0) Retrieving live stack frames");
         final List<StackWalker.StackFrame> fsL = esw.walk(s -> s.collect(Collectors.toList()));
         final StackWalker.StackFrame[] fs = new StackWalker.StackFrame[fsL.size()];
         fsL.toArray(fs);
         return fs;
+    }
+
+    private static class StackFramePredicate implements Predicate<StackWalker.StackFrame> {
+        final private static StackFramePredicate INSTANCE = new StackFramePredicate();
+
+        private boolean upperFiberRuntime, lowerFiberRuntime;
+
+        @Override
+        public final boolean test(StackWalker.StackFrame sf) {
+            final String cn = sf.getClassName();
+
+            if (upperFiberRuntime)
+                upperFiberRuntime = SuspendableHelper9.isUpperFiberRuntime(cn);
+
+            if (!upperFiberRuntime && !lowerFiberRuntime)
+                lowerFiberRuntime = SuspendableHelper9.isFiber(cn);
+
+            return
+                !upperFiberRuntime &&
+                    !lowerFiberRuntime &&
+                    !isReflection(cn) &&
+                    !isDynamicInvoke(cn);
+        }
+
+        private StackFramePredicate() {
+            reset(this);
+        }
+
+        private static void reset() {
+            reset(INSTANCE);
+        }
+
+        private static void reset(StackFramePredicate p) {
+            p.upperFiberRuntime = true;
+            p.lowerFiberRuntime = false;
+        }
     }
 
     private static class ReportRecord {
@@ -900,57 +951,6 @@ public final class LiveInstrumentation {
         }
     }
 
-    ///////////////////////////// Less interesting
-
-    private static long agree(StackWalker w, Stack fs) {
-        if (FORCE) {
-            DEBUG("\nWARNING: live instrumentation forcing ACTIVE, this will SEVERELY harm performances");
-            return Integer.MIN_VALUE;
-        }
-
-        // TODO: must be _fast_, JMH it
-        StackFramePredicate.reset();
-        final long threadStackDepth = w.walk (s -> s.filter(StackFramePredicate.INSTANCE).collect(COUNTING));
-        return threadStackDepth - (fs.getInstrumentedCount() + fs.getOptimizedCount());
-        // return 1;
-    }
-
-    private static class StackFramePredicate implements Predicate<StackWalker.StackFrame> {
-        final private static StackFramePredicate INSTANCE = new StackFramePredicate();
-
-        private boolean upperFiberRuntime, lowerFiberRuntime;
-
-        @Override
-        public final boolean test(StackWalker.StackFrame sf) {
-            final String cn = sf.getClassName();
-
-            if (upperFiberRuntime)
-                upperFiberRuntime = SuspendableHelper9.isUpperFiberRuntime(cn);
-
-            if (!upperFiberRuntime && !lowerFiberRuntime)
-                lowerFiberRuntime = SuspendableHelper9.isFiber(cn);
-
-            return
-                !upperFiberRuntime &&
-                !lowerFiberRuntime &&
-                !isReflection(cn) &&
-                !isDynamicInvoke(cn);
-        }
-
-        private StackFramePredicate() {
-            reset(this);
-        }
-
-        private static void reset() {
-            reset(INSTANCE);
-        }
-
-        private static void reset(StackFramePredicate p) {
-            p.upperFiberRuntime = true;
-            p.lowerFiberRuntime = false;
-        }
-    }
-
     private static boolean isReflection(String className) {
         return
             className.startsWith("sun.reflect.") ||
@@ -1100,7 +1100,7 @@ public final class LiveInstrumentation {
 
     private static String dump(StackWalker.StackFrame[] fs) throws Exception {
         final StringBuilder sb = new StringBuilder();
-        sb.append("\n*********************STACK DUMP*********************\n");
+        sb.append("\n*********************STACK DUMP START*********************\n");
         for (final StackWalker.StackFrame f : fs) {
             //noinspection RedundantCast
             sb.append(String.format (
@@ -1123,6 +1123,7 @@ public final class LiveInstrumentation {
             for (int i = 0; i < monitors.length; i++)
                 sb.append(String.format("\tmonitor %d: %s%n", i, monitors[i]));
         }
+        sb.append("\n*********************STACK DUMP END***********************\n");
         return sb.toString();
     }
 
@@ -1147,11 +1148,11 @@ public final class LiveInstrumentation {
 
     private static StackWalker.StackFrame[] lastFrames;
 
-    private static final AtomicLong runCount = new AtomicLong();
+    private static final AtomicLong runCount = new AtomicLong(0L);
 
     @VisibleForTesting
-    public static long getRunCount() {
-        return runCount.get();
+    public static long fetchRunCount() {
+        return runCount.getAndSet(0L);
     }
 
     @VisibleForTesting

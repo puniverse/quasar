@@ -118,6 +118,6 @@ public final class MultipleCallSitesTest extends LiveInstrumentationTest {
             throw new RuntimeException(e);
         }
 
-        assertThat(LiveInstrumentation.getRunCount(), equalTo(3L));
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(3L));
     }
 }

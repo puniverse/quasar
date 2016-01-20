@@ -48,16 +48,16 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 public final class FiberTest implements Serializable {
     @Rule
-    public TestName name = new TestName();
+    final public TestName name = new TestName();
     @Rule
-    public TestRule watchman = TestUtil.WATCHMAN;
+    final public TestRule watchman = TestUtil.WATCHMAN;
 
     private transient FiberScheduler scheduler;
 
 /*
     public FiberTest() {
-////        this.scheduler = new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1));
-          this.scheduler = new FiberForkJoinScheduler("test", 4, null, false);
+//        this.scheduler = new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1, new ThreadFactoryBuilder().setNameFormat("fiber-scheduler-%d").setDaemon(true).build()));
+        this.scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 */
 
@@ -341,7 +341,7 @@ public final class FiberTest implements Serializable {
             }
 
             private void foo() {
-                StackTraceElement[] st = Fiber.currentFiber().getStackTrace();
+                final StackTraceElement[] st = Fiber.currentFiber().getStackTrace();
 
                 // Strand.printStackTrace(st, System.err);
                 assertThat(st[0].getMethodName(), equalTo("getStackTrace"));

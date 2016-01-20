@@ -126,6 +126,6 @@ public final class AccessTest extends LiveInstrumentationTest {
         assertThat(l.size(), equalTo(4));
         assertEquals(Arrays.asList(1, 2, 3, 4), l);
 
-        assertThat(LiveInstrumentation.getRunCount(), equalTo(1L));
+        assertThat(LiveInstrumentation.fetchRunCount(), equalTo(1L));
     }
 }
