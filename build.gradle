@@ -39,7 +39,7 @@ subprojects {
     ext.quasarJar = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}${ext.java8 ? "-jdk8" : ""}.jar" // project(':quasar-core').jar.archivePath
 
     ext.asmVer    = '5.0.4'
-    ext.kotlinVer = '1.0.0-beta-4583'
+    ext.kotlinVer = '1.0.0-beta-4589'
 
     if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
         println "sonatype username or password not set"
@@ -143,7 +143,7 @@ subprojects {
 
     tasks.withType(Test) {
         useJUnit()
-        // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+        systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
 
         // systemProperty "java.util.logging.config.file", "jul.properties"
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
@@ -204,7 +204,7 @@ subprojects {
 
             systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
             systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
-            // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+            systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
             jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
 
             // jvmArgs '-XX:+UnlockCommercialFeatures', '-XX:+FlightRecorder', '-XX:StartFlightRecording=duration=60s,filename=recording.jfr,settings=heap'
@@ -651,7 +651,7 @@ project (':quasar-galaxy') {
         main = mainClass
         systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
         systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
-        // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+        systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
         // systemProperty "co.paralleluniverse.io.useJDKSerialization", "true"
         jvmArgs "-javaagent:${quasarJar}" // =v, =d
         jvmArgs "-ea", "-XX:MaxDirectMemorySize=100M"
