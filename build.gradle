@@ -20,7 +20,7 @@ subprojects {
     [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
     group               = "co.paralleluniverse"
-    version             = "0.7.4"
+    version             = "0.7.5-SNAPSHOT"
     status              = "integration"
     description         = "Fibers, Channels and Actors for the JVM"
     ext.url             = "http://puniverse.github.com/quasar"
@@ -39,7 +39,7 @@ subprojects {
     ext.quasarJar = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}${ext.java8 ? "-jdk8" : ""}.jar" // project(':quasar-core').jar.archivePath
 
     ext.asmVer    = '5.0.4'
-    ext.kotlinVer = '1.0.0-beta-4583'
+    ext.kotlinVer = '1.0.0-beta-4589'
 
     if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
         println "sonatype username or password not set"
