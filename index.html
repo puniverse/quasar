@@ -184,7 +184,7 @@
 
 <h3 id="january-18-2016">January 18,&nbsp;2016</h3>
 
-<p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.7.4"><span class="caps">0.7.6</span></a> has been&nbsp;released.</p>
+<p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.7.4"><span class="caps">0.7.4</span></a> has been&nbsp;released.</p>
 
 <h3 id="august-28-2015">August 28,&nbsp;2015</h3>
 
@@ -572,9 +572,10 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 </span><span id="line-2">    <span class="nl">classpath:</span> <span class="s2">&quot;build/classes/main:build/resources/main:${configurations.runtime.asPath}&quot;</span><span class="o">)</span>
 </span><span id="line-3"><span class="n">ant</span><span class="o">.</span><span class="na">scanSuspendables</span><span class="o">(</span>
 </span><span id="line-4">    <span class="nl">auto:</span><span class="kc">false</span><span class="o">,</span>
-</span><span id="line-5">    <span class="nl">suspendablesFile:</span> <span class="s2">&quot;$sourceSets.main.output.resourcesDir/META-INF/suspendables&quot;</span><span class="o">)</span> <span class="o">{</span>
-</span><span id="line-6">    <span class="n">fileset</span><span class="o">(</span><span class="nl">dir:</span> <span class="n">sourceSets</span><span class="o">.</span><span class="na">main</span><span class="o">.</span><span class="na">output</span><span class="o">.</span><span class="na">classesDir</span><span class="o">)</span>
-</span><span id="line-7"><span class="o">}</span>
+</span><span id="line-5">    <span class="nl">suspendablesFile:</span> <span class="s2">&quot;$sourceSets.main.output.resourcesDir/META-INF/suspendables&quot;</span><span class="o">,</span>
+</span><span id="line-6">    <span class="nl">supersFile:</span> <span class="s2">&quot;$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers&quot;</span><span class="o">)</span> <span class="o">{</span>
+</span><span id="line-7">    <span class="n">fileset</span><span class="o">(</span><span class="nl">dir:</span> <span class="n">sourceSets</span><span class="o">.</span><span class="na">main</span><span class="o">.</span><span class="na">output</span><span class="o">.</span><span class="na">classesDir</span><span class="o">)</span>
+</span><span id="line-8"><span class="o">}</span>
 </span></code></pre></div>
 <p><code>SuspendablesScanner</code> scans your code after it’s been compiled for methods annotated with <code>@Suspendable</code>. In our example it will find <code>C.f</code>. It will then see that <code>C.f</code> is an implementation of <code>I.f</code>, and so it will list <code>I.f</code> in a text file (<code>META-INF/suspendable-supers</code>), that contains all methods that have overriding suspendable&nbsp;implementations.</p>
 
