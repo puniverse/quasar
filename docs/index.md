@@ -32,7 +32,7 @@ A core component of Quasar, bytecode instrumentation, is a fork of the wonderful
 
 ### January 18, 2016
 
-Quasar [0.7.6](https://github.com/puniverse/quasar/releases/tag/v0.7.4) has been released.
+Quasar [0.7.4](https://github.com/puniverse/quasar/releases/tag/v0.7.4) has been released.
 
 ### August 28, 2015
 
@@ -435,7 +435,8 @@ ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instr
     classpath: "build/classes/main:build/resources/main:${configurations.runtime.asPath}")
 ant.scanSuspendables(
     auto:false,
-    suspendablesFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendables") {
+    suspendablesFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendables",
+    supersFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
     fileset(dir: sourceSets.main.output.classesDir)
 }
 ~~~
