@@ -16,6 +16,7 @@ package co.paralleluniverse.strands.dataflow;
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
+import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.Fiber;
@@ -29,6 +30,7 @@ import co.paralleluniverse.strands.channels.ReceivePort;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A dataflow variable.
@@ -161,14 +163,11 @@ public class Var<T> {
             fiber.signalNewValue(this);
     }
 
-    /**
-     * Returns the Var's current value (more precisely: it returns the oldest value in the maintained history that has
-     * not yet been returned), unless this Var does not yet have a value; only in that case will this method block.
-     */
-    public T get() throws SuspendExecution, InterruptedException {
-        TLVar tl = tlv.get();
+    @VisibleForTesting
+    public T get(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        final TLVar tl = tlv.get();
         if (tl.type == UNKNOWN) {
-            Fiber currentFiber = Fiber.currentFiber();
+            final Fiber currentFiber = Fiber.currentFiber();
             if (currentFiber != null && currentFiber instanceof VarFiber) {
                 final VarFiber<?> vf = (VarFiber<?>) currentFiber;
                 tl.type = VARFIBER;
@@ -181,7 +180,10 @@ public class Var<T> {
         try {
             final T val;
             if (tl.val == null) {
-                val = tl.c.receive();
+                if (timeout > 0 && unit != null)
+                    val = tl.c.receive(timeout, unit);
+                else
+                    val = tl.c.receive();
                 tl.val = val;
             } else {
                 T v = tl.c.tryReceive();
@@ -191,8 +193,8 @@ public class Var<T> {
             }
 
             return val == NULL ? null : val;
-        } catch (ProducerException e) {
-            Throwable t = e.getCause();
+        } catch (final ProducerException e) {
+            final Throwable t = e.getCause();
             if (t instanceof RuntimeException)
                 throw (RuntimeException) t;
             else if (t instanceof Error)
@@ -203,14 +205,30 @@ public class Var<T> {
     }
 
     /**
+     * Returns the Var's current value (more precisely: it returns the oldest value in the maintained history that has
+     * not yet been returned), unless this Var does not yet have a value; only in that case will this method block.
+     */
+     public T get() throws SuspendExecution, InterruptedException {
+        return get(-1, null);
+    }
+
+    @VisibleForTesting
+    public T getNext(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+        final TLVar tl = tlv.get();
+        final T val;
+        if (timeout > 0 && unit != null)
+            val = tl.c.receive(timeout, unit);
+        else
+            val = tl.c.receive();
+        tl.val = val;
+        return val;
+    }
+
+    /**
      * Blocks until a new value has been set and returns it.
      */
     public T getNext() throws SuspendExecution, InterruptedException {
-        TLVar tl = tlv.get();
-        final T val;
-        val = tl.c.receive();
-        tl.val = val;
-        return val;
+        return getNext(-1, null);
     }
 
     private static class VarFiber<T> extends Fiber<Void> {
