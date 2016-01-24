@@ -1170,7 +1170,7 @@ public final class LiveInstrumentation {
             db.getLog().log(LogLevel.DEBUG, "[LIVE] " + s);
         */
         err.println(s); // Workaround Gradle threadlocal-based out/err serializability issue
-//        System.out.println(s);
+        // System.err.println(s);
     }
 
     private static StackWalker.StackFrame[] lastFrames;
