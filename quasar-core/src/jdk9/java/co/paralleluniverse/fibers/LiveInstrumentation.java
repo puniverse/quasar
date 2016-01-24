@@ -228,7 +228,7 @@ public final class LiveInstrumentation {
         }
     }
 
-    private static List<ReportRecord> getInstrumentationReports(StackWalker.StackFrame[] fs) {
+    private static List<ReportRecord> getInstrumentationReports(StackWalker.StackFrame[] fs) throws InvocationTargetException, IllegalAccessException {
         // 1) Collect reports
         DEBUG("\n1) Collecting instrumentation reports:");
         final List<ReportRecord> reports = new ArrayList<>();
@@ -272,7 +272,7 @@ public final class LiveInstrumentation {
                     final Verify.CheckFrameInstrumentationReport report =
                         Verify.checkFrameInstrumentation(fs, i, upper);
 
-                    DEBUG("\tFrame: " + f + ", report: " + report.toString());
+                    DEBUG("\tLive frame call site: " + getCallSiteId(f) + ", report: " + report.toString());
 
                     reports.add(new ReportRecord(f, upper, lower, report));
 
@@ -318,10 +318,7 @@ public final class LiveInstrumentation {
             mtCaller = (MethodType) getMethodType.invoke(memberName.get(f));
 
             // a) Print debug info
-            DEBUG (
-                "\tLive lazy auto-instrumentation for call frame: " + f.getClassName() + "#"+
-                    f.getMethodName() + mtCaller.toMethodDescriptorString()
-            );
+            DEBUG("\tLive lazy auto-instrumentation for frame call site: " + getCallSiteId(f));
             if (!ok)
                 DEBUG("\t\tFrame instrumentation analysis found problems!");
 
@@ -435,7 +432,7 @@ public final class LiveInstrumentation {
             // The annotation will be correct now
             final Instrumented updatedAnn = SuspendableHelper.getAnnotation(m, Instrumented.class);
             if (updatedAnn != null && !updatedAnn.isMethodInstrumentationOptimized()) {
-                DEBUG("\tMethod \"" + m + "\" is not optimized, creating a fiber stack rebuild record");
+                DEBUG("\tMethod of call site " + getCallSiteId(f) + " is not optimized, creating a fiber stack rebuild record");
                 upperFFP =
                     pushRebuildToDoFull (
                         f,
@@ -445,7 +442,7 @@ public final class LiveInstrumentation {
                         ret
                     );
             } else {
-                DEBUG("\tMethod \"" + m + "\" is optimized, creating an optimized fiber stack rebuild record");
+                DEBUG("\tMethod of call site " + getCallSiteId(f) + " is optimized, creating an optimized fiber stack rebuild record");
                 final FiberFramePushOptimized ffpo = new FiberFramePushOptimized(f);
                 ret.push(ffpo);
                 upperFFP = ffpo;
@@ -455,7 +452,7 @@ public final class LiveInstrumentation {
         return ret;
     }
 
-    private static void rebuildFiberStack(Stack fiberStack, java.util.Stack<FiberFramePush> fiberStackRebuildToDoList, HashMap<StackWalker.StackFrame, Integer> frameToSuspendableCallIndex) {
+    private static void rebuildFiberStack(Stack fiberStack, java.util.Stack<FiberFramePush> fiberStackRebuildToDoList, HashMap<StackWalker.StackFrame, Integer> frameToSuspendableCallIndex) throws InvocationTargetException, IllegalAccessException {
         DEBUG("\n6) Rebuilding fiber stack");
         DEBUG("\t** Fiber stack dump before rebuild:");
         DEBUG(fiberStack.toString());
@@ -467,17 +464,22 @@ public final class LiveInstrumentation {
     }
 
     private static String getMethodId(StackWalker.StackFrame f) throws IllegalAccessException, InvocationTargetException {
-        return f.getClassName() + "::" + f.getMethodName() +
-            ((MethodType) getMethodType.invoke(memberName.get(f))).toMethodDescriptorString();
+        return f.getClassName() + "#" + f.getMethodName() + ((MethodType) getMethodType.invoke(memberName.get(f))).toMethodDescriptorString();
     }
 
-    private static void apply(java.util.Stack<FiberFramePush> todo, Map<StackWalker.StackFrame, Integer> entries, Stack fs) {
+    private static String getCallSiteId(StackWalker.StackFrame f) throws IllegalAccessException, InvocationTargetException {
+        return
+            f.getFileName().orElse("<UNKNOWN SOURCE>") + "@l" + f.getLineNumber().orElse(-1) +
+            ":\"" + getMethodId(f) + "\"@b" + offset.get(f);
+    }
+
+    private static void apply(java.util.Stack<FiberFramePush> todo, Map<StackWalker.StackFrame, Integer> entries, Stack fs) throws InvocationTargetException, IllegalAccessException {
         fs.clear();
         int i = 1;
         int s = todo.size();
         while (!todo.empty()) {
             final FiberFramePush ffp = todo.pop();
-            DEBUG("\tApplying " + i + " of " + s + " (" + ffp.getClass() + ")");
+            DEBUG("\tApplying " + i + " of " + s);
             ffp.apply(entries, fs);
             i++;
         }
@@ -502,7 +504,7 @@ public final class LiveInstrumentation {
             this.operands = (Object[]) getOperands.invoke(f);
         }
 
-        abstract void apply(Map<StackWalker.StackFrame, Integer> entries, Stack s);
+        abstract void apply(Map<StackWalker.StackFrame, Integer> entries, Stack s) throws InvocationTargetException, IllegalAccessException;
     }
 
     private static class FiberFramePushOptimized extends FiberFramePush {
@@ -512,22 +514,21 @@ public final class LiveInstrumentation {
         }
 
         @Override
-        public void apply(Map<StackWalker.StackFrame, Integer> entries, Stack s) {
-            DEBUG("\t\tFor " + m);
-            DEBUG("\t\tJust increasing optimized count");
+        public void apply(Map<StackWalker.StackFrame, Integer> entries, Stack s) throws InvocationTargetException, IllegalAccessException {
+            DEBUG("\t\t[FiberFramePushOptimized] Just increasing opt. count for " + getCallSiteId(f));
             s.incOptimizedCount();
         }
     }
 
     private static class FiberFramePushFull extends FiberFramePush {
+        private final StackWalker.StackFrame upper;
         private final Method upperM;
         private final Object[] upperLocals;
         private final FiberFramePush upperFFP;
 
-        private final Method lowerM;
-        private final int lowerOffset;
+        private final StackWalker.StackFrame lower;
 
-        private final boolean isYield;
+        private final boolean isUpperYield;
 
         private FiberFramePushFull(StackWalker.StackFrame f,
                                    StackWalker.StackFrame upper,
@@ -537,14 +538,14 @@ public final class LiveInstrumentation {
         {
             super(f);
 
+            this.upper = upper;
             this.upperM = SuspendableHelper9.lookupMethod(upper);
             this.upperLocals = (Object[]) getLocals.invoke(upper);
             this.upperFFP = upperFFP;
 
-            this.lowerM = SuspendableHelper9.lookupMethod(lower);
-            this.lowerOffset = (Integer) offset.get(lower);
+            this.lower = lower;
 
-            this.isYield = Classes.isYieldMethod(upper.getClassName().replace('.', '/'), upper.getMethodName());
+            this.isUpperYield = Classes.isYieldMethod(upper.getClassName().replace('.', '/'), upper.getMethodName());
         }
 
         @FunctionalInterface
@@ -610,13 +611,13 @@ public final class LiveInstrumentation {
          * <br>
          * !!! Must be kept aligned with `InstrumentMethod.emitFiberStackStoreState` and `Stack.pushXXX` !!!
          */
-        public void apply(Map<StackWalker.StackFrame, Integer> entries, Stack s) {
+        public void apply(Map<StackWalker.StackFrame, Integer> entries, Stack s) throws InvocationTargetException, IllegalAccessException {
             final Instrumented ann = SuspendableHelper.getAnnotation(m, Instrumented.class);
             final Integer idx = entries.get(f);
 
-            DEBUG("\t\tFrame method \"" + m + "\":");
-            DEBUG("\t\t\tCalled at offset " + lowerOffset + " of: " + lowerM);
-            DEBUG("\t\t\tCalling at offset " + currOffset + ": " + upperM + " (yield = " + isYield + ")");
+            DEBUG("\t\t[FiberFramePushFull] " + getCallSiteId(f));
+            DEBUG("\t\t\tCalled at: " + getCallSiteId(lower));
+            DEBUG("\t\t\tUpper: " + getCallSiteId(upper) + " (yield = " + isUpperYield + ")");
             DEBUG("\t\t\tFrame operands types from instrumentation (reverse):");
             int i = 1;
             boolean found = false;
