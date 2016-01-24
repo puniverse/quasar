@@ -14,10 +14,16 @@ package co.paralleluniverse.data.record;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+/*
 import co.paralleluniverse.asm.ClassWriter;
 import co.paralleluniverse.asm.MethodVisitor;
 import static co.paralleluniverse.asm.Opcodes.*;
 import co.paralleluniverse.asm.Type;
+*/
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import static org.objectweb.asm.Opcodes.*;
+import org.objectweb.asm.Type;
 
 /**
  *
