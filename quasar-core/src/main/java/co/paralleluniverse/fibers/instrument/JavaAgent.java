@@ -184,20 +184,8 @@ public class JavaAgent {
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
 
             // DEBUG
-            if (QuasarInstrumentor.EXAMINED_CLASS != null && className.startsWith(QuasarInstrumentor.EXAMINED_CLASS)) {
-                boolean b;
-                try {
-                    final InputStream is = loader.getResourceAsStream(className.replace('.', '/') + ".class");
-                    final byte[] orig = ByteStreams.toByteArray(is);
-                    b = Arrays.equals(classfileBuffer, orig);
-                } catch (final IOException e) {
-                    e.printStackTrace();
-                    throw new RuntimeException(e);
-                }
-                QuasarInstrumentor.writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-0-original-buffer.class.loader.txt",
-                    (loader.toString() + ": " + b).getBytes());
+            if (QuasarInstrumentor.EXAMINED_CLASS != null && className.startsWith(QuasarInstrumentor.EXAMINED_CLASS))
                 QuasarInstrumentor.writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-0-original-buffer.class", classfileBuffer);
-            }
 
             if (className.startsWith("clojure/lang/Compiler"))
                 return crazyClojureOnceDisable(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
