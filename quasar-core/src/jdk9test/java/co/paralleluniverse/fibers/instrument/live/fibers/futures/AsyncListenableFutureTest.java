@@ -25,6 +25,7 @@ import co.paralleluniverse.strands.SuspendableCallable;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -39,6 +40,7 @@ import static org.junit.Assert.*;
  *
  * @author pron
  */
+//@Ignore
 public final class AsyncListenableFutureTest extends LiveInstrumentationTest {
     @Rule
     public TestName name = new TestName();

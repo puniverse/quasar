@@ -18,6 +18,7 @@ import static org.junit.Assert.*;
 
 import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import co.paralleluniverse.fibers.Fiber;
@@ -28,6 +29,7 @@ import java.util.concurrent.ExecutionException;
 /**
  * @author circlespainter
  */
+//@Ignore
 public class ReturnTest extends LiveInstrumentationTest {
     private static final class F implements SuspendableCallable<Integer> {
         @Override

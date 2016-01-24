@@ -47,6 +47,7 @@ import static org.junit.Assert.*;
  * @author pron
  */
 @RunWith(Parameterized.class)
+//@Ignore
 public final class FiberTest extends LiveInstrumentationTest implements Serializable {
     @Rule
     final public TestName name = new TestName();

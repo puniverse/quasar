@@ -17,6 +17,7 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableCallable;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.lang.reflect.InvocationTargetException;
@@ -34,6 +35,7 @@ import static org.junit.Assert.assertThat;
  *
  * @author Matthias Mann
  */
+//@Ignore
 public final class ReflectionInvokeTest extends LiveInstrumentationTest {
     private ArrayList<String> results = new ArrayList<>();
 

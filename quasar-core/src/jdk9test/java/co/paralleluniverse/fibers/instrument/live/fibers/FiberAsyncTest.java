@@ -24,10 +24,7 @@ import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.vtime.ScaledClock;
 import co.paralleluniverse.vtime.SystemClock;
 import co.paralleluniverse.vtime.VirtualClock;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
 
@@ -43,6 +40,7 @@ import static org.junit.Assert.*;
  *
  * @author pron
  */
+//@Ignore
 public final class FiberAsyncTest extends LiveInstrumentationTest {
     @Rule
     public TestName name = new TestName();

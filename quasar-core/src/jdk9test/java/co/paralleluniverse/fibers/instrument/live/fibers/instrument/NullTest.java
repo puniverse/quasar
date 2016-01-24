@@ -10,6 +10,7 @@ import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.TestsHelper;
 import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -20,6 +21,7 @@ import static org.junit.Assert.assertThat;
  *
  * @author Matthias Mann
  */
+//@Ignore
 public class NullTest extends LiveInstrumentationTest implements SuspendableRunnable {
     private Object result = "b";
     

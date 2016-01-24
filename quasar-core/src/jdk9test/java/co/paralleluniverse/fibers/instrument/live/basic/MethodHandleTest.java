@@ -17,6 +17,7 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableCallable;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.lang.invoke.MethodHandle;
@@ -30,6 +31,7 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
+//@Ignore
 public final class MethodHandleTest extends LiveInstrumentationTest {
     private final MethodHandle mhm, mhm1;
 

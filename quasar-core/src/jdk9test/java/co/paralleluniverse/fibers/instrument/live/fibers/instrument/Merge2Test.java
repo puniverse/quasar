@@ -13,6 +13,7 @@ import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -23,6 +24,7 @@ import static org.junit.Assert.assertTrue;
  *
  * @author mam
  */
+//@Ignore
 public final class Merge2Test extends LiveInstrumentationTest implements SuspendableRunnable {
     private static Strand.UncaughtExceptionHandler previousUEH;
 

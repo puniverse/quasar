@@ -43,6 +43,7 @@ import static org.junit.Assert.assertThat;
  *
  * @author pron
  */
+//@Ignore
 public final class FiberAsyncIOTest extends LiveInstrumentationTest {
     @Rule
     public TestName name = new TestName();

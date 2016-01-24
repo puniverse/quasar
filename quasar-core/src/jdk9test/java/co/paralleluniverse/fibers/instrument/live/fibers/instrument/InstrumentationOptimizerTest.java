@@ -20,6 +20,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.instrument.InstrumentMethod;
 import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.lang.reflect.InvocationTargetException;
@@ -35,6 +36,7 @@ import static org.junit.Assume.assumeFalse;
  *
  * @author circlespainter
  */
+//@Ignore
 public final class InstrumentationOptimizerTest extends LiveInstrumentationTest {
 
     private boolean isOptimized(String method) {

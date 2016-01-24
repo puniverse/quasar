@@ -10,6 +10,7 @@ import co.paralleluniverse.fibers.Stack;
 import co.paralleluniverse.fibers.TestsHelper;
 import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -20,6 +21,7 @@ import static org.junit.Assert.*;
 /**
  * @author Matthias Mann
  */
+//@Ignore
 public final class InitialSizeTest extends LiveInstrumentationTest implements SuspendableRunnable {
     
     @Test

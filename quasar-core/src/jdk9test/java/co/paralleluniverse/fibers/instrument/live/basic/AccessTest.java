@@ -17,6 +17,7 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableCallable;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
+//@Ignore
 public final class AccessTest extends LiveInstrumentationTest {
     private static List<Integer> l = new ArrayList<>();
 

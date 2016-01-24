@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
  *
  * @author Matthias Mann
  */
+//@Ignore
 public final class DoubleTest extends LiveInstrumentationTest implements SuspendableRunnable {
     private double result;
 

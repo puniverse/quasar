@@ -124,7 +124,8 @@ public final class LiveInstrumentation {
 
         try {
             // 1)
-            final List<ReportRecord> reports = getInstrumentationReports(fs);
+            final List<ReportRecord> reports =
+                getInstrumentationReports(fs);
 
             // 2)
             final HashMap<String, int[]> methodToSuspOffsetsAfterInstrPreCall =
@@ -1139,11 +1140,13 @@ public final class LiveInstrumentation {
     }
 
     private static void DEBUG(String s) {
+        // TODO
         /*
         if (db.isDebug())
             db.getLog().log(LogLevel.DEBUG, "[LIVE] " + s);
         */
-        err.println(s);
+        err.println(s); // Workaround Gradle threadlocal-based out/err serializability issue
+//        System.out.println(s);
     }
 
     private static StackWalker.StackFrame[] lastFrames;

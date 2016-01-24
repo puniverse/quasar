@@ -36,6 +36,7 @@ import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -49,6 +50,7 @@ import static org.junit.Assert.*;
  * 
  * @author Matthias Mann
  */
+//@Ignore
 public final class ThrowTest extends LiveInstrumentationTest implements SuspendableRunnable {
     private static Strand.UncaughtExceptionHandler previousUEH;
 

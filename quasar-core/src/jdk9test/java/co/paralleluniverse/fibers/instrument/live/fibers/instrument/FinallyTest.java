@@ -32,6 +32,7 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -47,6 +48,7 @@ import static org.junit.Assert.assertThat;
  * 
  * @author Matthias Mann
  */
+//@Ignore
 public final class FinallyTest extends LiveInstrumentationTest implements SuspendableRunnable {
     private final ArrayList<String> results = new ArrayList<>();
     

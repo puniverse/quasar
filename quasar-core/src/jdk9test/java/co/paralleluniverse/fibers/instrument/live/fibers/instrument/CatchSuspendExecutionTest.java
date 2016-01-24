@@ -20,6 +20,7 @@ import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableCallable;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -37,10 +38,11 @@ import static org.junit.Assume.assumeFalse;
  *
  * @author pron
  */
+//@Ignore
 public final class CatchSuspendExecutionTest extends LiveInstrumentationTest {
     private final List<String> results = new ArrayList<>();
 
-    private final void suspendableMethod() {
+    private void suspendableMethod() {
         try {
             results.add("A");
             Fiber.park();

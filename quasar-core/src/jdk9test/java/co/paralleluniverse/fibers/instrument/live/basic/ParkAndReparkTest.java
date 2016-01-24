@@ -17,6 +17,7 @@ import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.LiveInstrumentation;
 import co.paralleluniverse.fibers.instrument.live.LiveInstrumentationTest;
 import co.paralleluniverse.strands.SuspendableCallable;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutionException;
@@ -29,6 +30,7 @@ import static org.junit.Assert.*;
 /**
  * @author circlespainter
  */
+//@Ignore
 public final class ParkAndReparkTest extends LiveInstrumentationTest {
     private static final class F implements SuspendableCallable<Double> {
         @Override
