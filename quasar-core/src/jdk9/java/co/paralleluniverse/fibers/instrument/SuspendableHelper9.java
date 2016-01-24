@@ -71,23 +71,18 @@ public final class SuspendableHelper9 {
         }
     }
 
-    public static boolean isUpperFiberRuntime(String className) {
+    public static boolean isUpperRuntimeOfSuspendingStack(String className) {
         return
             Fiber.class.getName().equals(className) ||
-            Stack.class.getName().equals(className) ||
             LiveInstrumentation.class.getName().equals(className) ||
-            Verify.class.getName().equals(className) ||
-            ForkJoinWorkerThread.class.getName().equals(className) ||
-            ForkJoinTask.class.getName().equals(className) ||
-            ParkableForkJoinTask.class.getName().equals(className) ||
-            className.startsWith(SuspendableUtils.VoidSuspendableCallable.class.getName()) ||
-            className.startsWith(ForkJoinPool.class.getName()) ||
-            className.startsWith(FiberForkJoinScheduler.class.getName());
+            Verify.class.getName().equals(className);
+    }
+
+    public static boolean startsLowerRuntimeOfSuspendingStack(String cn, String mn) {
+        return
+            Fiber.class.getName().equals(cn) &&
+            ("run1".equals(mn) || "run".equals(mn));
     }
 
     private SuspendableHelper9() {}
-
-    public static boolean isFiber(String cn) {
-        return "co.paralleluniverse.fibers.Fiber".equals(cn);
-    }
 }

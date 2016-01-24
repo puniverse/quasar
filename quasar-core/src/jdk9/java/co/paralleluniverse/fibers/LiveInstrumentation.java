@@ -183,12 +183,13 @@ public final class LiveInstrumentation {
         @Override
         public final boolean test(StackWalker.StackFrame sf) {
             final String cn = sf.getClassName();
+            final String mn = sf.getMethodName();
 
             if (upperFiberRuntime)
-                upperFiberRuntime = SuspendableHelper9.isUpperFiberRuntime(cn);
+                upperFiberRuntime = SuspendableHelper9.isUpperRuntimeOfSuspendingStack(cn);
 
             if (!upperFiberRuntime && !lowerFiberRuntime)
-                lowerFiberRuntime = SuspendableHelper9.isFiber(cn);
+                lowerFiberRuntime = SuspendableHelper9.startsLowerRuntimeOfSuspendingStack(cn, mn);
 
             return
                 !upperFiberRuntime &&
@@ -240,12 +241,13 @@ public final class LiveInstrumentation {
             final StackWalker.StackFrame lower = i < fs.length - 1 ? fs[i+1] : null;
 
             final String cn = f.getClassName();
+            final String mn = f.getMethodName();
 
             if (upperFiberRuntime)
-                upperFiberRuntime = SuspendableHelper9.isUpperFiberRuntime(cn);
+                upperFiberRuntime = SuspendableHelper9.isUpperRuntimeOfSuspendingStack(cn);
 
             if (!upperFiberRuntime && !lowerFiberRuntime)
-                lowerFiberRuntime = SuspendableHelper9.isFiber(cn);
+                lowerFiberRuntime = SuspendableHelper9.startsLowerRuntimeOfSuspendingStack(cn, mn);
 
 /*
             // Fix stale offsets in AoT-instrumented classes due to shadow transform
