@@ -756,7 +756,9 @@ public final class LiveInstrumentation {
             idxTypes = 0;
             idxValues = (Modifier.isStatic(m.getModifiers()) ? 0 : 1);
             if (tsLocals != null) {
-                while (idxTypes < tsLocals.length) {
+                while (idxTypes < tsLocals.length &&
+                       // The following test is necessary because tail uninitialized locals appear in types but not always in live
+                       idxValues < locals.length) {
                     int inc = 1;
                     final Type tLocal = tsLocals[idxTypes];
                     final int slot = idxValues; // Shadow's relocation would scramble them during AoT, difficult to track them; relocation disable for now, see https://github.com/johnrengelman/shadow/issues/176
@@ -787,7 +789,7 @@ public final class LiveInstrumentation {
                     } else {
                         operandsOps.add(new SkipNull("\t\t\t\tNULL OP(" + idxValues + ")"));
                     }
-                    idxTypes++;
+                    idxTypes += inc; // In local types a long is a (J, null) seq and a double is a (D, null) seq
                     idxValues += inc;
                 }
             }

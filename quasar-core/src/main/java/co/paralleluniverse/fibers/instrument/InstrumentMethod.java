@@ -1259,11 +1259,9 @@ public class InstrumentMethod {
             final BasicValue v = (BasicValue) f.getStack(i);
             int slotIdx = fi.stackSlotIndices[i];
             if (!isOmitted(v)) {
-                // Emit null types as they'll be found in live arrays
-                // if (!isNullType(v)) {
-                    operandTypes.add(isNullType(v) ? NULL_TYPE : v.getType());
-                    operandIndexes.add(slotIdx);
-                // }
+                // Emit null types as they'll be found in live arrays and will need to be skipped when rebuilding the fiber stack
+                operandTypes.add(isNullType(v) ? NULL_TYPE : v.getType());
+                operandIndexes.add(slotIdx);
             }
         }
         final List<Type> localTypes = new ArrayList<>();
@@ -1271,10 +1269,10 @@ public class InstrumentMethod {
         for (int i = firstLocal; i < f.getLocals(); i++) {
             final BasicValue v = (BasicValue) f.getLocal(i);
             int slotIdx = fi.localSlotIndices[i];
-            if (v != BasicValue.UNINITIALIZED_VALUE) {
-                localTypes.add(isNullType(v) ? NULL_TYPE : v.getType());
-                localIndexes.add(slotIdx);
-            }
+            // Emit null types as they'll be found in live arrays and will need to be skipped when rebuilding the fiber stack
+            // TODO: distinguish between null and uninitialized
+            localTypes.add(isNullType(v) ? NULL_TYPE : v.getType());
+            localIndexes.add(slotIdx);
         }
         suspCallSites.add (
             new SuspCallSite (
