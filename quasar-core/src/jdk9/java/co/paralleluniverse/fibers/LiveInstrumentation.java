@@ -572,9 +572,11 @@ public final class LiveInstrumentation {
             private final Object value;
             private final int idx;
             private final String msg;
+            private final Type t;
 
-            private PushObject(Object value, int idx, String msg) {
+            private PushObject(Object value, Type t, int idx, String msg) {
                 this.value = value;
+                this.t = t;
                 this.idx = idx;
                 this.msg = msg;
             }
@@ -582,6 +584,8 @@ public final class LiveInstrumentation {
             @Override
             public void apply(Stack s) {
                 DEBUG(msg);
+                if (!matchObj(t, value))
+                    throw new IllegalStateException("The type " + t + " is not assignable from the value " + value);
                 Stack.push(value, s, idx);
             }
         }
@@ -604,6 +608,8 @@ public final class LiveInstrumentation {
             @Override
             public void apply(Stack s) {
                 DEBUG(msg);
+                if (!matchPrim(t, ops, i))
+                    throw new IllegalStateException("The type " + t + " is not assignable from the value " + ops[i]);
                 storePrim(ops, i, t, s, idx);
             }
         }
@@ -725,7 +731,7 @@ public final class LiveInstrumentation {
                     } else {
                         operandsOps.add (
                             new PushObject(
-                                op, idxObj,
+                                op, tOperand, idxObj,
                                 "\t\t\t\tPUSH " + idxObj + " OP(" + idxValues + ") OBJ (" +
                                     op +
                                     ") :? " + tOperand + " : " + (op != null ? op.getClass() : "null")
@@ -742,7 +748,7 @@ public final class LiveInstrumentation {
 
             if (callingReflection) {
                 for (final Object o : reconstructReflectionArgs(upperFFP))
-                    operandsOps.add(new PushObject(o, idxObj++, "\t\t\tPushed reflection object operand " + o));
+                    operandsOps.add(new PushObject(o, null, idxObj++, "\t\t\tPushed reflection object operand " + o));
             }
 
             // Store local vars, including args, except "this" (present in actual values but not types)
@@ -770,7 +776,7 @@ public final class LiveInstrumentation {
                         } else {
                             localsOps.add(
                                 new PushObject(
-                                    local, idxObj,
+                                    local, tLocal, idxObj,
                                     "\t\t\t\tPUSH " + idxObj + " LOC(" + slot + ") OBJ (" +
                                         local +
                                         ") :? " + tLocal + " : " + (local != null ? local.getClass() : "null")
@@ -821,6 +827,19 @@ public final class LiveInstrumentation {
 
             // Cleanup some tmp mem; this assumes that live instrumentation doesn't need to run again for the
             // same methods (as it shouldn't actually need to run again, if it is correct).
+        }
+
+        private static boolean matchObj(Type t, Object v) {
+            // TODO: distinguish between null and uninitialized
+            // TODO: make stronger by checking assignability
+            return t == null || isNullType(t) || !isDoublePrimitive(t) && !isSinglePrimitive(t);
+        }
+
+        private static boolean matchPrim(Type t, Object[] objs, int i) {
+            if (isDoublePrimitive(t))
+                return primitiveValueClass.isInstance(objs[i]) && primitiveValueClass.isInstance(objs[i+1]);
+            else
+                return primitiveValueClass.isInstance(objs[i]);
         }
 
         private static boolean isNullType(Type t) {
