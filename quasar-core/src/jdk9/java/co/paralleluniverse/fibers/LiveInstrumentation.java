@@ -720,7 +720,7 @@ public final class LiveInstrumentation {
                     if (op != null && primitiveValueClass.isInstance(op)) {
                         inc = getTypeSize(tOperand);
                         operandsOps.add (
-                            new PushPrimitive(
+                            new PushPrimitive (
                                 preCallOperands, idxValues, tOperand, idxPrim,
                                 "\t\t\t\tPUSH " + idxPrim + " OP(" + idxValues + ") PRIM (" +
                                     op + (inc > 1 ? "," + preCallOperands[idxValues + 1] : "") +
@@ -730,7 +730,7 @@ public final class LiveInstrumentation {
                         idxPrim++;
                     } else {
                         operandsOps.add (
-                            new PushObject(
+                            new PushObject (
                                 op, tOperand, idxObj,
                                 "\t\t\t\tPUSH " + idxObj + " OP(" + idxValues + ") OBJ (" +
                                     op +
@@ -764,8 +764,8 @@ public final class LiveInstrumentation {
                     if (!isNullType(tLocal)) {
                         if (local != null && primitiveValueClass.isInstance(local)) {
                             inc = getTypeSize(tLocal);
-                            localsOps.add(
-                                new PushPrimitive(
+                            localsOps.add (
+                                new PushPrimitive (
                                     locals, idxValues, tLocal, idxPrim,
                                     "\t\t\t\tPUSH " + idxPrim + " LOC(" + slot + ") PRIM (" +
                                         local + (inc > 1 ? "," + locals[slot + 1] : "") +
@@ -774,8 +774,8 @@ public final class LiveInstrumentation {
                             );
                             idxPrim++;
                         } else {
-                            localsOps.add(
-                                new PushObject(
+                            localsOps.add (
+                                new PushObject (
                                     local, tLocal, idxObj,
                                     "\t\t\t\tPUSH " + idxObj + " LOC(" + slot + ") OBJ (" +
                                         local +
