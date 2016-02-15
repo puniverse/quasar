@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -24,8 +24,8 @@ import java.util.concurrent.TimeUnit
 /**
  * @author circlespainter
  */
-public class FiberKotlinTest {
-  @Test public fun testFiber() {
+class FiberKotlinTest {
+  @Test fun testFiber() {
     assertTrue (
       fiber @Suspendable {
         println("Hi there")
@@ -36,7 +36,7 @@ public class FiberKotlinTest {
     )
   }
 
-  @Test public fun testSelect() {
+  @Test fun testSelect() {
     val ch1 = Channels.newChannel<Int>(1)
     val ch2 = Channels.newChannel<Double>(1)
 

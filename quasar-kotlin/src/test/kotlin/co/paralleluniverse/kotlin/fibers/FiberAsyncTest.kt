@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -30,7 +30,7 @@ import org.hamcrest.CoreMatchers.*
  * @author pron
  * @author circlespainter
  */
-public class FiberAsyncTest {
+class FiberAsyncTest {
     private val scheduler = FiberForkJoinScheduler("test", 4, null, false);
 
     private interface MyCallback {
@@ -91,7 +91,7 @@ public class FiberAsyncTest {
     }
 
     companion object {
-        @Suspendable fun callService(service: Service): String {
+        @Suspendable private fun callService(service: Service): String {
             return object : MyFiberAsync() {
                 override fun requestAsync() {
                     service.registerCallback(this);
@@ -99,7 +99,7 @@ public class FiberAsyncTest {
             }.run()
         }
 
-        @Suspendable fun callService(service: Service, timeout: Long, unit: TimeUnit): String {
+        @Suspendable private fun callService(service: Service, timeout: Long, unit: TimeUnit): String {
             return object : MyFiberAsync() {
                 override fun requestAsync() {
                     service.registerCallback(this)
@@ -119,7 +119,7 @@ public class FiberAsyncTest {
     }
 
     @Test
-    public fun testSyncCallback() {
+    fun testSyncCallback() {
         val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
             val res = callService(syncService)
             assertThat(res, equalTo("sync result!"))
@@ -129,7 +129,7 @@ public class FiberAsyncTest {
     }
 
     @Test
-    public fun testSyncCallbackException() {
+    fun testSyncCallbackException() {
         val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
             try {
                 callService(badSyncService)
@@ -143,7 +143,7 @@ public class FiberAsyncTest {
     }
 
     @Test
-    public fun testAsyncCallback() {
+    fun testAsyncCallback() {
         val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
             val res = callService(asyncService)
             assertThat(res, equalTo("async result!"))
@@ -153,7 +153,7 @@ public class FiberAsyncTest {
     }
 
     @Test
-    public fun testAsyncCallbackException() {
+    fun testAsyncCallbackException() {
         val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
             try {
                 callService(badAsyncService)
@@ -167,11 +167,11 @@ public class FiberAsyncTest {
     }
 
     @Test
-    public fun testAsyncCallbackExceptionInRequestAsync() {
+    fun testAsyncCallbackExceptionInRequestAsync() {
         val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
             try {
                 object : FiberAsync<String, RuntimeException>() {
-                    override protected fun requestAsync() {
+                    override fun requestAsync() {
                         throw RuntimeException("requestAsync exception!")
                     }
                 }.run()
@@ -185,7 +185,7 @@ public class FiberAsyncTest {
     }
 
     @Test
-    public fun testTimedAsyncCallbackNoTimeout() {
+    fun testTimedAsyncCallbackNoTimeout() {
         val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
             try {
                 val res = callService(asyncService, 50, TimeUnit.MILLISECONDS)
@@ -199,7 +199,7 @@ public class FiberAsyncTest {
     }
 
     @Test
-    public fun testTimedAsyncCallbackWithTimeout() {
+    fun testTimedAsyncCallbackWithTimeout() {
         val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
             try {
                 callService(asyncService, 10, TimeUnit.MILLISECONDS)
@@ -211,7 +211,7 @@ public class FiberAsyncTest {
     }
 
     @Test
-    public fun testInterrupt1() {
+    fun testInterrupt1() {
         val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
             try {
                 callService(longAsyncService)
@@ -224,7 +224,7 @@ public class FiberAsyncTest {
     }
 
     @Test
-    public fun testInterrupt2() {
+    fun testInterrupt2() {
         val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
             try {
                 callService(longAsyncService)
@@ -238,7 +238,7 @@ public class FiberAsyncTest {
     }
 
     @Test
-    public fun testRunBlocking() {
+    fun testRunBlocking() {
         val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
             val res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), CheckedCallable<kotlin.String, java.lang.InterruptedException> @Suspendable {
                 Thread.sleep(300)
@@ -251,7 +251,7 @@ public class FiberAsyncTest {
     }
 
     @Test
-    public fun testRunBlockingWithTimeout1() {
+    fun testRunBlockingWithTimeout1() {
         val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
             try {
                 val res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), 400, TimeUnit.MILLISECONDS, CheckedCallable<kotlin.String, java.lang.InterruptedException> @Suspendable {
@@ -268,7 +268,7 @@ public class FiberAsyncTest {
     }
 
     @Test
-    public fun testRunBlockingWithTimeout2() {
+    fun testRunBlockingWithTimeout2() {
         val fiber = Fiber<Void>(SuspendableRunnable @Suspendable {
             try {
                 FiberAsync.runBlocking(Executors.newCachedThreadPool(), 100, TimeUnit.MILLISECONDS, CheckedCallable<kotlin.String, java.lang.InterruptedException> @Suspendable {
