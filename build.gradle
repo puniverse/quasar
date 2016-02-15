@@ -39,7 +39,7 @@ subprojects {
     ext.quasarJar = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}${ext.java8 ? "-jdk8" : ""}.jar" // project(':quasar-core').jar.archivePath
 
     ext.asmVer    = '5.0.4'
-    ext.kotlinVer = '1.0.0-beta-4589'
+    ext.kotlinVer = '1.0.0'
 
     if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
         println "sonatype username or password not set"
@@ -235,8 +235,8 @@ subprojects {
             }
             // stylesheetFile = rootProject.file('./baselib/javadoc.css')
             links = [
-        "http://docs.oracle.com/javase/7/docs/api/",
-        "http://docs.guava-libraries.googlecode.com/git-history/v19.0/javadoc/"
+                "http://docs.oracle.com/javase/7/docs/api/",
+                "http://google.github.io/guava/releases/19.0/api/docs/"
             ]
         }
     }
