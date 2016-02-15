@@ -235,8 +235,8 @@ subprojects {
             }
             // stylesheetFile = rootProject.file('./baselib/javadoc.css')
             links = [
-        "http://docs.oracle.com/javase/7/docs/api/",
-        "http://docs.guava-libraries.googlecode.com/git-history/v19.0/javadoc/"
+                "http://docs.oracle.com/javase/7/docs/api/",
+                "http://google.github.io/guava/releases/19.0/api/docs/"
             ]
         }
     }
