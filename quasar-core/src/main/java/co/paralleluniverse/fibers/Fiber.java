@@ -736,6 +736,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 record(1, "Fiber", "exec", "finished %s %s res: %s", state, this, this.result);
                 monitorFiberTerminated(monitor);
 
+                onCompletion();
                 setResult(res);
 
                 return true;

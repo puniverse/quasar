@@ -328,13 +328,10 @@ public class FiberForkJoinScheduler extends FiberScheduler {
 
         @Override
         protected void onException(Throwable t) {
-            fiber.onException(t);
         }
 
         @Override
         protected void onCompletion(boolean res) {
-            if (res)
-                fiber.onCompletion();
         }
 
         static boolean isIdle() {

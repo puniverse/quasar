@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -97,8 +97,6 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
             return res;
         } catch (Throwable t) {
             onException(t);
-            if (future != null)
-                future.setException(t);
             return true;
         }
     }
@@ -120,14 +118,14 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
 
     protected void onCompletion(boolean res) {
         if (res) {
-            fiber.onCompletion();
             if (future != null)
                 future.set(fiber.getResult());
         }
     }
 
     protected void onException(Throwable t) {
-        fiber.onException(t);
+        if (future != null)
+            future.setException(t);
     }
 
     protected void parking(boolean yield) {
