@@ -31,6 +31,7 @@ import sun.misc.Unsafe;
  * @author pron
  */
 class RunnableFiberTask<V> implements Runnable, FiberTask {
+
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
     public static final boolean CAPTURE_UNPARK_STACK = Debug.isDebug() || SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.captureUnparkStackTrace");
     //public static final Object EMERGENCY_UNBLOCKER = new Object();
@@ -274,7 +275,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
     public void setState(int state) {
         this.state = state;
     }
-    
+
     boolean compareAndSetState(int expect, int update) {
         return UNSAFE.compareAndSwapInt(this, stateOffset, expect, update);
     }
