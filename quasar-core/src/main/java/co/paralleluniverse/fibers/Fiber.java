@@ -1941,6 +1941,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         s.getKryo().register(Fiber.class);
         s.getKryo().register(ThreadLocal.class);
         s.getKryo().register(InheritableThreadLocal.class);
+        s.getKryo().register(ThreadLocalSerializer.DEFAULT.class);
         s.getKryo().register(FiberWriter.class);
         return s;
     }
