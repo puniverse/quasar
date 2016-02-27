@@ -74,7 +74,11 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.concurrent.util.MapUtil;
-import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
@@ -82,10 +86,8 @@ import java.lang.ref.WeakReference;
 import java.security.ProtectionDomain;
 import java.util.Collections;
 import java.util.Set;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.MethodVisitor;
+
+import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 
 /*
  * @author pron
@@ -171,7 +173,7 @@ public class JavaAgent {
 
         @Override
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
-            if (className.startsWith("clojure/lang/Compiler"))
+            if (className != null && className.startsWith("clojure/lang/Compiler"))
                 return crazyClojureOnceDisable(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
 
             if (!instrumentor.shouldInstrument(className))
