@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -34,7 +34,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 
 /**
- *
  * @author pron
  */
 public final class QuasarInstrumentor {
@@ -108,19 +107,19 @@ public final class QuasarInstrumentor {
         }
 
         final ClassWriter cw = new DBClassWriter(db, r);
-        ClassVisitor cv = (check && EXAMINED_CLASS == null) ? new CheckClassAdapter(cw) : cw;
+        final ClassVisitor cv = (check && EXAMINED_CLASS == null) ? new CheckClassAdapter(cw) : cw;
 
-        if (className != null && EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS)) {
+        if (EXAMINED_CLASS != null && className != null && className.startsWith(EXAMINED_CLASS)) {
             writeToFile(className.replace('/', '.') + "-before.class", getClassBuffer(r));
             // cv = new TraceClassVisitor(cv, new PrintWriter(System.err));
         }
 
         final InstrumentClass ic = new InstrumentClass(cv, db, forceInstrumentation);
-        byte[] transformed = null;
+        byte[] transformed;
         try {
             r.accept(ic, ClassReader.SKIP_FRAMES);
             transformed = cw.toByteArray();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             if (ic.hasSuspendableMethods()) {
                 error("Unable to instrument class " + className, e);
                 throw e;
@@ -136,8 +135,8 @@ public final class QuasarInstrumentor {
                 writeToFile(className.replace('/', '.') + "-after.class", transformed);
 
             if (check) {
-                ClassReader r2 = new ClassReader(transformed);
-                ClassVisitor cv2 = new CheckClassAdapter(new TraceClassVisitor(null), true);
+                final ClassReader r2 = new ClassReader(transformed);
+                final ClassVisitor cv2 = new CheckClassAdapter(new TraceClassVisitor(null), true);
                 r2.accept(cv2, 0);
             }
         }
@@ -198,7 +197,7 @@ public final class QuasarInstrumentor {
     private static void writeToFile(String name, byte[] data) {
         try (OutputStream os = Files.newOutputStream(Paths.get(name), StandardOpenOption.CREATE_NEW)) {
             os.write(data);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
     }
