@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -17,6 +17,13 @@ import co.paralleluniverse.common.reflection.ReflectionUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.WorkListEntry;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.util.CheckClassAdapter;
+import org.objectweb.asm.util.TraceClassVisitor;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,15 +32,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.util.CheckClassAdapter;
-import org.objectweb.asm.util.TraceClassVisitor;
 
 /**
- *
  * @author pron
  */
 public final class QuasarInstrumentor {
@@ -66,70 +66,77 @@ public final class QuasarInstrumentor {
     }
 
     public boolean shouldInstrument(String className) {
-        className = className.replace('.', '/');
-        if (className.startsWith("co/paralleluniverse/fibers/instrument/") && !Debug.isUnitTest())
-            return false;
-        if (className.equals(Classes.FIBER_CLASS_NAME) || className.startsWith(Classes.FIBER_CLASS_NAME + '$'))
-            return false;
-        if (className.equals(Classes.STACK_NAME))
-            return false;
-        if (className.startsWith("org/objectweb/asm/"))
-            return false;
-        if (className.startsWith("org/netbeans/lib/"))
-            return false;
-        if (className.startsWith("java/lang/") || (!allowJdkInstrumentation && MethodDatabase.isJavaCore(className)))
-            return false;
+        if (className != null) {
+            className = className.replace('.', '/');
+            if (className.startsWith("co/paralleluniverse/fibers/instrument/") && !Debug.isUnitTest())
+                return false;
+            if (className.equals(Classes.FIBER_CLASS_NAME) || className.startsWith(Classes.FIBER_CLASS_NAME + '$'))
+                return false;
+            if (className.equals(Classes.STACK_NAME))
+                return false;
+            if (className.startsWith("org/objectweb/asm/"))
+                return false;
+            if (className.startsWith("org/netbeans/lib/"))
+                return false;
+            if (className.startsWith("java/lang/") || (!allowJdkInstrumentation && MethodDatabase.isJavaCore(className)))
+                return false;
+        }
         return true;
     }
 
     public byte[] instrumentClass(String className, byte[] data) {
-        className = className.replace('.', '/');
         return shouldInstrument(className) ? instrumentClass(className, new ClassReader(data), false) : data;
     }
 
     public byte[] instrumentClass(String className, InputStream is) throws IOException {
-        className = className.replace('.', '/');
         return instrumentClass(className, new ClassReader(is), false);
     }
 
     byte[] instrumentClass(String className, InputStream is, boolean forceInstrumentation) throws IOException {
-        className = className.replace('.', '/');
         return instrumentClass(className, new ClassReader(is), forceInstrumentation);
     }
 
     private byte[] instrumentClass(String className, ClassReader r, boolean forceInstrumentation) {
-        log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
-        final ClassWriter cw = new DBClassWriter(db, r);
-        ClassVisitor cv = (check && EXAMINED_CLASS == null) ? new CheckClassAdapter(cw) : cw;
+        className = className != null ? className.replace('.', '/') : null;
 
-        if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS)) {
+        if (className != null) {
+            log(LogLevel.INFO, "TRANSFORM: %s %s", className,
+                    (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
+        } else {
+            log(LogLevel.INFO, "TRANSFORM: null className");
+        }
+
+        final ClassWriter cw = new DBClassWriter(db, r);
+        final ClassVisitor cv = (check && EXAMINED_CLASS == null) ? new CheckClassAdapter(cw) : cw;
+
+        if (EXAMINED_CLASS != null && className != null && className.startsWith(EXAMINED_CLASS)) {
             writeToFile(className.replace('/', '.') + "-before.class", getClassBuffer(r));
             // cv = new TraceClassVisitor(cv, new PrintWriter(System.err));
         }
 
         final InstrumentClass ic = new InstrumentClass(cv, db, forceInstrumentation);
-        byte[] transformed = null;
+        byte[] transformed;
         try {
             r.accept(ic, ClassReader.SKIP_FRAMES);
             transformed = cw.toByteArray();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             if (ic.hasSuspendableMethods()) {
                 error("Unable to instrument class " + className, e);
                 throw e;
             } else {
-                if (!MethodDatabase.isProblematicClass(className))
+                if (className != null && !MethodDatabase.isProblematicClass(className))
                     log(LogLevel.DEBUG, "Unable to instrument class " + className);
                 return null;
             }
         }
 
         if (EXAMINED_CLASS != null) {
-            if (className.startsWith(EXAMINED_CLASS))
+            if (className != null && className.startsWith(EXAMINED_CLASS))
                 writeToFile(className.replace('/', '.') + "-after.class", transformed);
 
             if (check) {
-                ClassReader r2 = new ClassReader(transformed);
-                ClassVisitor cv2 = new CheckClassAdapter(new TraceClassVisitor(null), true);
+                final ClassReader r2 = new ClassReader(transformed);
+                final ClassVisitor cv2 = new CheckClassAdapter(new TraceClassVisitor(null), true);
                 r2.accept(cv2, 0);
             }
         }
@@ -190,7 +197,7 @@ public final class QuasarInstrumentor {
     private static void writeToFile(String name, byte[] data) {
         try (OutputStream os = Files.newOutputStream(Paths.get(name), StandardOpenOption.CREATE_NEW)) {
             os.write(data);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
     }
