@@ -91,9 +91,9 @@ public final class SuspendableHelper {
     }
     
     public static boolean isSyntheticAndNotLambda(Member m) {
-        return m.isSynthetic() && !m.getName().startsWith("lambda$");
+        return m.isSynthetic() && !m.getName().startsWith(Classes.LAMBDA_METHOD_PREFIX);
     }
-    
+
     public static boolean isOptimized(Member m) {
         if (m == null)
             return false;

@@ -39,10 +39,12 @@ final class Classes {
     static final String ANNOTATION_DESC = "L" + ANNOTATION_NAME + ";";
     static final String DONT_INSTRUMENT_ANNOTATION_DESC = "L" + DONT_INSTRUMENT_ANNOTATION_NAME + ";";
     static final String ALREADY_INSTRUMENTED_DESC = Type.getDescriptor(Instrumented.class);
+    static final String LAMBDA_METHOD_PREFIX = "lambda$";
 
     private static final Set<String> yieldMethods = new HashSet<>(Arrays.asList(new String[] {
         "park", "yield", "parkAndUnpark", "yieldAndUnpark", "parkAndSerialize"
     }));
+
     static boolean isYieldMethod(String className, String methodName) {
         return FIBER_CLASS_NAME.equals(className) && yieldMethods.contains(methodName);
     }
