@@ -51,6 +51,10 @@ public class DefaultSuspendableClassifier implements SuspendableClassifier {
             // throws SuspendExecution
             if (checkExceptions(methodExceptions))
                 return SuspendableType.SUSPENDABLE;
+
+            // lambda$
+            if (methodName.startsWith(Classes.LAMBDA_METHOD_PREFIX))
+                return SuspendableType.SUSPENDABLE;
         } catch (Exception e) {
             e.printStackTrace();
             throw e;

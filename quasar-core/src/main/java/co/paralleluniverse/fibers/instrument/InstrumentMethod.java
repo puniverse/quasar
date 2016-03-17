@@ -355,7 +355,7 @@ class InstrumentMethod {
         for (Object o : mn.tryCatchBlocks) {
             final TryCatchBlockNode tcb = (TryCatchBlockNode) o;
 
-            if (SUSPEND_EXECUTION_NAME.equals(tcb.type) && !hasAnnotation) // we allow catch of SuspendExecution in method annotated with @Suspendable.
+            if (SUSPEND_EXECUTION_NAME.equals(tcb.type) && !hasAnnotation && !mn.name.startsWith(Classes.LAMBDA_METHOD_PREFIX)) // we allow catch of SuspendExecution only in methods annotated with @Suspendable and in lambda-generated ones.
                 throw new UnableToInstrumentException("catch for SuspendExecution", className, mn.name, mn.desc);
             if (handleProxyInvocations && UNDECLARED_THROWABLE_NAME.equals(tcb.type)) // we allow catch of SuspendExecution in method annotated with @Suspendable.
                 throw new UnableToInstrumentException("catch for UndeclaredThrowableException", className, mn.name, mn.desc);
