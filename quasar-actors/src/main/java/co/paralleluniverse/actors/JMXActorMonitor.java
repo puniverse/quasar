@@ -162,7 +162,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
     }
 
     protected void collect(long intervalNanos) {
-        messages = messageCounter;
+        messages += messageCounter;
     }
 
     protected void reset() {
