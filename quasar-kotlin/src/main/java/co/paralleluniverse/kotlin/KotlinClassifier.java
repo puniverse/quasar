@@ -59,7 +59,9 @@ public class KotlinClassifier implements SuspendableClassifier {
 		// Class prefixes that are known not to suspend
 		excludePrefixes = new String[] {
 			// TODO: this specifically is also known to cause a `VerifyError` when instrumented, see #146
-			"kotlin/reflect/jvm/internal/impl/descriptors/impl/ModuleDescriptorImpl"
+			"kotlin/reflect/jvm/internal/impl/descriptors/impl/ModuleDescriptorImpl",
+			// Handle the same class, when shaded within kotlin-compiler[-embeddable]
+			"org/jetbrains/kotlin/descriptors/impl/ModuleDescriptorImpl"
 		};
 	}
 
